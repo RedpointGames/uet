@@ -1,0 +1,91 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33122.133
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BuildRunner", "BuildRunner\BuildRunner.csproj", "{E0D9FCC1-38F5-4E66-AD5C-5C4604E44069}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutomationRunner", "AutomationRunner\AutomationRunner.csproj", "{3C0F2911-90F4-42AA-AAC0-94CDE6E9F031}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Unreal.Serialization", "Redpoint.Unreal.Serialization\Redpoint.Unreal.Serialization.csproj", "{0793FE80-7AE3-453B-82E1-DEA8EB08F055}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Unreal.Serialization.Tests", "Redpoint.Unreal.Serialization.Tests\Redpoint.Unreal.Serialization.Tests.csproj", "{341B64CE-B2A6-434F-802D-D80C2D9B7F43}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Unreal.TcpMessaging", "Redpoint.Unreal.TcpMessaging\Redpoint.Unreal.TcpMessaging.csproj", "{6D6B6805-5B3F-4D6F-8E1E-BE312FD30D71}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Unreal.TcpMessaging.Debugger", "Redpoint.Unreal.TcpMessaging.Debugger\Redpoint.Unreal.TcpMessaging.Debugger.csproj", "{3061D260-745C-4379-84CE-DBEE7FFC17D1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Unreal.TcpMessaging.Tests", "Redpoint.Unreal.TcpMessaging.Tests\Redpoint.Unreal.TcpMessaging.Tests.csproj", "{51C10BFD-5E28-4A0B-A6CB-3FC449C96DA3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Unreal.TcpMessaging.TestRunner", "Redpoint.Unreal.TcpMessaging.TestRunner\Redpoint.Unreal.TcpMessaging.TestRunner.csproj", "{11A8C3B3-D912-43F7-A9E9-DCC2AF7550C6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.SdkManagement", "Redpoint.SdkManagement\Redpoint.SdkManagement.csproj", "{B19152CF-835C-4340-B9F0-891CB6891BF8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.SdkManagement.Tests", "Redpoint.SdkManagement.Tests\Redpoint.SdkManagement.Tests.csproj", "{C79E88CA-9183-4560-AB9C-ACE2E6067CB4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ProcessExecution", "Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj", "{E1D5A2B2-D2DA-4076-9D44-66FEFDB12286}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.SdkManagement.Install", "Redpoint.SdkManagement.Install\Redpoint.SdkManagement.Install.csproj", "{D6CBA6FD-0D58-40D9-9A48-A80A9606F81A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E0D9FCC1-38F5-4E66-AD5C-5C4604E44069}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0D9FCC1-38F5-4E66-AD5C-5C4604E44069}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0D9FCC1-38F5-4E66-AD5C-5C4604E44069}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0D9FCC1-38F5-4E66-AD5C-5C4604E44069}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C0F2911-90F4-42AA-AAC0-94CDE6E9F031}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C0F2911-90F4-42AA-AAC0-94CDE6E9F031}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C0F2911-90F4-42AA-AAC0-94CDE6E9F031}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C0F2911-90F4-42AA-AAC0-94CDE6E9F031}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0793FE80-7AE3-453B-82E1-DEA8EB08F055}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0793FE80-7AE3-453B-82E1-DEA8EB08F055}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0793FE80-7AE3-453B-82E1-DEA8EB08F055}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0793FE80-7AE3-453B-82E1-DEA8EB08F055}.Release|Any CPU.Build.0 = Release|Any CPU
+		{341B64CE-B2A6-434F-802D-D80C2D9B7F43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{341B64CE-B2A6-434F-802D-D80C2D9B7F43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{341B64CE-B2A6-434F-802D-D80C2D9B7F43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{341B64CE-B2A6-434F-802D-D80C2D9B7F43}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D6B6805-5B3F-4D6F-8E1E-BE312FD30D71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D6B6805-5B3F-4D6F-8E1E-BE312FD30D71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D6B6805-5B3F-4D6F-8E1E-BE312FD30D71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D6B6805-5B3F-4D6F-8E1E-BE312FD30D71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3061D260-745C-4379-84CE-DBEE7FFC17D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3061D260-745C-4379-84CE-DBEE7FFC17D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3061D260-745C-4379-84CE-DBEE7FFC17D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3061D260-745C-4379-84CE-DBEE7FFC17D1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51C10BFD-5E28-4A0B-A6CB-3FC449C96DA3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51C10BFD-5E28-4A0B-A6CB-3FC449C96DA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51C10BFD-5E28-4A0B-A6CB-3FC449C96DA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51C10BFD-5E28-4A0B-A6CB-3FC449C96DA3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{11A8C3B3-D912-43F7-A9E9-DCC2AF7550C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11A8C3B3-D912-43F7-A9E9-DCC2AF7550C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11A8C3B3-D912-43F7-A9E9-DCC2AF7550C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11A8C3B3-D912-43F7-A9E9-DCC2AF7550C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B19152CF-835C-4340-B9F0-891CB6891BF8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B19152CF-835C-4340-B9F0-891CB6891BF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B19152CF-835C-4340-B9F0-891CB6891BF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B19152CF-835C-4340-B9F0-891CB6891BF8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C79E88CA-9183-4560-AB9C-ACE2E6067CB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C79E88CA-9183-4560-AB9C-ACE2E6067CB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C79E88CA-9183-4560-AB9C-ACE2E6067CB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C79E88CA-9183-4560-AB9C-ACE2E6067CB4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1D5A2B2-D2DA-4076-9D44-66FEFDB12286}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1D5A2B2-D2DA-4076-9D44-66FEFDB12286}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1D5A2B2-D2DA-4076-9D44-66FEFDB12286}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1D5A2B2-D2DA-4076-9D44-66FEFDB12286}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6CBA6FD-0D58-40D9-9A48-A80A9606F81A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6CBA6FD-0D58-40D9-9A48-A80A9606F81A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6CBA6FD-0D58-40D9-9A48-A80A9606F81A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6CBA6FD-0D58-40D9-9A48-A80A9606F81A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}
+	EndGlobalSection
+EndGlobal

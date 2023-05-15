@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Redpoint.SdkManagement.Install": {
+      "commandName": "Project",
+      "commandLineArgs": "--engine-path E:\\EpicGames\\UE_5.2 --sdk-package-path E:\\SdkPackages --platform Windows"
+    }
+  }
+}
