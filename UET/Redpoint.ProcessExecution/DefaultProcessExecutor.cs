@@ -25,24 +25,9 @@
             return $"\"{argument.Replace("\\", "\\\\")}\"";
         }
 
-        public Task<int> ExecuteAsync(
+        public async Task<int> ExecuteAsync(
             ProcessSpecification processSpecification,
-            CancellationToken cancellationToken)
-        {
-            return RunAsync(processSpecification, null, cancellationToken);
-        }
-
-        public Task<int> CaptureAsync(
-            ProcessSpecification processSpecification,
-            CaptureSpecification captureSpecification,
-            CancellationToken cancellationToken)
-        {
-            return RunAsync(processSpecification, captureSpecification, cancellationToken);
-        }
-
-        private async Task<int> RunAsync(
-            ProcessSpecification processSpecification,
-            CaptureSpecification? captureSpecification,
+            ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken)
         {
             var argumentsEvaluated = processSpecification.Arguments.ToArray();
@@ -52,16 +37,9 @@
                 UseShellExecute = false,
                 CreateNoWindow = false,
             };
-            if (captureSpecification != null)
-            {
-                startInfo.RedirectStandardInput = true;
-                startInfo.RedirectStandardOutput = true;
-                startInfo.RedirectStandardError = captureSpecification.ReceiveStderr != null;
-            }
-            if (processSpecification.StdinData != null)
-            {
-                startInfo.RedirectStandardInput = true;
-            }
+            startInfo.RedirectStandardInput = captureSpecification.InterceptStandardInput || processSpecification.StdinData != null;
+            startInfo.RedirectStandardOutput = captureSpecification.InterceptStandardOutput;
+            startInfo.RedirectStandardError = captureSpecification.InterceptStandardError;
             if (processSpecification.WorkingDirectory != null)
             {
                 startInfo.WorkingDirectory = processSpecification.WorkingDirectory;
@@ -84,52 +62,51 @@
                     }
                 }
             }
-            _logger.LogInformation($"Starting process: {EscapeArgumentForLogging(processSpecification.FilePath)} {string.Join(" ", argumentsEvaluated.Select(EscapeArgumentForLogging))}");
+            _logger.LogTrace($"Starting process: {EscapeArgumentForLogging(processSpecification.FilePath)} {string.Join(" ", argumentsEvaluated.Select(EscapeArgumentForLogging))}");
             var process = Process.Start(startInfo);
             if (process == null)
             {
                 throw new InvalidOperationException("Unable to start process!");
             }
-            if (processSpecification.StdinData != null)
+            if (startInfo.RedirectStandardInput)
             {
-                process.StandardInput.Write(processSpecification.StdinData);
-            }
-            if (processSpecification.StdinData != null || captureSpecification != null)
-            {
+                if (processSpecification.StdinData != null)
+                {
+                    process.StandardInput.Write(processSpecification.StdinData);
+                }
+                if (captureSpecification.InterceptStandardInput)
+                {
+                    var data = captureSpecification.OnRequestStandardInputAtStartup();
+                    if (data != null)
+                    {
+                        process.StandardInput.Write(data);
+                    }
+                }
                 process.StandardInput.Close();
             }
-            if (captureSpecification != null)
+            if (startInfo.RedirectStandardOutput)
             {
                 process.OutputDataReceived += (sender, e) =>
                 {
                     var line = e?.Data?.TrimEnd();
                     if (!string.IsNullOrWhiteSpace(line))
                     {
-                        if (captureSpecification.ReceiveStdout(line))
-                        {
-                            System.Console.WriteLine(line);
-                        }
+                        captureSpecification.OnReceiveStandardOutput(line);
                     }
                 };
-                if (captureSpecification.ReceiveStderr != null)
-                {
-                    process.ErrorDataReceived += (sender, e) =>
-                    {
-                        var line = e?.Data?.TrimEnd();
-                        if (!string.IsNullOrWhiteSpace(line))
-                        {
-                            if (captureSpecification.ReceiveStderr(line))
-                            {
-                                System.Console.WriteLine(line);
-                            }
-                        }
-                    };
-                }
                 process.BeginOutputReadLine();
-                if (captureSpecification.ReceiveStderr != null)
+            }
+            if (startInfo.RedirectStandardError)
+            {
+                process.ErrorDataReceived += (sender, e) =>
                 {
-                    process.BeginErrorReadLine();
-                }
+                    var line = e?.Data?.TrimEnd();
+                    if (!string.IsNullOrWhiteSpace(line))
+                    {
+                        captureSpecification.OnReceiveStandardError(line);
+                    }
+                };
+                process.BeginErrorReadLine();
             }
             try
             {

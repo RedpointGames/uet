@@ -6,11 +6,7 @@
     {
         Task<int> ExecutePowerShellAsync(
             ScriptSpecification scriptSpecification,
-            CancellationToken cancellationToken);
-
-        Task<int> CapturePowerShellAsync(
-            ScriptSpecification scriptSpecification,
-            CaptureSpecification captureSpecification,
+            ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken);
     }
 }

@@ -1,0 +1,53 @@
+namespace Redpoint.UET.UAT.Tests
+{
+    using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.PathResolution;
+    using Redpoint.ProcessExecution;
+
+    public class UATExecutionTests
+    {
+        [Fact]
+        public async Task TestUATExecutionOfBuildGraphHelpWorks()
+        {
+            var enginePath = @"E:\EpicGames\UE_5.2";
+            if (!Directory.Exists(enginePath))
+            {
+                // Skip this test.
+                Assert.True(true);
+                return;
+            }
+
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddPathResolution();
+            services.AddProcessExecution();
+            services.AddUETUAT();
+
+            var serviceProvider = services.BuildServiceProvider();
+            var executor = serviceProvider.GetRequiredService<IUATExecutor>();
+
+            var lines = new List<string>();
+            var exitCode = await executor.ExecuteAsync(
+                enginePath,
+                new UATSpecification
+                {
+                    Command = "BuildGraph",
+                    Arguments = new[] { "-help" },
+                },
+                CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates()
+                {
+                    ReceiveStdout = (line) =>
+                    {
+                        lines.Add(line);
+                        return false;
+                    }
+                }),
+                CancellationToken.None);
+
+            Assert.Equal(0, exitCode);
+            Assert.Contains(lines, x => x.Contains("-WriteToSharedStorage"));
+            Assert.Contains(lines, x => x.Contains("AutomationTool executed for"));
+            Assert.Contains(lines, x => x.Contains("AutomationTool exiting with ExitCode=0 (Success)"));
+        }
+    }
+}

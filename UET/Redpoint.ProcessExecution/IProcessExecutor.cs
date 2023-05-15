@@ -6,11 +6,7 @@
     {
         Task<int> ExecuteAsync(
             ProcessSpecification processSpecification,
-            CancellationToken cancellationToken);
-
-        Task<int> CaptureAsync(
-            ProcessSpecification processSpecification,
-            CaptureSpecification captureSpecification,
+            ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken);
     }
 }

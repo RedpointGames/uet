@@ -1,9 +1,12 @@
 ﻿namespace Redpoint.ProcessExecution
 {
-    public class CaptureSpecification
+    public static class CaptureSpecification
     {
-        public required Func<string, bool> ReceiveStdout { get; init; }
+        public static readonly ICaptureSpecification Passthrough = new PassthroughContentStream();
 
-        public Func<string, bool>? ReceiveStderr { get; init; }
+        public static ICaptureSpecification CreateFromDelegates(CaptureSpecificationDelegates captureSpecification)
+        {
+            return new DelegateCaptureSpecification(captureSpecification);
+        }
     }
 }
