@@ -38,6 +38,12 @@
             return Task.FromResult<IWorkspace>(new LocalWorkspace(_pathProvider.RepositoryRoot));
         }
 
+        public Task<IWorkspace> GetFolderWorkspaceAsync(string folderPath)
+        {
+            _logger.LogInformation($"Creating workspace for existing path: {folderPath}");
+            return Task.FromResult<IWorkspace>(new LocalWorkspace(folderPath));
+        }
+
         public Task<IWorkspace> GetTempWorkspaceAsync(string name)
         {
             var tempPath = Path.Combine(_pathProvider.BuildScriptsTemp, name);
@@ -55,13 +61,13 @@
         {
             var stabilityId = _buildStabilityIdProvider.GetBuildStabilityId(
                 _pathProvider.RepositoryRoot,
-                $"{repository}-{commit}-{string.Join("-", folders)}",
-                workspaceSuffix);
+                $"{repository}-{commit}-{string.Join("-", folders)}-{workspaceSuffix}",
+                string.Empty);
             var targetPath = Path.Combine(
                 _uesMountRoot,
                 stabilityId);
             _logger.LogInformation($"Creating Git workspace using UEFS ({repository}, {commit}): {targetPath}");
-            var scratchPath = Path.Combine(_pathProvider.BuildScriptsTemp, $"Scratch-{stabilityId}");
+            var scratchPath = Path.Combine(_uesMountRoot, $"Scratch-{stabilityId}");
             Directory.CreateDirectory(scratchPath);
             var argumentList = new List<string>
             {
@@ -119,14 +125,12 @@
         {
             var stabilityId = _buildStabilityIdProvider.GetBuildStabilityId(
                 _pathProvider.RepositoryRoot,
-                tag,
-                workspaceSuffix);
+                $"{tag}-{workspaceSuffix}",
+                string.Empty);
             var targetPath = Path.Combine(
                 _uesMountRoot,
                 stabilityId);
             _logger.LogInformation($"Creating package workspace using UEFS ({tag}): {targetPath}");
-            var scratchPath = Path.Combine(_pathProvider.BuildScriptsTemp, $"Scratch-{stabilityId}");
-            Directory.CreateDirectory(scratchPath);
             try
             {
                 var exitCode = await _processExecutor.ExecuteAsync(
@@ -140,8 +144,6 @@
                             tag,
                             "--dir",
                             targetPath,
-                            "--scratch-path",
-                            scratchPath,
                         },
                     },
                     CaptureSpecification.Passthrough,

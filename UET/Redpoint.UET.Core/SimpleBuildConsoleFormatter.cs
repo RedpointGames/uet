@@ -1,4 +1,4 @@
-﻿namespace UET.Services
+﻿namespace Redpoint.UET.Core
 {
     using Microsoft.Extensions.Logging.Abstractions;
     using Microsoft.Extensions.Logging.Console;
@@ -6,7 +6,7 @@
     using Microsoft.Extensions.Options;
     using System;
     using System.Diagnostics.CodeAnalysis;
-    using UET.Services.Console;
+    using Redpoint.UET.Core.Console;
 
     /// <summary>
     /// Based on https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Logging.Console/src/SimpleConsoleFormatter.cs because

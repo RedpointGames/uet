@@ -1,7 +1,5 @@
-﻿namespace UET.Services
+﻿namespace Redpoint.UET.Core
 {
-    using Redpoint.UET.Core;
-
     internal class DefaultBuildStabilityIdProvider : IBuildStabilityIdProvider
     {
         private readonly IStringUtilities _stringUtilities;

@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "BuildRunner": {
-      "commandName": "Project",
-      "commandLineArgs": "--repository-root C:\\Work\\ueb build --distribution 5.1"
-    }
-  }
-}

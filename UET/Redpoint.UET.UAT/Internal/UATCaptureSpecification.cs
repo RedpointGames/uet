@@ -32,6 +32,10 @@
                 // Seems to happen sometimes when using clang-tidy?
                 NeedsRetry = true;
             }
+            if (data.Contains("LLVM ERROR: out of memory"))
+            {
+                NeedsRetry = true;
+            }
         }
 
         public void OnReceiveStandardError(string data)

@@ -1,6 +1,5 @@
-﻿namespace UET.Services
+﻿namespace Redpoint.UET.Core
 {
-    using Redpoint.UET.Core;
     using System;
     using System.Numerics;
     using System.Security.Cryptography;

@@ -18,6 +18,8 @@
 
         Task<IWorkspace> GetLocalWorkspaceAsync();
 
+        Task<IWorkspace> GetFolderWorkspaceAsync(string path);
+
         Task<IWorkspace> GetTempWorkspaceAsync(string name);
     }
 }
