@@ -1,4 +1,4 @@
-﻿namespace Redpoint.UET.BuildGraph
+﻿namespace Redpoint.UET.BuildPipeline
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;

@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
-    <ProjectReference Include="..\Redpoint.UET.BuildGraph\Redpoint.UET.BuildGraph.csproj" />
+    <ProjectReference Include="..\Redpoint.UET.BuildPipeline\Redpoint.UET.BuildPipeline.csproj" />
     <ProjectReference Include="..\Redpoint.UET.Configuration\Redpoint.UET.Configuration.csproj" />
     <ProjectReference Include="..\Redpoint.UET.Core\Redpoint.UET.Core.csproj" />
     <ProjectReference Include="..\Redpoint.UET.Workspace\Redpoint.UET.Workspace.csproj" />

@@ -39,9 +39,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.SdkManagement.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.SdkManagement.Tests", "Redpoint.UET.SdkManagement.Tests\Redpoint.UET.SdkManagement.Tests.csproj", "{4ACFA2D2-F5D7-428B-B144-F63350848E29}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildGraph", "Redpoint.UET.BuildGraph\Redpoint.UET.BuildGraph.csproj", "{78D12BAD-543C-45D1-99BC-61EB6D3EB8B4}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UET", "UET\UET.csproj", "{2307C5CA-384B-4AB6-8DB4-37799CC30E11}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline", "Redpoint.UET.BuildPipeline\Redpoint.UET.BuildPipeline.csproj", "{559D9E41-C462-4C71-8709-20B0BCA82E89}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.UET.BuildPipeline.Tests", "Redpoint.UET.BuildPipeline.Tests\Redpoint.UET.BuildPipeline.Tests.csproj", "{B9FDEB77-EC8B-4E1C-A9F1-218A3671574D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -121,14 +123,18 @@ Global
 		{4ACFA2D2-F5D7-428B-B144-F63350848E29}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4ACFA2D2-F5D7-428B-B144-F63350848E29}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4ACFA2D2-F5D7-428B-B144-F63350848E29}.Release|Any CPU.Build.0 = Release|Any CPU
-		{78D12BAD-543C-45D1-99BC-61EB6D3EB8B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{78D12BAD-543C-45D1-99BC-61EB6D3EB8B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{78D12BAD-543C-45D1-99BC-61EB6D3EB8B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{78D12BAD-543C-45D1-99BC-61EB6D3EB8B4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{2307C5CA-384B-4AB6-8DB4-37799CC30E11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2307C5CA-384B-4AB6-8DB4-37799CC30E11}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2307C5CA-384B-4AB6-8DB4-37799CC30E11}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2307C5CA-384B-4AB6-8DB4-37799CC30E11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{559D9E41-C462-4C71-8709-20B0BCA82E89}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{559D9E41-C462-4C71-8709-20B0BCA82E89}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{559D9E41-C462-4C71-8709-20B0BCA82E89}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{559D9E41-C462-4C71-8709-20B0BCA82E89}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9FDEB77-EC8B-4E1C-A9F1-218A3671574D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9FDEB77-EC8B-4E1C-A9F1-218A3671574D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9FDEB77-EC8B-4E1C-A9F1-218A3671574D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9FDEB77-EC8B-4E1C-A9F1-218A3671574D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

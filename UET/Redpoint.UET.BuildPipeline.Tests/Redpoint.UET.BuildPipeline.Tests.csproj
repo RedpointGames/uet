@@ -29,6 +29,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+    <ProjectReference Include="..\Redpoint.UET.BuildPipeline\Redpoint.UET.BuildPipeline.csproj" />
     <ProjectReference Include="..\Redpoint.UET.UAT\Redpoint.UET.UAT.csproj" />
   </ItemGroup>
 

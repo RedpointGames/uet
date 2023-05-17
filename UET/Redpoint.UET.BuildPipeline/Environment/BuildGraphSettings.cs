@@ -1,4 +1,4 @@
-﻿namespace Redpoint.UET.BuildGraph.Environment
+﻿namespace Redpoint.UET.BuildPipeline.Environment
 {
     /// <summary>
     /// Represents settings to then be pssed into a BuildGraphEnvironment later.

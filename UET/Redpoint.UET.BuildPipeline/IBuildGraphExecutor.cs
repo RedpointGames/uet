@@ -1,4 +1,4 @@
-﻿namespace Redpoint.UET.BuildGraph
+﻿namespace Redpoint.UET.BuildPipeline
 {
     using System.Collections.Generic;
     using System.Threading.Tasks;

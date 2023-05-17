@@ -1,4 +1,4 @@
-﻿namespace Redpoint.UET.BuildGraph.Environment
+﻿namespace Redpoint.UET.BuildPipeline.Environment
 {
     using System.Collections.Generic;
 

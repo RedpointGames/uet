@@ -9,13 +9,8 @@ namespace Redpoint.UET.UAT.Tests
         [Fact]
         public async Task TestUATExecutionOfBuildGraphHelpWorks()
         {
-            var enginePath = @"E:\EpicGames\UE_5.2";
-            if (!Directory.Exists(enginePath))
-            {
-                // Skip this test.
-                Assert.True(true);
-                return;
-            }
+            var enginePath = Environment.GetEnvironmentVariable("UET_ENGINE_PATH") ?? @"E:\EpicGames\UE_5.2";
+            Skip.IfNot(Directory.Exists(enginePath), $"Engine must exist at {enginePath} for this test to run.");
 
             var services = new ServiceCollection();
             services.AddLogging();
