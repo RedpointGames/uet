@@ -9,16 +9,19 @@
             string commit,
             string[] folders,
             string workspaceSuffix,
+            WorkspaceOptions workspaceOptions,
             CancellationToken cancellationToken);
 
         Task<IWorkspace> GetPackageWorkspaceAsync(
             string tag,
             string workspaceSuffix,
+            WorkspaceOptions workspaceOptions,
             CancellationToken cancellationToken);
 
-        Task<IWorkspace> GetLocalWorkspaceAsync();
-
-        Task<IWorkspace> GetFolderWorkspaceAsync(string path);
+        Task<IWorkspace> GetFolderWorkspaceAsync(
+            string path, 
+            string[] disambiguators,
+            WorkspaceOptions workspaceOptions);
 
         Task<IWorkspace> GetTempWorkspaceAsync(string name);
     }

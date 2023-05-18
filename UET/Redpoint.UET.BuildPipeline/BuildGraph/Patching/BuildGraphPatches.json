@@ -1,0 +1,124 @@
+[
+  {
+    "Output4": "Engine\\Binaries\\DotNET\\AutomationTool.exe",
+    "File": "Engine\\Source\\Programs\\AutomationTool\\BuildGraph\\BuildGraph.cs",
+    "Patches": [
+      {
+        "Replace": "DirectoryReference RootDir = new DirectoryReference(Environment.GetEnvironmentVariable(\"BUILD_GRAPH_PROJECT_ROOT\") ?? CommandUtils.CmdEnv.LocalRoot);",
+        "Find": "DirectoryReference RootDir = new DirectoryReference(CommandUtils.CmdEnv.LocalRoot);"
+      },
+      {
+        "Replace": "if (!ModifiedFiles.ContainsKey(File.RelativePath) \u0026\u0026 !File.Compare(Environment.GetEnvironmentVariable(\"BUILD_GRAPH_PROJECT_ROOT\") != null ? new DirectoryReference(Environment.GetEnvironmentVariable(\"BUILD_GRAPH_PROJECT_ROOT\")) : CommandUtils.RootDirectory, out Message))",
+        "Find": "if(!ModifiedFiles.ContainsKey(File.RelativePath) \u0026\u0026 !File.Compare(CommandUtils.RootDirectory, out Message))"
+      },
+      {
+        "Replace": "if (!ModifiedFiles.ContainsKey(File.RelativePath) \u0026\u0026 !File.Compare(Environment.GetEnvironmentVariable(\"BUILD_GRAPH_PROJECT_ROOT\") != null ? new DirectoryReference(Environment.GetEnvironmentVariable(\"BUILD_GRAPH_PROJECT_ROOT\")) : CommandUtils.RootDirectory, out Message))",
+        "Find": "if (!ModifiedFiles.ContainsKey(File.RelativePath) \u0026\u0026 !File.Compare(CommandUtils.RootDirectory, out Message))"
+      },
+      {
+        "Replace": "if (ModifiedFiles.Count \u003e 0 \u0026\u0026 Environment.GetEnvironmentVariable(\"BUILD_GRAPH_ALLOW_MUTATION\") != \"true\")",
+        "Find": "if (ModifiedFiles.Count \u003e 0)"
+      },
+      {
+        "Replace": "if(ModifiedFiles.Count \u003e 0 \u0026\u0026 Environment.GetEnvironmentVariable(\"BUILD_GRAPH_ALLOW_MUTATION\") != \"true\")",
+        "Find": "if(ModifiedFiles.Count \u003e 0)"
+      },
+      {
+        "Replace": "FileReference FullScriptFile = new FileReference(ScriptFileName);",
+        "Find": "FileReference FullScriptFile = FileReference.Combine(Unreal.RootDirectory, ScriptFileName);"
+      },
+      {
+        "StartIndex": "if (!FullScriptFile.IsUnderDirectory(Unreal.RootDirectory))",
+        "Contains": "if (!FullScriptFile.IsUnderDirectory(Unreal.RootDirectory))",
+        "Mode": "Snip",
+        "EndIndex": "ScriptFileName = FullScriptFile.MakeRelativeTo(Unreal.RootDirectory).Replace(\u0027\\\\\u0027, \u0027/\u0027);"
+      },
+      {
+        "Replace": "",
+        "Find": "ScriptFileName = FullScriptFile.MakeRelativeTo(Unreal.RootDirectory).Replace(\u0027\\\\\u0027, \u0027/\u0027);"
+      }
+    ],
+    "Output5": "Engine\\Binaries\\DotNET\\AutomationTool\\AutomationTool.dll"
+  },
+  {
+    "Output4": "Engine\\Binaries\\DotNET\\AutomationTool.exe",
+    "File": "Engine\\Source\\Programs\\AutomationTool\\BuildGraph\\TempStorage.cs",
+    "Patches": [
+      {
+        "Replace": "if(RequireMatchingTimestamps() \u0026\u0026 !TempStorage.IsDuplicateBuildProduct(LocalFile) \u0026\u0026 Environment.GetEnvironmentVariable(\"BUILD_GRAPH_ALLOW_MUTATION\") != \"true\")",
+        "Find": "if(RequireMatchingTimestamps() \u0026\u0026 !TempStorage.IsDuplicateBuildProduct(LocalFile))"
+      },
+      {
+        "Replace": "if (RequireMatchingTimestamps() \u0026\u0026 !TempStorage.IsDuplicateBuildProduct(LocalFile) \u0026\u0026 Environment.GetEnvironmentVariable(\"BUILD_GRAPH_ALLOW_MUTATION\") != \"true\")",
+        "Find": "if (RequireMatchingTimestamps() \u0026\u0026 !TempStorage.IsDuplicateBuildProduct(LocalFile))"
+      },
+      {
+        "Replace": "bool bRemote = SharedDir != null \u0026\u0026 (bPushToRemote || NodeName.StartsWith(\"Compile UE4Server\") || NodeName.StartsWith(\"Compile UnrealServer\") || NodeName.StartsWith(\"Compile UE4Client\") || NodeName.StartsWith(\"Compile UnrealClient\")) \u0026\u0026 bWriteToSharedStorage;",
+        "Find": "bool bRemote = SharedDir != null \u0026\u0026 bPushToRemote \u0026\u0026 bWriteToSharedStorage;"
+      },
+      {
+        "Replace": "bool bRemote = SharedDir != null \u0026\u0026 (bPushToRemote || NodeName.StartsWith(\"Compile UE4Server\") || NodeName.StartsWith(\"Compile UnrealServer\") || NodeName.StartsWith(\"Compile UE4Client\") || NodeName.StartsWith(\"Compile UnrealClient\")) \u0026\u0026 bWriteToSharedStorage;",
+        "Find": "bool bRemote = SharedDir != null \u0026\u0026 (bPushToRemote || NodeName.StartsWith(\"Compile UE4Server\")) \u0026\u0026 bWriteToSharedStorage;"
+      },
+      {
+        "Replace": "bool bRemote = SharedDir != null \u0026\u0026 (bPushToRemote || NodeName.StartsWith(\"Compile UE4Server\") || NodeName.StartsWith(\"Compile UnrealServer\") || NodeName.StartsWith(\"Compile UE4Client\") || NodeName.StartsWith(\"Compile UnrealClient\")) \u0026\u0026 bWriteToSharedStorage;",
+        "Find": "bool bRemote = SharedDir != null \u0026\u0026 (bPushToRemote || NodeName.StartsWith(\"Compile UE4Server\") || NodeName.StartsWith(\"Compile UnrealServer\")) \u0026\u0026 bWriteToSharedStorage;"
+      },
+      {
+        "Replace": "Directory.CreateDirectory(CommandUtils.CombinePaths(RootDir.FullName, \"Engine/Programs/AutomationTool/Saved/Logs\")); string LogPath = /* Redpoint Patched */ CommandUtils.CombinePaths(RootDir.FullName, \"Engine/Programs/AutomationTool/Saved/Logs\", $\"Copy Files to Temp Storage.log\");",
+        "Find": "string LogPath = CommandUtils.CombinePaths(RootDir.FullName, \"Engine/Programs/AutomationTool/Saved/Logs\", $\"Copy Files to Temp Storage.log\");"
+      },
+      {
+        "Replace": "Directory.CreateDirectory(CommandUtils.CombinePaths(RootDir.FullName, \"Engine/Programs/AutomationTool/Saved/Logs\")); string LogPath = /* Redpoint Patched */ CommandUtils.CombinePaths(RootDir.FullName, \"Engine/Programs/AutomationTool/Saved/Logs\", $\"Copy Manifest - {NodeName}.log\");",
+        "Find": "string LogPath = CommandUtils.CombinePaths(RootDir.FullName, \"Engine/Programs/AutomationTool/Saved/Logs\", $\"Copy Manifest - {NodeName}.log\");"
+      },
+      {
+        "Replace": "Directory.CreateDirectory(CommandUtils.CombinePaths(RootDir.FullName, \"Engine/Programs/AutomationTool/Saved/Logs\")); string LogPath = /* Redpoint Patched */ CommandUtils.CombinePaths(RootDir.FullName, \"Engine/Programs/AutomationTool/Saved/Logs\", $\"Copy Manifest - {ZipFile.Name}.log\");",
+        "Find": "string LogPath = CommandUtils.CombinePaths(RootDir.FullName, \"Engine/Programs/AutomationTool/Saved/Logs\", $\"Copy Manifest - {ZipFile.Name}.log\");"
+      },
+      {
+        "Replace": "CommandUtils.CopyFile(ZipFile.FullName, CommandUtils.CombinePaths(RootDir.FullName, ZipFile.Name), bQuiet: true, bRetry: true); return string.Empty;",
+        "Find": "return CommandUtils.RunAndLog(GetRoboCopyExe(), $\"\\\"{ZipFile.DirectoryName}\\\" \\\"{RootDir}\\\" \\\"{ZipFile.Name}\\\" /w:5 /r:10\", MaxSuccessCode: 3, Options: CommandUtils.ERunOptions.AppMustExist | CommandUtils.ERunOptions.NoLoggingOfRunCommand);"
+      },
+      {
+        "Replace": "CommandUtils.CopyFile(ZipFile.FullName, CommandUtils.CombinePaths(RootDir.FullName, ZipFile.Name), bQuiet: true, bRetry: true); return string.Empty;",
+        "Find": "try { return /* Redpoint Patched */ CommandUtils.RunAndLog(GetRoboCopyExe(), $\"\\\"{ZipFile.DirectoryName}\\\" \\\"{RootDir}\\\" \\\"{ZipFile.Name}\\\" /w:5 /r:10\", MaxSuccessCode: 3, Options: CommandUtils.ERunOptions.AppMustExist | CommandUtils.ERunOptions.NoLoggingOfRunCommand); } catch (Exception) { Console.WriteLine(CommandUtils.RunAndLog(GetRoboCopyExe(), $\"\\\"{ZipFile.DirectoryName}\\\" \\\"{RootDir}\\\" \\\"{ZipFile.Name}\\\" /w:5 /r:10\", MaxSuccessCode: 1000, Options: CommandUtils.ERunOptions.AppMustExist | CommandUtils.ERunOptions.NoLoggingOfRunCommand)); throw; }"
+      },
+      {
+        "Replace": "try { return /* Redpoint Patched */ CommandUtils.RunAndLog(GetRoboCopyExe(), $\"\\\"{SourceDir}\\\" \\\"{DestinationDir}\\\" * /S /w:5 /r:10\", MaxSuccessCode: 3, Options: CommandUtils.ERunOptions.AppMustExist | CommandUtils.ERunOptions.NoLoggingOfRunCommand); } catch (Exception) { Console.WriteLine(CommandUtils.RunAndLog(GetRoboCopyExe(), $\"\\\"{SourceDir}\\\" \\\"{DestinationDir}\\\" * /S /w:5 /r:10\", MaxSuccessCode: 1000, Options: CommandUtils.ERunOptions.AppMustExist | CommandUtils.ERunOptions.NoLoggingOfRunCommand)); throw; }",
+        "Find": "return CommandUtils.RunAndLog(GetRoboCopyExe(), $\"\\\"{SourceDir}\\\" \\\"{DestinationDir}\\\" * /S /w:5 /r:10\", MaxSuccessCode: 3, Options: CommandUtils.ERunOptions.AppMustExist | CommandUtils.ERunOptions.NoLoggingOfRunCommand);"
+      }
+    ],
+    "Output5": "Engine\\Binaries\\DotNET\\AutomationTool\\AutomationTool.dll"
+  },
+  {
+    "File": "Engine\\Source\\Programs\\Shared\\EpicGames.BuildGraph\\BgScriptReader.cs",
+    "Patches": [
+      {
+        "HandleWindowsNewLines": true,
+        "Replace": "if (ChildElement.Name == \"Default\" || await EvaluateConditionAsync(ChildElement))\n\t\t\t\t{\n\t\t\t\t\tawait ReadContentsAsync(ChildElement);\n\t\t\t\t\tbreak;",
+        "Find": "if (ChildElement.Name == \"Default\" || await EvaluateConditionAsync(ChildElement))\n\t\t\t\t{\n\t\t\t\t\tawait ReadContentsAsync(ChildElement);"
+      }
+    ],
+    "Output5": "Engine\\Binaries\\DotNET\\AutomationTool\\AutomationScripts\\BuildGraph\\EpicGames.BuildGraph.dll"
+  },
+  {
+    "Output4": "Engine\\Binaries\\DotNET\\UnrealBuildTool.exe",
+    "File": "Engine\\Source\\Programs\\UnrealBuildTool\\System\\SingleInstanceMutex.cs",
+    "Patches": [
+      {
+        "Replace": "throw new BuildException(\"A conflicting instance of UnrealBuildTool is already running. Mutex name was: \" + MutexName);",
+        "Find": "throw new BuildException(\"A conflicting instance of UnrealBuildTool is already running.\");"
+      },
+      {
+        "Replace": "Console.WriteLine(\"Mutex \u0027\" + UniquePath + \"\u0027 = \u0027\" + string.Format(\"Global\\\\{0}_{1}\", Name, ContentHash.MD5(UniquePath.ToUpperInvariant())) + \"\u0027\"); return /* patched */ string.Format(\"Global\\\\{0}_{1}\", Name, ContentHash.MD5(UniquePath.ToUpperInvariant()));",
+        "Find": "return string.Format(\"Global\\\\{0}_{1}\", Name, ContentHash.MD5(UniquePath.ToUpperInvariant()));"
+      },
+      {
+        "Replace": "if (Environment.GetEnvironmentVariable(\"uebp_UATMutexNoWait\") == \"1\") { return; }\nbool /* patched */ bCreatedMutex;",
+        "Find": "bool bCreatedMutex;"
+      }
+    ],
+    "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
+  }
+]

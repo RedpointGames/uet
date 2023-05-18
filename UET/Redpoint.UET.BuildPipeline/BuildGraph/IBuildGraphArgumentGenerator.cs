@@ -6,6 +6,7 @@
     {
         IEnumerable<string> GenerateBuildGraphArguments(
             Dictionary<string, string> arguments,
-            Dictionary<string, string> replacements);
+            Dictionary<string, string> replacements,
+            string repositoryRoot);
     }
 }

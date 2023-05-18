@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+    <ProjectReference Include="..\Redpoint.UET.Core\Redpoint.UET.Core.csproj" />
   </ItemGroup>
 
 </Project>

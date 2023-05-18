@@ -11,6 +11,6 @@
         /// <summary>
         /// The absolute path to shared storage on Windows. Must start with a drive letter (like X:\). Must have a trailing slash.
         /// </summary>
-        public required string? SharedStorageAbsolutePath { get; init; }
+        public required string SharedStorageAbsolutePath { get; init; }
     }
 }

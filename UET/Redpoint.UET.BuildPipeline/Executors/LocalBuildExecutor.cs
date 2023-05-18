@@ -5,6 +5,7 @@
     using Redpoint.UET.BuildPipeline.BuildGraph;
     using Redpoint.UET.BuildPipeline.BuildGraph.Export;
     using Redpoint.UET.BuildPipeline.Executors.Engine;
+    using Redpoint.UET.Workspace;
     using System;
     using System.Threading;
     using System.Threading.Tasks;
@@ -14,15 +15,18 @@
         private readonly ILogger<LocalBuildExecutor> _logger;
         private readonly IBuildGraphExecutor _buildGraphGenerator;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
+        private readonly IWorkspaceProvider _workspaceProvider;
 
         public LocalBuildExecutor(
             ILogger<LocalBuildExecutor> logger,
             IBuildGraphExecutor buildGraphGenerator,
-            IEngineWorkspaceProvider engineWorkspaceProvider)
+            IEngineWorkspaceProvider engineWorkspaceProvider,
+            IWorkspaceProvider workspaceProvider)
         {
             _logger = logger;
             _buildGraphGenerator = buildGraphGenerator;
             _engineWorkspaceProvider = engineWorkspaceProvider;
+            _workspaceProvider = workspaceProvider;
         }
 
         private class DAGNode
@@ -68,34 +72,49 @@
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
+                if (node.Node.Name == "End")
+                {
+                    // This is a special node that is used in our built-in BuildGraphs
+                    // to combine all of the required steps together. We don't actually
+                    // need to run anything for it though.
+                    await buildExecutionEvents.OnNodeStarted(node.Node.Name);
+                    await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Success);
+                    return BuildResultStatus.Success;
+                }
+
                 await buildExecutionEvents.OnNodeStarted(node.Node.Name);
                 try
                 {
-                    await using (var workspace = await _engineWorkspaceProvider.GetEngineWorkspace(buildSpecification.Engine, node.Node.Name, cancellationToken))
+                    await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(buildSpecification.Engine, string.Empty, cancellationToken))
                     {
-                        _logger.LogInformation($"Starting: {node.Node.Name}");
-                        var exitCode = await _buildGraphGenerator.ExecuteGraphNodeAsync(
-                            workspace.Path,
-                            buildSpecification.BuildGraphScript,
-                            buildSpecification.BuildGraphTarget,
-                            node.Node.Name,
-                            buildSpecification.BuildGraphLocalArtifactPath,
-                            OperatingSystem.IsWindows() ? buildSpecification.BuildGraphSettings.WindowsSettings : buildSpecification.BuildGraphSettings.MacSettings,
-                            buildSpecification.BuildGraphSettingReplacements,
-                            CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
-                            {
-                                ReceiveStdout = (line) =>
+                        int exitCode;
+                        await using (var targetWorkspace = await _workspaceProvider.GetFolderWorkspaceAsync(buildSpecification.BuildGraphRepositoryRoot, new[] { node.Node.Name }, new WorkspaceOptions { UnmountAfterUse = false }))
+                        {
+                            _logger.LogInformation($"Starting: {node.Node.Name}");
+                            exitCode = await _buildGraphGenerator.ExecuteGraphNodeAsync(
+                                engineWorkspace.Path,
+                                targetWorkspace.Path,
+                                buildSpecification.BuildGraphScript,
+                                buildSpecification.BuildGraphTarget,
+                                node.Node.Name,
+                                OperatingSystem.IsWindows() ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath : buildSpecification.BuildGraphEnvironment.Mac.SharedStorageAbsolutePath,
+                                OperatingSystem.IsWindows() ? buildSpecification.BuildGraphSettings.WindowsSettings : buildSpecification.BuildGraphSettings.MacSettings,
+                                buildSpecification.BuildGraphSettingReplacements,
+                                CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                                 {
-                                    buildExecutionEvents.OnNodeOutputReceived(node.Node.Name, new[] { line });
-                                    return false;
-                                },
-                                ReceiveStderr = (line) =>
-                                {
-                                    buildExecutionEvents.OnNodeOutputReceived(node.Node.Name, new[] { line });
-                                    return false;
-                                },
-                            }),
-                            cancellationToken);
+                                    ReceiveStdout = (line) =>
+                                    {
+                                        buildExecutionEvents.OnNodeOutputReceived(node.Node.Name, new[] { line });
+                                        return false;
+                                    },
+                                    ReceiveStderr = (line) =>
+                                    {
+                                        buildExecutionEvents.OnNodeOutputReceived(node.Node.Name, new[] { line });
+                                        return false;
+                                    },
+                                }),
+                                cancellationToken);
+                        }
                         if (exitCode == 0)
                         {
                             _logger.LogInformation($"Finished: {node.Node.Name} = Success");
@@ -133,17 +152,21 @@
             CancellationToken cancellationToken)
         {
             BuildGraphExport buildGraph;
-            await using (var workspace = await _engineWorkspaceProvider.GetEngineWorkspace(buildSpecification.Engine, "Generate BuildGraph JSON", cancellationToken))
+            await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(buildSpecification.Engine, string.Empty, cancellationToken))
             {
-                _logger.LogInformation("Generating BuildGraph JSON based on settings...");
-                buildGraph = await _buildGraphGenerator.GenerateGraphAsync(
-                    workspace.Path,
-                    buildSpecification.BuildGraphScript,
-                    buildSpecification.BuildGraphTarget,
-                    OperatingSystem.IsWindows() ? buildSpecification.BuildGraphSettings.WindowsSettings : buildSpecification.BuildGraphSettings.MacSettings,
-                    buildSpecification.BuildGraphSettingReplacements,
-                    generationCaptureSpecification,
-                    cancellationToken);
+                await using (var targetWorkspace = await _workspaceProvider.GetFolderWorkspaceAsync(buildSpecification.BuildGraphRepositoryRoot, new[] { "Generate BuildGraph JSON" }, new WorkspaceOptions { UnmountAfterUse = false }))
+                {
+                    _logger.LogInformation("Generating BuildGraph JSON based on settings...");
+                    buildGraph = await _buildGraphGenerator.GenerateGraphAsync(
+                        engineWorkspace.Path,
+                        targetWorkspace.Path,
+                        buildSpecification.BuildGraphScript,
+                        buildSpecification.BuildGraphTarget,
+                        OperatingSystem.IsWindows() ? buildSpecification.BuildGraphSettings.WindowsSettings : buildSpecification.BuildGraphSettings.MacSettings,
+                        buildSpecification.BuildGraphSettingReplacements,
+                        generationCaptureSpecification,
+                        cancellationToken);
+                }
             }
 
             _logger.LogInformation("Executing build...");

@@ -8,7 +8,7 @@
         public static void AddUETUAT(this IServiceCollection services)
         {
             services.AddSingleton<IBuildConfigurationManager, DefaultBuildConfigurationManager>();
-            services.AddSingleton<ILocalHandleCloser, DefaultLocalHandleCloser>();
+            services.AddSingleton<ILocalHandleCloser, NativeLocalHandleCloser>();
             services.AddSingleton<IRemoteHandleCloser, DefaultRemoteHandleCloser>();
 
             services.AddSingleton<IUATExecutor, DefaultUATExecutor>();

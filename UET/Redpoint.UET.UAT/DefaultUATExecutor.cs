@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.UET.UAT
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.AsyncFileUtilities;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.UET.UAT.Internal;
@@ -68,6 +69,16 @@
                         File.Delete(scriptModuleFullName);
                     }
                 }
+            }
+
+            // Try to make the folder that BuildGraph will emit copy logs to.
+            try
+            {
+                Directory.CreateDirectory(Path.Combine(enginePath, "Engine", "Programs", "AutomationTool", "Saved", "Logs"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Unable to create directory for BuildGraph automation logs! {ex}");
             }
 
             // We have to mangle some arguments due to bugs in UAT.
@@ -151,20 +162,22 @@
                             {
                                 if (Directory.Exists(targetPath))
                                 {
+                                    _logger.LogWarning($"Detected existing output directory at '{targetPath}'. Closing handles...");
                                     await _remoteHandleCloser.CloseRemoteHandles(targetPath);
                                     await _localHandleCloser.CloseLocalHandles(targetPath);
+                                    _logger.LogWarning($"Detected existing output directory at '{targetPath}'. Deleting contents...");
                                     if (buildGraphProjectRoot != null)
                                     {
                                         var localOutputPath = Path.Combine(buildGraphProjectRoot, "Engine", "Saved", "BuildGraph", singleNodeName);
                                         if (Directory.Exists(localOutputPath))
                                         {
-                                            _logger.LogWarning($"Detected existing local output directory at '{localOutputPath}'. Deleting contents...");
+                                            _logger.LogWarning($"Detected existing local output directory at '{localOutputPath}'. Closing handles...");
                                             await _localHandleCloser.CloseLocalHandles(localOutputPath);
-                                            Directory.Delete(localOutputPath, true);
+                                            _logger.LogWarning($"Detected existing local output directory at '{localOutputPath}'. Deleting contents...");
+                                            await DirectoryAsync.DeleteAsync(localOutputPath, true);
                                         }
                                     }
-                                    _logger.LogWarning($"Detected existing output directory at '{targetPath}'. Deleting contents...");
-                                    Directory.Delete(targetPath, true);
+                                    await DirectoryAsync.DeleteAsync(targetPath, true);
                                     Directory.CreateDirectory(targetPath);
                                     break;
                                 }

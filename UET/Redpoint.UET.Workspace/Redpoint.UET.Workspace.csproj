@@ -7,8 +7,27 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="UEFS.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lib\CredentialManagement\CredentialManagement.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.UET.Core\Redpoint.UET.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GrpcDotNetNamedPipes" Version="2.0.0" />
+    <PackageReference Include="Google.Protobuf" Version="3.22.0" />
+    <PackageReference Include="Grpc.Core" Version="2.46.6" />
+    <PackageReference Include="Grpc.Tools" Version="2.51.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="UEFS.proto" GrpcServices="Client" />
   </ItemGroup>
 
 </Project>

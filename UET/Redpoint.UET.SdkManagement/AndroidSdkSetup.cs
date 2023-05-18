@@ -4,6 +4,7 @@
     using Microsoft.CodeAnalysis.CSharp;
     using Microsoft.CodeAnalysis.CSharp.Syntax;
     using Microsoft.Extensions.Logging;
+    using Redpoint.AsyncFileUtilities;
     using Redpoint.ProcessExecution;
     using System.Collections.Concurrent;
     using System.IO.Compression;
@@ -109,7 +110,7 @@ class AndroidVersionLoader
                 _logger.LogInformation("Downloading and extracting the Microsoft JDK (about 177MB)...");
                 if (Directory.Exists(Path.Combine(sdkPackagePath, "Jdk")))
                 {
-                    Directory.Delete(Path.Combine(sdkPackagePath, "Jdk"), true);
+                    await DirectoryAsync.DeleteAsync(Path.Combine(sdkPackagePath, "Jdk"), true);
                 }
                 using (var client = new HttpClient())
                 {
@@ -125,7 +126,7 @@ class AndroidVersionLoader
                 _logger.LogInformation("Downloading and extracting the Android cmdline-tools (about 127MB)...");
                 if (Directory.Exists(Path.Combine(sdkPackagePath, "Sdk")))
                 {
-                    Directory.Delete(Path.Combine(sdkPackagePath, "Sdk"), true);
+                    await DirectoryAsync.DeleteAsync(Path.Combine(sdkPackagePath, "Sdk"), true);
                 }
                 using (var client = new HttpClient())
                 {

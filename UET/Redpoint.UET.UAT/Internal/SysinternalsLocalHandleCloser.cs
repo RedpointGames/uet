@@ -7,15 +7,15 @@
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
 
-    internal class DefaultLocalHandleCloser : ILocalHandleCloser
+    internal class SysinternalsLocalHandleCloser : ILocalHandleCloser
     {
         private readonly IProcessExecutor _processExecutor;
-        private readonly ILogger<DefaultLocalHandleCloser> _logger;
+        private readonly ILogger<SysinternalsLocalHandleCloser> _logger;
         private static readonly Regex _handle64Regex = new Regex("pid: ([0-9]+)\\s+type: File\\s+([A-F0-9]+):\\s+(.+)");
 
-        public DefaultLocalHandleCloser(
+        public SysinternalsLocalHandleCloser(
             IProcessExecutor processExecutor,
-            ILogger<DefaultLocalHandleCloser> logger)
+            ILogger<SysinternalsLocalHandleCloser> logger)
         {
             _processExecutor = processExecutor;
             _logger = logger;
@@ -23,10 +23,10 @@
 
         private class HandleTerminatingCaptureSpecification : ICaptureSpecification
         {
-            private readonly ILogger<DefaultLocalHandleCloser> _logger;
+            private readonly ILogger<SysinternalsLocalHandleCloser> _logger;
 
             public HandleTerminatingCaptureSpecification(
-                ILogger<DefaultLocalHandleCloser> logger)
+                ILogger<SysinternalsLocalHandleCloser> logger)
             {
                 _logger = logger;
             }
@@ -46,6 +46,7 @@
 
             public void OnReceiveStandardOutput(string data)
             {
+                Console.WriteLine(data);
                 var match = _handle64Regex.Match(data.Trim());
                 if (match.Success)
                 {
@@ -100,6 +101,7 @@
             var handle64StreamName = $"Redpoint.UET.UAT.Internal.handle64.exe";
             if (!File.Exists(expectedPath))
             {
+                _logger.LogInformation("Extracting handle64.exe...");
                 using (var outputStream = new FileStream($"{expectedPath}-{Process.GetCurrentProcess().Id}", FileMode.CreateNew, FileAccess.Write, FileShare.None))
                 {
                     using (var inputStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(handle64StreamName))
@@ -111,6 +113,7 @@
             }
 
             // Run handle64.exe, terminating processes and getting a list of handles to forcibly close otherwise.
+            _logger.LogInformation($"Scanning for open handles underneath: {localPath}");
             var captureSpecification = new HandleTerminatingCaptureSpecification(_logger);
             await _processExecutor.ExecuteAsync(
                 new ProcessSpecification

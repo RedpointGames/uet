@@ -6,12 +6,14 @@
     {
         public IEnumerable<string> GenerateBuildGraphArguments(
             Dictionary<string, string> arguments,
-            Dictionary<string, string> replacements)
+            Dictionary<string, string> replacements,
+            string repositoryRoot)
         {
             var results = new List<string>();
             foreach (var kv in arguments)
             {
                 var value = kv.Value;
+                value = value.Replace("__REPOSITORY_ROOT__", repositoryRoot);
                 foreach (var sr in replacements)
                 {
                     value = value.Replace(sr.Key, sr.Value);

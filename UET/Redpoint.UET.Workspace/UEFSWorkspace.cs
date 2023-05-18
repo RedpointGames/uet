@@ -1,40 +1,56 @@
 ﻿namespace Redpoint.UET.Workspace
 {
-    using Redpoint.ProcessExecution;
+    using Microsoft.Extensions.Logging;
     using System.Threading.Tasks;
+    using static Uefs.UEFS;
 
     internal class UEFSWorkspace : IWorkspace
     {
-        private readonly IProcessExecutor _processExecutor;
-        private readonly string _uefsPath;
+        private readonly UEFSClient _uefsClient;
+        private readonly string _mountId;
+        private readonly WorkspaceOptions _workspaceOptions;
+        private readonly IAsyncDisposable[] _reservations;
+        private readonly ILogger _logger;
+        private readonly string _loggerReleaseMessage;
 
         public UEFSWorkspace(
-            IProcessExecutor processExecutor,
-            string uefsPath,
-            string workspacePath)
+            UEFSClient uefsClient,
+            string mountId,
+            string workspacePath,
+            WorkspaceOptions workspaceOptions,
+            IAsyncDisposable[] reservations,
+            ILogger logger,
+            string loggerReleaseMessage)
         {
-            _processExecutor = processExecutor;
-            _uefsPath = uefsPath;
+            _uefsClient = uefsClient;
+            _mountId = mountId;
             Path = workspacePath;
+            _workspaceOptions = workspaceOptions;
+            _reservations = reservations;
+            _logger = logger;
+            _loggerReleaseMessage = loggerReleaseMessage;
         }
 
         public string Path { get; }
 
         public async ValueTask DisposeAsync()
         {
-            await _processExecutor.ExecuteAsync(
-                new ProcessSpecification
+            if (_workspaceOptions.UnmountAfterUse)
+            {
+                _logger.LogInformation($"{_loggerReleaseMessage} (unmounting)");
+                await _uefsClient.UnmountAsync(new Uefs.UnmountRequest
                 {
-                    FilePath = _uefsPath,
-                    Arguments = new[]
-                    {
-                        "unmount",
-                        "--dir",
-                        Path
-                    }
-                },
-                CaptureSpecification.Passthrough,
-                CancellationToken.None);
+                    MountId = _mountId
+                });
+            }
+            else
+            {
+                _logger.LogInformation($"{_loggerReleaseMessage} (not unmounting)");
+            }
+            foreach (var reservation in _reservations)
+            {
+                await reservation.DisposeAsync();
+            }
         }
     }
 }

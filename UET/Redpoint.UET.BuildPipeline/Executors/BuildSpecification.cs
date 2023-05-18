@@ -17,6 +17,10 @@
 
         public Dictionary<string, string> BuildGraphSettingReplacements { get; init; } = new Dictionary<string, string>();
 
-        public required string BuildGraphLocalArtifactPath { get; init; }
+        /// <summary>
+        /// Some executors will create a local workspace for this path and then use that workspace
+        /// as __REPOSITORY_ROOT__. Others will use this path directly as __REPOSITORY_ROOT__.
+        /// </summary>
+        public required string BuildGraphRepositoryRoot { get; init; }
     }
 }

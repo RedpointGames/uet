@@ -9,14 +9,17 @@
   <ItemGroup>
     <None Remove="BuildGraph\BuildGraph_Plugin.xml" />
     <None Remove="BuildGraph\BuildGraph_Project.xml" />
+    <None Remove="BuildGraph\Patching\BuildGraphPatches.json" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="BuildGraph\BuildGraph_Plugin.xml" />
     <EmbeddedResource Include="BuildGraph\BuildGraph_Project.xml" />
+    <EmbeddedResource Include="BuildGraph\Patching\BuildGraphPatches.json" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.UET.Core\Redpoint.UET.Core.csproj" />
     <ProjectReference Include="..\Redpoint.UET.UAT\Redpoint.UET.UAT.csproj" />

@@ -9,6 +9,8 @@ using Redpoint.UET.BuildPipeline.BuildGraph;
 using Redpoint.UET.Workspace;
 using Redpoint.UET.Core;
 using Microsoft.Extensions.Logging;
+using Redpoint.MSBuildResolution;
+using System.Text.RegularExpressions;
 
 var enginePathOpt = new Option<DirectoryInfo>(
     name: "--engine-path",
@@ -61,6 +63,7 @@ rootCommand.SetHandler(async (context) =>
 
     var services = new ServiceCollection();
     services.AddPathResolution();
+    services.AddMSBuildPathResolution();
     services.AddProcessExecution();
     services.AddUETUAT();
     services.AddUETBuildPipeline();
@@ -93,6 +96,8 @@ rootCommand.SetHandler(async (context) =>
     BuildSpecification buildSpecification;
     if (isProject)
     {
+        Directory.CreateDirectory(Path.Combine(projectPath!.FullName, "Saved", "SharedStorage"));
+
         var projectName = projectPath!.GetFiles("*.uproject").First().Name;
         buildSpecification = new BuildSpecification
         {
@@ -142,20 +147,20 @@ rootCommand.SetHandler(async (context) =>
                 PipelineId = string.Empty,
                 Windows = new Redpoint.UET.BuildPipeline.Environment.BuildGraphWindowsEnvironment
                 {
-                    SharedStorageAbsolutePath = null,
+                    SharedStorageAbsolutePath = $"{Path.Combine(projectPath.FullName, "Saved", "SharedStorage").TrimEnd('\\')}\\",
                 },
                 Mac = new Redpoint.UET.BuildPipeline.Environment.BuildGraphMacEnvironment
                 {
-                    MacEnginePathOverride = null,
-                    SharedStorageAbsolutePath = null,
+                    // @note: This executable is for internal testing, so it doesn't support macOS.
+                    MacEnginePathOverride = null!,
+                    SharedStorageAbsolutePath = null!,
                 }
             },
+            BuildGraphRepositoryRoot = projectPath.FullName,
             BuildGraphSettingReplacements = new Dictionary<string, string>
             {
-                { "__REPOSITORY_ROOT__", projectPath.FullName },
                 { "__PROJECT_FILENAME__", projectName },
             },
-            BuildGraphLocalArtifactPath = projectPath.FullName,
         };
     }
     else
@@ -176,6 +181,9 @@ return await rootCommand.InvokeAsync(args);
 class TestBuildExecutionEvents : IBuildExecutionEvents
 {
     private readonly ILogger<TestBuildExecutionEvents> _logger;
+    private static readonly Regex _warningRegex = new Regex("([^a-zA-Z0-9]|^)([Ww]arning)([^a-zA-Z0-9]|$)");
+    private static readonly Regex _errorRegex = new Regex("([^a-zA-Z0-9]|^)([Ee]rror)([^a-zA-Z0-9]|$)");
+    private static readonly Regex _successfulRegex = new Regex("([^a-zA-Z0-9]|^)([Ss][Uu][Cc][Cc][Ee][Ss][Ss][Ff]?[Uu]?[Ll]?)([^a-zA-Z0-9]|$)");
 
     public TestBuildExecutionEvents(ILogger<TestBuildExecutionEvents> logger)
     {
@@ -184,19 +192,36 @@ class TestBuildExecutionEvents : IBuildExecutionEvents
 
     public Task OnNodeFinished(string nodeName, BuildResultStatus resultStatus)
     {
-        _logger.LogInformation($"@event finished: {nodeName} = {resultStatus}");
+        switch (resultStatus)
+        {
+            case BuildResultStatus.Success:
+                _logger.LogInformation($"[{nodeName}] \x001B[32mPassed\x001B[0m");
+                break;
+            case BuildResultStatus.Failed:
+                _logger.LogInformation($"[{nodeName}] \x001B[31mFailed\x001B[0m");
+                break;
+            case BuildResultStatus.NotRun:
+                _logger.LogInformation($"[{nodeName}] \x001B[36mNot Run\x001B[0m");
+                break;
+        }
         return Task.CompletedTask;
     }
 
     public Task OnNodeOutputReceived(string nodeName, string[] lines)
     {
-        _logger.LogInformation($"@event output: {nodeName} = {string.Join("\n", lines)}");
+        foreach (var line in lines)
+        {
+            var highlightedLine = _warningRegex.Replace(line, m => $"{m.Groups[1].Value}\u001b[33m{m.Groups[2].Value}\u001b[0m{m.Groups[3].Value}");
+            highlightedLine = _errorRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}\u001b[31m{m.Groups[2].Value}\u001b[0m{m.Groups[3].Value}");
+            highlightedLine = _successfulRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}\u001b[32m{m.Groups[2].Value}\u001b[0m{m.Groups[3].Value}");
+            _logger.LogInformation($"[{nodeName}] {highlightedLine}");
+        }
         return Task.CompletedTask;
     }
 
     public Task OnNodeStarted(string nodeName)
     {
-        _logger.LogInformation($"@event started: {nodeName}");
+        _logger.LogInformation($"[{nodeName}] \x001B[35mStarting...\x001B[0m");
         return Task.CompletedTask;
     }
 }

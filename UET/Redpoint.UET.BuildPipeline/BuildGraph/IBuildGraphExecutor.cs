@@ -9,10 +9,11 @@
     {
         Task<int> ExecuteGraphNodeAsync(
             string enginePath,
+            string buildGraphRepositoryRootPath,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
             string buildGraphNodeName,
-            string buildGraphArtifactPath,
+            string buildGraphSharedStorageDir,
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
             ICaptureSpecification captureSpecification,
@@ -20,6 +21,7 @@
 
         Task<BuildGraphExport> GenerateGraphAsync(
             string enginePath,
+            string buildGraphRepositoryRootPath,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
             Dictionary<string, string> buildGraphArguments,

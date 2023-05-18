@@ -4,6 +4,7 @@
     using Microsoft.CodeAnalysis.CSharp;
     using Microsoft.CodeAnalysis.CSharp.Syntax;
     using Microsoft.Extensions.Logging;
+    using Redpoint.AsyncFileUtilities;
     using Redpoint.ProcessExecution;
     using Redpoint.UET.SdkManagement.WindowsSdk;
     using System;
@@ -629,7 +630,7 @@ class WindowsVersionLoader
                 File.Delete(Path.Combine(windowsKitsPath, msiFile));
             }
             // Clean up the installers folder that we no longer need.
-            Directory.Delete(Path.Combine(sdkPackagePath, "__Installers"), true);
+            await DirectoryAsync.DeleteAsync(Path.Combine(sdkPackagePath, "__Installers"), true);
         }
 
         private async Task ExtractMsiComponent(VisualStudioManifestChannelItem component, string sdkPackagePath, CancellationToken cancellationToken)
@@ -680,7 +681,7 @@ class WindowsVersionLoader
                 File.Delete(Path.Combine(setupPath, msiFile));
             }
             // Clean up the installers folder that we no longer need.
-            Directory.Delete(Path.Combine(sdkPackagePath, "__Installers"), true);
+            await DirectoryAsync.DeleteAsync(Path.Combine(sdkPackagePath, "__Installers"), true);
         }
 
         public Task<EnvironmentForSdkUsage> EnsureSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)

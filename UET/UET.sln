@@ -43,9 +43,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UET", "UET\UET.csproj", "{2
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline", "Redpoint.UET.BuildPipeline\Redpoint.UET.BuildPipeline.csproj", "{559D9E41-C462-4C71-8709-20B0BCA82E89}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.UET.BuildPipeline.Tests", "Redpoint.UET.BuildPipeline.Tests\Redpoint.UET.BuildPipeline.Tests.csproj", "{B9FDEB77-EC8B-4E1C-A9F1-218A3671574D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.Tests", "Redpoint.UET.BuildPipeline.Tests\Redpoint.UET.BuildPipeline.Tests.csproj", "{B9FDEB77-EC8B-4E1C-A9F1-218A3671574D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.UET.BuildPipeline.TestRunner", "Redpoint.UET.BuildPipeline.TestRunner\Redpoint.UET.BuildPipeline.TestRunner.csproj", "{5C4E5E66-23AA-499D-B3CD-DD374F8CD2BB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.TestRunner", "Redpoint.UET.BuildPipeline.TestRunner\Redpoint.UET.BuildPipeline.TestRunner.csproj", "{5C4E5E66-23AA-499D-B3CD-DD374F8CD2BB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{39698A12-7C9B-47F5-BA1A-9F4884A770AF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CredentialManagement", "Lib\CredentialManagement\CredentialManagement.csproj", "{5CED9D92-D478-41B2-84F3-A3D41B642BB2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.MSBuildResolution", "Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj", "{5227BBD5-4CE7-4CB8-A60E-897E70664886}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -141,9 +147,20 @@ Global
 		{5C4E5E66-23AA-499D-B3CD-DD374F8CD2BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5C4E5E66-23AA-499D-B3CD-DD374F8CD2BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5C4E5E66-23AA-499D-B3CD-DD374F8CD2BB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5CED9D92-D478-41B2-84F3-A3D41B642BB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CED9D92-D478-41B2-84F3-A3D41B642BB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5CED9D92-D478-41B2-84F3-A3D41B642BB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CED9D92-D478-41B2-84F3-A3D41B642BB2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5227BBD5-4CE7-4CB8-A60E-897E70664886}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5227BBD5-4CE7-4CB8-A60E-897E70664886}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5227BBD5-4CE7-4CB8-A60E-897E70664886}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5227BBD5-4CE7-4CB8-A60E-897E70664886}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{5CED9D92-D478-41B2-84F3-A3D41B642BB2} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}

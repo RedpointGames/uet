@@ -12,15 +12,31 @@
             _workspaceProvider = workspaceProvider;
         }
 
-        public async Task<IWorkspace> GetEngineWorkspace(BuildEngineSpecification buildEngineSpecification, string workspaceSuffix, CancellationToken cancellationToken)
+        public async Task<IWorkspace> GetEngineWorkspace(
+            BuildEngineSpecification buildEngineSpecification, 
+            string workspaceSuffix,
+            CancellationToken cancellationToken)
         {
             if (buildEngineSpecification._enginePath != null)
             {
-                return await _workspaceProvider.GetFolderWorkspaceAsync(buildEngineSpecification._enginePath);
+                return await _workspaceProvider.GetFolderWorkspaceAsync(
+                    buildEngineSpecification._enginePath,
+                    new string[0],
+                    new WorkspaceOptions
+                    {
+                        UnmountAfterUse = false,
+                    });
             }
             else if (buildEngineSpecification._uefsPackageTag != null)
             {
-                return await _workspaceProvider.GetPackageWorkspaceAsync(buildEngineSpecification._uefsPackageTag, workspaceSuffix, cancellationToken);
+                return await _workspaceProvider.GetPackageWorkspaceAsync(
+                    buildEngineSpecification._uefsPackageTag, 
+                    workspaceSuffix,
+                    new WorkspaceOptions
+                    {
+                        UnmountAfterUse = false,
+                    },
+                    cancellationToken);
             }
             else if (buildEngineSpecification._uefsGitCommit != null)
             {
@@ -29,6 +45,10 @@
                     buildEngineSpecification._uefsGitCommit,
                     buildEngineSpecification._uefsGitFolders!,
                     workspaceSuffix,
+                    new WorkspaceOptions
+                    {
+                        UnmountAfterUse = false,
+                    },
                     cancellationToken);
             }
             else

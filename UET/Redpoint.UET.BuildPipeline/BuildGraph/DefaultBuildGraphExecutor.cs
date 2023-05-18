@@ -2,6 +2,7 @@
 {
     using Redpoint.ProcessExecution;
     using Redpoint.UET.BuildPipeline.BuildGraph.Export;
+    using Redpoint.UET.BuildPipeline.BuildGraph.Patching;
     using Redpoint.UET.UAT;
     using System.Collections.Generic;
     using System.Reflection;
@@ -12,21 +13,25 @@
     {
         private readonly IUATExecutor _uatExecutor;
         private readonly IBuildGraphArgumentGenerator _buildGraphArgumentGenerator;
+        private readonly IBuildGraphPatcher _buildGraphPatcher;
 
         public DefaultBuildGraphExecutor(
             IUATExecutor uatExecutor,
-            IBuildGraphArgumentGenerator buildGraphArgumentGenerator)
+            IBuildGraphArgumentGenerator buildGraphArgumentGenerator,
+            IBuildGraphPatcher buildGraphPatcher)
         {
             _uatExecutor = uatExecutor;
             _buildGraphArgumentGenerator = buildGraphArgumentGenerator;
+            _buildGraphPatcher = buildGraphPatcher;
         }
 
         public async Task<int> ExecuteGraphNodeAsync(
             string enginePath,
+            string buildGraphRepositoryRootPath,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
             string buildGraphNodeName,
-            string buildGraphArtifactPath,
+            string buildGraphSharedStorageDir,
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
             ICaptureSpecification captureSpecification,
@@ -34,9 +39,15 @@
         {
             return await InternalRunAsync(
                 enginePath,
+                buildGraphRepositoryRootPath,
                 buildGraphScript,
                 buildGraphTarget,
-                new[] { $"-SingleNode={buildGraphNodeName}" },
+                new[]
+                {
+                    $"-SingleNode={buildGraphNodeName}",
+                    "-WriteToSharedStorage",
+                    $"-SharedStorageDir={buildGraphSharedStorageDir}"
+                },
                 buildGraphArguments,
                 buildGraphArgumentReplacements,
                 new Dictionary<string, string>
@@ -45,7 +56,7 @@
                     { "uebp_LOCAL_ROOT", enginePath },
                     // BuildGraph in Unreal Engine 5.0 causes input files to be unnecessarily modified. Just allow mutation since I'm not sure what the bug is.
                     { "BUILD_GRAPH_ALLOW_MUTATION", "true" },
-                    { "BUILD_GRAPH_PROJECT_ROOT", buildGraphArtifactPath },
+                    { "BUILD_GRAPH_PROJECT_ROOT", buildGraphRepositoryRootPath },
                 },
                 captureSpecification,
                 cancellationToken);
@@ -53,6 +64,7 @@
 
         public async Task<BuildGraphExport> GenerateGraphAsync(
             string enginePath,
+            string buildGraphRepositoryRootPath,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
             Dictionary<string, string> buildGraphArguments,
@@ -66,6 +78,7 @@
             {
                 var exitCode = await InternalRunAsync(
                     enginePath,
+                    buildGraphRepositoryRootPath,
                     buildGraphScript,
                     buildGraphTarget,
                     new[] { $"-Export={buildGraphOutput}" },
@@ -105,6 +118,7 @@
 
         private async Task<int> InternalRunAsync(
             string enginePath,
+            string buildGraphRepositoryRootPath,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
             string[] internalArguments,
@@ -149,6 +163,8 @@
                 throw new NotSupportedException();
             }
 
+            await _buildGraphPatcher.PatchBuildGraphAsync(enginePath);
+
             try
             {
                 return await _uatExecutor.ExecuteAsync(
@@ -165,7 +181,8 @@
                             .Concat(internalArguments)
                             .Concat(_buildGraphArgumentGenerator.GenerateBuildGraphArguments(
                                 buildGraphArguments,
-                                buildGraphArgumentReplacements)),
+                                buildGraphArgumentReplacements,
+                                buildGraphRepositoryRootPath)),
                         EnvironmentVariables = buildGraphEnvironmentVariables
                     },
                     captureSpecification,

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Redpoint.AsyncFileUtilities;
 using Redpoint.ProcessExecution;
 using Redpoint.UET.SdkManagement;
 using System.CommandLine;
@@ -124,11 +125,11 @@ rootCommand.SetHandler(async (InvocationContext context) =>
     {
         if (Directory.Exists(packageWorkingPath))
         {
-            Directory.Delete(packageWorkingPath, true);
+            await DirectoryAsync.DeleteAsync(packageWorkingPath, true);
         }
         if (Directory.Exists(packageOldPath))
         {
-            Directory.Delete(packageOldPath, true);
+            await DirectoryAsync.DeleteAsync(packageOldPath, true);
         }
         Directory.CreateDirectory(packageWorkingPath);
         await setup.GenerateSdkPackage(enginePath.FullName, packageWorkingPath, context.GetCancellationToken());
@@ -136,23 +137,23 @@ rootCommand.SetHandler(async (InvocationContext context) =>
         {
             if (Directory.Exists(packageTargetPath))
             {
-                Directory.Move(packageTargetPath, packageOldPath);
+                await DirectoryAsync.MoveAsync(packageTargetPath, packageOldPath);
             }
-            Directory.Move(packageWorkingPath, packageTargetPath);
+            await DirectoryAsync.MoveAsync(packageWorkingPath, packageTargetPath);
         }
         catch
         {
             if (!Directory.Exists(packageTargetPath) &&
                 Directory.Exists(packageOldPath))
             {
-                Directory.Move(packageOldPath, packageTargetPath);
+                await DirectoryAsync.MoveAsync(packageOldPath, packageTargetPath);
             }
         }
         finally
         {
             if (Directory.Exists(packageOldPath))
             {
-                Directory.Delete(packageOldPath);
+                await DirectoryAsync.DeleteAsync(packageOldPath);
             }
         }
     }

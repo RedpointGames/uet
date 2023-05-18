@@ -1,0 +1,3 @@
+NtQueryObject
+NtQuerySystemInformation
+UNICODE_STRING
