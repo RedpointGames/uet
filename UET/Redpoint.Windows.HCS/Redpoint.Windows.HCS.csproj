@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="NSwag.MSBuild" Version="13.18.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <HCSv2SchemaFile Include="schema.v2.4.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <HCSv2CSharpFile Include="v2\HCSv2.cs" />
+  </ItemGroup>
+  <Target Name="GenerateHCSSchemav2" BeforeTargets="BeforeBuild" Inputs="@(HCSv2SchemaFile)" Outputs="@(HCSv2CSharpFile)">
+    <Exec Command="$(NSwagExe_Net50) openapi2csclient /Namespace:Redpoint.Windows.HCS.v2 /Input:&quot;@(HCSv2SchemaFile)&quot; /ClassName:HCS24 /Output:&quot;@(HCSv2CSharpFile)&quot;" WorkingDirectory="$(ProjectDir)" />
+  </Target>
+
+</Project>
