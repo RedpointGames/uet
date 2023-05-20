@@ -1,4 +1,8 @@
-﻿namespace Redpoint.UET.UAT
+﻿using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("Redpoint.UET.UAT.Tests")]
+
+namespace Redpoint.UET.UAT
 {
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.UET.UAT.Internal;
@@ -8,7 +12,10 @@
         public static void AddUETUAT(this IServiceCollection services)
         {
             services.AddSingleton<IBuildConfigurationManager, DefaultBuildConfigurationManager>();
-            services.AddSingleton<ILocalHandleCloser, NativeLocalHandleCloser>();
+            if (OperatingSystem.IsWindowsVersionAtLeast(6, 2))
+            {
+                services.AddSingleton<ILocalHandleCloser, NativeLocalHandleCloser>();
+            }
             services.AddSingleton<IRemoteHandleCloser, DefaultRemoteHandleCloser>();
 
             services.AddSingleton<IUATExecutor, DefaultUATExecutor>();

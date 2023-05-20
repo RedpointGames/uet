@@ -160,31 +160,48 @@
                         {
                             try
                             {
-                                if (Directory.Exists(targetPath))
+                                if (buildGraphProjectRoot != null)
                                 {
-                                    _logger.LogWarning($"Detected existing output directory at '{targetPath}'. Closing handles...");
-                                    await _remoteHandleCloser.CloseRemoteHandles(targetPath);
-                                    await _localHandleCloser.CloseLocalHandles(targetPath);
-                                    _logger.LogWarning($"Detected existing output directory at '{targetPath}'. Deleting contents...");
-                                    if (buildGraphProjectRoot != null)
+                                    var localOutputPath = Path.Combine(buildGraphProjectRoot, "Engine", "Saved", "BuildGraph", singleNodeName);
+                                    if (Directory.Exists(localOutputPath) &&
+                                    Directory.GetFileSystemEntries(localOutputPath).Any())
                                     {
-                                        var localOutputPath = Path.Combine(buildGraphProjectRoot, "Engine", "Saved", "BuildGraph", singleNodeName);
-                                        if (Directory.Exists(localOutputPath))
+                                        _logger.LogWarning($"Detected existing local output directory at '{localOutputPath}'. Deleting contents...");
+                                        try
                                         {
-                                            _logger.LogWarning($"Detected existing local output directory at '{localOutputPath}'. Closing handles...");
+                                            await DirectoryAsync.DeleteAsync(localOutputPath, true);
+                                        }
+                                        catch
+                                        {
+                                            _logger.LogWarning($"Failed to delete '{localOutputPath}'. Forcibly closing handles...");
                                             await _localHandleCloser.CloseLocalHandles(localOutputPath);
-                                            _logger.LogWarning($"Detected existing local output directory at '{localOutputPath}'. Deleting contents...");
+
+                                            _logger.LogWarning($"Handles closed for '{localOutputPath}'. Trying to delete again...");
                                             await DirectoryAsync.DeleteAsync(localOutputPath, true);
                                         }
                                     }
-                                    await DirectoryAsync.DeleteAsync(targetPath, true);
-                                    Directory.CreateDirectory(targetPath);
-                                    break;
                                 }
-                                else
+
+                                if (Directory.Exists(targetPath) &&
+                                    Directory.GetFileSystemEntries(targetPath).Any())
                                 {
-                                    break;
+                                    _logger.LogWarning($"Detected existing output directory at '{targetPath}'. Deleting contents...");
+                                    try
+                                    {
+                                        await DirectoryAsync.DeleteAsync(targetPath, true);
+                                    }
+                                    catch
+                                    {
+                                        _logger.LogWarning($"Failed to delete '{targetPath}'. Forcibly closing handles...");
+                                        await _remoteHandleCloser.CloseRemoteHandles(targetPath);
+                                        await _localHandleCloser.CloseLocalHandles(targetPath);
+
+                                        _logger.LogWarning($"Handles closed for '{targetPath}'. Trying to delete again...");
+                                        await DirectoryAsync.DeleteAsync(targetPath, true);
+                                    }
+                                    Directory.CreateDirectory(targetPath);
                                 }
+                                break;
                             }
                             catch (Exception ex)
                             {

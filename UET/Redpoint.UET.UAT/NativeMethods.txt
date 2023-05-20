@@ -1,3 +1,11 @@
 NtQueryObject
 NtQuerySystemInformation
 UNICODE_STRING
+CloseHandle
+OpenProcess
+GetCurrentProcess
+FindFirstVolume
+QueryDosDevice
+GetVolumePathNamesForVolumeName
+FindNextVolume
+FindVolumeClose

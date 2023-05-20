@@ -55,7 +55,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.MSBuildResolution"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Windows.HCS", "Redpoint.Windows.HCS\Redpoint.Windows.HCS.csproj", "{3B8E64F7-9FD1-4997-BE4E-2AB5CB46E2C7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Windows.HCS.Tests", "Redpoint.Windows.HCS.Tests\Redpoint.Windows.HCS.Tests.csproj", "{494B9D60-4C08-41FB-9CBD-2FA8FB8EBD6C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Windows.HCS.Tests", "Redpoint.Windows.HCS.Tests\Redpoint.Windows.HCS.Tests.csproj", "{494B9D60-4C08-41FB-9CBD-2FA8FB8EBD6C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Windows.VolumeManagement", "Redpoint.Windows.VolumeManagement\Redpoint.Windows.VolumeManagement.csproj", "{06472079-680E-42CF-B381-4BD0DB0F2176}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Windows.VolumeManagement.Tests", "Redpoint.Windows.VolumeManagement.Tests\Redpoint.Windows.VolumeManagement.Tests.csproj", "{43356EFA-3928-4DBD-B3C6-5FE559F98D59}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Windows.HandleManagement", "Redpoint.Windows.HandleManagement\Redpoint.Windows.HandleManagement.csproj", "{A232563E-72E8-4914-96EF-298C665AB01C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Collections", "Redpoint.Collections\Redpoint.Collections.csproj", "{61F94A70-0BE0-4BF3-921D-E7FE1B4C953D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Windows.HandleManagement.Tests", "Redpoint.Windows.HandleManagement.Tests\Redpoint.Windows.HandleManagement.Tests.csproj", "{F152B9D8-6814-43EA-A588-D8B7172BA142}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -167,6 +177,26 @@ Global
 		{494B9D60-4C08-41FB-9CBD-2FA8FB8EBD6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{494B9D60-4C08-41FB-9CBD-2FA8FB8EBD6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{494B9D60-4C08-41FB-9CBD-2FA8FB8EBD6C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06472079-680E-42CF-B381-4BD0DB0F2176}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06472079-680E-42CF-B381-4BD0DB0F2176}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06472079-680E-42CF-B381-4BD0DB0F2176}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06472079-680E-42CF-B381-4BD0DB0F2176}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43356EFA-3928-4DBD-B3C6-5FE559F98D59}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43356EFA-3928-4DBD-B3C6-5FE559F98D59}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43356EFA-3928-4DBD-B3C6-5FE559F98D59}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43356EFA-3928-4DBD-B3C6-5FE559F98D59}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A232563E-72E8-4914-96EF-298C665AB01C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A232563E-72E8-4914-96EF-298C665AB01C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A232563E-72E8-4914-96EF-298C665AB01C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A232563E-72E8-4914-96EF-298C665AB01C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61F94A70-0BE0-4BF3-921D-E7FE1B4C953D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61F94A70-0BE0-4BF3-921D-E7FE1B4C953D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61F94A70-0BE0-4BF3-921D-E7FE1B4C953D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61F94A70-0BE0-4BF3-921D-E7FE1B4C953D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F152B9D8-6814-43EA-A588-D8B7172BA142}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F152B9D8-6814-43EA-A588-D8B7172BA142}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F152B9D8-6814-43EA-A588-D8B7172BA142}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F152B9D8-6814-43EA-A588-D8B7172BA142}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

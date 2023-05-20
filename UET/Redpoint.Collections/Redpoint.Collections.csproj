@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <Import Project="(MSBuildThisFileDirectory)/../../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>Provides additional Linq collection APIs that can classify elements and select values in parallel.</Description>
+    <PackageTags>collections, linq, parallel, classification</PackageTags>
+  </PropertyGroup>
+
+</Project>

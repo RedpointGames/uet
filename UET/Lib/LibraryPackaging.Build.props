@@ -1,0 +1,24 @@
+<Project>
+    <PropertyGroup>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+        <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+        <Copyright>Redpoint Games</Copyright>
+        <PackageProjectUrl></PackageProjectUrl>
+        <RepositoryUrl>https://src.redpoint.games/redpointgames/unreal-engine-tool</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Authors>June Rhodes</Authors>
+        <Company>Redpoint Games</Company>
+
+        <PackageYear>$([System.DateTime]::Now.Year)</PackageYear>
+        <PackageMonth>$([System.DateTime]::Now.Month)</PackageMonth>
+        <PackageDay>$([System.DateTime]::Now.Day)</PackageDay>
+        <PackageHour>$([System.DateTime]::Now.Hour)</PackageHour>
+        <PackageMinute>$([System.DateTime]::Now.Minute)</PackageMinute>
+        <PackageVersionMajor>$(PackageYear)</PackageVersionMajor>
+        <PackageVersionMinor>$([MSBuild]::Add($([MSBuild]::Multiply($(PackageDay), 12)), $(PackageMonth)))</PackageVersionMinor>
+        <PackageVersionPatch>$([MSBuild]::Add($([MSBuild]::Multiply($(PackageHour), 60)), $(PackageMinute)))</PackageVersionPatch>
+
+        <PackageVersion Condition="'$(PackageVersion)' == ''">$(PackageVersionMajor).$(PackageVersionMinor).$(PackageVersionPatch)-pre</PackageVersion>
+    </PropertyGroup>
+</Project>

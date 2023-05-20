@@ -1,26 +1,22 @@
 ﻿namespace Redpoint.UET.UAT.Internal
 {
-    using System.Diagnostics;
+    using Redpoint.Windows.HandleManagement;
+    using System.Runtime.Versioning;
     using System.Threading.Tasks;
-    using Windows.Win32.System.WindowsProgramming;
 
+    [SupportedOSPlatform("windows6.2")]
     internal class NativeLocalHandleCloser : ILocalHandleCloser
     {
-        private const SYSTEM_INFORMATION_CLASS _systemHandleInformation = (SYSTEM_INFORMATION_CLASS)16;
-
-        public Task CloseLocalHandles(string localPath)
+        public async Task CloseLocalHandles(string localPath)
         {
-            /*
-            foreach (var process in Process.GetProcesses())
+            await foreach (var fileHandle in NativeHandles.GetAllFileHandlesAsync(CancellationToken.None))
             {
-                nint handle = process.Handle;
-
-                Windows.Win32.PInvoke.NtQuerySystemInformation(_systemHandleInformation, )
+                if (fileHandle.FilePath.StartsWith(localPath, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    await NativeHandles.ForciblyCloseHandleAsync(fileHandle, CancellationToken.None);
+                }
             }
-
-            throw new NotImplementedException();
-            */
-            return Task.CompletedTask;
         }
     }
 }
+

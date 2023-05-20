@@ -1,0 +1,6 @@
+FindFirstVolume
+FindNextVolume
+FindVolumeClose
+MAX_PATH
+QueryDosDevice
+GetVolumePathNamesForVolumeName
