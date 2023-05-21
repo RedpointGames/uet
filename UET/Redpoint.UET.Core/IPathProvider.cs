@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.UET.Core
 {
+    [Obsolete]
     public interface IPathProvider
     {
         string RepositoryRoot { get; }

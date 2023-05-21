@@ -18,6 +18,7 @@
     <ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />
     <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+    <ProjectReference Include="..\Redpoint.UET.BuildPipeline.Executors.Local\Redpoint.UET.BuildPipeline.Executors.Local.csproj" />
     <ProjectReference Include="..\Redpoint.UET.BuildPipeline\Redpoint.UET.BuildPipeline.csproj" />
     <ProjectReference Include="..\Redpoint.UET.UAT\Redpoint.UET.UAT.csproj" />
   </ItemGroup>

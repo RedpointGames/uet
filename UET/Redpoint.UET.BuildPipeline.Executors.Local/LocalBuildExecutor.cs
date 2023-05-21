@@ -13,7 +13,7 @@
     internal class LocalBuildExecutor : IBuildExecutor
     {
         private readonly ILogger<LocalBuildExecutor> _logger;
-        private readonly IBuildGraphExecutor _buildGraphGenerator;
+        private readonly IBuildGraphExecutor _buildGraphExecutor;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
         private readonly IWorkspaceProvider _workspaceProvider;
 
@@ -24,7 +24,7 @@
             IWorkspaceProvider workspaceProvider)
         {
             _logger = logger;
-            _buildGraphGenerator = buildGraphGenerator;
+            _buildGraphExecutor = buildGraphGenerator;
             _engineWorkspaceProvider = engineWorkspaceProvider;
             _workspaceProvider = workspaceProvider;
         }
@@ -91,7 +91,7 @@
                         await using (var targetWorkspace = await _workspaceProvider.GetFolderWorkspaceAsync(buildSpecification.BuildGraphRepositoryRoot, new[] { node.Node.Name }, new WorkspaceOptions { UnmountAfterUse = false }))
                         {
                             _logger.LogInformation($"Starting: {node.Node.Name}");
-                            exitCode = await _buildGraphGenerator.ExecuteGraphNodeAsync(
+                            exitCode = await _buildGraphExecutor.ExecuteGraphNodeAsync(
                                 engineWorkspace.Path,
                                 targetWorkspace.Path,
                                 buildSpecification.BuildGraphScript,
@@ -157,7 +157,7 @@
                 await using (var targetWorkspace = await _workspaceProvider.GetFolderWorkspaceAsync(buildSpecification.BuildGraphRepositoryRoot, new[] { "Generate BuildGraph JSON" }, new WorkspaceOptions { UnmountAfterUse = false }))
                 {
                     _logger.LogInformation("Generating BuildGraph JSON based on settings...");
-                    buildGraph = await _buildGraphGenerator.GenerateGraphAsync(
+                    buildGraph = await _buildGraphExecutor.GenerateGraphAsync(
                         engineWorkspace.Path,
                         targetWorkspace.Path,
                         buildSpecification.BuildGraphScript,
@@ -172,7 +172,7 @@
             _logger.LogInformation("Executing build...");
 
             SemaphoreSlim? blockingSemaphore = null;
-            if (!buildSpecification.Engine._permitConcurrentBuilds)
+            if (!buildSpecification.Engine.PermitConcurrentBuilds)
             {
                 blockingSemaphore = new SemaphoreSlim(1);
             }

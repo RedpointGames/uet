@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class BuildGraphExportNotify
+    public class BuildGraphExportNotify
     {
         [JsonPropertyName("Default")]
         public string Default { get; set; } = string.Empty;

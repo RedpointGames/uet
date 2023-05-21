@@ -11,6 +11,7 @@ using Redpoint.UET.Core;
 using Microsoft.Extensions.Logging;
 using Redpoint.MSBuildResolution;
 using System.Text.RegularExpressions;
+using Redpoint.UET.BuildPipeline.Executors.Local;
 
 var enginePathOpt = new Option<DirectoryInfo>(
     name: "--engine-path",
@@ -67,17 +68,9 @@ rootCommand.SetHandler(async (context) =>
     services.AddProcessExecution();
     services.AddUETUAT();
     services.AddUETBuildPipeline();
+    services.AddUETBuildPipelineExecutorsLocal();
     services.AddUETWorkspace();
     services.AddUETCore();
-
-    if (isProject)
-    {
-        services.AddSingleton<IPathProvider>(sp => new TestPathProvider(projectPath!.FullName));
-    }
-    else
-    {
-        services.AddSingleton<IPathProvider>(sp => new TestPathProvider(pluginPath!.FullName));
-    }
 
     var serviceProvider = services.BuildServiceProvider();
 
@@ -224,20 +217,4 @@ class TestBuildExecutionEvents : IBuildExecutionEvents
         _logger.LogInformation($"[{nodeName}] \x001B[35mStarting...\x001B[0m");
         return Task.CompletedTask;
     }
-}
-
-class TestPathProvider : IPathProvider
-{
-    public TestPathProvider(string repositoryRoot)
-    {
-        RepositoryRoot = repositoryRoot;
-    }
-
-    public string RepositoryRoot { get; private init; }
-
-    public string BuildScripts => throw new NotImplementedException();
-
-    public string BuildScriptsLib => throw new NotImplementedException();
-
-    public string BuildScriptsTemp => throw new NotImplementedException();
 }

@@ -30,6 +30,7 @@ namespace Redpoint.UET.BuildPipeline.Tests
 
             var buildGraph = await generator.GenerateGraphAsync(
                 @"E:\EpicGames\UE_5.2",
+                projectPath,
                 BuildGraphScriptSpecification.ForProject(),
                 "End",
                 new Dictionary<string, string>
@@ -95,6 +96,7 @@ namespace Redpoint.UET.BuildPipeline.Tests
 
             var buildGraph = await generator.GenerateGraphAsync(
                 @"E:\EpicGames\UE_5.2",
+                pluginPath,
                 BuildGraphScriptSpecification.ForPlugin(),
                 "End",
                 new Dictionary<string, string>

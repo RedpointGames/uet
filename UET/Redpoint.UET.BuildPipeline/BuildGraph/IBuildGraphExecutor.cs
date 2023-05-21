@@ -5,7 +5,7 @@
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
-    internal interface IBuildGraphExecutor
+    public interface IBuildGraphExecutor
     {
         Task<int> ExecuteGraphNodeAsync(
             string enginePath,

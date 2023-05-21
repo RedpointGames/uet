@@ -7,14 +7,14 @@
         internal string? _uefsGitUrl { get; private set; }
         internal string? _uefsGitCommit { get; private set; }
         internal string[]? _uefsGitFolders { get; private set; }
-        internal bool _permitConcurrentBuilds { get; private set; } = false;
+        public bool PermitConcurrentBuilds { get; private set; } = false;
 
         public static BuildEngineSpecification ForPath(string path)
         {
             return new BuildEngineSpecification
             {
                 _enginePath = path,
-                _permitConcurrentBuilds = false,
+                PermitConcurrentBuilds = false,
             };
         }
 
@@ -23,7 +23,7 @@
             return new BuildEngineSpecification
             {
                 _uefsPackageTag = uefsPackageTag,
-                _permitConcurrentBuilds = true,
+                PermitConcurrentBuilds = true,
             };
         }
 
@@ -34,7 +34,7 @@
                 _uefsGitUrl = uefsGitUrl,
                 _uefsGitCommit = uefsGitCommit,
                 _uefsGitFolders = uefsGitAdditionalFolders ?? new string[0],
-                _permitConcurrentBuilds = true,
+                PermitConcurrentBuilds = true,
             };
         }
     }

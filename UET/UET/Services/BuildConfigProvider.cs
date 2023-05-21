@@ -7,6 +7,7 @@
     using System.Text.Json;
     using System.Text.Json.Serialization;
 
+    [Obsolete]
     internal class DefaultBuildConfigProvider : IBuildConfigProvider
     {
         private readonly IPathProvider _pathProvider;

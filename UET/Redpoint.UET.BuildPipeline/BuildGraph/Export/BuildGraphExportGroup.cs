@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class BuildGraphExportGroup
+    public class BuildGraphExportGroup
     {
         [JsonPropertyName("Name")]
         public string Name { get; set; } = string.Empty;

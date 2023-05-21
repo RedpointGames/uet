@@ -5,6 +5,7 @@
     using System.CommandLine.Invocation;
     using UET.Commands;
 
+    [Obsolete]
     internal class DefaultPathProvider : IPathProvider
     {
         private readonly string _repositoryRoot;
