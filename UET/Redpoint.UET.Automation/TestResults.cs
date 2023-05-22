@@ -1,7 +1,5 @@
 ﻿namespace Redpoint.UET.Automation
 {
-    using System.Collections.ObjectModel;
-
     public class TestResults
     {
         public string ClientDescriptor { get; set; } = string.Empty;

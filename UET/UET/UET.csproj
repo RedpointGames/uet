@@ -41,4 +41,8 @@
     <ProjectReference Include="..\Redpoint.Windows.VolumeManagement\Redpoint.Windows.VolumeManagement.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Services\" />
+  </ItemGroup>
+
 </Project>

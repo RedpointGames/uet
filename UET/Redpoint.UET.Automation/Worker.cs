@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.UET.Automation
 {
-    using Microsoft.Extensions.Logging;
     using System.Diagnostics;
 
     public class Worker

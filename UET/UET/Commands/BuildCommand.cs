@@ -2,9 +2,6 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-    using Redpoint.UET.Configuration;
-    using Redpoint.UET.Configuration.Engine;
-    using Redpoint.UET.Core;
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
@@ -57,18 +54,15 @@
 
         private class BuildCommandInstance
         {
-            private readonly IBuildConfigProvider _buildConfigProvider;
             private readonly IServiceProvider _serviceProvider;
             private readonly Options _options;
             private readonly ILogger<BuildCommandInstance> _logger;
 
             public BuildCommandInstance(
-                IBuildConfigProvider buildConfigProvider,
                 IServiceProvider serviceProvider,
                 Options options,
                 ILogger<BuildCommandInstance> logger)
             {
-                _buildConfigProvider = buildConfigProvider;
                 _serviceProvider = serviceProvider;
                 _options = options;
                 _logger = logger;
@@ -82,6 +76,7 @@
                 _logger.LogInformation($"--then-deploy:        {context.ParseResult.GetValueForOption(_options.ThenDeploy)}");
                 _logger.LogInformation($"--strict-includes:    {context.ParseResult.GetValueForOption(_options.StrictIncludes)}");
 
+                /*
                 var buildConfig = _buildConfigProvider.GetBuildConfig();
 
                 switch (buildConfig.Type)
@@ -95,6 +90,9 @@
                     default:
                         throw new NotSupportedException();
                 }
+                */
+
+                return 1;
             }
         }
     }

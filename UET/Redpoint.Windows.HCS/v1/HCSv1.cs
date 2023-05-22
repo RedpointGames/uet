@@ -1,11 +1,6 @@
 ﻿namespace Redpoint.Windows.HCS.v1
 {
     using Newtonsoft.Json;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
 
     public class ContainerProperties
     {

@@ -1,7 +1,5 @@
 ﻿namespace Redpoint.UET.BuildPipeline.Environment
 {
-    using System.Collections.Generic;
-
     /// <summary>
     /// WindowsEnvironment contains the Windows-specific environment
     /// settings for jobs that run on Windows.

@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
-using System.Runtime.CompilerServices;
 
 namespace Redpoint.UET.Core
 {
@@ -9,7 +8,6 @@ namespace Redpoint.UET.Core
     {
         public static void AddUETCore(this IServiceCollection services)
         {
-            services.AddSingleton<IBuildStabilityIdProvider, DefaultBuildStabilityIdProvider>();
             services.AddSingleton<IStringUtilities, DefaultStringUtilities>();
 
             services.AddLogging(builder =>

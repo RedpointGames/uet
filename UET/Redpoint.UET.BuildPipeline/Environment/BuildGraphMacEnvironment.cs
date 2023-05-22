@@ -1,7 +1,5 @@
 ﻿namespace Redpoint.UET.BuildPipeline.Environment
 {
-    using System.Collections.Generic;
-
     /// <summary>
     /// MacEnvironment contains the macOS-specific environment
     /// settings for jobs that run on macOS.

@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.UET.Workspace.Reservation
 {
-    using Grpc.Core.Logging;
     using Microsoft.Extensions.Logging;
     using Microsoft.Win32.SafeHandles;
     using Redpoint.UET.Core;

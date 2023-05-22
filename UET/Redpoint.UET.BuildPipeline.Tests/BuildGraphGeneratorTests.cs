@@ -6,7 +6,6 @@ namespace Redpoint.UET.BuildPipeline.Tests
     using Redpoint.ProcessExecution;
     using Redpoint.UET.BuildPipeline.BuildGraph;
     using Redpoint.UET.UAT;
-    using System.Diagnostics;
     using Redpoint.MSBuildResolution;
 
     public class BuildGraphGeneratorTests

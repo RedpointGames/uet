@@ -2,13 +2,8 @@
 {
     using Redpoint.Unreal.Serialization;
     using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Net;
     using System.Net.Sockets;
-    using System.Numerics;
-    using System.Runtime.InteropServices;
-    using System.Text;
     using System.Threading.Tasks;
 
     public class TcpMessageTransportConnection : IDisposable

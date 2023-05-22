@@ -1,7 +1,5 @@
 ﻿namespace Redpoint.UET.Automation
 {
-    using Microsoft.Extensions.Logging;
-
     public class ControllerWorker : Worker
     {
         public ControllerWorker(

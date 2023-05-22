@@ -4,7 +4,6 @@
     using Redpoint.Windows.HCS.v1;
     using Redpoint.Windows.HCS.v2;
     using System.Runtime.InteropServices;
-    using System.Text.Json;
 
     public class HCSClient
     {

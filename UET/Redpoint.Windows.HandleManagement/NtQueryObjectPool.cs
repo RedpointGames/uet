@@ -3,11 +3,6 @@
     using Microsoft.Win32.SafeHandles;
     using System;
     using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Runtime.InteropServices;
-    using System.Text;
-    using System.Threading.Tasks;
     using global::Windows.Win32.System.WindowsProgramming;
     using global::Windows.Win32.Foundation;
     using System.Runtime;
