@@ -7,6 +7,7 @@ namespace Redpoint.UET.BuildPipeline.Tests
     using Redpoint.UET.BuildPipeline.BuildGraph;
     using Redpoint.UET.UAT;
     using System.Diagnostics;
+    using Redpoint.MSBuildResolution;
 
     public class BuildGraphGeneratorTests
     {
@@ -24,6 +25,7 @@ namespace Redpoint.UET.BuildPipeline.Tests
             services.AddProcessExecution();
             services.AddUETUAT();
             services.AddUETBuildPipeline();
+            services.AddMSBuildPathResolution();
 
             var serviceProvider = services.BuildServiceProvider();
             var generator = serviceProvider.GetRequiredService<IBuildGraphExecutor>();
@@ -90,6 +92,7 @@ namespace Redpoint.UET.BuildPipeline.Tests
             services.AddProcessExecution();
             services.AddUETUAT();
             services.AddUETBuildPipeline();
+            services.AddMSBuildPathResolution();
 
             var serviceProvider = services.BuildServiceProvider();
             var generator = serviceProvider.GetRequiredService<IBuildGraphExecutor>();

@@ -1,0 +1,18 @@
+stages:
+  - Build
+
+"Build, Test, Package and Push":
+  stage: Build
+  tags:
+    - redpoint-games-windows
+  script: |
+    $Timestamp = ([DateTime]::UtcNow)
+    $PackageVersion = "$($Timestamp.Year).$(($Timestamp.Day * 12) + $Timestamp.Month).$(($Timestamp.Hour * 60) + $Timestamp.Minute)"
+    dotnet build -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
+    if ($LastExitCode -ne 0) { exit $LastExitCode }
+    dotnet test --no-build -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
+    if ($LastExitCode -ne 0) { exit $LastExitCode }
+    dotnet publish --no-build -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
+    if ($LastExitCode -ne 0) { exit $LastExitCode }
+    dotnet nuget push --source https://api.nuget.org/v3/index.json --api-key $env:NUGET_API_KEY (Get-ChildItem -Recurse -Filter "*.$PackageVersion.nupkg" | % { $_.FullName })
+    if ($LastExitCode -ne 0) { exit $LastExitCode }
