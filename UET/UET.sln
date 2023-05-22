@@ -47,8 +47,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{39698A12-7C9B-47F5-BA1A-9F4884A770AF}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CredentialManagement", "Lib\CredentialManagement\CredentialManagement.csproj", "{5CED9D92-D478-41B2-84F3-A3D41B642BB2}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.MSBuildResolution", "Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj", "{5227BBD5-4CE7-4CB8-A60E-897E70664886}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Windows.HCS", "Redpoint.Windows.HCS\Redpoint.Windows.HCS.csproj", "{3B8E64F7-9FD1-4997-BE4E-2AB5CB46E2C7}"
@@ -67,11 +65,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Windows.HandleMana
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.Executors.Local", "Redpoint.UET.BuildPipeline.Executors.Local\Redpoint.UET.BuildPipeline.Executors.Local.csproj", "{ACA6E37D-1308-4B18-A8B2-9316699E3850}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.UET.BuildPipeline.Executors.BuildServer", "Redpoint.UET.BuildPipeline.Executors.BuildServer\Redpoint.UET.BuildPipeline.Executors.BuildServer.csproj", "{D160E84A-97C5-4958-B196-D7C1C6A70AD8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.Executors.BuildServer", "Redpoint.UET.BuildPipeline.Executors.BuildServer\Redpoint.UET.BuildPipeline.Executors.BuildServer.csproj", "{D160E84A-97C5-4958-B196-D7C1C6A70AD8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.UET.BuildPipeline.Executors.GitLab", "Redpoint.UET.BuildPipeline.Executors.GitLab\Redpoint.UET.BuildPipeline.Executors.GitLab.csproj", "{AFFE7088-DBFA-4941-96BE-A5D8C9A578EB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.Executors.GitLab", "Redpoint.UET.BuildPipeline.Executors.GitLab\Redpoint.UET.BuildPipeline.Executors.GitLab.csproj", "{AFFE7088-DBFA-4941-96BE-A5D8C9A578EB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "uet", "uet\uet.csproj", "{3A9215AE-E602-4BA9-839D-7103567CD17C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ThirdParty.CredentialManagement", "Lib\Redpoint.ThirdParty.CredentialManagement\Redpoint.ThirdParty.CredentialManagement.csproj", "{A7A7B9B7-67F0-49B9-9413-56DB172ED9F5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -163,10 +163,6 @@ Global
 		{5C4E5E66-23AA-499D-B3CD-DD374F8CD2BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5C4E5E66-23AA-499D-B3CD-DD374F8CD2BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5C4E5E66-23AA-499D-B3CD-DD374F8CD2BB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5CED9D92-D478-41B2-84F3-A3D41B642BB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5CED9D92-D478-41B2-84F3-A3D41B642BB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5CED9D92-D478-41B2-84F3-A3D41B642BB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5CED9D92-D478-41B2-84F3-A3D41B642BB2}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5227BBD5-4CE7-4CB8-A60E-897E70664886}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5227BBD5-4CE7-4CB8-A60E-897E70664886}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5227BBD5-4CE7-4CB8-A60E-897E70664886}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -215,12 +211,16 @@ Global
 		{3A9215AE-E602-4BA9-839D-7103567CD17C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3A9215AE-E602-4BA9-839D-7103567CD17C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3A9215AE-E602-4BA9-839D-7103567CD17C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7A7B9B7-67F0-49B9-9413-56DB172ED9F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7A7B9B7-67F0-49B9-9413-56DB172ED9F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7A7B9B7-67F0-49B9-9413-56DB172ED9F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7A7B9B7-67F0-49B9-9413-56DB172ED9F5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{5CED9D92-D478-41B2-84F3-A3D41B642BB2} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
+		{A7A7B9B7-67F0-49B9-9413-56DB172ED9F5} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}
