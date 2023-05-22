@@ -11,7 +11,7 @@ namespace Redpoint.UET.BuildPipeline.Tests
 
     public class BuildGraphGeneratorTests
     {
-        [Fact]
+        [SkippableFact]
         public async void CanGenerateBuildGraphForProject()
         {
             var enginePath = Environment.GetEnvironmentVariable("UET_ENGINE_PATH") ?? @"E:\EpicGames\UE_5.2";
@@ -78,7 +78,7 @@ namespace Redpoint.UET.BuildPipeline.Tests
             Assert.Contains(buildGraph.Groups, x => x.Name == "Windows Tag");
         }
 
-        [Fact]
+        [SkippableFact]
         public async void CanGenerateBuildGraphForPlugin()
         {
             var enginePath = Environment.GetEnvironmentVariable("UET_ENGINE_PATH") ?? @"E:\EpicGames\UE_5.2";

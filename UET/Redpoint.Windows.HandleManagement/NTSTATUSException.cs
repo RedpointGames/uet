@@ -39,7 +39,7 @@
         /// <summary>
         /// The I/O operation has been aborted because of either a thread exit or an application request.
         /// </summary>
-        public const uint NT_STATUS_CANCELLED = 0xC0000120;
+        public const uint NT_STATUS_CANCELLED = 0xC0000120u;
 
         /// <summary>
         /// No process is on the other end of the pipe.
@@ -49,7 +49,12 @@
         /// <summary>
         /// Access is denied.
         /// </summary>
-        public const uint NT_STATUS_PROCESS_IS_TERMINATING = 0xC000010au;
+        public const uint NT_STATUS_PROCESS_IS_TERMINATING = 0xC000010Au;
+
+        /// <summary>
+        /// An operation was attempted to a volume after it was dismounted.
+        /// </summary>
+        public const uint NT_STATUS_VOLUME_DISMOUNTED = 0xC000026Eu;
 
         /// <summary>
         /// The raw NTSTATUS code.

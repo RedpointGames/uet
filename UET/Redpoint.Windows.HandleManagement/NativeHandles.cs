@@ -220,6 +220,7 @@ namespace Redpoint.Windows.HandleManagement
                     switch (unchecked((uint)status.Value))
                     {
                         case NTSTATUSException.NT_STATUS_INVALID_HANDLE:
+                        case NTSTATUSException.NT_STATUS_VOLUME_DISMOUNTED:
                             return GetPathResultCode.ExpiredHandle;
                         case NTSTATUSException.NT_STATUS_OBJECT_PATH_INVALID:
                             return GetPathResultCode.ObjectPathInvalid;
@@ -257,6 +258,7 @@ namespace Redpoint.Windows.HandleManagement
                                 switch (unchecked((uint)status.Value))
                                 {
                                     case NTSTATUSException.NT_STATUS_INVALID_HANDLE:
+                                    case NTSTATUSException.NT_STATUS_VOLUME_DISMOUNTED:
                                         return GetPathResultCode.ExpiredHandle;
                                     case NTSTATUSException.NT_STATUS_OBJECT_PATH_INVALID:
                                         return GetPathResultCode.ObjectPathInvalid;
@@ -292,6 +294,7 @@ namespace Redpoint.Windows.HandleManagement
                                         switch (unchecked((uint)status.Value))
                                         {
                                             case NTSTATUSException.NT_STATUS_INVALID_HANDLE:
+                                            case NTSTATUSException.NT_STATUS_VOLUME_DISMOUNTED:
                                                 return GetPathResultCode.ExpiredHandle;
                                             case NTSTATUSException.NT_STATUS_OBJECT_PATH_INVALID:
                                                 return GetPathResultCode.ObjectPathInvalid;
