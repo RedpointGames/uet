@@ -6,7 +6,7 @@ namespace Redpoint.UET.UAT.Tests
 
     public class UATExecutionTests
     {
-        [Fact]
+        [SkippableFact]
         public async Task TestUATExecutionOfBuildGraphHelpWorks()
         {
             var enginePath = Environment.GetEnvironmentVariable("UET_ENGINE_PATH") ?? @"E:\EpicGames\UE_5.2";
