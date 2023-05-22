@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <Import Project="(MSBuildThisFileDirectory)/../../Lib/LibraryPackaging.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
   <PropertyGroup>
     <Description>Provides APIs for querying system volumes on Windows.</Description>
     <PackageTags>windows, system, volume management</PackageTags>

@@ -9,6 +9,8 @@
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <Authors>June Rhodes</Authors>
         <Company>Redpoint Games</Company>
+        <PackageIcon>PackageIcon.png</PackageIcon>
+        <PackageReadmeFile Condition="Exists('$(ProjectDir)README.md')">README.md</PackageReadmeFile>
 
         <PackageYear>$([System.DateTime]::Now.Year)</PackageYear>
         <PackageMonth>$([System.DateTime]::Now.Month)</PackageMonth>
@@ -21,4 +23,9 @@
 
         <PackageVersion Condition="'$(PackageVersion)' == ''">$(PackageVersionMajor).$(PackageVersionMinor).$(PackageVersionPatch)-pre</PackageVersion>
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)PackageIcon.png" Pack="True" PackagePath="" />
+        <None Condition="Exists('$(ProjectDir)README.md')" Include="$(ProjectDir)README.md" Pack="True" PackagePath="" />
+    </ItemGroup>
 </Project>

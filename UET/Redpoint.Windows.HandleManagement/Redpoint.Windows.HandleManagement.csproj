@@ -7,7 +7,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <Import Project="(MSBuildThisFileDirectory)/../../Lib/LibraryPackaging.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
   <PropertyGroup>
     <Description>Provides APIs to manage system-wide handles on Windows and forcibly close them. These APIs can be used to forcibly unlock files that are currently open by other processes.</Description>
     <PackageTags>windows, system, handle management</PackageTags>

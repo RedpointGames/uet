@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <Import Project="(MSBuildThisFileDirectory)/../../Lib/XunitTesting.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.Windows.HandleManagement\Redpoint.Windows.HandleManagement.csproj" />
