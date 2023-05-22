@@ -10,9 +10,12 @@ stages:
     $PackageVersion = "$($Timestamp.Year).$(($Timestamp.Day * 12) + $Timestamp.Month).$(($Timestamp.Hour * 60) + $Timestamp.Minute)"
     dotnet build -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
     if ($LastExitCode -ne 0) { exit $LastExitCode }
-    dotnet test --no-build -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
+    dotnet test --no-build --logger:"console" --logger:"junit;LogFilePath=$((Get-Location).Path)\TestResults\{assembly}.test-result.xml" -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
     if ($LastExitCode -ne 0) { exit $LastExitCode }
     dotnet publish --no-build -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
     if ($LastExitCode -ne 0) { exit $LastExitCode }
     dotnet nuget push --source https://api.nuget.org/v3/index.json --api-key $env:NUGET_API_KEY (Get-ChildItem -Recurse -Filter "*.$PackageVersion.nupkg" | % { $_.FullName })
     if ($LastExitCode -ne 0) { exit $LastExitCode }
+  artifacts:
+    reports:
+      junit: TestResults/*.test-result.xml

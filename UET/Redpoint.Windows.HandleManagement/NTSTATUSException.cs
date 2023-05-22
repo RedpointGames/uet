@@ -57,6 +57,11 @@
         public const uint NT_STATUS_VOLUME_DISMOUNTED = 0xC000026Eu;
 
         /// <summary>
+        /// An illegal operation was attempted on a registry key that has been marked for deletion.
+        /// </summary>
+        public const uint NT_STATUS_KEY_DELETED = 0xC000017Cu;
+
+        /// <summary>
         /// The raw NTSTATUS code.
         /// </summary>
         public uint StatusCode { get; private set; }
