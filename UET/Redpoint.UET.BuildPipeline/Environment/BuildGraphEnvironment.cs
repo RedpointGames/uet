@@ -19,6 +19,6 @@
         /// <summary>
         /// The macOS build environment.
         /// </summary>
-        public required BuildGraphMacEnvironment Mac { get; init; }
+        public BuildGraphMacEnvironment? Mac { get; init; } = null;
     }
 }

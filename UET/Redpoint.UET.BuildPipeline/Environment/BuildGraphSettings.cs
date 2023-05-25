@@ -13,6 +13,6 @@
         /// <summary>
         /// All of the -set: parameters to pass to BuildGraph on macOS.
         /// </summary>
-        public required Dictionary<string, string> MacSettings { get; init; }
+        public Dictionary<string, string>? MacSettings { get; init; } = null;
     }
 }
