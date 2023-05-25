@@ -14,6 +14,8 @@
 
         public bool NeedsRetry { get; private set; } = false;
 
+        public bool ForceRetry { get; private set; } = false;
+
         public bool InterceptStandardInput => true;
 
         public bool InterceptStandardOutput => true;
@@ -35,6 +37,10 @@
             if (data.Contains("LLVM ERROR: out of memory"))
             {
                 NeedsRetry = true;
+            }
+            if (data.Contains("had to patch your engine"))
+            {
+                ForceRetry = true;
             }
         }
 

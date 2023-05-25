@@ -280,15 +280,12 @@
                         }
                     }
 
-                    // If the reported exit code is non-zero, check the retry status to see if we should
-                    // automatically retry.
-                    if (reportedExitCode != 0)
+                    // If the reported exit code is non-zero and the output detected we need to retry, or if the output wants to force a retry, then do this build node again.
+                    if ((reportedExitCode != 0 && retryCaptureSpecification.NeedsRetry) ||
+                        (retryCaptureSpecification.ForceRetry))
                     {
-                        if (retryCaptureSpecification.NeedsRetry)
-                        {
-                            _logger.LogWarning("Detected PCH memory error or other retryable build error. Automatically retrying...");
-                            continue;
-                        }
+                        _logger.LogWarning("Detected this build node needs to be retried.");
+                        continue;
                     }
 
                     // If we didn't trigger the retry logic, break out of the while (true) loop.
