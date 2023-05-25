@@ -118,9 +118,11 @@
                 {
                     try
                     {
-                        process.Kill();
+                        process.Kill(true);
                     }
-                    catch { }
+                    catch
+                    {
+                    }
                 }
             }
             return process.ExitCode;
