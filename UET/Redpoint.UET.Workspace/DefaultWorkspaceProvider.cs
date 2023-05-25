@@ -142,6 +142,11 @@
             }
         }
 
+        public Task<IWorkspace> GetExistingPathAsWorkspaceAsync(string path)
+        {
+            return Task.FromResult<IWorkspace>(new LocalWorkspace(path));
+        }
+
         public async Task<IWorkspace> GetGitWorkspaceAsync(
             string repository,
             string commit,

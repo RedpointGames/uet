@@ -43,7 +43,11 @@
             await buildExecutionEvents.OnNodeStarted(nodeName);
             try
             {
-                await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(buildSpecification.Engine, string.Empty, cancellationToken))
+                await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
+                    buildSpecification.Engine,
+                    string.Empty,
+                    buildSpecification.UseStorageVirtualisation,
+                    cancellationToken))
                 {
                     int exitCode;
                     await using (var targetWorkspace = await _workspaceProvider.GetGitWorkspaceAsync(

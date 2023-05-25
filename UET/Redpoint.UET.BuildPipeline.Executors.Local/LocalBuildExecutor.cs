@@ -47,6 +47,27 @@
             public required DAGNode Node { get; set; }
         }
 
+        private async Task<IWorkspace> GetPotentiallyVirtualisableFolderWorkspaceAsync(
+            string buildGraphRepositoryRoot,
+            string nodeName,
+            bool useStorageVirtualisation)
+        {
+            if (useStorageVirtualisation)
+            {
+                return await _workspaceProvider.GetFolderWorkspaceAsync(
+                    buildGraphRepositoryRoot,
+                    new[]
+                    {
+                        nodeName,
+                    },
+                    new WorkspaceOptions { UnmountAfterUse = false });
+            }
+            else
+            {
+                return await _workspaceProvider.GetExistingPathAsWorkspaceAsync(buildGraphRepositoryRoot);
+            }
+        }
+
         private async Task<BuildResultStatus> ExecuteDAGNode(
             BuildSpecification buildSpecification,
             IBuildExecutionEvents buildExecutionEvents,
@@ -103,10 +124,17 @@
                 await buildExecutionEvents.OnNodeStarted(node.Node.Name);
                 try
                 {
-                    await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(buildSpecification.Engine, string.Empty, cancellationToken))
+                    await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
+                        buildSpecification.Engine,
+                        string.Empty,
+                        buildSpecification.UseStorageVirtualisation,
+                        cancellationToken))
                     {
                         int exitCode;
-                        await using (var targetWorkspace = await _workspaceProvider.GetFolderWorkspaceAsync(buildSpecification.BuildGraphRepositoryRoot, new[] { node.Node.Name }, new WorkspaceOptions { UnmountAfterUse = false }))
+                        await using (var targetWorkspace = await GetPotentiallyVirtualisableFolderWorkspaceAsync(
+                            buildSpecification.BuildGraphRepositoryRoot,
+                            node.Node.Name,
+                            buildSpecification.UseStorageVirtualisation))
                         {
                             _logger.LogInformation($"Starting: {node.Node.Name}");
                             exitCode = await _buildGraphExecutor.ExecuteGraphNodeAsync(
@@ -170,9 +198,16 @@
             CancellationToken cancellationToken)
         {
             BuildGraphExport buildGraph;
-            await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(buildSpecification.Engine, string.Empty, cancellationToken))
+            await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
+                buildSpecification.Engine,
+                string.Empty,
+                buildSpecification.UseStorageVirtualisation,
+                cancellationToken))
             {
-                await using (var targetWorkspace = await _workspaceProvider.GetFolderWorkspaceAsync(buildSpecification.BuildGraphRepositoryRoot, new[] { "Generate BuildGraph JSON" }, new WorkspaceOptions { UnmountAfterUse = false }))
+                await using (var targetWorkspace = await GetPotentiallyVirtualisableFolderWorkspaceAsync(
+                    buildSpecification.BuildGraphRepositoryRoot,
+                    "Generate BuildGraph JSON",
+                    buildSpecification.UseStorageVirtualisation))
                 {
                     _logger.LogInformation("Generating BuildGraph JSON based on settings...");
                     buildGraph = await _buildGraphExecutor.GenerateGraphAsync(
@@ -180,7 +215,7 @@
                         targetWorkspace.Path,
                         buildSpecification.BuildGraphScript,
                         buildSpecification.BuildGraphTarget,
-                        OperatingSystem.IsWindows() ? buildSpecification.BuildGraphSettings.WindowsSettings : buildSpecification.BuildGraphSettings.MacSettings,
+                        OperatingSystem.IsWindows() ? buildSpecification.BuildGraphSettings.WindowsSettings : buildSpecification.BuildGraphSettings.MacSettings!,
                         buildSpecification.BuildGraphSettingReplacements,
                         generationCaptureSpecification,
                         cancellationToken);
@@ -190,7 +225,7 @@
             _logger.LogInformation("Executing build...");
 
             SemaphoreSlim? blockingSemaphore = null;
-            if (!buildSpecification.Engine.PermitConcurrentBuilds)
+            if (!buildSpecification.Engine.PermitConcurrentBuilds || !buildSpecification.UseStorageVirtualisation)
             {
                 blockingSemaphore = new SemaphoreSlim(1);
             }

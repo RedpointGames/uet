@@ -19,10 +19,12 @@
             CancellationToken cancellationToken);
 
         Task<IWorkspace> GetFolderWorkspaceAsync(
-            string path, 
+            string path,
             string[] disambiguators,
             WorkspaceOptions workspaceOptions);
 
         Task<IWorkspace> GetTempWorkspaceAsync(string name);
+
+        Task<IWorkspace> GetExistingPathAsWorkspaceAsync(string path);
     }
 }

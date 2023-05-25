@@ -5,6 +5,10 @@
 
     public interface IEngineWorkspaceProvider
     {
-        Task<IWorkspace> GetEngineWorkspace(BuildEngineSpecification buildEngineSpecification, string workspaceSuffix, CancellationToken cancellationToken);
+        Task<IWorkspace> GetEngineWorkspace(
+            BuildEngineSpecification buildEngineSpecification,
+            string workspaceSuffix,
+            bool useStorageVirtualisation,
+            CancellationToken cancellationToken);
     }
 }

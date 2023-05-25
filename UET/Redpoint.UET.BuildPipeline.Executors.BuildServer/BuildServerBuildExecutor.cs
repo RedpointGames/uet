@@ -41,7 +41,11 @@
             }
 
             BuildGraphExport buildGraph;
-            await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(buildSpecification.Engine, string.Empty, cancellationToken))
+            await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
+                buildSpecification.Engine,
+                string.Empty,
+                buildSpecification.UseStorageVirtualisation,
+                cancellationToken))
             {
                 // @note: Generating the BuildGraph doesn't require any files from the workspace, so we don't bother
                 // setting up a Git workspace for it.

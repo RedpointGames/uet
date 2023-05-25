@@ -13,24 +13,29 @@
         }
 
         public async Task<IWorkspace> GetEngineWorkspace(
-            BuildEngineSpecification buildEngineSpecification, 
+            BuildEngineSpecification buildEngineSpecification,
             string workspaceSuffix,
+            bool useStorageVirtualisation,
             CancellationToken cancellationToken)
         {
             if (buildEngineSpecification._enginePath != null)
             {
-                return await _workspaceProvider.GetFolderWorkspaceAsync(
-                    buildEngineSpecification._enginePath,
-                    new string[0],
-                    new WorkspaceOptions
-                    {
-                        UnmountAfterUse = false,
-                    });
+                if (useStorageVirtualisation)
+                {
+                    return await _workspaceProvider.GetFolderWorkspaceAsync(
+                        buildEngineSpecification._enginePath,
+                        new[] { workspaceSuffix },
+                        new WorkspaceOptions { UnmountAfterUse = false });
+                }
+                else
+                {
+                    return await _workspaceProvider.GetExistingPathAsWorkspaceAsync(buildEngineSpecification._enginePath);
+                }
             }
             else if (buildEngineSpecification._uefsPackageTag != null)
             {
                 return await _workspaceProvider.GetPackageWorkspaceAsync(
-                    buildEngineSpecification._uefsPackageTag, 
+                    buildEngineSpecification._uefsPackageTag,
                     workspaceSuffix,
                     new WorkspaceOptions
                     {
