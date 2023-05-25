@@ -52,6 +52,7 @@
             IBuildExecutionEvents buildExecutionEvents,
             DAGNode node,
             SemaphoreSlim? blockingSemaphore,
+            List<Lazy<Task<BuildResultStatus>>> allTasks,
             CancellationToken cancellationToken)
         {
             if (node.DependsTasks != null)
@@ -73,6 +74,21 @@
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
+
+                // Before we start work on this task, see if there are any unrelated
+                // tasks that have failed. If they have, the build can never succeed
+                // so there's no point starting new build nodes.
+                foreach (var task in allTasks)
+                {
+                    if (task.IsValueCreated &&
+                        ((task.Value.IsCompleted && task.Value.Result != BuildResultStatus.Success) ||
+                        task.Value.IsFaulted ||
+                        task.Value.IsCanceled))
+                    {
+                        _logger.LogInformation($"Skipped: {node.Node.Name} = NotRun");
+                        return BuildResultStatus.NotRun;
+                    }
+                }
 
                 if (node.Node.Name == "End")
                 {
@@ -220,7 +236,7 @@
                     var nodeCopy = node;
                     var task = new Lazy<Task<BuildResultStatus>>(Task.Run(async () =>
                     {
-                        return await ExecuteDAGNode(buildSpecification, buildExecutionEvents, nodeCopy, blockingSemaphore, cancellationToken);
+                        return await ExecuteDAGNode(buildSpecification, buildExecutionEvents, nodeCopy, blockingSemaphore, allTasks, cancellationToken);
                     }));
                     allTasks.Add(task);
                     node.ThisTask = task;
