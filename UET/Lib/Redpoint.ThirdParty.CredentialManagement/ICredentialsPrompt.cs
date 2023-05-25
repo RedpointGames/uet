@@ -1,8 +1,8 @@
 ﻿using System.Security;
 
-namespace CredentialManagement
+namespace Redpoint.ThirdParty.CredentialManagement
 {
-    interface ICredentialsPrompt: IDisposable
+    interface ICredentialsPrompt : IDisposable
     {
         DialogResult ShowDialog();
         DialogResult ShowDialog(IntPtr owner);
@@ -13,7 +13,7 @@ namespace CredentialManagement
 
         string Title { get; set; }
         string Message { get; set; }
-        
+
         bool SaveChecked { get; set; }
 
         bool GenericCredentials { get; set; }

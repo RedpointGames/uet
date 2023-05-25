@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Security;
 
-namespace CredentialManagement
+namespace Redpoint.ThirdParty.CredentialManagement
 {
     [SuppressUnmanagedCodeSecurity]
     internal static class SecureStringHelper
@@ -27,7 +27,7 @@ namespace CredentialManagement
         {
             string str;
             IntPtr zero = IntPtr.Zero;
-            if ((secureString == null) || (secureString.Length == 0))
+            if (secureString == null || secureString.Length == 0)
             {
                 return string.Empty;
             }

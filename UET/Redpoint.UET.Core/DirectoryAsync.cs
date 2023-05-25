@@ -1,4 +1,4 @@
-﻿namespace Redpoint.AsyncFileUtilities
+﻿namespace Redpoint.UET.Core
 {
     public static class DirectoryAsync
     {

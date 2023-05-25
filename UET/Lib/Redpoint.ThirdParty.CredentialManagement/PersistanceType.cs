@@ -1,4 +1,4 @@
-﻿namespace CredentialManagement
+﻿namespace Redpoint.ThirdParty.CredentialManagement
 {
     public enum PersistanceType : uint
     {

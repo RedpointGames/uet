@@ -5,7 +5,7 @@
     using System.Text.Json;
     using System.Text.RegularExpressions;
     using Uefs;
-    using CredentialManagement;
+    using Redpoint.ThirdParty.CredentialManagement;
 
     internal class DefaultCredentialManager : ICredentialManager
     {

@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
 
-namespace CredentialManagement
+namespace Redpoint.ThirdParty.CredentialManagement
 {
     [SupportedOSPlatform("windows")]
     public class XPPrompt : BaseCredentialsPrompt

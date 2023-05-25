@@ -1,4 +1,4 @@
-﻿namespace Redpoint.UET.BuildPipeline.Executors
+﻿namespace Redpoint.UET.BuildPipeline.Executors.Local
 {
     using Microsoft.Extensions.DependencyInjection;
     using System;

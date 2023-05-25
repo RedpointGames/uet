@@ -2,7 +2,7 @@
 using System.Security;
 using System.Security.Permissions;
 
-namespace CredentialManagement
+namespace Redpoint.ThirdParty.CredentialManagement
 {
     public abstract class BaseCredentialsPrompt : ICredentialsPrompt
     {

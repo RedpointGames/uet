@@ -2,9 +2,9 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace CredentialManagement
+namespace Redpoint.ThirdParty.CredentialManagement
 {
-    public class VistaPrompt: BaseCredentialsPrompt
+    public class VistaPrompt : BaseCredentialsPrompt
     {
         string _domain;
 
@@ -105,9 +105,9 @@ namespace CredentialManagement
             {
                 dialogResult = NativeMethods.CredUIPromptForWindowsCredentials(ref credUI, ErrorCode, ref authPackage,
                                                                                     inCredBuffer,
-                    //You can force that a specific username is shown in the dialog. Create it with 'CredPackAuthenticationBuffer()'. Then, the buffer goes here...
+                                                                                    //You can force that a specific username is shown in the dialog. Create it with 'CredPackAuthenticationBuffer()'. Then, the buffer goes here...
                                                                                     (uint)inCredBufferSize,
-                    //...and the size goes here. You also have to add CREDUIWIN_IN_CRED_ONLY to the flags (last argument).
+                                                                                    //...and the size goes here. You also have to add CREDUIWIN_IN_CRED_ONLY to the flags (last argument).
                                                                                     out outCredBuffer,
                                                                                     out outCredSize,
                                                                                     ref persist,
@@ -169,7 +169,7 @@ namespace CredentialManagement
             get
             {
                 OperatingSystem OS = Environment.OSVersion;
-                return (OS.Platform == PlatformID.Win32NT) && (OS.Version.Major >= 6);
+                return OS.Platform == PlatformID.Win32NT && OS.Version.Major >= 6;
             }
         }
     }

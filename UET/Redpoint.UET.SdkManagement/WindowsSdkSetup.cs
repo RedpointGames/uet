@@ -4,8 +4,8 @@
     using Microsoft.CodeAnalysis.CSharp;
     using Microsoft.CodeAnalysis.CSharp.Syntax;
     using Microsoft.Extensions.Logging;
-    using Redpoint.AsyncFileUtilities;
     using Redpoint.ProcessExecution;
+    using Redpoint.UET.Core;
     using Redpoint.UET.SdkManagement.WindowsSdk;
     using System;
     using System.Collections.Concurrent;

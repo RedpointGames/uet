@@ -2,7 +2,7 @@
 using System.Text;
 using Microsoft.Win32.SafeHandles;
 
-namespace CredentialManagement
+namespace Redpoint.ThirdParty.CredentialManagement
 {
     public class NativeMethods
     {
@@ -140,7 +140,7 @@ namespace CredentialManagement
         internal static extern bool CredRead(string target, CredentialType type, int reservedFlag, out IntPtr CredentialPtr);
 
         [DllImport("Advapi32.dll", EntryPoint = "CredWriteW", CharSet = CharSet.Unicode, SetLastError = true)]
-        internal static extern bool CredWrite([In] ref CREDENTIAL userCredential, [In] UInt32 flags);
+        internal static extern bool CredWrite([In] ref CREDENTIAL userCredential, [In] uint flags);
 
         [DllImport("Advapi32.dll", EntryPoint = "CredFree", SetLastError = true)]
         internal static extern bool CredFree([In] IntPtr cred);
@@ -161,7 +161,7 @@ namespace CredentialManagement
         internal static extern void CoTaskMemFree(IntPtr ptr);
 
         [DllImport("credui.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        internal static extern Boolean CredPackAuthenticationBuffer(int dwFlags, StringBuilder pszUserName, StringBuilder pszPassword, IntPtr pPackedCredentials, ref int pcbPackedCredentials);
+        internal static extern bool CredPackAuthenticationBuffer(int dwFlags, StringBuilder pszUserName, StringBuilder pszPassword, IntPtr pPackedCredentials, ref int pcbPackedCredentials);
 
         [DllImport("credui.dll", CharSet = CharSet.Auto)]
         internal static extern bool CredUnPackAuthenticationBuffer(int dwFlags, IntPtr pAuthBuffer, uint cbAuthBuffer, StringBuilder pszUserName, ref int pcchMaxUserName, StringBuilder pszDomainName, ref int pcchMaxDomainame, StringBuilder pszPassword, ref int pcchMaxPassword);
