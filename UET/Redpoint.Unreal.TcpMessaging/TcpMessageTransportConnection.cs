@@ -152,7 +152,7 @@
             }
         }
 
-        public void ReceiveUntil(Func<TcpDeserializedMessage, bool> onMessageReceived)
+        public void ReceiveUntil(Func<TcpDeserializedMessage, bool> onMessageReceived, CancellationToken cancellationToken)
         {
             var receiveArchive = new Archive(_client.GetStream(), true);
 
@@ -164,7 +164,7 @@
                 _receivedHeader = true;
             }
 
-            while (true)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 uint nextBytes = 0;
                 receiveArchive.Serialize(ref nextBytes);
