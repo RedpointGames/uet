@@ -168,6 +168,7 @@
                                                 _logger.LogInformation($"Running {test.FullTestPath}... \u001b[32mpass\u001b[0m ({reply.Duration:0.00} secs)");
                                                 return true;
                                             case AutomationState.Fail:
+                                                didFail = true;
                                                 _logger.LogInformation($"Running {test.FullTestPath}... \u001b[31mfail\u001b[0m ({reply.Duration:0.00} secs)");
                                                 return true;
                                             default:

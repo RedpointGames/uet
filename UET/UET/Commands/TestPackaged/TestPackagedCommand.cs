@@ -178,6 +178,7 @@
 
                 var packagedWorkingPath = Path.Combine(projectPath.FullName, "Saved", "StagedBuilds", "Windows");
                 var packagedExecutablePath = Path.Combine(projectPath.FullName, "Saved", "StagedBuilds", "Windows", $"{Path.GetFileNameWithoutExtension(projectName)}.exe");
+                var logPath = Path.Combine(projectPath.FullName, "Saved", "StagedBuilds", "Windows", "Log.txt");
 
                 if (!File.Exists(packagedExecutablePath))
                 {
@@ -196,7 +197,7 @@
                         Arguments = new[]
                         {
                             "-stdout",
-                            "-log",
+                            $"-abslog={logPath}",
                             "-AllowStdOutLogVerbosity",
                             "-Windowed",
                             "-Messaging",
@@ -250,6 +251,11 @@
                             _logger.LogInformation("Still waiting to be able to connect...");
                             needsReconnect = true;
                         }
+                        catch (IOException ex) when (ex.Message.Contains("An existing connection was forcibly closed by the remote host."))
+                        {
+                            _logger.LogError("Connection was unexpectedly disconnected.");
+                            break;
+                        }
                     }
                     while (needsReconnect);
                 }
@@ -276,6 +282,23 @@
                             }
                         }
                         catch { }
+                    }
+
+                    var foundCrash = false;
+                    foreach (var line in await File.ReadAllLinesAsync(logPath))
+                    {
+                        if (line.Contains("=== Critical error: ==="))
+                        {
+                            foundCrash = true;
+                        }
+                        if (foundCrash)
+                        {
+                            _logger.LogError(line.Substring(line.IndexOf("Error:") + "Error:".Length).Trim());
+                        }
+                        if (line.Contains("end: stack for UAT"))
+                        {
+                            foundCrash = false;
+                        }
                     }
                 }
 
