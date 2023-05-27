@@ -10,7 +10,7 @@
 
     public class WinFspImplTests
     {
-        [Fact]
+        [SkippableFact]
         [SupportedOSPlatform("windows6.2")]
         public async Task ReadDirectoryEntriesWorkCorrectlyInBatches()
         {
@@ -116,7 +116,7 @@
             }
         }
 
-        [Fact]
+        [SkippableFact]
         [SupportedOSPlatform("windows6.2")]
         public async Task FileInfosHaveIndexNumber()
         {
@@ -164,7 +164,7 @@
             Assert.NotEqual<ulong>(0, fileInfo.IndexNumber);
         }
 
-        [Fact]
+        [SkippableFact]
         [SupportedOSPlatform("windows6.2")]
         public async Task NormalizedNameIsSet()
         {
@@ -214,7 +214,7 @@
             Assert.NotNull(normalizedName);
         }
 
-        [Fact]
+        [SkippableFact]
         [SupportedOSPlatform("windows6.2")]
         public async Task PatternMatchingIsNotCaseSensitive()
         {
@@ -276,7 +276,7 @@
             Assert.Equal("runtimeconfig.template.json", storedName);
         }
 
-        [Fact]
+        [SkippableFact]
         [SupportedOSPlatform("windows6.2")]
         public async Task PatternMatchingIsNotCaseSensitiveWithMarker()
         {
