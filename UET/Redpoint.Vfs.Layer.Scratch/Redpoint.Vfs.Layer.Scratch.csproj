@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BitFaster.Caching" Version="2.2.0" />
+    <PackageReference Include="KeyedSemaphores" Version="4.1.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
+    <PackageReference Include="ZoneTree" Version="1.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Vfs.Abstractions\Redpoint.Vfs.Abstractions.csproj" />
+    <ProjectReference Include="..\Redpoint.Vfs.LocalIo\Redpoint.Vfs.LocalIo.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BitFaster.Caching" Version="2.2.0" />
+    <PackageReference Include="KeyedSemaphores" Version="4.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Git.GitHub\Redpoint.Git.GitHub.csproj" />
+    <ProjectReference Include="..\Redpoint.Git.Native\Redpoint.Git.Native.csproj" />
+    <ProjectReference Include="..\Redpoint.Vfs.Abstractions\Redpoint.Vfs.Abstractions.csproj" />
+    <ProjectReference Include="..\Redpoint.Vfs.LocalIo\Redpoint.Vfs.LocalIo.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>1591</NoWarn>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>This is a fork of the WinFsp .NET library, with modifications to reduce memory allocations during directory enumeration.</Description>
+    <PackageTags>windows, credential management</PackageTags>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <Authors>Bill Zissimopoulos, June Rhodes</Authors>
+    <Company></Company>
+  </PropertyGroup>
+
+</Project>
