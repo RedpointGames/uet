@@ -32,7 +32,7 @@ connection.ReceiveUntil(message =>
     }
 
     return false;
-});
+}, CancellationToken.None);
 
 // Ask the remote to send message logs.
 connection.Send(new SessionServiceLogSubscribe());
@@ -124,4 +124,4 @@ connection.ReceiveUntil(message =>
     }
 
     return false;
-});
+}, CancellationToken.None);

@@ -33,7 +33,7 @@ connection.ReceiveUntil(message =>
     }
 
     return false;
-});
+}, CancellationToken.None);
 
 // Find workers.
 connection.Send(new AutomationWorkerFindWorkers
@@ -54,7 +54,7 @@ connection.ReceiveUntil(message =>
     }
 
     return false;
-});
+}, CancellationToken.None);
 
 // Discover tests.
 var discoveredTests = new AutomationWorkerRequestTestsReplyComplete();
@@ -73,7 +73,7 @@ connection.ReceiveUntil(message =>
     }
 
     return false;
-});
+}, CancellationToken.None);
 
 // List discovered tests.
 Console.WriteLine($"{discoveredTests.Tests.Count} tests found");
@@ -153,5 +153,5 @@ foreach (var test in discoveredTests.Tests.OrderBy(x => x.FullTestPath))
         }
 
         return false;
-    });
+    }, CancellationToken.None);
 }
