@@ -12,7 +12,7 @@ namespace Redpoint.Windows.HCS.Tests
             {
                 if (!computeSystemRef.IsRuntimeTemplate)
                 {
-                    using (var computeSystem = HCSClient.OpenComputeSystem(computeSystemRef.Id))
+                    using (var computeSystem = HCSClient.OpenComputeSystem(computeSystemRef.Id!))
                     {
                         HCSClient.GetComputeSystemProperties(computeSystem, new Service_PropertyQuery
                         {

@@ -4,15 +4,15 @@
 
     internal class DefaultRemoteHandleCloser : IRemoteHandleCloser
     {
-        public async Task<bool> CloseRemoteHandles(string Path)
+        public Task<bool> CloseRemoteHandles(string Path)
         {
             if (!OperatingSystem.IsWindows())
             {
-                return false;
+                return Task.FromResult(false);
             }
 
             // @todo
-            return false;
+            return Task.FromResult(false);
         }
     }
 }

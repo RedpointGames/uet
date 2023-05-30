@@ -24,5 +24,21 @@
         {
             return new BuildGraphScriptSpecification { _path = buildGraphScriptPath };
         }
+
+        public string ToReparsableString()
+        {
+            if (_forPlugin)
+            {
+                return "plugin";
+            }
+            else if (_forProject)
+            {
+                return "project";
+            }
+            else
+            {
+                return $"path:{_path}";
+            }
+        }
     }
 }

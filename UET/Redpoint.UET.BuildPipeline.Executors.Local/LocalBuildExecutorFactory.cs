@@ -3,7 +3,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using System;
 
-    public class LocalBuildExecutorFactory : IBuildExecutorFactory
+    public class LocalBuildExecutorFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

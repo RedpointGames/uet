@@ -5,6 +5,7 @@
     using Redpoint.UET.BuildPipeline.Executors;
     using Redpoint.UET.BuildPipeline.Executors.BuildServer;
     using Redpoint.UET.BuildPipeline.Executors.Engine;
+    using Redpoint.UET.Core;
     using Redpoint.UET.Workspace;
     using System.Threading.Tasks;
     using YamlDotNet.Serialization;
@@ -18,11 +19,15 @@
             ILogger<BuildServerBuildExecutor> baseLogger,
             IBuildGraphExecutor buildGraphExecutor,
             IEngineWorkspaceProvider engineWorkspaceProvider,
-            IWorkspaceProvider workspaceProvider) : base(
+            IWorkspaceProvider workspaceProvider,
+            IStringUtilities stringUtilities,
+            string buildServerOutputFilePath) : base(
                 baseLogger,
                 buildGraphExecutor,
                 engineWorkspaceProvider,
-                workspaceProvider)
+                workspaceProvider,
+                stringUtilities,
+                buildServerOutputFilePath)
         {
             _logger = logger;
         }
@@ -34,21 +39,23 @@
         {
             _logger.LogInformation("Generating .gitlab-ci.yml content...");
 
-            var file = new GitLabFile
+            var file = new Dictionary<string, object>
             {
-                Stages = buildServerPipeline.Stages.ToList(),
-                Variables = new Dictionary<string, string>(),
-                Jobs = new Dictionary<string, GitLabJob>(),
+                { "stages", buildServerPipeline.Stages.ToList() }
             };
+            var variables = new Dictionary<string, string>();
+            file.Add("variables", variables);
             foreach (var kv in buildServerPipeline.GlobalEnvironmentVariables)
             {
-                file.Variables[kv.Key] = kv.Value;
+                variables[kv.Key] = kv.Value;
             }
-            file.Variables["GIT_STRATEGY"] = "none";
+            variables["GIT_STRATEGY"] = "none";
 
             foreach (var sourceJob in buildServerPipeline.Jobs.Values)
             {
                 var job = new GitLabJob();
+                job.Stage = sourceJob.Stage;
+                job.Variables = sourceJob.EnvironmentVariables;
 
                 if (sourceJob.Platform == BuildServerJobPlatform.Windows)
                 {
@@ -112,7 +119,7 @@
                     job.AfterScript = new[] { sourceJob.AfterScript.Trim().Replace("\r\n", "\n") };
                 }
 
-                file.Jobs.Add(sourceJob.Name, job);
+                file.Add(sourceJob.Name, job);
             }
 
             using (var stream = new StreamWriter(buildServerOutputFilePath))

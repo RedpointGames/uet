@@ -4,6 +4,8 @@
     {
         Path,
 
+        Version,
+
         UEFSPackageTag,
     }
 }

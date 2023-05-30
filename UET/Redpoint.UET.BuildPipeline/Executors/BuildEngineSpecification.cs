@@ -1,7 +1,11 @@
 ﻿namespace Redpoint.UET.BuildPipeline.Executors
 {
+    using System.Buffers;
+    using System.IO;
+
     public class BuildEngineSpecification
     {
+        internal string? _engineVersion { get; private set; }
         internal string? _enginePath { get; private set; }
         internal string? _uefsPackageTag { get; private set; }
         internal string? _uefsGitUrl { get; private set; }
@@ -9,7 +13,17 @@
         internal string[]? _uefsGitFolders { get; private set; }
         public bool PermitConcurrentBuilds { get; private set; } = false;
 
-        public static BuildEngineSpecification ForPath(string path)
+        public static BuildEngineSpecification ForVersionWithPath(string version, string localPath)
+        {
+            return new BuildEngineSpecification
+            {
+                _engineVersion = version,
+                _enginePath = localPath,
+                PermitConcurrentBuilds = false,
+            };
+        }
+
+        public static BuildEngineSpecification ForAbsolutePath(string path)
         {
             return new BuildEngineSpecification
             {
@@ -36,6 +50,26 @@
                 _uefsGitFolders = uefsGitAdditionalFolders ?? new string[0],
                 PermitConcurrentBuilds = true,
             };
+        }
+
+        public string ToReparsableString()
+        {
+            if (!string.IsNullOrWhiteSpace(_uefsPackageTag))
+            {
+                return $"uefs:{_uefsPackageTag}";
+            }
+            else if (!string.IsNullOrWhiteSpace(_engineVersion))
+            {
+                return _engineVersion;
+            }
+            else if (!string.IsNullOrWhiteSpace(_enginePath))
+            {
+                return _enginePath;
+            }
+            else
+            {
+                throw new NotSupportedException();
+            }
         }
     }
 }

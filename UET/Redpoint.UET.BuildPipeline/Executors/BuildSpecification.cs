@@ -18,19 +18,19 @@
         public Dictionary<string, string> BuildGraphSettingReplacements { get; init; } = new Dictionary<string, string>();
 
         /// <summary>
+        /// The name of the distribution being built, if one is set.
+        /// </summary>
+        public string DistributionName { get; init; } = string.Empty;
+
+        /// <summary>
+        /// A list of custom preparation scripts to run on the build job before BuildGraph is invoked.
+        /// </summary>
+        public List<string> BuildGraphPreparationScripts { get; init; } = new List<string>();
+
+        /// <summary>
         /// Some executors will create a local workspace for this path and then use that workspace
         /// as __REPOSITORY_ROOT__. Others will use this path directly as __REPOSITORY_ROOT__.
         /// </summary>
         public required string BuildGraphRepositoryRoot { get; init; }
-
-        /// <summary>
-        /// For executors which use an external build server to run the build, this is the file path that the "build" file will be emitted to for consumption by the build server. For example, on GitLab, this is the .gitlab-ci.yml file.
-        /// </summary>
-        public string? BuildServerOutputFilePath { get; init; }
-
-        /// <summary>
-        /// If turned off, the build will not use any storage virtualisation (UEFS) for the build job. This prevents the local executor from running any jobs in parallel.
-        /// </summary>
-        public bool UseStorageVirtualisation { get; init; } = true;
     }
 }

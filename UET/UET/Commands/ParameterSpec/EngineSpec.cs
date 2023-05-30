@@ -165,7 +165,8 @@
                             {
                                 return new EngineSpec
                                 {
-                                    Type = EngineSpecType.Path,
+                                    Type = EngineSpecType.Version,
+                                    Version = engine,
                                     OriginalSpec = engine,
                                     Path = registryBasedPath,
                                 };
@@ -187,7 +188,8 @@
                         {
                             return new EngineSpec
                             {
-                                Type = EngineSpecType.Path,
+                                Type = EngineSpecType.Version,
+                                Version = engine,
                                 OriginalSpec = engine,
                                 Path = candidatePath,
                             };
@@ -210,7 +212,8 @@
                         {
                             return new EngineSpec
                             {
-                                Type = EngineSpecType.Path,
+                                Type = EngineSpecType.Version,
+                                Version = engine,
                                 OriginalSpec = engine,
                                 Path = candidatePath,
                             };
@@ -260,15 +263,17 @@
 
         public required string OriginalSpec { get; init; }
 
+        public string? Version { get; private init; }
+
         public string? Path { get; private init; }
 
         public string? UEFSPackageTag { get; private init; }
 
         public override string ToString()
         {
-            if (Type == EngineSpecType.Path && OriginalSpec != Path)
+            if (Type == EngineSpecType.Version && OriginalSpec != Path)
             {
-                return $"{OriginalSpec} ({Path})";
+                return $"{Version} ({Path})";
             }
 
             return OriginalSpec;

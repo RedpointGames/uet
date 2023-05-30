@@ -15,6 +15,7 @@
     using Redpoint.UET.BuildPipeline.Executors.Local;
     using Redpoint.ProcessExecution;
     using System.Diagnostics.CodeAnalysis;
+    using Redpoint.UET.BuildPipeline.Executors.GitLab;
 
     internal class BuildCommand
     {
@@ -24,6 +25,10 @@
             public Option<PathSpec> Path;
             public Option<DistributionSpec?> Distribution;
             public Option<bool> Shipping;
+            public Option<string> Executor;
+            public Option<string> ExecutorOutputFile;
+            public Option<string?> WindowsSharedStoragePath;
+            public Option<string?> MacSharedStoragePath;
 
             public Options()
             {
@@ -77,6 +82,25 @@
                         return;
                     }
                 });
+
+                Executor = new Option<string>(
+                    "--executor",
+                    description: "The executor to use.",
+                    getDefaultValue: () => "local");
+                Executor.AddAlias("-x");
+                Executor.FromAmong("local", "gitlab");
+
+                ExecutorOutputFile = new Option<string>(
+                    "--executor-output-file",
+                    description: "If the executor runs the build externally (e.g. a build server), this is the path to the emitted file that should be passed as the job or build description into the build server.");
+
+                WindowsSharedStoragePath = new Option<string?>(
+                    "--windows-shared-storage-path",
+                    description: "If the build is running across multiple machines (depending on the executor), this is the network share for Windows machines to access.");
+
+                MacSharedStoragePath = new Option<string?>(
+                    "--mac-shared-storage-path",
+                    description: "If the build is running across multiple machines (depending on the executor), this is the local path on macOS pre-mounted to the network share.");
             }
         }
 
@@ -100,17 +124,20 @@
             private readonly Options _options;
             private readonly IBuildSpecificationGenerator _buildSpecificationGenerator;
             private readonly LocalBuildExecutorFactory _localBuildExecutorFactory;
+            private readonly GitLabBuildExecutorFactory _gitLabBuildExecutorFactory;
 
             public BuildCommandInstance(
                 ILogger<BuildCommandInstance> logger,
                 Options options,
                 IBuildSpecificationGenerator buildSpecificationGenerator,
-                LocalBuildExecutorFactory localBuildExecutorFactory)
+                LocalBuildExecutorFactory localBuildExecutorFactory,
+                GitLabBuildExecutorFactory gitLabBuildExecutorFactory)
             {
                 _logger = logger;
                 _options = options;
                 _buildSpecificationGenerator = buildSpecificationGenerator;
                 _localBuildExecutorFactory = localBuildExecutorFactory;
+                _gitLabBuildExecutorFactory = gitLabBuildExecutorFactory;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
@@ -118,10 +145,46 @@
                 var engine = context.ParseResult.GetValueForOption(_options.Engine)!;
                 var path = context.ParseResult.GetValueForOption(_options.Path)!;
                 var distribution = context.ParseResult.GetValueForOption(_options.Distribution);
+                var shipping = context.ParseResult.GetValueForOption(_options.Shipping);
+                var executorName = context.ParseResult.GetValueForOption(_options.Executor);
+                var executorOutputFile = context.ParseResult.GetValueForOption(_options.ExecutorOutputFile);
+                var windowsSharedStoragePath = context.ParseResult.GetValueForOption(_options.WindowsSharedStoragePath);
+                var macSharedStoragePath = context.ParseResult.GetValueForOption(_options.MacSharedStoragePath);
 
-                _logger.LogInformation($"--engine:       {engine}");
-                _logger.LogInformation($"--path:         {path}");
-                _logger.LogInformation($"--distribution: {(distribution == null ? "(not set)" : distribution)}");
+                // @todo: Move this validation to the parsing APIs.
+                if (executorName == "local")
+                {
+                    if (string.IsNullOrWhiteSpace(windowsSharedStoragePath))
+                    {
+                        windowsSharedStoragePath = Path.Combine(path.DirectoryPath, ".SharedStorage");
+                    }
+                    if (string.IsNullOrWhiteSpace(macSharedStoragePath))
+                    {
+                        macSharedStoragePath = Path.Combine(path.DirectoryPath, ".SharedStorage");
+                    }
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(windowsSharedStoragePath))
+                    {
+                        _logger.LogError("--windows-shared-storage-path must be set when not using the local executor.");
+                        return 1;
+                    }
+                    if (string.IsNullOrWhiteSpace(macSharedStoragePath))
+                    {
+                        _logger.LogError("--mac-shared-storage-path must be set when not using the local executor.");
+                        return 1;
+                    }
+                }
+
+                _logger.LogInformation($"--engine:                      {engine}");
+                _logger.LogInformation($"--path:                        {path}");
+                _logger.LogInformation($"--distribution:                {(distribution == null ? "(not set)" : distribution)}");
+                _logger.LogInformation($"--shipping:                    {(distribution != null ? "n/a" : (shipping ? "yes" : "no"))}");
+                _logger.LogInformation($"--executor:                    {executorName}");
+                _logger.LogInformation($"--executor-output-file:        {executorOutputFile}");
+                _logger.LogInformation($"--windows-shared-storage-path: {windowsSharedStoragePath}");
+                _logger.LogInformation($"--mac-shared-storage-path:     {macSharedStoragePath}");
 
                 BuildEngineSpecification engineSpec;
                 switch (engine.Type)
@@ -129,12 +192,31 @@
                     case EngineSpecType.UEFSPackageTag:
                         engineSpec = BuildEngineSpecification.ForUEFSPackageTag(engine.UEFSPackageTag!);
                         break;
+                    case EngineSpecType.Version:
+                        engineSpec = BuildEngineSpecification.ForVersionWithPath(engine.Version!, engine.Path!);
+                        break;
                     case EngineSpecType.Path:
-                        engineSpec = BuildEngineSpecification.ForPath(engine.Path!);
+                        engineSpec = BuildEngineSpecification.ForAbsolutePath(engine.Path!);
                         break;
                     default:
                         throw new NotSupportedException();
                 }
+
+                var buildGraphEnvironment = new Redpoint.UET.BuildPipeline.Environment.BuildGraphEnvironment
+                {
+                    // @todo: Make this not GitLab-dependent.
+                    PipelineId = Environment.GetEnvironmentVariable("CI_PIPELINE_ID") ?? string.Empty,
+                    Windows = new Redpoint.UET.BuildPipeline.Environment.BuildGraphWindowsEnvironment
+                    {
+                        SharedStorageAbsolutePath = $"{windowsSharedStoragePath.TrimEnd('\\')}\\",
+                    },
+                    Mac = new Redpoint.UET.BuildPipeline.Environment.BuildGraphMacEnvironment
+                    {
+                        SharedStorageAbsolutePath = $"{macSharedStoragePath.TrimEnd('/')}/",
+                    },
+                    // @note: Turned off until we can fix folder snapshotting in UEFS.
+                    UseStorageVirtualisation = false,
+                };
 
                 BuildSpecification buildSpec;
                 switch (path!.Type)
@@ -142,25 +224,26 @@
                     case PathSpecType.BuildConfig:
                         switch (distribution!.Distribution)
                         {
-                            case BuildConfigProjectDistribution d:
+                            case BuildConfigProjectDistribution projectDistribution:
                                 buildSpec = _buildSpecificationGenerator.BuildConfigProjectToBuildSpec(
                                     engineSpec,
-                                    d,
-                                    path.DirectoryPath,
+                                    buildGraphEnvironment,
+                                    projectDistribution,
+                                    repositoryRoot: path.DirectoryPath,
                                     executeBuild: true,
                                     strictIncludes: false,
                                     executeTests: false,
                                     executeDeployment: false);
                                 break;
-                            case BuildConfigPluginDistribution d:
+                            case BuildConfigPluginDistribution pluginDistribution:
                                 buildSpec = _buildSpecificationGenerator.BuildConfigPluginToBuildSpec(
                                     engineSpec,
-                                    d);
+                                    pluginDistribution);
                                 break;
-                            case BuildConfigEngineDistribution d:
+                            case BuildConfigEngineDistribution engineDistribution:
                                 buildSpec = _buildSpecificationGenerator.BuildConfigEngineToBuildSpec(
                                     engineSpec,
-                                    d);
+                                    engineDistribution);
                                 break;
                             default:
                                 throw new NotSupportedException();
@@ -169,6 +252,7 @@
                     case PathSpecType.UProject:
                         buildSpec = _buildSpecificationGenerator.ProjectPathSpecToBuildSpec(
                             engineSpec,
+                            buildGraphEnvironment,
                             path,
                             context.ParseResult.GetValueForOption(_options.Shipping));
                         break;
@@ -181,7 +265,18 @@
                         throw new NotSupportedException();
                 }
 
-                var executor = _localBuildExecutorFactory.CreateExecutor();
+                IBuildExecutor executor;
+                switch (executorName)
+                {
+                    case "local":
+                        executor = _localBuildExecutorFactory.CreateExecutor();
+                        break;
+                    case "gitlab":
+                        executor = _gitLabBuildExecutorFactory.CreateExecutor(executorOutputFile!);
+                        break;
+                    default:
+                        throw new NotSupportedException();
+                }
 
                 var buildResult = await executor.ExecuteBuildAsync(
                     buildSpec,

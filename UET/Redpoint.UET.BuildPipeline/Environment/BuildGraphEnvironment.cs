@@ -20,5 +20,10 @@
         /// The macOS build environment.
         /// </summary>
         public BuildGraphMacEnvironment? Mac { get; init; } = null;
+
+        /// <summary>
+        /// If turned off, the build will not use any storage virtualisation (UEFS) for the build job. This prevents the local executor from running any jobs in parallel.
+        /// </summary>
+        public bool UseStorageVirtualisation { get; init; } = true;
     }
 }

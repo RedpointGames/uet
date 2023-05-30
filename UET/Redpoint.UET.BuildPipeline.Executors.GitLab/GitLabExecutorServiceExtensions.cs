@@ -8,7 +8,6 @@
         public static void AddUETBuildPipelineExecutorsGitLab(this IServiceCollection services)
         {
             services.AddSingleton<GitLabBuildExecutorFactory, GitLabBuildExecutorFactory>();
-            services.AddTransient<GitLabBuildExecutor, GitLabBuildExecutor>();
         }
     }
 }

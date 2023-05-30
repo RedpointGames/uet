@@ -81,7 +81,7 @@
             {
                 var executor = _factory.CreateExecutor();
 
-                var engineSpec = BuildEngineSpecification.ForPath(context.ParseResult.GetValueForOption(_options.EngineRoot)!.FullName);
+                var engineSpec = BuildEngineSpecification.ForAbsolutePath(context.ParseResult.GetValueForOption(_options.EngineRoot)!.FullName);
                 var projectPath = context.ParseResult.GetValueForOption(_options.ProjectRoot)!;
 
                 var editorTarget = new DirectoryInfo(Path.Combine(projectPath.FullName, "Source")).GetFiles("*Editor.Target.cs").Select(x => x.Name.Substring(0, x.Name.LastIndexOf(".Target.cs"))).First();
@@ -135,13 +135,13 @@
                             {
                                 SharedStorageAbsolutePath = $"{Path.Combine(projectPath.FullName, "Saved", "SharedStorage").TrimEnd('\\')}\\",
                             },
+                            UseStorageVirtualisation = false,
                         },
                         BuildGraphRepositoryRoot = projectPath.FullName,
                         BuildGraphSettingReplacements = new Dictionary<string, string>
                         {
                             { "__PROJECT_FILENAME__", projectName },
                         },
-                        UseStorageVirtualisation = false,
                     };
 
                     var buildResult = await executor.ExecuteBuildAsync(

@@ -46,7 +46,7 @@
                 await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
                     buildSpecification.Engine,
                     string.Empty,
-                    buildSpecification.UseStorageVirtualisation,
+                    buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
                     cancellationToken))
                 {
                     int exitCode;
@@ -65,7 +65,7 @@
                             buildSpecification.BuildGraphScript,
                             buildSpecification.BuildGraphTarget,
                             nodeName,
-                            OperatingSystem.IsWindows() ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath : buildSpecification.BuildGraphEnvironment.Mac.SharedStorageAbsolutePath,
+                            OperatingSystem.IsWindows() ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                             buildSpecification.BuildGraphSettings,
                             buildSpecification.BuildGraphSettingReplacements,
                             CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates

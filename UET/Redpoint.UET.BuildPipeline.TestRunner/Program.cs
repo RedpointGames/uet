@@ -83,7 +83,7 @@ rootCommand.SetHandler(async (context) =>
     }
     else
     {
-        buildEngineSpecification = BuildEngineSpecification.ForPath(context.ParseResult.GetValueForOption(enginePathOpt)!.FullName);
+        buildEngineSpecification = BuildEngineSpecification.ForAbsolutePath(context.ParseResult.GetValueForOption(enginePathOpt)!.FullName);
     }
 
     BuildSpecification buildSpecification;
@@ -138,7 +138,6 @@ rootCommand.SetHandler(async (context) =>
                 Mac = new Redpoint.UET.BuildPipeline.Environment.BuildGraphMacEnvironment
                 {
                     // @note: This executable is for internal testing, so it doesn't support macOS.
-                    MacEnginePathOverride = null!,
                     SharedStorageAbsolutePath = null!,
                 }
             },

@@ -27,5 +27,8 @@
 
         [YamlMember(Alias = "after_script", DefaultValuesHandling = DefaultValuesHandling.OmitNull)]
         public string[]? AfterScript { get; set; } = null;
+
+        [YamlMember(Alias = "variables", DefaultValuesHandling = DefaultValuesHandling.OmitNull)]
+        public Dictionary<string, string>? Variables { get; set; } = null;
     }
 }

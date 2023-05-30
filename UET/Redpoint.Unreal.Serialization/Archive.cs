@@ -35,7 +35,9 @@
                 var valueRef = __makeref(value);
                 var dest = default(TTo);
                 var destRef = __makeref(dest);
+#pragma warning disable CS8500
                 *(IntPtr*)&destRef = *(IntPtr*)&valueRef;
+#pragma warning restore CS8500
                 return __refvalue(destRef, TTo);
             }
         }

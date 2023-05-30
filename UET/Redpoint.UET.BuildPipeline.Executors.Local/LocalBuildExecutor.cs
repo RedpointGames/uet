@@ -127,14 +127,14 @@
                     await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
                         buildSpecification.Engine,
                         string.Empty,
-                        buildSpecification.UseStorageVirtualisation,
+                        buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
                         cancellationToken))
                     {
                         int exitCode;
                         await using (var targetWorkspace = await GetPotentiallyVirtualisableFolderWorkspaceAsync(
                             buildSpecification.BuildGraphRepositoryRoot,
                             node.Node.Name,
-                            buildSpecification.UseStorageVirtualisation))
+                            buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation))
                         {
                             _logger.LogInformation($"Starting: {node.Node.Name}");
                             exitCode = await _buildGraphExecutor.ExecuteGraphNodeAsync(
@@ -143,7 +143,7 @@
                                 buildSpecification.BuildGraphScript,
                                 buildSpecification.BuildGraphTarget,
                                 node.Node.Name,
-                                OperatingSystem.IsWindows() ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath : buildSpecification.BuildGraphEnvironment.Mac.SharedStorageAbsolutePath,
+                                OperatingSystem.IsWindows() ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                                 buildSpecification.BuildGraphSettings,
                                 buildSpecification.BuildGraphSettingReplacements,
                                 CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
@@ -201,13 +201,13 @@
             await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
                 buildSpecification.Engine,
                 string.Empty,
-                buildSpecification.UseStorageVirtualisation,
+                buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
                 cancellationToken))
             {
                 await using (var targetWorkspace = await GetPotentiallyVirtualisableFolderWorkspaceAsync(
                     buildSpecification.BuildGraphRepositoryRoot,
                     "Generate BuildGraph JSON",
-                    buildSpecification.UseStorageVirtualisation))
+                    buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation))
                 {
                     _logger.LogInformation("Generating BuildGraph JSON based on settings...");
                     buildGraph = await _buildGraphExecutor.GenerateGraphAsync(
@@ -225,7 +225,7 @@
             _logger.LogInformation("Executing build...");
 
             SemaphoreSlim? blockingSemaphore = null;
-            if (!buildSpecification.Engine.PermitConcurrentBuilds || !buildSpecification.UseStorageVirtualisation)
+            if (!buildSpecification.Engine.PermitConcurrentBuilds || !buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation)
             {
                 blockingSemaphore = new SemaphoreSlim(1);
             }

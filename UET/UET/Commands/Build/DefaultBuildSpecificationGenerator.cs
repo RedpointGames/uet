@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Build
 {
     using Redpoint.UET.BuildPipeline.BuildGraph;
+    using Redpoint.UET.BuildPipeline.Environment;
     using Redpoint.UET.BuildPipeline.Executors;
     using Redpoint.UET.Configuration.Engine;
     using Redpoint.UET.Configuration.Plugin;
@@ -53,6 +54,7 @@
 
         public BuildSpecification BuildConfigProjectToBuildSpec(
             BuildEngineSpecification engineSpec,
+            BuildGraphEnvironment buildGraphEnvironment,
             BuildConfigProjectDistribution distribution,
             string repositoryRoot,
             bool executeBuild,
@@ -68,6 +70,7 @@
 
             // Compute prepare scripts.
             var prepareCustomCompileScripts = new List<string>();
+            var prepareCustomBuildGraphScripts = new List<string>();
             if (distribution.Prepare != null)
             {
                 foreach (var prepare in distribution.Prepare)
@@ -79,6 +82,10 @@
                         if (prepare.RunBefore.Contains(BuildConfigProjectPrepareRunBefore.Compile))
                         {
                             prepareCustomCompileScripts.Add(prepare.Custom.ScriptPath);
+                        }
+                        if (prepare.RunBefore.Contains(BuildConfigProjectPrepareRunBefore.BuildGraph))
+                        {
+                            prepareCustomBuildGraphScripts.Add(prepare.Custom.ScriptPath);
                         }
                     }
                 }
@@ -150,17 +157,9 @@
                     { $"DeploymentSteam", string.Join("+", deploymentSteam) },
                     { $"DeploymentCustom", string.Join("+", deploymentCustom) },
                 },
-                BuildGraphEnvironment = new Redpoint.UET.BuildPipeline.Environment.BuildGraphEnvironment
-                {
-                    PipelineId = string.Empty,
-                    Windows = new Redpoint.UET.BuildPipeline.Environment.BuildGraphWindowsEnvironment
-                    {
-                        SharedStorageAbsolutePath = $"{Path.Combine(repositoryRoot, ".SharedStorage").TrimEnd('\\')}\\",
-                    },
-                },
+                BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = repositoryRoot,
-                BuildServerOutputFilePath = null,
-                UseStorageVirtualisation = false,
+                BuildGraphPreparationScripts = prepareCustomBuildGraphScripts,
             };
         }
 
@@ -171,6 +170,7 @@
 
         public BuildSpecification ProjectPathSpecToBuildSpec(
             BuildEngineSpecification engineSpec,
+            BuildGraphEnvironment buildGraphEnvironment,
             PathSpec pathSpec,
             bool shipping)
         {
@@ -243,17 +243,8 @@
                     { $"DeploymentSteam", string.Empty },
                     { $"DeploymentCustom", string.Empty },
                 },
-                BuildGraphEnvironment = new Redpoint.UET.BuildPipeline.Environment.BuildGraphEnvironment
-                {
-                    PipelineId = string.Empty,
-                    Windows = new Redpoint.UET.BuildPipeline.Environment.BuildGraphWindowsEnvironment
-                    {
-                        SharedStorageAbsolutePath = $"{Path.Combine(pathSpec.DirectoryPath, ".SharedStorage").TrimEnd('\\')}\\",
-                    },
-                },
+                BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = pathSpec.DirectoryPath,
-                BuildServerOutputFilePath = null,
-                UseStorageVirtualisation = false,
             };
         }
     }

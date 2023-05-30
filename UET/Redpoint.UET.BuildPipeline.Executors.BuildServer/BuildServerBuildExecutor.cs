@@ -1,4 +1,7 @@
-﻿namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
+﻿using Redpoint.UET.BuildPipeline.Executors;
+using System.Xml.Linq;
+
+namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
 {
     using Redpoint.ProcessExecution;
     using Redpoint.UET.BuildPipeline.BuildGraph.Export;
@@ -9,6 +12,9 @@
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using System.Linq;
+    using System.Text.Json.Serialization;
+    using System.Text.Json;
+    using Redpoint.UET.Core;
 
     public abstract class BuildServerBuildExecutor : IBuildExecutor
     {
@@ -16,17 +22,23 @@
         private readonly IBuildGraphExecutor _buildGraphExecutor;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
         private readonly IWorkspaceProvider _workspaceProvider;
+        private readonly IStringUtilities _stringUtilities;
+        private readonly string _buildServerOutputFilePath;
 
         public BuildServerBuildExecutor(
             ILogger<BuildServerBuildExecutor> logger,
             IBuildGraphExecutor buildGraphExecutor,
             IEngineWorkspaceProvider engineWorkspaceProvider,
-            IWorkspaceProvider workspaceProvider)
+            IWorkspaceProvider workspaceProvider,
+            IStringUtilities stringUtilities,
+            string buildServerOutputFilePath)
         {
             _logger = logger;
             _buildGraphExecutor = buildGraphExecutor;
             _engineWorkspaceProvider = engineWorkspaceProvider;
             _workspaceProvider = workspaceProvider;
+            _stringUtilities = stringUtilities;
+            _buildServerOutputFilePath = buildServerOutputFilePath;
         }
 
         public virtual async Task<int> ExecuteBuildAsync(
@@ -35,16 +47,20 @@
             ICaptureSpecification generationCaptureSpecification,
             CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(buildSpecification.BuildServerOutputFilePath))
+            if (string.IsNullOrWhiteSpace(_buildServerOutputFilePath))
             {
                 throw new BuildPipelineExecutionFailure("This build executor requires BuildServerOutputFilePath to be set.");
             }
+
+            var sharedStorageName = _stringUtilities.GetStabilityHash(
+                $"{buildSpecification.BuildGraphEnvironment.PipelineId}-{buildSpecification.DistributionName}-{buildSpecification.Engine.ToReparsableString()}",
+                null);
 
             BuildGraphExport buildGraph;
             await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
                 buildSpecification.Engine,
                 string.Empty,
-                buildSpecification.UseStorageVirtualisation,
+                buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
                 cancellationToken))
             {
                 // @note: Generating the BuildGraph doesn't require any files from the workspace, so we don't bother
@@ -77,6 +93,9 @@
             var nodeMap = GetNodeMap(buildGraph);
 
             var pipeline = new BuildServerPipeline();
+            pipeline.GlobalEnvironmentVariables.Add(
+                "UET_USE_STORAGE_VIRTUALIZATION",
+                buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation ? "true" : "false");
 
             // @note: We need the distribution information here for this to work.
             /*
@@ -102,6 +121,13 @@
                 {
                     var needs = new HashSet<string>();
                     GetFullDependenciesOfNode(nodeMap, node, needs);
+
+                    if (node.Name == "End")
+                    {
+                        // This is a special job that we don't actually emit
+                        // because it doesn't do anything.
+                        continue;
+                    }
 
                     var job = new BuildServerJob
                     {
@@ -139,22 +165,58 @@
                     switch (job.Platform)
                     {
                         case BuildServerJobPlatform.Windows:
-
+                            {
+                                job.Script = "uet internal ci-build --executor gitlab";
+                                var buildJobJson = new BuildJobJson
+                                {
+                                    Engine = buildSpecification.Engine.ToReparsableString(),
+                                    SharedStoragePath = buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath,
+                                    SharedStorageName = sharedStorageName,
+                                    NodeName = node.Name,
+                                    BuildGraphScriptName = buildSpecification.BuildGraphScript.ToReparsableString(),
+                                    PreparationScripts = buildSpecification.BuildGraphPreparationScripts.ToArray(),
+                                    Settings = buildSpecification.BuildGraphSettings,
+                                };
+                                job.EnvironmentVariables = new Dictionary<string, string>
+                                {
+                                    { "UET_BUILD_JSON", JsonSerializer.Serialize(buildJobJson, BuildJobJsonSourceGenerationContext.Default.BuildJobJson) },
+                                };
+                            }
                             break;
                         case BuildServerJobPlatform.Mac:
+                            {
+                                job.Script = "uet internal ci-build --executor gitlab";
+                                var buildJobJson = new BuildJobJson
+                                {
+                                    Engine = buildSpecification.Engine.ToReparsableString(),
+                                    SharedStoragePath = buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                                    SharedStorageName = sharedStorageName,
+                                    NodeName = node.Name,
+                                    BuildGraphScriptName = buildSpecification.BuildGraphScript.ToReparsableString(),
+                                    PreparationScripts = buildSpecification.BuildGraphPreparationScripts.ToArray(),
+                                    Settings = buildSpecification.BuildGraphSettings,
+                                };
+                                job.EnvironmentVariables = new Dictionary<string, string>
+                                {
+                                    { "UET_BUILD_JSON", JsonSerializer.Serialize(buildJobJson, BuildJobJsonSourceGenerationContext.Default.BuildJobJson) },
+                                };
+                            }
                             break;
                         case BuildServerJobPlatform.Meta:
                             break;
                         default:
                             throw new NotImplementedException();
                     }
+
+                    pipeline.Stages.Add(job.Stage);
+                    pipeline.Jobs.Add(job.Name, job);
                 }
             }
 
             await EmitBuildServerSpecificFileAsync(
                 buildSpecification,
                 pipeline,
-                buildSpecification.BuildServerOutputFilePath);
+                _buildServerOutputFilePath);
             return 0;
         }
 

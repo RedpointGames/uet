@@ -1,5 +1,6 @@
 ﻿namespace UET.Commands.Build
 {
+    using Redpoint.UET.BuildPipeline.Environment;
     using Redpoint.UET.BuildPipeline.Executors;
     using Redpoint.UET.Configuration.Engine;
     using Redpoint.UET.Configuration.Plugin;
@@ -10,6 +11,7 @@
     {
         BuildSpecification BuildConfigProjectToBuildSpec(
             BuildEngineSpecification engineSpec,
+            BuildGraphEnvironment buildGraphEnvironment,
             BuildConfigProjectDistribution distribution,
             string repositoryRoot,
             bool executeBuild,
@@ -27,6 +29,7 @@
 
         BuildSpecification ProjectPathSpecToBuildSpec(
             BuildEngineSpecification engineSpec,
+            BuildGraphEnvironment buildGraphEnvironment,
             PathSpec pathSpec,
             bool shipping);
 
