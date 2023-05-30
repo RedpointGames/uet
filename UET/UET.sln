@@ -107,7 +107,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Vfs.Layer.GitDepen
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Vfs.Driver.WinFsp.Tests", "Redpoint.Vfs.Driver.WinFsp.Tests\Redpoint.Vfs.Driver.WinFsp.Tests.csproj", "{D4BFBF83-3964-4862-9622-34912E363E0C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Vfs.Layer.Scratch.Tests", "Redpoint.Vfs.Layer.Scratch.Tests\Redpoint.Vfs.Layer.Scratch.Tests.csproj", "{3B0A8B9A-E3D7-433A-94E9-13F3D28A9DEC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Vfs.Layer.Scratch.Tests", "Redpoint.Vfs.Layer.Scratch.Tests\Redpoint.Vfs.Layer.Scratch.Tests.csproj", "{3B0A8B9A-E3D7-433A-94E9-13F3D28A9DEC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ProgressMonitor", "Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj", "{0F295918-2CC1-42AA-826B-951290FE278E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -323,6 +325,10 @@ Global
 		{3B0A8B9A-E3D7-433A-94E9-13F3D28A9DEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3B0A8B9A-E3D7-433A-94E9-13F3D28A9DEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3B0A8B9A-E3D7-433A-94E9-13F3D28A9DEC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F295918-2CC1-42AA-826B-951290FE278E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F295918-2CC1-42AA-826B-951290FE278E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F295918-2CC1-42AA-826B-951290FE278E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F295918-2CC1-42AA-826B-951290FE278E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
