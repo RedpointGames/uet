@@ -32,7 +32,7 @@
             }
         }
 
-        internal static void AddCommonHandler<TCommand>(this Command command, object options) where TCommand : class, ICommandInstance
+        internal static void AddCommonHandler<TCommand>(this Command command, object options, Action<IServiceCollection>? extraServices = null) where TCommand : class, ICommandInstance
         {
             command.SetHandler(async (context) =>
             {
@@ -49,6 +49,10 @@
                 services.AddUETWorkspace();
                 services.AddUETCore();
                 services.AddSingleton<TCommand>();
+                if (extraServices != null)
+                {
+                    extraServices(services);
+                }
                 var sp = services.BuildServiceProvider();
                 var instance = sp.GetRequiredService<TCommand>();
                 context.ExitCode = await instance.ExecuteAsync(context);

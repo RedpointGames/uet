@@ -57,7 +57,7 @@
                         temporaryWorkspace.Path,
                         buildSpecification.BuildGraphScript,
                         buildSpecification.BuildGraphTarget,
-                        OperatingSystem.IsWindows() ? buildSpecification.BuildGraphSettings.WindowsSettings : buildSpecification.BuildGraphSettings.MacSettings,
+                        buildSpecification.BuildGraphSettings,
                         buildSpecification.BuildGraphSettingReplacements,
                         generationCaptureSpecification,
                         cancellationToken);

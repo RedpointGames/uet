@@ -66,7 +66,7 @@
                             buildSpecification.BuildGraphTarget,
                             nodeName,
                             OperatingSystem.IsWindows() ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath : buildSpecification.BuildGraphEnvironment.Mac.SharedStorageAbsolutePath,
-                            OperatingSystem.IsWindows() ? buildSpecification.BuildGraphSettings.WindowsSettings : buildSpecification.BuildGraphSettings.MacSettings,
+                            buildSpecification.BuildGraphSettings,
                             buildSpecification.BuildGraphSettingReplacements,
                             CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                             {

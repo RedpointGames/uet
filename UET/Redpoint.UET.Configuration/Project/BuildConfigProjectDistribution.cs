@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.UET.Configuration.Project
 {
+    using Redpoint.UET.Configuration.Plugin;
     using System.Text.Json.Serialization;
 
     public class BuildConfigProjectDistribution
@@ -27,5 +28,11 @@
         /// </summary>
         [JsonPropertyName("Prepare"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public BuildConfigProjectPrepare[]? Prepare { get; set; }
+
+        /// <summary>
+        /// Specifies how to build, cook and stage the project.
+        /// </summary>
+        [JsonPropertyName("Build")]
+        public BuildConfigProjectBuild Build { get; set; } = new BuildConfigProjectBuild();
     }
 }
