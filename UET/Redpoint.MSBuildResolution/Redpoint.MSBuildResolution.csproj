@@ -13,6 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+    <ProjectReference Include="..\Redpoint.Registry\Redpoint.Registry.csproj" />
   </ItemGroup>
 
 </Project>

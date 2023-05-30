@@ -2,6 +2,7 @@
 {
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
+    using Redpoint.Registry;
     using System.Runtime.Versioning;
 
     internal class DefaultMSBuildPathResolver : IMSBuildPathResolver
