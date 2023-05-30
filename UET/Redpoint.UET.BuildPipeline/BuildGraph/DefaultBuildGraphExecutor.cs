@@ -3,6 +3,7 @@
     using Redpoint.ProcessExecution;
     using Redpoint.UET.BuildPipeline.BuildGraph.Export;
     using Redpoint.UET.BuildPipeline.BuildGraph.Patching;
+    using Redpoint.UET.Configuration;
     using Redpoint.UET.UAT;
     using System.Collections.Generic;
     using System.Reflection;
@@ -98,7 +99,7 @@
 
                 using (var reader = new FileStream(buildGraphOutput, FileMode.Open, FileAccess.Read, FileShare.None))
                 {
-                    var json = JsonSerializer.Deserialize<BuildGraphExport>(reader);
+                    var json = JsonSerializer.Deserialize<BuildGraphExport>(reader, BuildGraphSourceGenerationContext.Default.BuildGraphExport);
                     if (json == null)
                     {
                         deleteBuildGraphOutput = false;

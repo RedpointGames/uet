@@ -79,7 +79,7 @@
             {
                 throw new InvalidOperationException("Missing Docker CLI configuration, which is necessary to authenticate with package registries.");
             }
-            var dockerConfig = JsonSerializer.Deserialize<DockerConfigJson>(File.ReadAllText(dockerJsonPath));
+            var dockerConfig = JsonSerializer.Deserialize<DockerConfigJson>(File.ReadAllText(dockerJsonPath), DockerConfigJsonSourceGenerationContext.Default.DockerConfigJson);
 
             if (dockerConfig?.CredsStore == "wincred")
             {

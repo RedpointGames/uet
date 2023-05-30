@@ -4,13 +4,13 @@
 
     internal record class BuildGraphPatchSet
     {
-        [JsonPropertyName("File")]
-        public required string File { get; set; }
+        [JsonPropertyName("File"), JsonRequired]
+        public string File { get; set; } = string.Empty;
 
-        [JsonPropertyName("Output5")]
-        public required string Output { get; set; }
+        [JsonPropertyName("Output5"), JsonRequired]
+        public string Output { get; set; } = string.Empty;
 
-        [JsonPropertyName("Patches")]
-        public required BuildGraphPatchSetPatch[] Patches { get; set; }
+        [JsonPropertyName("Patches"), JsonRequired]
+        public BuildGraphPatchSetPatch[] Patches { get; set; } = new BuildGraphPatchSetPatch[0];
     }
 }

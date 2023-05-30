@@ -14,6 +14,7 @@
     using Redpoint.UET.Configuration.Engine;
     using Redpoint.UET.BuildPipeline.Executors.Local;
     using Redpoint.ProcessExecution;
+    using System.Diagnostics.CodeAnalysis;
 
     internal class BuildCommand
     {

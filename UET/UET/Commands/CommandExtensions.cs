@@ -10,21 +10,22 @@
     using Redpoint.UET.UAT;
     using Redpoint.UET.Workspace;
     using System.CommandLine;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Reflection;
 
     internal static class CommandExtensions
     {
-        internal static void AddAllOptions(this Command command, object options)
+        internal static void AddAllOptions<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] TOptions>(this Command command, TOptions options)
         {
-            foreach (var option in options.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            foreach (var option in typeof(TOptions).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(x => x.PropertyType.IsAssignableTo(typeof(Option)))
                 .Select(x => (Option)x.GetValue(options)!))
             {
                 command.AddOption(option);
             }
 
-            foreach (var option in options.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance)
+            foreach (var option in typeof(TOptions).GetFields(BindingFlags.Public | BindingFlags.Instance)
                 .Where(x => x.FieldType.IsAssignableTo(typeof(Option)))
                 .Select(x => (Option)x.GetValue(options)!))
             {
@@ -32,7 +33,7 @@
             }
         }
 
-        internal static void AddCommonHandler<TCommand>(this Command command, object options, Action<IServiceCollection>? extraServices = null) where TCommand : class, ICommandInstance
+        internal static void AddCommonHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TCommand>(this Command command, object options, Action<IServiceCollection>? extraServices = null) where TCommand : class, ICommandInstance
         {
             command.SetHandler(async (context) =>
             {

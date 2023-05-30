@@ -56,7 +56,9 @@
             {
                 foreach (var scriptModuleFullName in Directory.GetFiles(scriptModulesPath, "*.json"))
                 {
-                    var json = JsonSerializer.Deserialize<ScriptModuleJson>(await File.ReadAllTextAsync(scriptModuleFullName, cancellationToken));
+                    var json = JsonSerializer.Deserialize<ScriptModuleJson>(
+                        await File.ReadAllTextAsync(scriptModuleFullName, cancellationToken),
+                        ScriptModuleJsonSourceGenerationContext.Default.ScriptModuleJson);
                     if (json == null || string.IsNullOrWhiteSpace(json.ProjectPath) || string.IsNullOrWhiteSpace(json.TargetPath))
                     {
                         continue;

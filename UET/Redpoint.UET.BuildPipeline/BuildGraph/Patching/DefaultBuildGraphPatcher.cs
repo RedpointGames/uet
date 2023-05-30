@@ -29,7 +29,7 @@
             _processExecutor = processExecutor;
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Redpoint.UET.BuildPipeline.BuildGraph.Patching.BuildGraphPatches.json"))
             {
-                _patches = JsonSerializer.Deserialize<BuildGraphPatchSet[]>(stream!)!;
+                _patches = JsonSerializer.Deserialize<BuildGraphPatchSet[]>(stream!, BuildGraphSourceGenerationContext.Default.BuildGraphPatchSetArray)!;
             }
         }
 
