@@ -51,29 +51,11 @@
             var options = new Options();
             var command = new Command("test-packaged", "Builds and packages a Win64 project, then runs automation tests against it.");
             command.AddAllOptions(options);
-            command.SetHandler(async (context) =>
-            {
-                var services = new ServiceCollection();
-                services.AddSingleton(sp => context);
-                services.AddSingleton(sp => options);
-                services.AddPathResolution();
-                services.AddMSBuildPathResolution();
-                services.AddProcessExecution();
-                services.AddUETUAT();
-                services.AddUETBuildPipeline();
-                services.AddUETBuildPipelineExecutorsLocal();
-                services.AddUETWorkspace();
-                services.AddUETCore();
-                services.AddSingleton<TestPackagedCommandInstance>();
-                services.AddSingleton<IAutomationRunner, DefaultAutomationRunner>();
-                var sp = services.BuildServiceProvider();
-                var instance = sp.GetRequiredService<TestPackagedCommandInstance>();
-                context.ExitCode = await instance.ExecuteAsync(context);
-            });
+            command.AddCommonHandler<TestPackagedCommandInstance>(options);
             return command;
         }
 
-        private class TestPackagedCommandInstance
+        private class TestPackagedCommandInstance : ICommandInstance
         {
             private readonly ILogger<TestPackagedCommandInstance> _logger;
             private readonly LocalBuildExecutorFactory _factory;

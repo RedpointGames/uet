@@ -4,7 +4,10 @@
 
     public class BuildConfig
     {
+        [JsonPropertyName("UETVersion")]
+        public string? UETVersion { get; set; }
+
         [JsonPropertyName("Type")]
-        public BuildConfigType Type { get; set; }
+        public BuildConfigType Type { get; set; } = BuildConfigType.Plugin;
     }
 }
