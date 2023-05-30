@@ -171,7 +171,8 @@
 
         public BuildSpecification ProjectPathSpecToBuildSpec(
             BuildEngineSpecification engineSpec,
-            PathSpec pathSpec)
+            PathSpec pathSpec,
+            bool shipping)
         {
             // Use heuristics to guess the targets for this build.
             string editorTarget;
@@ -180,6 +181,7 @@
             {
                 var files = Directory.GetFiles(Path.Combine(pathSpec.DirectoryPath, "Source"), "*.Target.cs");
                 editorTarget = files.Where(x => x.EndsWith("Editor.Target.cs")).Select(x => Path.GetFileName(x)).First();
+                editorTarget = editorTarget.Substring(0, editorTarget.LastIndexOf(".Target.cs"));
                 gameTarget = editorTarget.Substring(0, editorTarget.LastIndexOf("Editor"));
             }
             else
@@ -189,7 +191,7 @@
             }
 
             var gameTargetPlatform = OperatingSystem.IsWindows() ? "Win64" : "Mac";
-            var gameConfigurations = "Development;Shipping";
+            var gameConfigurations = shipping ? "Shipping" : "Development";
 
             // Compute final settings for BuildGraph.
             return new BuildSpecification

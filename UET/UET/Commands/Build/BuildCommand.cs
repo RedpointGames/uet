@@ -22,6 +22,7 @@
             public Option<EngineSpec> Engine;
             public Option<PathSpec> Path;
             public Option<DistributionSpec?> Distribution;
+            public Option<bool> Shipping;
 
             public Options()
             {
@@ -48,6 +49,33 @@
                     isDefault: true);
                 Engine.AddAlias("-e");
                 Engine.Arity = ArgumentArity.ExactlyOne;
+
+                Shipping = new Option<bool>(
+                    "--shipping",
+                    description: "If set, builds for Shipping instead of Development. Only valid when not using a BuildConfig.json file to build.");
+                Shipping.AddValidator(result =>
+                {
+                    PathSpec? pathSpec;
+                    try
+                    {
+                        pathSpec = result.GetValueForOption(Path);
+                    }
+                    catch
+                    {
+                        result.ErrorMessage = $"Can't use --{result.Option.Name} because --{Path.Name} is invalid.";
+                        return;
+                    }
+                    if (pathSpec == null)
+                    {
+                        result.ErrorMessage = $"Can't use --{result.Option.Name} because --{Path.Name} is invalid.";
+                        return;
+                    }
+                    if (pathSpec.Type == PathSpecType.BuildConfig)
+                    {
+                        result.ErrorMessage = $"Can't use --{result.Option.Name} because --{Path.Name} points to a BuildConfig.json.";
+                        return;
+                    }
+                });
             }
         }
 
@@ -117,7 +145,11 @@
                                 buildSpec = _buildSpecificationGenerator.BuildConfigProjectToBuildSpec(
                                     engineSpec,
                                     d,
-                                    path.DirectoryPath);
+                                    path.DirectoryPath,
+                                    executeBuild: true,
+                                    strictIncludes: false,
+                                    executeTests: false,
+                                    executeDeployment: false);
                                 break;
                             case BuildConfigPluginDistribution d:
                                 buildSpec = _buildSpecificationGenerator.BuildConfigPluginToBuildSpec(
@@ -136,7 +168,8 @@
                     case PathSpecType.UProject:
                         buildSpec = _buildSpecificationGenerator.ProjectPathSpecToBuildSpec(
                             engineSpec,
-                            path);
+                            path,
+                            context.ParseResult.GetValueForOption(_options.Shipping));
                         break;
                     case PathSpecType.UPlugin:
                         buildSpec = _buildSpecificationGenerator.PluginPathSpecToBuildSpec(

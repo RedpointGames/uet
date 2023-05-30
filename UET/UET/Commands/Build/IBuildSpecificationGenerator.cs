@@ -12,10 +12,10 @@
             BuildEngineSpecification engineSpec,
             BuildConfigProjectDistribution distribution,
             string repositoryRoot,
-            bool executeBuild = true,
-            bool strictIncludes = false,
-            bool executeTests = false,
-            bool executeDeployment = false);
+            bool executeBuild,
+            bool strictIncludes,
+            bool executeTests,
+            bool executeDeployment);
 
         BuildSpecification BuildConfigPluginToBuildSpec(
             BuildEngineSpecification engineSpec,
@@ -25,7 +25,10 @@
             BuildEngineSpecification engineSpec,
             BuildConfigEngineDistribution distribution);
 
-        BuildSpecification ProjectPathSpecToBuildSpec(BuildEngineSpecification engineSpec, PathSpec pathSpec);
+        BuildSpecification ProjectPathSpecToBuildSpec(
+            BuildEngineSpecification engineSpec,
+            PathSpec pathSpec,
+            bool shipping);
 
         BuildSpecification PluginPathSpecToBuildSpec(BuildEngineSpecification engineSpec, PathSpec pathSpec);
     }
