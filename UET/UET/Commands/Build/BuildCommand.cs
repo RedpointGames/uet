@@ -13,7 +13,7 @@
         {
             public Option<EngineSpec> Engine;
             public Option<PathSpec> Path;
-            public Option<string?> Distribution;
+            public Option<DistributionSpec?> Distribution;
 
             public Options()
             {
@@ -25,9 +25,11 @@
                 Path.AddAlias("-p");
                 Path.Arity = ArgumentArity.ExactlyOne;
 
-                Distribution = new Option<string?>(
+                Distribution = new Option<DistributionSpec?>(
                     "--distribution",
-                    "The distribution to build if targeting a BuildConfig.json file.");
+                    description: "The distribution to build if targeting a BuildConfig.json file.",
+                    parseArgument: DistributionSpec.ParseDistributionSpec(Path),
+                    isDefault: true);
                 Distribution.AddAlias("-d");
                 Distribution.Arity = ArgumentArity.ExactlyOne;
 
@@ -71,7 +73,7 @@
 
                 _logger.LogInformation($"--engine:       {engine}");
                 _logger.LogInformation($"--path:         {path}");
-                _logger.LogInformation($"--distribution: {distribution}");
+                _logger.LogInformation($"--distribution: {(distribution == null ? "(not set)" : distribution)}");
 
                 _logger.LogInformation("not implemented yet");
                 return 0;

@@ -1,7 +1,6 @@
 ﻿namespace UET.Commands.EngineSpec
 {
     using Redpoint.Registry;
-    using Redpoint.UET.Configuration;
     using Redpoint.UET.Configuration.Project;
     using System;
     using System.CommandLine;
@@ -19,7 +18,7 @@
 
         public static ParseArgument<EngineSpec> ParseEngineSpec(
             Option<PathSpec> pathSpec,
-            Option<string> distributionOpt)
+            Option<DistributionSpec?> distributionOpt)
         {
             return (result) =>
             {
@@ -31,8 +30,24 @@
 
                 // Otherwise, take a look at the path spec value to see if we
                 // can figure out the target engine from the project file.
-                var path = result.GetValueForOption(pathSpec);
-                var distribution = result.GetValueForOption(distributionOpt);
+                PathSpec? path = null;
+                DistributionSpec? distribution = null;
+                try
+                {
+                    path = result.GetValueForOption(pathSpec);
+                }
+                catch (InvalidOperationException)
+                {
+                    return null!;
+                }
+                try
+                {
+                    distribution = result.GetValueForOption(distributionOpt);
+                }
+                catch (InvalidOperationException)
+                {
+                    return null!;
+                }
                 if (path == null)
                 {
                     result.ErrorMessage = $"Can't automatically detect the appropriate engine because the --{pathSpec.Name} option was invalid.";
@@ -67,68 +82,37 @@
                     case PathSpecType.BuildConfig:
                         // If this build configuration is for a project, determine which project file based on
                         // the distribution and then read the engine association from that project file.
-                        using (var buildConfigStream = new FileStream(
-                            System.IO.Path.Combine(path.DirectoryPath, "BuildConfig.json"),
-                            FileMode.Open, FileAccess.Read, FileShare.Read))
+                        var selectedDistribution = distribution?.Distribution as BuildConfigProjectDistribution;
+                        if (selectedDistribution == null)
                         {
-                            var buildConfig = JsonSerializer.Deserialize<BuildConfig>(
-                                buildConfigStream,
-                                BuildConfigSourceGenerationContext.Default.BuildConfig);
-                            if (buildConfig?.Type != BuildConfigType.Project)
-                            {
-                                result.ErrorMessage = $"Can not infer the engine version from BuildConfig.json because it does not refer to a project; use --{result.Argument.Name} to specify the engine instead.";
-                                return null!;
-                            }
+                            result.ErrorMessage = $"The --{distributionOpt.Name} was either not specified or could not be found in the BuildConfig.json file, so the engine version can not be inferred.";
+                            return null!;
+                        }
 
-                            buildConfigStream.Seek(0, SeekOrigin.Begin);
-                            var buildConfigProject = JsonSerializer.Deserialize<BuildConfigProject>(
-                                buildConfigStream,
-                                BuildConfigSourceGenerationContext.Default.BuildConfigProject);
-                            if (buildConfigProject == null)
-                            {
-                                result.ErrorMessage = $"The BuildConfig.json file is invalid.";
-                                return null!;
-                            }
+                        var uprojectPath = System.IO.Path.Combine(path.DirectoryPath, selectedDistribution.FolderName, $"{selectedDistribution.ProjectName}.uproject");
+                        if (!File.Exists(uprojectPath))
+                        {
+                            result.ErrorMessage = $"The distribution '{distribution}' specified by --{distributionOpt.Name} refers to the project file '{uprojectPath}', but this project file does not exist on disk, so the engine version can not be inferred.";
+                            return null!;
+                        }
 
-                            if (string.IsNullOrWhiteSpace(distribution))
+                        using (var uprojectFileStream = new FileStream(uprojectPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                        {
+                            var projectFile = JsonSerializer.Deserialize<UProjectFile>(
+                                uprojectFileStream,
+                                SourceGenerationContext.Default.UProjectFile);
+                            if (projectFile?.EngineAssociation != null)
                             {
-                                result.ErrorMessage = $"Can not infer the engine version from BuildConfig.json when the --{distributionOpt.Name} option has not been set.";
-                                return null!;
-                            }
-
-                            var selectedDistributionEntry = buildConfigProject.Distributions
-                                .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.CurrentCultureIgnoreCase));
-                            if (selectedDistributionEntry == null)
-                            {
-                                result.ErrorMessage = $"The distribution '{distribution}' specified by --{distributionOpt.Name} could not be found in the BuildConfig.json file, so the engine version can not be inferred.";
-                                return null!;
-                            }
-
-                            var uprojectPath = System.IO.Path.Combine(path.DirectoryPath, selectedDistributionEntry.FolderName, $"{selectedDistributionEntry.ProjectName}.uproject");
-                            if (!File.Exists(uprojectPath))
-                            {
-                                result.ErrorMessage = $"The distribution '{distribution}' specified by --{distributionOpt.Name} refers to the project file '{uprojectPath}', but this project file does not exist on disk, so the engine version can not be inferred.";
-                                return null!;
-                            }
-
-                            using (var uprojectFileStream = new FileStream(uprojectPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                            {
-                                var projectFile = JsonSerializer.Deserialize<UProjectFile>(
-                                    uprojectFileStream,
-                                    SourceGenerationContext.Default.UProjectFile);
-                                if (projectFile?.EngineAssociation != null)
+                                var engineSpec = TryParseEngine(projectFile.EngineAssociation, EngineParseFlags.WindowsRegistry | EngineParseFlags.WindowsFolder | EngineParseFlags.MacFolder);
+                                if (engineSpec == null)
                                 {
-                                    var engineSpec = TryParseEngine(projectFile.EngineAssociation, EngineParseFlags.WindowsRegistry | EngineParseFlags.WindowsFolder | EngineParseFlags.MacFolder);
-                                    if (engineSpec == null)
-                                    {
-                                        result.ErrorMessage = $"The '.uproject' file (referred to by the '{distribution}' distribution) specifies an engine that is not installed or can't be found ({projectFile.EngineAssociation}).";
-                                        return null!;
-                                    }
-                                    return engineSpec;
+                                    result.ErrorMessage = $"The '.uproject' file (referred to by the '{distribution}' distribution) specifies an engine that is not installed or can't be found ({projectFile.EngineAssociation}).";
+                                    return null!;
                                 }
-                                result.ErrorMessage = $"The '.uproject' file (referred to by the '{distribution}' distribution) does not specify an engine via EngineAssociation; use --{result.Argument.Name} to specify the engine instead.";
-                                return null!;
+                                return engineSpec;
                             }
+                            result.ErrorMessage = $"The '.uproject' file (referred to by the '{distribution}' distribution) does not specify an engine via EngineAssociation; use --{result.Argument.Name} to specify the engine instead.";
+                            return null!;
                         }
                 }
 
@@ -282,6 +266,11 @@
 
         public override string ToString()
         {
+            if (Type == EngineSpecType.Path && OriginalSpec != Path)
+            {
+                return $"{OriginalSpec} ({Path})";
+            }
+
             return OriginalSpec;
         }
     }

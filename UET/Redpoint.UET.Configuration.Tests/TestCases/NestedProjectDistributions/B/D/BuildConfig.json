@@ -1,0 +1,18 @@
+{
+  "Distributions": [
+    {
+      "Name": "D",
+      "FolderName": "_",
+      "ProjectName": "_",
+      "Tests": [
+        {
+          "Name": "Ignored",
+          "Type": "Custom",
+          "Custom": {
+            "ScriptPath": "Ignored"
+          }
+        }
+      ]
+    }
+  ]
+}

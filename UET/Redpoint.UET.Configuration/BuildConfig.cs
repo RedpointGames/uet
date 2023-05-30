@@ -8,6 +8,6 @@
         public string? UETVersion { get; set; }
 
         [JsonPropertyName("Type")]
-        public BuildConfigType Type { get; set; } = BuildConfigType.Plugin;
+        public BuildConfigType Type { get; set; }
     }
 }

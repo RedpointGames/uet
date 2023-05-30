@@ -1,0 +1,16 @@
+{
+  "Type": "Project",
+  "Include": [
+    "A",
+    "B/D",
+    "B/E",
+    "C"
+  ],
+  "Distributions": [
+    {
+      "Name": "Root",
+      "FolderName": "_",
+      "ProjectName": "_"
+    }
+  ]
+}
