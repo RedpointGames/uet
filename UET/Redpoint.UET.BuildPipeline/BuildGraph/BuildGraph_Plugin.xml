@@ -1160,7 +1160,7 @@ $(PackageExclude);
       <Node Name="Deploy $(BackblazeManualMode) $(BackblazeNodeName)" Requires="#PackagedZip">
         <Property Name="MarketplaceFlag" Value="" />
         <Property Name="MarketplaceFlag" Value="--marketplace" If="'$(IsForMarketplaceSubmission)' == 'true'" />
-        <Spawn Exec="$(UETPath)" Arguments="internal upload-to-backblaze-b2 --zip-path &quot;$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip&quot; --bucket-name &quot;$(BackblazeBucketName)&quot; --folder-env-var &quot;$(BackblazeFolderEnvVar)&quot; $(MarketplaceFlag)" />
+        <Spawn Exe="$(UETPath)" Arguments="internal upload-to-backblaze-b2 --zip-path &quot;$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip&quot; --bucket-name &quot;$(BackblazeBucketName)&quot; --folder-env-var &quot;$(BackblazeFolderEnvVar)&quot; $(MarketplaceFlag)" />
       </Node>
       <Property Name="DeploymentTasks" Value="$(DeploymentTasks)Deploy $(BackblazeManualMode) $(BackblazeNodeName);" />
 

@@ -85,7 +85,7 @@
                         var selectedDistribution = distribution?.Distribution as BuildConfigProjectDistribution;
                         if (selectedDistribution == null)
                         {
-                            result.ErrorMessage = $"The --{distributionOpt.Name} was either not specified or could not be found in the BuildConfig.json file, so the engine version can not be inferred.";
+                            result.ErrorMessage = $"The engine version can not be inferred automatically for plugins; use --{result.Argument.Name} to specify the engine instead.";
                             return null!;
                         }
 

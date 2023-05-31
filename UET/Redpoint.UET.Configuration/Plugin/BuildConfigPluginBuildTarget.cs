@@ -7,8 +7,8 @@
         /// <summary>
         /// A list of platforms to build the plugin for on the target.
         /// </summary>
-        [JsonPropertyName("Platforms"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string[]? Platforms { get; set; }
+        [JsonPropertyName("Platforms")]
+        public string[] Platforms { get; set; } = new string[0];
 
         /// <summary>
         /// If not specified, defaults to ["Development", "Shipping"].

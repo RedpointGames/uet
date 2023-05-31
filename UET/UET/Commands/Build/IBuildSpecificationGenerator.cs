@@ -15,13 +15,21 @@
             BuildConfigProjectDistribution distribution,
             string repositoryRoot,
             bool executeBuild,
-            bool strictIncludes,
             bool executeTests,
-            bool executeDeployment);
+            bool executeDeployment,
+            bool strictIncludes);
 
-        BuildSpecification BuildConfigPluginToBuildSpec(
+        Task<BuildSpecification> BuildConfigPluginToBuildSpecAsync(
             BuildEngineSpecification engineSpec,
-            BuildConfigPluginDistribution distribution);
+            BuildGraphEnvironment buildGraphEnvironment,
+            BuildConfigPluginDistribution distribution,
+            BuildConfigPlugin pluginInfo,
+            string repositoryRoot,
+            bool executeBuild,
+            bool executePackage,
+            bool executeTests,
+            bool executeDeployment,
+            bool strictIncludes);
 
         BuildSpecification BuildConfigEngineToBuildSpec(
             BuildEngineSpecification engineSpec,

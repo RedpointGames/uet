@@ -30,10 +30,10 @@
         public BuildConfigPluginPrepare[]? Prepare { get; set; }
 
         /// <summary>
-        /// If not specified, does not build the plugin at all.
+        /// Specifies how the plugin is built.
         /// </summary>
-        [JsonPropertyName("Build"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public BuildConfigPluginBuild? Build { get; set; }
+        [JsonPropertyName("Build")]
+        public BuildConfigPluginBuild Build { get; set; } = new BuildConfigPluginBuild();
 
         /// <summary>
         /// A list of tests to run for the plugin.

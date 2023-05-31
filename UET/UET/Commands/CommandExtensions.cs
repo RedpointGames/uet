@@ -52,6 +52,7 @@
                 services.AddUETCore();
                 services.AddSingleton<TCommand>();
                 services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
+                services.AddSingleton<IVersioning, DefaultVersioning>();
                 if (extraServices != null)
                 {
                     extraServices(services);

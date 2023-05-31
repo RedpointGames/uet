@@ -59,7 +59,7 @@
   <Property Name="CustomTasks" Value="" />
   <Property Name="DeploymentTasks" Value="" />
   <Property Name="AdditionalArguments" Value="" If="'$(StrictIncludes)' == 'false'" />
-  <Property Name="AdditionalArguments" Value=" -iwyu -NoPCH -NoSharedPCH -DisableUnity" If="'$(StrictIncludes)' == 'true'" />
+  <Property Name="AdditionalArguments" Value=" -NoPCH -NoSharedPCH -DisableUnity" If="'$(StrictIncludes)' == 'true'" />
 
   <!-- Targets that we will execute on a Windows machine. -->
   <Agent Name="Windows Build" Type="Win64" If="'$(ExecuteBuild)' == 'true'">

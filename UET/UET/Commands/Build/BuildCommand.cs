@@ -8,13 +8,11 @@
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.UET.BuildPipeline.Executors;
-    using System.Net.Http.Headers;
     using Redpoint.UET.Configuration.Project;
     using Redpoint.UET.Configuration.Plugin;
     using Redpoint.UET.Configuration.Engine;
     using Redpoint.UET.BuildPipeline.Executors.Local;
     using Redpoint.ProcessExecution;
-    using System.Diagnostics.CodeAnalysis;
     using Redpoint.UET.BuildPipeline.Executors.GitLab;
     using UET.Services;
 
@@ -30,6 +28,9 @@
             public Option<string> ExecutorOutputFile;
             public Option<string?> WindowsSharedStoragePath;
             public Option<string?> MacSharedStoragePath;
+            public Option<bool> Test;
+            public Option<bool> Deploy;
+            public Option<bool> StrictIncludes;
 
             public Options()
             {
@@ -102,6 +103,18 @@
                 MacSharedStoragePath = new Option<string?>(
                     "--mac-shared-storage-path",
                     description: "If the build is running across multiple machines (depending on the executor), this is the local path on macOS pre-mounted to the network share.");
+
+                Test = new Option<bool>(
+                    "--test",
+                    description: "If set, executes the tests after building.");
+
+                Deploy = new Option<bool>(
+                    "--deploy",
+                    description: "If set, executes the deployment after building (and testing if --test is set).");
+
+                StrictIncludes = new Option<bool>(
+                    "--strict-includes",
+                    description: "If set, disables unity and PCH builds. This forces all files to have the correct #include directives, at the cost of increased build time.");
             }
         }
 
@@ -154,8 +167,9 @@
                 var executorOutputFile = context.ParseResult.GetValueForOption(_options.ExecutorOutputFile);
                 var windowsSharedStoragePath = context.ParseResult.GetValueForOption(_options.WindowsSharedStoragePath);
                 var macSharedStoragePath = context.ParseResult.GetValueForOption(_options.MacSharedStoragePath);
-
-                var uetPath = _selfLocation.GetUETLocalLocation();
+                var test = context.ParseResult.GetValueForOption(_options.Test);
+                var deploy = context.ParseResult.GetValueForOption(_options.Deploy);
+                var strictIncludes = context.ParseResult.GetValueForOption(_options.StrictIncludes);
 
                 // @todo: Move this validation to the parsing APIs.
                 if (executorName == "local")
@@ -191,6 +205,9 @@
                 _logger.LogInformation($"--executor-output-file:        {executorOutputFile}");
                 _logger.LogInformation($"--windows-shared-storage-path: {windowsSharedStoragePath}");
                 _logger.LogInformation($"--mac-shared-storage-path:     {macSharedStoragePath}");
+                _logger.LogInformation($"--test:                        {(test ? "yes" : "no")}");
+                _logger.LogInformation($"--deploy:                      {(deploy ? "yes" : "no")}");
+                _logger.LogInformation($"--strict-includes:             {(strictIncludes ? "yes" : "no")}");
 
                 BuildEngineSpecification engineSpec;
                 switch (engine.Type)
@@ -225,50 +242,66 @@
                 };
 
                 BuildSpecification buildSpec;
-                switch (path!.Type)
+                try
                 {
-                    case PathSpecType.BuildConfig:
-                        switch (distribution!.Distribution)
-                        {
-                            case BuildConfigProjectDistribution projectDistribution:
-                                buildSpec = _buildSpecificationGenerator.BuildConfigProjectToBuildSpec(
-                                    engineSpec,
-                                    buildGraphEnvironment,
-                                    projectDistribution,
-                                    repositoryRoot: path.DirectoryPath,
-                                    executeBuild: true,
-                                    strictIncludes: false,
-                                    executeTests: false,
-                                    executeDeployment: false);
-                                break;
-                            case BuildConfigPluginDistribution pluginDistribution:
-                                buildSpec = _buildSpecificationGenerator.BuildConfigPluginToBuildSpec(
-                                    engineSpec,
-                                    pluginDistribution);
-                                break;
-                            case BuildConfigEngineDistribution engineDistribution:
-                                buildSpec = _buildSpecificationGenerator.BuildConfigEngineToBuildSpec(
-                                    engineSpec,
-                                    engineDistribution);
-                                break;
-                            default:
-                                throw new NotSupportedException();
-                        }
-                        break;
-                    case PathSpecType.UProject:
-                        buildSpec = _buildSpecificationGenerator.ProjectPathSpecToBuildSpec(
-                            engineSpec,
-                            buildGraphEnvironment,
-                            path,
-                            context.ParseResult.GetValueForOption(_options.Shipping));
-                        break;
-                    case PathSpecType.UPlugin:
-                        buildSpec = _buildSpecificationGenerator.PluginPathSpecToBuildSpec(
-                            engineSpec,
-                            path);
-                        break;
-                    default:
-                        throw new NotSupportedException();
+                    switch (path!.Type)
+                    {
+                        case PathSpecType.BuildConfig:
+                            switch (distribution!.Distribution)
+                            {
+                                case BuildConfigProjectDistribution projectDistribution:
+                                    buildSpec = _buildSpecificationGenerator.BuildConfigProjectToBuildSpec(
+                                        engineSpec,
+                                        buildGraphEnvironment,
+                                        projectDistribution,
+                                        repositoryRoot: path.DirectoryPath,
+                                        executeBuild: true,
+                                        executeTests: test,
+                                        executeDeployment: deploy,
+                                        strictIncludes: strictIncludes);
+                                    break;
+                                case BuildConfigPluginDistribution pluginDistribution:
+                                    buildSpec = await _buildSpecificationGenerator.BuildConfigPluginToBuildSpecAsync(
+                                        engineSpec,
+                                        buildGraphEnvironment,
+                                        pluginDistribution,
+                                        (BuildConfigPlugin)distribution.BuildConfig,
+                                        repositoryRoot: path.DirectoryPath,
+                                        executeBuild: true,
+                                        executePackage: true,
+                                        executeTests: test,
+                                        executeDeployment: deploy,
+                                        strictIncludes: strictIncludes);
+                                    break;
+                                case BuildConfigEngineDistribution engineDistribution:
+                                    buildSpec = _buildSpecificationGenerator.BuildConfigEngineToBuildSpec(
+                                        engineSpec,
+                                        engineDistribution);
+                                    break;
+                                default:
+                                    throw new NotSupportedException();
+                            }
+                            break;
+                        case PathSpecType.UProject:
+                            buildSpec = _buildSpecificationGenerator.ProjectPathSpecToBuildSpec(
+                                engineSpec,
+                                buildGraphEnvironment,
+                                path,
+                                context.ParseResult.GetValueForOption(_options.Shipping));
+                            break;
+                        case PathSpecType.UPlugin:
+                            buildSpec = _buildSpecificationGenerator.PluginPathSpecToBuildSpec(
+                                engineSpec,
+                                path);
+                            break;
+                        default:
+                            throw new NotSupportedException();
+                    }
+                }
+                catch (BuildMisconfigurationException ex)
+                {
+                    _logger.LogError(ex.Message);
+                    return 1;
                 }
 
                 IBuildExecutor executor;

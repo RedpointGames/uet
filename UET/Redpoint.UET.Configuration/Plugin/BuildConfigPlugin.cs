@@ -1,10 +1,6 @@
 ﻿namespace Redpoint.UET.Configuration.Plugin
 {
-    using System;
-    using System.Linq;
-    using System.Text;
     using System.Text.Json.Serialization;
-    using System.Threading.Tasks;
 
     public class BuildConfigPlugin : BuildConfig
     {
@@ -15,10 +11,10 @@
         public string PluginName { get; set; } = string.Empty;
 
         /// <summary>
-        /// Used for the update-copyright command.
+        /// Used for Marketplace submissions and update-copyright command.
         /// </summary>
-        [JsonPropertyName("CopyrightHeader"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? CopyrightHeader { get; set; }
+        [JsonPropertyName("Copyright"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public BuildConfigPluginCopyright? Copyright { get; set; }
 
         /// <summary>
         /// A list of distributions.

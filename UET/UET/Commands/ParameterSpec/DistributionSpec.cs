@@ -75,6 +75,7 @@
                                             DistributionOriginalName = distribution,
                                             DistributionCanonicalName = selectedDistributionEntry.Name,
                                             Distribution = selectedDistributionEntry,
+                                            BuildConfig = buildConfigProject,
                                         };
                                     }
                                 case BuildConfigPlugin buildConfigPlugin:
@@ -92,6 +93,7 @@
                                             DistributionOriginalName = distribution,
                                             DistributionCanonicalName = selectedDistributionEntry.Name,
                                             Distribution = selectedDistributionEntry,
+                                            BuildConfig = buildConfigPlugin,
                                         };
                                     }
                                 case BuildConfigEngine buildConfigEngine:
@@ -109,6 +111,7 @@
                                             DistributionOriginalName = distribution,
                                             DistributionCanonicalName = selectedDistributionEntry.Name,
                                             Distribution = selectedDistributionEntry,
+                                            BuildConfig = buildConfigEngine,
                                         };
                                     }
                             }
@@ -191,6 +194,11 @@
         /// The distribution object, one of <see cref="BuildConfigProjectDistribution"/>, <see cref="BuildConfigPluginDistribution"/> or <see cref="BuildConfigEngineDistribution"/>.
         /// </summary>
         public required object Distribution { get; init; }
+
+        /// <summary>
+        /// The build config object, one of <see cref="BuildConfigProject"/>, <see cref="BuildConfigPlugin"/> or <see cref="BuildConfigEngine"/>.
+        /// </summary>
+        public required object BuildConfig { get; init; }
 
         public override string ToString()
         {

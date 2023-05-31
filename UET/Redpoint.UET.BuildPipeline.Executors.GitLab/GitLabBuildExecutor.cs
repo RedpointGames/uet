@@ -57,6 +57,7 @@
                 var job = new GitLabJob();
                 job.Stage = sourceJob.Stage;
                 job.Variables = sourceJob.EnvironmentVariables;
+                job.Needs = sourceJob.Needs.ToList();
 
                 if (sourceJob.Platform == BuildServerJobPlatform.Windows)
                 {

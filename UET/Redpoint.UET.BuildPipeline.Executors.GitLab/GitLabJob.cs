@@ -10,7 +10,7 @@
         public string? Stage { get; set; } = null;
 
         [YamlMember(Alias = "needs", DefaultValuesHandling = DefaultValuesHandling.OmitNull)]
-        public HashSet<string>? Needs { get; set; } = null;
+        public List<string>? Needs { get; set; } = null;
 
         [YamlMember(Alias = "tags", DefaultValuesHandling = DefaultValuesHandling.OmitNull)]
         public List<string>? Tags { get; set; } = null;

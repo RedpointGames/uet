@@ -4,5 +4,6 @@
     {
         Automation,
         Custom,
+        Downstream,
     }
 }
