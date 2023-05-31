@@ -10,6 +10,8 @@ stages:
     $PackageVersion = "$($Timestamp.Year).$(($Timestamp.Day * 12) + $Timestamp.Month).$(($Timestamp.Hour * 60) + $Timestamp.Minute)"
     dotnet build -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
     if ($LastExitCode -ne 0) { exit $LastExitCode }
+    dotnet msbuild -restore -t:PublishAllRids -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/uet/uet.csproj
+    if ($LastExitCode -ne 0) { exit $LastExitCode }
     dotnet test --no-build --logger:"console" --logger:"junit;LogFilePath=$((Get-Location).Path)\TestResults\{assembly}.test-result.xml" -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
     if ($LastExitCode -ne 0) { exit $LastExitCode }
     dotnet publish --no-build -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
@@ -19,3 +21,6 @@ stages:
   artifacts:
     reports:
       junit: TestResults/*.test-result.xml
+    paths:
+      - UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet
+      - UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe

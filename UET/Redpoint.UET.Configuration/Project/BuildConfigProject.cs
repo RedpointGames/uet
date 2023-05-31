@@ -13,7 +13,7 @@
         /// <summary>
         /// A list of distributions.
         /// </summary>
-        [JsonPropertyName("Distributions"), JsonRequired]
+        [JsonPropertyName("Distributions")]
         public List<BuildConfigProjectDistribution> Distributions { get; set; } = new List<BuildConfigProjectDistribution>();
     }
 }

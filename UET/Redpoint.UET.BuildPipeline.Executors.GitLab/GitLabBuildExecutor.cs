@@ -7,6 +7,7 @@
     using Redpoint.UET.BuildPipeline.Executors.Engine;
     using Redpoint.UET.Core;
     using Redpoint.UET.Workspace;
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading.Tasks;
     using YamlDotNet.Serialization;
 
@@ -59,11 +60,11 @@
 
                 if (sourceJob.Platform == BuildServerJobPlatform.Windows)
                 {
-                    job.Tags = new[] { "buildgraph-windows" };
+                    job.Tags = new List<string> { "buildgraph-windows" };
                 }
                 else if (sourceJob.Platform == BuildServerJobPlatform.Mac)
                 {
-                    job.Tags = new[] { "buildgraph-mac" };
+                    job.Tags = new List<string> { "buildgraph-mac" };
                 }
                 else if (sourceJob.Platform == BuildServerJobPlatform.Meta)
                 {
@@ -124,7 +125,8 @@
 
             using (var stream = new StreamWriter(buildServerOutputFilePath))
             {
-                var serializer = new SerializerBuilder().Build();
+                var aotContext = new GitLabYamlStaticContext();
+                var serializer = new StaticSerializerBuilder(aotContext).Build();
                 var yaml = serializer.Serialize(file);
                 await stream.WriteLineAsync(yaml);
             }

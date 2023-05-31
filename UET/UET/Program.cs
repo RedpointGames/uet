@@ -1,10 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Redpoint.PathResolution;
-using Redpoint.ProcessExecution;
-using Redpoint.UET.BuildPipeline;
-using Redpoint.UET.Core;
-using Redpoint.UET.Workspace;
-using System.CommandLine;
+﻿using System.CommandLine;
 using UET.Commands.Build;
 using UET.Commands.TestPackaged;
 

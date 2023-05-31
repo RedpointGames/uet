@@ -1,7 +1,9 @@
 ﻿namespace Redpoint.UET.BuildPipeline.Executors.GitLab
 {
+    using System.Diagnostics.CodeAnalysis;
     using YamlDotNet.Serialization;
 
+    [YamlSerializable]
     public class GitLabJobArtifacts
     {
         [YamlMember(Alias = "when", DefaultValuesHandling = DefaultValuesHandling.OmitNull)]

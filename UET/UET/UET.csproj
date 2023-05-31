@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -8,11 +9,42 @@
     <RootNamespace>UET</RootNamespace>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <RuntimeIdentifiers Condition="'$(EnableLinuxSupport)' == 'true'">win-x64;osx.11.0-arm64;linux-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers Condition="'$(EnableLinuxSupport)' == 'false'">win-x64;osx.11.0-arm64</RuntimeIdentifiers>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <PublishReadyToRun>true</PublishReadyToRun>
     <PublishTrimmed>true</PublishTrimmed>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebuggerSupport Condition="'$(Configuration)' == 'Release'">false</DebuggerSupport>
+    <TrimmerRemoveSymbols Condition="'$(Configuration)' == 'Release'">true</TrimmerRemoveSymbols>
+    <EnableUnsafeBinaryFormatterSerialization Condition="'$(Configuration)' == 'Release'">false</EnableUnsafeBinaryFormatterSerialization>
+    <EnableUnsafeUTF7Encoding Condition="'$(Configuration)' == 'Release'">false</EnableUnsafeUTF7Encoding>
+    <EventSourceSupport Condition="'$(Configuration)' == 'Release'">false</EventSourceSupport>
+    <HttpActivityPropagationSupport Condition="'$(Configuration)' == 'Release'">false</HttpActivityPropagationSupport>
+    <InvariantGlobalization Condition="'$(Configuration)' == 'Release'">true</InvariantGlobalization>
+    <MetadataUpdaterSupport Condition="'$(Configuration)' == 'Release'">false</MetadataUpdaterSupport>
+
+    <BaseUetYear>$([System.DateTime]::Now.Year)</BaseUetYear>
+    <BaseUetMonth>$([System.DateTime]::Now.Month)</BaseUetMonth>
+    <BaseUetDay>$([System.DateTime]::Now.Day)</BaseUetDay>
+    <BaseUetHour>$([System.DateTime]::Now.Hour)</BaseUetHour>
+    <BaseUetMinute>$([System.DateTime]::Now.Minute)</BaseUetMinute>
+    <BaseUetVersionMajor>$(BaseUetYear)</BaseUetVersionMajor>
+    <BaseUetVersionMinor>$([MSBuild]::Add($([MSBuild]::Multiply($(BaseUetDay), 12)), $(BaseUetMonth)))</BaseUetVersionMinor>
+    <BaseUetVersionPatch>$([MSBuild]::Add($([MSBuild]::Multiply($(BaseUetHour), 60)), $(BaseUetMinute)))</BaseUetVersionPatch>
+
+    <BaseUetVersionSuffix Condition="'$(BaseUetVersion)' == ''">-pre</BaseUetVersionSuffix>
+    <BaseUetVersion Condition="'$(BaseUetVersion)' == ''">$(BaseUetVersionMajor).$(BaseUetVersionMinor).$(BaseUetVersionPatch)</BaseUetVersion>
+    
+    <Company>Redpoint Games</Company>
+    <Copyright>Copyright Redpoint Games</Copyright>
+    <Description>The unofficial Unreal Engine Tool.</Description>
+    <FileVersion>$(BaseUetVersion).0</FileVersion>
+    <InformationalVersion>$(BaseUetVersion)$(BaseUetVersionSuffix)</InformationalVersion>
+    <Product>Unreal Engine Tool</Product>
+    <AssemblyTitle>Unreal Engine Tool</AssemblyTitle>
+    <AssemblyVersion>$(BaseUetVersion).0</AssemblyVersion>
+    <RepositoryUrl>https://src.redpoint.games/redpointgames/unreal-engine-tool</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -44,5 +76,31 @@
   <ItemGroup>
     <Folder Include="Services\" />
   </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\win-x64\uet.exe" Condition="'$(RuntimeIdentifier)' != 'win-x64' and '$(EmbeddingCrossPlatform)' == 'true'">
+      <Link>Embedded\win-x64\uet.exe</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\osx.11.0-arm64\uet" Condition="'$(RuntimeIdentifier)' != 'osx.11.0-arm64' and '$(EmbeddingCrossPlatform)' == 'true'">
+      <Link>Embedded\osx.11.0-arm64\uet</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\linux-x64\uet" Condition="'$(RuntimeIdentifier)' != 'linux-x64' and '$(EmbeddingCrossPlatform)' == 'true' and '$(EnableLinuxSupport)' == 'true'">
+      <Link>Embedded\linux-x64\uet</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <Target Name="PublishAllRids">
+    <ItemGroup>
+      <RuntimeIdentifierForPublish Include="$(RuntimeIdentifiers)" />
+      <ProjectToPublish Include="@(RuntimeIdentifierForPublish->'$(MSBuildProjectFullPath)')">
+        <AdditionalProperties>RuntimeIdentifier=%(RuntimeIdentifierForPublish.Identity)</AdditionalProperties>
+      </ProjectToPublish>
+      <ProjectToPublishWithEmbedding Include="@(RuntimeIdentifierForPublish->'$(MSBuildProjectFullPath)')">
+        <AdditionalProperties>RuntimeIdentifier=%(RuntimeIdentifierForPublish.Identity);EmbeddingCrossPlatform=true</AdditionalProperties>
+      </ProjectToPublishWithEmbedding>
+    </ItemGroup>
+    <MSBuild Projects="@(ProjectToPublish)" Targets="Publish" BuildInParallel="true" />
+    <MSBuild Projects="@(ProjectToPublishWithEmbedding)" Targets="Publish" BuildInParallel="true" />
+  </Target>  
 
 </Project>

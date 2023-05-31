@@ -1,7 +1,9 @@
 ﻿namespace Redpoint.UET.BuildPipeline.Executors.GitLab
 {
+    using System.Diagnostics.CodeAnalysis;
     using YamlDotNet.Serialization;
 
+    [YamlSerializable]
     public class GitLabJob
     {
         [YamlMember(Alias = "stage", DefaultValuesHandling = DefaultValuesHandling.OmitNull)]
@@ -11,7 +13,7 @@
         public HashSet<string>? Needs { get; set; } = null;
 
         [YamlMember(Alias = "tags", DefaultValuesHandling = DefaultValuesHandling.OmitNull)]
-        public string[]? Tags { get; set; } = null;
+        public List<string>? Tags { get; set; } = null;
 
         [YamlMember(Alias = "interruptible", DefaultValuesHandling = DefaultValuesHandling.OmitNull)]
         public bool? Interruptible { get; set; } = null;

@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <EnableLinuxSupport>false</EnableLinuxSupport>
+    <DefineConstants Condition="'$(EnableLinuxSupport)' == 'true'">$(DefineConstants);ENABLE_LINUX_SUPPORT</DefineConstants>
+  </PropertyGroup>
+</Project>

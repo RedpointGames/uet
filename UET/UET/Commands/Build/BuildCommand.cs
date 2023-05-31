@@ -278,12 +278,20 @@
                         throw new NotSupportedException();
                 }
 
-                var buildResult = await executor.ExecuteBuildAsync(
-                    buildSpec,
-                    new LoggerBasedBuildExecutionEvents(_logger),
-                    CaptureSpecification.Passthrough,
-                    context.GetCancellationToken());
-                return buildResult;
+                try
+                {
+                    var buildResult = await executor.ExecuteBuildAsync(
+                        buildSpec,
+                        new LoggerBasedBuildExecutionEvents(_logger),
+                        CaptureSpecification.Passthrough,
+                        context.GetCancellationToken());
+                    return buildResult;
+                }
+                catch (BuildPipelineExecutionFailure ex)
+                {
+                    _logger.LogError(ex.Message);
+                    return 1;
+                }
             }
         }
     }

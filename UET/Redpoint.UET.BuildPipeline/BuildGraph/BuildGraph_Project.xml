@@ -19,10 +19,10 @@
 
   <!-- Build options -->
   <Option Name="ExecuteBuild" Restrict="true|false" DefaultValue="true" Description="Whether the build steps should be executed" />
-  <Option Name="EditorTarget" Restrict="[^ ]+" DefaultValue="UE4Editor" Description="Name of the editor target to be built" />
-  <Option Name="GameTargets" Restrict="[^ ]*" DefaultValue="UE4Game" Description="List of game targets to build, e.g. UE4Game" />
-  <Option Name="ClientTargets" Restrict="[^ ]*" DefaultValue="UE4Client" Description="List of client targets to build, e.g. UE4Client" />
-  <Option Name="ServerTargets" Restrict="[^ ]*" DefaultValue="UE4Server" Description="List of server targets to build, e.g. UE4Server" />
+  <Option Name="EditorTarget" Restrict="[^ ]+" DefaultValue="UnrealEditor" Description="Name of the editor target to be built" />
+  <Option Name="GameTargets" Restrict="[^ ]*" DefaultValue="UnrealGame" Description="List of game targets to build, e.g. UnrealGame" />
+  <Option Name="ClientTargets" Restrict="[^ ]*" DefaultValue="UnrealClient" Description="List of client targets to build, e.g. UnrealClient" />
+  <Option Name="ServerTargets" Restrict="[^ ]*" DefaultValue="UnrealServer" Description="List of server targets to build, e.g. UnrealServer" />
   <Option Name="GameTargetPlatforms" Restrict="[^ ]*" DefaultValue="Win64" Description="List of the game target platforms to build for, separated by semicolons, eg. Win64;Win32;Android"/>
   <Option Name="ClientTargetPlatforms" Restrict="[^ ]*" DefaultValue="" Description="List of the client target platforms to build for, separated by semicolons, eg. Win64;Win32;Android"/>
   <Option Name="ServerTargetPlatforms" Restrict="[^ ]*" DefaultValue="" Description="List of the server target platforms to build for, separated by semicolons, eg. Win64;Win32;Android"/>
@@ -303,7 +303,7 @@
           <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#GameCookedContent_$(TargetPlatform)" Produces="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
             <Property Name="StagePlatform" Value="$(TargetPlatform)" />
             <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
-            <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="(('$(CookPlatform)' == 'Windows') or ('$(CookPlatform)' == 'Mac') or ('$(CookPlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
+            <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="(('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
             <Property Name="DisableCodeSign" Value="" />
             <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
             <Property Name="PackageFlag" Value="" />
