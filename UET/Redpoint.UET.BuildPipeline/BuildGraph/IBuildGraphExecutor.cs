@@ -10,18 +10,21 @@
         Task<int> ExecuteGraphNodeAsync(
             string enginePath,
             string buildGraphRepositoryRootPath,
+            string uetPath,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
             string buildGraphNodeName,
             string buildGraphSharedStorageDir,
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
+            Dictionary<string, string> globalEnvironmentVariables,
             ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken);
 
         Task<BuildGraphExport> GenerateGraphAsync(
             string enginePath,
             string buildGraphRepositoryRootPath,
+            string uetPath,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
             Dictionary<string, string> buildGraphArguments,

@@ -34,7 +34,6 @@
             BuildSpecification buildSpecification,
             IBuildExecutionEvents buildExecutionEvents,
             string nodeName,
-            string nodeParameters,
             CancellationToken cancellationToken)
         {
             var repository = System.Environment.GetEnvironmentVariable("CI_REPOSITORY_URL")!;
@@ -62,12 +61,14 @@
                         exitCode = await _buildGraphExecutor.ExecuteGraphNodeAsync(
                             engineWorkspace.Path,
                             targetWorkspace.Path,
+                            buildSpecification.UETPath,
                             buildSpecification.BuildGraphScript,
                             buildSpecification.BuildGraphTarget,
                             nodeName,
                             OperatingSystem.IsWindows() ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                             buildSpecification.BuildGraphSettings,
                             buildSpecification.BuildGraphSettingReplacements,
+                            buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
                             CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                             {
                                 ReceiveStdout = (line) =>

@@ -4,7 +4,7 @@
 
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(BuildJobJson))]
-    internal partial class BuildJobJsonSourceGenerationContext : JsonSerializerContext
+    public partial class BuildJobJsonSourceGenerationContext : JsonSerializerContext
     {
     }
 }

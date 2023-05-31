@@ -2,8 +2,7 @@
 <BuildGraph xmlns="http://www.epicgames.com/BuildGraph" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.epicgames.com/BuildGraph ./Schema.xsd" >
 
   <!-- Environment options -->
-  <Option Name="BuildScriptsPath" Restrict=".*" DefaultValue="" Description="Path to the build scripts folder" />
-  <Option Name="BuildScriptsLibPath" Restrict=".*" DefaultValue="" Description="Path to the build scripts library folder" />
+  <Option Name="UETPath" DefaultValue="" Description="Path to the UET binary" />
   <Option Name="EnginePath" Restrict=".*" DefaultValue="" Description="Path to the engine" />
   <Option Name="TempPath" Restrict=".*" DefaultValue="" Description="Path to the temporary directory (must not contain spaces)" />
   <Option Name="ProjectRoot" Restrict=".*" DefaultValue="" Description="Path to the directory that contains the .uproject" />
@@ -375,12 +374,10 @@
         </Switch>
       </ForEach>
       <Node Name="Gauntlet $(GauntletTestName)" Requires="$(GauntletTestRequirements)" If="'$(ExecuteBuild)' == 'true'">
-        <WriteTextFile File="$(TempPath)\RunGauntlet.ps1" Text="param()&#xA;&amp; &quot;$(BuildScriptsPath)\Lib\Test_RunGauntletTestFromBuildGraph.ps1&quot; -EnginePath &quot;$(EnginePath)&quot; -Distribution &quot;$(Distribution)&quot; -TestName &quot;$(GauntletTestName)&quot;&#xA;exit $LastExitCode" />
-        <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass &quot;$(TempPath)\RunGauntlet.ps1&quot;" />
+        <Spawn Exe="$(UETPath)" Arguments="internal run-gauntlet-test-from-buildgraph --engine-path &quot;$(EnginePath)&quot; --distribution &quot;$(Distribution)&quot; --test-name &quot;$(GauntletTestName)&quot;" />
       </Node>
       <Node Name="Gauntlet $(GauntletTestName)" If="'$(ExecuteBuild)' == 'false'">
-        <WriteTextFile File="$(TempPath)\RunGauntlet.ps1" Text="param()&#xA;&amp; &quot;$(BuildScriptsPath)\Lib\Test_RunGauntletTestFromBuildGraph.ps1&quot; -EnginePath &quot;$(EnginePath)&quot; -Distribution &quot;$(Distribution)&quot; -TestName &quot;$(GauntletTestName)&quot;&#xA;exit $LastExitCode" />
-        <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass &quot;$(TempPath)\RunGauntlet.ps1&quot;" />
+        <Spawn Exe="$(UETPath)" Arguments="internal run-gauntlet-test-from-buildgraph --engine-path &quot;$(EnginePath)&quot; --distribution &quot;$(Distribution)&quot; --test-name &quot;$(GauntletTestName)&quot;" />
       </Node>
       <Property Name="GauntletTasks" Value="$(GauntletTasks)Gauntlet $(GauntletTestName);"/>
     </ForEach>
@@ -466,7 +463,7 @@
         <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="('$(PackageType)' == 'Game' and ('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and '$(IsUnrealEngine5)' == 'false'" />
         <Property Name="StagePlatform" Value="$(StagePlatform)Client" If="('$(PackageType)' == 'Client' and ('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux'))" />
         <Property Name="StagePlatform" Value="$(StagePlatform)Server" If="('$(PackageType)' == 'Server' and ('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux'))" />
-        <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass -File &quot;$(BuildScriptsLibPath)/Deploy_Steam.ps1&quot; -PackageType &quot;$(PackageType)&quot; -PackageTarget &quot;$(PackageTarget)&quot; -PackagePlatform &quot;$(PackagePlatform)&quot; -PackageConfiguration &quot;$(PackageConfiguration)&quot; -SteamAppID &quot;$(SteamAppID)&quot; -SteamDepotID &quot;$(SteamDepotID)&quot; -SteamChannel &quot;$(SteamChannel)&quot; -StagedData &quot;$(StageDirectory)/$(StagePlatform)&quot;" />
+        <Spawn Exe="$(UETPath)" Arguments="internal deploy --target steam --package-type &quot;$(PackageType)&quot; --package-target &quot;$(PackageTarget)&quot; --package-platform &quot;$(PackagePlatform)&quot; --package-configuration &quot;$(PackageConfiguration)&quot; --steam-app-id &quot;$(SteamAppID)&quot; --steam-depot-id &quot;$(SteamDepotID)&quot; --steam-channel &quot;$(SteamChannel)&quot; --staged-data &quot;$(StageDirectory)/$(StagePlatform)&quot;" />
       </Node>
       <Property Name="DeploymentTasks" Value="$(DeploymentTasks)Deploy $(ManualMode) $(NodeName);" />
 

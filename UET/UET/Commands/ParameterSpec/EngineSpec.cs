@@ -135,6 +135,11 @@
             All = 0xFF,
         }
 
+        public static EngineSpec? TryParseEngineSpecExact(string engine)
+        {
+            return TryParseEngine(engine);
+        }
+
         private static EngineSpec? TryParseEngine(string engine, EngineParseFlags flags = EngineParseFlags.All)
         {
             if ((flags & EngineParseFlags.UEFS) != 0)

@@ -32,12 +32,12 @@ namespace Redpoint.UET.BuildPipeline.Tests
             var buildGraph = await generator.GenerateGraphAsync(
                 @"E:\EpicGames\UE_5.2",
                 projectPath,
+                string.Empty,
                 BuildGraphScriptSpecification.ForProject(),
                 "End",
                 new Dictionary<string, string>
                 {
-                    { $"BuildScriptsPath", $"__REPOSITORY_ROOT__/BuildScripts" },
-                    { $"BuildScriptsLibPath", $"__REPOSITORY_ROOT__/BuildScripts/Lib" },
+                    { $"UETPath", $"uet" },
                     { $"TempPath", $"__REPOSITORY_ROOT__/BuildScripts/Temp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
                     { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
@@ -99,12 +99,12 @@ namespace Redpoint.UET.BuildPipeline.Tests
             var buildGraph = await generator.GenerateGraphAsync(
                 @"E:\EpicGames\UE_5.2",
                 pluginPath,
+                string.Empty,
                 BuildGraphScriptSpecification.ForPlugin(),
                 "End",
                 new Dictionary<string, string>
                 {
-                    { $"BuildScriptsPath", $"__REPOSITORY_ROOT__/BuildScripts" },
-                    { $"BuildScriptsLibPath", $"__REPOSITORY_ROOT__/BuildScripts/Lib" },
+                    { $"UETPath", $"uet" },
                     { $"TempPath", $"__REPOSITORY_ROOT__/BuildScripts/Temp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
                     { $"PluginDirectory", $"__REPOSITORY_ROOT__/OnlineSubsystemRedpointEOS" },

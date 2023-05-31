@@ -7,6 +7,7 @@
         IEnumerable<string> GenerateBuildGraphArguments(
             Dictionary<string, string> arguments,
             Dictionary<string, string> replacements,
-            string repositoryRoot);
+            string repositoryRoot,
+            string uetPath);
     }
 }

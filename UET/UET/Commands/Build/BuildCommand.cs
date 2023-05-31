@@ -16,6 +16,7 @@
     using Redpoint.ProcessExecution;
     using System.Diagnostics.CodeAnalysis;
     using Redpoint.UET.BuildPipeline.Executors.GitLab;
+    using UET.Services;
 
     internal class BuildCommand
     {
@@ -125,19 +126,22 @@
             private readonly IBuildSpecificationGenerator _buildSpecificationGenerator;
             private readonly LocalBuildExecutorFactory _localBuildExecutorFactory;
             private readonly GitLabBuildExecutorFactory _gitLabBuildExecutorFactory;
+            private readonly ISelfLocation _selfLocation;
 
             public BuildCommandInstance(
                 ILogger<BuildCommandInstance> logger,
                 Options options,
                 IBuildSpecificationGenerator buildSpecificationGenerator,
                 LocalBuildExecutorFactory localBuildExecutorFactory,
-                GitLabBuildExecutorFactory gitLabBuildExecutorFactory)
+                GitLabBuildExecutorFactory gitLabBuildExecutorFactory,
+                ISelfLocation selfLocation)
             {
                 _logger = logger;
                 _options = options;
                 _buildSpecificationGenerator = buildSpecificationGenerator;
                 _localBuildExecutorFactory = localBuildExecutorFactory;
                 _gitLabBuildExecutorFactory = gitLabBuildExecutorFactory;
+                _selfLocation = selfLocation;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
@@ -150,6 +154,8 @@
                 var executorOutputFile = context.ParseResult.GetValueForOption(_options.ExecutorOutputFile);
                 var windowsSharedStoragePath = context.ParseResult.GetValueForOption(_options.WindowsSharedStoragePath);
                 var macSharedStoragePath = context.ParseResult.GetValueForOption(_options.MacSharedStoragePath);
+
+                var uetPath = _selfLocation.GetUETLocalLocation();
 
                 // @todo: Move this validation to the parsing APIs.
                 if (executorName == "local")

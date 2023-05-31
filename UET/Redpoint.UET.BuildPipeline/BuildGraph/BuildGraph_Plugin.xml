@@ -2,8 +2,7 @@
 <BuildGraph xmlns="http://www.epicgames.com/BuildGraph" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.epicgames.com/BuildGraph ./Schema.xsd" >
 
   <!-- Environment options -->
-  <Option Name="BuildScriptsPath" DefaultValue="" Description="Path to the build scripts folder" />
-  <Option Name="BuildScriptsLibPath" DefaultValue="" Description="Path to the build scripts library folder" />
+  <Option Name="UETPath" DefaultValue="" Description="Path to the UET binary" />
   <Option Name="EnginePath" DefaultValue="" Description="Path to the engine" />
   <Option Name="TempPath" DefaultValue="" Description="Path to the temporary directory (must not contain spaces)" />
   <Option Name="ProjectRoot" DefaultValue="" Description="Root path of the project (repository)" />
@@ -156,21 +155,21 @@ $(PackageExclude);
         With="#BuildCsList"
       />
       <Property Name="MarketplaceFlag" Value="" />
-      <Property Name="MarketplaceFlag" Value="-IsForMarketplace" If="'$(IsForMarketplaceSubmission)' == 'true'" />
+      <Property Name="MarketplaceFlag" Value="--marketplace" If="'$(IsForMarketplaceSubmission)' == 'true'" />
       <WriteTextFile
         File="$(TempPath)/BuildCsList.txt"
         Files="#BuildCsList"
       />
-      <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass -File &quot;$(BuildScriptsLibPath)/Package_UpdateUPlugin.ps1&quot; -InputPath &quot;$(InputBaseDir)/$(PluginName).uplugin&quot; -OutputPath &quot;$(OutputDir)/$(PluginName).uplugin&quot; -EngineVersion &quot;$(EngineMajorVersion).$(EngineMinorVersion).0&quot; -VersionName &quot;$(VersionName)&quot; -VersionNumber &quot;$(VersionNumber)&quot; $(MarketplaceFlag)" />
-      <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass -File &quot;$(BuildScriptsLibPath)/Package_CopyAndMutateBuildCs.ps1&quot; -InputBasePath &quot;$(InputBaseDir)/&quot; -InputFileList &quot;$(TempPath)/BuildCsList.txt&quot; -OutputPath &quot;$(OutputDir)/&quot; $(MarketplaceFlag)" />
-      <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass -File &quot;$(BuildScriptsLibPath)/Package_SetFilterFile.ps1&quot; -PackageInclude &quot;$(PackageInclude)&quot; -PackageExclude &quot;$(PackageExclude)&quot; -OutputPath &quot;$(OutputDir)/Config/FilterPlugin.ini&quot;" />
+      <Spawn Exe="$(UETPath)" Arguments="internal update-uplugin --input-path &quot;$(InputBaseDir)/$(PluginName).uplugin&quot; --output-path &quot;$(OutputDir)/$(PluginName).uplugin&quot; --engine-version &quot;$(EngineMajorVersion).$(EngineMinorVersion).0&quot; --version-name &quot;$(VersionName)&quot; --version-number &quot;$(VersionNumber)&quot; $(MarketplaceFlag)" />
+      <Spawn Exe="$(UETPath)" Arguments="internal copy-and-mutate-build-cs --input-base-path &quot;$(InputBaseDir)/&quot; --input-file-list &quot;$(TempPath)/BuildCsList.txt&quot; --output-path &quot;$(OutputDir)/&quot; $(MarketplaceFlag)" />
+      <Spawn Exe="$(UETPath)" Arguments="internal set-filter-file --package-include &quot;$(PackageInclude)&quot; --package-exclude &quot;$(PackageExclude)&quot; --output-path &quot;$(OutputDir)/Config/FilterPlugin.ini&quot;" />
       <Copy
         From="$(InputBaseDir)"
         To="$(OutputDir)"
         Files="#DirectCopyFiles"
         Tag="$(OutputTag)"
       />
-      <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass -File &quot;$(BuildScriptsLibPath)/Package_UpdateCopyrightHeadersForMarketplace.ps1&quot; -Path &quot;$(OutputDir)&quot; -CopyrightHeader &quot;$(CopyrightHeader)&quot; -CopyrightExcludes &quot;$(CopyrightExcludes)&quot;" If="'$(IsForMarketplaceSubmission)' == 'true'" />
+      <Spawn Exe="$(UETPath)" Arguments="internal update-copyright-headers-for-marketplace --path &quot;$(OutputDir)&quot; --copyright-header &quot;$(CopyrightHeader)&quot; --copyright-excludes &quot;$(CopyrightExcludes)&quot;" If="'$(IsForMarketplaceSubmission)' == 'true'" />
       <Tag
         Files="$(OutputDir)/$(PluginName).uplugin"
         With="$(OutputTag)"
@@ -236,13 +235,15 @@ $(PackageExclude);
         To="$(TempPath)/$(AssembledProjectName)/Plugins/$(ShortPluginName)/" 
         Tag="$(OutputTag)" 
       />
-      <Copy 
-        Files="GauntletRunAutomationTestsTestController.cpp;GauntletRunAutomationTestsTestController.h" 
-        From="$(BuildScriptsLibPath)/Gauntlet/" 
-        To="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/" 
-        Tag="$(OutputTag)" 
-        If="'$(IsForGauntlet)' == 'true'"
-      />
+      <Spawn 
+        Exe="$(UETPath)" 
+        Arguments="internal extract-gauntlet-helpers --path &quot;$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/&quot;" 
+        If="'$(IsForGauntlet)' == 'true'" />
+      <Tag 
+        BaseDir="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/" 
+        Files="..."
+        With="$(OutputTag)"
+        If="'$(IsForGauntlet)' == 'true'" />
       <WriteTextFile 
         File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName).Target.cs" 
         Text="using UnrealBuildTool; public class $(AssembledProjectName)Target : TargetRules { public $(AssembledProjectName)Target(TargetInfo Target) : base(Target) { Type = TargetType.Game; DefaultBuildSettings = BuildSettingsVersion.V2; ExtraModuleNames.AddRange(new string[] { &quot;$(AssembledProjectName)&quot; }); } }"
@@ -532,7 +533,7 @@ $(PackageExclude);
             />
           </ForEach>
           <Delete Files="$(TempPath)/$(TestProjectName)*/TestResults_*.xml" />
-          <Spawn Exe="pwsh" Arguments="-ExecutionPolicy Bypass -File &quot;$(BuildScriptsLibPath)/Test_RunAutomationTestFromBuildGraph.ps1&quot; -EnginePath &quot;$(EnginePath)&quot; -TestProjectPath &quot;$(TempPath)/$(TestProjectName)Mac/$(TestProjectName)Mac.uproject&quot; -TestPrefix &quot;$(AutomationTestPrefix)&quot; -MinWorkerCount $(AutomationTestMinWorkerCount) -TimeoutMinutes $(AutomationTestTimeoutMinutes) -TestResultsPath &quot;$(TempPath)/$(TestProjectName)Mac/TestResults_$(AutomationTestPlatform).xml&quot;" />
+          <Spawn Exe="$(UETPath)" Arguments="internal run-automation-test-from-buildgraph --engine-path &quot;$(EnginePath)&quot; --test-project-path &quot;$(TempPath)/$(TestProjectName)Mac/$(TestProjectName)Mac.uproject&quot; --test-prefix &quot;$(AutomationTestPrefix)&quot; --min-worker-count $(AutomationTestMinWorkerCount) --timeout-minutes $(AutomationTestTimeoutMinutes) --test-results-path &quot;$(TempPath)/$(TestProjectName)Mac/TestResults_$(AutomationTestPlatform).xml&quot;" />
           <Tag
             BaseDir="$(TempPath)/$(TestProjectName)Mac/"
             Files="TestResults_$(AutomationTestPlatform).xml"
@@ -694,7 +695,7 @@ $(PackageExclude);
             />
           </ForEach>
           <Delete Files="$(TempPath)/$(TestProjectName)*/TestResults_*.xml" />
-          <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass -File &quot;$(BuildScriptsLibPath)/Test_RunAutomationTestFromBuildGraph.ps1&quot; -EnginePath &quot;$(EnginePath)&quot; -TestProjectPath &quot;$(TempPath)/$(TestProjectName)Win64/$(TestProjectName)Win64.uproject&quot; -TestPrefix &quot;$(AutomationTestPrefix)&quot; -MinWorkerCount $(AutomationTestMinWorkerCount) -TimeoutMinutes $(AutomationTestTimeoutMinutes) -TestResultsPath &quot;$(TempPath)/$(TestProjectName)Win64/TestResults_$(AutomationTestPlatform).xml&quot;" />
+          <Spawn Exe="$(UETPath)" Arguments="internal run-automation-test-from-buildgraph --engine-path &quot;$(EnginePath)&quot; --test-project-path &quot;$(TempPath)/$(TestProjectName)Win64/$(TestProjectName)Win64.uproject&quot; --test-prefix &quot;$(AutomationTestPrefix)&quot; --min-worker-count $(AutomationTestMinWorkerCount) --timeout-minutes $(AutomationTestTimeoutMinutes) --test-results-path &quot;$(TempPath)/$(TestProjectName)Win64/TestResults_$(AutomationTestPlatform).xml&quot;" />
           <Tag
             BaseDir="$(TempPath)/$(TestProjectName)Win64/"
             Files="TestResults_$(AutomationTestPlatform).xml"
@@ -1019,7 +1020,7 @@ $(PackageExclude);
         Name="Downstream $(DownstreamTestName)" 
         Requires="#PackagedPlugin"
       >
-        <Spawn Exe="pwsh" Arguments="-ExecutionPolicy Bypass -File &quot;$(BuildScriptsLibPath)/Internal_RunDownstreamTest.ps1&quot; -DownstreamTest &quot;$(DownstreamTestName)&quot; -EnginePath &quot;$(EnginePath)&quot; -Distribution &quot;$(Distribution)&quot; -PackagedPluginPath &quot;$(ProjectRoot)/$(PackageFolder)/&quot;" />
+        <Spawn Exe="$(UETPath)" Arguments="internal run-downstream-test --downstream-test &quot;$(DownstreamTestName)&quot; --engine-path &quot;$(EnginePath)&quot; --distribution &quot;$(Distribution)&quot; --packaged-plugin-path &quot;$(ProjectRoot)/$(PackageFolder)/&quot;" />
       </Node>
       <Property Name="DownstreamTasks" Value="$(DownstreamTasks)Downstream $(DownstreamTestName);" />
     </ForEach>
@@ -1090,8 +1091,7 @@ $(PackageExclude);
         <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
         <Property Name="PackageFlag" Value="" />
         <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
-        <WriteTextFile File="$(TempPath)\$(TestProjectName)\Saved\StagedBuilds\Game_$(TargetPlatform)_RunStage.ps1" Text="param()&#xA;$env:uebp_UATMutexNoWait = &quot;1&quot;&#xA;$env:IsBuildMachine = &quot;1&quot;&#xA;&amp; &quot;$(BuildScriptsLibPath)\Internal_RunUAT.ps1&quot; -UATEnginePath &quot;$(EnginePath)&quot; BuildCookRun &quot;-project=$(TempPath)/$(TestProjectName)/$(TestProjectName).uproject&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=Development&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(TempPath)\$(TestProjectName)\Saved\StagedBuilds&quot; -unattended -stdlog&#xA;exit $LastExitCode" />
-        <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass &quot;$(TempPath)\$(TestProjectName)\Saved\StagedBuilds\Game_$(TargetPlatform)_RunStage.ps1&quot;" />
+        <Command Name="BuildCookRun" Arguments="-project=$(TempPath)/$(TestProjectName)/$(TestProjectName).uproject&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=Development&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(TempPath)\$(TestProjectName)\Saved\StagedBuilds&quot; -unattended -stdlog" />
         <Tag BaseDir="$(TempPath)\$(TestProjectName)\Saved\StagedBuilds\$(StagePlatform)" Files="..." With="#GauntletStaged_$(TargetPlatform)" />
         <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="#GauntletStaged_$(TargetPlatform)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
       </Node>
@@ -1121,8 +1121,7 @@ $(PackageExclude);
         </Switch>
       </ForEach>
       <Node Name="Gauntlet $(GauntletTestName)" Requires="$(GauntletTestRequirements)" If="'$(ExecuteTests)' == 'true'">
-        <WriteTextFile File="$(TempPath)\RunGauntlet.ps1" Text="param()&#xA;&amp; &quot;$(BuildScriptsPath)\Lib\Test_RunGauntletTestFromBuildGraph.ps1&quot; -EnginePath &quot;$(EnginePath)&quot; -Distribution &quot;$(Distribution)&quot; -TestName &quot;$(GauntletTestName)&quot;&#xA;exit $LastExitCode" />
-        <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass &quot;$(TempPath)\RunGauntlet.ps1&quot;" />
+        <Spawn Exe="$(UETPath)" Arguments="internal run-gauntlet-test-from-buildgraph --engine-path &quot;$(EnginePath)&quot; --distribution &quot;$(Distribution)&quot; --test-name &quot;$(GauntletTestName)&quot;" />
       </Node>
       <Property Name="GauntletTasks" Value="$(GauntletTasks)Gauntlet $(GauntletTestName);"/>
     </ForEach>
@@ -1160,8 +1159,8 @@ $(PackageExclude);
 
       <Node Name="Deploy $(BackblazeManualMode) $(BackblazeNodeName)" Requires="#PackagedZip">
         <Property Name="MarketplaceFlag" Value="" />
-        <Property Name="MarketplaceFlag" Value="-IsForMarketplace" If="'$(IsForMarketplaceSubmission)' == 'true'" />
-        <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass -File &quot;$(BuildScriptsLibPath)/Deploy_UploadToBackblazeB2.ps1&quot; -ZipPath &quot;$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip&quot; -BucketName &quot;$(BackblazeBucketName)&quot; -FolderEnvVar &quot;$(BackblazeFolderEnvVar)&quot; $(MarketplaceFlag)" />
+        <Property Name="MarketplaceFlag" Value="--marketplace" If="'$(IsForMarketplaceSubmission)' == 'true'" />
+        <Spawn Exec="$(UETPath)" Arguments="internal upload-to-backblaze-b2 --zip-path &quot;$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip&quot; --bucket-name &quot;$(BackblazeBucketName)&quot; --folder-env-var &quot;$(BackblazeFolderEnvVar)&quot; $(MarketplaceFlag)" />
       </Node>
       <Property Name="DeploymentTasks" Value="$(DeploymentTasks)Deploy $(BackblazeManualMode) $(BackblazeNodeName);" />
 

@@ -8,9 +8,17 @@
     using Redpoint.UET.Configuration.Project;
     using System;
     using UET.Commands.EngineSpec;
+    using UET.Services;
 
     internal class DefaultBuildSpecificationGenerator : IBuildSpecificationGenerator
     {
+        private readonly ISelfLocation _selfLocation;
+
+        public DefaultBuildSpecificationGenerator(ISelfLocation selfLocation)
+        {
+            _selfLocation = selfLocation;
+        }
+
         private struct TargetConfig
         {
             public required string Targets;
@@ -49,6 +57,7 @@
 
         public BuildSpecification BuildConfigPluginToBuildSpec(BuildEngineSpecification engineSpec, BuildConfigPluginDistribution distribution)
         {
+            // @note: Must set BUILDING_FOR_REDISTRIBUTION="true" in GlobalEnvironmentVariables
             throw new NotImplementedException();
         }
 
@@ -113,11 +122,10 @@
                 Engine = engineSpec,
                 BuildGraphScript = BuildGraphScriptSpecification.ForProject(),
                 BuildGraphTarget = "End",
-                BuildGraphSettings = new Redpoint.UET.BuildPipeline.Environment.BuildGraphSettings
+                BuildGraphSettings = new Dictionary<string, string>
                 {
                     // Environment options
-                    { $"BuildScriptsPath", $"__REPOSITORY_ROOT__/BuildScripts" },
-                    { $"BuildScriptsLibPath", $"__REPOSITORY_ROOT__/BuildScripts/Lib" },
+                    { $"UETPath", $"__UET_PATH__" },
                     { $"TempPath", $"__REPOSITORY_ROOT__/BuildScripts/Temp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__/{distribution.FolderName}" },
                     { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
@@ -160,11 +168,13 @@
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = repositoryRoot,
                 BuildGraphPreparationScripts = prepareCustomBuildGraphScripts,
+                UETPath = _selfLocation.GetUETLocalLocation(),
             };
         }
 
         public BuildSpecification PluginPathSpecToBuildSpec(BuildEngineSpecification engineSpec, PathSpec pathSpec)
         {
+            // @note: Must set BUILDING_FOR_REDISTRIBUTION="true" in GlobalEnvironmentVariables
             throw new NotImplementedException();
         }
 
@@ -199,11 +209,10 @@
                 Engine = engineSpec,
                 BuildGraphScript = BuildGraphScriptSpecification.ForProject(),
                 BuildGraphTarget = "End",
-                BuildGraphSettings = new Redpoint.UET.BuildPipeline.Environment.BuildGraphSettings
+                BuildGraphSettings = new Dictionary<string, string>
                 {
                     // Environment options
-                    { $"BuildScriptsPath", $"__REPOSITORY_ROOT__/BuildScripts" },
-                    { $"BuildScriptsLibPath", $"__REPOSITORY_ROOT__/BuildScripts/Lib" },
+                    { $"UETPath", $"__UET_PATH__" },
                     { $"TempPath", $"__REPOSITORY_ROOT__/BuildScripts/Temp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
                     { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
@@ -245,6 +254,7 @@
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = pathSpec.DirectoryPath,
+                UETPath = _selfLocation.GetUETLocalLocation(),
             };
         }
     }

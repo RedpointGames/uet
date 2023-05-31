@@ -11,7 +11,7 @@
 
         public required string BuildGraphTarget { get; init; }
 
-        public required BuildGraphSettings BuildGraphSettings { get; init; }
+        public required Dictionary<string, string> BuildGraphSettings { get; init; }
 
         public required BuildGraphEnvironment BuildGraphEnvironment { get; init; }
 
@@ -32,5 +32,15 @@
         /// as __REPOSITORY_ROOT__. Others will use this path directly as __REPOSITORY_ROOT__.
         /// </summary>
         public required string BuildGraphRepositoryRoot { get; init; }
+
+        /// <summary>
+        /// The path to the UET binary itself. This is used so that BuildGraph can re-enter back to UET to perform some internal tasks.
+        /// </summary>
+        public required string UETPath { get; init; }
+
+        /// <summary>
+        /// If set, specifies the environment variables that should apply to all build steps.
+        /// </summary>
+        public Dictionary<string, string>? GlobalEnvironmentVariables { get; init; }
     }
 }

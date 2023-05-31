@@ -74,10 +74,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Services\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\win-x64\uet.exe" Condition="'$(RuntimeIdentifier)' != 'win-x64' and '$(EmbeddingCrossPlatform)' == 'true'">
       <Link>Embedded\win-x64\uet.exe</Link>
     </EmbeddedResource>

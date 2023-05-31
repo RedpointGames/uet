@@ -40,5 +40,25 @@
                 return $"path:{_path}";
             }
         }
+
+        public static BuildGraphScriptSpecification FromReparsableString(string input)
+        {
+            if (input == "plugin")
+            {
+                return ForPlugin();
+            }
+            else if (input == "project")
+            {
+                return ForProject();
+            }
+            else if (input.StartsWith("path:"))
+            {
+                return ForPath(input.Substring("path:".Length));
+            }
+            else
+            {
+                throw new InvalidOperationException();
+            }
+        }
     }
 }

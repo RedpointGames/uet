@@ -70,6 +70,7 @@
 
         private async Task<BuildResultStatus> ExecuteDAGNode(
             BuildSpecification buildSpecification,
+            Dictionary<string, string> globalEnvironmentVariables,
             IBuildExecutionEvents buildExecutionEvents,
             DAGNode node,
             SemaphoreSlim? blockingSemaphore,
@@ -140,12 +141,14 @@
                             exitCode = await _buildGraphExecutor.ExecuteGraphNodeAsync(
                                 engineWorkspace.Path,
                                 targetWorkspace.Path,
+                                buildSpecification.UETPath,
                                 buildSpecification.BuildGraphScript,
                                 buildSpecification.BuildGraphTarget,
                                 node.Node.Name,
                                 OperatingSystem.IsWindows() ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                                 buildSpecification.BuildGraphSettings,
                                 buildSpecification.BuildGraphSettingReplacements,
+                                globalEnvironmentVariables,
                                 CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                                 {
                                     ReceiveStdout = (line) =>
@@ -213,6 +216,7 @@
                     buildGraph = await _buildGraphExecutor.GenerateGraphAsync(
                         engineWorkspace.Path,
                         targetWorkspace.Path,
+                        buildSpecification.UETPath,
                         buildSpecification.BuildGraphScript,
                         buildSpecification.BuildGraphTarget,
                         buildSpecification.BuildGraphSettings,
@@ -221,6 +225,8 @@
                         cancellationToken);
                 }
             }
+
+            var globalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>();
 
             _logger.LogInformation("Executing build...");
 
@@ -271,7 +277,14 @@
                     var nodeCopy = node;
                     var task = new Lazy<Task<BuildResultStatus>>(Task.Run(async () =>
                     {
-                        return await ExecuteDAGNode(buildSpecification, buildExecutionEvents, nodeCopy, blockingSemaphore, allTasks, cancellationToken);
+                        return await ExecuteDAGNode(
+                            buildSpecification,
+                            globalEnvironmentVariables,
+                            buildExecutionEvents,
+                            nodeCopy,
+                            blockingSemaphore,
+                            allTasks,
+                            cancellationToken);
                     }));
                     allTasks.Add(task);
                     node.ThisTask = task;

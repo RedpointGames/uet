@@ -24,6 +24,7 @@
     using System.Net;
     using System.Net.Sockets;
     using System.Diagnostics;
+    using UET.Services;
 
     internal class TestPackagedCommand
     {
@@ -62,19 +63,22 @@
             private readonly Options _options;
             private readonly IProcessExecutor _processExecutor;
             private readonly IAutomationRunner _automationRunner;
+            private readonly ISelfLocation _selfLocation;
 
             public TestPackagedCommandInstance(
                 ILogger<TestPackagedCommandInstance> logger,
                 LocalBuildExecutorFactory factory,
                 Options options,
                 IProcessExecutor processExecutor,
-                IAutomationRunner automationRunner)
+                IAutomationRunner automationRunner,
+                ISelfLocation selfLocation)
             {
                 _logger = logger;
                 _factory = factory;
                 _options = options;
                 _processExecutor = processExecutor;
                 _automationRunner = automationRunner;
+                _selfLocation = selfLocation;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
@@ -88,6 +92,8 @@
                 var gameTarget = editorTarget.Substring(0, editorTarget.LastIndexOf("Editor"));
                 var projectName = projectPath!.GetFiles("*.uproject").First().Name;
 
+                var uetPath = _selfLocation.GetUETLocalLocation();
+
                 Directory.CreateDirectory(Path.Combine(projectPath!.FullName, "Saved", "SharedStorage"));
 
                 if (!context.ParseResult.GetValueForOption(_options.SkipBuild))
@@ -97,10 +103,9 @@
                         Engine = engineSpec,
                         BuildGraphScript = BuildGraphScriptSpecification.ForProject(),
                         BuildGraphTarget = "End",
-                        BuildGraphSettings = new Redpoint.UET.BuildPipeline.Environment.BuildGraphSettings
+                        BuildGraphSettings = new Dictionary<string, string>
                         {
-                            { $"BuildScriptsPath", $"__REPOSITORY_ROOT__/BuildScripts" },
-                            { $"BuildScriptsLibPath", $"__REPOSITORY_ROOT__/BuildScripts/Lib" },
+                            { $"UETPath", $"__UET_PATH__" },
                             { $"TempPath", $"__REPOSITORY_ROOT__/BuildScripts/Temp" },
                             { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
                             { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
@@ -142,6 +147,7 @@
                         {
                             { "__PROJECT_FILENAME__", projectName },
                         },
+                        UETPath = uetPath,
                     };
 
                     var buildResult = await executor.ExecuteBuildAsync(

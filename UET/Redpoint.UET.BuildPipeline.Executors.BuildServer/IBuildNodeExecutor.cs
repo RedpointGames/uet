@@ -11,7 +11,6 @@
             BuildSpecification buildSpecification,
             IBuildExecutionEvents buildExecutionEvents,
             string nodeName,
-            string nodeParameters,
             CancellationToken cancellationToken);
     }
 }

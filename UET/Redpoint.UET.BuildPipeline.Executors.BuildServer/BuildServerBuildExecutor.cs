@@ -314,6 +314,7 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                     buildGraph = await _buildGraphExecutor.GenerateGraphAsync(
                         engineWorkspace.Path,
                         temporaryWorkspace.Path,
+                        buildSpecification.UETPath,
                         buildSpecification.BuildGraphScript,
                         buildSpecification.BuildGraphTarget,
                         buildSpecification.BuildGraphSettings,
@@ -340,17 +341,13 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                 "UET_USE_STORAGE_VIRTUALIZATION",
                 buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation ? "true" : "false");
 
-            // @note: We need the distribution information here for this to work.
-            /*
-            if (@todo: is plugin?)
+            if (buildSpecification.GlobalEnvironmentVariables != null)
             {
-                pipeline.GlobalEnvironmentVariables.Add("BUILDING_FOR_DISTRIBUTION", "true");
+                foreach (var kv in buildSpecification.GlobalEnvironmentVariables)
+                {
+                    buildSpecification.GlobalEnvironmentVariables[kv.Key] = kv.Value;
+                }
             }
-            foreach (var kv in distribution.EnvironmentVariables)
-            {
-                pipeline.GlobalEnvironmentVariables.Add(kv.Key, kv.Value);
-            }
-            */
 
             var requiresCrossPlatformBuild = false;
             foreach (var group in buildGraph.Groups)
@@ -442,9 +439,12 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                                     Engine = buildSpecification.Engine.ToReparsableString(),
                                     SharedStoragePath = buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath,
                                     SharedStorageName = sharedStorageName,
+                                    BuildGraphTarget = buildSpecification.BuildGraphTarget,
                                     NodeName = node.Name,
+                                    DistributionName = buildSpecification.DistributionName,
                                     BuildGraphScriptName = buildSpecification.BuildGraphScript.ToReparsableString(),
                                     PreparationScripts = buildSpecification.BuildGraphPreparationScripts.ToArray(),
+                                    GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
                                     Settings = buildSpecification.BuildGraphSettings,
                                 };
                                 job.EnvironmentVariables = new Dictionary<string, string>
@@ -461,9 +461,12 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                                     Engine = buildSpecification.Engine.ToReparsableString(),
                                     SharedStoragePath = buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                                     SharedStorageName = sharedStorageName,
+                                    BuildGraphTarget = buildSpecification.BuildGraphTarget,
                                     NodeName = node.Name,
+                                    DistributionName = buildSpecification.DistributionName,
                                     BuildGraphScriptName = buildSpecification.BuildGraphScript.ToReparsableString(),
                                     PreparationScripts = buildSpecification.BuildGraphPreparationScripts.ToArray(),
+                                    GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
                                     Settings = buildSpecification.BuildGraphSettings,
                                 };
                                 job.EnvironmentVariables = new Dictionary<string, string>

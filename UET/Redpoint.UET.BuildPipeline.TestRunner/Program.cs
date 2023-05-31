@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Redpoint.MSBuildResolution;
 using System.Text.RegularExpressions;
 using Redpoint.UET.BuildPipeline.Executors.Local;
+using System.Diagnostics;
 
 var enginePathOpt = new Option<DirectoryInfo>(
     name: "--engine-path",
@@ -97,10 +98,9 @@ rootCommand.SetHandler(async (context) =>
             Engine = buildEngineSpecification,
             BuildGraphScript = BuildGraphScriptSpecification.ForProject(),
             BuildGraphTarget = "End",
-            BuildGraphSettings = new Redpoint.UET.BuildPipeline.Environment.BuildGraphSettings
+            BuildGraphSettings = new Dictionary<string, string>
             {
-                { $"BuildScriptsPath", $"__REPOSITORY_ROOT__/BuildScripts" },
-                { $"BuildScriptsLibPath", $"__REPOSITORY_ROOT__/BuildScripts/Lib" },
+                { $"UETPath", Process.GetCurrentProcess().MainModule!.FileName },
                 { $"TempPath", $"__REPOSITORY_ROOT__/BuildScripts/Temp" },
                 { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
                 { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
@@ -146,6 +146,7 @@ rootCommand.SetHandler(async (context) =>
             {
                 { "__PROJECT_FILENAME__", projectName },
             },
+            UETPath = Process.GetCurrentProcess().MainModule!.FileName,
         };
     }
     else

@@ -29,18 +29,34 @@
         public async Task<int> ExecuteGraphNodeAsync(
             string enginePath,
             string buildGraphRepositoryRootPath,
+            string uetPath,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
             string buildGraphNodeName,
             string buildGraphSharedStorageDir,
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
+            Dictionary<string, string> globalEnvironmentVariables,
             ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken)
         {
+            var environmentVariables = new Dictionary<string, string>
+            {
+                { "IsBuildMachine", "1" },
+                { "uebp_LOCAL_ROOT", enginePath },
+                // BuildGraph in Unreal Engine 5.0 causes input files to be unnecessarily modified. Just allow mutation since I'm not sure what the bug is.
+                { "BUILD_GRAPH_ALLOW_MUTATION", "true" },
+                { "BUILD_GRAPH_PROJECT_ROOT", buildGraphRepositoryRootPath },
+            };
+            foreach (var kv in globalEnvironmentVariables)
+            {
+                environmentVariables[kv.Key] = kv.Value;
+            }
+
             return await InternalRunAsync(
                 enginePath,
                 buildGraphRepositoryRootPath,
+                uetPath,
                 buildGraphScript,
                 buildGraphTarget,
                 new[]
@@ -51,14 +67,7 @@
                 },
                 buildGraphArguments,
                 buildGraphArgumentReplacements,
-                new Dictionary<string, string>
-                {
-                    { "IsBuildMachine", "1" },
-                    { "uebp_LOCAL_ROOT", enginePath },
-                    // BuildGraph in Unreal Engine 5.0 causes input files to be unnecessarily modified. Just allow mutation since I'm not sure what the bug is.
-                    { "BUILD_GRAPH_ALLOW_MUTATION", "true" },
-                    { "BUILD_GRAPH_PROJECT_ROOT", buildGraphRepositoryRootPath },
-                },
+                environmentVariables,
                 captureSpecification,
                 cancellationToken);
         }
@@ -66,6 +75,7 @@
         public async Task<BuildGraphExport> GenerateGraphAsync(
             string enginePath,
             string buildGraphRepositoryRootPath,
+            string uetPath,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
             Dictionary<string, string> buildGraphArguments,
@@ -80,6 +90,7 @@
                 var exitCode = await InternalRunAsync(
                     enginePath,
                     buildGraphRepositoryRootPath,
+                    uetPath,
                     buildGraphScript,
                     buildGraphTarget,
                     new[] { $"-Export={buildGraphOutput}" },
@@ -120,6 +131,7 @@
         private async Task<int> InternalRunAsync(
             string enginePath,
             string buildGraphRepositoryRootPath,
+            string uetPath,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
             string[] internalArguments,
@@ -183,7 +195,8 @@
                             .Concat(_buildGraphArgumentGenerator.GenerateBuildGraphArguments(
                                 buildGraphArguments,
                                 buildGraphArgumentReplacements,
-                                buildGraphRepositoryRootPath)),
+                                buildGraphRepositoryRootPath,
+                                uetPath)),
                         EnvironmentVariables = buildGraphEnvironmentVariables
                     },
                     captureSpecification,

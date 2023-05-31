@@ -13,6 +13,7 @@
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Reflection;
+    using UET.Services;
 
     internal static class CommandExtensions
     {
@@ -50,6 +51,7 @@
                 services.AddUETWorkspace();
                 services.AddUETCore();
                 services.AddSingleton<TCommand>();
+                services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
                 if (extraServices != null)
                 {
                     extraServices(services);
