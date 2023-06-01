@@ -26,7 +26,7 @@
 #endif
         private readonly IDisposable? _optionsReloadToken;
 
-        public SimpleBuildConsoleFormatter(IOptionsMonitor<SimpleConsoleFormatterOptions> options)
+        public SimpleBuildConsoleFormatter(IOptionsMonitor<ExtendedSimpleConsoleFormatterOptions> options)
             : base("simple-build")
         {
             ReloadLoggerOptions(options.CurrentValue);
@@ -34,7 +34,7 @@
         }
 
         [MemberNotNull(nameof(FormatterOptions))]
-        private void ReloadLoggerOptions(SimpleConsoleFormatterOptions options)
+        private void ReloadLoggerOptions(ExtendedSimpleConsoleFormatterOptions options)
         {
             FormatterOptions = options;
         }
@@ -44,7 +44,7 @@
             _optionsReloadToken?.Dispose();
         }
 
-        internal SimpleConsoleFormatterOptions FormatterOptions { get; set; }
+        internal ExtendedSimpleConsoleFormatterOptions FormatterOptions { get; set; }
 
         public override void Write<TState>(in LogEntry<TState> logEntry, IExternalScopeProvider? scopeProvider, TextWriter textWriter)
         {
@@ -64,15 +64,18 @@
                 DateTimeOffset dateTimeOffset = GetCurrentDateTime();
                 timestamp = dateTimeOffset.ToString(timestampFormat);
             }
-            if (timestamp != null)
+            if (!FormatterOptions.OmitLogPrefix)
             {
-                textWriter.Write(timestamp);
-            }
-            if (logLevelString != null)
-            {
-                textWriter.Write("[");
-                WriteColoredMessage(textWriter, logLevelString, logLevelColors.Background, logLevelColors.Foreground);
-                textWriter.Write("]");
+                if (timestamp != null)
+                {
+                    textWriter.Write(timestamp);
+                }
+                if (logLevelString != null)
+                {
+                    textWriter.Write("[");
+                    WriteColoredMessage(textWriter, logLevelString, logLevelColors.Background, logLevelColors.Foreground);
+                    textWriter.Write("]");
+                }
             }
             CreateDefaultLogMessage(textWriter, logEntry, message, scopeProvider);
         }
@@ -132,7 +135,7 @@
 
             // scope information
             WriteScopeInformation(textWriter, scopeProvider, singleLine);
-            WriteMessage(textWriter, message, singleLine);
+            WriteMessage(textWriter, message, singleLine, FormatterOptions.OmitLogPrefix);
 
             // Example:
             // System.InvalidOperationException
@@ -140,7 +143,7 @@
             if (exception != null)
             {
                 // exception message
-                WriteMessage(textWriter, exception.ToString(), singleLine);
+                WriteMessage(textWriter, exception.ToString(), singleLine, FormatterOptions.OmitLogPrefix);
             }
             if (singleLine)
             {
@@ -148,13 +151,16 @@
             }
         }
 
-        private static void WriteMessage(TextWriter textWriter, string message, bool singleLine)
+        private static void WriteMessage(TextWriter textWriter, string message, bool singleLine, bool omitLogPrefix)
         {
             if (!string.IsNullOrEmpty(message))
             {
                 if (singleLine)
                 {
-                    textWriter.Write(' ');
+                    if (!omitLogPrefix)
+                    {
+                        textWriter.Write(' ');
+                    }
                     WriteReplacing(textWriter, Environment.NewLine, " ", message);
                 }
                 else

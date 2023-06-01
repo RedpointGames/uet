@@ -47,6 +47,11 @@
                 // BuildGraph in Unreal Engine 5.0 causes input files to be unnecessarily modified. Just allow mutation since I'm not sure what the bug is.
                 { "BUILD_GRAPH_ALLOW_MUTATION", "true" },
                 { "BUILD_GRAPH_PROJECT_ROOT", buildGraphRepositoryRootPath },
+                // Make sure UET knows it's running under BuildGraph for subcommands
+                // so that we can emit the extra newline necessary for BuildGraph to
+                // show all output. Refer to CommandExtensions.cs to see where this
+                // is used.
+                { "UET_RUNNING_UNDER_BUILDGRAPH", "true" },
             };
             foreach (var kv in globalEnvironmentVariables)
             {

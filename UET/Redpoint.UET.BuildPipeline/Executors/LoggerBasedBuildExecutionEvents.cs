@@ -10,6 +10,9 @@
         private static readonly Regex _warningRegex = new Regex("([^a-zA-Z0-9]|^)([Ww]arning)([^a-zA-Z0-9]|$)");
         private static readonly Regex _errorRegex = new Regex("([^a-zA-Z0-9]|^)([Ee]rror)([^a-zA-Z0-9]|$)");
         private static readonly Regex _successfulRegex = new Regex("([^a-zA-Z0-9]|^)([Ss][Uu][Cc][Cc][Ee][Ss][Ss][Ff]?[Uu]?[Ll]?)([^a-zA-Z0-9]|$)");
+        private static readonly Regex _uetInfoRegex = new Regex("([0-9][0-9]:[0-9][0-9]:[0-9][0-9] \\[)(info?)(\\])");
+        private static readonly Regex _uetWarnRegex = new Regex("([0-9][0-9]:[0-9][0-9]:[0-9][0-9] \\[)(warn?)(\\])");
+        private static readonly Regex _uetFailRegex = new Regex("([0-9][0-9]:[0-9][0-9]:[0-9][0-9] \\[)(fail?)(\\])");
 
         public LoggerBasedBuildExecutionEvents(ILogger logger)
         {
@@ -40,6 +43,9 @@
                 var highlightedLine = _warningRegex.Replace(line, m => $"{m.Groups[1].Value}\u001b[33m{m.Groups[2].Value}\u001b[0m{m.Groups[3].Value}");
                 highlightedLine = _errorRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}\u001b[31m{m.Groups[2].Value}\u001b[0m{m.Groups[3].Value}");
                 highlightedLine = _successfulRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}\u001b[32m{m.Groups[2].Value}\u001b[0m{m.Groups[3].Value}");
+                highlightedLine = _uetInfoRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}\u001b[32m{m.Groups[2].Value}\u001b[0m{m.Groups[3].Value}");
+                highlightedLine = _uetWarnRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}\u001b[33m{m.Groups[2].Value}\u001b[0m{m.Groups[3].Value}");
+                highlightedLine = _uetFailRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}\u001b[31m{m.Groups[2].Value}\u001b[0m{m.Groups[3].Value}");
                 _logger.LogInformation($"[{nodeName}] {highlightedLine}");
             }
             return Task.CompletedTask;

@@ -106,7 +106,7 @@
                         BuildGraphSettings = new Dictionary<string, string>
                         {
                             { $"UETPath", $"__UET_PATH__" },
-                            { $"TempPath", $"__REPOSITORY_ROOT__/BuildScripts/Temp" },
+                            { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                             { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
                             { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
                             { $"UProjectPath", $"__REPOSITORY_ROOT__/__PROJECT_FILENAME__" },

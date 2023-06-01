@@ -6,7 +6,7 @@
     {
         public required IEnumerable<string> Arguments { get; init; }
 
-        public Dictionary<string, string>? EnvironmentVariables { get; init; }
+        public Dictionary<string, string>? EnvironmentVariables { get; set; }
 
         public string? WorkingDirectory { get; init; }
 

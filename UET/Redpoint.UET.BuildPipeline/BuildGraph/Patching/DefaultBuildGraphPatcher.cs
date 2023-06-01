@@ -5,6 +5,7 @@
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using System.Reflection;
+    using System.Security.Cryptography;
     using System.Text;
     using System.Text.Json;
     using System.Threading.Tasks;
@@ -16,6 +17,7 @@
         private readonly IPathResolver _pathResolver;
         private readonly IProcessExecutor _processExecutor;
         private readonly BuildGraphPatchSet[] _patches;
+        private readonly string _patchHash;
 
         public DefaultBuildGraphPatcher(
             ILogger<DefaultBuildGraphPatcher> logger,
@@ -30,6 +32,11 @@
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Redpoint.UET.BuildPipeline.BuildGraph.Patching.BuildGraphPatches.json"))
             {
                 _patches = JsonSerializer.Deserialize<BuildGraphPatchSet[]>(stream!, BuildGraphSourceGenerationContext.Default.BuildGraphPatchSetArray)!;
+                stream!.Seek(0, SeekOrigin.Begin);
+                using (var sha = SHA1.Create())
+                {
+                    _patchHash = BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
+                }
             }
         }
 
@@ -55,15 +62,13 @@
 
         public async Task PatchBuildGraphAsync(string enginePath)
         {
-            // @todo: Make this a hash of _patches instead so we don't need to manually modify it.
-            const int buildGraphPatchTargetLevel = 1;
             var patchLevelFilePath = Path.Combine(enginePath, "Engine", "Source", "Programs", "UET.BuildGraphPatchLevel.txt");
-            var existingBuildGraphPatchLevel = 0;
+            var existingBuildGraphPatchLevel = string.Empty;
             if (File.Exists(patchLevelFilePath))
             {
-                int.TryParse(File.ReadAllText(patchLevelFilePath).Trim(), out existingBuildGraphPatchLevel);
+                existingBuildGraphPatchLevel = File.ReadAllText(patchLevelFilePath).Trim();
             }
-            if (existingBuildGraphPatchLevel == buildGraphPatchTargetLevel)
+            if (existingBuildGraphPatchLevel == _patchHash)
             {
                 return;
             }
@@ -107,9 +112,10 @@
                 }
             }
 
-            var automationToolProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "BuildGraph", "BuildGraph.Automation.csproj");
             var unrealBuildToolProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "UnrealBuildTool", "UnrealBuildTool.csproj");
+            var automationToolBuildGraphProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "BuildGraph", "BuildGraph.Automation.csproj");
             var epicGamesCoreProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "Shared", "EpicGames.Core", "EpicGames.Core.csproj");
+            var automationToolProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "AutomationTool.csproj");
             var (msBuildPath, msBuildExtraArgs) = await _msBuildPathResolver.ResolveMSBuildPath();
             var dotnetPath = await _pathResolver.ResolveBinaryPath("dotnet");
 
@@ -153,8 +159,9 @@
             var projects = new[]
             {
                 (name: "EpicGames.Core", path: epicGamesCoreProject),
-                (name: "BuildGraph.Automation", path: automationToolProject),
                 (name: "UnrealBuildTool", path: unrealBuildToolProject),
+                (name: "BuildGraph.Automation", path: automationToolBuildGraphProject),
+                (name: "AutomationTool", path: automationToolProject),
             };
             foreach (var project in projects)
             {
@@ -219,7 +226,7 @@
                 }
             }
 
-            File.WriteAllText(patchLevelFilePath, buildGraphPatchTargetLevel.ToString());
+            File.WriteAllText(patchLevelFilePath, _patchHash);
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.UET.UAT
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.OpenGE;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.UET.Core;
@@ -14,7 +15,7 @@
         private readonly IBuildConfigurationManager _buildConfigurationManager;
         private readonly ILocalHandleCloser _localHandleCloser;
         private readonly IRemoteHandleCloser _remoteHandleCloser;
-        private readonly IProcessExecutor _processExecutor;
+        private readonly IProcessWithOpenGEExecutor _processWithOpenGEExecutor;
         private readonly IPathResolver _pathResolver;
 
         internal class ScriptModuleJson
@@ -31,14 +32,14 @@
             IBuildConfigurationManager buildConfigurationManager,
             ILocalHandleCloser localHandleCloser,
             IRemoteHandleCloser remoteHandleCloser,
-            IProcessExecutor processExecutor,
+            IProcessWithOpenGEExecutor processWithOpenGEExecutor,
             IPathResolver pathResolver)
         {
             _logger = logger;
             _buildConfigurationManager = buildConfigurationManager;
             _localHandleCloser = localHandleCloser;
             _remoteHandleCloser = remoteHandleCloser;
-            _processExecutor = processExecutor;
+            _processWithOpenGEExecutor = processWithOpenGEExecutor;
             _pathResolver = pathResolver;
         }
 
@@ -263,7 +264,7 @@
                     var retryCaptureSpecification = new UATCaptureSpecification(captureSpecification);
 
                     // Execute UAT.
-                    reportedExitCode = await _processExecutor.ExecuteAsync(
+                    reportedExitCode = await _processWithOpenGEExecutor.ExecuteAsync(
                         processSpecification,
                         retryCaptureSpecification,
                         cancellationToken);

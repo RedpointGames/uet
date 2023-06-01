@@ -409,11 +409,10 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                     {
                         job.ArtifactPaths = new[]
                         {
-                            // @note: These are out of date because UET won't save automation output to these paths.
-                            "BuildScripts/Temp/*/TestResults_*.xml",
-                            "BuildScripts/Temp/T*/Saved/Logs/Worker*.log",
+                            ".uet/tmp/*/TestResults_*.xml",
+                            ".uet/tmp/T*/Saved/Logs/Worker*.log",
                         };
-                        job.ArtifactJUnitReportPath = "BuildScripts/Temp/*/TestResults_*.xml";
+                        job.ArtifactJUnitReportPath = ".uet/tmp/*/TestResults_*.xml";
                     }
 
                     // @todo: We need to emit scripts for each platform

@@ -103,7 +103,6 @@
     "Output5": "Engine\\Binaries\\DotNET\\AutomationTool\\AutomationScripts\\BuildGraph\\EpicGames.BuildGraph.dll"
   },
   {
-    "Output4": "Engine\\Binaries\\DotNET\\UnrealBuildTool.exe",
     "File": "Engine\\Source\\Programs\\UnrealBuildTool\\System\\SingleInstanceMutex.cs",
     "Patches": [
       {
@@ -119,6 +118,29 @@
         "Find": "bool bCreatedMutex;"
       }
     ],
+    "Output4": "Engine\\Binaries\\DotNET\\UnrealBuildTool.exe",
+    "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
+  },
+  {
+    "File": "Engine\\Source\\Programs\\UnrealBuildTool\\Executors\\XGE.cs",
+    "Patches": [
+      {
+        "Find": "// on windows check the service is actually running",
+        "Replace": "if (Environment.GetEnvironmentVariable(\"UET_FORCE_XGE_SHIM\") == \"1\") { return true; } // (UET modified) on windows check the service is actually running"
+      }
+    ],
+    "Output4": "Engine\\Binaries\\DotNET\\UnrealBuildTool.exe",
+    "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
+  },
+  {
+    "File": "Engine\\Source\\Programs\\UnrealBuildTool\\System\\ActionGraph.cs",
+    "Patches": [
+      {
+        "Find": "if (ActionCount > ParallelExecutor.GetDefaultNumParallelProcesses(BuildConfiguration.MaxParallelActions, BuildConfiguration.bAllCores, Logger))",
+        "Replace": "if (ActionCount > ParallelExecutor.GetDefaultNumParallelProcesses(BuildConfiguration.MaxParallelActions, BuildConfiguration.bAllCores, Logger) || Environment.GetEnvironmentVariable(\"UET_FORCE_XGE_SHIM\") == \"1\")"
+      }
+    ],
+    "Output4": "Engine\\Binaries\\DotNET\\UnrealBuildTool.exe",
     "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
   }
 ]

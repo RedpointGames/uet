@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <PropertyGroup>
@@ -35,7 +35,7 @@
 
     <BaseUetVersionSuffix Condition="'$(BaseUetVersion)' == ''">-pre</BaseUetVersionSuffix>
     <BaseUetVersion Condition="'$(BaseUetVersion)' == ''">$(BaseUetVersionMajor).$(BaseUetVersionMinor).$(BaseUetVersionPatch)</BaseUetVersion>
-    
+
     <Company>Redpoint Games</Company>
     <Copyright>Copyright Redpoint Games</Copyright>
     <Description>The unofficial Unreal Engine Tool.</Description>
@@ -97,6 +97,6 @@
     </ItemGroup>
     <MSBuild Projects="@(ProjectToPublish)" Targets="Publish" BuildInParallel="true" />
     <MSBuild Projects="@(ProjectToPublishWithEmbedding)" Targets="Publish" BuildInParallel="true" />
-  </Target>  
+  </Target>
 
 </Project>

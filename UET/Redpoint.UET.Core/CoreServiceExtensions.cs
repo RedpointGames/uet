@@ -6,23 +6,25 @@ namespace Redpoint.UET.Core
 {
     public static class CoreServiceExtensions
     {
-        public static void AddUETCore(this IServiceCollection services)
+        public static void AddUETCore(this IServiceCollection services, bool omitLogPrefix = false)
         {
             services.AddSingleton<IStringUtilities, DefaultStringUtilities>();
 
             services.AddLogging(builder =>
             {
                 builder.ClearProviders();
-                builder.AddConsoleFormatter<SimpleBuildConsoleFormatter, SimpleConsoleFormatterOptions>(options =>
+                builder.AddConsoleFormatter<SimpleBuildConsoleFormatter, ExtendedSimpleConsoleFormatterOptions>(options =>
                 {
                     options.ColorBehavior = LoggerColorBehavior.Default;
                     options.SingleLine = true;
                     options.IncludeScopes = false;
                     options.TimestampFormat = "HH:mm:ss ";
+                    options.OmitLogPrefix = omitLogPrefix;
                 });
                 builder.AddConsole(options =>
                 {
                     options.FormatterName = "simple-build";
+                    options.LogToStandardErrorThreshold = LogLevel.None;
                 });
             });
         }

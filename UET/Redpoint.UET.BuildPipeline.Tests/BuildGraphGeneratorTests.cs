@@ -38,7 +38,7 @@ namespace Redpoint.UET.BuildPipeline.Tests
                 new Dictionary<string, string>
                 {
                     { $"UETPath", $"uet" },
-                    { $"TempPath", $"__REPOSITORY_ROOT__/BuildScripts/Temp" },
+                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
                     { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
                     { $"UProjectPath", $"__REPOSITORY_ROOT__/ExampleOSS.uproject" },
@@ -105,7 +105,7 @@ namespace Redpoint.UET.BuildPipeline.Tests
                 new Dictionary<string, string>
                 {
                     { $"UETPath", $"uet" },
-                    { $"TempPath", $"__REPOSITORY_ROOT__/BuildScripts/Temp" },
+                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
                     { $"PluginDirectory", $"__REPOSITORY_ROOT__/OnlineSubsystemRedpointEOS" },
                     { $"PluginName", $"OnlineSubsystemRedpointEOS" },

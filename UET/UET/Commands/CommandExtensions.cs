@@ -2,6 +2,8 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.MSBuildResolution;
+    using Redpoint.OpenGE;
+    using Redpoint.OpenGE.ProcessExecution;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.UET.BuildPipeline;
@@ -44,6 +46,7 @@
                 services.AddPathResolution();
                 services.AddMSBuildPathResolution();
                 services.AddProcessExecution();
+                services.AddOpenGEProcessExecution();
                 services.AddUETUAT();
                 services.AddUETBuildPipeline();
                 services.AddUETBuildPipelineExecutorsLocal();
@@ -60,6 +63,15 @@
                 var sp = services.BuildServiceProvider();
                 var instance = sp.GetRequiredService<TCommand>();
                 context.ExitCode = await instance.ExecuteAsync(context);
+
+                // BuildGraph misses the last line of a command's output if it does
+                // not have a final newline, but the .NET console logger does not do
+                // this by default. Ensure we see all the output when we're running
+                // under BuildGraph.
+                if (Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BUILDGRAPH") == "1")
+                {
+                    Console.WriteLine();
+                }
             });
         }
     }

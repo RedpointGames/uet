@@ -1,0 +1,17 @@
+<BuildSet FormatVersion="1">
+  <Environments>
+    <Environment Name="Env_0">
+      <Tools>
+        <Tool Name="Tool1_0" AllowRemote="True" GroupPrefix="GROUP_PREFIX_1" Params="PARAMS_1" Path="PATH_1" SkipIfProjectFailed="true" AutoReserveMemory="*.pch" OutputFileMasks="OUTPUT_MASK_1" AutoRecover="C1060,C1076,C3859" />
+        <Tool Name="Tool2_0" AllowRemote="True" GroupPrefix="GROUP_PREFIX_2" Params="PARAMS_2" Path="PATH_2" SkipIfProjectFailed="true" AutoReserveMemory="*.pch" OutputFileMasks="OUTPUT_MASK_2" AutoRecover="C1060,C1076,C3859" />
+      </Tools>
+      <Variables>
+        <Variable Name="VARIABLE_1" Value="VARIABLE_VALUE_1" />
+      </Variables>
+    </Environment>
+  </Environments>
+  <Project Name="Env_0" Env="Env_0">
+    <Task SourceFile="" Caption="CAPTION_1" Name="Action1_0" Tool="Tool1_0" WorkingDir="WORKING_DIR_1" SkipIfProjectFailed="true" />
+    <Task SourceFile="" Caption="CAPTION_2" Name="Action2_0" Tool="Tool2_0" WorkingDir="WORKING_DIR_2" SkipIfProjectFailed="true" DependsOn="Action1_0" />
+  </Project>
+</BuildSet>

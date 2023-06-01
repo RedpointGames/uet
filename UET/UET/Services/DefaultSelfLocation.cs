@@ -16,7 +16,14 @@
             }
             else
             {
-                return assembly.Location;
+                var location = assembly.Location;
+                if (location.EndsWith(".dll"))
+                {
+                    // When running via 'dotnet', the .dll file is returned instead of the .exe bootstrapper.
+                    // We want to launch via the .exe instead.
+                    location = location.Substring(0, location.Length - 4) + ".exe";
+                }
+                return location;
             }
         }
     }

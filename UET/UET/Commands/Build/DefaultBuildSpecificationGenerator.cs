@@ -284,7 +284,7 @@
                 {
                     // Environment options
                     { $"UETPath", $"__UET_PATH__" },
-                    { $"TempPath", $"__REPOSITORY_ROOT__/BuildScripts/Temp" },
+                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
                     { $"PluginDirectory", $"__REPOSITORY_ROOT__/{pluginInfo.PluginName}" },
                     { $"PluginName", pluginInfo.PluginName },
@@ -410,7 +410,7 @@
                 {
                     // Environment options
                     { $"UETPath", $"__UET_PATH__" },
-                    { $"TempPath", $"__REPOSITORY_ROOT__/BuildScripts/Temp" },
+                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__/{distribution.FolderName}" },
                     { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
 
@@ -497,7 +497,7 @@
                 {
                     // Environment options
                     { $"UETPath", $"__UET_PATH__" },
-                    { $"TempPath", $"__REPOSITORY_ROOT__/BuildScripts/Temp" },
+                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
                     { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
 
