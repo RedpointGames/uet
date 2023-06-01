@@ -8,6 +8,8 @@
     using System.CommandLine.Invocation;
     using System.Linq;
     using System.Text;
+    using System.Text.Json;
+    using System.Text.Json.Nodes;
     using System.Threading.Tasks;
 
     internal class UpdateUPluginCommand
@@ -44,17 +46,91 @@
         private class UpdateUPluginCommandInstance : ICommandInstance
         {
             private readonly ILogger<UpdateUPluginCommandInstance> _logger;
+            private readonly Options _options;
 
             public UpdateUPluginCommandInstance(
-                ILogger<UpdateUPluginCommandInstance> logger)
+                ILogger<UpdateUPluginCommandInstance> logger,
+                Options options)
             {
                 _logger = logger;
+                _options = options;
             }
 
-            public Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(InvocationContext context)
             {
-                _logger.LogError("Not yet implemented.");
-                return Task.FromResult(1);
+                var inputPath = context.ParseResult.GetValueForOption(_options.InputPath)!;
+                var outputPath = context.ParseResult.GetValueForOption(_options.OutputPath)!;
+                var engineVersion = context.ParseResult.GetValueForOption(_options.EngineVersion)!;
+                var versionName = context.ParseResult.GetValueForOption(_options.VersionName)!;
+                var versionNumber = context.ParseResult.GetValueForOption(_options.VersionNumber)!;
+                var marketplace = context.ParseResult.GetValueForOption(_options.Marketplace)!;
+
+                JsonNode? node;
+                using (var stream = new StreamReader(new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read)))
+                {
+                    node = JsonNode.Parse(await stream.ReadToEndAsync());
+                }
+
+                if (node == null)
+                {
+                    _logger.LogError("The .uplugin file used as input is not valid.");
+                    return 1;
+                }
+
+                node["EngineVersion"] = engineVersion;
+                node["VersionName"] = versionName;
+                node["Version"] = int.Parse(versionNumber);
+                node["Installed"] = true;
+
+                if (!marketplace)
+                {
+                    node["EnabledByDefault"] = false;
+                }
+                else
+                {
+                    var obj = node.AsObject();
+                    if (obj.ContainsKey("EnabledByDefault"))
+                    {
+                        obj.Remove("EnabledByDefault");
+                    }
+
+                    foreach (var module in node["Modules"]?.AsArray() ?? new JsonArray())
+                    {
+                        if (module == null)
+                        {
+                            continue;
+                        }
+
+                        if (module["WhitelistPlatforms"] != null)
+                        {
+                            _logger.LogWarning("Plugin uses deprecated 'WhitelistPlatforms' setting for a module. Use 'PlatformAllowList' instead.");
+                        }
+                        if (module["BlacklistPlatforms"] != null)
+                        {
+                            _logger.LogWarning("Plugin uses deprecated 'BlacklistPlatforms' setting for a module. Use 'PlatformDenyList' instead.");
+                        }
+
+                        if (module["WhitelistPlatforms"] == null &&
+                            module["BlacklistPlatforms"] == null &&
+                            module["PlatformAllowList"] == null &&
+                            module["PlatformDenyList"] == null)
+                        {
+                            module["PlatformDenyList"] = new JsonArray();
+                        }
+                    }
+                }
+
+                Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+
+                using (var stream = new StreamWriter(new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None)))
+                {
+                    await stream.WriteAsync(node.ToJsonString(new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    }));
+                }
+
+                return 0;
             }
         }
     }
