@@ -1,5 +1,6 @@
 ﻿namespace UET.Commands.Build
 {
+    using Grpc.Core;
     using Grpc.Core.Logging;
     using Microsoft.Extensions.Logging;
     using Redpoint.UET.BuildPipeline.BuildGraph;
@@ -456,17 +457,94 @@
             };
         }
 
-        public BuildSpecification PluginPathSpecToBuildSpec(BuildEngineSpecification engineSpec, PathSpec pathSpec)
+        public async Task<BuildSpecification> PluginPathSpecToBuildSpecAsync(
+            BuildEngineSpecification engineSpec,
+            BuildGraphEnvironment buildGraphEnvironment,
+            PathSpec pathSpec,
+            bool shipping,
+            bool strictIncludes)
         {
-            // @note: Must set BUILDING_FOR_REDISTRIBUTION="true" in GlobalEnvironmentVariables
-            throw new NotImplementedException();
+            var targetPlatform = OperatingSystem.IsWindows() ? "Win64" : "Mac";
+            var gameConfigurations = shipping ? "Shipping" : "Development";
+
+            var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(engineSpec, true, CancellationToken.None);
+
+            // Compute final settings for BuildGraph.
+            return new BuildSpecification
+            {
+                Engine = engineSpec,
+                BuildGraphScript = BuildGraphScriptSpecification.ForPlugin(),
+                BuildGraphTarget = "End",
+                BuildGraphSettings = new Dictionary<string, string>
+                {
+                    // Environment options
+                    { $"UETPath", $"__UET_PATH__" },
+                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
+                    { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
+                    { $"PluginDirectory", $"__REPOSITORY_ROOT__" },
+                    { $"PluginName", Path.GetFileNameWithoutExtension(pathSpec.UPluginPath)! },
+                    { $"Distribution", "None" },
+
+                    // General options
+                    { "IsUnrealEngine5", "true" },
+
+                    // Clean options
+                    { $"CleanDirectories", string.Empty },
+
+                    // Prepare options
+                    { $"PrepareCustomAssembleFinalizeScripts", string.Empty },
+                    { $"PrepareCustomCompileScripts", string.Empty },
+                    { $"PrepareCustomTestScripts", string.Empty },
+
+                    // Build options
+                    { $"ExecuteBuild", "true" },
+                    { $"EditorTargetPlatforms", targetPlatform },
+                    { $"GameTargetPlatforms", targetPlatform },
+                    { $"GameConfigurations", gameConfigurations },
+                    { $"MacPlatforms", $"IOS;Mac" },
+                    { $"StrictIncludes", strictIncludes ? "true" : "false" },
+                    { $"Allow2019", "false" },
+                    { $"EnginePrefix", "Unreal" },
+
+                    // Package options
+                    { $"ExecutePackage", "false" },
+                    { "VersionNumber", versionInfo.versionNumber },
+                    { "VersionName", versionInfo.versionName },
+                    { "PackageFolder", "Packaged" },
+                    { "PackageInclude", string.Empty },
+                    { "PackageExclude", string.Empty },
+                    { "IsForMarketplaceSubmission", "false" },
+                    { "CopyrightHeader", string.Empty },
+                    { "CopyrightExcludes", string.Empty },
+
+                    // Test options
+                    { $"ExecuteTests", "false" },
+                    { $"AutomationTests", string.Empty },
+                    { $"GauntletTests", string.Empty },
+                    { $"CustomTests", string.Empty },
+                    { $"DownstreamTests", string.Empty },
+                    { $"GauntletGameTargetPlatforms", string.Empty },
+                    { $"GauntletConfigPaths", string.Empty },
+
+                    // Deploy options
+                    { $"DeploymentBackblazeB2", string.Empty },
+                },
+                BuildGraphEnvironment = buildGraphEnvironment,
+                BuildGraphRepositoryRoot = pathSpec.DirectoryPath,
+                UETPath = _selfLocation.GetUETLocalLocation(),
+                GlobalEnvironmentVariables = new Dictionary<string, string>
+                {
+                    { "BUILDING_FOR_REDISTRIBUTION", "true" },
+                }
+            };
         }
 
         public BuildSpecification ProjectPathSpecToBuildSpec(
             BuildEngineSpecification engineSpec,
             BuildGraphEnvironment buildGraphEnvironment,
             PathSpec pathSpec,
-            bool shipping)
+            bool shipping,
+            bool strictIncludes)
         {
             // Use heuristics to guess the targets for this build.
             string editorTarget;
@@ -522,7 +600,7 @@
                     { $"ClientConfigurations", string.Empty },
                     { $"ServerConfigurations", string.Empty },
                     { $"MacPlatforms", $"IOS;Mac" },
-                    { $"StrictIncludes", "false" },
+                    { $"StrictIncludes", strictIncludes ? "true" : "false" },
 
                     // Stage options
                     { $"StageDirectory", $"__REPOSITORY_ROOT__/Saved/StagedBuilds" },

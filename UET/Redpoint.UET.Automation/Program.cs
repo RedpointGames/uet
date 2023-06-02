@@ -230,7 +230,7 @@ public static class AutomationProgram
                     return;
                 }
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
                 // Ensure processes are terminated (in case this task cancellation
                 // was from some nested task that isn't dependent on cancellationTokenSource).

@@ -161,7 +161,7 @@
 
                         await SubmitResultsAsync(results);
                     }
-                    catch (TaskCanceledException)
+                    catch (OperationCanceledException)
                     {
                     }
                     catch (Exception ex)
@@ -171,7 +171,7 @@
                     }
                 }
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
                 _testLogger.LogTrace(null, "Performing final submission to Io");
 

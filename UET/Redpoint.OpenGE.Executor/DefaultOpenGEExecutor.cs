@@ -124,6 +124,8 @@
             _totalTasks = _remainingTasks;
         }
 
+        public bool CancelledDueToFailure { get; set; }
+
         public async Task<int> ExecuteAsync(CancellationTokenSource buildCancellationTokenSource)
         {
             var cancellationToken = buildCancellationTokenSource.Token;
@@ -300,6 +302,7 @@
                         {
                             task.Status = OpenGEStatus.Failure;
                             project.Status = OpenGEStatus.Failure;
+                            CancelledDueToFailure = true;
                             if (!_turnOffExtraLogInfo)
                             {
                                 _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[31m[build failed]\u001b[0m");
@@ -313,17 +316,21 @@
                             buildCancellationTokenSource.Cancel();
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
                         task.Status = OpenGEStatus.Failure;
                         project.Status = OpenGEStatus.Failure;
-                        if (!_turnOffExtraLogInfo)
+                        CancelledDueToFailure = true;
+                        if (!(ex is OperationCanceledException))
                         {
-                            _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[30m\u001b[41m[executor exception]\u001b[0m");
-                        }
-                        else
-                        {
-                            _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} [executor failed]");
+                            if (!_turnOffExtraLogInfo)
+                            {
+                                _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[30m\u001b[41m[executor exception]\u001b[0m");
+                            }
+                            else
+                            {
+                                _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} [executor failed]");
+                            }
                         }
 
                         // @note: Is this correct?
@@ -332,7 +339,7 @@
                         throw;
                     }
                 }
-                catch (TaskCanceledException)
+                catch (OperationCanceledException)
                 {
                     if (!_turnOffExtraLogInfo)
                     {

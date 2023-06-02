@@ -78,13 +78,14 @@
 
             var st = Stopwatch.StartNew();
             int exitCode;
+            IOpenGEExecutor? executor = null;
             try
             {
                 using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(request.JobXml)))
                 {
                     _logger.LogTrace($"[{request.BuildNodeName}] Executing job request");
                     var cts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
-                    var executor = _executorFactory.CreateExecutor(stream, buildLogPrefix: $"[{request.BuildNodeName}] ");
+                    executor = _executorFactory.CreateExecutor(stream, buildLogPrefix: $"[{request.BuildNodeName}] ");
                     exitCode = await executor.ExecuteAsync(cts);
                     context.CancellationToken.ThrowIfCancellationRequested();
                     if (exitCode == 0)
@@ -96,18 +97,34 @@
                         _logger.LogInformation($"[{request.BuildNodeName}] \u001b[31mfailure\u001b[0m in {st.Elapsed.TotalSeconds:F2} secs");
                     }
                 }
-            }
-            catch (TaskCanceledException)
-            {
-                _logger.LogInformation($"[{request.BuildNodeName}] \u001b[33mcancelled\u001b[0m in {st.Elapsed.TotalSeconds:F2} secs");
-                exitCode = 1;
-            }
-            if (!context.CancellationToken.IsCancellationRequested)
-            {
                 await responseStream.WriteAsync(new SubmitJobResponse
                 {
                     ExitCode = exitCode
                 });
+            }
+            catch (Exception ex) when (ex is OperationCanceledException)
+            {
+                if (executor?.CancelledDueToFailure ?? false)
+                {
+                    _logger.LogInformation($"[{request.BuildNodeName}] \u001b[31mfailure\u001b[0m in {st.Elapsed.TotalSeconds:F2} secs");
+                }
+                else
+                {
+                    _logger.LogInformation($"[{request.BuildNodeName}] \u001b[33mcancelled\u001b[0m in {st.Elapsed.TotalSeconds:F2} secs");
+                }
+                exitCode = 1;
+
+                if (!context.CancellationToken.IsCancellationRequested)
+                {
+                    await responseStream.WriteAsync(new SubmitJobResponse
+                    {
+                        ExitCode = exitCode
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Unhandled exception in OpenGE daemon: {ex.Message}");
             }
         }
     }

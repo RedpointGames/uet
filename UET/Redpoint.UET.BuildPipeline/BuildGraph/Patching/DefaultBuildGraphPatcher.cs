@@ -47,15 +47,14 @@
                 if (subdirectory.Attributes.HasFlag(FileAttributes.ReadOnly))
                 {
                     subdirectory.Attributes = subdirectory.Attributes ^ FileAttributes.ReadOnly;
-                    await MakeReadWriteAsync(di);
                 }
+                await MakeReadWriteAsync(subdirectory);
             }
             foreach (var file in di.GetFiles())
             {
                 if (file.Attributes.HasFlag(FileAttributes.ReadOnly))
                 {
                     file.Attributes = file.Attributes ^ FileAttributes.ReadOnly;
-                    await MakeReadWriteAsync(di);
                 }
             }
         }

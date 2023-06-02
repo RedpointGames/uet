@@ -6,6 +6,8 @@
 
     public interface IOpenGEExecutor
     {
+        bool CancelledDueToFailure { get; }
+
         Task<int> ExecuteAsync(CancellationTokenSource buildCancellationTokenSource);
     }
 }

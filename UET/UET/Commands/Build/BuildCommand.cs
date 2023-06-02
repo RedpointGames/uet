@@ -287,12 +287,16 @@
                                 engineSpec,
                                 buildGraphEnvironment,
                                 path,
-                                context.ParseResult.GetValueForOption(_options.Shipping));
+                                shipping,
+                                strictIncludes);
                             break;
                         case PathSpecType.UPlugin:
-                            buildSpec = _buildSpecificationGenerator.PluginPathSpecToBuildSpec(
+                            buildSpec = await _buildSpecificationGenerator.PluginPathSpecToBuildSpecAsync(
                                 engineSpec,
-                                path);
+                                buildGraphEnvironment,
+                                path,
+                                shipping,
+                                strictIncludes);
                             break;
                         default:
                             throw new NotSupportedException();

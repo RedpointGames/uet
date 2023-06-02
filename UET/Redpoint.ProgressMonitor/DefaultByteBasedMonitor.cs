@@ -62,7 +62,7 @@
                 {
                     await Task.Delay(100, ct);
                 }
-                catch (TaskCanceledException)
+                catch (OperationCanceledException)
                 {
                 }
             }

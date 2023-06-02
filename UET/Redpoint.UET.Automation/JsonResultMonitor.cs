@@ -124,9 +124,9 @@
 
                 _testLogger.LogTrace(null, $"JSON monitor has exited monitoring loop normally.");
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
-                _testLogger.LogTrace(null, $"JSON monitor is finishing monitoring work due to TaskCanceledException.");
+                _testLogger.LogTrace(null, $"JSON monitor is finishing monitoring work due to OperationCanceledException.");
             }
             finally
             {

@@ -275,7 +275,7 @@
                     {
                         await _process.WaitForExitAsync(cancellationToken);
                     }
-                    catch (TaskCanceledException)
+                    catch (OperationCanceledException)
                     {
                         if (!_process.HasExited)
                         {

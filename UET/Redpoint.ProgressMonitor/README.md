@@ -68,7 +68,7 @@ using (var stream = new FileStream(...))
     {
         await monitorTask;
     }
-    catch (TaskCanceledException) { }
+    catch (OperationCanceledException) { }
 
     // Emit a newline after our progress message.
     if (consoleWidth != 0)

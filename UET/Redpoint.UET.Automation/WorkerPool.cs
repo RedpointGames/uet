@@ -144,7 +144,7 @@
 
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    throw new TaskCanceledException($"Execution of tests was cancelled", null, cancellationToken);
+                    throw new OperationCanceledException($"Execution of tests was cancelled", null, cancellationToken);
                 }
 
                 _testLogger.LogTrace(null, $"Controller worker has exited with exit code {exitCode}.");
@@ -207,7 +207,7 @@
                 {
                     await Task.WhenAll(additionalWorkerTasks);
                 }
-                catch (TaskCanceledException)
+                catch (OperationCanceledException)
                 {
                     // Expected.
                 }
