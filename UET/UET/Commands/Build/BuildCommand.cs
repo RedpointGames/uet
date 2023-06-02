@@ -176,11 +176,11 @@
                 {
                     if (string.IsNullOrWhiteSpace(windowsSharedStoragePath))
                     {
-                        windowsSharedStoragePath = Path.Combine(path.DirectoryPath, ".SharedStorage");
+                        windowsSharedStoragePath = Path.Combine(path.DirectoryPath, ".uet", "shared-storage");
                     }
                     if (string.IsNullOrWhiteSpace(macSharedStoragePath))
                     {
-                        macSharedStoragePath = Path.Combine(path.DirectoryPath, ".SharedStorage");
+                        macSharedStoragePath = Path.Combine(path.DirectoryPath, ".uet", "shared-storage");
                     }
                 }
                 else
