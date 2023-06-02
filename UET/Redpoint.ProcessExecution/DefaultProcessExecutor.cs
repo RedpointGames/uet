@@ -133,6 +133,11 @@
                 {
                     if (!process.HasExited)
                     {
+                        // @note: If you're still seeing stalls here when Ctrl-C is pressed, it might
+                        // be specific to running under the debugger! Make sure you can reproduce
+                        // the stall when running from "dotnet run" or a packaged build before
+                        // spending time on trying to fix stalls in this code.
+
                         // @note: There's a weird bug where if we try to terminate the whole
                         // process tree of cl.exe, then the Process.Kill call will stall for
                         // 30 seconds. Workaround this issue by only killing cl.exe itself
