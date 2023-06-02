@@ -33,7 +33,8 @@ var isGlobalCommand = parseResult.CommandResult.Command == rootUpgradeCommand;
 
 // If we have a BuildConfig.json file in this folder, and that file specifies a
 // UETVersion, then we must use that version specifically.
-if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BUILDGRAPH") != "true")
+if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BUILDGRAPH") != "true" &&
+    Environment.GetEnvironmentVariable("UET_VERSION_CHECK_COMPLETE") != "true")
 {
     var currentBuildConfigPath = Path.Combine(Environment.CurrentDirectory, "BuildConfig.json");
     var currentVersionAttribute = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>();
@@ -57,13 +58,13 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
         var processExecutor = sp.GetRequiredService<IProcessExecutor>();
 
         var versionRegex = new Regex("^[0-9\\.]+$");
-        if (targetVersion != null && !versionRegex.IsMatch(targetVersion))
+        if (targetVersion != null && targetVersion != "BleedingEdge" && !versionRegex.IsMatch(targetVersion))
         {
             logger.LogError($"The BuildConfig.json file requested version '{targetVersion}', but this isn't a valid version string.");
             return 1;
         }
 
-        if (targetVersion != null && targetVersion != currentVersionAttribute.InformationalVersion)
+        if (targetVersion != null && (targetVersion != currentVersionAttribute.InformationalVersion || targetVersion == "BleedingEdge"))
         {
             if (Debugger.IsAttached)
             {
@@ -71,13 +72,26 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
             }
             else
             {
-                logger.LogInformation($"The BuildConfig.json file requested version {targetVersion}, but we are running {currentVersionAttribute.InformationalVersion}. Obtaining the right version for this build and re-executing the requested command as version {targetVersion}...");
+                if (targetVersion == "BleedingEdge")
+                {
+                    logger.LogInformation($"The BuildConfig.json file requested the bleeding-edge version of UET, so we need to check what the newest available version is...");
+                }
+                else
+                {
+                    logger.LogInformation($"The BuildConfig.json file requested version {targetVersion}, but we are running {currentVersionAttribute.InformationalVersion}. Obtaining the right version for this build and re-executing the requested command as version {targetVersion}...");
+                }
                 var didInstall = false;
+                var isBleedingEdgeTheSame = false;
                 try
                 {
                     var upgradeRootCommand = new RootCommand("An unofficial tool for Unreal Engine.");
                     upgradeRootCommand.AddCommand(UpgradeCommand.CreateUpgradeCommand());
-                    var upgradeResult = await upgradeRootCommand.InvokeAsync(new[] { "upgrade", "--version", targetVersion!, "--do-not-set-as-current" });
+                    var upgradeArgs = new[] { "upgrade", "--version", targetVersion!, "--do-not-set-as-current" };
+                    if (targetVersion == "BleedingEdge")
+                    {
+                        upgradeArgs = new[] { "upgrade", "--do-not-set-as-current" };
+                    }
+                    var upgradeResult = await upgradeRootCommand.InvokeAsync(upgradeArgs);
                     if (upgradeResult != 0)
                     {
                         logger.LogError($"Failed to install the requested UET version {targetVersion}. See above for details.");
@@ -85,6 +99,18 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                     }
 
                     didInstall = true;
+                    if (targetVersion == "BleedingEdge")
+                    {
+                        targetVersion = UpgradeCommand.LastInstalledVersion!;
+                        if (targetVersion == currentVersionAttribute.InformationalVersion)
+                        {
+                            isBleedingEdgeTheSame = true;
+                        }
+                        else
+                        {
+                            logger.LogInformation($"The bleeding-edge version of UET is {targetVersion}, but we are running {currentVersionAttribute.InformationalVersion}. Re-executing the requested command as version {targetVersion}...");
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -92,7 +118,7 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                     return 1;
                 }
 
-                if (didInstall)
+                if (didInstall && !isBleedingEdgeTheSame)
                 {
                     var cts = new CancellationTokenSource();
                     Console.CancelKeyPress += (sender, args) =>
@@ -106,6 +132,10 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                             FilePath = UpgradeCommand.GetAssemblyPathForVersion(targetVersion),
                             Arguments = args,
                             WorkingDirectory = Environment.CurrentDirectory,
+                            EnvironmentVariables = new Dictionary<string, string>
+                            {
+                                { "UET_VERSION_CHECK_COMPLETE", "true" }
+                            }
                         },
                         CaptureSpecification.Passthrough,
                         cts.Token));

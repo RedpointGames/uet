@@ -19,6 +19,8 @@
 
     internal class UpgradeCommand
     {
+        internal static string? LastInstalledVersion { get; set; }
+
         internal class Options
         {
             public Option<string?> Version;
@@ -131,6 +133,10 @@
                     _logger.LogError($"Version '{version}' does not match version regex.");
                     return 1;
                 }
+
+                // The special "BleedingEdge" mode needs to know what version was actually the
+                // latest at startup so it can re-invoke if necessary.
+                LastInstalledVersion = version;
 
                 Directory.CreateDirectory(baseFolder);
                 Directory.CreateDirectory(Path.Combine(baseFolder, version));
