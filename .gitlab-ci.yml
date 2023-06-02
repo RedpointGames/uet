@@ -39,16 +39,16 @@ stages:
       if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
       }
-      b2 upload-file dl-redpoint-games "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet" "uet/$PackageVersion/macos/uet"
+      b2 upload-file dl-public-redpoint-games "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet" "uet/$PackageVersion/macos/uet"
       if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
       }
-      b2 upload-file dl-redpoint-games "UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe" "uet/$PackageVersion/windows/uet.exe"
+      b2 upload-file dl-public-redpoint-games "UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe" "uet/$PackageVersion/windows/uet.exe"
       if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
       }
       Set-Content -Value $PackageVersion -Path latest.txt
-      b2 upload-file dl-redpoint-games "latest.txt" "uet/latest"
+      b2 upload-file dl-public-redpoint-games "latest.txt" "uet/latest"
       if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
       }
