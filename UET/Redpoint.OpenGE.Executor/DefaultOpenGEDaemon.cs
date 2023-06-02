@@ -42,12 +42,12 @@
                     throw new InvalidOperationException();
                 }
 
-                _logger.LogInformation($"Starting OpenGE daemon on pipe: {_pipeName}");
+                _logger.LogTrace($"Starting OpenGE daemon on pipe: {_pipeName}");
                 _pipeServer = new NamedPipeServer(_pipeName);
                 OpenGE.BindService(_pipeServer.ServiceBinder, this);
                 _pipeServer.Start();
                 _hasStarted = true;
-                _logger.LogInformation($"Started OpenGE daemon on pipe: {_pipeName}");
+                _logger.LogTrace($"Started OpenGE daemon on pipe: {_pipeName}");
             }
             finally
             {
@@ -96,7 +96,7 @@
                         _logger.LogTrace($"OpenGE in-flight: There are now no jobs in-flight");
                     }
 
-                    _logger.LogInformation($"Stopped OpenGE daemon on pipe: {_pipeName}");
+                    _logger.LogTrace($"Stopped OpenGE daemon on pipe: {_pipeName}");
                     _pipeServer!.Kill();
                     _hasStarted = false;
                 }

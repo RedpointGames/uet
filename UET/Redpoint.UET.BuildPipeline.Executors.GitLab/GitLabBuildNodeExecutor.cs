@@ -57,7 +57,7 @@
                         new WorkspaceOptions { UnmountAfterUse = false },
                         cancellationToken))
                     {
-                        _logger.LogInformation($"Starting: {nodeName}");
+                        _logger.LogTrace($"Starting: {nodeName}");
                         exitCode = await _buildGraphExecutor.ExecuteGraphNodeAsync(
                             engineWorkspace.Path,
                             targetWorkspace.Path,
@@ -86,13 +86,13 @@
                     }
                     if (exitCode == 0)
                     {
-                        _logger.LogInformation($"Finished: {nodeName} = Success");
+                        _logger.LogTrace($"Finished: {nodeName} = Success");
                         await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Success);
                         return 0;
                     }
                     else
                     {
-                        _logger.LogError($"Finished: {nodeName} = Failed");
+                        _logger.LogTrace($"Finished: {nodeName} = Failed");
                         await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Failed);
                         return 1;
                     }
@@ -101,8 +101,8 @@
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 // The build was cancelled.
-                _logger.LogError($"Finished: {nodeName} = Cancelled");
-                await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Failed);
+                _logger.LogTrace($"Finished: {nodeName} = Cancelled");
+                await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Cancelled);
                 return 1;
             }
             catch (Exception ex)

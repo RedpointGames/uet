@@ -21,6 +21,10 @@
 
         public Task OnNodeFinished(string nodeName, BuildResultStatus resultStatus)
         {
+            if (nodeName == "End")
+            {
+                return Task.CompletedTask;
+            }
             switch (resultStatus)
             {
                 case BuildResultStatus.Success:
@@ -28,6 +32,9 @@
                     break;
                 case BuildResultStatus.Failed:
                     _logger.LogInformation($"[{nodeName}] \x001B[31mFailed\x001B[0m");
+                    break;
+                case BuildResultStatus.Cancelled:
+                    _logger.LogInformation($"[{nodeName}] \x001B[33mCancelled\x001B[0m");
                     break;
                 case BuildResultStatus.NotRun:
                     _logger.LogInformation($"[{nodeName}] \x001B[36mNot Run\x001B[0m");
@@ -53,6 +60,10 @@
 
         public Task OnNodeStarted(string nodeName)
         {
+            if (nodeName == "End")
+            {
+                return Task.CompletedTask;
+            }
             _logger.LogInformation($"[{nodeName}] \x001B[35mStarting...\x001B[0m");
             return Task.CompletedTask;
         }

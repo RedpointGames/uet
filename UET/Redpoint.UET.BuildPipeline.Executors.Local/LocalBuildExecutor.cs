@@ -82,7 +82,7 @@
                 var dependencyResults = await Task.WhenAll(node.DependsTasks.Select(x => x.Node.ThisTask!.Value));
                 if (!dependencyResults.All(x => x == BuildResultStatus.Success))
                 {
-                    _logger.LogInformation($"Skipped: {node.Node.Name} = NotRun");
+                    _logger.LogTrace($"Skipped: {node.Node.Name} = NotRun");
                     return BuildResultStatus.NotRun;
                 }
             }
@@ -107,7 +107,7 @@
                         task.Value.IsFaulted ||
                         task.Value.IsCanceled))
                     {
-                        _logger.LogInformation($"Skipped: {node.Node.Name} = NotRun");
+                        _logger.LogTrace($"Skipped: {node.Node.Name} = NotRun");
                         return BuildResultStatus.NotRun;
                     }
                 }
@@ -137,7 +137,7 @@
                             node.Node.Name,
                             buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation))
                         {
-                            _logger.LogInformation($"Starting: {node.Node.Name}");
+                            _logger.LogTrace($"Starting: {node.Node.Name}");
                             exitCode = await _buildGraphExecutor.ExecuteGraphNodeAsync(
                                 engineWorkspace.Path,
                                 targetWorkspace.Path,
@@ -166,13 +166,13 @@
                         }
                         if (exitCode == 0)
                         {
-                            _logger.LogInformation($"Finished: {node.Node.Name} = Success");
+                            _logger.LogTrace($"Finished: {node.Node.Name} = Success");
                             await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Success);
                             return BuildResultStatus.Success;
                         }
                         else
                         {
-                            _logger.LogError($"Finished: {node.Node.Name} = Failed");
+                            _logger.LogTrace($"Finished: {node.Node.Name} = Failed");
                             await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Failed);
                             return BuildResultStatus.Failed;
                         }
@@ -181,9 +181,9 @@
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     // The build was cancelled.
-                    _logger.LogError($"Finished: {node.Node.Name} = Cancelled");
-                    await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Failed);
-                    return BuildResultStatus.Failed;
+                    _logger.LogTrace($"Finished: {node.Node.Name} = Cancelled");
+                    await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Cancelled);
+                    return BuildResultStatus.Cancelled;
                 }
                 catch (Exception ex)
                 {

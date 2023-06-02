@@ -7,5 +7,7 @@
         Failed,
 
         NotRun,
+
+        Cancelled,
     }
 }
