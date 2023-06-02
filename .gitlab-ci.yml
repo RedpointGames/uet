@@ -33,6 +33,31 @@ stages:
       Write-Host "dotnet push failed with exit code $LastExitCode"
       exit $LastExitCode 
     }
+    $env:B2_ACCOUNT_INFO = Join-Path -Path (Resolve-Path -Path ".") -ChildPath ".b2.db"
+    try {
+      b2 authorize-account "$env:DL_BACKBLAZE_B2_KEY_ID" "$env:DL_BACKBLAZE_B2_APPLICATION_KEY"
+      if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+      }
+      b2 upload-file dl-redpoint-games "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet" "uet/$PackageVersion/macos/uet"
+      if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+      }
+      b2 upload-file dl-redpoint-games "UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe" "uet/$PackageVersion/windows/uet.exe"
+      if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+      }
+      Set-Content -Value $PackageVersion -Path latest.txt
+      b2 upload-file dl-redpoint-games "latest.txt" "uet/latest"
+      if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+      }
+    } finally {
+      if (Test-Path $env:B2_ACCOUNT_INFO) {
+        Write-Output "Cleaning up B2 authentication file..."
+        Remove-Item -Force -Path $env:B2_ACCOUNT_INFO
+      }
+    }
     exit 0
   artifacts:
     reports:
