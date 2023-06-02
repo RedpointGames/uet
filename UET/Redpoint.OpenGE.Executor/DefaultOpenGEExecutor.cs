@@ -50,6 +50,7 @@
         private readonly ICoreReservation _coreReservation;
         private readonly IProcessExecutor _processExecutor;
         private readonly bool _turnOffExtraLogInfo;
+        private readonly string? _buildLogPrefix;
 
         private Dictionary<string, OpenGETask> _allTasks;
         private Dictionary<string, OpenGEProject> _allProjects;
@@ -64,12 +65,14 @@
             ICoreReservation coreReservation,
             IProcessExecutor processExecutor,
             BuildSet buildSet,
-            bool turnOffExtraLogInfo)
+            bool turnOffExtraLogInfo,
+            string? buildLogPrefix)
         {
             _logger = logger;
             _coreReservation = coreReservation;
             _processExecutor = processExecutor;
             _turnOffExtraLogInfo = turnOffExtraLogInfo;
+            _buildLogPrefix = buildLogPrefix?.Trim() ?? string.Empty;
 
             _allProjects = new Dictionary<string, OpenGEProject>();
             _allTasks = new Dictionary<string, OpenGETask>();
@@ -210,7 +213,7 @@
             var remainingTasks = _remainingTasks + remainingOffset;
             var percent = (1.0 - (_totalTasks == 0 ? 0.0 : ((double)remainingTasks / _totalTasks))) * 100.0;
             var totalTasksLength = _totalTasks.ToString().Length;
-            return $"[{percent,3:0}%, {(_totalTasks - remainingTasks).ToString().PadLeft(totalTasksLength)}/{_totalTasks}]";
+            return $"{(_buildLogPrefix == string.Empty ? string.Empty : $"{_buildLogPrefix} ")}[{percent,3:0}%, {(_totalTasks - remainingTasks).ToString().PadLeft(totalTasksLength)}/{_totalTasks}]";
         }
 
         private async Task ExecuteTaskAsync(OpenGETask task, int selectedCore, CancellationTokenSource buildCancellationTokenSource)
@@ -242,7 +245,7 @@
                         task.Status = OpenGEStatus.Running;
                         if (!_turnOffExtraLogInfo)
                         {
-                            _logger.LogInformation($"{GetBuildStatusLogPrefix(0)} {task.BuildSetTask.Caption} \u001b[38;5;8m(started on core {selectedCore})\u001b[0m");
+                            _logger.LogInformation($"{GetBuildStatusLogPrefix(0)} {task.BuildSetTask.Caption} \u001b[38;5;8m[started on core {selectedCore}]\u001b[0m");
                         }
                         else
                         {
@@ -286,7 +289,7 @@
                             task.Status = OpenGEStatus.Success;
                             if (!_turnOffExtraLogInfo)
                             {
-                                _logger.LogInformation($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[32m(done in {stopwatch.Elapsed.TotalSeconds:F2} secs)\u001b[0m");
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[32m[done in {stopwatch.Elapsed.TotalSeconds:F2} secs]\u001b[0m");
                             }
                             else
                             {
@@ -299,7 +302,7 @@
                             project.Status = OpenGEStatus.Failure;
                             if (!_turnOffExtraLogInfo)
                             {
-                                _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[31m(build failed)\u001b[0m");
+                                _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[31m[build failed]\u001b[0m");
                             }
                             else
                             {
@@ -316,7 +319,7 @@
                         project.Status = OpenGEStatus.Failure;
                         if (!_turnOffExtraLogInfo)
                         {
-                            _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[30m\u001b[41m(executor exception)\u001b[0m");
+                            _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[30m\u001b[41m[executor exception]\u001b[0m");
                         }
                         else
                         {
@@ -333,7 +336,7 @@
                 {
                     if (!_turnOffExtraLogInfo)
                     {
-                        _logger.LogWarning($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[33m(terminating due to cancellation)\u001b[0m");
+                        _logger.LogWarning($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[33m[terminating due to cancellation]\u001b[0m");
                     }
                     else
                     {

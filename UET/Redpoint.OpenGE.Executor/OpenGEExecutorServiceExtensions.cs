@@ -8,6 +8,7 @@
         {
             services.AddSingleton<IOpenGEExecutorFactory, DefaultOpenGEExecutorFactory>();
             services.AddSingleton<ICoreReservation, ProcessWideCoreReservation>();
+            services.AddSingleton<IOpenGEDaemon, DefaultOpenGEDaemon>();
         }
     }
 }

@@ -15,14 +15,15 @@
             _serviceProvider = serviceProvider;
         }
 
-        public IOpenGEExecutor CreateExecutor(Stream xgeJobXml, bool turnOffExtraLogInfo)
+        public IOpenGEExecutor CreateExecutor(Stream xgeJobXml, bool turnOffExtraLogInfo, string? buildLogPrefix)
         {
             return new DefaultOpenGEExecutor(
                 _serviceProvider.GetRequiredService<ILogger<DefaultOpenGEExecutor>>(),
                 _serviceProvider.GetRequiredService<ICoreReservation>(),
                 _serviceProvider.GetRequiredService<IProcessExecutor>(),
                 BuildSetReader.ParseBuildSet(xgeJobXml),
-                turnOffExtraLogInfo);
+                turnOffExtraLogInfo,
+                buildLogPrefix);
         }
     }
 }

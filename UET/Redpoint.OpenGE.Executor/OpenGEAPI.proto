@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package OpenGEAPI;
+
+message SubmitJobRequest {
+	string buildNodeName = 1;
+	string jobXml = 2;
+}
+
+message SubmitJobResponse {
+	int32 exitCode = 1;
+}
+
+service OpenGE {
+	rpc SubmitJob(SubmitJobRequest) returns (stream SubmitJobResponse) {}
+}

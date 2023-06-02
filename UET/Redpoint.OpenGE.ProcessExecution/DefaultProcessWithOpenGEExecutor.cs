@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.OpenGE
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.OpenGE.Executor;
     using Redpoint.ProcessExecution;
     using System;
     using System.Collections.Generic;
@@ -14,14 +15,17 @@
     {
         private readonly IProcessExecutor _executor;
         private readonly ILogger<DefaultProcessWithOpenGEExecutor> _logger;
+        private readonly IOpenGEDaemon _daemon;
         private static SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
 
         public DefaultProcessWithOpenGEExecutor(
             IProcessExecutor executor,
-            ILogger<DefaultProcessWithOpenGEExecutor> logger)
+            ILogger<DefaultProcessWithOpenGEExecutor> logger,
+            IOpenGEDaemon daemon)
         {
             _executor = executor;
             _logger = logger;
+            _daemon = daemon;
         }
 
         public async Task<int> ExecuteAsync(ProcessSpecification processSpecification, ICaptureSpecification captureSpecification, CancellationToken cancellationToken)
@@ -66,6 +70,7 @@
             }
             processSpecification.EnvironmentVariables["PATH"] = newPath;
             processSpecification.EnvironmentVariables["UET_FORCE_XGE_SHIM"] = "1";
+            processSpecification.EnvironmentVariables["UET_XGE_SHIM_PIPE_NAME"] = await _daemon.StartIfNeededAndGetConnectionEnvironmentVariableAsync(cancellationToken);
 
             return await _executor.ExecuteAsync(
                 processSpecification,

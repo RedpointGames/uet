@@ -3,6 +3,7 @@ namespace Redpoint.UET.UAT.Tests
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
+    using Redpoint.OpenGE.ProcessExecution;
 
     public class UATExecutionTests
     {
@@ -16,6 +17,7 @@ namespace Redpoint.UET.UAT.Tests
             services.AddLogging();
             services.AddPathResolution();
             services.AddProcessExecution();
+            services.AddOpenGEProcessExecution();
             services.AddUETUAT();
 
             var serviceProvider = services.BuildServiceProvider();

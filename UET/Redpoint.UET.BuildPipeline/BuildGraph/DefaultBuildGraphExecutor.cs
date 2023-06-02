@@ -52,6 +52,7 @@
                 // show all output. Refer to CommandExtensions.cs to see where this
                 // is used.
                 { "UET_RUNNING_UNDER_BUILDGRAPH", "true" },
+                { "UET_XGE_SHIM_BUILD_NODE_NAME", buildGraphNodeName },
             };
             foreach (var kv in globalEnvironmentVariables)
             {

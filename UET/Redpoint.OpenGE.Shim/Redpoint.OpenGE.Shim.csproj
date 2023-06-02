@@ -47,12 +47,20 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.23.2" />
+    <PackageReference Include="Grpc.Core" Version="2.46.6" />
+    <PackageReference Include="Grpc.Tools" Version="2.54.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="GrpcDotNetNamedPipes" Version="2.0.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Redpoint.OpenGE.Executor\Redpoint.OpenGE.Executor.csproj" />
-    <ProjectReference Include="..\Redpoint.UET.Core\Redpoint.UET.Core.csproj" />
+    <Protobuf Include="..\Redpoint.OpenGE.Executor\OpenGEAPI.proto" GrpcServices="Client" Access="Internal">
+      <Link>OpenGEAPI.proto</Link>
+    </Protobuf>
   </ItemGroup>
 
 </Project>

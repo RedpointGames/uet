@@ -7,6 +7,7 @@ namespace Redpoint.UET.BuildPipeline.Tests
     using Redpoint.UET.BuildPipeline.BuildGraph;
     using Redpoint.UET.UAT;
     using Redpoint.MSBuildResolution;
+    using Redpoint.OpenGE.ProcessExecution;
 
     public class BuildGraphGeneratorTests
     {
@@ -21,6 +22,7 @@ namespace Redpoint.UET.BuildPipeline.Tests
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddPathResolution();
+            services.AddOpenGEProcessExecution();
             services.AddProcessExecution();
             services.AddUETUAT();
             services.AddUETBuildPipeline();
@@ -89,6 +91,7 @@ namespace Redpoint.UET.BuildPipeline.Tests
             services.AddLogging();
             services.AddPathResolution();
             services.AddProcessExecution();
+            services.AddOpenGEProcessExecution();
             services.AddUETUAT();
             services.AddUETBuildPipeline();
             services.AddMSBuildPathResolution();

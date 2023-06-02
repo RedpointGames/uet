@@ -1,3 +1,4 @@
 ﻿launchSettings.json
 *.csproj.user
 TestResults/
+UET/Redpoint.OpenGE.ProcessExecution/shim-bin/
