@@ -5,6 +5,7 @@ stages:
   stage: Build
   tags:
     - redpoint-games-windows
+  interruptible: true
   script: |
     $Timestamp = ([DateTime]::UtcNow)
     $PackageVersion = "$($Timestamp.Year).$(($Timestamp.Day * 12) + $Timestamp.Month).$(($Timestamp.Hour * 60) + $Timestamp.Minute)"
