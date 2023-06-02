@@ -90,7 +90,7 @@
                 var version = context.ParseResult.GetValueForOption(_options.Version);
                 if (string.IsNullOrWhiteSpace(version))
                 {
-                    const string latestUrl = "https://f002.backblazeb2.com/file/dl-public-redpoint-games/uet/latest";
+                    const string latestUrl = "https://dl-public.redpoint.games/file/dl-public-redpoint-games/uet/latest";
 
                     _logger.LogInformation("Checking for the latest version...");
                     using (var client = new HttpClient())
@@ -110,13 +110,13 @@
                 string filename;
                 if (OperatingSystem.IsWindows())
                 {
-                    downloadUrl = $"https://f002.backblazeb2.com/file/dl-public-redpoint-games/uet/{version}/windows/uet.exe";
+                    downloadUrl = $"https://dl-public.redpoint.games/file/dl-public-redpoint-games/uet/{version}/windows/uet.exe";
                     baseFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "UET");
                     filename = "uet.exe";
                 }
                 else if (OperatingSystem.IsMacOS())
                 {
-                    downloadUrl = $"https://f002.backblazeb2.com/file/dl-public-redpoint-games/uet/{version}/macos/uet";
+                    downloadUrl = $"https://dl-public.redpoint.games/file/dl-public-redpoint-games/uet/{version}/macos/uet";
                     baseFolder = "/Users/Shared/UET";
                     filename = "uet";
                 }
