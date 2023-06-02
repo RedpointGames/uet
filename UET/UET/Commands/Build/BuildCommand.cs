@@ -323,11 +323,38 @@
 
                 try
                 {
+                    var executionEvents = new LoggerBasedBuildExecutionEvents(_logger);
                     var buildResult = await executor.ExecuteBuildAsync(
                         buildSpec,
-                        new LoggerBasedBuildExecutionEvents(_logger),
+                        executionEvents,
                         CaptureSpecification.Passthrough,
                         context.GetCancellationToken());
+                    if (buildResult == 0)
+                    {
+                        _logger.LogInformation("All build jobs \u001b[32mpassed successfully\u001b[0m.");
+                    }
+                    else
+                    {
+                        _logger.LogError("One or more build jobs \u001b[31mfailed\u001b[0m:");
+                        foreach (var kv in executionEvents.GetResults())
+                        {
+                            switch (kv.resultStatus)
+                            {
+                                case BuildResultStatus.Success:
+                                    _logger.LogInformation($"{kv.nodeName} = \x001B[32mPassed\x001B[0m");
+                                    break;
+                                case BuildResultStatus.Failed:
+                                    _logger.LogInformation($"{kv.nodeName} = \x001B[31mFailed\x001B[0m");
+                                    break;
+                                case BuildResultStatus.Cancelled:
+                                    _logger.LogInformation($"{kv.nodeName} = \x001B[33mCancelled\x001B[0m");
+                                    break;
+                                case BuildResultStatus.NotRun:
+                                    _logger.LogInformation($"{kv.nodeName} = \x001B[36mNot Run\x001B[0m");
+                                    break;
+                            }
+                        }
+                    }
                     return buildResult;
                 }
                 catch (BuildPipelineExecutionFailure ex)

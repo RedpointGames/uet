@@ -14,9 +14,22 @@
         private static readonly Regex _uetWarnRegex = new Regex("([0-9][0-9]:[0-9][0-9]:[0-9][0-9] \\[)(warn?)(\\])");
         private static readonly Regex _uetFailRegex = new Regex("([0-9][0-9]:[0-9][0-9]:[0-9][0-9] \\[)(fail?)(\\])");
 
+        private readonly Dictionary<string, BuildResultStatus> _buildResults = new Dictionary<string, BuildResultStatus>();
+        private readonly List<string> _buildResultsOrder = new List<string>();
+
         public LoggerBasedBuildExecutionEvents(ILogger logger)
         {
             _logger = logger;
+        }
+
+        public List<(string nodeName, BuildResultStatus resultStatus)> GetResults()
+        {
+            var results = new List<(string nodeName, BuildResultStatus resultStatus)>();
+            foreach (var nodeName in _buildResultsOrder)
+            {
+                results.Add((nodeName, _buildResults.ContainsKey(nodeName) ? _buildResults[nodeName] : BuildResultStatus.NotRun));
+            }
+            return results;
         }
 
         public Task OnNodeFinished(string nodeName, BuildResultStatus resultStatus)
@@ -25,6 +38,7 @@
             {
                 return Task.CompletedTask;
             }
+            _buildResults[nodeName] = resultStatus;
             switch (resultStatus)
             {
                 case BuildResultStatus.Success:
@@ -65,6 +79,10 @@
                 return Task.CompletedTask;
             }
             _logger.LogInformation($"[{nodeName}] \x001B[35mStarting...\x001B[0m");
+            if (!_buildResultsOrder.Contains(nodeName))
+            {
+                _buildResultsOrder.Add(nodeName);
+            }
             return Task.CompletedTask;
         }
     }

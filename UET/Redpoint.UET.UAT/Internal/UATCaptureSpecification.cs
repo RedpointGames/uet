@@ -2,6 +2,7 @@
 {
     using Redpoint.ProcessExecution;
     using System;
+    using System.Text.RegularExpressions;
 
     internal class UATCaptureSpecification : ICaptureSpecification
     {
@@ -37,6 +38,21 @@
             if (data.Contains("LLVM ERROR: out of memory"))
             {
                 NeedsRetry = true;
+            }
+            if (data.Contains("fatal error CVT1107") && data.Contains("is corrupt"))
+            {
+                // fatal error CVT1107: '(file path)' is corrupt
+                // Delete the corrupt file and retry.
+                var fileRegex = Regex.Match(data.Trim(), "^fatal error CVT1107: '([^']+)' is corrupt$");
+                if (fileRegex.Success)
+                {
+                    var filePath = fileRegex.Groups[1].Value;
+                    if (File.Exists(filePath))
+                    {
+                        File.Delete(filePath);
+                        NeedsRetry = true;
+                    }
+                }
             }
             if (data.Contains("had to patch your engine"))
             {
