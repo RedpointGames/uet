@@ -18,12 +18,12 @@
     {
         private readonly ILogger<DefaultBuildSpecificationGenerator> _logger;
         private readonly ISelfLocation _selfLocation;
-        private readonly IVersioning _versioning;
+        private readonly IPluginVersioning _versioning;
 
         public DefaultBuildSpecificationGenerator(
             ILogger<DefaultBuildSpecificationGenerator> logger,
             ISelfLocation selfLocation,
-            IVersioning versioning)
+            IPluginVersioning versioning)
         {
             _logger = logger;
             _selfLocation = selfLocation;

@@ -7,8 +7,10 @@
 
     public interface IOpenGEDaemon
     {
-        Task<string> StartIfNeededAndGetConnectionEnvironmentVariableAsync(CancellationToken cancellationToken);
+        Task StartAsync(CancellationToken shutdownCancellationToken);
 
-        Task StopAsync(CancellationToken cancellationToken);
+        string GetConnectionString();
+
+        Task StopAsync();
     }
 }

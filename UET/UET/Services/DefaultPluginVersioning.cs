@@ -8,13 +8,13 @@
     using UET.Commands.Build;
     using UET.Commands.EngineSpec;
 
-    internal class DefaultVersioning : IVersioning
+    internal class DefaultPluginVersioning : IPluginVersioning
     {
-        private readonly ILogger<DefaultVersioning> _logger;
+        private readonly ILogger<DefaultPluginVersioning> _logger;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
 
-        public DefaultVersioning(
-            ILogger<DefaultVersioning> logger,
+        public DefaultPluginVersioning(
+            ILogger<DefaultPluginVersioning> logger,
             IEngineWorkspaceProvider engineWorkspaceProvider)
         {
             _logger = logger;

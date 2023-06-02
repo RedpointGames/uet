@@ -8,10 +8,11 @@ namespace Redpoint.UET.BuildPipeline.Tests
     using Redpoint.UET.UAT;
     using Redpoint.MSBuildResolution;
     using Redpoint.OpenGE.ProcessExecution;
+    using Redpoint.OpenGE.Executor;
 
     public class BuildGraphGeneratorTests
     {
-        [SkippableFact]
+        [SkippableFact(Skip = "Environment dependent")]
         public async void CanGenerateBuildGraphForProject()
         {
             var enginePath = Environment.GetEnvironmentVariable("UET_ENGINE_PATH") ?? @"E:\EpicGames\UE_5.2";
@@ -22,6 +23,7 @@ namespace Redpoint.UET.BuildPipeline.Tests
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddPathResolution();
+            services.AddOpenGEExecutor();
             services.AddOpenGEProcessExecution();
             services.AddProcessExecution();
             services.AddUETUAT();
@@ -79,7 +81,7 @@ namespace Redpoint.UET.BuildPipeline.Tests
             Assert.Contains(buildGraph.Groups, x => x.Name == "Windows Tag");
         }
 
-        [SkippableFact]
+        [SkippableFact(Skip = "Environment dependent")]
         public async void CanGenerateBuildGraphForPlugin()
         {
             var enginePath = Environment.GetEnvironmentVariable("UET_ENGINE_PATH") ?? @"E:\EpicGames\UE_5.2";
@@ -91,6 +93,7 @@ namespace Redpoint.UET.BuildPipeline.Tests
             services.AddLogging();
             services.AddPathResolution();
             services.AddProcessExecution();
+            services.AddOpenGEExecutor();
             services.AddOpenGEProcessExecution();
             services.AddUETUAT();
             services.AddUETBuildPipeline();

@@ -10,8 +10,11 @@
         {
             var startTime = DateTimeOffset.UtcNow;
             int count = 0;
-            while (!ct.IsCancellationRequested)
+            var doOnceMore = false;
+            while (!ct.IsCancellationRequested || doOnceMore)
             {
+                doOnceMore = false;
+
                 double bytesProgress = (progress.Position / (double)progress.Length) * 100.0;
 
                 DateTimeOffset currentTime = DateTimeOffset.UtcNow;
@@ -58,12 +61,19 @@
                     $"progress: {bytesProgress.ToString("#####0.00").PadLeft(9)} % ({(progress.Position / 1024 / 1024).ToString("######0").PadLeft(7)} / {(progress.Length / 1024 / 1024).ToString("######0")}) MB, {bytesPerSecond.ToString("#####0.00")} {rate}, {remainingMinutes}:{remainingSeconds.ToString("00")} to go",
                     count);
 
+                if (ct.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 try
                 {
                     await Task.Delay(100, ct);
                 }
                 catch (OperationCanceledException)
                 {
+                    // Make sure we go around once more.
+                    doOnceMore = true;
                 }
             }
         }

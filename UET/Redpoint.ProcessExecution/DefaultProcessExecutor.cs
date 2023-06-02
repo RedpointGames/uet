@@ -110,19 +110,53 @@
             }
             try
             {
-                await process.WaitForExitAsync(cancellationToken);
+                // Use our own semaphore and the Exited event
+                // instead of Process.WaitForExitAsync, since that
+                // function seems to be buggy and can stall.
+                var exitSemaphore = new SemaphoreSlim(0);
+                process.Exited += (sender, args) =>
+                {
+                    exitSemaphore.Release();
+                };
+                process.EnableRaisingEvents = true;
+                if (process.HasExited)
+                {
+                    exitSemaphore.Release();
+                }
+
+                // Wait for the process to exit or until cancellation.
+                await exitSemaphore.WaitAsync(cancellationToken);
             }
             finally
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    try
+                    if (!process.HasExited)
                     {
-                        process.Kill(true);
+                        // @note: There's a weird bug where if we try to terminate the whole
+                        // process tree of cl.exe, then the Process.Kill call will stall for
+                        // 30 seconds. Workaround this issue by only killing cl.exe itself
+                        // if that's what we're running (it won't spawn child processes anyway).
+                        if (Path.GetFileNameWithoutExtension(processSpecification.FilePath) == "cl")
+                        {
+                            process.Kill();
+                        }
+                        else
+                        {
+                            process.Kill(true);
+                        }
                     }
-                    catch
-                    {
-                    }
+                }
+            }
+            if (!process.HasExited)
+            {
+                // Give the process one last chance to exit normally
+                // so we can try to get the exit code.
+                process.WaitForExit(1000);
+                if (!process.HasExited)
+                {
+                    // We can't get the return code for this process.
+                    return int.MaxValue;
                 }
             }
             return process.ExitCode;

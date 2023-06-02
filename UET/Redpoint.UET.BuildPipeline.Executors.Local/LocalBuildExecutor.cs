@@ -178,6 +178,13 @@
                         }
                     }
                 }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // The build was cancelled.
+                    _logger.LogError($"Finished: {node.Node.Name} = Cancelled");
+                    await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Failed);
+                    return BuildResultStatus.Failed;
+                }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, $"Internal exception while running build job {node.Node.Name}: {ex.Message}");

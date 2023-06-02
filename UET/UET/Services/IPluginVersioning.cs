@@ -8,7 +8,7 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal interface IVersioning
+    internal interface IPluginVersioning
     {
         Task<(string versionName, string versionNumber)> ComputeVersionNameAndNumberAsync(
             BuildEngineSpecification engineSpec,

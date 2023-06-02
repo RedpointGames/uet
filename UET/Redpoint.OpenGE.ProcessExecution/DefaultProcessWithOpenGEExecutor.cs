@@ -70,7 +70,7 @@
             }
             processSpecification.EnvironmentVariables["PATH"] = newPath;
             processSpecification.EnvironmentVariables["UET_FORCE_XGE_SHIM"] = "1";
-            processSpecification.EnvironmentVariables["UET_XGE_SHIM_PIPE_NAME"] = await _daemon.StartIfNeededAndGetConnectionEnvironmentVariableAsync(cancellationToken);
+            processSpecification.EnvironmentVariables["UET_XGE_SHIM_PIPE_NAME"] = _daemon.GetConnectionString();
 
             return await _executor.ExecuteAsync(
                 processSpecification,

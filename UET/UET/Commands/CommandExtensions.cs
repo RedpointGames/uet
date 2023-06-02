@@ -1,12 +1,14 @@
 ﻿namespace UET.Commands
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
     using Redpoint.MSBuildResolution;
     using Redpoint.OpenGE;
     using Redpoint.OpenGE.Executor;
     using Redpoint.OpenGE.ProcessExecution;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
+    using Redpoint.ProgressMonitor;
     using Redpoint.UET.BuildPipeline;
     using Redpoint.UET.BuildPipeline.Executors.Local;
     using Redpoint.UET.Core;
@@ -20,6 +22,13 @@
 
     internal static class CommandExtensions
     {
+        internal static Option<bool> _trace = new Option<bool>("--trace", "Emit trace level logs to the output.");
+
+        internal static Option<bool> GetTraceOption()
+        {
+            return _trace;
+        }
+
         internal static void AddAllOptions<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] TOptions>(this Command command, TOptions options)
         {
             foreach (var option in typeof(TOptions).GetProperties(BindingFlags.Public | BindingFlags.Instance)
@@ -47,6 +56,7 @@
                 services.AddPathResolution();
                 services.AddMSBuildPathResolution();
                 services.AddProcessExecution();
+                services.AddProgressMonitor();
                 services.AddOpenGEExecutor();
                 services.AddOpenGEProcessExecution();
                 services.AddUETUAT();
@@ -54,10 +64,10 @@
                 services.AddUETBuildPipelineExecutorsLocal();
                 services.AddUETBuildPipelineExecutorsGitLab();
                 services.AddUETWorkspace();
-                services.AddUETCore();
+                services.AddUETCore(minimumLogLevel: context.ParseResult.GetValueForOption(GetTraceOption()) ? LogLevel.Trace : LogLevel.Information);
                 services.AddSingleton<TCommand>();
                 services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
-                services.AddSingleton<IVersioning, DefaultVersioning>();
+                services.AddSingleton<IPluginVersioning, DefaultPluginVersioning>();
                 if (extraServices != null)
                 {
                     extraServices(services);
@@ -65,13 +75,23 @@
                 var sp = services.BuildServiceProvider();
                 var instance = sp.GetRequiredService<TCommand>();
                 var daemon = sp.GetRequiredService<IOpenGEDaemon>();
-                try
+
+                // Run the command with an XGE shim if we don't already have one.
+                if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("UET_XGE_SHIM_PIPE_NAME")))
+                {
+                    await daemon.StartAsync(context.GetCancellationToken());
+                    try
+                    {
+                        context.ExitCode = await instance.ExecuteAsync(context);
+                    }
+                    finally
+                    {
+                        await daemon.StopAsync();
+                    }
+                }
+                else
                 {
                     context.ExitCode = await instance.ExecuteAsync(context);
-                }
-                finally
-                {
-                    await daemon.StopAsync(CancellationToken.None);
                 }
 
                 // BuildGraph misses the last line of a command's output if it does

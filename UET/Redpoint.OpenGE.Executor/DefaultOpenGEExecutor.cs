@@ -128,31 +128,58 @@
 
         public async Task<int> ExecuteAsync(CancellationTokenSource buildCancellationTokenSource)
         {
-            var cancellationToken = buildCancellationTokenSource.Token;
-            while (!cancellationToken.IsCancellationRequested && _remainingTasks > 0)
+            try
             {
-                // Get the next task to schedule. The queue only contains tasks whose dependencies
-                // have all passed.
-                await _queuedTaskAvailableForProcessing.WaitAsync(cancellationToken);
-                if (Interlocked.Read(ref _remainingTasks) == 0)
+                var cancellationToken = buildCancellationTokenSource.Token;
+                while (!cancellationToken.IsCancellationRequested && _remainingTasks > 0)
                 {
-                    break;
-                }
-                if (!_queuedTasksForProcessing.TryDequeue(out var nextTask))
-                {
-                    throw new InvalidOperationException("Task was available for processing but could not be pulled from queue!");
-                }
+                    // Get the next task to schedule. The queue only contains tasks whose dependencies
+                    // have all passed.
+                    await _queuedTaskAvailableForProcessing.WaitAsync(cancellationToken);
+                    if (Interlocked.Read(ref _remainingTasks) == 0)
+                    {
+                        break;
+                    }
+                    if (!_queuedTasksForProcessing.TryDequeue(out var nextTask))
+                    {
+                        throw new InvalidOperationException("Task was available for processing but could not be pulled from queue!");
+                    }
 
-                // Reserve a core we can run something on (or wait until we can get a core).
-                var selectedCore = await _coreReservation.AllocateCoreAsync(cancellationToken);
+                    // Reserve a core we can run something on (or wait until we can get a core).
+                    var selectedCore = await _coreReservation.AllocateCoreAsync(cancellationToken);
 
-                // Schedule the worker into the task pool on that core.
-                nextTask.ExecutingTask = Task.Run(async () =>
-                {
-                    await ExecuteTaskAsync(nextTask, selectedCore, buildCancellationTokenSource);
-                });
+                    // Schedule the worker into the task pool on that core.
+                    nextTask.ExecutingTask = Task.Run(async () =>
+                    {
+                        await ExecuteTaskAsync(nextTask, selectedCore, buildCancellationTokenSource);
+                    });
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                return _allTasks.Values.Any(x => x.Status != OpenGEStatus.Success) ? 1 : 0;
             }
-            return _allTasks.Values.Any(x => x.Status != OpenGEStatus.Success) ? 1 : 0;
+            finally
+            {
+                if (buildCancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    // Await all of the tasks that are in-progress.
+                    _logger.LogTrace("OpenGE build was cancelled. Waiting for all tasks to exit...");
+                    foreach (var task in _allTasks)
+                    {
+                        if (task.Value.ExecutingTask != null)
+                        {
+                            try
+                            {
+                                _logger.LogTrace($"Waiting for {task.Value.BuildSetTask.Caption} to exit...");
+                                await task.Value.ExecutingTask;
+                            }
+                            catch (OperationCanceledException)
+                            {
+                            }
+                        }
+                    }
+                    _logger.LogTrace("All tasks in the cancelled OpenGE build have exited.");
+                }
+            }
         }
 
         internal static string[] SplitArguments(string arguments)
@@ -302,6 +329,7 @@
                         {
                             task.Status = OpenGEStatus.Failure;
                             project.Status = OpenGEStatus.Failure;
+                            _logger.LogTrace($"Setting CancelledDueToFailure = true because {task.BuildSetTask.Caption} returned with exit code {exitCode}");
                             CancelledDueToFailure = true;
                             if (!_turnOffExtraLogInfo)
                             {
@@ -320,9 +348,10 @@
                     {
                         task.Status = OpenGEStatus.Failure;
                         project.Status = OpenGEStatus.Failure;
-                        CancelledDueToFailure = true;
                         if (!(ex is OperationCanceledException))
                         {
+                            _logger.LogTrace($"Setting CancelledDueToFailure = true because {task.BuildSetTask.Caption} got non-cancellation exception");
+                            CancelledDueToFailure = true;
                             if (!_turnOffExtraLogInfo)
                             {
                                 _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[30m\u001b[41m[executor exception]\u001b[0m");
@@ -341,13 +370,16 @@
                 }
                 catch (OperationCanceledException)
                 {
-                    if (!_turnOffExtraLogInfo)
+                    if (!CancelledDueToFailure)
                     {
-                        _logger.LogWarning($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[33m[terminating due to cancellation]\u001b[0m");
-                    }
-                    else
-                    {
-                        _logger.LogWarning($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} [terminating due to cancellation]");
+                        if (!_turnOffExtraLogInfo)
+                        {
+                            _logger.LogWarning($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[33m[terminating due to cancellation]\u001b[0m");
+                        }
+                        else
+                        {
+                            _logger.LogWarning($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} [terminating due to cancellation]");
+                        }
                     }
                 }
                 finally

@@ -10,13 +10,14 @@ namespace Redpoint.UET.Core
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
              Justification = "AddConsoleFormatter and RegisterProviderOptions are only dangerous when the Options type cannot be statically analyzed, but that is not the case here. " +
              "The DynamicallyAccessedMembers annotations on them will make sure to preserve the right members from the different options objects.")]
-        public static void AddUETCore(this IServiceCollection services, bool omitLogPrefix = false)
+        public static void AddUETCore(this IServiceCollection services, bool omitLogPrefix = false, LogLevel minimumLogLevel = LogLevel.Information)
         {
             services.AddSingleton<IStringUtilities, DefaultStringUtilities>();
 
             services.AddLogging(builder =>
             {
                 builder.ClearProviders();
+                builder.SetMinimumLevel(minimumLogLevel);
                 builder.AddConsoleFormatter<SimpleBuildConsoleFormatter, ExtendedSimpleConsoleFormatterOptions>(options =>
                 {
                     options.ColorBehavior = LoggerColorBehavior.Default;
