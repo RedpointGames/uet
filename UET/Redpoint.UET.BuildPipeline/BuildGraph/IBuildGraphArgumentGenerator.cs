@@ -8,6 +8,7 @@
             Dictionary<string, string> arguments,
             Dictionary<string, string> replacements,
             string repositoryRoot,
-            string uetPath);
+            string uetPath,
+            string enginePath);
     }
 }

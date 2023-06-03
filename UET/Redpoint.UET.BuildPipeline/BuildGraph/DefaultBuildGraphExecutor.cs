@@ -202,7 +202,8 @@
                                 buildGraphArguments,
                                 buildGraphArgumentReplacements,
                                 buildGraphRepositoryRootPath,
-                                uetPath)),
+                                uetPath,
+                                enginePath)),
                         EnvironmentVariables = buildGraphEnvironmentVariables
                     },
                     captureSpecification,
