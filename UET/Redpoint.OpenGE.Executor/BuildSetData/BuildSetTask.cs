@@ -2,7 +2,7 @@
 {
     internal record class BuildSetTask
     {
-        public required string SourceFile { get; init; }
+        // public required string SourceFile { get; init; }
 
         public required string Caption { get; init; }
 

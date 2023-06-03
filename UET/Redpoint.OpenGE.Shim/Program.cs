@@ -11,6 +11,8 @@ var noLogoOption = new Option<bool>("/NoLogo");
 var showAgentOption = new Option<bool>("/ShowAgent");
 var showTimeOption = new Option<bool>("/ShowTime");
 var titleOption = new Option<string>("/Title");
+var noWaitOption = new Option<bool>("/NoWait");
+var useIdeMonitor = new Option<bool>("/UseIdeMonitor");
 var fileArgument = new Argument<string>();
 
 var rootCommand = new Command("openge-shim", "OpenGE shim to emulate xgConsole.");
@@ -19,6 +21,8 @@ rootCommand.AddOption(noLogoOption);
 rootCommand.AddOption(showAgentOption);
 rootCommand.AddOption(showTimeOption);
 rootCommand.AddOption(titleOption);
+rootCommand.AddOption(noWaitOption);
+rootCommand.AddOption(useIdeMonitor);
 rootCommand.AddArgument(fileArgument);
 rootCommand.SetHandler(async (InvocationContext context) =>
 {

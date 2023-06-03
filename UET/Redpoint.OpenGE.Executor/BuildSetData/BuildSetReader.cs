@@ -24,15 +24,15 @@
                         new BuildSetTool
                         {
                             Name = tool.Attributes!["Name"]!.Value,
-                            AllowRemote = tool.Attributes!["AllowRemote"]!.Value.Equals("True", StringComparison.InvariantCultureIgnoreCase),
-                            GroupPrefix = tool.Attributes!["GroupPrefix"]!.Value,
-                            OutputPrefix = tool.Attributes!["OutputPrefix"]?.Value ?? string.Empty,
+                            // AllowRemote = tool.Attributes!["AllowRemote"]!.Value.Equals("True", StringComparison.InvariantCultureIgnoreCase),
+                            // GroupPrefix = tool.Attributes!["GroupPrefix"]!.Value,
+                            // OutputPrefix = tool.Attributes!["OutputPrefix"]?.Value ?? string.Empty,
                             Params = tool.Attributes!["Params"]!.Value,
                             Path = tool.Attributes!["Path"]!.Value,
-                            SkipIfProjectFailed = tool.Attributes!["SkipIfProjectFailed"]!.Value.Equals("true", StringComparison.InvariantCultureIgnoreCase),
-                            AutoReserveMemory = tool.Attributes!["AutoReserveMemory"]!.Value,
-                            OutputFileMasks = tool.Attributes!["OutputFileMasks"]!.Value,
-                            AutoRecover = tool.Attributes!["AutoRecover"]?.Value ?? string.Empty,
+                            // SkipIfProjectFailed = tool.Attributes!["SkipIfProjectFailed"]!.Value.Equals("true", StringComparison.InvariantCultureIgnoreCase),
+                            // AutoReserveMemory = tool.Attributes!["AutoReserveMemory"]!.Value,
+                            // OutputFileMasks = tool.Attributes!["OutputFileMasks"]!.Value,
+                            // AutoRecover = tool.Attributes!["AutoRecover"]?.Value ?? string.Empty,
                         });
                 }
 
@@ -66,10 +66,10 @@
                         {
                             Name = task.Attributes!["Name"]!.Value,
                             Caption = task.Attributes!["Caption"]!.Value,
-                            SourceFile = task.Attributes!["SourceFile"]!.Value,
+                            // SourceFile = task.Attributes!["SourceFile"]!.Value,
                             Tool = task.Attributes!["Tool"]!.Value,
                             WorkingDir = task.Attributes!["WorkingDir"]!.Value,
-                            SkipIfProjectFailed = task.Attributes!["SkipIfProjectFailed"]!.Value.Equals("true", StringComparison.InvariantCultureIgnoreCase),
+                            SkipIfProjectFailed = task.Attributes!["SkipIfProjectFailed"]?.Value?.Equals("true", StringComparison.InvariantCultureIgnoreCase) ?? false,
                             DependsOn = task.Attributes!["DependsOn"]?.Value,
                         });
                 }
