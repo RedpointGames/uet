@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.UET.BuildPipeline\Redpoint.UET.BuildPipeline.csproj" />
+    <ProjectReference Include="..\Redpoint.UET.SdkManagement\Redpoint.UET.SdkManagement.csproj" />
   </ItemGroup>
 
 </Project>

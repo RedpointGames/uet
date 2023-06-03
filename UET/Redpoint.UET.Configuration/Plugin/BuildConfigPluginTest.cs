@@ -11,7 +11,7 @@
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// This should be "Automation" for automation tests.
+        /// Specifies the test type.
         /// </summary>
         [JsonPropertyName("Type"), JsonRequired]
         public BuildConfigPluginTestType Type { get; set; }
@@ -21,6 +21,12 @@
         /// </summary>
         [JsonPropertyName("Automation"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public BuildConfigPluginTestAutomation? Automation { get; set; }
+
+        /// <summary>
+        /// Specifies the settings for executing Gauntlet tests.
+        /// </summary>
+        [JsonPropertyName("Gauntlet"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public BuildConfigPluginTestGauntlet? Gauntlet { get; set; }
 
         /// <summary>
         /// Specifies the settings for executing custom tests.

@@ -9,9 +9,11 @@
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.ProgressMonitor;
+    using Redpoint.Reservation;
     using Redpoint.UET.BuildPipeline;
     using Redpoint.UET.BuildPipeline.Executors.Local;
     using Redpoint.UET.Core;
+    using Redpoint.UET.SdkManagement;
     using Redpoint.UET.UAT;
     using Redpoint.UET.Workspace;
     using System.CommandLine;
@@ -55,10 +57,12 @@
                 services.AddSingleton(options.GetType(), sp => options);
                 services.AddPathResolution();
                 services.AddMSBuildPathResolution();
+                services.AddReservation();
                 services.AddProcessExecution();
                 services.AddProgressMonitor();
                 services.AddOpenGEExecutor();
                 services.AddOpenGEProcessExecution();
+                services.AddSdkManagement();
                 services.AddUETUAT();
                 services.AddUETBuildPipeline();
                 services.AddUETBuildPipelineExecutorsLocal();

@@ -34,5 +34,17 @@
         /// </summary>
         [JsonPropertyName("Build")]
         public BuildConfigProjectBuild Build { get; set; } = new BuildConfigProjectBuild();
+
+        /// <summary>
+        /// A list of tests to run for the project.
+        /// </summary>
+        [JsonPropertyName("Tests"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public BuildConfigProjectTest[]? Tests { get; set; }
+
+        /// <summary>
+        /// A list of deployments to run for the project.
+        /// </summary>
+        [JsonPropertyName("Deployments"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public BuildConfigProjectDeployment[]? Deployment { get; set; }
     }
 }

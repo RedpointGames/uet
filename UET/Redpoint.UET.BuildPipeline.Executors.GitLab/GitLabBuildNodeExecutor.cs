@@ -8,6 +8,7 @@
     using Redpoint.UET.Workspace;
     using System.Threading;
     using System.Threading.Tasks;
+    using System.Xml.Linq;
 
     public class GitLabBuildNodeExecutor : IBuildNodeExecutor
     {
@@ -15,17 +16,20 @@
         private readonly IBuildGraphExecutor _buildGraphExecutor;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
         private readonly IWorkspaceProvider _workspaceProvider;
+        private readonly ISdkSetupForBuildExecutor _sdkSetupForBuildExecutor;
 
         public GitLabBuildNodeExecutor(
             ILogger<GitLabBuildNodeExecutor> logger,
             IBuildGraphExecutor buildGraphExecutor,
             IEngineWorkspaceProvider engineWorkspaceProvider,
-            IWorkspaceProvider workspaceProvider)
+            IWorkspaceProvider workspaceProvider,
+            ISdkSetupForBuildExecutor sdkSetupForBuildExecutor)
         {
             _logger = logger;
             _buildGraphExecutor = buildGraphExecutor;
             _engineWorkspaceProvider = engineWorkspaceProvider;
             _workspaceProvider = workspaceProvider;
+            _sdkSetupForBuildExecutor = sdkSetupForBuildExecutor;
         }
 
         public string NodeExecutorName => "gitlab";
@@ -48,6 +52,13 @@
                     buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
                     cancellationToken))
                 {
+                    var globalEnvironmentVariablesWithSdk = await _sdkSetupForBuildExecutor.SetupForBuildAsync(
+                        buildSpecification,
+                        nodeName,
+                        engineWorkspace.Path,
+                        buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
+                        cancellationToken);
+
                     int exitCode;
                     await using (var targetWorkspace = await _workspaceProvider.GetGitWorkspaceAsync(
                         repository,
@@ -68,7 +79,7 @@
                             OperatingSystem.IsWindows() ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                             buildSpecification.BuildGraphSettings,
                             buildSpecification.BuildGraphSettingReplacements,
-                            buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
+                            globalEnvironmentVariablesWithSdk,
                             CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                             {
                                 ReceiveStdout = (line) =>

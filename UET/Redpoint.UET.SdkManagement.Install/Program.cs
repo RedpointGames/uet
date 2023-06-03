@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Redpoint.ProcessExecution;
+using Redpoint.ProgressMonitor;
 using Redpoint.UET.Core;
 using Redpoint.UET.SdkManagement;
 using System.CommandLine;
@@ -73,6 +74,7 @@ rootCommand.SetHandler(async (InvocationContext context) =>
     var services = new ServiceCollection();
     services.AddLogging(configure => configure.AddConsole());
     services.AddProcessExecution();
+    services.AddProgressMonitor();
     if (OperatingSystem.IsMacOS())
     {
         services.AddSingleton<MacSdkSetup, MacSdkSetup>();
@@ -81,6 +83,7 @@ rootCommand.SetHandler(async (InvocationContext context) =>
     {
         services.AddSingleton<AndroidSdkSetup, AndroidSdkSetup>();
         services.AddSingleton<WindowsSdkSetup, WindowsSdkSetup>();
+        services.AddSingleton<LinuxSdkSetup, LinuxSdkSetup>();
     }
 
     var serviceProvider = services.BuildServiceProvider();
@@ -104,6 +107,12 @@ rootCommand.SetHandler(async (InvocationContext context) =>
             if (OperatingSystem.IsWindows())
             {
                 setup = serviceProvider.GetRequiredService<WindowsSdkSetup>();
+            }
+            break;
+        case "Linux":
+            if (OperatingSystem.IsWindows())
+            {
+                setup = serviceProvider.GetRequiredService<LinuxSdkSetup>();
             }
             break;
         default:

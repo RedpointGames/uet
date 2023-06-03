@@ -115,13 +115,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Registry", "Redpoi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.Configuration.Tests", "Redpoint.UET.Configuration.Tests\Redpoint.UET.Configuration.Tests.csproj", "{A6F18B24-C2C3-47D7-B000-ED4B41105CB0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.Shim", "Redpoint.OpenGE.Shim\Redpoint.OpenGE.Shim.csproj", "{FC2E5072-FE61-47BD-AFE8-BA73A70EC2AB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Shim", "Redpoint.OpenGE.Shim\Redpoint.OpenGE.Shim.csproj", "{FC2E5072-FE61-47BD-AFE8-BA73A70EC2AB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.ProcessExecution", "Redpoint.OpenGE.ProcessExecution\Redpoint.OpenGE.ProcessExecution.csproj", "{627A8081-A9ED-430A-8928-FCE203AABE7E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.Executor", "Redpoint.OpenGE.Executor\Redpoint.OpenGE.Executor.csproj", "{FC963E0D-2822-4D09-A7C1-4C99B4158960}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Executor", "Redpoint.OpenGE.Executor\Redpoint.OpenGE.Executor.csproj", "{FC963E0D-2822-4D09-A7C1-4C99B4158960}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Executor.Tests", "Redpoint.OpenGE.Executor.Tests\Redpoint.OpenGE.Executor.Tests.csproj", "{0BDE72E4-CA49-4313-8862-303B4CD2B854}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Reservation", "Redpoint.Reservation\Redpoint.Reservation.csproj", "{502D1698-4F32-4838-B7EA-DFD5DA407561}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Reservation.Tests", "Redpoint.Reservation.Tests\Redpoint.Reservation.Tests.csproj", "{F335E025-07A0-4D0C-A882-00A814C4EC52}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -365,6 +369,14 @@ Global
 		{0BDE72E4-CA49-4313-8862-303B4CD2B854}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0BDE72E4-CA49-4313-8862-303B4CD2B854}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0BDE72E4-CA49-4313-8862-303B4CD2B854}.Release|Any CPU.Build.0 = Release|Any CPU
+		{502D1698-4F32-4838-B7EA-DFD5DA407561}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{502D1698-4F32-4838-B7EA-DFD5DA407561}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{502D1698-4F32-4838-B7EA-DFD5DA407561}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{502D1698-4F32-4838-B7EA-DFD5DA407561}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F335E025-07A0-4D0C-A882-00A814C4EC52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F335E025-07A0-4D0C-A882-00A814C4EC52}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F335E025-07A0-4D0C-A882-00A814C4EC52}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F335E025-07A0-4D0C-A882-00A814C4EC52}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

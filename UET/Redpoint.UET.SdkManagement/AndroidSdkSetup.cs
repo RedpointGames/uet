@@ -114,7 +114,8 @@ class AndroidVersionLoader
                 }
                 using (var client = new HttpClient())
                 {
-                    var stream = await client.GetStreamAsync("https://download.visualstudio.microsoft.com/download/pr/d6ef5c3d-5895-4f22-84ac-1f13568b5389/25f38322a6bf3b8116b75e0a303cf492/microsoft-jdk-17.0.7-windows-x64.zip");
+                    var response = await client.GetAsync("https://download.visualstudio.microsoft.com/download/pr/d6ef5c3d-5895-4f22-84ac-1f13568b5389/25f38322a6bf3b8116b75e0a303cf492/microsoft-jdk-17.0.7-windows-x64.zip", HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                    var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                     Directory.CreateDirectory(Path.Combine(sdkPackagePath, "Jdk"));
                     var archive = new ZipArchive(stream);
                     archive.ExtractToDirectory(Path.Combine(sdkPackagePath, "Jdk"));
@@ -130,7 +131,8 @@ class AndroidVersionLoader
                 }
                 using (var client = new HttpClient())
                 {
-                    var stream = await client.GetStreamAsync("https://dl.google.com/android/repository/commandlinetools-win-9477386_latest.zip");
+                    var response = await client.GetAsync("https://dl.google.com/android/repository/commandlinetools-win-9477386_latest.zip", HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                    var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                     Directory.CreateDirectory(Path.Combine(sdkPackagePath, "Sdk"));
                     var archive = new ZipArchive(stream);
                     archive.ExtractToDirectory(Path.Combine(sdkPackagePath, "Sdk"));

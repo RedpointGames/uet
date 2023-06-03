@@ -11,6 +11,12 @@
         public string TestAgainst { get; set; } = string.Empty;
 
         /// <summary>
+        /// A set of "Win64", "Mac" or both. When not specified, defaults to "Win64".
+        /// </summary>
+        [JsonPropertyName("Platforms"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string[]? Platforms { get; set; } = null;
+
+        /// <summary>
         /// The path to the test script, relative to the repository root.
         /// If you are testing against "TestProject", then the script receives the following parameters:
         ///   -EnginePath "C:\Path\To\UnrealEngine"

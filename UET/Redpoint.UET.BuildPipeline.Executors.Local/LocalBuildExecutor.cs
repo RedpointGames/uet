@@ -6,6 +6,7 @@
     using Redpoint.UET.BuildPipeline.BuildGraph.Export;
     using Redpoint.UET.BuildPipeline.Executors;
     using Redpoint.UET.BuildPipeline.Executors.Engine;
+    using Redpoint.UET.SdkManagement;
     using Redpoint.UET.Workspace;
     using System;
     using System.Threading;
@@ -18,17 +19,20 @@
         private readonly IBuildGraphExecutor _buildGraphExecutor;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
         private readonly IWorkspaceProvider _workspaceProvider;
+        private readonly ISdkSetupForBuildExecutor _sdkSetupForBuildExecutor;
 
         public LocalBuildExecutor(
             ILogger<LocalBuildExecutor> logger,
             IBuildGraphExecutor buildGraphGenerator,
             IEngineWorkspaceProvider engineWorkspaceProvider,
-            IWorkspaceProvider workspaceProvider)
+            IWorkspaceProvider workspaceProvider,
+            ISdkSetupForBuildExecutor sdkSetupForBuildExecutor)
         {
             _logger = logger;
             _buildGraphExecutor = buildGraphGenerator;
             _engineWorkspaceProvider = engineWorkspaceProvider;
             _workspaceProvider = workspaceProvider;
+            _sdkSetupForBuildExecutor = sdkSetupForBuildExecutor;
         }
 
         private class DAGNode
@@ -131,6 +135,13 @@
                         buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
                         cancellationToken))
                     {
+                        var globalEnvironmentVariablesWithSdk = await _sdkSetupForBuildExecutor.SetupForBuildAsync(
+                            buildSpecification,
+                            node.Node.Name,
+                            engineWorkspace.Path,
+                            globalEnvironmentVariables,
+                            cancellationToken);
+
                         int exitCode;
                         await using (var targetWorkspace = await GetPotentiallyVirtualisableFolderWorkspaceAsync(
                             buildSpecification.BuildGraphRepositoryRoot,
@@ -148,7 +159,7 @@
                                 OperatingSystem.IsWindows() ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                                 buildSpecification.BuildGraphSettings,
                                 buildSpecification.BuildGraphSettingReplacements,
-                                globalEnvironmentVariables,
+                                globalEnvironmentVariablesWithSdk,
                                 CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                                 {
                                     ReceiveStdout = (line) =>

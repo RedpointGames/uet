@@ -3,6 +3,7 @@
     public enum BuildConfigPluginTestType
     {
         Automation,
+        Gauntlet,
         Custom,
         Downstream,
     }

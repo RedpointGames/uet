@@ -134,11 +134,13 @@ rootCommand.SetHandler(async (context) =>
                 Windows = new Redpoint.UET.BuildPipeline.Environment.BuildGraphWindowsEnvironment
                 {
                     SharedStorageAbsolutePath = $"{Path.Combine(projectPath.FullName, "Saved", "SharedStorage").TrimEnd('\\')}\\",
+                    SdksPath = null,
                 },
                 Mac = new Redpoint.UET.BuildPipeline.Environment.BuildGraphMacEnvironment
                 {
                     // @note: This executable is for internal testing, so it doesn't support macOS.
                     SharedStorageAbsolutePath = null!,
+                    SdksPath = null,
                 }
             },
             BuildGraphRepositoryRoot = projectPath.FullName,

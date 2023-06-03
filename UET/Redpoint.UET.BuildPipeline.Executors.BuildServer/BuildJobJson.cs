@@ -13,6 +13,9 @@
         [JsonPropertyName("SharedStorageName"), JsonRequired]
         public string SharedStorageName { get; set; } = string.Empty;
 
+        [JsonPropertyName("SdksPath"), JsonRequired]
+        public string? SdksPath { get; set; } = null;
+
         [JsonPropertyName("BuildGraphTarget"), JsonRequired]
         public string BuildGraphTarget { get; set; } = string.Empty;
 

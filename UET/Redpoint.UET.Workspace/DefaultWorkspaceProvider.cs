@@ -3,7 +3,6 @@
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
     using Redpoint.UET.Workspace.Credential;
-    using Redpoint.UET.Workspace.Reservation;
     using System.Diagnostics;
     using System.Threading.Tasks;
     using Uefs;
@@ -12,13 +11,13 @@
     internal class DefaultWorkspaceProvider : IWorkspaceProvider
     {
         private readonly ILogger<DefaultWorkspaceProvider> _logger;
-        private readonly IReservationManager _reservationManager;
+        private readonly IReservationManagerForUET _reservationManager;
         private readonly UEFSClient _uefsClient;
         private readonly ICredentialManager _credentialManager;
 
         public DefaultWorkspaceProvider(
             ILogger<DefaultWorkspaceProvider> logger,
-            IReservationManager reservationManager,
+            IReservationManagerForUET reservationManager,
             UEFSClient uefsClient,
             ICredentialManager credentialManager)
         {

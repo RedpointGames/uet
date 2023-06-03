@@ -27,5 +27,11 @@
         /// </summary>
         [JsonPropertyName("Server"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public BuildConfigPluginBuildTarget? Server { get; set; }
+
+        /// <summary>
+        /// Forces --strict-includes for builds.
+        /// </summary>
+        [JsonPropertyName("StrictIncludes"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? StrictIncludes { get; set; }
     }
 }

@@ -22,6 +22,7 @@
     <ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.UET.Core\Redpoint.UET.Core.csproj" />
+    <ProjectReference Include="..\Redpoint.UET.SdkManagement\Redpoint.UET.SdkManagement.csproj" />
     <ProjectReference Include="..\Redpoint.UET.UAT\Redpoint.UET.UAT.csproj" />
     <ProjectReference Include="..\Redpoint.UET.Workspace\Redpoint.UET.Workspace.csproj" />
   </ItemGroup>

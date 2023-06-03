@@ -27,7 +27,9 @@
             public Option<string> Executor;
             public Option<string> ExecutorOutputFile;
             public Option<string?> WindowsSharedStoragePath;
+            public Option<string?> WindowsSdksPath;
             public Option<string?> MacSharedStoragePath;
+            public Option<string?> MacSdksPath;
             public Option<bool> Test;
             public Option<bool> Deploy;
             public Option<bool> StrictIncludes;
@@ -100,9 +102,17 @@
                     "--windows-shared-storage-path",
                     description: "If the build is running across multiple machines (depending on the executor), this is the network share for Windows machines to access.");
 
+                WindowsSdksPath = new Option<string?>(
+                    "--windows-sdks-path",
+                    description: "If set, UET will automatically manage and install platform SDKs, and store them in the provided path on Windows machines. This should be a local path; the SDKs will be installed on each machine as they're needed.");
+
                 MacSharedStoragePath = new Option<string?>(
                     "--mac-shared-storage-path",
                     description: "If the build is running across multiple machines (depending on the executor), this is the local path on macOS pre-mounted to the network share.");
+
+                MacSdksPath = new Option<string?>(
+                    "--mac-sdks-path",
+                    description: "If set, UET will automatically manage and install platform SDKs, and store them in the provided path on macOS machines. This should be a local path; the SDKs will be installed on each machine as they're needed.");
 
                 Test = new Option<bool>(
                     "--test",
@@ -166,7 +176,9 @@
                 var executorName = context.ParseResult.GetValueForOption(_options.Executor);
                 var executorOutputFile = context.ParseResult.GetValueForOption(_options.ExecutorOutputFile);
                 var windowsSharedStoragePath = context.ParseResult.GetValueForOption(_options.WindowsSharedStoragePath);
+                var windowsSdksPath = context.ParseResult.GetValueForOption(_options.WindowsSdksPath);
                 var macSharedStoragePath = context.ParseResult.GetValueForOption(_options.MacSharedStoragePath);
+                var macSdksPath = context.ParseResult.GetValueForOption(_options.MacSdksPath);
                 var test = context.ParseResult.GetValueForOption(_options.Test);
                 var deploy = context.ParseResult.GetValueForOption(_options.Deploy);
                 var strictIncludes = context.ParseResult.GetValueForOption(_options.StrictIncludes);
@@ -181,6 +193,17 @@
                     if (string.IsNullOrWhiteSpace(macSharedStoragePath))
                     {
                         macSharedStoragePath = Path.Combine(path.DirectoryPath, ".uet", "shared-storage");
+                    }
+                    if (string.IsNullOrWhiteSpace(windowsSdksPath))
+                    {
+                        windowsSdksPath = Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                            "UET",
+                            "SDKs");
+                    }
+                    if (string.IsNullOrWhiteSpace(macSdksPath))
+                    {
+                        macSdksPath = "/Users/Shared/UET/SDKs";
                     }
                 }
                 else
@@ -204,7 +227,9 @@
                 _logger.LogInformation($"--executor:                    {executorName}");
                 _logger.LogInformation($"--executor-output-file:        {executorOutputFile}");
                 _logger.LogInformation($"--windows-shared-storage-path: {windowsSharedStoragePath}");
+                _logger.LogInformation($"--windows-sdks-path:           {windowsSdksPath}");
                 _logger.LogInformation($"--mac-shared-storage-path:     {macSharedStoragePath}");
+                _logger.LogInformation($"--mac-sdks-path:               {macSdksPath}");
                 _logger.LogInformation($"--test:                        {(test ? "yes" : "no")}");
                 _logger.LogInformation($"--deploy:                      {(deploy ? "yes" : "no")}");
                 _logger.LogInformation($"--strict-includes:             {(strictIncludes ? "yes" : "no")}");
@@ -232,10 +257,12 @@
                     Windows = new Redpoint.UET.BuildPipeline.Environment.BuildGraphWindowsEnvironment
                     {
                         SharedStorageAbsolutePath = $"{windowsSharedStoragePath.TrimEnd('\\')}\\",
+                        SdksPath = windowsSdksPath?.TrimEnd('\\'),
                     },
                     Mac = new Redpoint.UET.BuildPipeline.Environment.BuildGraphMacEnvironment
                     {
                         SharedStorageAbsolutePath = $"{macSharedStoragePath.TrimEnd('/')}/",
+                        SdksPath = macSdksPath?.TrimEnd('/'),
                     },
                     // @note: Turned off until we can fix folder snapshotting in UEFS.
                     UseStorageVirtualisation = false,
@@ -258,7 +285,8 @@
                                         executeBuild: true,
                                         executeTests: test,
                                         executeDeployment: deploy,
-                                        strictIncludes: strictIncludes);
+                                        strictIncludes: strictIncludes,
+                                        localExecutor: executorName == "local");
                                     break;
                                 case BuildConfigPluginDistribution pluginDistribution:
                                     buildSpec = await _buildSpecificationGenerator.BuildConfigPluginToBuildSpecAsync(
@@ -271,7 +299,8 @@
                                         executePackage: true,
                                         executeTests: test,
                                         executeDeployment: deploy,
-                                        strictIncludes: strictIncludes);
+                                        strictIncludes: strictIncludes,
+                                        localExecutor: executorName == "local");
                                     break;
                                 case BuildConfigEngineDistribution engineDistribution:
                                     buildSpec = _buildSpecificationGenerator.BuildConfigEngineToBuildSpec(

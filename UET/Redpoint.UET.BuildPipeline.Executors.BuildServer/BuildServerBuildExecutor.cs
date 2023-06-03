@@ -415,19 +415,6 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                         job.ArtifactJUnitReportPath = ".uet/tmp/*/TestResults_*.xml";
                     }
 
-                    // @todo: We need to emit scripts for each platform
-                    // that will fetch and download *the current* UET
-                    // that is executing to a known path and then execute
-                    // it.
-                    //
-                    // I'm not sure of the best way to tackle this yet.
-                    // Some ideas:
-                    //  - UET version in BuildConfig.json, pull that out
-                    //    and use that to download/launch the real UET
-                    //    from C:\ProgramData\UET\<commit hash>
-                    //  - Share current executable via build artifacts?
-                    //    How would this work for multi-platform though?
-
                     switch (job.Platform)
                     {
                         case BuildServerJobPlatform.Windows:

@@ -52,5 +52,11 @@
         /// </summary>
         [JsonPropertyName("Deployment"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public BuildConfigPluginDeployment[]? Deployment { get; set; }
+
+        /// <summary>
+        /// Specifies the settings that apply to all Gauntlet tests.
+        /// </summary>
+        [JsonPropertyName("Gauntlet"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public BuildConfigPluginGauntlet? Gauntlet { get; set; }
     }
 }

@@ -37,7 +37,7 @@
             public required string Configurations;
         }
 
-        private TargetConfig ComputeTargetConfig(string name, BuildConfigProjectBuildTarget? target)
+        private TargetConfig ComputeTargetConfig(string name, BuildConfigProjectBuildTarget? target, bool localExecutor)
         {
             if (target == null)
             {
@@ -50,7 +50,7 @@
             }
 
             var targets = target.Targets ?? new[] { $"Unreal{name}" };
-            var targetPlatforms = target.Platforms;
+            var targetPlatforms = FilterIncompatiblePlatforms(target.Platforms, localExecutor);
             var configurations = target.Configurations ?? new[] { "Development", "Shipping" };
 
             return new TargetConfig
@@ -61,7 +61,7 @@
             };
         }
 
-        private TargetConfig ComputeTargetConfig(string name, BuildConfigPluginBuildTarget? target)
+        private TargetConfig ComputeTargetConfig(string name, BuildConfigPluginBuildTarget? target, bool localExecutor)
         {
             if (target == null)
             {
@@ -74,7 +74,7 @@
             }
 
             var targets = new[] { $"Unreal{name}" };
-            var targetPlatforms = target.Platforms;
+            var targetPlatforms = FilterIncompatiblePlatforms(target.Platforms, localExecutor);
             var configurations = target.Configurations ?? new[] { "Development", "Shipping" };
 
             return new TargetConfig
@@ -138,6 +138,22 @@
             throw new NotImplementedException();
         }
 
+        private string[] FilterIncompatiblePlatforms(string[] platforms, bool localExecutor)
+        {
+            if (!localExecutor)
+            {
+                return platforms;
+            }
+            if (OperatingSystem.IsWindows())
+            {
+                return platforms.Where(x => !x.Equals("Mac", StringComparison.InvariantCultureIgnoreCase) && !x.Equals("IOS", StringComparison.InvariantCultureIgnoreCase)).ToArray();
+            }
+            else
+            {
+                return platforms.Where(x => x.Equals("Mac", StringComparison.InvariantCultureIgnoreCase) || x.Equals("IOS", StringComparison.InvariantCultureIgnoreCase)).ToArray();
+            }
+        }
+
         public async Task<BuildSpecification> BuildConfigPluginToBuildSpecAsync(
             BuildEngineSpecification engineSpec,
             BuildGraphEnvironment buildGraphEnvironment,
@@ -148,10 +164,11 @@
             bool executePackage,
             bool executeTests,
             bool executeDeployment,
-            bool strictIncludes)
+            bool strictIncludes,
+            bool localExecutor)
         {
             // Determine build matrix.
-            var editorTargetPlatforms = (distribution.Build.Editor?.Platforms ?? new[] { BuildConfigPluginBuildEditorPlatform.Win64 }).Select(x =>
+            var editorTargetPlatforms = FilterIncompatiblePlatforms((distribution.Build.Editor?.Platforms ?? new[] { BuildConfigPluginBuildEditorPlatform.Win64 }).Select(x =>
             {
                 switch (x)
                 {
@@ -164,8 +181,8 @@
                     default:
                         throw new NotSupportedException();
                 }
-            }).ToArray();
-            var gameConfig = ComputeTargetConfig("Game", distribution.Build.Game);
+            }).ToArray(), localExecutor);
+            var gameConfig = ComputeTargetConfig("Game", distribution.Build.Game, localExecutor);
 
             // Compute directories to clean.
             var cleanDirectories = new List<string>();
@@ -207,6 +224,10 @@
                 }
             }
 
+            // If strict includes is turned on at the distribution level, enable it
+            // regardless of the --strict-includes setting.
+            var strictIncludesAtPluginLevel = distribution.Build?.StrictIncludes ?? false;
+
             // Compute packaging settings.
             var isForMarketplaceSubmission = distribution.Package != null &&
                 (distribution.Package.Marketplace ?? false);
@@ -225,28 +246,110 @@
 
             // Compute automation tests.
             var automationTests = new List<string>();
-            // @todo
+            if (distribution.Tests != null)
+            {
+                foreach (var test in distribution.Tests)
+                {
+                    if (test.Type == BuildConfigPluginTestType.Automation && test.Automation != null)
+                    {
+                        var minWorkerCount = test.Automation.MinWorkerCount ?? 4;
+                        var timeoutMinutes = test.Automation.TimeoutMinutes ?? 5;
+                        var automationTestValues = new[]
+                        {
+                            test.Name,
+                            string.Join(';', FilterIncompatiblePlatforms(test.Automation.Platforms, localExecutor)),
+                            string.Join(';', test.Automation.ConfigFiles ?? new string[0]),
+                            minWorkerCount.ToString(),
+                            timeoutMinutes.ToString(),
+                        };
+                        automationTests.Add(string.Join('~', automationTestValues.Select(x => string.IsNullOrWhiteSpace(x) ? "__EMPTY__" : x)));
+                    }
+                }
+            }
 
             // Determine Gauntlet tasks.
             var gauntletTests = new List<string>();
             var gauntletPlatforms = new List<string>();
-            // @todo
+            if (distribution.Tests != null)
+            {
+                foreach (var test in distribution.Tests)
+                {
+                    if (test.Type == BuildConfigPluginTestType.Gauntlet &&
+                        test.Gauntlet != null)
+                    {
+                        var requires = new List<string>();
+                        foreach (var require in test.Gauntlet.Requires ?? new BuildConfigPluginTestGauntletRequire[0])
+                        {
+                            foreach (var platform in FilterIncompatiblePlatforms(require.Platforms ?? new string[0], localExecutor))
+                            {
+                                requires.Add($"#GauntletStaged_{platform}");
+                                if (!gauntletPlatforms.Contains(platform))
+                                {
+                                    gauntletPlatforms.Add(platform);
+                                }
+                            }
+                        }
+                        gauntletTests.Add($"{test.Name}~{string.Join(";", requires)}");
+                    }
+                }
+            }
 
             // Compute the Gauntlet config paths.
             var gauntletPaths = new List<string>();
-            // @todo
+            if (distribution.Gauntlet != null)
+            {
+                foreach (var path in distribution.Gauntlet.ConfigFiles ?? new string[0])
+                {
+                    gauntletPaths.Add(path);
+                }
+            }
 
             // Compute custom tests.
             var customTests = new List<string>();
-            // @todo
+            if (distribution.Tests != null)
+            {
+                foreach (var test in distribution.Tests)
+                {
+                    if (test.Type == BuildConfigPluginTestType.Custom &&
+                        test.Custom != null)
+                    {
+                        var testAgainst = test.Custom.TestAgainst ?? "TestProject";
+                        var platformsList = FilterIncompatiblePlatforms(test.Custom.Platforms ?? new[] { "Win64" }, localExecutor);
+                        if (platformsList.Length > 0)
+                        {
+                            var platforms = string.Join(";", platformsList);
+                            customTests.Add($"{test.Name}~{testAgainst}~{test.Custom.ScriptPath}~{platforms}");
+                        }
+                    }
+                }
+            }
 
             // Compute downstream tests.
             var downstreamTests = new List<string>();
-            // @todo
+            if (distribution.Tests != null)
+            {
+                foreach (var test in distribution.Tests)
+                {
+                    if (test.Type == BuildConfigPluginTestType.Downstream)
+                    {
+                        downstreamTests.Add(test.Name);
+                    }
+                }
+            }
 
             // Compute deployment tasks.
             var deploymentBackblazeB2 = new List<string>();
-            // @todo
+            if (executeDeployment && distribution.Deployment != null)
+            {
+                foreach (var deploy in distribution.Deployment)
+                {
+                    var manualDeploy = (deploy.Manual ?? false) ? "true" : "false";
+                    if (deploy.Type == BuildConfigPluginDeploymentType.BackblazeB2 && deploy.BackblazeB2 != null)
+                    {
+                        deploymentBackblazeB2.Add($"{deploy.Name};{manualDeploy};{deploy.BackblazeB2.BucketName};{deploy.BackblazeB2.FolderPrefixEnvVar}");
+                    }
+                }
+            }
 
             // Compute copyright header.
             var copyrightHeader = string.Empty;
@@ -308,7 +411,7 @@
                     { $"GameTargetPlatforms", gameConfig.TargetPlatforms },
                     { $"GameConfigurations", gameConfig.Configurations },
                     { $"MacPlatforms", $"IOS;Mac" },
-                    { $"StrictIncludes", strictIncludes ? "true" : "false" },
+                    { $"StrictIncludes", strictIncludes || strictIncludesAtPluginLevel ? "true" : "false" },
                     { $"Allow2019", "false" },
                     { $"EnginePrefix", "Unreal" },
 
@@ -354,13 +457,14 @@
             bool executeBuild,
             bool executeTests,
             bool executeDeployment,
-            bool strictIncludes)
+            bool strictIncludes,
+            bool localExecutor)
         {
             // Determine build matrix.
             var editorTarget = distribution.Build.Editor?.Target ?? "UnrealEditor";
-            var gameConfig = ComputeTargetConfig("Game", distribution.Build.Game);
-            var clientConfig = ComputeTargetConfig("Client", distribution.Build.Client);
-            var serverConfig = ComputeTargetConfig("Server", distribution.Build.Server);
+            var gameConfig = ComputeTargetConfig("Game", distribution.Build.Game, localExecutor);
+            var clientConfig = ComputeTargetConfig("Client", distribution.Build.Client, localExecutor);
+            var serverConfig = ComputeTargetConfig("Server", distribution.Build.Server, localExecutor);
 
             // Compute prepare scripts.
             var prepareCustomCompileScripts = new List<string>();
@@ -387,18 +491,55 @@
 
             // Compute custom tests.
             var customTests = new List<string>();
-            // @todo
+            if (distribution.Tests != null)
+            {
+                foreach (var test in distribution.Tests)
+                {
+                    if (test.Type == BuildConfigProjectTestType.Custom && test.Custom != null)
+                    {
+                        customTests.Add($"{test.Name}~{test.Custom.ScriptPath}");
+                    }
+                }
+            }
 
             // Determine Gauntlet tasks.
             var gauntletTests = new List<string>();
-            // @todo
+            if (distribution.Tests != null)
+            {
+                foreach (var test in distribution.Tests)
+                {
+                    if (test.Type == BuildConfigProjectTestType.Gauntlet && test.Gauntlet != null)
+                    {
+                        var requires = new List<string>();
+                        foreach (var require in test.Gauntlet.Requires ?? new BuildConfigProjectTestGauntletRequire[0])
+                        {
+                            foreach (var platform in FilterIncompatiblePlatforms(require.Platforms ?? new string[0], localExecutor))
+                            {
+                                requires.Add($"#{require.Type.ToString()}Staged_{require.Target}_{platform}_{require.Configuration}");
+                            }
+                        }
+                        gauntletTests.Add($"{test.Name}~{string.Join(";", requires)}");
+                    }
+                }
+            }
 
             // Compute deployment tasks.
             var deploymentSteam = new List<string>();
             var deploymentCustom = new List<string>();
-            if (executeDeployment)
+            if (executeDeployment && distribution.Deployment != null)
             {
-                // @todo
+                foreach (var deploy in distribution.Deployment)
+                {
+                    var manualDeploy = (deploy.Manual ?? false) ? "true" : "false";
+                    if (deploy.Type == BuildConfigProjectDeploymentType.Steam && deploy.Steam != null && deploy.Package != null)
+                    {
+                        deploymentSteam.Add($"{deploy.Name};{manualDeploy};{deploy.Package.Type};{deploy.Package.Target};{deploy.Package.Platform};{deploy.Package.Configuration};{deploy.Steam.AppId};{deploy.Steam.DepotId};{deploy.Steam.Channel}");
+                    }
+                    else if (deploy.Type == BuildConfigProjectDeploymentType.Custom && deploy.Custom != null && deploy.Package != null)
+                    {
+                        deploymentCustom.Add($"{deploy.Name};{manualDeploy};{deploy.Package.Type};{deploy.Package.Target};{deploy.Package.Platform};{deploy.Package.Configuration};{deploy.Custom.ScriptPath}");
+                    }
+                }
             }
 
             // Compute final settings for BuildGraph.

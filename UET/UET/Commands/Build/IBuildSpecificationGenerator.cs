@@ -17,7 +17,8 @@
             bool executeBuild,
             bool executeTests,
             bool executeDeployment,
-            bool strictIncludes);
+            bool strictIncludes,
+            bool localExecutor);
 
         Task<BuildSpecification> BuildConfigPluginToBuildSpecAsync(
             BuildEngineSpecification engineSpec,
@@ -29,7 +30,8 @@
             bool executePackage,
             bool executeTests,
             bool executeDeployment,
-            bool strictIncludes);
+            bool strictIncludes,
+            bool localExecutor);
 
         BuildSpecification BuildConfigEngineToBuildSpec(
             BuildEngineSpecification engineSpec,

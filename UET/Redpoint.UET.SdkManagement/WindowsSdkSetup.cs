@@ -26,13 +26,16 @@
     {
         private readonly ILogger<WindowsSdkSetup> _logger;
         private readonly IProcessExecutor _processExecutor;
+        private readonly ISimpleDownloadProgress _simpleDownloadProgress;
 
         public WindowsSdkSetup(
             ILogger<WindowsSdkSetup> logger,
-            IProcessExecutor processExecutor)
+            IProcessExecutor processExecutor,
+            ISimpleDownloadProgress simpleDownloadProgress)
         {
             _logger = logger;
             _processExecutor = processExecutor;
+            _simpleDownloadProgress = simpleDownloadProgress;
         }
 
         public string PlatformName => "Windows";
@@ -485,35 +488,43 @@ class WindowsVersionLoader
                 _logger.LogInformation($"Downloading and extracting VSIX: {filename} ({payload.Size / 1024 / 1024} MB)");
                 using (var client = new HttpClient())
                 {
-                    var stream = await client.GetStreamAsync(payload.Url!, cancellationToken);
-                    using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
-                    {
-                        foreach (var entry in archive.Entries)
+                    await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
+                        client,
+                        payload.Url!,
+                        stream =>
                         {
-                            if (entry.FullName.EndsWith('\\') || entry.FullName.EndsWith('/'))
+                            using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
                             {
-                                continue;
-                            }
+                                foreach (var entry in archive.Entries)
+                                {
+                                    if (entry.FullName.EndsWith('\\') || entry.FullName.EndsWith('/'))
+                                    {
+                                        continue;
+                                    }
 
-                            var relativeName = HttpUtility.UrlDecode(entry.FullName.Replace("+", "%2B"));
-                            if (relativeName.StartsWith("Contents"))
-                            {
-                                relativeName = relativeName.Substring("Contents".Length + 1);
-                            }
-                            else
-                            {
-                                continue;
-                            }
+                                    var relativeName = HttpUtility.UrlDecode(entry.FullName.Replace("+", "%2B"));
+                                    if (relativeName.StartsWith("Contents"))
+                                    {
+                                        relativeName = relativeName.Substring("Contents".Length + 1);
+                                    }
+                                    else
+                                    {
+                                        continue;
+                                    }
 
-                            if (relativeName.Contains('\\') || relativeName.Contains('/'))
-                            {
-                                var directoryName = Path.GetDirectoryName(relativeName);
-                                Directory.CreateDirectory(Path.Combine(vs2022, directoryName!));
-                            }
+                                    if (relativeName.Contains('\\') || relativeName.Contains('/'))
+                                    {
+                                        var directoryName = Path.GetDirectoryName(relativeName);
+                                        Directory.CreateDirectory(Path.Combine(vs2022, directoryName!));
+                                    }
 
-                            entry.ExtractToFile(Path.Combine(vs2022, relativeName), true);
-                        }
-                    }
+                                    entry.ExtractToFile(Path.Combine(vs2022, relativeName), true);
+                                }
+                            }
+                            return Task.CompletedTask;
+                        },
+                        cancellationToken);
+
                 }
             }
         }
@@ -571,8 +582,11 @@ class WindowsVersionLoader
                         Directory.CreateDirectory(Path.Combine(sdkPackagePath, "__Installers"));
                         using (var file = new FileStream(targetPath, FileMode.Create, FileAccess.Write))
                         {
-                            var stream = await client.GetStreamAsync(payload.Url!, cancellationToken);
-                            await stream.CopyToAsync(file, cancellationToken);
+                            await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
+                                client,
+                                payload.Url!,
+                                async stream => await stream.CopyToAsync(file, cancellationToken),
+                                cancellationToken);
                         }
                         using (var file = new FileStream(targetPath, FileMode.Open, FileAccess.Read))
                         {
@@ -599,8 +613,11 @@ class WindowsVersionLoader
                     using (var file = new FileStream(targetPath, FileMode.Create, FileAccess.Write))
                     {
                         _logger.LogInformation($"Downloading CAB: {cabName} ({uri.size / 1024 / 1024} MB)");
-                        var stream = await client.GetStreamAsync(uri.url, cancellationToken);
-                        await stream.CopyToAsync(file, cancellationToken);
+                        await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
+                            client,
+                            uri.url,
+                            async stream => await stream.CopyToAsync(file, cancellationToken),
+                            cancellationToken);
                     }
                 }
             }
@@ -649,8 +666,11 @@ class WindowsVersionLoader
                     Directory.CreateDirectory(Path.Combine(sdkPackagePath, "__Installers"));
                     using (var file = new FileStream(targetPath, FileMode.Create, FileAccess.Write))
                     {
-                        var stream = await client.GetStreamAsync(payload.Url!, cancellationToken);
-                        await stream.CopyToAsync(file, cancellationToken);
+                        await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
+                            client,
+                            payload.Url!,
+                            async stream => await stream.CopyToAsync(file, cancellationToken),
+                            cancellationToken);
                     }
                 }
             }

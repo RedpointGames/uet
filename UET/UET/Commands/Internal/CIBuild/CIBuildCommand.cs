@@ -108,6 +108,7 @@
                         Windows = new BuildGraphWindowsEnvironment
                         {
                             SharedStorageAbsolutePath = buildJson.SharedStoragePath,
+                            SdksPath = buildJson.SdksPath,
                         },
                         Mac = null!,
                         UseStorageVirtualisation = Environment.GetEnvironmentVariable("UET_USE_STORAGE_VIRTUALIZATION") != "false",
@@ -123,6 +124,7 @@
                         Mac = new BuildGraphMacEnvironment
                         {
                             SharedStorageAbsolutePath = buildJson.SharedStoragePath,
+                            SdksPath = buildJson.SdksPath,
                         },
                         UseStorageVirtualisation = Environment.GetEnvironmentVariable("UET_USE_STORAGE_VIRTUALIZATION") != "false",
                     };

@@ -139,6 +139,7 @@
                             Windows = new Redpoint.UET.BuildPipeline.Environment.BuildGraphWindowsEnvironment
                             {
                                 SharedStorageAbsolutePath = $"{Path.Combine(projectPath.FullName, "Saved", "SharedStorage").TrimEnd('\\')}\\",
+                                SdksPath = null,
                             },
                             UseStorageVirtualisation = false,
                         },
