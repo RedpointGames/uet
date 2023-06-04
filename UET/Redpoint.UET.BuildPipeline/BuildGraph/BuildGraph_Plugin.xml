@@ -908,14 +908,14 @@ $(PackageExclude);
       InputProject="#HostProject"
       InputBaseDir="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
       InputBinaries="$(EditorBinaries);$(GameBinaries)"
-      OutputDir="$(ProjectRoot)/$(PackageFolder)"
+      OutputDir="$(TempPath)/$(PackageFolder)"
       OutputTag="#PackagedPlugin"
     />
 
     <Node Name="Zip Plugin" Requires="#PackagedPlugin" Produces="#PackagedZip">
       <Delete Files="$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip" />
       <Zip
-        FromDir="$(ProjectRoot)/$(PackageFolder)/"
+        FromDir="$(TempPath)/$(PackageFolder)/"
         Files="#PackagedPlugin"
         ZipFile="$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip"
         Tag="#PackagedZip"
@@ -960,7 +960,7 @@ $(PackageExclude);
           Requires="#PackagedPlugin" 
           If="'$(CustomTestTestAgainst)' == 'PackagedPlugin' and '$(TestPlatform)' == 'Mac'"
         >
-          <Spawn Exe="pwsh" Arguments="-ExecutionPolicy Bypass -File &quot;$(ProjectRoot)/$(CustomTestScriptPath)&quot; -EnginePath &quot;$(EnginePath)&quot; -TempPath &quot;$(TempPath)/&quot; -PackagedPluginPath &quot;$(ProjectRoot)/$(PackageFolder)/&quot;" />
+          <Spawn Exe="pwsh" Arguments="-ExecutionPolicy Bypass -File &quot;$(ProjectRoot)/$(CustomTestScriptPath)&quot; -EnginePath &quot;$(EnginePath)&quot; -TempPath &quot;$(TempPath)/&quot; -PackagedPluginPath &quot;$(TempPath)/$(PackageFolder)/&quot;" />
         </Node>
         <Property Name="CustomTasks" Value="$(CustomTasks)Test $(CustomTestName) $(TestPlatform);" If="'$(CustomTestTestAgainst)' == 'PackagedPlugin' and '$(TestPlatform)' == 'Mac'" />
       </ForEach>
@@ -998,7 +998,7 @@ $(PackageExclude);
           Requires="#PackagedPlugin" 
           If="'$(CustomTestTestAgainst)' == 'PackagedPlugin' and '$(TestPlatform)' == 'Win64'"
         >
-          <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass -File &quot;$(ProjectRoot)/$(CustomTestScriptPath)&quot; -EnginePath &quot;$(EnginePath)&quot; -TempPath &quot;$(TempPath)/&quot; -PackagedPluginPath &quot;$(ProjectRoot)/$(PackageFolder)/&quot;" />
+          <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass -File &quot;$(ProjectRoot)/$(CustomTestScriptPath)&quot; -EnginePath &quot;$(EnginePath)&quot; -TempPath &quot;$(TempPath)/&quot; -PackagedPluginPath &quot;$(TempPath)/$(PackageFolder)/&quot;" />
         </Node>
         <Property Name="CustomTasks" Value="$(CustomTasks)Test $(CustomTestName) $(TestPlatform);" If="'$(CustomTestTestAgainst)' == 'PackagedPlugin' and '$(TestPlatform)' == 'Win64'" />
       </ForEach>
@@ -1020,7 +1020,7 @@ $(PackageExclude);
         Name="Downstream $(DownstreamTestName)" 
         Requires="#PackagedPlugin"
       >
-        <Spawn Exe="$(UETPath)" Arguments="internal run-downstream-test --downstream-test &quot;$(DownstreamTestName)&quot; --engine-path &quot;$(EnginePath)&quot; --distribution &quot;$(Distribution)&quot; --packaged-plugin-path &quot;$(ProjectRoot)/$(PackageFolder)/&quot;" />
+        <Spawn Exe="$(UETPath)" Arguments="internal run-downstream-test --downstream-test &quot;$(DownstreamTestName)&quot; --engine-path &quot;$(EnginePath)&quot; --distribution &quot;$(Distribution)&quot; --packaged-plugin-path &quot;$(TempPath)/$(PackageFolder)/&quot;" />
       </Node>
       <Property Name="DownstreamTasks" Value="$(DownstreamTasks)Downstream $(DownstreamTestName);" />
     </ForEach>
@@ -1038,7 +1038,7 @@ $(PackageExclude);
       NodeName="Assemble Gauntlet Project"
       AssembledProjectName="$(TestProjectName)"
       InputFiles="#PackagedPlugin"
-      InputPackageDir="$(ProjectRoot)/$(PackageFolder)"
+      InputPackageDir="$(TempPath)/$(PackageFolder)"
       OutputTag="#TestProject"
       IsForGauntlet="true"
     />

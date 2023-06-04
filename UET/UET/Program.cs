@@ -72,6 +72,10 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
             {
                 logger.LogWarning($"The BuildConfig.json file requested version {targetVersion}, but we are running under a debugger, so this is being ignored.");
             }
+            else if (currentVersionAttribute.InformationalVersion.EndsWith("-pre"))
+            {
+                logger.LogWarning($"The BuildConfig.json file requested version {targetVersion}, but we are running a pre-release or development version of UET, so this is being ignored.");
+            }
             else
             {
                 if (targetVersion == "BleedingEdge")

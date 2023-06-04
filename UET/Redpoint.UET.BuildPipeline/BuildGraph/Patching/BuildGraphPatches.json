@@ -142,5 +142,15 @@
     ],
     "Output4": "Engine\\Binaries\\DotNET\\UnrealBuildTool.exe",
     "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
+  },
+  {
+    "File": "Engine\\Source\\Programs\\Shared\\EpicGames.Build\\System\\EnumeratePlugins.cs",
+    "Patches": [
+      {
+        "Find": "foreach (DirectoryItem ChildDirectory in ParentDirectory.EnumerateDirectories())",
+        "Replace": "foreach (DirectoryItem ChildDirectory in ParentDirectory.EnumerateDirectories().Where(x => x.Name != \".uet\"))"
+      }
+    ],
+    "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\EpicGames.Build.dll"
   }
 ]

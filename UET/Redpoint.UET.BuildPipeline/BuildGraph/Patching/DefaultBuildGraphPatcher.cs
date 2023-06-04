@@ -111,9 +111,10 @@
                 }
             }
 
+            var epicGamesCoreProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "Shared", "EpicGames.Core", "EpicGames.Core.csproj");
+            var epicGamesBuildProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "Shared", "EpicGames.Build", "EpicGames.Build.csproj");
             var unrealBuildToolProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "UnrealBuildTool", "UnrealBuildTool.csproj");
             var automationToolBuildGraphProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "BuildGraph", "BuildGraph.Automation.csproj");
-            var epicGamesCoreProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "Shared", "EpicGames.Core", "EpicGames.Core.csproj");
             var automationToolProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "AutomationTool.csproj");
             var (msBuildPath, msBuildExtraArgs) = await _msBuildPathResolver.ResolveMSBuildPath();
             var dotnetPath = await _pathResolver.ResolveBinaryPath("dotnet");
@@ -157,6 +158,7 @@
 
             var projects = new[]
             {
+                (name: "EpicGames.Build", path: epicGamesBuildProject),
                 (name: "EpicGames.Core", path: epicGamesCoreProject),
                 (name: "UnrealBuildTool", path: unrealBuildToolProject),
                 (name: "BuildGraph.Automation", path: automationToolBuildGraphProject),
