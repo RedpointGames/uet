@@ -9,7 +9,7 @@
 
     internal interface IBuildSpecificationGenerator
     {
-        BuildSpecification BuildConfigProjectToBuildSpec(
+        Task<BuildSpecification> BuildConfigProjectToBuildSpecAsync(
             BuildEngineSpecification engineSpec,
             BuildGraphEnvironment buildGraphEnvironment,
             BuildConfigProjectDistribution distribution,

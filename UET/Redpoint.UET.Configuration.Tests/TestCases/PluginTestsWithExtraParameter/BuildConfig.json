@@ -1,0 +1,22 @@
+{
+  "Type": "Plugin",
+  "PluginName": "Test",
+  "Distributions": [
+    {
+      "Name": "Default",
+      "Tests": [
+        {
+          "Type": "Automation",
+          "Name": "AutomationTest",
+          "Automation": {
+            "TestPrefix": "ABC",
+            "Platforms": [ "Win64", "Mac" ],
+            "ConfigFiles": [ "A", "B" ],
+            "MinWorkerCount": 4
+          },
+          "Extra": null
+        }
+      ]
+    }
+  ]
+}

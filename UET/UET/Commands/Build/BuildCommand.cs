@@ -34,7 +34,7 @@
             public Option<bool> Deploy;
             public Option<bool> StrictIncludes;
 
-            public Options()
+            public Options(IServiceProvider serviceProvider)
             {
                 Path = new Option<PathSpec>(
                     "--path",
@@ -47,7 +47,7 @@
                 Distribution = new Option<DistributionSpec?>(
                     "--distribution",
                     description: "The distribution to build if targeting a BuildConfig.json file.",
-                    parseArgument: DistributionSpec.ParseDistributionSpec(Path),
+                    parseArgument: DistributionSpec.ParseDistributionSpec(serviceProvider, Path),
                     isDefault: true);
                 Distribution.AddAlias("-d");
                 Distribution.Arity = ArgumentArity.ExactlyOne;
@@ -130,11 +130,8 @@
 
         public static Command CreateBuildCommand()
         {
-            var options = new Options();
             var command = new Command("build", "Build an Unreal Engine project or plugin.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<BuildCommandInstance>(
-                options,
+            command.AddServicedOptionsHandler<BuildCommandInstance, Options>(
                 services =>
                 {
                     services.AddSingleton<IBuildSpecificationGenerator, DefaultBuildSpecificationGenerator>();
@@ -277,7 +274,7 @@
                             switch (distribution!.Distribution)
                             {
                                 case BuildConfigProjectDistribution projectDistribution:
-                                    buildSpec = _buildSpecificationGenerator.BuildConfigProjectToBuildSpec(
+                                    buildSpec = await _buildSpecificationGenerator.BuildConfigProjectToBuildSpecAsync(
                                         engineSpec,
                                         buildGraphEnvironment,
                                         projectDistribution,

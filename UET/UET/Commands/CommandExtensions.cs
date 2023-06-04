@@ -12,10 +12,13 @@
     using Redpoint.Reservation;
     using Redpoint.UET.BuildPipeline;
     using Redpoint.UET.BuildPipeline.Executors.Local;
+    using Redpoint.UET.Configuration;
     using Redpoint.UET.Core;
     using Redpoint.UET.SdkManagement;
     using Redpoint.UET.UAT;
     using Redpoint.UET.Workspace;
+    using Redpoint.UET.BuildPipeline.Providers.Test;
+    using Redpoint.UET.BuildPipeline.Providers.Deployment;
     using System.CommandLine;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
@@ -29,6 +32,24 @@
         internal static Option<bool> GetTraceOption()
         {
             return _trace;
+        }
+
+        internal static void AddServicedOptionsHandler<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TCommand,
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] TOptions
+            >(this Command command, Action<IServiceCollection>? extraServices = null) where TCommand : class, ICommandInstance where TOptions : class
+        {
+            // We need a minimal service provider for distribution option parsing.
+            var minimalServices = new ServiceCollection();
+            minimalServices.AddUETBuildPipelineProvidersTest();
+            minimalServices.AddUETBuildPipelineProvidersDeployment();
+            minimalServices.AddTransient<TOptions, TOptions>();
+            var minimalServiceProvider = minimalServices.BuildServiceProvider();
+
+            // Get the options instance from the minimal service provider.
+            var options = minimalServiceProvider.GetRequiredService<TOptions>();
+            command.AddAllOptions(options);
+            command.AddCommonHandler<TCommand>(options, extraServices);
         }
 
         internal static void AddAllOptions<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] TOptions>(this Command command, TOptions options)
@@ -67,6 +88,8 @@
                 services.AddUETBuildPipeline();
                 services.AddUETBuildPipelineExecutorsLocal();
                 services.AddUETBuildPipelineExecutorsGitLab();
+                services.AddUETBuildPipelineProvidersTest();
+                services.AddUETBuildPipelineProvidersDeployment();
                 services.AddUETWorkspace();
                 services.AddUETCore(minimumLogLevel: context.ParseResult.GetValueForOption(GetTraceOption()) ? LogLevel.Trace : LogLevel.Information);
                 services.AddSingleton<TCommand>();

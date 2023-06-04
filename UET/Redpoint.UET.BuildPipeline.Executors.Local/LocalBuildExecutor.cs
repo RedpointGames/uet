@@ -237,6 +237,9 @@
                         buildSpecification.UETPath,
                         buildSpecification.BuildGraphScript,
                         buildSpecification.BuildGraphTarget,
+                        OperatingSystem.IsWindows()
+                            ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
+                            : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                         buildSpecification.BuildGraphSettings,
                         buildSpecification.BuildGraphSettingReplacements,
                         generationCaptureSpecification,

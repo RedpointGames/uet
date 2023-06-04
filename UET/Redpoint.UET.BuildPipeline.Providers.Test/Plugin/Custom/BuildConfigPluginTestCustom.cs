@@ -8,13 +8,13 @@
         /// Must be set to either "TestProject" or "PackagedPlugin".
         /// </summary>
         [JsonPropertyName("TestAgainst"), JsonRequired]
-        public string TestAgainst { get; set; } = string.Empty;
+        public BuildConfigPluginTestCustomTestAgainst TestAgainst { get; set; } = BuildConfigPluginTestCustomTestAgainst.TestProject;
 
         /// <summary>
-        /// A set of "Win64", "Mac" or both. When not specified, defaults to "Win64".
+        /// A list of platforms to execute custom tests on. A set of "Win64", "Mac" or both.
         /// </summary>
         [JsonPropertyName("Platforms"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string[]? Platforms { get; set; } = null;
+        public BuildConfigHostPlatform[] Platforms { get; set; } = new BuildConfigHostPlatform[0];
 
         /// <summary>
         /// The path to the test script, relative to the repository root.

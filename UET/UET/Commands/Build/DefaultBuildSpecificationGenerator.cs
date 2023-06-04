@@ -4,12 +4,14 @@
     using Grpc.Core.Logging;
     using Microsoft.Extensions.Logging;
     using Redpoint.UET.BuildPipeline.BuildGraph;
+    using Redpoint.UET.BuildPipeline.BuildGraph.Dynamic;
     using Redpoint.UET.BuildPipeline.Environment;
     using Redpoint.UET.BuildPipeline.Executors;
     using Redpoint.UET.Configuration.Engine;
     using Redpoint.UET.Configuration.Plugin;
     using Redpoint.UET.Configuration.Project;
     using System;
+    using System.Diagnostics;
     using System.Linq;
     using UET.Commands.EngineSpec;
     using UET.Services;
@@ -19,15 +21,18 @@
         private readonly ILogger<DefaultBuildSpecificationGenerator> _logger;
         private readonly ISelfLocation _selfLocation;
         private readonly IPluginVersioning _versioning;
+        private readonly IDynamicBuildGraphIncludeWriter _dynamicBuildGraphIncludeWriter;
 
         public DefaultBuildSpecificationGenerator(
             ILogger<DefaultBuildSpecificationGenerator> logger,
             ISelfLocation selfLocation,
-            IPluginVersioning versioning)
+            IPluginVersioning versioning,
+            IDynamicBuildGraphIncludeWriter dynamicBuildGraphIncludeWriter)
         {
             _logger = logger;
             _selfLocation = selfLocation;
             _versioning = versioning;
+            _dynamicBuildGraphIncludeWriter = dynamicBuildGraphIncludeWriter;
         }
 
         private struct TargetConfig
@@ -154,6 +159,22 @@
             }
         }
 
+        private async Task<string> WriteDynamicBuildGraphIncludeAsync(
+            BuildGraphEnvironment env,
+            bool localExecutor,
+            object distribution)
+        {
+            var sharedStorageAbsolutePath = OperatingSystem.IsWindows() ?
+                env.Windows.SharedStorageAbsolutePath :
+                env.Mac!.SharedStorageAbsolutePath;
+            var filename = $"DynamicBuildGraph-{Process.GetCurrentProcess().Id}.xml";
+            using (var stream = new FileStream(Path.Combine(sharedStorageAbsolutePath, filename), FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                await _dynamicBuildGraphIncludeWriter.WriteBuildGraphInclude(stream, localExecutor, distribution);
+            }
+            return $"__SHARED_STORAGE_PATH__/{filename}";
+        }
+
         public async Task<BuildSpecification> BuildConfigPluginToBuildSpecAsync(
             BuildEngineSpecification engineSpec,
             BuildGraphEnvironment buildGraphEnvironment,
@@ -244,8 +265,15 @@
                 throw new BuildMisconfigurationException("This plugin contains configuration files underneath Config/, but no filter file was specified for Package.Filter in BuildConfig.json. This almost certainly means the distribution is misconfigured, as plugin configuration files will not be included in the package unless you explicitly include them with a filter file.");
             }
 
+            // Write dynamic build includes for tests and deployments.
+            var scriptIncludes = await WriteDynamicBuildGraphIncludeAsync(
+                buildGraphEnvironment,
+                localExecutor,
+                distribution);
+
             // Compute automation tests.
             var automationTests = new List<string>();
+            /*
             if (distribution.Tests != null)
             {
                 foreach (var test in distribution.Tests)
@@ -266,10 +294,12 @@
                     }
                 }
             }
+            */
 
             // Determine Gauntlet tasks.
             var gauntletTests = new List<string>();
             var gauntletPlatforms = new List<string>();
+            /*
             if (distribution.Tests != null)
             {
                 foreach (var test in distribution.Tests)
@@ -293,6 +323,7 @@
                     }
                 }
             }
+            */
 
             // Compute the Gauntlet config paths.
             var gauntletPaths = new List<string>();
@@ -306,6 +337,7 @@
 
             // Compute custom tests.
             var customTests = new List<string>();
+            /*
             if (distribution.Tests != null)
             {
                 foreach (var test in distribution.Tests)
@@ -313,8 +345,8 @@
                     if (test.Type == BuildConfigPluginTestType.Custom &&
                         test.Custom != null)
                     {
-                        var testAgainst = test.Custom.TestAgainst ?? "TestProject";
-                        var platformsList = FilterIncompatiblePlatforms(test.Custom.Platforms ?? new[] { "Win64" }, localExecutor);
+                        var testAgainst = test.Custom.TestAgainst;
+                        var platformsList = FilterIncompatiblePlatforms(test.Custom.Platforms, localExecutor);
                         if (platformsList.Length > 0)
                         {
                             var platforms = string.Join(";", platformsList);
@@ -323,9 +355,11 @@
                     }
                 }
             }
+            */
 
             // Compute downstream tests.
             var downstreamTests = new List<string>();
+            /*
             if (distribution.Tests != null)
             {
                 foreach (var test in distribution.Tests)
@@ -336,9 +370,11 @@
                     }
                 }
             }
+            */
 
             // Compute deployment tasks.
             var deploymentBackblazeB2 = new List<string>();
+            /*
             if (executeDeployment && distribution.Deployment != null)
             {
                 foreach (var deploy in distribution.Deployment)
@@ -350,6 +386,7 @@
                     }
                 }
             }
+            */
 
             // Compute copyright header.
             var copyrightHeader = string.Empty;
@@ -394,6 +431,9 @@
                     { $"PluginDirectory", $"__REPOSITORY_ROOT__/{pluginInfo.PluginName}" },
                     { $"PluginName", pluginInfo.PluginName },
                     { $"Distribution", distribution.Name },
+
+                    // Dynamic graph
+                    { "ScriptIncludes", scriptIncludes },
 
                     // General options
                     { "IsUnrealEngine5", "true" },
@@ -450,7 +490,7 @@
             };
         }
 
-        public BuildSpecification BuildConfigProjectToBuildSpec(
+        public async Task<BuildSpecification> BuildConfigProjectToBuildSpecAsync(
             BuildEngineSpecification engineSpec,
             BuildGraphEnvironment buildGraphEnvironment,
             BuildConfigProjectDistribution distribution,
@@ -490,8 +530,15 @@
                 }
             }
 
+            // Write dynamic build includes for tests and deployments.
+            var scriptIncludes = await WriteDynamicBuildGraphIncludeAsync(
+                buildGraphEnvironment,
+                localExecutor,
+                distribution);
+
             // Compute custom tests.
             var customTests = new List<string>();
+            /*
             if (distribution.Tests != null)
             {
                 foreach (var test in distribution.Tests)
@@ -502,9 +549,11 @@
                     }
                 }
             }
+            */
 
             // Determine Gauntlet tasks.
             var gauntletTests = new List<string>();
+            /*
             if (distribution.Tests != null)
             {
                 foreach (var test in distribution.Tests)
@@ -523,10 +572,12 @@
                     }
                 }
             }
+            */
 
             // Compute deployment tasks.
             var deploymentSteam = new List<string>();
             var deploymentCustom = new List<string>();
+            /*
             if (executeDeployment && distribution.Deployment != null)
             {
                 foreach (var deploy in distribution.Deployment)
@@ -542,6 +593,7 @@
                     }
                 }
             }
+            */
 
             // Compute final settings for BuildGraph.
             return new BuildSpecification
@@ -557,6 +609,9 @@
                     { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__/{distribution.FolderName}" },
                     { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
+
+                    // Dynamic graph
+                    { "ScriptIncludes", scriptIncludes },
 
                     // General options
                     { $"UProjectPath", $"__REPOSITORY_ROOT__/{distribution.FolderName}/{distribution.ProjectName}.uproject" },
@@ -628,6 +683,9 @@
                     { $"PluginDirectory", $"__REPOSITORY_ROOT__" },
                     { $"PluginName", Path.GetFileNameWithoutExtension(pathSpec.UPluginPath)! },
                     { $"Distribution", "None" },
+
+                    // Dynamic graph
+                    { "ScriptIncludes", string.Empty },
 
                     // General options
                     { "IsUnrealEngine5", "true" },
@@ -723,6 +781,9 @@
                     { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
                     { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
+
+                    // Dynamic graph
+                    { "ScriptIncludes", string.Empty },
 
                     // General options
                     { $"UProjectPath", $"__REPOSITORY_ROOT__/{Path.GetFileName(pathSpec.UProjectPath)}" },

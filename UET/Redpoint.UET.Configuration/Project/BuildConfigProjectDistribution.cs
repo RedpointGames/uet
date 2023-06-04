@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.UET.Configuration.Project
 {
-    using Redpoint.UET.Configuration.Plugin;
+    using Redpoint.UET.Configuration.Dynamic;
     using System.Text.Json.Serialization;
 
     public class BuildConfigProjectDistribution
@@ -39,12 +39,12 @@
         /// A list of tests to run for the project.
         /// </summary>
         [JsonPropertyName("Tests"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public BuildConfigProjectTest[]? Tests { get; set; }
+        public BuildConfigDynamic<BuildConfigProjectDistribution, ITestProvider>[]? Tests { get; set; }
 
         /// <summary>
         /// A list of deployments to run for the project.
         /// </summary>
         [JsonPropertyName("Deployments"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public BuildConfigProjectDeployment[]? Deployment { get; set; }
+        public BuildConfigDynamic<BuildConfigProjectDistribution, IDeploymentProvider>[]? Deployment { get; set; }
     }
 }

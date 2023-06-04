@@ -16,7 +16,9 @@
         {
         }
 
-        public static ParseArgument<DistributionSpec?> ParseDistributionSpec(Option<PathSpec> pathSpec)
+        public static ParseArgument<DistributionSpec?> ParseDistributionSpec(
+            IServiceProvider serviceProvider,
+            Option<PathSpec> pathSpec)
         {
             return (result) =>
             {
@@ -45,7 +47,8 @@
 
                     // Check that the distribution is actually defined.
                     var loadResult = BuildConfigLoader.TryLoad(
-                        System.IO.Path.Combine(path.DirectoryPath, "BuildConfig.json"));
+                        serviceProvider,
+                        Path.Combine(path.DirectoryPath, "BuildConfig.json"));
                     if (loadResult.Success)
                     {
                         switch (loadResult.BuildConfig)

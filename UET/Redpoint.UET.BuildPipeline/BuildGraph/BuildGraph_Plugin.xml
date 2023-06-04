@@ -48,10 +48,8 @@
 
   <!-- Test options -->
   <Option Name="ExecuteTests" Restrict="true|false" DefaultValue="true" Description="If false, no tests are run" />
-  <Option Name="AutomationTests" DefaultValue="" Description="An array of automation tests formatted like so: Name1~Win64;Mac~~YourTestPrefix~4~5+Name2~Win64~BuildScriptsExtra/UnitTestConfigFiles~YourOtherTestPrefix~1~10" />
   <Option Name="GauntletTests" Restrict=".*" DefaultValue="" Description="An array of Gauntlet tests formatted like so: Name1~#GauntletStaged_Win64+Name2~#GauntletStaged_Win64;#GauntletStaged_IOS" />
   <Option Name="CustomTests" DefaultValue="" Description="An array of custom tests formatted like so: Name1~PathToScript1.ps1~Win64;Mac+Name2~PathToScript2.ps1~Win64" />
-  <Option Name="DownstreamTests" Restrict=".*" DefaultValue="" Description="An array of downstream tests formatted like so: Name1+Name2" />
   <Option Name="GauntletGameTargetPlatforms" Restrict="[^ ]*" DefaultValue="" Description="List of the game target platforms to build the Gauntlet test project for, separated by semicolons, eg. Win64;Win32;Android"/>
   <Option Name="GauntletConfigPaths" Restrict="[^ ]*" DefaultValue="" Description="List of the paths to copy files out of into the Config/ folder before building the project for Gauntlet tests."/>
 
@@ -62,14 +60,15 @@
   <Option Name="HostProjectName" DefaultValue="H" Description="Name for the host project folder and .uproject file" />
   <Option Name="TestProjectName" DefaultValue="T" Description="Name for the automation test project folder and .uproject file" />
 
+  <!-- Dynamic scripts to include, used by UET to dynamically generate test and deployment nodes -->
+  <Option Name="ScriptIncludes" DefaultValue="" Description="Additional script includes paths" />
+  
   <Property Name="2017Flag" Value="-2017" />
   <Property Name="2017Flag" Value="" If="'$(Allow2019)' == 'true'" />
   <Property Name="EditorBinaries" Value="" />
   <Property Name="GameBinaries" Value="" />
   <Property Name="AdditionalArguments" Value="" If="'$(StrictIncludes)' == 'false'" />
   <Property Name="AdditionalArguments" Value=" -NoPCH -NoSharedPCH -DisableUnity" If="'$(StrictIncludes)' == 'true'" />
-  <Property Name="AutomationTasks" Value="" />
-  <Property Name="AutomationTestResults" Value="" />
   <Property Name="GauntletBinaries" Value="" />
   <Property Name="GauntletCookedContent" Value="" />
   <Property Name="GauntletStaged" Value="" />
@@ -86,6 +85,8 @@
     <Property Name="CanBuildEditorWin64" Value="true" If="'$(EditorTargetPlatform)' == 'Win64'" />
     <Property Name="CanBuildEditorMac" Value="true" If="'$(EditorTargetPlatform)' == 'Mac'" />
   </ForEach>
+  <Property Name="DynamicNodes" Value="" />
+  <Property Name="DynamicOutputFiles" Value="" />
 
   <!--
     Define the macro for creating packages. This macro emits a node (so you don't need a <Node /> around it),
@@ -395,356 +396,6 @@ $(PackageExclude);
     <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(EnginePrefix)Editor Win64;" If="'$(ExecutePackage)' == 'false' and '$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorWin64)' == 'true'" />
 
   </Agent>
-
-  <!--
-    Create our "automation only" packages. These won't get included in the build graph unless there are
-    automation tasks generated, because of the way BuildGraph optimizes out unnecessary steps.
-  -->
-
-  <Agent Name="Create Test Early Packages" Type="Win64">
-
-    <Property Name="AutomationWin64InputBinaries" Value="" />
-    <Property Name="AutomationWin64InputBinaries" Value="#EditorBinaries_Win64" If="'$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorWin64)' == 'true'" />
-    <Expand 
-      Name="Create Package" 
-      NodeName="Create Win64 Test Package"
-      InputProject="#HostProject"
-      InputBaseDir="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
-      InputBinaries="$(AutomationWin64InputBinaries)"
-      OutputDir="$(TempPath)/$(PackageFolder)-Win64"
-      OutputTag="#AutomationPluginWin64"
-    />
-
-    <Property Name="AutomationMacInputBinaries" Value="" />
-    <Property Name="AutomationMacInputBinaries" Value="#EditorBinaries_Mac" If="'$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorMac)' == 'true'" />
-    <Expand 
-      Name="Create Package" 
-      NodeName="Create Mac Test Package"
-      InputProject="#HostProject"
-      InputBaseDir="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
-      InputBinaries="$(AutomationMacInputBinaries)"
-      OutputDir="$(TempPath)/$(PackageFolder)-Mac"
-      OutputTag="#AutomationPluginMac"
-      If="'$(IsBuildMachine)' == 'true'"
-    />
-
-  </Agent>
-
-  <!--
-    Create our "automation only" test projects. These won't get included in the build graph unless there are
-    automation tasks generated, because of the way BuildGraph optimizes out unnecessary steps.
-  -->
-
-  <Agent Name="Assemble Test Early Projects" Type="Win64">
-
-    <Expand 
-      Name="Assemble Test Project" 
-      NodeName="Assemble Test Win64 Project"
-      AssembledProjectName="$(TestProjectName)Win64"
-      InputFiles="#AutomationPluginWin64"
-      InputPackageDir="$(TempPath)/$(PackageFolder)-Win64"
-      OutputTag="#TestProjectWin64"
-      IsForGauntlet="false"
-    />
-
-    <Expand 
-      Name="Assemble Test Project" 
-      NodeName="Assemble Test Mac Project"
-      AssembledProjectName="$(TestProjectName)Mac"
-      InputFiles="#AutomationPluginMac"
-      InputPackageDir="$(TempPath)/$(PackageFolder)-Mac"
-      OutputTag="#TestProjectMac"
-      If="'$(IsBuildMachine)' == 'true'"
-      IsForGauntlet="false"
-    />
-
-  </Agent>
-
-  <!--
-    Execute our automation tests, and any custom tests that run against the test project.
-    
-    We prioritize this over building the game targets, as it allows automation tests to start 
-    running as early as possible (we expect automation tests will take longer to run than it
-    will take to compile a game target). With multiple build agents, this allows the pipeline to
-    be running automation tests and building game targets in parallel, reducing the overall
-    build time.
-
-    We declare our Mac tests first, so that their remote artifact download can start first.
-  -->
-
-  <Agent Name="Mac Test Early" Type="Mac" If="'$(IsBuildMachine)' == 'true' and '$(ExecuteTests)' == 'true'">
-
-    <!-- Compile the test project so we can run the tests, but *only* if it's a Marketplace build where we wouldn't have already built the plugin -->
-    <Node Name="Compile Test Project Mac" Requires="#TestProjectMac" Produces="#TestBinaries_Mac" If="'$(IsForMarketplaceSubmission)' == 'true' and '$(CanBuildEditorMac)' == 'true'">
-      <Compile Target="$(EnginePrefix)Editor" Platform="Mac" Configuration="Development" Tag="#TestBinaries_Mac" Arguments="-Project=&quot;$(TempPath)/$(TestProjectName)Mac/$(TestProjectName)Mac.uproject&quot; -plugin=&quot;$(TempPath)/$(TestProjectName)Mac/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; -NoPDB -NoDebugInfo $(AdditionalArguments)"/>
-    </Node>
-    <Property Name="TestBinaries_Mac" Value="" If="'$(IsForMarketplaceSubmission)' == 'false' or '$(CanBuildEditorMac)' == 'false'" />
-    <Property Name="TestBinaries_Mac" Value="#TestBinaries_Mac" If="'$(IsForMarketplaceSubmission)' == 'true' and '$(CanBuildEditorMac)' == 'true'" />
-
-    <!-- Run all the defined automation tests for Mac -->
-    <ForEach Name="AutomationEntry" Values="$(AutomationTests)" Separator="+">
-      <Property Name="AutomationTestName" Value="" />
-      <Property Name="AutomationTestPlatforms" Value="" />
-      <Property Name="AutomationTestConfigFiles" Value="" />
-      <Property Name="AutomationTestPrefix" Value="" />
-      <Property Name="AutomationTestMinWorkerCount" Value="" />
-      <Property Name="AutomationTestTimeoutMinutes" Value="" />
-      <Property Name="AutomationTestParsing" Value="Name" />
-      <ForEach Name="AutomationEntryValue" Values="$(AutomationEntry)" Separator="~">
-        <Switch>
-          <Case If="'$(AutomationTestParsing)' == 'Name'">
-            <Property Name="AutomationTestName" Value="$(AutomationEntryValue)" If="'$(AutomationEntryValue)' != '__EMPTY__'" />
-            <Property Name="AutomationTestParsing" Value="Platforms" />
-          </Case>
-          <Case If="'$(AutomationTestParsing)' == 'Platforms'">
-            <Property Name="AutomationTestPlatforms" Value="$(AutomationEntryValue)" If="'$(AutomationEntryValue)' != '__EMPTY__'" />
-            <Property Name="AutomationTestParsing" Value="ConfigFiles" />
-          </Case>
-          <Case If="'$(AutomationTestParsing)' == 'ConfigFiles'">
-            <Property Name="AutomationTestConfigFiles" Value="$(AutomationEntryValue)" If="'$(AutomationEntryValue)' != '__EMPTY__'" />
-            <Property Name="AutomationTestParsing" Value="Prefix" />
-          </Case>
-          <Case If="'$(AutomationTestParsing)' == 'Prefix'">
-            <Property Name="AutomationTestPrefix" Value="$(AutomationEntryValue)" If="'$(AutomationEntryValue)' != '__EMPTY__'" />
-            <Property Name="AutomationTestParsing" Value="MinWorkerCount" />
-          </Case>
-          <Case If="'$(AutomationTestParsing)' == 'MinWorkerCount'">
-            <Property Name="AutomationTestMinWorkerCount" Value="$(AutomationEntryValue)" If="'$(AutomationEntryValue)' != '__EMPTY__'" />
-            <Property Name="AutomationTestParsing" Value="TimeoutMinutes" />
-          </Case>
-          <Default>
-            <Property Name="AutomationTestTimeoutMinutes" Value="$(AutomationEntryValue)" If="'$(AutomationEntryValue)' != '__EMPTY__'" />
-          </Default>
-        </Switch>
-      </ForEach>
-      <ForEach Name="AutomationTestPlatform" Values="$(AutomationTestPlatforms)">
-        <Node 
-          Name="Automation $(AutomationTestPlatform) $(AutomationTestName)" 
-          Requires="$(TestBinaries_Mac);#TestProjectMac" 
-          If="'$(AutomationTestPlatform)' == 'Mac' and '$(CanBuildEditorMac)' == 'true'"
-          Produces="#TestResults_$(AutomationTestName)_$(AutomationTestPlatform)"
-        >
-          <ForEach Name="AutomationTestConfigFile" Values="$(AutomationTestConfigFiles)">
-            <Copy 
-              Files="..." 
-              From="$(ProjectRoot)/$(AutomationTestConfigFile)/" 
-              To="$(TempPath)/$(TestProjectName)Mac/Config/"
-              Tag="#TestConfig_$(AutomationTestName)_$(AutomationTestPlatform)"
-            />
-          </ForEach>
-          <Delete Files="$(TempPath)/$(TestProjectName)*/TestResults_*.xml" />
-          <Spawn Exe="$(UETPath)" Arguments="internal run-automation-test-from-buildgraph --engine-path &quot;$(EnginePath)&quot; --test-project-path &quot;$(TempPath)/$(TestProjectName)Mac/$(TestProjectName)Mac.uproject&quot; --test-prefix &quot;$(AutomationTestPrefix)&quot; --min-worker-count $(AutomationTestMinWorkerCount) --timeout-minutes $(AutomationTestTimeoutMinutes) --test-results-path &quot;$(TempPath)/$(TestProjectName)Mac/TestResults_$(AutomationTestPlatform).xml&quot;" />
-          <Tag
-            BaseDir="$(TempPath)/$(TestProjectName)Mac/"
-            Files="TestResults_$(AutomationTestPlatform).xml"
-            With="#TestResults_$(AutomationTestName)_$(AutomationTestPlatform)"
-          />
-        </Node>
-        <Property Name="AutomationTasks" Value="$(AutomationTasks)Automation $(AutomationTestPlatform) $(AutomationTestName);" If="'$(AutomationTestPlatform)' == 'Mac'"/>
-        <Property Name="AutomationTestResults" Value="$(AutomationTestResults)#TestResults_$(AutomationTestName)_$(AutomationTestPlatform);" If="'$(AutomationTestPlatform)' == 'Mac'"/>
-      </ForEach>
-    </ForEach>
-
-    <!-- Run all the custom tests that target the test project -->
-    <ForEach Name="CustomEntry" Values="$(CustomTests)" Separator="+">
-      <Property Name="CustomTestName" Value="" />
-      <Property Name="CustomTestTestAgainst" Value="" />
-      <Property Name="CustomTestScriptPath" Value="" />
-      <Property Name="CustomTestPlatforms" Value="" />
-      <ForEach Name="CustomEntryValue" Values="$(CustomEntry)" Separator="~">
-        <Switch>
-          <Case If="'$(CustomTestName)' == ''">
-            <Property Name="CustomTestName" Value="$(CustomEntryValue)" />
-          </Case>
-          <Case If="'$(CustomTestTestAgainst)' == ''">
-            <Property Name="CustomTestTestAgainst" Value="$(CustomEntryValue)" />
-          </Case>
-          <Case If="'$(CustomTestScriptPath)' == ''">
-            <Property Name="CustomTestScriptPath" Value="$(CustomEntryValue)" />
-          </Case>
-          <Default>
-            <Property Name="CustomTestPlatforms" Value="$(CustomEntryValue)" />
-          </Default>
-        </Switch>
-      </ForEach>
-      <ForEach Name="TestPlatform" Values="$(CustomTestPlatforms)">
-        <Node 
-          Name="Test $(CustomTestName) $(TestPlatform)" 
-          Requires="$(TestBinaries_Mac);#TestProjectMac" 
-          If="'$(CustomTestTestAgainst)' == 'TestProject' and '$(TestPlatform)' == 'Mac'"
-        >
-          <Spawn Exe="pwsh" Arguments="-ExecutionPolicy Bypass -File &quot;$(ProjectRoot)/$(CustomTestScriptPath)&quot; -EnginePath &quot;$(EnginePath)&quot; -TestProjectPath &quot;$(TempPath)/$(TestProjectName)Mac/$(TestProjectName)Mac.uproject&quot;" />
-        </Node>
-        <Property 
-          Name="CustomTasks" 
-          Value="$(CustomTasks)Test $(CustomTestName) $(TestPlatform);" 
-          If="'$(CustomTestTestAgainst)' == 'TestProject' and '$(TestPlatform)' == 'Mac'" />
-      </ForEach>
-    </ForEach>
-
-  </Agent>
-
-  <!--
-    Brief interlude before we start the Windows early tests. Declare the Mac game targets before the Windows tests
-    so that their remote artifact downloads can run first (so Mac game targets can be building while Windows runs tests).
-  -->
-
-  <Agent Name="Mac Build Game" Type="Mac" If="'$(IsBuildMachine)' == 'true'">
-
-    <ForEach Name="TargetName" Values="$(EnginePrefix)Game">
-      <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
-        <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'">
-            <ForEach Name="PrepareCustomCompileScript" Values="$(PrepareCustomCompileScripts)">
-              <Spawn Exe="pwsh" Arguments="-ExecutionPolicy Bypass '$(ProjectRoot)/$(PrepareCustomCompileScript)'" />
-            </ForEach>
-            <Compile 
-              Target="$(TargetName)" 
-              Platform="$(TargetPlatform)" 
-              Configuration="$(TargetConfiguration)" 
-              Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate" 
-              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; -NoPDB -NoDebugInfo $(AdditionalArguments)"
-            />
-            <Property Name="BinaryExceptRule" Value="" />
-            <Property Name="BinaryExceptRule" Value=".../Intermediate/.../Inc/..." If="'$(TargetConfiguration)' != 'Shipping'" />
-            <Tag 
-              Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate" 
-              Except="$(BinaryExceptRule)"
-              With="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
-            />
-            <Tag 
-              Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" 
-              Filter="*.target" 
-              With="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
-            />
-			      <SanitizeReceipt 
-              Files="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" 
-            />
-          </Node>
-          <Property Name="GameBinaries" Value="$(GameBinaries)#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'" />
-          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="'$(ExecutePackage)' == 'false' and ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'" />
-        </ForEach>
-      </ForEach>
-    </ForEach>
-
-  </Agent>
-
-  <!--
-    Back to our automation and custom tests that run against the test project. Now we allow Windows to run it's early
-    tests, after it will have processed any remote artifact downloads for Mac first.
-  -->
-
-  <Agent Name="Windows Test Early" Type="Win64" If="'$(ExecuteTests)' == 'true'">
-
-    <!-- Compile the test project so we can run the tests, but *only* if it's a Marketplace build where we wouldn't have already built the plugin -->
-    <Node Name="Compile Test Project Win64" Requires="#TestProjectWin64" Produces="#TestBinaries_Win64" If="'$(IsForMarketplaceSubmission)' == 'true' and '$(CanBuildEditorWin64)' == 'true'">
-      <Compile Target="$(EnginePrefix)Editor" Platform="Win64" Configuration="Development" Tag="#TestBinaries_Win64" Arguments="-Project=&quot;$(TempPath)/$(TestProjectName)Win64/$(TestProjectName)Win64.uproject&quot; -plugin=&quot;$(TempPath)/$(TestProjectName)Win64/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(2017Flag) $(AdditionalArguments)"/>
-    </Node>
-    <Property Name="TestBinaries_Win64" Value="" If="'$(IsForMarketplaceSubmission)' == 'false' or '$(CanBuildEditorWin64)' == 'false'" />
-    <Property Name="TestBinaries_Win64" Value="#TestBinaries_Win64" If="'$(IsForMarketplaceSubmission)' == 'true' and '$(CanBuildEditorWin64)' == 'true'" />
-
-    <!-- Run all the defined automation tests for Win64 -->
-    <ForEach Name="AutomationEntry" Values="$(AutomationTests)" Separator="+">
-      <Property Name="AutomationTestName" Value="" />
-      <Property Name="AutomationTestPlatforms" Value="" />
-      <Property Name="AutomationTestConfigFiles" Value="" />
-      <Property Name="AutomationTestPrefix" Value="" />
-      <Property Name="AutomationTestMinWorkerCount" Value="" />
-      <Property Name="AutomationTestTimeoutMinutes" Value="" />
-      <Property Name="AutomationTestParsing" Value="Name" />
-      <ForEach Name="AutomationEntryValue" Values="$(AutomationEntry)" Separator="~">
-        <Switch>
-          <Case If="'$(AutomationTestParsing)' == 'Name'">
-            <Property Name="AutomationTestName" Value="$(AutomationEntryValue)" If="'$(AutomationEntryValue)' != '__EMPTY__'" />
-            <Property Name="AutomationTestParsing" Value="Platforms" />
-          </Case>
-          <Case If="'$(AutomationTestParsing)' == 'Platforms'">
-            <Property Name="AutomationTestPlatforms" Value="$(AutomationEntryValue)" If="'$(AutomationEntryValue)' != '__EMPTY__'" />
-            <Property Name="AutomationTestParsing" Value="ConfigFiles" />
-          </Case>
-          <Case If="'$(AutomationTestParsing)' == 'ConfigFiles'">
-            <Property Name="AutomationTestConfigFiles" Value="$(AutomationEntryValue)" If="'$(AutomationEntryValue)' != '__EMPTY__'" />
-            <Property Name="AutomationTestParsing" Value="Prefix" />
-          </Case>
-          <Case If="'$(AutomationTestParsing)' == 'Prefix'">
-            <Property Name="AutomationTestPrefix" Value="$(AutomationEntryValue)" If="'$(AutomationEntryValue)' != '__EMPTY__'" />
-            <Property Name="AutomationTestParsing" Value="MinWorkerCount" />
-          </Case>
-          <Case If="'$(AutomationTestParsing)' == 'MinWorkerCount'">
-            <Property Name="AutomationTestMinWorkerCount" Value="$(AutomationEntryValue)" If="'$(AutomationEntryValue)' != '__EMPTY__'" />
-            <Property Name="AutomationTestParsing" Value="TimeoutMinutes" />
-          </Case>
-          <Default>
-            <Property Name="AutomationTestTimeoutMinutes" Value="$(AutomationEntryValue)" If="'$(AutomationEntryValue)' != '__EMPTY__'" />
-          </Default>
-        </Switch>
-      </ForEach>
-      <ForEach Name="AutomationTestPlatform" Values="$(AutomationTestPlatforms)">
-        <Node 
-          Name="Automation $(AutomationTestPlatform) $(AutomationTestName)" 
-          Requires="$(TestBinaries_Win64);#TestProjectWin64" 
-          If="'$(AutomationTestPlatform)' == 'Win64' and '$(CanBuildEditorWin64)' == 'true'"
-          Produces="#TestResults_$(AutomationTestName)_$(AutomationTestPlatform)"
-        >
-          <ForEach Name="AutomationTestConfigFile" Values="$(AutomationTestConfigFiles)">
-            <Copy 
-              Files="..." 
-              From="$(ProjectRoot)/$(AutomationTestConfigFile)/" 
-              To="$(TempPath)/$(TestProjectName)Win64/Config/"
-              Tag="#TestConfig_$(AutomationTestName)_$(AutomationTestPlatform)"
-            />
-          </ForEach>
-          <Delete Files="$(TempPath)/$(TestProjectName)*/TestResults_*.xml" />
-          <Spawn Exe="$(UETPath)" Arguments="internal run-automation-test-from-buildgraph --engine-path &quot;$(EnginePath)&quot; --test-project-path &quot;$(TempPath)/$(TestProjectName)Win64/$(TestProjectName)Win64.uproject&quot; --test-prefix &quot;$(AutomationTestPrefix)&quot; --min-worker-count $(AutomationTestMinWorkerCount) --timeout-minutes $(AutomationTestTimeoutMinutes) --test-results-path &quot;$(TempPath)/$(TestProjectName)Win64/TestResults_$(AutomationTestPlatform).xml&quot;" />
-          <Tag
-            BaseDir="$(TempPath)/$(TestProjectName)Win64/"
-            Files="TestResults_$(AutomationTestPlatform).xml"
-            With="#TestResults_$(AutomationTestName)_$(AutomationTestPlatform)"
-          />
-        </Node>
-        <Property Name="AutomationTasks" Value="$(AutomationTasks)Automation $(AutomationTestPlatform) $(AutomationTestName);" If="'$(AutomationTestPlatform)' == 'Win64'"/>
-        <Property Name="AutomationTestResults" Value="$(AutomationTestResults)#TestResults_$(AutomationTestName)_$(AutomationTestPlatform);" If="'$(AutomationTestPlatform)' == 'Win64'"/>
-      </ForEach>
-    </ForEach>
-
-    <!-- Run all the custom tests that target the test project -->
-    <ForEach Name="CustomEntry" Values="$(CustomTests)" Separator="+">
-      <Property Name="CustomTestName" Value="" />
-      <Property Name="CustomTestTestAgainst" Value="" />
-      <Property Name="CustomTestScriptPath" Value="" />
-      <Property Name="CustomTestPlatforms" Value="" />
-      <ForEach Name="CustomEntryValue" Values="$(CustomEntry)" Separator="~">
-        <Switch>
-          <Case If="'$(CustomTestName)' == ''">
-            <Property Name="CustomTestName" Value="$(CustomEntryValue)" />
-          </Case>
-          <Case If="'$(CustomTestTestAgainst)' == ''">
-            <Property Name="CustomTestTestAgainst" Value="$(CustomEntryValue)" />
-          </Case>
-          <Case If="'$(CustomTestScriptPath)' == ''">
-            <Property Name="CustomTestScriptPath" Value="$(CustomEntryValue)" />
-          </Case>
-          <Default>
-            <Property Name="CustomTestPlatforms" Value="$(CustomEntryValue)" />
-          </Default>
-        </Switch>
-      </ForEach>
-      <ForEach Name="TestPlatform" Values="$(CustomTestPlatforms)">
-        <Node 
-          Name="Test $(CustomTestName) $(TestPlatform)" 
-          Requires="$(TestBinaries_Win64);#TestProjectWin64" 
-          If="'$(CustomTestTestAgainst)' == 'TestProject' and '$(TestPlatform)' == 'Win64'"
-        >
-          <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass -File &quot;$(ProjectRoot)/$(CustomTestScriptPath)&quot; -EnginePath &quot;$(EnginePath)&quot; -TestProjectPath &quot;$(TempPath)/$(TestProjectName)Win64/$(TestProjectName)Win64.uproject&quot;" />
-        </Node>
-        <Property 
-          Name="CustomTasks" 
-          Value="$(CustomTasks)Test $(CustomTestName) $(TestPlatform);" 
-          If="'$(CustomTestTestAgainst)' == 'TestProject' and '$(TestPlatform)' == 'Win64'" />
-      </ForEach>
-    </ForEach>
-
-  </Agent>
   
   <!--
 
@@ -754,9 +405,6 @@ $(PackageExclude);
     =
     = Now we build the plugin binaries for the game/client/server targets
     = on all the appropriate platforms.
-    =
-    = NOTE: "Mac Build Game" is above this due to remote artifact prioritization
-    = but it logically belongs to the "Package builds and testing" phase.
     =
     = Once we've generated the package, we ZIP it up and then:
     = 
@@ -778,7 +426,45 @@ $(PackageExclude);
     Gauntlet tests.
   -->
 
-  <!-- NOTE: "Mac Build Game" agent is logically here, but see above for the prioritization workaround. -->
+  <Agent Name="Mac Build Game" Type="Mac" If="'$(IsBuildMachine)' == 'true'">
+
+    <ForEach Name="TargetName" Values="$(EnginePrefix)Game">
+      <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
+        <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
+          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'">
+            <ForEach Name="PrepareCustomCompileScript" Values="$(PrepareCustomCompileScripts)">
+              <Spawn Exe="pwsh" Arguments="-ExecutionPolicy Bypass '$(ProjectRoot)/$(PrepareCustomCompileScript)'" />
+            </ForEach>
+            <Compile
+              Target="$(TargetName)"
+              Platform="$(TargetPlatform)"
+              Configuration="$(TargetConfiguration)"
+              Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
+              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; -NoPDB -NoDebugInfo $(AdditionalArguments)"
+            />
+            <Property Name="BinaryExceptRule" Value="" />
+            <Property Name="BinaryExceptRule" Value=".../Intermediate/.../Inc/..." If="'$(TargetConfiguration)' != 'Shipping'" />
+            <Tag
+              Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
+              Except="$(BinaryExceptRule)"
+              With="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
+            />
+            <Tag
+              Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
+              Filter="*.target"
+              With="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
+            />
+            <SanitizeReceipt
+              Files="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
+            />
+          </Node>
+          <Property Name="GameBinaries" Value="$(GameBinaries)#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'" />
+          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="'$(ExecutePackage)' == 'false' and ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'" />
+        </ForEach>
+      </ForEach>
+    </ForEach>
+
+  </Agent>
 
   <!--
     Build our Windows game targets. These are only required for the submission package, for custom tests and for
@@ -1006,26 +692,11 @@ $(PackageExclude);
 
   </Agent>
 
-  <!--
-    Run our downstream tests that target the packaged plugin. These tests don't run locally,
-    but the BuildGraph nodes are synthesised to GitLab trigger builds when the GitLab CI/CD
-    YAML is generated.
+  <!-- 
+    Run all of the tests and deployments (which are dynamically defined by UET).
   -->
-
-  <Agent Name="Downstream Test" Type="Meta" If="'$(ExecutePackage)' == 'true' and '$(ExecuteTests)' == 'true'">
-
-    <!-- Run all the defined downstream tests -->
-    <ForEach Name="DownstreamTestName" Values="$(DownstreamTests)" Separator="+">
-      <Node 
-        Name="Downstream $(DownstreamTestName)" 
-        Requires="#PackagedPlugin"
-      >
-        <Spawn Exe="$(UETPath)" Arguments="internal run-downstream-test --downstream-test &quot;$(DownstreamTestName)&quot; --engine-path &quot;$(EnginePath)&quot; --distribution &quot;$(Distribution)&quot; --packaged-plugin-path &quot;$(TempPath)/$(PackageFolder)/&quot;" />
-      </Node>
-      <Property Name="DownstreamTasks" Value="$(DownstreamTasks)Downstream $(DownstreamTestName);" />
-    </ForEach>
-
-  </Agent>
+  
+  <Include Script="$(ScriptIncludes)" />
 
   <!-- 
     Build the test project editor and game binaries for the appropriate platforms, then cook and stage to get ready to run Gauntlet tests.
@@ -1167,13 +838,13 @@ $(PackageExclude);
     </ForEach>
 
   </Agent>
-
+  
   <Agent Name="Windows End" Type="Win64">
 
     <!-- Node that we just use to easily execute all required nodes -->
-    <Node Name="End" Requires="$(BuildTasks);$(PackageTasks);$(AutomationTasks);$(AutomationTestResults);$(DownstreamTasks);$(CustomTasks);$(GauntletTasks);$(DeploymentTasks)">
+    <Node Name="End" Requires="$(BuildTasks);$(PackageTasks);$(DownstreamTasks);$(CustomTasks);$(GauntletTasks);$(DeploymentTasks);$(DynamicNodes);$(DynamicOutputFiles)">
     </Node>
 
   </Agent>
-
+  
 </BuildGraph>

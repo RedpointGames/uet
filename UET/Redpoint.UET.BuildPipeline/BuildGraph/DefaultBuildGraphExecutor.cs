@@ -65,6 +65,7 @@
                 uetPath,
                 buildGraphScript,
                 buildGraphTarget,
+                buildGraphSharedStorageDir,
                 new[]
                 {
                     $"-SingleNode={buildGraphNodeName}",
@@ -84,6 +85,7 @@
             string uetPath,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
+            string buildGraphSharedStorageDir,
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
             ICaptureSpecification captureSpecification,
@@ -99,6 +101,7 @@
                     uetPath,
                     buildGraphScript,
                     buildGraphTarget,
+                    buildGraphSharedStorageDir,
                     new[] { $"-Export={buildGraphOutput}" },
                     buildGraphArguments,
                     buildGraphArgumentReplacements,
@@ -140,6 +143,7 @@
             string uetPath,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
+            string buildGraphSharedStorageDir,
             string[] internalArguments,
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
@@ -203,7 +207,8 @@
                                 buildGraphArgumentReplacements,
                                 buildGraphRepositoryRootPath,
                                 uetPath,
-                                enginePath)),
+                                enginePath,
+                                buildGraphSharedStorageDir)),
                         EnvironmentVariables = buildGraphEnvironmentVariables
                     },
                     captureSpecification,

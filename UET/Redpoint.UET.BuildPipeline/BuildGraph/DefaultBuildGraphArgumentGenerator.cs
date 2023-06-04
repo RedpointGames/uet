@@ -9,7 +9,8 @@
             Dictionary<string, string> replacements,
             string repositoryRoot,
             string uetPath,
-            string enginePath)
+            string enginePath,
+            string sharedStoragePath)
         {
             var results = new List<string>();
             foreach (var kv in arguments)
@@ -18,6 +19,7 @@
                 value = value.Replace("__REPOSITORY_ROOT__", repositoryRoot);
                 value = value.Replace("__UET_PATH__", uetPath);
                 value = value.Replace("__ENGINE_PATH__", enginePath);
+                value = value.Replace("__SHARED_STORAGE_PATH__", sharedStoragePath);
                 foreach (var sr in replacements)
                 {
                     value = value.Replace(sr.Key, sr.Value);

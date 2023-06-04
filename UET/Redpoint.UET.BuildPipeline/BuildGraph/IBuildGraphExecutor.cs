@@ -27,6 +27,7 @@
             string uetPath,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
+            string buildGraphSharedStorageDir,
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
             ICaptureSpecification captureSpecification,

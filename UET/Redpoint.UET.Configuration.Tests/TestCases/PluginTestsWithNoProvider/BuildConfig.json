@@ -1,0 +1,21 @@
+{
+  "Type": "Plugin",
+  "PluginName": "Test",
+  "Distributions": [
+    {
+      "Name": "Default",
+      "Tests": [
+        {
+          "Type": "Undefined",
+          "Name": "AutomationTest",
+          "Undefined": {
+            "TestPrefix": "ABC",
+            "Platforms": [ "Win64", "Mac" ],
+            "ConfigFiles": [ "A", "B" ],
+            "MinWorkerCount": 4
+          }
+        }
+      ]
+    }
+  ]
+}

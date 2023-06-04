@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.UET.Configuration.Plugin
 {
+    using Redpoint.UET.Configuration.Dynamic;
     using System.Collections.Generic;
     using System.Text.Json.Serialization;
 
@@ -39,7 +40,7 @@
         /// A list of tests to run for the plugin.
         /// </summary>
         [JsonPropertyName("Tests"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public BuildConfigPluginTest[]? Tests { get; set; }
+        public BuildConfigDynamic<BuildConfigPluginDistribution, ITestProvider>[]? Tests { get; set; }
 
         /// <summary>
         /// Specifies the packaging settings.
@@ -51,7 +52,7 @@
         /// Specifies the deployment steps.
         /// </summary>
         [JsonPropertyName("Deployment"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public BuildConfigPluginDeployment[]? Deployment { get; set; }
+        public BuildConfigDynamic<BuildConfigPluginDistribution, IDeploymentProvider>[]? Deployment { get; set; }
 
         /// <summary>
         /// Specifies the settings that apply to all Gauntlet tests.

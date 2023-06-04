@@ -123,9 +123,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Executor", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Executor.Tests", "Redpoint.OpenGE.Executor.Tests\Redpoint.OpenGE.Executor.Tests.csproj", "{0BDE72E4-CA49-4313-8862-303B4CD2B854}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Reservation", "Redpoint.Reservation\Redpoint.Reservation.csproj", "{502D1698-4F32-4838-B7EA-DFD5DA407561}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Reservation", "Redpoint.Reservation\Redpoint.Reservation.csproj", "{502D1698-4F32-4838-B7EA-DFD5DA407561}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Reservation.Tests", "Redpoint.Reservation.Tests\Redpoint.Reservation.Tests.csproj", "{F335E025-07A0-4D0C-A882-00A814C4EC52}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Reservation.Tests", "Redpoint.Reservation.Tests\Redpoint.Reservation.Tests.csproj", "{F335E025-07A0-4D0C-A882-00A814C4EC52}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.Providers.Deployment", "Redpoint.UET.BuildPipeline.Providers.Deployment\Redpoint.UET.BuildPipeline.Providers.Deployment.csproj", "{FF9C0353-53C4-49D9-B8D1-7C6756120547}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.Providers.Test", "Redpoint.UET.BuildPipeline.Providers.Test\Redpoint.UET.BuildPipeline.Providers.Test.csproj", "{0E81D8C3-CAFA-4DB4-9108-49361F6D1135}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.UET.BuildGraph", "Redpoint.UET.BuildGraph\Redpoint.UET.BuildGraph.csproj", "{05B65404-1B91-49A8-A079-0C90185B1B3A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -377,6 +383,18 @@ Global
 		{F335E025-07A0-4D0C-A882-00A814C4EC52}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F335E025-07A0-4D0C-A882-00A814C4EC52}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F335E025-07A0-4D0C-A882-00A814C4EC52}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF9C0353-53C4-49D9-B8D1-7C6756120547}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF9C0353-53C4-49D9-B8D1-7C6756120547}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF9C0353-53C4-49D9-B8D1-7C6756120547}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF9C0353-53C4-49D9-B8D1-7C6756120547}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E81D8C3-CAFA-4DB4-9108-49361F6D1135}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E81D8C3-CAFA-4DB4-9108-49361F6D1135}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E81D8C3-CAFA-4DB4-9108-49361F6D1135}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E81D8C3-CAFA-4DB4-9108-49361F6D1135}.Release|Any CPU.Build.0 = Release|Any CPU
+		{05B65404-1B91-49A8-A079-0C90185B1B3A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05B65404-1B91-49A8-A079-0C90185B1B3A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05B65404-1B91-49A8-A079-0C90185B1B3A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05B65404-1B91-49A8-A079-0C90185B1B3A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

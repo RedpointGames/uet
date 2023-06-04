@@ -6,6 +6,7 @@ namespace Redpoint.UET.BuildPipeline
 {
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.UET.BuildPipeline.BuildGraph;
+    using Redpoint.UET.BuildPipeline.BuildGraph.Dynamic;
     using Redpoint.UET.BuildPipeline.BuildGraph.Patching;
     using Redpoint.UET.BuildPipeline.Executors;
     using Redpoint.UET.BuildPipeline.Executors.Engine;
@@ -19,6 +20,7 @@ namespace Redpoint.UET.BuildPipeline
             services.AddSingleton<IBuildGraphArgumentGenerator, DefaultBuildGraphArgumentGenerator>();
             services.AddSingleton<IEngineWorkspaceProvider, DefaultEngineWorkspaceProvider>();
             services.AddSingleton<ISdkSetupForBuildExecutor, DefaultSdkSetupForBuildExecutor>();
+            services.AddSingleton<IDynamicBuildGraphIncludeWriter, DefaultDynamicBuildGraphIncludeWriter>();
         }
     }
 }

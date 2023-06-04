@@ -1,19 +1,15 @@
 ﻿namespace UET.BuildConfig
 {
-    using Redpoint.UET.Configuration.Engine;
-    using Redpoint.UET.Configuration.Plugin;
-    using Redpoint.UET.Configuration.Project;
     using Redpoint.UET.Configuration;
     using System;
     using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
     using System.Text.Json;
-    using System.Threading.Tasks;
 
     internal static class BuildConfigLoader
     {
-        internal static BuildConfigLoadResult TryLoad(string buildConfigPath)
+        internal static BuildConfigLoadResult TryLoad(
+            IServiceProvider serviceProvider,
+            string buildConfigPath)
         {
             try
             {
@@ -21,9 +17,11 @@
                     buildConfigPath,
                     FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    var buildConfig = JsonSerializer.Deserialize<BuildConfig>(
+                    var buildConfig = JsonSerializer.Deserialize(
                         buildConfigStream,
-                        BuildConfigSourceGenerationContext.WithDynamicBuildConfig(Path.GetDirectoryName(buildConfigPath)!).BuildConfig);
+                        BuildConfigSourceGenerationContext.Create(
+                            serviceProvider,
+                            Path.GetDirectoryName(buildConfigPath)!).BuildConfig);
                     if (buildConfig == null)
                     {
                         return new BuildConfigLoadResult

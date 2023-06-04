@@ -51,13 +51,16 @@
 
         private class ListCommandInstance : ICommandInstance
         {
+            private readonly IServiceProvider _serviceProvider;
             private readonly ILogger<ListCommandInstance> _logger;
             private readonly Options _options;
 
             public ListCommandInstance(
+                IServiceProvider serviceProvider,
                 ILogger<ListCommandInstance> logger,
                 Options options)
             {
+                _serviceProvider = serviceProvider;
                 _logger = logger;
                 _options = options;
             }
@@ -73,7 +76,8 @@
                 }
 
                 var loadResult = BuildConfigLoader.TryLoad(
-                    System.IO.Path.Combine(path.DirectoryPath, "BuildConfig.json"));
+                    _serviceProvider,
+                    Path.Combine(path.DirectoryPath, "BuildConfig.json"));
                 if (loadResult.Success)
                 {
                     switch (loadResult.BuildConfig!)
@@ -89,7 +93,7 @@
                             break;
                         case BuildConfigPlugin buildConfigPlugin:
                             {
-                                _logger.LogInformation($"{buildConfigPlugin.Distributions} plugin distribution{(buildConfigPlugin.Distributions.Count == 1 ? "" : "s")} found{(buildConfigPlugin.Distributions.Count == 0 ? "." : ":")}");
+                                _logger.LogInformation($"{buildConfigPlugin.Distributions.Count} plugin distribution{(buildConfigPlugin.Distributions.Count == 1 ? "" : "s")} found{(buildConfigPlugin.Distributions.Count == 0 ? "." : ":")}");
                                 foreach (var distribution in buildConfigPlugin.Distributions)
                                 {
                                     _logger.LogInformation(distribution.Name);
@@ -98,7 +102,7 @@
                             break;
                         case BuildConfigEngine buildConfigEngine:
                             {
-                                _logger.LogInformation($"{buildConfigEngine.Distributions} engine distribution{(buildConfigEngine.Distributions.Count == 1 ? "" : "s")} found{(buildConfigEngine.Distributions.Count == 0 ? "." : ":")}");
+                                _logger.LogInformation($"{buildConfigEngine.Distributions.Count} engine distribution{(buildConfigEngine.Distributions.Count == 1 ? "" : "s")} found{(buildConfigEngine.Distributions.Count == 0 ? "." : ":")}");
                                 foreach (var distribution in buildConfigEngine.Distributions)
                                 {
                                     _logger.LogInformation(distribution.Name);

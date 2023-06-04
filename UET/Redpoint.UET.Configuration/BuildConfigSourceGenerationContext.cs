@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.UET.Configuration
 {
+    using Redpoint.UET.Configuration.Dynamic;
     using Redpoint.UET.Configuration.Engine;
     using Redpoint.UET.Configuration.Plugin;
     using Redpoint.UET.Configuration.Project;
@@ -16,7 +17,9 @@
     [JsonSerializable(typeof(BuildConfigProjectIncludeFragment))]
     public partial class BuildConfigSourceGenerationContext : JsonSerializerContext
     {
-        public static BuildConfigSourceGenerationContext WithDynamicBuildConfig(string basePathForIncludes)
+        public static BuildConfigSourceGenerationContext Create(
+            IServiceProvider serviceProvider,
+            string basePathForIncludes)
         {
             return new BuildConfigSourceGenerationContext(new JsonSerializerOptions
             {
@@ -24,6 +27,10 @@
                 {
                     new BuildConfigConverter(basePathForIncludes),
                     new JsonStringEnumConverter(),
+                    new BuildConfigTestConverter<BuildConfigPluginDistribution>(serviceProvider),
+                    new BuildConfigTestConverter<BuildConfigProjectDistribution>(serviceProvider),
+                    new BuildConfigDeploymentConverter<BuildConfigPluginDistribution>(serviceProvider),
+                    new BuildConfigDeploymentConverter<BuildConfigProjectDistribution>(serviceProvider),
                 }
             });
         }

@@ -9,6 +9,7 @@
             Dictionary<string, string> replacements,
             string repositoryRoot,
             string uetPath,
-            string enginePath);
+            string enginePath,
+            string sharedStoragePath);
     }
 }
