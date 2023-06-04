@@ -9,6 +9,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using UET.Commands.Build;
 using UET.Commands.Internal;
+using UET.Commands.List;
 using UET.Commands.TestPackaged;
 using UET.Commands.Upgrade;
 
@@ -23,6 +24,7 @@ var rootCommand = new RootCommand("An unofficial tool for Unreal Engine.");
 var rootUpgradeCommand = UpgradeCommand.CreateUpgradeCommand();
 rootCommand.AddOption(UET.Commands.CommandExtensions.GetTraceOption());
 rootCommand.AddCommand(BuildCommand.CreateBuildCommand());
+rootCommand.AddCommand(ListCommand.CreateListCommand());
 rootCommand.AddCommand(rootUpgradeCommand);
 rootCommand.AddCommand(TestPackagedCommand.CreateTestPackagedCommand());
 rootCommand.AddCommand(InternalCommand.CreateInternalCommand());

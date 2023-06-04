@@ -4,5 +4,6 @@
     {
         Compile,
         BuildGraph,
+        Stage,
     }
 }

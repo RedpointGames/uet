@@ -8,6 +8,7 @@
     using System.CommandLine;
     using System.CommandLine.Parsing;
     using System.Text.Json;
+    using UET.BuildConfig;
 
     internal class DistributionSpec
     {
@@ -43,128 +44,74 @@
                     }
 
                     // Check that the distribution is actually defined.
-                    try
+                    var loadResult = BuildConfigLoader.TryLoad(
+                        System.IO.Path.Combine(path.DirectoryPath, "BuildConfig.json"));
+                    if (loadResult.Success)
                     {
-                        using (var buildConfigStream = new FileStream(
-                            System.IO.Path.Combine(path.DirectoryPath, "BuildConfig.json"),
-                            FileMode.Open, FileAccess.Read, FileShare.Read))
+                        switch (loadResult.BuildConfig)
                         {
-                            var buildConfig = JsonSerializer.Deserialize<BuildConfig>(
-                                buildConfigStream,
-                                BuildConfigSourceGenerationContext.WithDynamicBuildConfig(path.DirectoryPath).BuildConfig);
-                            if (buildConfig == null)
-                            {
-                                result.ErrorMessage = $"The BuildConfig.json file is invalid.";
-                                return null!;
-                            }
-
-                            switch (buildConfig)
-                            {
-                                case BuildConfigProject buildConfigProject:
-                                    {
-                                        var selectedDistributionEntry = buildConfigProject.Distributions
-                                            .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.CurrentCultureIgnoreCase));
-                                        if (selectedDistributionEntry == null)
-                                        {
-                                            result.ErrorMessage = $"The distribution '{distribution}' specified by --{result.Argument.Name} was not found in the BuildConfig.json file.";
-                                            return null!;
-                                        }
-
-                                        return new DistributionSpec
-                                        {
-                                            DistributionOriginalName = distribution,
-                                            DistributionCanonicalName = selectedDistributionEntry.Name,
-                                            Distribution = selectedDistributionEntry,
-                                            BuildConfig = buildConfigProject,
-                                        };
-                                    }
-                                case BuildConfigPlugin buildConfigPlugin:
-                                    {
-                                        var selectedDistributionEntry = buildConfigPlugin.Distributions
-                                            .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.CurrentCultureIgnoreCase));
-                                        if (selectedDistributionEntry == null)
-                                        {
-                                            result.ErrorMessage = $"The distribution '{distribution}' specified by --{result.Argument.Name} was not found in the BuildConfig.json file.";
-                                            return null!;
-                                        }
-
-                                        return new DistributionSpec
-                                        {
-                                            DistributionOriginalName = distribution,
-                                            DistributionCanonicalName = selectedDistributionEntry.Name,
-                                            Distribution = selectedDistributionEntry,
-                                            BuildConfig = buildConfigPlugin,
-                                        };
-                                    }
-                                case BuildConfigEngine buildConfigEngine:
-                                    {
-                                        var selectedDistributionEntry = buildConfigEngine.Distributions
-                                            .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.CurrentCultureIgnoreCase));
-                                        if (selectedDistributionEntry == null)
-                                        {
-                                            result.ErrorMessage = $"The distribution '{distribution}' specified by --{result.Argument.Name} was not found in the BuildConfig.json file.";
-                                            return null!;
-                                        }
-
-                                        return new DistributionSpec
-                                        {
-                                            DistributionOriginalName = distribution,
-                                            DistributionCanonicalName = selectedDistributionEntry.Name,
-                                            Distribution = selectedDistributionEntry,
-                                            BuildConfig = buildConfigEngine,
-                                        };
-                                    }
-                            }
-
-                            result.ErrorMessage = $"The BuildConfig.json file is invalid.";
-                            return null;
-                        }
-                    }
-                    catch (JsonException ex)
-                    {
-                        if (ex.LineNumber == 0)
-                        {
-                            result.ErrorMessage = $"The BuildConfig.json file could not be parsed due to a JSON error: {ex.Message}";
-                            return null;
-                        }
-                        else
-                        {
-                            var errorLines = new List<string>
-                            {
-                                $"The BuildConfig.json file could not be parsed due to a JSON error on line {ex.LineNumber}:"
-                            };
-
-                            using (var buildConfigStream = new FileStream(
-                                System.IO.Path.Combine(path.DirectoryPath, "BuildConfig.json"),
-                                FileMode.Open, FileAccess.Read, FileShare.Read))
-                            {
-                                using (var reader = new StreamReader(buildConfigStream, leaveOpen: true))
+                            case BuildConfigProject buildConfigProject:
                                 {
-                                    var lineNumber = 1;
-                                    while (!reader.EndOfStream)
+                                    var selectedDistributionEntry = buildConfigProject.Distributions
+                                        .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.CurrentCultureIgnoreCase));
+                                    if (selectedDistributionEntry == null)
                                     {
-                                        var line = reader.ReadLine();
-
-                                        if (lineNumber > ex.LineNumber - 5 &&
-                                            lineNumber <= ex.LineNumber)
-                                        {
-                                            errorLines.Add($"{lineNumber,5}: {line}");
-                                        }
-                                        if (lineNumber == ex.LineNumber)
-                                        {
-                                            errorLines.Add("       " + "↑".PadLeft((int)ex.BytePositionInLine!.Value, ' '));
-                                            errorLines.Add("      ┌" + "┘".PadLeft((int)ex.BytePositionInLine!.Value, '─'));
-                                            errorLines.Add("      └ " + ex.Message);
-                                        }
-
-                                        lineNumber++;
+                                        result.ErrorMessage = $"The distribution '{distribution}' specified by --{result.Argument.Name} was not found in the BuildConfig.json file.";
+                                        return null!;
                                     }
-                                }
-                            }
 
-                            result.ErrorMessage = string.Join("\n", errorLines);
-                            return null;
+                                    return new DistributionSpec
+                                    {
+                                        DistributionOriginalName = distribution,
+                                        DistributionCanonicalName = selectedDistributionEntry.Name,
+                                        Distribution = selectedDistributionEntry,
+                                        BuildConfig = buildConfigProject,
+                                    };
+                                }
+                            case BuildConfigPlugin buildConfigPlugin:
+                                {
+                                    var selectedDistributionEntry = buildConfigPlugin.Distributions
+                                        .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.CurrentCultureIgnoreCase));
+                                    if (selectedDistributionEntry == null)
+                                    {
+                                        result.ErrorMessage = $"The distribution '{distribution}' specified by --{result.Argument.Name} was not found in the BuildConfig.json file.";
+                                        return null!;
+                                    }
+
+                                    return new DistributionSpec
+                                    {
+                                        DistributionOriginalName = distribution,
+                                        DistributionCanonicalName = selectedDistributionEntry.Name,
+                                        Distribution = selectedDistributionEntry,
+                                        BuildConfig = buildConfigPlugin,
+                                    };
+                                }
+                            case BuildConfigEngine buildConfigEngine:
+                                {
+                                    var selectedDistributionEntry = buildConfigEngine.Distributions
+                                        .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.CurrentCultureIgnoreCase));
+                                    if (selectedDistributionEntry == null)
+                                    {
+                                        result.ErrorMessage = $"The distribution '{distribution}' specified by --{result.Argument.Name} was not found in the BuildConfig.json file.";
+                                        return null!;
+                                    }
+
+                                    return new DistributionSpec
+                                    {
+                                        DistributionOriginalName = distribution,
+                                        DistributionCanonicalName = selectedDistributionEntry.Name,
+                                        Distribution = selectedDistributionEntry,
+                                        BuildConfig = buildConfigEngine,
+                                    };
+                                }
                         }
+
+                        throw new InvalidOperationException("TryLoad returned unexpected BuildConfig object.");
+                    }
+                    else
+                    {
+                        result.ErrorMessage = string.Join("\n", loadResult.ErrorList);
+                        return null;
                     }
                 }
                 else

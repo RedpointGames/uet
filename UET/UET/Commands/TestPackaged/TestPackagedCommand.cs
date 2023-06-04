@@ -51,6 +51,9 @@
         {
             var options = new Options();
             var command = new Command("test-packaged", "Builds and packages a Win64 project, then runs automation tests against it.");
+            // @note: This command is planned for deprecation, to be replaced with
+            // "automation on device" test type under the normal "uet build" command.
+            command.IsHidden = true;
             command.AddAllOptions(options);
             command.AddCommonHandler<TestPackagedCommandInstance>(options);
             return command;

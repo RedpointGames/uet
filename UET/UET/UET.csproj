@@ -23,6 +23,7 @@
     <HttpActivityPropagationSupport Condition="'$(Configuration)' == 'Release'">false</HttpActivityPropagationSupport>
     <InvariantGlobalization Condition="'$(Configuration)' == 'Release'">true</InvariantGlobalization>
     <MetadataUpdaterSupport Condition="'$(Configuration)' == 'Release'">false</MetadataUpdaterSupport>
+    <ShowLinkerSizeComparison>true</ShowLinkerSizeComparison>
 
     <BaseUetYear>$([System.DateTime]::Now.Year)</BaseUetYear>
     <BaseUetMonth>$([System.DateTime]::Now.Month)</BaseUetMonth>

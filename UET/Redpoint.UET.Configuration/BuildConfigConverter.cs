@@ -109,33 +109,40 @@
             foreach (var include in includes)
             {
                 var targetPath = Path.Combine(_basePathForIncludes, include, "BuildConfig.json");
-                if (File.Exists(targetPath))
+                try
                 {
-                    using (var stream = new FileStream(targetPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    if (File.Exists(targetPath))
                     {
-                        // @todo: Figure out how to do "Include" recursively.
-
-                        switch (type)
+                        using (var stream = new FileStream(targetPath, FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
-                            case BuildConfigType.Plugin:
-                                var includedConfigPlugin = JsonSerializer.Deserialize(stream, generationContext.BuildConfigPluginIncludeFragment)!;
-                                ((BuildConfigPlugin)baseConfig).Distributions.AddRange(includedConfigPlugin.Distributions);
-                                break;
-                            case BuildConfigType.Project:
-                                var includedConfigProject = JsonSerializer.Deserialize(stream, generationContext.BuildConfigProjectIncludeFragment)!;
-                                var projectDistributions = includedConfigProject.Distributions;
-                                foreach (var distribution in projectDistributions)
-                                {
-                                    distribution.FolderName = Path.Combine(include, distribution.FolderName);
-                                }
-                                ((BuildConfigProject)baseConfig).Distributions.AddRange(projectDistributions);
-                                break;
-                            case BuildConfigType.Engine:
-                                var includedConfigEngine = JsonSerializer.Deserialize(stream, generationContext.BuildConfigEngineIncludeFragment)!;
-                                ((BuildConfigEngine)baseConfig).Distributions.AddRange(includedConfigEngine.Distributions);
-                                break;
+                            // @todo: Figure out how to do "Include" recursively.
+
+                            switch (type)
+                            {
+                                case BuildConfigType.Plugin:
+                                    var includedConfigPlugin = JsonSerializer.Deserialize(stream, generationContext.BuildConfigPluginIncludeFragment)!;
+                                    ((BuildConfigPlugin)baseConfig).Distributions.AddRange(includedConfigPlugin.Distributions);
+                                    break;
+                                case BuildConfigType.Project:
+                                    var includedConfigProject = JsonSerializer.Deserialize(stream, generationContext.BuildConfigProjectIncludeFragment)!;
+                                    var projectDistributions = includedConfigProject.Distributions;
+                                    foreach (var distribution in projectDistributions)
+                                    {
+                                        distribution.FolderName = Path.Combine(include, distribution.FolderName);
+                                    }
+                                    ((BuildConfigProject)baseConfig).Distributions.AddRange(projectDistributions);
+                                    break;
+                                case BuildConfigType.Engine:
+                                    var includedConfigEngine = JsonSerializer.Deserialize(stream, generationContext.BuildConfigEngineIncludeFragment)!;
+                                    ((BuildConfigEngine)baseConfig).Distributions.AddRange(includedConfigEngine.Distributions);
+                                    break;
+                            }
                         }
                     }
+                }
+                catch (JsonException ex)
+                {
+                    throw new IncludedJsonException(ex, targetPath);
                 }
             }
 
