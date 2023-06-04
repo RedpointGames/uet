@@ -10,6 +10,7 @@
     using System.CommandLine.Invocation;
     using System.Linq;
     using System.Text;
+    using System.Text.Encodings.Web;
     using System.Text.Json;
     using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
@@ -274,33 +275,46 @@
                         var writerOptions = new JsonWriterOptions
                         {
                             Indented = true,
+                            Encoder = JavaScriptEncoder.Default,
                         };
                         var serializerOptions = new JsonSerializerOptions
                         {
                             WriteIndented = true,
+                            Encoder = JavaScriptEncoder.Default,
                         };
-                        using (var writer = new Utf8JsonWriter(new FileStream(currentBuildConfigPath, FileMode.Create, FileAccess.Write, FileShare.None), writerOptions))
+
+                        // @note: We write to a memory stream first to make sure the serialization succeeds. That way if an exception is thrown,
+                        // we won't have corrupted the BuildConfig.json file.
+                        using (var memory = new MemoryStream())
                         {
-                            writer.WriteStartObject();
-                            writer.WritePropertyName("UETVersion");
-                            document!["UETVersion"]!.WriteTo(writer, serializerOptions);
-                            foreach (var kv in document.AsObject())
+                            using (var writer = new Utf8JsonWriter(memory, writerOptions))
                             {
-                                if (kv.Key == "UETVersion")
+                                writer.WriteStartObject();
+                                writer.WritePropertyName("UETVersion");
+                                document!["UETVersion"]!.WriteTo(writer, serializerOptions);
+                                foreach (var kv in document.AsObject())
                                 {
-                                    continue;
+                                    if (kv.Key == "UETVersion")
+                                    {
+                                        continue;
+                                    }
+                                    writer.WritePropertyName(kv.Key);
+                                    if (kv.Value == null)
+                                    {
+                                        writer.WriteNullValue();
+                                    }
+                                    else
+                                    {
+                                        kv.Value!.WriteTo(writer, serializerOptions);
+                                    }
                                 }
-                                writer.WritePropertyName(kv.Key);
-                                if (kv.Value == null)
-                                {
-                                    writer.WriteNullValue();
-                                }
-                                else
-                                {
-                                    kv.Value!.WriteTo(writer, serializerOptions);
-                                }
+                                writer.WriteEndObject();
                             }
-                            writer.WriteEndObject();
+                            memory.Seek(0, SeekOrigin.Begin);
+                            using (var writer = new FileStream(currentBuildConfigPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                            {
+                                await memory.CopyToAsync(writer);
+                            }
                         }
                     }
                 }
