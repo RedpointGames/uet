@@ -128,7 +128,7 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                         cts.Cancel();
                     };
                     // @note: We use Environment.Exit so fire-and-forget tasks that contain stallable code won't prevent the process from exiting.
-                    Environment.Exit(await processExecutor.ExecuteAsync(
+                    var nestedExitCode = await processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
                             FilePath = UpgradeCommand.GetAssemblyPathForVersion(targetVersion),
@@ -140,7 +140,10 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                             }
                         },
                         CaptureSpecification.Passthrough,
-                        cts.Token));
+                        cts.Token);
+                    await Console.Out.FlushAsync();
+                    await Console.Error.FlushAsync();
+                    Environment.Exit(nestedExitCode);
                     throw new BadImageFormatException();
                 }
             }
@@ -150,5 +153,8 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
 
 // We didn't re-execute into a different version of UET. Invoke the originally requested command.
 // @note: We use Environment.Exit so fire-and-forget tasks that contain stallable code won't prevent the process from exiting.
-Environment.Exit(await rootCommand.InvokeAsync(args));
+var exitCode = await rootCommand.InvokeAsync(args);
+await Console.Out.FlushAsync();
+await Console.Error.FlushAsync();
+Environment.Exit(exitCode);
 throw new BadImageFormatException();
