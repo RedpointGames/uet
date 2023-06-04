@@ -259,6 +259,11 @@
                         {
                             // No need to modify.
                         }
+                        else if (currentVersion?.ToString() == "BleedingEdge")
+                        {
+                            // We don't want to modify; we will always be using the latest
+                            // version of UET for this project/plugin on-demand.
+                        }
                         else
                         {
                             documentObject["UETVersion"] = version;
