@@ -2,40 +2,38 @@
 {
     public record class Name : ISerializable<Name>
     {
-        public readonly string StringName;
+        public readonly Store<string> StringName;
 
         public static readonly Name Empty = new Name();
 
         public Name()
         {
-            StringName = string.Empty;
+            StringName = new Store<string>(string.Empty);
         }
 
-        public Name(string name)
+        public Name(Store<string> name)
         {
             StringName = name;
         }
 
-        public static void Serialize(Archive ar, ref Name value)
+        public static async Task Serialize(Archive ar, Store<Name> value)
         {
             if (ar.IsLoading)
             {
-                string data = string.Empty;
-                ar.Serialize(ref data);
-                value = new Name(data);
+                var data = new Store<string>(string.Empty);
+                await ar.Serialize(data);
+                value.V = new Name(data);
             }
             else
             {
-                string data = value.StringName;
-                ar.Serialize(ref data, encodeAsASCII: true);
+                var data = value.V.StringName;
+                await ar.Serialize(data, encodeAsASCII: true);
             }
         }
 
-        public static implicit operator Name(string value) => new(value);
-
         public override string ToString()
         {
-            return StringName.ToLowerInvariant();
+            return StringName.V.ToLowerInvariant();
         }
     }
 }

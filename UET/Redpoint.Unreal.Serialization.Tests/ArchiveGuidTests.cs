@@ -23,50 +23,53 @@
         }
 
         [Fact]
-        public void DeserializesFromUnrealToUint32()
+        public async Task DeserializesFromUnrealToUint32()
         {
             var bytes = Convert.FromBase64String(_base);
             using (var stream = new MemoryStream(bytes))
             {
                 var archive = new Archive(stream, true);
 
-                uint a = 0, b = 0, c = 0, d = 0;
-                archive.Serialize(ref a);
-                archive.Serialize(ref b);
-                archive.Serialize(ref c);
-                archive.Serialize(ref d);
+                Store<uint> a = new Store<uint>(0),
+                    b = new Store<uint>(0),
+                    c = new Store<uint>(0),
+                    d = new Store<uint>(0);
+                await archive.Serialize(a);
+                await archive.Serialize(b);
+                await archive.Serialize(c);
+                await archive.Serialize(d);
 
-                Assert.Equal(_ae, a);
-                Assert.Equal(_be, b);
-                Assert.Equal(_ce, c);
-                Assert.Equal(_de, d);
+                Assert.Equal(_ae, a.V);
+                Assert.Equal(_be, b.V);
+                Assert.Equal(_ce, c.V);
+                Assert.Equal(_de, d.V);
             }
         }
 
         [Fact]
-        public void DeserializesFromUnreal()
+        public async Task DeserializesFromUnreal()
         {
             var bytes = Convert.FromBase64String(_base);
             using (var stream = new MemoryStream(bytes))
             {
                 var archive = new Archive(stream, true);
 
-                Guid guid = Guid.Empty;
-                archive.Serialize(ref guid);
+                var guid = new Store<Guid>(Guid.Empty);
+                await archive.Serialize(guid);
 
-                Assert.Equal(BitConverter.ToString(UnrealGuidToMicrosoftGuid(_unrealGuid).ToByteArray()), BitConverter.ToString(guid.ToByteArray()));
+                Assert.Equal(BitConverter.ToString(UnrealGuidToMicrosoftGuid(_unrealGuid).ToByteArray()), BitConverter.ToString(guid.V.ToByteArray()));
             }
         }
 
         [Fact]
-        public void SerializesToUnreal()
+        public async Task SerializesToUnreal()
         {
             using (var stream = new MemoryStream())
             {
                 var archive = new Archive(stream, false);
 
-                Guid guid = UnrealGuidToMicrosoftGuid(_unrealGuid);
-                archive.Serialize(ref guid);
+                var guid = new Store<Guid>(UnrealGuidToMicrosoftGuid(_unrealGuid));
+                await archive.Serialize(guid);
 
                 Assert.Equal(
                     _base,

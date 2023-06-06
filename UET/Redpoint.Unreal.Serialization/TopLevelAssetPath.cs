@@ -2,30 +2,30 @@
 {
     public record class TopLevelAssetPath : ISerializable<TopLevelAssetPath>
     {
-        public Name PackageName;
-        public Name AssetName;
+        public Store<Name> PackageName;
+        public Store<Name> AssetName;
 
         public TopLevelAssetPath()
         {
-            PackageName = Name.Empty;
-            AssetName = Name.Empty;
+            PackageName = new Store<Name>(Name.Empty);
+            AssetName = new Store<Name>(Name.Empty);
         }
 
         public TopLevelAssetPath(Name packageName, Name assetName)
         {
-            PackageName = packageName;
-            AssetName = assetName;
+            PackageName = new Store<Name>(packageName);
+            AssetName = new Store<Name>(assetName);
         }
 
-        public static void Serialize(Archive ar, ref TopLevelAssetPath value)
+        public static async Task Serialize(Archive ar, Store<TopLevelAssetPath> value)
         {
-            ar.Serialize(ref value.PackageName);
-            ar.Serialize(ref value.AssetName);
+            await ar.Serialize(value.V.PackageName);
+            await ar.Serialize(value.V.AssetName);
         }
 
         public override string ToString()
         {
-            return $"[{PackageName}.{AssetName}]";
+            return $"[{PackageName.V}.{AssetName.V}]";
         }
     }
 }

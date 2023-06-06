@@ -3,111 +3,111 @@ namespace Redpoint.Unreal.Serialization.Tests
     public class ArchiveTests
     {
         [Fact]
-        public void DeserializesFromUnrealASCIIValue()
+        public async Task DeserializesFromUnrealASCIIValue()
         {
             var bytes = Convert.FromBase64String("nP84////1P7///////+QAfQBAABYAgAAAAAAAAAAL0QAAAAAAACJQAYAAABoZWxsbwA=");
             using (var stream = new MemoryStream(bytes))
             {
                 var archive = new Archive(stream, true);
 
-                short a = 0;
-                int b = 0;
-                long c = 0;
-                ushort d = 0;
-                uint e = 0;
-                ulong f = 0;
-                float g = 0;
-                double h = 0;
-                string i = string.Empty;
+                var a = new Store<short>(0);
+                var b = new Store<int>(0);
+                var c = new Store<long>(0);
+                var d = new Store<ushort>(0);
+                var e = new Store<uint>(0);
+                var f = new Store<ulong>(0);
+                var g = new Store<float>(0);
+                var h = new Store<double>(0);
+                var i = new Store<string>(string.Empty);
 
-                archive.Serialize(ref a);
-                archive.Serialize(ref b);
-                archive.Serialize(ref c);
-                archive.Serialize(ref d);
-                archive.Serialize(ref e);
-                archive.Serialize(ref f);
-                archive.Serialize(ref g);
-                archive.Serialize(ref h);
-                archive.Serialize(ref i);
+                await archive.Serialize(a);
+                await archive.Serialize(b);
+                await archive.Serialize(c);
+                await archive.Serialize(d);
+                await archive.Serialize(e);
+                await archive.Serialize(f);
+                await archive.Serialize(g);
+                await archive.Serialize(h);
+                await archive.Serialize(i);
 
-                Assert.Equal(-100, a);
-                Assert.Equal(-200, b);
-                Assert.Equal(-300, c);
-                Assert.Equal(400u, d);
-                Assert.Equal(500u, e);
-                Assert.Equal(600u, f);
-                Assert.Equal(700.0f, g);
-                Assert.Equal(800.0, h);
-                Assert.Equal("hello", i);
+                Assert.Equal(-100, a.V);
+                Assert.Equal(-200, b.V);
+                Assert.Equal(-300, c.V);
+                Assert.Equal(400u, d.V);
+                Assert.Equal(500u, e.V);
+                Assert.Equal(600u, f.V);
+                Assert.Equal(700.0f, g.V);
+                Assert.Equal(800.0, h.V);
+                Assert.Equal("hello", i.V);
             }
         }
 
         [Fact]
-        public void DeserializesFromUnrealUnicodeValue()
+        public async Task DeserializesFromUnrealUnicodeValue()
         {
             var bytes = Convert.FromBase64String("nP84////1P7///////+QAfQBAABYAgAAAAAAAAAAL0QAAAAAAACJQPr///9oAGUAbABsAG8AAAA=");
             using (var stream = new MemoryStream(bytes))
             {
                 var archive = new Archive(stream, true);
 
-                short a = 0;
-                int b = 0;
-                long c = 0;
-                ushort d = 0;
-                uint e = 0;
-                ulong f = 0;
-                float g = 0;
-                double h = 0;
-                string i = string.Empty;
+                var a = new Store<short>(0);
+                var b = new Store<int>(0);
+                var c = new Store<long>(0);
+                var d = new Store<ushort>(0);
+                var e = new Store<uint>(0);
+                var f = new Store<ulong>(0);
+                var g = new Store<float>(0);
+                var h = new Store<double>(0);
+                var i = new Store<string>(string.Empty);
 
-                archive.Serialize(ref a);
-                archive.Serialize(ref b);
-                archive.Serialize(ref c);
-                archive.Serialize(ref d);
-                archive.Serialize(ref e);
-                archive.Serialize(ref f);
-                archive.Serialize(ref g);
-                archive.Serialize(ref h);
-                archive.Serialize(ref i);
+                await archive.Serialize(a);
+                await archive.Serialize(b);
+                await archive.Serialize(c);
+                await archive.Serialize(d);
+                await archive.Serialize(e);
+                await archive.Serialize(f);
+                await archive.Serialize(g);
+                await archive.Serialize(h);
+                await archive.Serialize(i);
 
-                Assert.Equal(-100, a);
-                Assert.Equal(-200, b);
-                Assert.Equal(-300, c);
-                Assert.Equal(400u, d);
-                Assert.Equal(500u, e);
-                Assert.Equal(600u, f);
-                Assert.Equal(700.0f, g);
-                Assert.Equal(800.0, h);
-                Assert.Equal("hello", i);
+                Assert.Equal(-100, a.V);
+                Assert.Equal(-200, b.V);
+                Assert.Equal(-300, c.V);
+                Assert.Equal(400u, d.V);
+                Assert.Equal(500u, e.V);
+                Assert.Equal(600u, f.V);
+                Assert.Equal(700.0f, g.V);
+                Assert.Equal(800.0, h.V);
+                Assert.Equal("hello", i.V);
             }
         }
 
         [Fact]
-        public void SerializesToUnrealUnicodeValue()
+        public async Task SerializesToUnrealUnicodeValue()
         {
             using (var stream = new MemoryStream())
             {
                 var archive = new Archive(stream, false);
 
-                short a = -100;
-                int b = -200;
-                long c = -300;
-                ushort d = 400;
-                uint e = 500u;
-                ulong f = 600u;
-                float g = 700.0f;
-                double h = 800.0;
-                string i = "hello";
+                var a = new Store<short>(-100);
+                var b = new Store<int>(-200);
+                var c = new Store<long>(-300);
+                var d = new Store<ushort>(400);
+                var e = new Store<uint>(500u);
+                var f = new Store<ulong>(600u);
+                var g = new Store<float>(700.0f);
+                var h = new Store<double>(800.0);
+                var i = new Store<string>("hello");
 
-                archive.Serialize(ref a);
-                archive.Serialize(ref b);
-                archive.Serialize(ref c);
-                archive.Serialize(ref d);
-                archive.Serialize(ref e);
-                archive.Serialize(ref f);
-                archive.Serialize(ref g);
-                archive.Serialize(ref h);
-                archive.Serialize(ref i);
+                await archive.Serialize(a);
+                await archive.Serialize(b);
+                await archive.Serialize(c);
+                await archive.Serialize(d);
+                await archive.Serialize(e);
+                await archive.Serialize(f);
+                await archive.Serialize(g);
+                await archive.Serialize(h);
+                await archive.Serialize(i);
 
                 Assert.Equal(
                     "nP84////1P7///////+QAfQBAABYAgAAAAAAAAAAL0QAAAAAAACJQPr///9oAGUAbABsAG8AAAA=",

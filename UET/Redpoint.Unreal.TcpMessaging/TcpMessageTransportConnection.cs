@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Unreal.TcpMessaging
 {
+    using Microsoft.Extensions.Logging;
     using Redpoint.Unreal.Serialization;
     using System.Collections.Concurrent;
     using System.Net;
@@ -8,7 +9,6 @@
 
     public class TcpMessageTransportConnection : IDisposable
     {
-        private object _consoleLock;
         private readonly Guid _guid;
         private readonly TcpClient _client;
         private Guid? _remoteNodeId;
@@ -16,84 +16,94 @@
         private bool _disposed;
         private ConcurrentQueue<TcpDeserializedMessage> _queuedToSend;
         private Task _backgroundSender;
-        private readonly bool _silent;
+        private readonly ILogger? _logger;
         private SemaphoreSlim _readyToSend;
 
-        public TcpMessageTransportConnection(IPEndPoint targetEndpoint, bool silent = true)
+        public static async Task<TcpMessageTransportConnection> CreateAsync(TcpClient client, ILogger? logger = null)
         {
-            _consoleLock = new object();
+            var instance = new TcpMessageTransportConnection(client, logger);
+            await instance.SendHeader();
+            instance._disposed = false;
+            instance._queuedToSend = new ConcurrentQueue<TcpDeserializedMessage>();
+            instance._readyToSend = new SemaphoreSlim(0);
+            instance._backgroundSender = Task.Run(instance.SendInBackground);
+            return instance;
+        }
+
+#pragma warning disable CS8618
+        private TcpMessageTransportConnection(TcpClient client, ILogger? logger)
+        {
+            _logger = logger;
             _guid = Guid.NewGuid();
-            _client = new TcpClient();
-            _client.Connect(targetEndpoint);
+            _client = client;
+            if (!_client.Connected)
+            {
+                throw new InvalidOperationException();
+            }
             _remoteNodeId = null;
             _receivedHeader = false;
-            SendHeader();
-            _disposed = false;
-            _queuedToSend = new ConcurrentQueue<TcpDeserializedMessage>();
-            _readyToSend = new SemaphoreSlim(0);
-            _backgroundSender = Task.Run(SendInBackground);
-            _silent = silent;
         }
+#pragma warning restore CS8618
 
         private async Task SendInBackground()
         {
             while (!_disposed)
             {
-                await _readyToSend.WaitAsync();
-
-                TcpDeserializedMessage nextMessage;
-                if (!_queuedToSend.TryDequeue(out nextMessage!))
+                try
                 {
-                    throw new InvalidOperationException();
-                }
+                    await _readyToSend.WaitAsync();
 
-                using (var memory = new MemoryStream())
-                {
-                    var memoryArchive = new Archive(memory, false);
-
-                    if (!_silent)
-                    {
-                        lock (_consoleLock)
-                        {
-                            var oldColor = Console.ForegroundColor;
-                            Console.ForegroundColor = ConsoleColor.Yellow;
-                            Console.Write($"{nextMessage.TimeSent}");
-                            Console.ForegroundColor = oldColor;
-                            Console.WriteLine($" {{{(nextMessage.RecipientAddresses.Data.Length > 0 ? nextMessage.RecipientAddresses.Data[0].UniqueId : "*")}}} <- {{{nextMessage.SenderAddress.UniqueId}}} [{nextMessage.AssetPath.PackageName + "." + nextMessage.AssetPath.AssetName}]\n{nextMessage.GetMessageData()}");
-                        }
-                    }
-
-                    memoryArchive.Serialize(ref nextMessage);
-
-                    uint length = (uint)memory.Position;
-                    if (length == 0)
+                    TcpDeserializedMessage nextMessageRaw;
+                    if (!_queuedToSend.TryDequeue(out nextMessageRaw!))
                     {
                         throw new InvalidOperationException();
                     }
+                    Store<TcpDeserializedMessage> nextMessage = new(nextMessageRaw);
 
-                    var sendArchive = new Archive(_client.GetStream(), false);
+                    using (var memory = new MemoryStream())
+                    {
+                        var memoryArchive = new Archive(memory, false);
 
-                    sendArchive.Serialize(ref length);
+                        _logger?.LogTrace($" {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId : "*")}}} <- {{{nextMessage.V.SenderAddress.V.UniqueId}}} [{nextMessage.V.AssetPath.V.PackageName + "." + nextMessage.V.AssetPath.V.AssetName}]\n{nextMessage.V.GetMessageData()}");
 
-                    memory.Seek(0, SeekOrigin.Begin);
-                    memory.CopyTo(_client.GetStream());
+                        await memoryArchive.Serialize(nextMessage);
+
+                        var length = new Store<uint>((uint)memory.Position);
+                        if (length.V == 0)
+                        {
+                            throw new InvalidOperationException();
+                        }
+
+                        var sendArchive = new Archive(_client.GetStream(), false);
+
+                        await sendArchive.Serialize(length);
+
+                        memory.Seek(0, SeekOrigin.Begin);
+                        await memory.CopyToAsync(_client.GetStream());
+
+                        _logger?.LogTrace("Flushed message to remote TCP stream!");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogCritical(ex, $"Failed to serialize message: {ex.Message}");
                 }
             }
         }
 
-        private void SendHeader()
+        private async Task SendHeader()
         {
             using (var memoryStream = new MemoryStream())
             {
-                var header = new TcpMessageHeader(_guid);
+                Store<TcpMessageHeader> header = new(new(_guid));
 
                 var headerArchive = new Archive(memoryStream, false);
-                headerArchive.Serialize(ref header);
+                await headerArchive.Serialize(header);
 
                 var position = memoryStream.Position;
                 memoryStream.Seek(0, SeekOrigin.Begin);
 
-                _client.GetStream().Write(memoryStream.GetBuffer(), 0, (int)position);
+                await _client.GetStream().WriteAsync(memoryStream.GetBuffer(), 0, (int)position);
             }
         }
 
@@ -101,11 +111,11 @@
         {
             var nextMessage = new TcpDeserializedMessage
             {
-                SenderAddress = new MessageAddress(_guid),
-                RecipientAddresses = new ArchiveArray<int, MessageAddress>(new[] { targetAddress }),
-                MessageScope = MessageScope.All,
-                TimeSent = DateTimeOffset.UtcNow,
-                ExpirationTime = DateTimeOffset.MaxValue,
+                SenderAddress = new(new MessageAddress(_guid)),
+                RecipientAddresses = new(new ArchiveArray<int, MessageAddress>(new[] { targetAddress })),
+                MessageScope = new(MessageScope.All),
+                TimeSent = new(DateTimeOffset.UtcNow),
+                ExpirationTime = new(DateTimeOffset.MaxValue),
             };
             nextMessage.SetMessageData(value);
 
@@ -117,10 +127,10 @@
         {
             var nextMessage = new TcpDeserializedMessage
             {
-                SenderAddress = new MessageAddress(_guid),
-                MessageScope = MessageScope.All,
-                TimeSent = DateTimeOffset.UtcNow,
-                ExpirationTime = DateTimeOffset.MaxValue,
+                SenderAddress = new(new MessageAddress(_guid)),
+                MessageScope = new(MessageScope.All),
+                TimeSent = new(DateTimeOffset.UtcNow),
+                ExpirationTime = new(DateTimeOffset.MaxValue),
             };
             nextMessage.SetMessageData(value);
 
@@ -132,11 +142,11 @@
         {
             var nextMessage = new TcpDeserializedMessage
             {
-                SenderAddress = new MessageAddress(_guid),
-                RecipientAddresses = new ArchiveArray<int, MessageAddress>(new MessageAddress[] { sourceMessage.SenderAddress }),
-                MessageScope = MessageScope.All,
-                TimeSent = DateTimeOffset.UtcNow,
-                ExpirationTime = DateTimeOffset.MaxValue,
+                SenderAddress = new(new MessageAddress(_guid)),
+                RecipientAddresses = new(new ArchiveArray<int, MessageAddress>(new MessageAddress[] { sourceMessage.SenderAddress.V })),
+                MessageScope = new(MessageScope.All),
+                TimeSent = new(DateTimeOffset.UtcNow),
+                ExpirationTime = new(DateTimeOffset.MaxValue),
             };
             nextMessage.SetMessageData(value);
 
@@ -144,77 +154,58 @@
             _readyToSend.Release();
         }
 
-        public void WriteConsole(Action consoleWrite)
+        public async Task ReceiveUntilAsync(Func<TcpDeserializedMessage, Task<bool>> onMessageReceived, CancellationToken cancellationToken)
         {
-            lock (_consoleLock)
+            try
             {
-                consoleWrite();
-            }
-        }
+                var receiveArchive = new Archive(_client.GetStream(), true);
 
-        public void ReceiveUntil(Func<TcpDeserializedMessage, bool> onMessageReceived, CancellationToken cancellationToken)
-        {
-            var receiveArchive = new Archive(_client.GetStream(), true);
-
-            if (!_receivedHeader)
-            {
-                var header = new TcpMessageHeader();
-                receiveArchive.Serialize(ref header);
-                _remoteNodeId = header.NodeId;
-                _receivedHeader = true;
-            }
-
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                uint nextBytes = 0;
-                receiveArchive.Serialize(ref nextBytes);
-
-                var buffer = new byte[0];
-                receiveArchive.Serialize(ref buffer, nextBytes);
-
-                var nextMessage = new TcpDeserializedMessage();
-                try
+                if (!_receivedHeader)
                 {
-                    using (var memory = new MemoryStream(buffer))
-                    {
-                        var memoryArchive = new Archive(memory, true);
-                        memoryArchive.Serialize(ref nextMessage);
-                    }
+                    var header = new Store<TcpMessageHeader>(new());
+                    await receiveArchive.Serialize(header);
+                    _remoteNodeId = header.V.NodeId;
+                    _receivedHeader = true;
+                    _logger?.LogTrace($"Received header from remote node ID {_remoteNodeId}");
                 }
-                catch (TopLevelAssetPathNotFoundException)
+
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    if (!_silent)
+                    var nextBytes = new Store<uint>(0);
+                    await receiveArchive.Serialize(nextBytes);
+
+                    var buffer = new Store<byte[]>(new byte[0]);
+                    await receiveArchive.Serialize(buffer, nextBytes.V);
+
+                    var nextMessage = new Store<TcpDeserializedMessage>(new());
+                    try
                     {
-                        lock (_consoleLock)
+                        using (var memory = new MemoryStream(buffer.V))
                         {
-                            var oldColor = Console.ForegroundColor;
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.Write($"{nextMessage.TimeSent}");
-                            Console.ForegroundColor = oldColor;
-                            Console.WriteLine($" {{{nextMessage.SenderAddress.UniqueId}}} -> {{{(nextMessage.RecipientAddresses.Data.Length > 0 ? nextMessage.RecipientAddresses.Data[0].UniqueId : "*")}}} [{nextMessage.AssetPath.PackageName + "." + nextMessage.AssetPath.AssetName}]\n(no C# class registered for this message type)");
+                            var memoryArchive = new Archive(memory, true);
+                            await memoryArchive.Serialize(nextMessage);
                         }
                     }
-                    continue;
-                }
-
-                {
-                    if (!_silent)
+                    catch (TopLevelAssetPathNotFoundException)
                     {
-                        lock (_consoleLock)
+                        _logger?.LogTrace($" {{{nextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{nextMessage.V.AssetPath.V.PackageName.V + "." + nextMessage.V.AssetPath.V.AssetName.V}]\n(no C# class registered for this message type)");
+                        continue;
+                    }
+
+                    {
+                        _logger?.LogTrace($" {{{nextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{nextMessage.V.AssetPath.V.PackageName.V + "." + nextMessage.V.AssetPath.V.AssetName.V}]\n{nextMessage.V.GetMessageData()}");
+
+                        if (await onMessageReceived(nextMessage.V))
                         {
-                            var oldColor = Console.ForegroundColor;
-                            Console.ForegroundColor = ConsoleColor.Green;
-                            Console.Write($"{nextMessage.TimeSent}");
-                            Console.ForegroundColor = oldColor;
-                            Console.WriteLine($" {{{nextMessage.SenderAddress.UniqueId}}} -> {{{(nextMessage.RecipientAddresses.Data.Length > 0 ? nextMessage.RecipientAddresses.Data[0].UniqueId : "*")}}} [{nextMessage.AssetPath.PackageName + "." + nextMessage.AssetPath.AssetName}]\n{nextMessage.GetMessageData()}");
+                            return;
                         }
                     }
-
-                    if (onMessageReceived(nextMessage))
-                    {
-                        return;
-                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogCritical(ex, $"Exception during message receive: {ex.Message}");
+                throw;
             }
         }
 

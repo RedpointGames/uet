@@ -2,24 +2,24 @@
 {
     public record class UnrealString : ISerializable<UnrealString>
     {
-        public string Value;
+        public Store<string> Value;
 
         public UnrealString()
         {
-            Value = string.Empty;
+            Value = new Store<string>(string.Empty);
         }
 
         public UnrealString(string name)
         {
-            Value = name;
+            Value = new Store<string>(name);
         }
 
-        public static void Serialize(Archive ar, ref UnrealString value)
+        public static async Task Serialize(Archive ar, Store<UnrealString> value)
         {
-            ar.Serialize(ref value.Value);
+            await ar.Serialize(value.V.Value);
         }
 
         public static implicit operator UnrealString(string value) => new(value);
-        public static implicit operator string(UnrealString value) => value.Value;
+        public static implicit operator string(UnrealString value) => value.Value.V;
     }
 }

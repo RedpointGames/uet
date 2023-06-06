@@ -10,8 +10,8 @@
 
         public TopLevelAssetPathAttribute(string packageName, string assetName)
         {
-            PackageName = packageName;
-            AssetName = assetName;
+            PackageName = new Name(new Store<string>(packageName));
+            AssetName = new Name(new Store<string>(assetName));
         }
     }
 }

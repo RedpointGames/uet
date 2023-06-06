@@ -42,184 +42,184 @@
             }
         }
 
-        private void ByteOrderSerialize<T>(ref T value) where T : IBinaryInteger<T>, IUnsignedNumber<T>
+        private async ValueTask ByteOrderSerialize<T>(Store<T> value) where T : IBinaryInteger<T>, IUnsignedNumber<T>
         {
             if (IsLoading)
             {
-                var span = new Span<byte>();
-                Serialize(ref span, value.GetByteCount());
+                var span = new Store<Memory<byte>>(new Memory<byte>());
+                await Serialize(span, value.V.GetByteCount());
                 if (IsLittleEndian)
                 {
-                    value = T.ReadLittleEndian(span, true);
+                    value.V = T.ReadLittleEndian(span.V.Span, true);
                 }
                 else
                 {
-                    value = T.ReadBigEndian(span, true);
+                    value.V = T.ReadBigEndian(span.V.Span, true);
                 }
             }
             else
             {
-                var bytes = new byte[value.GetByteCount()];
+                var bytes = new byte[value.V.GetByteCount()];
                 if (IsLittleEndian)
                 {
-                    value.WriteLittleEndian(bytes);
+                    value.V.WriteLittleEndian(bytes);
                 }
                 else
                 {
-                    value.WriteBigEndian(bytes);
+                    value.V.WriteBigEndian(bytes);
                 }
-                var span = bytes.AsSpan();
-                Serialize(ref span, span.Length);
+                var span = new Store<Memory<byte>>(bytes.AsMemory());
+                await Serialize(span, span.V.Length);
             }
         }
 
-        public void Serialize(ref SByte value)
+        public async ValueTask Serialize(Store<SByte> value)
         {
-            var u = ReinterpretCast<SByte, Byte>(value);
-            ByteOrderSerialize(ref u);
-            value = ReinterpretCast<Byte, SByte>(u);
+            var u = new Store<Byte>(ReinterpretCast<SByte, Byte>(value.V));
+            await ByteOrderSerialize(u);
+            value.V = ReinterpretCast<Byte, SByte>(u.V);
         }
 
-        public void Serialize(ref Int16 value)
+        public async ValueTask Serialize(Store<Int16> value)
         {
-            var u = ReinterpretCast<Int16, UInt16>(value);
-            ByteOrderSerialize(ref u);
-            value = ReinterpretCast<UInt16, Int16>(u);
+            var u = new Store<UInt16>(ReinterpretCast<Int16, UInt16>(value.V));
+            await ByteOrderSerialize(u);
+            value.V = ReinterpretCast<UInt16, Int16>(u.V);
         }
 
-        public void Serialize(ref Int32 value)
+        public async ValueTask Serialize(Store<Int32> value)
         {
-            var u = ReinterpretCast<Int32, UInt32>(value);
-            ByteOrderSerialize(ref u);
-            value = ReinterpretCast<UInt32, Int32>(u);
+            var u = new Store<UInt32>(ReinterpretCast<Int32, UInt32>(value.V));
+            await ByteOrderSerialize(u);
+            value.V = ReinterpretCast<UInt32, Int32>(u.V);
         }
 
-        public void Serialize(ref Int64 value)
+        public async ValueTask Serialize(Store<Int64> value)
         {
-            var u = ReinterpretCast<Int64, UInt64>(value);
-            ByteOrderSerialize(ref u);
-            value = ReinterpretCast<UInt64, Int64>(u);
+            var u = new Store<UInt64>(ReinterpretCast<Int64, UInt64>(value.V));
+            await ByteOrderSerialize(u);
+            value.V = ReinterpretCast<UInt64, Int64>(u.V);
         }
 
-        public void Serialize(ref Byte value)
+        public async ValueTask Serialize(Store<Byte> value)
         {
-            ByteOrderSerialize(ref value);
+            await ByteOrderSerialize(value);
         }
 
-        public void Serialize(ref UInt16 value)
+        public async ValueTask Serialize(Store<UInt16> value)
         {
-            ByteOrderSerialize(ref value);
+            await ByteOrderSerialize(value);
         }
 
-        public void Serialize(ref UInt32 value)
+        public async ValueTask Serialize(Store<UInt32> value)
         {
-            ByteOrderSerialize(ref value);
+            await ByteOrderSerialize(value);
         }
 
-        public void Serialize(ref UInt64 value)
+        public async ValueTask Serialize(Store<UInt64> value)
         {
-            ByteOrderSerialize(ref value);
+            await ByteOrderSerialize(value);
         }
 
-        public void Serialize(ref float value)
+        public async ValueTask Serialize(Store<float> value)
         {
-            var u = ReinterpretCast<float, UInt32>(value);
-            ByteOrderSerialize(ref u);
-            value = ReinterpretCast<UInt32, float>(u);
+            var u = new Store<UInt32>(ReinterpretCast<float, UInt32>(value.V));
+            await ByteOrderSerialize(u);
+            value.V = ReinterpretCast<UInt32, float>(u.V);
         }
 
-        public void Serialize(ref double value)
+        public async ValueTask Serialize(Store<double> value)
         {
-            var u = ReinterpretCast<double, UInt64>(value);
-            ByteOrderSerialize(ref u);
-            value = ReinterpretCast<UInt64, double>(u);
+            var u = new Store<UInt64>(ReinterpretCast<double, UInt64>(value.V));
+            await ByteOrderSerialize(u);
+            value.V = ReinterpretCast<UInt64, double>(u.V);
         }
 
-        public void Serialize(ref Span<byte> value, long length)
+        public async ValueTask Serialize(Store<Memory<byte>> value, long length)
         {
             if (IsLoading)
             {
-                value = new byte[length];
-                _stream.ReadExactly(value);
+                value.V = new byte[length];
+                await _stream.ReadExactlyAsync(value.V);
             }
             else
             {
-                _stream.Write(value);
+                await _stream.WriteAsync(value.V);
             }
         }
 
-        public void Serialize(ref byte[] value, long length)
+        public async ValueTask Serialize(Store<byte[]> value, long length)
         {
             if (IsLoading)
             {
-                value = new byte[length];
-                _stream.ReadExactly(value);
+                value.V = new byte[length];
+                await _stream.ReadExactlyAsync(value.V);
             }
             else
             {
-                _stream.Write(value);
+                await _stream.WriteAsync(value.V);
             }
         }
 
-        public void Serialize(ref bool value)
+        public async ValueTask Serialize(Store<bool> value)
         {
-            UInt32 intValue = value ? 1u : 0u;
-            ByteOrderSerialize(ref intValue);
-            value = intValue == 1;
+            Store<UInt32> intValue = new Store<UInt32>(value.V ? 1u : 0u);
+            await ByteOrderSerialize(intValue);
+            value.V = intValue.V == 1;
         }
 
-        public void Serialize(ref string value, bool encodeAsASCII = false)
+        public async ValueTask Serialize(Store<string> value, bool encodeAsASCII = false)
         {
             if (IsLoading)
             {
-                Int32 length = 0;
-                Serialize(ref length);
+                Store<Int32> length = new Store<Int32>(0);
+                await Serialize(length);
 
-                bool encodedAsUnicode = length < 0;
+                bool encodedAsUnicode = length.V < 0;
                 if (encodedAsUnicode)
                 {
-                    length = -length;
+                    length.V = -length.V;
                 }
 
-                if (length > 0)
+                if (length.V > 0)
                 {
                     if (encodedAsUnicode)
                     {
-                        Span<byte> span = Span<byte>.Empty;
-                        Serialize(ref span, length * sizeof(short));
+                        var span = new Store<Memory<byte>>(Memory<byte>.Empty);
+                        await Serialize(span, length.V * sizeof(short));
                         if (IsLittleEndian != BitConverter.IsLittleEndian)
                         {
-                            for (var i = 0; i < span.Length; i += 2)
+                            for (var i = 0; i < span.V.Length; i += 2)
                             {
-                                var t = span[i];
-                                span[i] = span[i + 1];
-                                span[i + 1] = t;
+                                var t = span.V.Span[i];
+                                span.V.Span[i] = span.V.Span[i + 1];
+                                span.V.Span[i + 1] = t;
                             }
                         }
-                        span[length - 1] = 0;
-                        value = Encoding.Unicode.GetString(span.Slice(0, span.Length - sizeof(short)));
+                        span.V.Span[length.V - 1] = 0;
+                        value.V = Encoding.Unicode.GetString(span.V.Span.Slice(0, span.V.Span.Length - sizeof(short)));
                     }
                     else
                     {
-                        Span<byte> span = Span<byte>.Empty;
-                        Serialize(ref span, length);
-                        span[length - 1] = 0;
-                        value = Encoding.ASCII.GetString(span.Slice(0, span.Length - 1));
+                        var span = new Store<Memory<byte>>(Memory<byte>.Empty);
+                        await Serialize(span, length.V);
+                        span.V.Span[length.V - 1] = 0;
+                        value.V = Encoding.ASCII.GetString(span.V.Span.Slice(0, span.V.Span.Length - 1));
                     }
 
-                    if (length == 1)
+                    if (length.V == 1)
                     {
-                        value = string.Empty;
+                        value.V = string.Empty;
                     }
                 }
             }
             else
             {
                 var nullTerminatedValue = value + "\0";
-                Int32 length = encodeAsASCII ? nullTerminatedValue.Length : -nullTerminatedValue.Length;
-                Serialize(ref length);
+                Store<Int32> length = new Store<Int32>(encodeAsASCII ? nullTerminatedValue.Length : -nullTerminatedValue.Length);
+                await Serialize(length);
 
-                if (length != 0)
+                if (length.V != 0)
                 {
                     var bytes = (encodeAsASCII ? Encoding.ASCII : Encoding.Unicode).GetBytes(nullTerminatedValue);
                     if (!encodeAsASCII && IsLittleEndian != BitConverter.IsLittleEndian)
@@ -231,15 +231,15 @@
                             bytes[i + 1] = t;
                         }
                     }
-                    var span = bytes.AsSpan();
-                    Serialize(ref span, bytes.Length);
+                    var span = new Store<Memory<byte>>(bytes.AsMemory());
+                    await Serialize(span, bytes.Length);
                 }
             }
         }
 
-        public void Serialize<T>(ref T value) where T : notnull, ISerializable<T>, new()
+        public async Task Serialize<T>(Store<T> value) where T : notnull, ISerializable<T>, new()
         {
-            T.Serialize(this, ref value);
+            await T.Serialize(this, value);
         }
 
         private static Dictionary<TopLevelAssetPath, Type>? _topLevelClassCache = null;
@@ -271,7 +271,7 @@
             return _topLevelClassCache[assetPath];
         }
 
-        private void InvokeSerializeOnType<T>(Type type, ref T value)
+        private async Task InvokeSerializeOnType<T>(Type type, Store<T> value)
         {
             if (value == null)
             {
@@ -279,18 +279,17 @@
             }
 
             var args = new object[] { this, value };
-            type.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Static)!.Invoke(null, BindingFlags.DoNotWrapExceptions, null, args, null);
-            value = (T)args[1];
+            await (Task)(type.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Static)!.Invoke(null, BindingFlags.DoNotWrapExceptions, null, args, null))!;
         }
 
-        public void DynamicRpcSerialize(TopLevelAssetPath assetPath, ref object? value)
+        public async Task DynamicRpcSerialize(TopLevelAssetPath assetPath, Store<object?> value)
         {
             var type = GetTypeForTopLevelAssetPath(assetPath);
             if (IsLoading)
             {
-                value = type.GetConstructor(Type.EmptyTypes)!.Invoke(null);
+                value.V = type.GetConstructor(Type.EmptyTypes)!.Invoke(null);
             }
-            InvokeSerializeOnType(type, ref value);
+            await InvokeSerializeOnType(type, value);
         }
 
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
@@ -298,104 +297,94 @@
             IncludeFields = true,
         };
 
-        public void DynamicJsonFromRemainderOfStream(TopLevelAssetPath assetPath, ref object? value)
+        public async Task DynamicJsonFromRemainderOfStream(Store<TopLevelAssetPath> assetPath, Store<object?> value)
         {
-            var type = GetTypeForTopLevelAssetPath(assetPath);
+            var type = GetTypeForTopLevelAssetPath(assetPath.V);
 
             if (IsLoading)
             {
                 var buffer = new byte[_stream.Length - _stream.Position];
-                _stream.Read(buffer);
+                await _stream.ReadAsync(buffer);
                 var json = Encoding.Unicode.GetString(buffer);
-                value = JsonSerializer.Deserialize(json, type, _jsonOptions);
+                value.V = JsonSerializer.Deserialize(json, type, _jsonOptions);
             }
             else
             {
-                var json = JsonSerializer.Serialize(value, type, _jsonOptions);
+                var json = JsonSerializer.Serialize(value.V, type, _jsonOptions);
                 var buffer = Encoding.Unicode.GetBytes(json);
-                _stream.Write(buffer);
+                await _stream.WriteAsync(buffer);
             }
         }
 
-        public void DynamicJsonSerialize(TopLevelAssetPath assetPath, ref object? value)
+        public async Task DynamicJsonSerialize(Store<TopLevelAssetPath> assetPath, Store<object?> value)
         {
-            var type = GetTypeForTopLevelAssetPath(assetPath);
+            var type = GetTypeForTopLevelAssetPath(assetPath.V);
 
             if (IsLoading)
             {
-                string json = string.Empty;
-                Serialize(ref json);
-                value = JsonSerializer.Deserialize(json, type, _jsonOptions);
+                Store<string> json = new Store<string>(string.Empty);
+                await Serialize(json);
+                value.V = JsonSerializer.Deserialize(json.V, type, _jsonOptions);
             }
             else
             {
-                string json = JsonSerializer.Serialize(value, type, _jsonOptions);
-                Serialize(ref json);
+                Store<string> json = new Store<string>(JsonSerializer.Serialize(value.V, type, _jsonOptions));
+                await Serialize(json);
             }
         }
 
-        public void RuntimeSerialize<T>(ref T value) where T : new()
+        public async Task RuntimeSerialize<T>(Store<T> value) where T : new()
         {
-            if (value == null)
+            if (value.V == null)
             {
                 throw new ArgumentNullException(nameof(value));
             }
 
-            switch (value)
+            switch (value.V)
             {
                 case Int16 v:
-                    Serialize(ref v);
-                    value = (T)(object)v;
+                    await Serialize(new CastedStore<Int16, T>(value));
                     return;
                 case Int32 v:
-                    Serialize(ref v);
-                    value = (T)(object)v;
+                    await Serialize(new CastedStore<Int32, T>(value));
                     return;
                 case Int64 v:
-                    Serialize(ref v);
-                    value = (T)(object)v;
+                    await Serialize(new CastedStore<Int64, T>(value));
                     return;
                 case UInt16 v:
-                    Serialize(ref v);
-                    value = (T)(object)v;
+                    await Serialize(new CastedStore<UInt16, T>(value));
                     return;
                 case UInt32 v:
-                    Serialize(ref v);
-                    value = (T)(object)v;
+                    await Serialize(new CastedStore<UInt32, T>(value));
                     return;
                 case UInt64 v:
-                    Serialize(ref v);
-                    value = (T)(object)v;
+                    await Serialize(new CastedStore<UInt64, T>(value));
                     return;
                 case float v:
-                    Serialize(ref v);
-                    value = (T)(object)v;
+                    await Serialize(new CastedStore<float, T>(value));
                     return;
                 case double v:
-                    Serialize(ref v);
-                    value = (T)(object)v;
+                    await Serialize(new CastedStore<double, T>(value));
                     return;
                 case bool v:
-                    Serialize(ref v);
-                    value = (T)(object)v;
+                    await Serialize(new CastedStore<bool, T>(value));
                     return;
                 case Guid v:
-                    ArchiveGuid.Serialize(this, ref v);
-                    value = (T)(object)v;
+                    await ArchiveGuid.Serialize(this, new CastedStore<Guid, T>(value));
                     return;
                 default:
                     // Now we need to compare against T
                     // because value might be a null value.
                     if (typeof(string) == typeof(T))
                     {
-                        string v = (string)(object)value!;
-                        Serialize(ref v);
-                        value = (T)(object)v;
+                        var v = new Store<string>((string)(object)value!);
+                        await Serialize(v);
+                        value.V = (T)(object)v;
                         return;
                     }
                     else if (typeof(T).IsAssignableTo(typeof(ISerializable<T>)))
                     {
-                        InvokeSerializeOnType(typeof(T), ref value);
+                        await InvokeSerializeOnType(typeof(T), value);
                     }
                     else
                     {

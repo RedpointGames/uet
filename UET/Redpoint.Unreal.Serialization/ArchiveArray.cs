@@ -22,26 +22,28 @@
             Data = values.ToArray();
         }
 
-        public static void Serialize(Archive ar, ref ArchiveArray<I, V> value)
+        public static async Task Serialize(Archive ar, Store<ArchiveArray<I, V>> value)
         {
             if (ar.IsLoading)
             {
-                I idx = new();
-                ar.RuntimeSerialize(ref idx);
-                value = new ArchiveArray<I, V>(idx);
-                for (I i = I.CreateChecked(0); i < idx; i++)
+                var idx = new Store<I>(I.Zero);
+                await ar.RuntimeSerialize(idx);
+                value.V = new ArchiveArray<I, V>(idx.V);
+                for (I i = I.CreateChecked(0); i < idx.V; i++)
                 {
-                    value.Data[int.CreateChecked(i)] = new V();
-                    ar.RuntimeSerialize(ref value.Data[int.CreateChecked(i)]);
+                    value.V.Data[int.CreateChecked(i)] = new V();
+                    var store = new Store<V>(value.V.Data[int.CreateChecked(i)]);
+                    await ar.RuntimeSerialize(store);
+                    value.V.Data[int.CreateChecked(i)] = store.V;
                 }
             }
             else
             {
-                I idx = I.CreateChecked(value.Data.Length);
-                ar.RuntimeSerialize(ref idx);
-                for (I i = I.CreateChecked(0); i < idx; i++)
+                var idx = new Store<I>(I.CreateChecked(value.V.Data.Length));
+                await ar.RuntimeSerialize(idx);
+                for (I i = I.CreateChecked(0); i < idx.V; i++)
                 {
-                    ar.RuntimeSerialize(ref value.Data[int.CreateChecked(i)]);
+                    await ar.RuntimeSerialize(new Store<V>(value.V.Data[int.CreateChecked(i)]));
                 }
             }
         }

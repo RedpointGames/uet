@@ -4,9 +4,9 @@
 
     public class TcpMessageHeader : ISerializable<TcpMessageHeader>
     {
-        private uint _magicNumber;
-        private uint _version;
-        private Guid _nodeId;
+        private Store<uint> _magicNumber;
+        private Store<uint> _version;
+        private Store<Guid> _nodeId;
 
         public const uint DefaultMagicNumber = 0x45504943u;
         public const uint DefaultVersionNumber = 1;
@@ -15,9 +15,9 @@
         public const int DefaultMaxRecipients = 1024;
         public const int DefaultMaxAnnotations = 128;
 
-        public uint MagicNumber => _magicNumber;
-        public uint Version => _version;
-        public Guid NodeId => _nodeId;
+        public uint MagicNumber => _magicNumber.V;
+        public uint Version => _version.V;
+        public Guid NodeId => _nodeId.V;
 
         public TcpMessageHeader() : this(Guid.NewGuid())
         {
@@ -25,22 +25,22 @@
 
         public TcpMessageHeader(Guid Guid)
         {
-            _magicNumber = DefaultMagicNumber;
-            _version = DefaultVersionNumber;
-            _nodeId = Guid;
+            _magicNumber = new(DefaultMagicNumber);
+            _version = new(DefaultVersionNumber);
+            _nodeId = new(Guid);
         }
 
         public bool IsValid()
         {
-            return _magicNumber == DefaultMagicNumber &&
-                _version == DefaultVersionNumber;
+            return _magicNumber.V == DefaultMagicNumber &&
+                _version.V == DefaultVersionNumber;
         }
 
-        public static void Serialize(Archive ar, ref TcpMessageHeader value)
+        public static async Task Serialize(Archive ar, Store<TcpMessageHeader> value)
         {
-            ar.Serialize(ref value._magicNumber);
-            ar.Serialize(ref value._version);
-            ar.Serialize(ref value._nodeId);
+            await ar.Serialize(value.V._magicNumber);
+            await ar.Serialize(value.V._version);
+            await ar.Serialize(value.V._nodeId);
         }
     }
 }

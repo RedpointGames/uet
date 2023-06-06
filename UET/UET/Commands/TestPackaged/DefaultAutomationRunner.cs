@@ -7,6 +7,7 @@
     using Redpoint.Unreal.TcpMessaging;
     using Microsoft.Extensions.Logging;
     using System.Diagnostics;
+    using System.Net.Sockets;
 
     internal class DefaultAutomationRunner : IAutomationRunner
     {
@@ -20,13 +21,16 @@
 
         public async Task<int> RunTestsAsync(IPEndPoint endpoint, string testPrefix, string projectName, CancellationToken cancellationToken)
         {
-            return await Task.Run(() =>
+            return await Task.Run(async () =>
             {
                 var instanceId = Guid.NewGuid();
                 var sessionId = Guid.NewGuid();
                 var targetEndpoint = new MessageAddress();
 
-                using (var connection = new TcpMessageTransportConnection(endpoint, true))
+                var client = new TcpClient();
+                client.Connect(endpoint);
+
+                using (var connection = await TcpMessageTransportConnection.CreateAsync(client, _logger))
                 {
                     // Detect the remote's engine version so we can pretend to be the same.
                     var engineVersion = 0;
@@ -35,23 +39,23 @@
                     bool gotEngineVersion = false, gotSessionId = false;
                     connection.Send(new EngineServicePing());
                     connection.Send(new SessionServicePing { UserName = string.Empty });
-                    connection.ReceiveUntil(message =>
+                    await connection.ReceiveUntilAsync(message =>
                     {
                         switch (message.GetMessageData())
                         {
                             case EngineServicePong pong:
                                 engineVersion = pong.EngineVersion;
                                 gotEngineVersion = true;
-                                return gotEngineVersion && gotSessionId;
+                                return Task.FromResult(gotEngineVersion && gotSessionId);
                             case SessionServicePong pong:
                                 sessionId = pong.SessionId;
                                 buildDate = pong.BuildDate;
                                 sessionOwner = pong.SessionOwner;
                                 gotSessionId = true;
-                                return gotEngineVersion && gotSessionId;
+                                return Task.FromResult(gotEngineVersion && gotSessionId);
                         }
 
-                        return false;
+                        return Task.FromResult(false);
                     }, cancellationToken);
 
                     // Find workers.
@@ -62,17 +66,17 @@
                         ProcessName = "instance_name",
                         SessionId = sessionId,
                     });
-                    connection.ReceiveUntil(message =>
+                    await connection.ReceiveUntilAsync(message =>
                     {
                         switch (message.GetMessageData())
                         {
                             case AutomationWorkerFindWorkersResponse response:
                                 sessionId = response.SessionId;
-                                targetEndpoint = message.SenderAddress;
-                                return true;
+                                targetEndpoint = message.SenderAddress.V;
+                                return Task.FromResult(true);
                         }
 
-                        return false;
+                        return Task.FromResult(false);
                     }, cancellationToken);
 
                     // Discover tests.
@@ -82,16 +86,16 @@
                         DeveloperDirectoryIncluded = true,
                         RequestedTestFlags = AutomationTestFlags.EditorContext | AutomationTestFlags.ProductFilter,
                     });
-                    connection.ReceiveUntil(message =>
+                    await connection.ReceiveUntilAsync(message =>
                     {
                         switch (message.GetMessageData())
                         {
                             case AutomationWorkerRequestTestsReplyComplete response:
                                 discoveredTests = response;
-                                return true;
+                                return Task.FromResult(true);
                         }
 
-                        return false;
+                        return Task.FromResult(false);
                     }, cancellationToken);
 
                     // Order and filter tests.
@@ -122,7 +126,7 @@
                             bSendAnalytics = false,
                             RoleIndex = 0,
                         });
-                        connection.ReceiveUntil(message =>
+                        await connection.ReceiveUntilAsync(message =>
                         {
                             switch (message.GetMessageData())
                             {
@@ -133,10 +137,10 @@
                                         {
                                             case AutomationState.NotRun:
                                                 _logger.LogInformation($"Running {test.FullTestPath}... not run");
-                                                return false;
+                                                return Task.FromResult(false);
                                             case AutomationState.InProcess:
                                                 _logger.LogInformation($"Running {test.FullTestPath}... in process");
-                                                return false;
+                                                return Task.FromResult(false);
                                         }
 
                                         foreach (var entry in reply.Entries)
@@ -163,23 +167,23 @@
                                         {
                                             case AutomationState.Skipped:
                                                 _logger.LogInformation($"Running {test.FullTestPath}... \u001b[33mskip\u001b[0m");
-                                                return true;
+                                                return Task.FromResult(true);
                                             case AutomationState.Success:
                                                 _logger.LogInformation($"Running {test.FullTestPath}... \u001b[32mpass\u001b[0m ({reply.Duration:0.00} secs)");
-                                                return true;
+                                                return Task.FromResult(true);
                                             case AutomationState.Fail:
                                                 didFail = true;
                                                 _logger.LogInformation($"Running {test.FullTestPath}... \u001b[31mfail\u001b[0m ({reply.Duration:0.00} secs)");
-                                                return true;
+                                                return Task.FromResult(true);
                                             default:
                                                 _logger.LogInformation($"Running {test.FullTestPath}... \u001b[35munknown\u001b[0m");
-                                                return true;
+                                                return Task.FromResult(true);
                                         }
                                     }
-                                    return false;
+                                    return Task.FromResult(false);
                             }
 
-                            return false;
+                            return Task.FromResult(false);
                         }, cancellationToken);
                     }
 

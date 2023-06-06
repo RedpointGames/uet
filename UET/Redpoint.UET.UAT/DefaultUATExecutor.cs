@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.UET.UAT
 {
+    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE;
     using Redpoint.PathResolution;
@@ -11,11 +12,11 @@
 
     internal class DefaultUATExecutor : IUATExecutor
     {
+        private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<DefaultUATExecutor> _logger;
         private readonly IBuildConfigurationManager _buildConfigurationManager;
         private readonly ILocalHandleCloser _localHandleCloser;
         private readonly IRemoteHandleCloser _remoteHandleCloser;
-        private readonly IProcessWithOpenGEExecutor _processWithOpenGEExecutor;
         private readonly IPathResolver _pathResolver;
 
         internal class ScriptModuleJson
@@ -28,18 +29,18 @@
         }
 
         public DefaultUATExecutor(
+            IServiceProvider serviceProvider,
             ILogger<DefaultUATExecutor> logger,
             IBuildConfigurationManager buildConfigurationManager,
             ILocalHandleCloser localHandleCloser,
             IRemoteHandleCloser remoteHandleCloser,
-            IProcessWithOpenGEExecutor processWithOpenGEExecutor,
             IPathResolver pathResolver)
         {
+            _serviceProvider = serviceProvider;
             _logger = logger;
             _buildConfigurationManager = buildConfigurationManager;
             _localHandleCloser = localHandleCloser;
             _remoteHandleCloser = remoteHandleCloser;
-            _processWithOpenGEExecutor = processWithOpenGEExecutor;
             _pathResolver = pathResolver;
         }
 
@@ -264,7 +265,10 @@
                     var retryCaptureSpecification = new UATCaptureSpecification(captureSpecification);
 
                     // Execute UAT.
-                    reportedExitCode = await _processWithOpenGEExecutor.ExecuteAsync(
+                    var executor = uatSpecification.DisableOpenGE
+                        ? _serviceProvider.GetRequiredService<IProcessExecutor>()
+                        : _serviceProvider.GetRequiredService<IProcessWithOpenGEExecutor>();
+                    reportedExitCode = await executor.ExecuteAsync(
                         processSpecification,
                         retryCaptureSpecification,
                         cancellationToken);

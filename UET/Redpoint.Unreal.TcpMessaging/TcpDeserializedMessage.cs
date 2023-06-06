@@ -6,32 +6,32 @@
 
     public record class TcpDeserializedMessage : ISerializable<TcpDeserializedMessage>
     {
-        public TopLevelAssetPath AssetPath = new();
-        public MessageAddress SenderAddress = new();
-        public ArchiveArray<int, MessageAddress> RecipientAddresses = new();
-        public byte MessageScope = new();
-        public DateTimeOffset TimeSent = DateTimeOffset.MinValue;
-        public DateTimeOffset ExpirationTime = DateTimeOffset.MinValue;
-        public ArchiveMap<int, Name, UnrealString> Annotations = new();
+        public Store<TopLevelAssetPath> AssetPath = new(new());
+        public Store<MessageAddress> SenderAddress = new(new());
+        public Store<ArchiveArray<int, MessageAddress>> RecipientAddresses = new(new());
+        public Store<byte> MessageScope = new(new());
+        public Store<DateTimeOffset> TimeSent = new(DateTimeOffset.MinValue);
+        public Store<DateTimeOffset> ExpirationTime = new(DateTimeOffset.MinValue);
+        public Store<ArchiveMap<int, Name, UnrealString>> Annotations = new(new());
 
-        private object? _message;
+        private Store<object?> _message = new(null);
 
         public object GetMessageData()
         {
-            if (_message == null)
+            if (_message.V == null)
             {
                 throw new InvalidOperationException();
             }
-            return _message;
+            return _message.V;
         }
 
         public T GetMessageData<T>() where T : notnull, new()
         {
-            if (_message == null)
+            if (_message.V == null)
             {
                 throw new InvalidOperationException();
             }
-            return (T)_message;
+            return (T)_message.V;
         }
 
         public void SetMessageData<T>(T message) where T : notnull, new()
@@ -41,23 +41,23 @@
             {
                 throw new InvalidOperationException($"Can't use {typeof(T).FullName} for SetMessageData as it does not have [TopLevelAssetPath]");
             }
-            AssetPath = new TopLevelAssetPath(attr.PackageName, attr.AssetName);
-            _message = message;
+            AssetPath.V = new TopLevelAssetPath(attr.PackageName, attr.AssetName);
+            _message.V = message;
         }
 
-        public static void Serialize(Archive ar, ref TcpDeserializedMessage value)
+        public static async Task Serialize(Archive ar, Store<TcpDeserializedMessage> value)
         {
-            ar.Serialize(ref value.AssetPath);
-            ar.Serialize(ref value.SenderAddress);
-            ar.Serialize(ref value.RecipientAddresses);
-            ar.Serialize(ref value.MessageScope);
-            ar.Serialize(ref value.TimeSent);
-            ar.Serialize(ref value.ExpirationTime);
-            ar.Serialize(ref value.Annotations);
+            await ar.Serialize(value.V.AssetPath);
+            await ar.Serialize(value.V.SenderAddress);
+            await ar.Serialize(value.V.RecipientAddresses);
+            await ar.Serialize(value.V.MessageScope);
+            await ar.Serialize(value.V.TimeSent);
+            await ar.Serialize(value.V.ExpirationTime);
+            await ar.Serialize(value.V.Annotations);
 
             // The JSON content in this value does not have
             // a length prefix, so we can't use DynamicJsonSerialize.
-            ar.DynamicJsonFromRemainderOfStream(value.AssetPath, ref value._message);
+            await ar.DynamicJsonFromRemainderOfStream(value.V.AssetPath, value.V._message!);
         }
     }
 }

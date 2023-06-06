@@ -2,12 +2,16 @@
 using Redpoint.Unreal.TcpMessaging;
 using Redpoint.Unreal.TcpMessaging.MessageTypes;
 using System.Net;
+using System.Net.Sockets;
 
 var instanceId = Guid.NewGuid();
 var sessionId = Guid.NewGuid();
 var targetEndpoint = new MessageAddress();
 
-var connection = new TcpMessageTransportConnection(new IPEndPoint(IPAddress.Loopback, 6666), true);
+var client = new TcpClient();
+await client.ConnectAsync(new IPEndPoint(IPAddress.Loopback, 6666));
+
+var connection = await TcpMessageTransportConnection.CreateAsync(client, null);
 
 // Detect the remote's engine version so we can pretend to be the same.
 var engineVersion = 0;
@@ -16,23 +20,23 @@ var sessionOwner = string.Empty;
 bool gotEngineVersion = false, gotSessionId = false;
 connection.Send(new EngineServicePing());
 connection.Send(new SessionServicePing { UserName = string.Empty });
-connection.ReceiveUntil(message =>
+await connection.ReceiveUntilAsync(message =>
 {
     switch (message.GetMessageData())
     {
         case EngineServicePong pong:
             engineVersion = pong.EngineVersion;
             gotEngineVersion = true;
-            return gotEngineVersion && gotSessionId;
+            return Task.FromResult(gotEngineVersion && gotSessionId);
         case SessionServicePong pong:
             sessionId = pong.SessionId;
             buildDate = pong.BuildDate;
             sessionOwner = pong.SessionOwner;
             gotSessionId = true;
-            return gotEngineVersion && gotSessionId;
+            return Task.FromResult(gotEngineVersion && gotSessionId);
     }
 
-    return false;
+    return Task.FromResult(false);
 }, CancellationToken.None);
 
 // Find workers.
@@ -43,17 +47,17 @@ connection.Send(new AutomationWorkerFindWorkers
     ProcessName = "instance_name",
     SessionId = sessionId,
 });
-connection.ReceiveUntil(message =>
+await connection.ReceiveUntilAsync(message =>
 {
     switch (message.GetMessageData())
     {
         case AutomationWorkerFindWorkersResponse response:
             sessionId = response.SessionId;
-            targetEndpoint = message.SenderAddress;
-            return true;
+            targetEndpoint = message.SenderAddress.V;
+            return Task.FromResult(true);
     }
 
-    return false;
+    return Task.FromResult(false);
 }, CancellationToken.None);
 
 // Discover tests.
@@ -63,16 +67,16 @@ connection.Send(targetEndpoint, new AutomationWorkerRequestTests()
     DeveloperDirectoryIncluded = true,
     RequestedTestFlags = AutomationTestFlags.EditorContext | AutomationTestFlags.ProductFilter,
 });
-connection.ReceiveUntil(message =>
+await connection.ReceiveUntilAsync(message =>
 {
     switch (message.GetMessageData())
     {
         case AutomationWorkerRequestTestsReplyComplete response:
             discoveredTests = response;
-            return true;
+            return Task.FromResult(true);
     }
 
-    return false;
+    return Task.FromResult(false);
 }, CancellationToken.None);
 
 // List discovered tests.
@@ -96,7 +100,7 @@ foreach (var test in discoveredTests.Tests.OrderBy(x => x.FullTestPath))
         bSendAnalytics = false,
         RoleIndex = 0,
     });
-    connection.ReceiveUntil(message =>
+    await connection.ReceiveUntilAsync(message =>
     {
         switch (message.GetMessageData())
         {
@@ -107,10 +111,10 @@ foreach (var test in discoveredTests.Tests.OrderBy(x => x.FullTestPath))
                     {
                         case AutomationState.NotRun:
                             Console.Write(" (not run) ");
-                            return false;
+                            return Task.FromResult(false);
                         case AutomationState.InProcess:
                             Console.Write(" (in process) ");
-                            return false;
+                            return Task.FromResult(false);
                         case AutomationState.Skipped:
                             {
                                 var oldColor = Console.ForegroundColor;
@@ -118,7 +122,7 @@ foreach (var test in discoveredTests.Tests.OrderBy(x => x.FullTestPath))
                                 Console.Write($"skip");
                                 Console.ForegroundColor = oldColor;
                                 Console.WriteLine();
-                                return true;
+                                return Task.FromResult(true);
                             }
                         case AutomationState.Success:
                             {
@@ -127,7 +131,7 @@ foreach (var test in discoveredTests.Tests.OrderBy(x => x.FullTestPath))
                                 Console.Write($"pass");
                                 Console.ForegroundColor = oldColor;
                                 Console.WriteLine($" ({reply.Duration} secs)");
-                                return true;
+                                return Task.FromResult(true);
                             }
                         case AutomationState.Fail:
                             {
@@ -136,7 +140,7 @@ foreach (var test in discoveredTests.Tests.OrderBy(x => x.FullTestPath))
                                 Console.Write($"fail");
                                 Console.ForegroundColor = oldColor;
                                 Console.WriteLine($" ({reply.Duration} secs)");
-                                return true;
+                                return Task.FromResult(true);
                             }
                         default:
                             {
@@ -145,13 +149,13 @@ foreach (var test in discoveredTests.Tests.OrderBy(x => x.FullTestPath))
                                 Console.Write($"unknown");
                                 Console.ForegroundColor = oldColor;
                                 Console.WriteLine();
-                                return true;
+                                return Task.FromResult(true);
                             }
                     }
                 }
-                return false;
+                return Task.FromResult(false);
         }
 
-        return false;
+        return Task.FromResult(false);
     }, CancellationToken.None);
 }

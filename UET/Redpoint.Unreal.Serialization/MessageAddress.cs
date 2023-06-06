@@ -2,21 +2,21 @@
 {
     public record class MessageAddress : ISerializable<MessageAddress>
     {
-        public Guid UniqueId;
+        public Store<Guid> UniqueId;
 
         public MessageAddress()
         {
-            UniqueId = Guid.NewGuid();
+            UniqueId = new Store<Guid>(Guid.NewGuid());
         }
 
         public MessageAddress(Guid uniqueId)
         {
-            UniqueId = uniqueId;
+            UniqueId = new Store<Guid>(uniqueId);
         }
 
-        public static void Serialize(Archive ar, ref MessageAddress value)
+        public static async Task Serialize(Archive ar, Store<MessageAddress> value)
         {
-            ar.Serialize(ref value.UniqueId);
+            await ar.Serialize(value.V.UniqueId);
         }
     }
 }

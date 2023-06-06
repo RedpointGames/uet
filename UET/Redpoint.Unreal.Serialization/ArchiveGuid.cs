@@ -55,24 +55,27 @@
             return (a, b, c, d);
         }
 
-        public static void Serialize(this Archive ar, ref Guid guid)
+        public static async ValueTask Serialize(this Archive ar, Store<Guid> guid)
         {
             if (ar.IsLoading)
             {
-                int a = 0, b = 0, c = 0, d = 0;
-                ar.Serialize(ref a);
-                ar.Serialize(ref b);
-                ar.Serialize(ref c);
-                ar.Serialize(ref d);
-                guid = GuidFromInts(a, b, c, d);
+                Store<int> a = new Store<int>(0),
+                    b = new Store<int>(0),
+                    c = new Store<int>(0),
+                    d = new Store<int>(0);
+                await ar.Serialize(a);
+                await ar.Serialize(b);
+                await ar.Serialize(c);
+                await ar.Serialize(d);
+                guid.V = GuidFromInts(a.V, b.V, c.V, d.V);
             }
             else
             {
-                var (a, b, c, d) = IntsFromGuid(guid);
-                ar.Serialize(ref a);
-                ar.Serialize(ref b);
-                ar.Serialize(ref c);
-                ar.Serialize(ref d);
+                var (a, b, c, d) = IntsFromGuid(guid.V);
+                await ar.Serialize(new Store<int>(a));
+                await ar.Serialize(new Store<int>(b));
+                await ar.Serialize(new Store<int>(c));
+                await ar.Serialize(new Store<int>(d));
             }
         }
     }

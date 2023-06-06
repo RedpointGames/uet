@@ -4,18 +4,18 @@
 
     public static class ArchiveDateTimeOffset
     {
-        public static void Serialize(this Archive ar, ref DateTimeOffset timestamp)
+        public static async Task Serialize(this Archive ar, Store<DateTimeOffset> timestamp)
         {
             if (ar.IsLoading)
             {
-                long ticks = 0;
-                ar.Serialize(ref ticks);
-                timestamp = new DateTimeOffset(ticks, TimeSpan.Zero);
+                var ticks = new Store<long>(0);
+                await ar.Serialize(ticks);
+                timestamp.V = new DateTimeOffset(ticks.V, TimeSpan.Zero);
             }
             else
             {
-                long ticks = timestamp.Ticks;
-                ar.Serialize(ref ticks);
+                var ticks = new Store<long>(timestamp.V.Ticks);
+                await ar.Serialize(ticks);
             }
         }
     }

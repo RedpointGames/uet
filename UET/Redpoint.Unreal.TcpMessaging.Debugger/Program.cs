@@ -2,11 +2,15 @@
 using Redpoint.Unreal.TcpMessaging.MessageTypes;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Sockets;
 
 var instanceId = Guid.NewGuid();
 var sessionId = Guid.NewGuid();
 
-var connection = new TcpMessageTransportConnection(new IPEndPoint(IPAddress.Loopback, 6666));
+var client = new TcpClient();
+await client.ConnectAsync(new IPEndPoint(IPAddress.Loopback, 6666));
+
+var connection = await TcpMessageTransportConnection.CreateAsync(client);
 
 // Detect the remote's engine version so we can pretend to be the same.
 var engineVersion = 0;
@@ -15,23 +19,23 @@ var sessionOwner = string.Empty;
 bool gotEngineVersion = false, gotSessionId = false;
 connection.Send(new EngineServicePing());
 connection.Send(new SessionServicePing { UserName = string.Empty });
-connection.ReceiveUntil(message =>
+await connection.ReceiveUntilAsync(message =>
 {
     switch (message.GetMessageData())
     {
         case EngineServicePong pong:
             engineVersion = pong.EngineVersion;
             gotEngineVersion = true;
-            return gotEngineVersion && gotSessionId;
+            return Task.FromResult(gotEngineVersion && gotSessionId);
         case SessionServicePong pong:
             sessionId = pong.SessionId;
             buildDate = pong.BuildDate;
             sessionOwner = pong.SessionOwner;
             gotSessionId = true;
-            return gotEngineVersion && gotSessionId;
+            return Task.FromResult(gotEngineVersion && gotSessionId);
     }
 
-    return false;
+    return Task.FromResult(false);
 }, CancellationToken.None);
 
 // Ask the remote to send message logs.
@@ -50,7 +54,7 @@ _ = Task.Run(async () =>
 });
 
 // Now observe the messages and pretend to be an Unreal Engine instance.
-connection.ReceiveUntil(message =>
+await connection.ReceiveUntilAsync(message =>
 {
     switch (message.GetMessageData())
     {
@@ -113,15 +117,9 @@ connection.ReceiveUntil(message =>
             });
             break;
         default:
-            connection.WriteConsole(() =>
-            {
-                var oldColor = Console.ForegroundColor;
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"(message type {message.AssetPath} was unhandled by the main loop!)");
-                Console.ForegroundColor = oldColor;
-            });
+            Console.WriteLine($"(message type {message.AssetPath} was unhandled by the main loop!)");
             break;
     }
 
-    return false;
+    return Task.FromResult(false);
 }, CancellationToken.None);

@@ -18,36 +18,36 @@
             Data = values.ToDictionary(k => k.Key, v => v.Value);
         }
 
-        public static void Serialize(Archive ar, ref ArchiveMap<I, K, V> value)
+        public static async Task Serialize(Archive ar, Store<ArchiveMap<I, K, V>> value)
         {
             if (ar.IsLoading)
             {
-                I idx = new();
-                ar.RuntimeSerialize(ref idx!);
-                value = new ArchiveMap<I, K, V>();
-                for (I i = I.CreateChecked(0); i < idx; i++)
+                var idx = new Store<I>(I.Zero);
+                await ar.RuntimeSerialize(idx);
+                value.V = new ArchiveMap<I, K, V>();
+                for (I i = I.CreateChecked(0); i < idx.V; i++)
                 {
-                    K k = new();
-                    V v = new();
-                    ar.RuntimeSerialize(ref k);
-                    ar.RuntimeSerialize(ref v);
-                    if (k == null || v == null)
+                    var k = new Store<K>(new K());
+                    var v = new Store<V>(new V());
+                    await ar.RuntimeSerialize(k);
+                    await ar.RuntimeSerialize(v);
+                    if (k.V == null || v.V == null)
                     {
                         throw new NullReferenceException("Invalid deserializer logic!");
                     }
-                    value.Data.Add(k, v);
+                    value.V.Data.Add(k.V, v.V);
                 }
             }
             else
             {
-                I idx = I.CreateChecked(value.Data.Count);
-                ar.RuntimeSerialize(ref idx);
-                foreach (var kv in value.Data)
+                var idx = new Store<I>(I.CreateChecked(value.V.Data.Count));
+                await ar.RuntimeSerialize(idx);
+                foreach (var kv in value.V.Data)
                 {
-                    K k = kv.Key;
-                    V v = kv.Value;
-                    ar.RuntimeSerialize(ref k);
-                    ar.RuntimeSerialize(ref v);
+                    var k = new Store<K>(kv.Key);
+                    var v = new Store<V>(kv.Value);
+                    await ar.RuntimeSerialize(k);
+                    await ar.RuntimeSerialize(v);
                 }
             }
         }

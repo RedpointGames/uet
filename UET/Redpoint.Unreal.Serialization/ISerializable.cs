@@ -2,6 +2,6 @@
 {
     public interface ISerializable<T> where T : new()
     {
-        static abstract void Serialize(Archive ar, ref T value);
+        static abstract Task Serialize(Archive ar, Store<T> value);
     }
 }
