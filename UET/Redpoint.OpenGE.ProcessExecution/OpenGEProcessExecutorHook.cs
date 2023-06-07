@@ -70,13 +70,11 @@
 
                 var newPath = string.Join(Path.PathSeparator, pathComponents);
 
-                if (processSpecification.EnvironmentVariables == null)
-                {
-                    processSpecification.EnvironmentVariables = new Dictionary<string, string>();
-                }
-                processSpecification.EnvironmentVariables["PATH"] = newPath;
-                processSpecification.EnvironmentVariables["UET_FORCE_XGE_SHIM"] = "1";
-                processSpecification.EnvironmentVariables["UET_XGE_SHIM_PIPE_NAME"] = _daemon.GetConnectionString();
+                var newEnvironmentVariables = (processSpecification.EnvironmentVariables != null) ? new Dictionary<string, string>(processSpecification.EnvironmentVariables) : new Dictionary<string, string>();
+                newEnvironmentVariables["PATH"] = newPath;
+                newEnvironmentVariables["UET_FORCE_XGE_SHIM"] = "1";
+                newEnvironmentVariables["UET_XGE_SHIM_PIPE_NAME"] = _daemon.GetConnectionString();
+                processSpecification.EnvironmentVariables = newEnvironmentVariables;
             }
         }
     }

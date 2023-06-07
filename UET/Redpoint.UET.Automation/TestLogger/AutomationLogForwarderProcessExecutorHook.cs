@@ -18,11 +18,9 @@
             var pipeName = _serverLifecycle.GetPipeName();
             if (pipeName != null)
             {
-                if (processSpecification.EnvironmentVariables == null)
-                {
-                    processSpecification.EnvironmentVariables = new Dictionary<string, string>();
-                }
-                processSpecification.EnvironmentVariables["UET_AUTOMATION_LOGGER_PIPE_NAME"] = pipeName;
+                var newEnvironmentVariables = (processSpecification.EnvironmentVariables != null) ? new Dictionary<string, string>(processSpecification.EnvironmentVariables) : new Dictionary<string, string>();
+                newEnvironmentVariables["UET_AUTOMATION_LOGGER_PIPE_NAME"] = pipeName;
+                processSpecification.EnvironmentVariables = newEnvironmentVariables;
             }
             return Task.CompletedTask;
         }
