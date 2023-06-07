@@ -166,11 +166,12 @@
                 _logger.LogTrace($"[{Id}] Worker ready in {_startupDuration.TotalSeconds} secs.");
                 await _onWorkerStarted(this);
 
-                // Wait until DisposeAsync is called.
-                while (!_cancellationTokenSource.IsCancellationRequested)
+                // Wait until we are cancelled or the process exits.
+                while (!_cancellationTokenSource.IsCancellationRequested &&
+                       !automationTask.IsCompleted)
                 {
                     // @note: This will throw, but DisposeAsync will eat the exception.
-                    await Task.Delay(1000, _cancellationTokenSource.Token);
+                    await Task.Delay(500, _cancellationTokenSource.Token);
                 }
             }
             finally
@@ -230,7 +231,7 @@
                             }
                             if (line.Contains("end: stack for UAT"))
                             {
-                                foundCrash = false;
+                                break;
                             }
                         }
                     }

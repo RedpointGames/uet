@@ -45,7 +45,7 @@
                                     ConfigFiles = new string[0],
                                     MinWorkerCount = 16,
                                     Platforms = new BuildConfigHostPlatform[] { BuildConfigHostPlatform.Win64, BuildConfigHostPlatform.Mac },
-                                    TimeoutMinutes = null,
+                                    TestRunTimeoutMinutes = null,
                                 }
                             }
                         }

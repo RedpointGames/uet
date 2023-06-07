@@ -29,5 +29,7 @@
         public string? EngineCrashInfo { get; set; }
 
         public Exception? AutomationRunnerCrashInfo { get; set; }
+
+        public int AttemptCount { get; set; }
     }
 }

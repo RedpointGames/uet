@@ -65,7 +65,7 @@
                     return;
                 }
 
-                _logger?.LogWarning("Disconnected from remote endpoint, reconnecting...");
+                _logger?.LogTrace("Disconnected from remote endpoint, reconnecting...");
 
                 _client = await _reconnectionFactory();
                 if (!_client.Connected)

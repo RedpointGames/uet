@@ -82,8 +82,11 @@ namespace Redpoint.UET.Automation.Tests
                         EnableRendering = true,
                     }
                 },
-                "OnlineSubsystemEOS.OnlineIdentityInterface.",
-                TimeSpan.FromSeconds(120),
+                new AutomationRunnerConfiguration
+                {
+                    TestPrefix = "OnlineSubsystemEOS.OnlineIdentityInterface.",
+                    TestRunTimeout = TimeSpan.FromSeconds(120)
+                },
                 CancellationToken.None))
             {
                 var results = await automationRunner.WaitForResultsAsync();

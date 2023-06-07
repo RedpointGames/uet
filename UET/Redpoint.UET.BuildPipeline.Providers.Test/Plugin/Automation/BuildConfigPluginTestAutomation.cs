@@ -23,15 +23,27 @@
         public string[]? ConfigFiles { get; set; }
 
         /// <summary>
-        /// The minimum number of processes to launch for automation testing on the machine, regardless of available RAM. If not set, defaults to 4.
+        /// The minimum number of processes to launch for automation testing on the machine, regardless of available RAM. If not set, defaults to 1.
         /// </summary>
         [JsonPropertyName("MinWorkerCount"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? MinWorkerCount { get; set; }
 
         /// <summary>
-        /// The timeout in minutes for running the automation test suite. If not set, defaults to 5 minutes.
+        /// The timeout in minutes for running the whole automation test suite. If not set, defaults to 5 minutes.
         /// </summary>
-        [JsonPropertyName("TimeoutMinutes"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public int? TimeoutMinutes { get; set; }
+        [JsonPropertyName("TestRunTimeoutMinutes"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? TestRunTimeoutMinutes { get; set; }
+
+        /// <summary>
+        /// The timeout in minutes for running an individual test. If not set, no timeout applies.
+        /// </summary>
+        [JsonPropertyName("TestTimeoutMinutes"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? TestTimeoutMinutes { get; set; }
+
+        /// <summary>
+        /// The maximum number of times a test should be attempted if it fails. If not set, tests are never retried on failure.
+        /// </summary>
+        [JsonPropertyName("TestAttemptCount"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? TestAttemptCount { get; set; }
     }
 }

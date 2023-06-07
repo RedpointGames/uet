@@ -155,6 +155,38 @@
 
             public override async Task<LogResponse> LogTestFinished(LogTestFinishedRequest request, ServerCallContext context)
             {
+                var testResult = new TestResult
+                {
+                    FullTestPath = request.FullTestPath,
+                    TestStatus = Convert(request.Status),
+                    DateStarted = DateTime.UtcNow,
+                    DateFinished = DateTime.UtcNow,
+                    Duration = TimeSpan.FromSeconds(request.DurationSeconds),
+                    Entries = request.Warnings.Select(x => new TestResultEntry
+                    {
+                        Category = TestResultEntryCategory.Warning,
+                        Message = x,
+                        LineNumber = 0,
+                        Filename = string.Empty,
+                    }).Concat(request.Errors.Select(x => new TestResultEntry
+                    {
+                        Category = TestResultEntryCategory.Error,
+                        Message = x,
+                        LineNumber = 0,
+                        Filename = string.Empty,
+                    })).ToArray(),
+                    Platform = string.Empty,
+                    TestName = string.Empty,
+                    WorkerDisplayName = request.WorkerDisplayName,
+                };
+                if (!string.IsNullOrWhiteSpace(request.AutomationRunnerCrashInfo))
+                {
+                    testResult.AutomationRunnerCrashInfo = new Exception(request.AutomationRunnerCrashInfo);
+                }
+                if (!string.IsNullOrWhiteSpace(request.EngineCrashInfo))
+                {
+                    testResult.EngineCrashInfo = request.EngineCrashInfo;
+                }
                 await _testLogger.LogFinished(
                     new FakeWorker(request.WorkerDisplayName),
                     new TestProgressionInfo
@@ -162,18 +194,7 @@
                         TestsRemaining = request.TestsRemaining,
                         TestsTotal = request.TestsTotal,
                     },
-                    new TestResult
-                    {
-                        FullTestPath = request.FullTestPath,
-                        TestStatus = Convert(request.Status),
-                        DateStarted = DateTime.UtcNow,
-                        DateFinished = DateTime.UtcNow,
-                        Duration = TimeSpan.FromSeconds(request.DurationSeconds),
-                        Entries = new TestResultEntry[0],
-                        Platform = string.Empty,
-                        TestName = string.Empty,
-                        WorkerDisplayName = request.WorkerDisplayName,
-                    });
+                    testResult);
                 return new LogResponse();
             }
 
@@ -209,6 +230,8 @@
                         return Model.TestResultStatus.Skipped;
                     case UETAutomation.TestResultStatus.Crashed:
                         return Model.TestResultStatus.Crashed;
+                    case UETAutomation.TestResultStatus.TimedOut:
+                        return Model.TestResultStatus.TimedOut;
                 }
                 return Model.TestResultStatus.NotRun;
             }

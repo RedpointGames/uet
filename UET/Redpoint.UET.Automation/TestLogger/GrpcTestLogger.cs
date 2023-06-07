@@ -43,7 +43,7 @@
 
         public async Task LogFinished(IWorker worker, TestProgressionInfo progressionInfo, TestResult testResult)
         {
-            await _client.LogTestFinishedAsync(new LogTestFinishedRequest
+            var req = new LogTestFinishedRequest
             {
                 TestsRemaining = progressionInfo.TestsRemaining,
                 TestsTotal = progressionInfo.TestsTotal,
@@ -51,7 +51,18 @@
                 FullTestPath = testResult.FullTestPath ?? string.Empty,
                 Status = Convert(testResult.TestStatus),
                 DurationSeconds = testResult.Duration.TotalSeconds,
-            });
+            };
+            foreach (var warn in testResult.Entries.Where(x => x.Category == TestResultEntryCategory.Warning))
+            {
+                req.Warnings.Add(warn.Message);
+            }
+            foreach (var error in testResult.Entries.Where(x => x.Category == TestResultEntryCategory.Error))
+            {
+                req.Errors.Add(error.Message);
+            }
+            req.AutomationRunnerCrashInfo = testResult.AutomationRunnerCrashInfo?.ToString() ?? string.Empty;
+            req.EngineCrashInfo = testResult.EngineCrashInfo?.ToString() ?? string.Empty;
+            await _client.LogTestFinishedAsync(req);
         }
 
         public async Task LogStarted(IWorker worker, TestProgressionInfo progressionInfo, TestResult testResult)
@@ -110,6 +121,8 @@
                     return UETAutomation.TestResultStatus.Skipped;
                 case Model.TestResultStatus.Crashed:
                     return UETAutomation.TestResultStatus.Crashed;
+                case Model.TestResultStatus.TimedOut:
+                    return UETAutomation.TestResultStatus.TimedOut;
             }
             return UETAutomation.TestResultStatus.NotRun;
         }

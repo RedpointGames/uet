@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.UET.Automation.Runner
 {
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Redpoint.UET.Automation.Model;
     using Redpoint.UET.Automation.TestLogging;
@@ -12,6 +13,7 @@
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Net.Sockets;
     using System.Runtime.InteropServices;
@@ -26,8 +28,7 @@
         private readonly ITestNotification _notification;
         private readonly ITestReporter _reporter;
         private readonly DesiredWorkerDescriptor[] _workerDescriptors;
-        private readonly string _testPrefix;
-        private readonly TimeSpan? _timeout;
+        private readonly AutomationRunnerConfiguration _configuration;
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly ConcurrentDictionary<DesiredWorkerDescriptor, WorkerGroupState> _tests;
         private readonly Dictionary<IWorker, WorkerState> _workers;
@@ -48,6 +49,10 @@
             public Task? TestingTask { get; set; }
 
             public required IAsyncDisposable Handle { get; set; }
+
+            public required CancellationTokenSource CancellationTokenSource { get; set; }
+
+            public required Stopwatch StartupStopwatch { get; set; }
         }
 
         private class WorkerGroupState
@@ -72,8 +77,7 @@
             ITestNotification notification,
             ITestReporter reporter,
             IEnumerable<DesiredWorkerDescriptor> workerGroups,
-            string testPrefix,
-            TimeSpan? timeout,
+            AutomationRunnerConfiguration configuration,
             CancellationToken cancellationToken)
         {
             _logger = logger;
@@ -82,8 +86,7 @@
             _notification = notification;
             _reporter = reporter;
             _workerDescriptors = workerGroups.ToArray();
-            _testPrefix = testPrefix;
-            _timeout = timeout;
+            _configuration = configuration;
             _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _tests = new ConcurrentDictionary<DesiredWorkerDescriptor, WorkerGroupState>();
             _workers = new Dictionary<IWorker, WorkerState>();
@@ -93,9 +96,9 @@
 
         private async Task TimeoutAsync()
         {
-            if (_timeout.HasValue)
+            if (_configuration.TestRunTimeout.HasValue && _configuration.TestRunTimeout.Value != TimeSpan.MaxValue)
             {
-                await Task.Delay((int)_timeout.Value.TotalMilliseconds, _cancellationTokenSource.Token);
+                await Task.Delay((int)_configuration.TestRunTimeout.Value.TotalMilliseconds, _cancellationTokenSource.Token);
                 _cancellationTokenSource.Cancel();
             }
         }
@@ -111,38 +114,53 @@
 
         private async Task WorkerAddedToPoolAsync(IWorker worker)
         {
+            var stopwatch = Stopwatch.StartNew();
+
             _logger.LogTrace($"Received new worker {worker.Id} to pool");
 
             // Connect to the worker and add it.
             _logger.LogTrace($"Setting up Unreal TCP transport connection...");
-            var workerState = new WorkerState
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token);
+            WorkerState workerState;
+            try
             {
-                Handle = await _workerPool!.ReserveAsync(worker),
-                TransportConnection = await TcpMessageTransportConnection.CreateAsync(async () =>
+                workerState = new WorkerState
                 {
-                    // Connect to the TCP socket.
-                    TcpClient? tcpClient = null;
-                    do
+                    StartupStopwatch = stopwatch,
+                    Handle = await _workerPool!.ReserveAsync(worker),
+                    CancellationTokenSource = cts,
+                    TransportConnection = await TcpMessageTransportConnection.CreateAsync(async () =>
                     {
-                        _logger.LogTrace($"Attempting to connect to worker {worker.Id} on endpoint {worker.EndPoint}");
-                        tcpClient = new TcpClient();
-                        var connectionCts = new CancellationTokenSource();
-                        var connectionTask = tcpClient.ConnectAsync(worker.EndPoint, connectionCts.Token).AsTask();
-                        await Task.WhenAny(connectionTask, Task.Delay(1000));
-                        if (!tcpClient.Connected)
+                        // Connect to the TCP socket.
+                        TcpClient? tcpClient = null;
+                        do
                         {
-                            _logger.LogTrace($"Failed to connect to worker {worker.Id} on endpoint {worker.EndPoint} with 1 seconds, retrying");
-                            connectionCts.Cancel();
-                            continue;
-                        }
-                        break;
-                    } while (!_cancellationTokenSource.IsCancellationRequested);
-                    _cancellationTokenSource.Token.ThrowIfCancellationRequested();
-                    _logger.LogTrace($"Successfully connected to worker {worker.Id} on endpoint {worker.EndPoint}");
-                    return tcpClient;
-                }, _logger),
-                CurrentTest = null,
-            };
+                            _logger.LogTrace($"Attempting to connect to worker {worker.Id} on endpoint {worker.EndPoint}");
+                            _logger.LogTrace($"Attempting to connect to worker {worker.Id} on endpoint {worker.EndPoint}");
+                            tcpClient = new TcpClient();
+                            var connectionCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
+                            var connectionTask = tcpClient.ConnectAsync(worker.EndPoint, connectionCts.Token).AsTask();
+                            await Task.WhenAny(connectionTask, Task.Delay(1000));
+                            if (!tcpClient.Connected)
+                            {
+                                _logger.LogTrace($"Failed to connect to worker {worker.Id} on endpoint {worker.EndPoint} with 1 seconds, retrying");
+                                connectionCts.Cancel();
+                                continue;
+                            }
+                            break;
+                        } while (!cts.Token.IsCancellationRequested);
+                        cts.Token.ThrowIfCancellationRequested();
+                        _logger.LogTrace($"Successfully connected to worker {worker.Id} on endpoint {worker.EndPoint}");
+                        return tcpClient;
+                    }, _logger),
+                    CurrentTest = null,
+                };
+            }
+            catch (IOException ex) when (ex.InnerException is SocketException && ((SocketException)ex.InnerException).SocketErrorCode == SocketError.ConnectionReset && _cancellationTokenSource.IsCancellationRequested)
+            {
+                // The user pressed Ctrl-C while a worker was starting up.
+                return;
+            }
             _workers.Add(worker, workerState);
             var connection = workerState.TransportConnection;
 
@@ -153,6 +171,11 @@
                 // Negotiate with the worker connection so we can start sending messages to it.
                 _logger.LogTrace($"Starting negotiation with worker {worker.Id}");
                 await NegotiateWithWorkerAsync(worker);
+
+                // We intentionally don't emit the LogWorkerStarted until now, because there can be quite
+                // some time between making the TCP connection and actually being able to communicate.
+                workerState.StartupStopwatch.Stop();
+                await _testLogger.LogWorkerStarted(worker, worker.StartupDuration + workerState.StartupStopwatch.Elapsed);
 
                 // If this is the first worker for this descriptor, get the list of tests from it.
                 var groupState = new WorkerGroupState
@@ -190,7 +213,7 @@
 
                         // Generate all of the pending tests.
                         groupState.AllTests = discoveredTests.Tests
-                            .Where(x => x.FullTestPath.StartsWith(_testPrefix))
+                            .Where(x => x.FullTestPath.StartsWith(_configuration.TestPrefix))
                             .Select(x => new TestResult
                             {
                                 Platform = worker.Descriptor.Platform,
@@ -235,6 +258,11 @@
                     await RunWorkerAsync(worker);
                 });
             }
+            catch (OperationCanceledException) when (_cancellationTokenSource.IsCancellationRequested)
+            {
+                // The user pressed Ctrl-C during startup.
+                return;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Unexpected exception during worker startup: {ex.Message}");
@@ -248,18 +276,20 @@
             var workerGroupState = _tests[worker.Descriptor];
             var workerState = _workers[worker];
 
+            var workerCancellationToken = workerState.CancellationTokenSource.Token;
+
             try
             {
                 _logger.LogTrace($"Waiting for testing to be ready...");
                 if (!workerGroupState.ReadyForTesting.Wait(0))
                 {
                     // Wait until we can pull tests off the queue.
-                    await Task.Delay(100, _cancellationTokenSource.Token);
+                    await Task.Delay(100, workerCancellationToken);
                 }
 
                 _logger.LogTrace($"Testing loop for worker {worker.Id} is now starting...");
 
-                while (!_cancellationTokenSource.IsCancellationRequested)
+                while (!workerCancellationToken.IsCancellationRequested)
                 {
                     if (!workerGroupState.QueuedTests.TryDequeue(out var nextTest))
                     {
@@ -278,11 +308,24 @@
                     nextTest.WorkerDisplayName = worker.DisplayName;
                     nextTest.DateStarted = DateTimeOffset.UtcNow;
                     nextTest.TestStatus = TestResultStatus.InProgress;
+                    nextTest.AttemptCount++;
                     workerState.CurrentTest = nextTest;
                     await _testLogger.LogStarted(worker, GetProgressionInfo(), nextTest);
                     _notification.TestStarted(nextTest);
                     try
                     {
+                        CancellationToken tokenWithTimeout;
+                        if (_configuration.TestTimeout.HasValue && _configuration.TestTimeout.Value != TimeSpan.MaxValue)
+                        {
+                            tokenWithTimeout = CancellationTokenSource.CreateLinkedTokenSource(
+                                workerCancellationToken,
+                                new CancellationTokenSource(_configuration.TestTimeout.Value).Token).Token;
+                        }
+                        else
+                        {
+                            tokenWithTimeout = workerCancellationToken;
+                        }
+
                         workerState.TransportConnection.Send(
                             workerState.NegotiatedTargetAddress!,
                             new AutomationWorkerRunTests
@@ -356,46 +399,103 @@
                                     };
                                 }).Where(x => x != null).ToArray()!;
 
-                                workerGroupState.RemainingTests--;
-                                workerGroupState.ProcessedTests.Add(nextTest);
-                                await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
-                                _notification.TestFinished(nextTest);
+                                if (nextTest.TestStatus == TestResultStatus.Failed &&
+                                    _configuration.TestAttemptCount.HasValue &&
+                                    nextTest.AttemptCount < _configuration.TestAttemptCount.Value)
+                                {
+                                    // Let things know that this test failed, so they don't count
+                                    // it as running anymore.
+                                    await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
+                                    _notification.TestFinished(nextTest);
+
+                                    // This test needs to go back in the queue.
+                                    workerGroupState.QueuedTests.Enqueue(nextTest);
+                                }
+                                else
+                                {
+                                    // This test is done.
+                                    workerGroupState.RemainingTests--;
+                                    workerGroupState.ProcessedTests.Add(nextTest);
+                                    await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
+                                    _notification.TestFinished(nextTest);
+                                }
 
                                 return true;
                             }
 
                             return false;
-                        }, _cancellationTokenSource.Token);
+                        }, tokenWithTimeout);
                     }
-                    catch (OperationCanceledException)
+                    catch (OperationCanceledException) when (!workerCancellationToken.IsCancellationRequested)
                     {
+                        // This test timed out.
+                        nextTest.Duration = _configuration.TestTimeout ?? TimeSpan.Zero;
                         nextTest.DateFinished = DateTimeOffset.UtcNow;
-                        nextTest.TestStatus = TestResultStatus.Cancelled;
-                        workerGroupState.RemainingTests--;
-                        workerGroupState.ProcessedTests.Add(nextTest);
-                        await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
-                        _notification.TestFinished(nextTest);
-                        break;
+                        nextTest.TestStatus = TestResultStatus.TimedOut;
+
+                        // Should we retry this test?
+                        if (_configuration.TestAttemptCount.HasValue &&
+                            nextTest.AttemptCount < _configuration.TestAttemptCount.Value)
+                        {
+                            // This test needs to go back in the queue.
+                            await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
+                            _notification.TestFinished(nextTest);
+                            workerGroupState.QueuedTests.Enqueue(nextTest);
+                        }
+                        else
+                        {
+                            // This test has permanently timed out.
+                            workerGroupState.RemainingTests--;
+                            workerGroupState.ProcessedTests.Add(nextTest);
+                            await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
+                            _notification.TestFinished(nextTest);
+                        }
+
+                        // This worker is now "dead" because it will be stuck running a test
+                        // that we no longer want it to run.
+                        _workerPool!.KillWorker(worker);
+
+                        // We return here because this worker is no longer usable.
+                        return;
+                    }
+                    catch (OperationCanceledException) when (workerCancellationToken.IsCancellationRequested)
+                    {
+                        // The test status will be updated to Crashed by WorkerRemovedFromPoolAsync before
+                        // the background task for the worker is cancelled, so don't override that.
+                        if (nextTest.TestStatus != TestResultStatus.Crashed)
+                        {
+                            // The test run is being cancelled or timed out.
+                            nextTest.DateFinished = DateTimeOffset.UtcNow;
+                            nextTest.TestStatus = TestResultStatus.Cancelled;
+                            workerGroupState.RemainingTests--;
+                            workerGroupState.ProcessedTests.Add(nextTest);
+                            await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
+                            _notification.TestFinished(nextTest);
+                        }
+
+                        // Return now because we don't want to continue processing tests.
+                        return;
                     }
                     catch (Exception ex)
                     {
+                        // Automation exceptions don't get retried.
                         nextTest.AutomationRunnerCrashInfo = ex;
-
                         nextTest.DateFinished = DateTimeOffset.UtcNow;
                         nextTest.TestStatus = TestResultStatus.Crashed;
                         workerGroupState.RemainingTests--;
                         workerGroupState.ProcessedTests.Add(nextTest);
                         await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
                         _notification.TestFinished(nextTest);
-
                         await _testLogger.LogException(worker, GetProgressionInfo(), ex, "Automation runner exception");
+
+                        // @note: We continue attempting more tests after this.
                     }
                     finally
                     {
                         workerState.CurrentTest = null;
                     }
                 }
-                _cancellationTokenSource.Token.ThrowIfCancellationRequested();
+                workerCancellationToken.ThrowIfCancellationRequested();
             }
             catch (OperationCanceledException ex)
             {
@@ -420,7 +520,7 @@
             _logger.LogTrace("Waiting for the connection to be ready...");
             while (connection.RemoteSessionId == null)
             {
-                await Task.Delay(500, _cancellationTokenSource.Token);
+                await Task.Delay(500, workerState.CancellationTokenSource.Token);
             }
             workerState.NegotiatedSessionId = connection.RemoteSessionId.Value;
 
@@ -446,24 +546,35 @@
                 }
 
                 return Task.FromResult(false);
-            }, _cancellationTokenSource.Token);
+            }, workerState.CancellationTokenSource.Token);
         }
 
         private async Task WorkerRemovedFromPoolAsync(IWorker worker, int exitCode, IWorkerCrashData? crashData)
         {
-            if (crashData != null)
+            if (_workers.ContainsKey(worker))
             {
-                if (_workers.ContainsKey(worker))
+                var currentTest = _workers[worker].CurrentTest;
+                if (currentTest != null)
                 {
-                    var currentTest = _workers[worker].CurrentTest;
-                    if (currentTest != null)
+                    if (crashData != null)
                     {
                         currentTest.EngineCrashInfo = crashData.CrashErrorMessage;
-                        currentTest.TestStatus = TestResultStatus.Crashed;
                     }
-                    await _workers[worker].TransportConnection.DisposeAsync();
-                    _workers.Remove(worker);
+                    else
+                    {
+                        currentTest.EngineCrashInfo = "Engine exited during test without crash dump information!";
+                    }
+                    currentTest.DateFinished = DateTimeOffset.UtcNow;
+                    currentTest.TestStatus = TestResultStatus.Crashed;
+                    var workerGroupState = _tests[worker.Descriptor];
+                    workerGroupState.RemainingTests--;
+                    workerGroupState.ProcessedTests.Add(currentTest);
+                    await _testLogger.LogFinished(worker, GetProgressionInfo(), currentTest);
+                    _notification.TestFinished(currentTest);
                 }
+                _workers[worker].CancellationTokenSource.Cancel();
+                await _workers[worker].TransportConnection.DisposeAsync();
+                _workers.Remove(worker);
             }
         }
 

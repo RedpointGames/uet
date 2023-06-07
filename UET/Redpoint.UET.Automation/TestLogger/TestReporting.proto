@@ -39,6 +39,7 @@ enum TestResultStatus {
 	Cancelled = 4;
 	Skipped = 5;
 	Crashed = 6;
+	TimedOut = 7;
 }
 
 message LogTestFinishedRequest {
@@ -48,6 +49,10 @@ message LogTestFinishedRequest {
 	string fullTestPath = 4;
 	TestResultStatus status = 5;
 	double durationSeconds = 6;
+	repeated string errors = 7;
+	repeated string warnings = 8;
+	string automationRunnerCrashInfo = 9;
+	string engineCrashInfo = 10;
 }
 
 message LogRunnerExceptionRequest {

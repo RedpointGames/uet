@@ -200,6 +200,11 @@
                         }
                     }
                 }
+                catch (OperationCanceledException)
+                {
+                    // Transport connection is shutting down.
+                    return;
+                }
                 catch (Exception ex)
                 {
                     _logger?.LogCritical(ex, $"Exception during message receive: {ex.Message}");
@@ -246,6 +251,10 @@
 
                         _logger?.LogTrace("Flushed message to remote TCP stream!");
                     }
+                }
+                catch (InvalidOperationException ex) when (ex.Message.Contains("The operation is not allowed on non-connected sockets"))
+                {
+                    // This is expected when the connection is being intentionally closed.
                 }
                 catch (Exception ex)
                 {
@@ -331,6 +340,11 @@
                 {
                     _listeningQueues.Remove(listener);
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // Operation has been cancelled.
+                throw;
             }
             catch (Exception ex)
             {

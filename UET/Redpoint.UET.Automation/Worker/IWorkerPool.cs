@@ -22,5 +22,11 @@
         /// </summary>
         /// <param name="descriptor">The descriptor to finish.</param>
         void FinishedWithDescriptor(DesiredWorkerDescriptor descriptor);
+
+        /// <summary>
+        /// Tell the worker pool that a worker should be killed. This should be used when the caller knows the worker is permanently in a bad state (though it hasn't exited), and wants the worker pool to kill it and launch a replacement.
+        /// </summary>
+        /// <param name="worker">The worker to kill.</param>
+        void KillWorker(IWorker worker);
     }
 }

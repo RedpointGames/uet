@@ -97,12 +97,28 @@
                                             test.settings.MinWorkerCount.ToString()!
                                         });
                                     }
-                                    if (test.settings.TimeoutMinutes != null)
+                                    if (test.settings.TestRunTimeoutMinutes != null)
                                     {
                                         arguments.AddRange(new string[]
                                         {
-                                            "--timeout-minutes",
-                                            test.settings.TimeoutMinutes.ToString()!
+                                            "--test-run-timeout-minutes",
+                                            test.settings.TestRunTimeoutMinutes.ToString()!
+                                        });
+                                    }
+                                    if (test.settings.TestTimeoutMinutes != null)
+                                    {
+                                        arguments.AddRange(new string[]
+                                        {
+                                            "--test-timeout-minutes",
+                                            test.settings.TestTimeoutMinutes.ToString()!
+                                        });
+                                    }
+                                    if (test.settings.TestAttemptCount != null)
+                                    {
+                                        arguments.AddRange(new string[]
+                                        {
+                                            "--test-attempt-count",
+                                            test.settings.TestAttemptCount.ToString()!
                                         });
                                     }
 

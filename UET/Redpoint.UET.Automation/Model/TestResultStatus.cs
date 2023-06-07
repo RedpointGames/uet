@@ -7,6 +7,7 @@
         Passed,
         Failed,
         Cancelled,
+        TimedOut,
         Skipped,
         Crashed,
     }

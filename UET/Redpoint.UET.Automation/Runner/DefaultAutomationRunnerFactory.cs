@@ -26,8 +26,7 @@
             ITestNotification notification,
             ITestReporter reporter,
             IEnumerable<DesiredWorkerDescriptor> workerGroups,
-            string testPrefix,
-            TimeSpan? timeout,
+            AutomationRunnerConfiguration configuration,
             CancellationToken cancellationToken)
         {
             return Task.FromResult<IAutomationRunner>(new DefaultAutomationRunner(
@@ -37,8 +36,7 @@
                 notification,
                 reporter,
                 workerGroups,
-                testPrefix,
-                timeout,
+                configuration,
                 cancellationToken));
         }
     }

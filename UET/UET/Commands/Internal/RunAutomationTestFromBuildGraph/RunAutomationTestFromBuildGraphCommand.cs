@@ -25,7 +25,9 @@
             public Option<string> TestProjectPath;
             public Option<string> TestPrefix;
             public Option<int?> MinWorkerCount;
-            public Option<int?> TimeoutMinutes;
+            public Option<int?> TestTimeoutMinutes;
+            public Option<int?> TestRunTimeoutMinutes;
+            public Option<int?> TestAttemptCount;
             public Option<string> TestResultsPath;
 
             public Options()
@@ -34,7 +36,9 @@
                 TestProjectPath = new Option<string>("--test-project-path") { IsRequired = true };
                 TestPrefix = new Option<string>("--test-prefix") { IsRequired = true };
                 MinWorkerCount = new Option<int?>("--min-worker-count");
-                TimeoutMinutes = new Option<int?>("--timeout-minutes");
+                TestTimeoutMinutes = new Option<int?>("--test-timeout-minutes");
+                TestRunTimeoutMinutes = new Option<int?>("--test-run-timeout-minutes");
+                TestAttemptCount = new Option<int?>("--test-attempt-count");
                 TestResultsPath = new Option<string>("--test-results-path");
             }
         }
@@ -79,7 +83,9 @@
                 var testProjectPath = context.ParseResult.GetValueForOption(_options.TestProjectPath);
                 var testPrefix = context.ParseResult.GetValueForOption(_options.TestPrefix);
                 var minWorkerCount = context.ParseResult.GetValueForOption(_options.MinWorkerCount);
-                var timeoutMinutes = context.ParseResult.GetValueForOption(_options.TimeoutMinutes);
+                var testTimeoutMinutes = context.ParseResult.GetValueForOption(_options.TestTimeoutMinutes);
+                var testRunTimeoutMinutes = context.ParseResult.GetValueForOption(_options.TestRunTimeoutMinutes);
+                var testAttemptCount = context.ParseResult.GetValueForOption(_options.TestAttemptCount);
                 var testResultsPath = context.ParseResult.GetValueForOption(_options.TestResultsPath);
 
                 await using (var automationRunner = await _automationRunnerFactory.CreateAndRunAsync(
@@ -101,8 +107,13 @@
                             EnableRendering = false,
                         }
                     },
-                    testPrefix!,
-                    timeoutMinutes.HasValue ? TimeSpan.FromMinutes(timeoutMinutes.Value) : TimeSpan.MaxValue,
+                    new AutomationRunnerConfiguration
+                    {
+                        TestPrefix = testPrefix!,
+                        TestTimeout = testTimeoutMinutes.HasValue ? TimeSpan.FromMinutes(testTimeoutMinutes.Value) : null,
+                        TestRunTimeout = testRunTimeoutMinutes.HasValue ? TimeSpan.FromMinutes(testRunTimeoutMinutes.Value) : TimeSpan.FromMinutes(5),
+                        TestAttemptCount = testAttemptCount.HasValue ? Math.Max(testAttemptCount.Value, 1) : null,
+                    },
                     context.GetCancellationToken()))
                 {
                     var testResults = await automationRunner.WaitForResultsAsync();

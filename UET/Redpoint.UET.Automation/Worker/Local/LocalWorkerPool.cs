@@ -3,6 +3,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
+    using Redpoint.UET.Automation.SystemResources;
     using Redpoint.UET.Automation.TestLogging;
     using Redpoint.UET.UAT;
     using System;
@@ -17,6 +18,7 @@
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<LocalWorkerPool> _logger;
         private readonly ITestLogger _testLogger;
+        private readonly ISystemResources _systemResources;
         private readonly DesiredWorkerDescriptor[] _workerDescriptors;
         private readonly OnWorkerStarted _onWorkerStarted;
         private readonly OnWorkerExited _onWorkedExited;
@@ -33,6 +35,7 @@
             ILogger<LocalWorkerPool> logger,
             ITestLogger testLogger,
             IEnumerable<DesiredWorkerDescriptor> workerDescriptors,
+            ISystemResources systemResources,
             OnWorkerStarted onWorkerStarted,
             OnWorkerExited onWorkedExited,
             OnWorkerPoolFailure onWorkerPoolFailure,
@@ -41,6 +44,7 @@
             _serviceProvider = serviceProvider;
             _logger = logger;
             _testLogger = testLogger;
+            _systemResources = systemResources;
             _workerDescriptors = workerDescriptors.ToArray();
             _onWorkerStarted = onWorkerStarted;
             _onWorkedExited = onWorkedExited;
@@ -86,7 +90,6 @@
 
         private async Task OnInternalWorkerStarted(IWorker worker)
         {
-            await _testLogger.LogWorkerStarted(worker, worker.StartupDuration);
             await _onWorkerStarted(worker);
         }
 
@@ -100,6 +103,8 @@
 
         private async Task RunLoopAsync()
         {
+            var hostPlatform = OperatingSystem.IsWindows() ? "Win64" : "Mac";
+
             try
             {
                 while (!_cancellationTokenSource.IsCancellationRequested)
@@ -109,8 +114,23 @@
                     {
                         var currentWorkers = _currentWorkers.Where(x => x.Descriptor == workerDescriptor).ToArray();
 
-                        // @todo: Make this based on device / resource availability and honor MaxWorkerCount.
+                        // Compute the target worker count.
                         var targetWorkerCount = workerDescriptor.MinWorkerCount ?? 1;
+                        if (workerDescriptor.Platform == hostPlatform &&
+                            _systemResources.CanQuerySystemResources)
+                        {
+                            var (availableMemory, totalMemory) = await _systemResources.GetMemoryInfo();
+                            var unrealRequiredMemory = (16uL * 1024 * 1024 * 1024);
+                            var consumedMemory = (uint)targetWorkerCount * unrealRequiredMemory;
+                            var memoryBasedWorkerCount = targetWorkerCount;
+                            while (consumedMemory + unrealRequiredMemory < availableMemory &&
+                                (!workerDescriptor.MaxWorkerCount.HasValue || memoryBasedWorkerCount < workerDescriptor.MaxWorkerCount.Value))
+                            {
+                                memoryBasedWorkerCount += 1;
+                                consumedMemory += unrealRequiredMemory;
+                            }
+                            targetWorkerCount = memoryBasedWorkerCount;
+                        }
 
                         if (currentWorkers.Length < targetWorkerCount && !_descriptorsWindingDown.Contains(workerDescriptor))
                         {
@@ -122,7 +142,6 @@
                                 .First(x => !currentWorkers.Any(y => y.DisplayName == x));
 
                             LocalWorker newWorker;
-                            var hostPlatform = OperatingSystem.IsWindows() ? "Win64" : "Mac";
                             if (workerDescriptor.IsEditor)
                             {
                                 if (!workerDescriptor.Platform.Equals(hostPlatform, StringComparison.InvariantCultureIgnoreCase))
@@ -239,6 +258,27 @@
                     // called from OnWorkerStarted.
                     _ = worker.DisposeAsync();
                 }
+            }
+        }
+
+        public void KillWorker(IWorker worker)
+        {
+            if (_currentWorkers.Contains(worker))
+            {
+                _logger.LogTrace($"Caller indicated that worker {worker.Id} should be killed. Stopping the worker without winding down the descriptor...");
+
+                if (_reservedWorkers.Contains(worker))
+                {
+                    _reservedWorkers.Remove((LocalWorker)worker);
+                }
+                // @note: We don't wait for this to complete, because we just need to get the cancellation token cancelled.
+                // If this function was async and awaited this task, it would induce a deadlock if KillWorker was
+                // called from OnWorkerStarted.
+                _ = ((LocalWorker)worker).DisposeAsync();
+            }
+            else
+            {
+                throw new InvalidOperationException();
             }
         }
     }

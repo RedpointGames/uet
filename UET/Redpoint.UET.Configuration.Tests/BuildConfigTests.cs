@@ -58,7 +58,7 @@ namespace Redpoint.UET.Configuration.Tests
                 Assert.Equal(new[] { BuildConfigHostPlatform.Win64, BuildConfigHostPlatform.Mac }, automation.Platforms);
                 Assert.Equal(new[] { "A", "B", }, automation.ConfigFiles);
                 Assert.Equal(4, automation.MinWorkerCount);
-                Assert.Null(automation.TimeoutMinutes);
+                Assert.Null(automation.TestRunTimeoutMinutes);
             }
         }
 

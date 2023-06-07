@@ -3,6 +3,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.ProcessExecution;
     using Redpoint.UET.Automation.Runner;
+    using Redpoint.UET.Automation.SystemResources;
     using Redpoint.UET.Automation.TestLogger;
     using Redpoint.UET.Automation.TestLogging;
     using Redpoint.UET.Automation.TestNotification;
@@ -22,6 +23,14 @@
             services.AddSingleton<IAutomationRunnerFactory, DefaultAutomationRunnerFactory>();
             services.AddSingleton<IAutomationLogForwarder, GrpcTestLoggerServerLifecycle>();
             services.AddSingleton<IProcessExecutorHook, AutomationLogForwarderProcessExecutorHook>();
+            if (OperatingSystem.IsWindows())
+            {
+                services.AddSingleton<ISystemResources, WindowsSystemResources>();
+            }
+            else
+            {
+                services.AddSingleton<ISystemResources, NullSystemResources>();
+            }
         }
     }
 }

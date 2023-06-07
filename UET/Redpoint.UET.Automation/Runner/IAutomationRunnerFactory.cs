@@ -7,6 +7,29 @@
     using System;
     using System.Collections.Generic;
 
+    public record class AutomationRunnerConfiguration
+    {
+        /// <summary>
+        /// The prefix to use for picking what tests to run.
+        /// </summary>
+        public required string TestPrefix { get; set; }
+
+        /// <summary>
+        /// The timeout for the whole test run.
+        /// </summary>
+        public TimeSpan? TestRunTimeout { get; set; }
+
+        /// <summary>
+        /// The timeout for an individual test.
+        /// </summary>
+        public TimeSpan? TestTimeout { get; set; }
+
+        /// <summary>
+        /// The maximum number of times a test will be attempted to get it to pass.
+        /// </summary>
+        public int? TestAttemptCount { get; set; }
+    }
+
     public interface IAutomationRunnerFactory
     {
         Task<IAutomationRunner> CreateAndRunAsync(
@@ -14,8 +37,7 @@
             ITestNotification notification,
             ITestReporter reporter,
             IEnumerable<DesiredWorkerDescriptor> workerGroups,
-            string testPrefix,
-            TimeSpan? timeout,
+            AutomationRunnerConfiguration configuration,
             CancellationToken cancellationToken);
     }
 }

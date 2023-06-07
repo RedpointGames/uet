@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.UET.Automation.SystemResources;
     using Redpoint.UET.Automation.TestLogging;
     using System;
     using System.Collections.Generic;
@@ -31,6 +32,7 @@
                 _serviceProvider.GetRequiredService<ILogger<LocalWorkerPool>>(),
                 testLogger,
                 workerDescriptors,
+                _serviceProvider.GetRequiredService<ISystemResources>(),
                 onWorkerStarted,
                 onWorkedExited,
                 onWorkerPoolFailure,
