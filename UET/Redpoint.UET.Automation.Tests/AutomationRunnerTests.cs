@@ -84,8 +84,10 @@ namespace Redpoint.UET.Automation.Tests
                 },
                 new AutomationRunnerConfiguration
                 {
+                    ProjectName = "ExampleOSS",
                     TestPrefix = "OnlineSubsystemEOS.OnlineIdentityInterface.",
-                    TestRunTimeout = TimeSpan.FromSeconds(120)
+                    TestRunTimeout = TimeSpan.FromSeconds(120),
+                    FilenamePrefixToCut = @"C:\Work\internal\EOS_OSB\EOS_OSB",
                 },
                 CancellationToken.None))
             {

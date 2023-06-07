@@ -587,6 +587,7 @@
 
         private async Task RunAsync()
         {
+            var st = Stopwatch.StartNew();
             try
             {
                 await using (_workerPool = await _workerPoolFactory.CreateAndStartAsync(
@@ -642,7 +643,10 @@
             {
                 // Go through all the test results and report them.
                 await _reporter.ReportResultsAsync(
-                    _tests.Values.SelectMany(x => x.AllTests).ToArray());
+                    _configuration.ProjectName,
+                    _tests.Values.SelectMany(x => x.AllTests).ToArray(),
+                    st.Elapsed,
+                    _configuration.FilenamePrefixToCut);
             }
         }
 

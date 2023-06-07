@@ -10,9 +10,19 @@
     public record class AutomationRunnerConfiguration
     {
         /// <summary>
+        /// The name of the project being tested.
+        /// </summary>
+        public required string ProjectName { get; set; }
+
+        /// <summary>
         /// The prefix to use for picking what tests to run.
         /// </summary>
         public required string TestPrefix { get; set; }
+
+        /// <summary>
+        /// The leading filename prefix to cut when reporting on filenames in test results.
+        /// </summary>
+        public required string FilenamePrefixToCut { get; set; }
 
         /// <summary>
         /// The timeout for the whole test run.

@@ -109,10 +109,12 @@
                     },
                     new AutomationRunnerConfiguration
                     {
+                        ProjectName = Path.GetFileNameWithoutExtension(testProjectPath)!,
                         TestPrefix = testPrefix!,
                         TestTimeout = testTimeoutMinutes.HasValue ? TimeSpan.FromMinutes(testTimeoutMinutes.Value) : null,
                         TestRunTimeout = testRunTimeoutMinutes.HasValue ? TimeSpan.FromMinutes(testRunTimeoutMinutes.Value) : TimeSpan.FromMinutes(5),
                         TestAttemptCount = testAttemptCount.HasValue ? Math.Max(testAttemptCount.Value, 1) : null,
+                        FilenamePrefixToCut = Path.GetDirectoryName(testProjectPath)!,
                     },
                     context.GetCancellationToken()))
                 {

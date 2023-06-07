@@ -200,6 +200,11 @@
                         }
                     }
                 }
+                catch (IOException ex) when (ex.InnerException is SocketException && ((SocketException)ex.InnerException).SocketErrorCode == SocketError.OperationAborted)
+                {
+                    // Transport connection is shutting down.
+                    return;
+                }
                 catch (OperationCanceledException)
                 {
                     // Transport connection is shutting down.

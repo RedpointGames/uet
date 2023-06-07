@@ -8,6 +8,10 @@
 
     public interface ITestReporter
     {
-        Task ReportResultsAsync(TestResult[] results);
+        Task ReportResultsAsync(
+            string projectName,
+            TestResult[] results,
+            TimeSpan duration,
+            string filenamePrefixToCut);
     }
 }
