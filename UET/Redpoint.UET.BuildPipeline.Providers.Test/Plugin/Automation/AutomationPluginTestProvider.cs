@@ -11,11 +11,11 @@
     internal class AutomationPluginTestProvider : IPluginTestProvider
     {
         private readonly IPluginTestProjectEmitProvider _pluginTestProjectEmitProvider;
-        private readonly IGlobalArgsProvider _globalArgsProvider;
+        private readonly IGlobalArgsProvider? _globalArgsProvider;
 
         public AutomationPluginTestProvider(
             IPluginTestProjectEmitProvider pluginTestProjectEmitProvider,
-            IGlobalArgsProvider globalArgsProvider)
+            IGlobalArgsProvider? globalArgsProvider = null)
         {
             _pluginTestProjectEmitProvider = pluginTestProjectEmitProvider;
             _globalArgsProvider = globalArgsProvider;
@@ -131,7 +131,7 @@
                                         new SpawnElementProperties
                                         {
                                             Exe = "$(UETPath)",
-                                            Arguments = _globalArgsProvider.GlobalArgsArray.Concat(new[]
+                                            Arguments = (_globalArgsProvider?.GlobalArgsArray ?? new string[0]).Concat(new[]
                                             {
                                                 "internal",
                                                 "run-automation-test-from-buildgraph",

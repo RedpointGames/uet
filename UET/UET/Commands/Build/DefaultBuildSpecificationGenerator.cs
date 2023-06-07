@@ -23,14 +23,14 @@
         private readonly ISelfLocation _selfLocation;
         private readonly IPluginVersioning _versioning;
         private readonly IDynamicBuildGraphIncludeWriter _dynamicBuildGraphIncludeWriter;
-        private readonly IGlobalArgsProvider _globalArgsProvider;
+        private readonly IGlobalArgsProvider? _globalArgsProvider;
 
         public DefaultBuildSpecificationGenerator(
             ILogger<DefaultBuildSpecificationGenerator> logger,
             ISelfLocation selfLocation,
             IPluginVersioning versioning,
             IDynamicBuildGraphIncludeWriter dynamicBuildGraphIncludeWriter,
-            IGlobalArgsProvider globalArgsProvider)
+            IGlobalArgsProvider? globalArgsProvider = null)
         {
             _logger = logger;
             _selfLocation = selfLocation;
@@ -429,7 +429,7 @@
                 {
                     // Environment options
                     { $"UETPath", $"__UET_PATH__" },
-                    { "UETGlobalArgs", _globalArgsProvider.GlobalArgsString },
+                    { "UETGlobalArgs", _globalArgsProvider?.GlobalArgsString ?? string.Empty },
                     { "EnginePath", "__ENGINE_PATH__" },
                     { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
@@ -680,7 +680,7 @@
                 {
                     // Environment options
                     { $"UETPath", $"__UET_PATH__" },
-                    { "UETGlobalArgs", _globalArgsProvider.GlobalArgsString },
+                    { "UETGlobalArgs", _globalArgsProvider?.GlobalArgsString ?? string.Empty },
                     { "EnginePath", "__ENGINE_PATH__" },
                     { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },

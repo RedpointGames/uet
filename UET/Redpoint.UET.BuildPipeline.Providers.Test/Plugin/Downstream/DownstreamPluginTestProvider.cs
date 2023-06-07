@@ -14,9 +14,9 @@
 
     internal class DownstreamPluginTestProvider : IPluginTestProvider
     {
-        private readonly IGlobalArgsProvider _globalArgsProvider;
+        private readonly IGlobalArgsProvider? _globalArgsProvider;
 
-        public DownstreamPluginTestProvider(IGlobalArgsProvider globalArgsProvider)
+        public DownstreamPluginTestProvider(IGlobalArgsProvider? globalArgsProvider = null)
         {
             _globalArgsProvider = globalArgsProvider;
         }
@@ -62,7 +62,7 @@
                                     new SpawnElementProperties
                                     {
                                         Exe = "$(UETPath)",
-                                        Arguments = _globalArgsProvider.GlobalArgsArray.Concat(new[]
+                                        Arguments = (_globalArgsProvider?.GlobalArgsArray ?? new string[0]).Concat(new[]
                                         {
                                             "internal",
                                             "run-downstream-test",

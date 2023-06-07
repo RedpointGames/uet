@@ -47,7 +47,6 @@
             minimalServices.AddUETBuildPipelineProvidersTest();
             minimalServices.AddUETBuildPipelineProvidersDeployment();
             minimalServices.AddTransient<TOptions, TOptions>();
-            minimalServices.AddSingleton<IGlobalArgsProvider>(new CommandUETGlobalArgsProvider(string.Empty, new string[0]));
             var minimalServiceProvider = minimalServices.BuildServiceProvider();
 
             // Get the options instance from the minimal service provider.
