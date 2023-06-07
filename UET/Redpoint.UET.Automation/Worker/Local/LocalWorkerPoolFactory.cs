@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.UET.Automation.TestLogging;
     using System;
     using System.Collections.Generic;
     using System.Threading;
@@ -18,6 +19,7 @@
         }
 
         public Task<IWorkerPool> CreateAndStartAsync(
+            ITestLogger testLogger,
             IEnumerable<DesiredWorkerDescriptor> workerDescriptors,
             OnWorkerStarted onWorkerStarted,
             OnWorkerExited onWorkedExited,
@@ -27,6 +29,7 @@
             var workerPool = new LocalWorkerPool(
                 _serviceProvider,
                 _serviceProvider.GetRequiredService<ILogger<LocalWorkerPool>>(),
+                testLogger,
                 workerDescriptors,
                 onWorkerStarted,
                 onWorkedExited,

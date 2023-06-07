@@ -3,6 +3,7 @@
 
   <!-- Environment options -->
   <Option Name="UETPath" DefaultValue="" Description="Path to the UET binary" />
+  <Option Name="UETGlobalArgs" DefaultValue="" Description="Global arguments to pass to the UET binary" />
   <Option Name="EnginePath" DefaultValue="" Description="Path to the engine" />
   <Option Name="TempPath" DefaultValue="" Description="Path to the temporary directory (must not contain spaces)" />
   <Option Name="ProjectRoot" DefaultValue="" Description="Root path of the project (repository)" />
@@ -161,16 +162,16 @@ $(PackageExclude);
         File="$(TempPath)/BuildCsList.txt"
         Files="#BuildCsList"
       />
-      <Spawn Exe="$(UETPath)" Arguments="internal update-uplugin --input-path &quot;$(InputBaseDir)/$(PluginName).uplugin&quot; --output-path &quot;$(OutputDir)/$(PluginName).uplugin&quot; --engine-version &quot;$(EngineMajorVersion).$(EngineMinorVersion).0&quot; --version-name &quot;$(VersionName)&quot; --version-number &quot;$(VersionNumber)&quot; $(MarketplaceFlag)" />
-      <Spawn Exe="$(UETPath)" Arguments="internal copy-and-mutate-build-cs --input-base-path &quot;$(InputBaseDir)/&quot; --input-file-list &quot;$(TempPath)/BuildCsList.txt&quot; --output-path &quot;$(OutputDir)/&quot; $(MarketplaceFlag)" />
-      <Spawn Exe="$(UETPath)" Arguments="internal set-filter-file --package-include &quot;$(PackageInclude)&quot; --package-exclude &quot;$(PackageExclude)&quot; --output-path &quot;$(OutputDir)/Config/FilterPlugin.ini&quot;" />
+      <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal update-uplugin --input-path &quot;$(InputBaseDir)/$(PluginName).uplugin&quot; --output-path &quot;$(OutputDir)/$(PluginName).uplugin&quot; --engine-version &quot;$(EngineMajorVersion).$(EngineMinorVersion).0&quot; --version-name &quot;$(VersionName)&quot; --version-number &quot;$(VersionNumber)&quot; $(MarketplaceFlag)" />
+      <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal copy-and-mutate-build-cs --input-base-path &quot;$(InputBaseDir)/&quot; --input-file-list &quot;$(TempPath)/BuildCsList.txt&quot; --output-path &quot;$(OutputDir)/&quot; $(MarketplaceFlag)" />
+      <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal set-filter-file --package-include &quot;$(PackageInclude)&quot; --package-exclude &quot;$(PackageExclude)&quot; --output-path &quot;$(OutputDir)/Config/FilterPlugin.ini&quot;" />
       <Copy
         From="$(InputBaseDir)"
         To="$(OutputDir)"
         Files="#DirectCopyFiles"
         Tag="$(OutputTag)"
       />
-      <Spawn Exe="$(UETPath)" Arguments="internal update-copyright-headers-for-marketplace --path &quot;$(OutputDir)&quot; --copyright-header &quot;$(CopyrightHeader)&quot; --copyright-excludes &quot;$(CopyrightExcludes)&quot;" If="'$(IsForMarketplaceSubmission)' == 'true'" />
+      <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal update-copyright-headers-for-marketplace --path &quot;$(OutputDir)&quot; --copyright-header &quot;$(CopyrightHeader)&quot; --copyright-excludes &quot;$(CopyrightExcludes)&quot;" If="'$(IsForMarketplaceSubmission)' == 'true'" />
       <Tag
         Files="$(OutputDir)/$(PluginName).uplugin"
         With="$(OutputTag)"
@@ -238,7 +239,7 @@ $(PackageExclude);
       />
       <Spawn 
         Exe="$(UETPath)" 
-        Arguments="internal extract-gauntlet-helpers --path &quot;$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/&quot;" 
+        Arguments="$(UETGlobalArgs) internal extract-gauntlet-helpers --path &quot;$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/&quot;" 
         If="'$(IsForGauntlet)' == 'true'" />
       <Tag 
         BaseDir="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/" 
@@ -792,7 +793,7 @@ $(PackageExclude);
         </Switch>
       </ForEach>
       <Node Name="Gauntlet $(GauntletTestName)" Requires="$(GauntletTestRequirements)" If="'$(ExecuteTests)' == 'true'">
-        <Spawn Exe="$(UETPath)" Arguments="internal run-gauntlet-test-from-buildgraph --engine-path &quot;$(EnginePath)&quot; --distribution &quot;$(Distribution)&quot; --test-name &quot;$(GauntletTestName)&quot;" />
+        <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal run-gauntlet-test-from-buildgraph --engine-path &quot;$(EnginePath)&quot; --distribution &quot;$(Distribution)&quot; --test-name &quot;$(GauntletTestName)&quot;" />
       </Node>
       <Property Name="GauntletTasks" Value="$(GauntletTasks)Gauntlet $(GauntletTestName);"/>
     </ForEach>
@@ -831,7 +832,7 @@ $(PackageExclude);
       <Node Name="Deploy $(BackblazeManualMode) $(BackblazeNodeName)" Requires="#PackagedZip">
         <Property Name="MarketplaceFlag" Value="" />
         <Property Name="MarketplaceFlag" Value="--marketplace" If="'$(IsForMarketplaceSubmission)' == 'true'" />
-        <Spawn Exe="$(UETPath)" Arguments="internal upload-to-backblaze-b2 --zip-path &quot;$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip&quot; --bucket-name &quot;$(BackblazeBucketName)&quot; --folder-env-var &quot;$(BackblazeFolderEnvVar)&quot; $(MarketplaceFlag)" />
+        <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal upload-to-backblaze-b2 --zip-path &quot;$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip&quot; --bucket-name &quot;$(BackblazeBucketName)&quot; --folder-env-var &quot;$(BackblazeFolderEnvVar)&quot; $(MarketplaceFlag)" />
       </Node>
       <Property Name="DeploymentTasks" Value="$(DeploymentTasks)Deploy $(BackblazeManualMode) $(BackblazeNodeName);" />
 

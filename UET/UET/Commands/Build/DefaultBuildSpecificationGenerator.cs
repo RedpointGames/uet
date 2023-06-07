@@ -7,6 +7,7 @@
     using Redpoint.UET.BuildPipeline.BuildGraph.Dynamic;
     using Redpoint.UET.BuildPipeline.Environment;
     using Redpoint.UET.BuildPipeline.Executors;
+    using Redpoint.UET.Configuration;
     using Redpoint.UET.Configuration.Engine;
     using Redpoint.UET.Configuration.Plugin;
     using Redpoint.UET.Configuration.Project;
@@ -22,17 +23,20 @@
         private readonly ISelfLocation _selfLocation;
         private readonly IPluginVersioning _versioning;
         private readonly IDynamicBuildGraphIncludeWriter _dynamicBuildGraphIncludeWriter;
+        private readonly IGlobalArgsProvider _globalArgsProvider;
 
         public DefaultBuildSpecificationGenerator(
             ILogger<DefaultBuildSpecificationGenerator> logger,
             ISelfLocation selfLocation,
             IPluginVersioning versioning,
-            IDynamicBuildGraphIncludeWriter dynamicBuildGraphIncludeWriter)
+            IDynamicBuildGraphIncludeWriter dynamicBuildGraphIncludeWriter,
+            IGlobalArgsProvider globalArgsProvider)
         {
             _logger = logger;
             _selfLocation = selfLocation;
             _versioning = versioning;
             _dynamicBuildGraphIncludeWriter = dynamicBuildGraphIncludeWriter;
+            _globalArgsProvider = globalArgsProvider;
         }
 
         private struct TargetConfig
@@ -425,6 +429,7 @@
                 {
                     // Environment options
                     { $"UETPath", $"__UET_PATH__" },
+                    { "UETGlobalArgs", _globalArgsProvider.GlobalArgsString },
                     { "EnginePath", "__ENGINE_PATH__" },
                     { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
@@ -469,10 +474,8 @@
 
                     // Test options
                     { $"ExecuteTests", executeTests ? "true" : "false" },
-                    { $"AutomationTests", string.Join("+", automationTests) },
                     { $"GauntletTests", string.Join("+", gauntletTests) },
                     { $"CustomTests", string.Join("+", customTests) },
-                    { $"DownstreamTests", string.Join("+", downstreamTests) },
                     { $"GauntletGameTargetPlatforms", string.Join(";", gauntletPlatforms) },
                     { $"GauntletConfigPaths", string.Join(";", gauntletPaths) },
 
@@ -677,6 +680,7 @@
                 {
                     // Environment options
                     { $"UETPath", $"__UET_PATH__" },
+                    { "UETGlobalArgs", _globalArgsProvider.GlobalArgsString },
                     { "EnginePath", "__ENGINE_PATH__" },
                     { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
@@ -721,10 +725,8 @@
 
                     // Test options
                     { $"ExecuteTests", "false" },
-                    { $"AutomationTests", string.Empty },
                     { $"GauntletTests", string.Empty },
                     { $"CustomTests", string.Empty },
-                    { $"DownstreamTests", string.Empty },
                     { $"GauntletGameTargetPlatforms", string.Empty },
                     { $"GauntletConfigPaths", string.Empty },
 

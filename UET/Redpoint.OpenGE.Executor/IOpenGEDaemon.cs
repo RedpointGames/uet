@@ -1,16 +1,9 @@
 ﻿namespace Redpoint.OpenGE.Executor
 {
-    using OpenGE;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Threading.Tasks;
+    using Redpoint.ApplicationLifecycle;
 
-    public interface IOpenGEDaemon
+    public interface IOpenGEDaemon : IApplicationLifecycle
     {
-        Task StartAsync(CancellationToken shutdownCancellationToken);
-
         string GetConnectionString();
-
-        Task StopAsync();
     }
 }

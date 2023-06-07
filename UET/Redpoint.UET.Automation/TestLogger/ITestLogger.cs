@@ -3,14 +3,27 @@
     using Redpoint.UET.Automation.Model;
     using Redpoint.UET.Automation.Worker;
 
+    public record class TestProgressionInfo
+    {
+        public int TestsRemaining { get; set; }
+
+        public int TestsTotal { get; set; }
+    }
+
     public interface ITestLogger
     {
-        void LogDiscovered(IWorker worker, TestResult testResult);
+        Task LogWorkerStarting(IWorker worker);
 
-        void LogStarted(IWorker worker, TestResult testResult);
+        Task LogWorkerStarted(IWorker worker, TimeSpan startupDuration);
 
-        void LogFinished(IWorker worker, TestResult testResult);
+        Task LogWorkerStopped(IWorker worker, IWorkerCrashData? workerCrashData);
 
-        void LogException(IWorker worker, Exception exception, string context);
+        Task LogDiscovered(IWorker worker, TestProgressionInfo progressionInfo, TestResult testResult);
+
+        Task LogStarted(IWorker worker, TestProgressionInfo progressionInfo, TestResult testResult);
+
+        Task LogFinished(IWorker worker, TestProgressionInfo progressionInfo, TestResult testResult);
+
+        Task LogException(IWorker worker, TestProgressionInfo progressionInfo, Exception exception, string context);
     }
 }

@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package UETAutomation;
+
+message LogWorkerStartingRequest {
+	string workerDisplayName = 1;
+}
+
+message LogWorkerStartedRequest {
+	string workerDisplayName = 1;
+	double startupDurationSeconds = 2;
+}
+
+message LogWorkerStoppedRequest {
+	string workerDisplayName = 1;
+	bool workerHasCrashData = 2;
+	string workerCrashData = 3;
+}
+
+message LogTestDiscoveredRequest {
+	int32 testsRemaining = 1;
+	int32 testsTotal = 2;
+	string workerDisplayName = 3;
+	string fullTestPath = 4;
+}
+
+message LogTestStartedRequest {
+	int32 testsRemaining = 1;
+	int32 testsTotal = 2;
+	string workerDisplayName = 3;
+	string fullTestPath = 4;
+}
+
+enum TestResultStatus {
+	NotRun = 0;
+	InProgress = 1;
+	Passed = 2;
+	Failed = 3;
+	Cancelled = 4;
+	Skipped = 5;
+	Crashed = 6;
+}
+
+message LogTestFinishedRequest {
+	int32 testsRemaining = 1;
+	int32 testsTotal = 2;
+	string workerDisplayName = 3;
+	string fullTestPath = 4;
+	TestResultStatus status = 5;
+	double durationSeconds = 6;
+}
+
+message LogRunnerExceptionRequest {
+	int32 testsRemaining = 1;
+	int32 testsTotal = 2;
+	string workerDisplayName = 3;
+	string exceptionText = 4;
+	string exceptionContext = 5;
+}
+
+message LogResponse {
+}
+
+service TestReporting {
+	rpc LogWorkerStarting(LogWorkerStartingRequest) returns (LogResponse) {}
+	rpc LogWorkerStarted(LogWorkerStartedRequest) returns (LogResponse) {}
+	rpc LogWorkerStopped(LogWorkerStoppedRequest) returns (LogResponse) {}
+	rpc LogTestDiscovered(LogTestDiscoveredRequest) returns (LogResponse) {}
+	rpc LogTestStarted(LogTestStartedRequest) returns (LogResponse) {}
+	rpc LogTestFinished(LogTestFinishedRequest) returns (LogResponse) {}
+	rpc LogRunnerException(LogRunnerExceptionRequest) returns (LogResponse) {}
+}

@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.UET.Automation.TestLogger;
 
     internal class DefaultTestLoggerFactory : ITestLoggerFactory
     {
@@ -14,6 +15,13 @@
 
         public ITestLogger CreateConsole()
         {
+            // Handle log forwarding.
+            var pipeName = Environment.GetEnvironmentVariable("UET_AUTOMATION_LOGGER_PIPE_NAME");
+            if (!string.IsNullOrWhiteSpace(pipeName))
+            {
+                return new GrpcTestLogger(pipeName);
+            }
+
             return new ConsoleTestLogger(
                 _serviceProvider.GetRequiredService<ILogger<ConsoleTestLogger>>());
         }

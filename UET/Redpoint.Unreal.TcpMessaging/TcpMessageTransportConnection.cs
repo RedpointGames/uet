@@ -2,48 +2,211 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.Unreal.Serialization;
+    using Redpoint.Unreal.TcpMessaging.MessageTypes;
     using System.Collections.Concurrent;
+    using System.Diagnostics;
+    using System.IO;
     using System.Net;
     using System.Net.Sockets;
+    using System.Threading;
     using System.Threading.Tasks;
 
-    public class TcpMessageTransportConnection : IDisposable
+    public class TcpMessageTransportConnection : IAsyncDisposable
     {
+        private readonly ILogger? _logger;
         private readonly Guid _guid;
-        private readonly TcpClient _client;
+        private readonly TcpReconnectableStream _stream;
+
+        private class AttachedListener
+        {
+            public SemaphoreSlim Ready = new SemaphoreSlim(0);
+            public ConcurrentQueue<TcpDeserializedMessage> Queue = new ConcurrentQueue<TcpDeserializedMessage>();
+        }
+
         private Guid? _remoteNodeId;
-        private bool _receivedHeader;
         private bool _disposed;
         private ConcurrentQueue<TcpDeserializedMessage> _queuedToSend;
         private Task _backgroundSender;
-        private readonly ILogger? _logger;
+        private readonly Task _backgroundReceiver;
+        private readonly Task _backgroundPinger;
+        private readonly List<AttachedListener> _listeningQueues;
         private SemaphoreSlim _readyToSend;
+        private string _remoteOwner;
 
-        public static async Task<TcpMessageTransportConnection> CreateAsync(TcpClient client, ILogger? logger = null)
+        public static async Task<TcpMessageTransportConnection> CreateAsync(Func<Task<TcpClient>> connectionFactory, ILogger? logger = null)
         {
-            var instance = new TcpMessageTransportConnection(client, logger);
-            await instance.SendHeader();
-            instance._disposed = false;
-            instance._queuedToSend = new ConcurrentQueue<TcpDeserializedMessage>();
-            instance._readyToSend = new SemaphoreSlim(0);
-            instance._backgroundSender = Task.Run(instance.SendInBackground);
+            Guid initialRemoteGuidId = Guid.Empty;
+            TcpMessageTransportConnection? instance = null;
+            var guid = Guid.NewGuid();
+            var reconnectableStream = await TcpReconnectableStream.CreateAsync(
+                logger,
+                connectionFactory,
+                async client =>
+                {
+                    // Write our header to the stream.
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        Store<TcpMessageHeader> header = new(new(guid));
+
+                        var headerArchive = new Archive(memoryStream, false);
+                        await headerArchive.Serialize(header);
+
+                        var position = memoryStream.Position;
+                        memoryStream.Seek(0, SeekOrigin.Begin);
+
+                        await client.GetStream().WriteAsync(memoryStream.GetBuffer(), 0, (int)position);
+                    }
+
+                    // Receive the remote's header from the stream.
+                    {
+                        var receiveArchive = new Archive(client.GetStream(), true);
+                        var header = new Store<TcpMessageHeader>(new());
+                        await receiveArchive.Serialize(header);
+                        if (instance == null)
+                        {
+                            initialRemoteGuidId = header.V.NodeId;
+                        }
+                        else
+                        {
+                            instance._remoteNodeId = header.V.NodeId;
+                        }
+                        logger?.LogTrace($"Received header from remote node ID {header.V.NodeId}");
+                    }
+                });
+            instance = new TcpMessageTransportConnection(reconnectableStream, guid, initialRemoteGuidId, logger);
             return instance;
         }
 
-#pragma warning disable CS8618
-        private TcpMessageTransportConnection(TcpClient client, ILogger? logger)
+        private TcpMessageTransportConnection(TcpReconnectableStream stream, Guid guid, Guid initialRemoteGuidId, ILogger? logger)
         {
             _logger = logger;
-            _guid = Guid.NewGuid();
-            _client = client;
-            if (!_client.Connected)
-            {
-                throw new InvalidOperationException();
-            }
-            _remoteNodeId = null;
-            _receivedHeader = false;
+            _guid = guid;
+            _stream = stream;
+
+            _disposed = false;
+            _remoteNodeId = initialRemoteGuidId;
+            _queuedToSend = new ConcurrentQueue<TcpDeserializedMessage>();
+            _readyToSend = new SemaphoreSlim(0);
+            _backgroundSender = Task.Run(SendInBackground);
+            _backgroundReceiver = Task.Run(ReceiveInBackground);
+            _backgroundPinger = Task.Run(PingInBackground);
+            _listeningQueues = new List<AttachedListener>();
+
+            _remoteOwner = string.Empty;
         }
-#pragma warning restore CS8618
+
+        private async Task PingInBackground()
+        {
+            while (!_disposed)
+            {
+                Send(new EngineServicePing());
+                Send(new SessionServicePing { UserName = _remoteOwner ?? Environment.UserName ?? "user" });
+                await Task.Delay(2000);
+            }
+        }
+
+        public Guid? RemoteSessionId { get; private set; }
+
+        private async Task ReceiveInBackground()
+        {
+            bool gotEnginePong = false;
+            int engineVersion = 0;
+            Guid engineSessionId = Guid.Empty;
+            bool gotSessionPong = false;
+            string buildDate = string.Empty;
+
+            while (!_disposed)
+            {
+                try
+                {
+                    var receiveArchive = new Archive(_stream, true);
+
+                    var nextBytes = new Store<uint>(0);
+                    await receiveArchive.Serialize(nextBytes);
+
+                    var buffer = new Store<byte[]>(new byte[0]);
+                    await receiveArchive.Serialize(buffer, nextBytes.V);
+
+                    var nextMessage = new Store<TcpDeserializedMessage>(new());
+                    try
+                    {
+                        using (var memory = new MemoryStream(buffer.V))
+                        {
+                            var memoryArchive = new Archive(memory, true);
+                            await memoryArchive.Serialize(nextMessage);
+                        }
+                    }
+                    catch (TopLevelAssetPathNotFoundException)
+                    {
+                        _logger?.LogTrace($" {{{nextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{nextMessage.V.AssetPath.V.PackageName.V + "." + nextMessage.V.AssetPath.V.AssetName.V}]\n(no C# class registered for this message type)");
+                        continue;
+                    }
+
+                    {
+                        _logger?.LogTrace($" {{{nextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{nextMessage.V.AssetPath.V.PackageName.V + "." + nextMessage.V.AssetPath.V.AssetName.V}]\n{nextMessage.V.GetMessageData()}");
+
+                        switch (nextMessage.V.GetMessageData())
+                        {
+                            case EngineServicePong pong:
+                                gotEnginePong = true;
+                                engineVersion = pong.EngineVersion;
+                                engineSessionId = pong.SessionId;
+                                break;
+                            case EngineServicePing ping:
+                                if (gotEnginePong)
+                                {
+                                    Respond(nextMessage.V, new EngineServicePong
+                                    {
+                                        EngineVersion = engineVersion,
+                                        InstanceId = _guid,
+                                        SessionId = engineSessionId,
+                                        InstanceType = "Editor",
+                                        CurrentLevel = string.Empty,
+                                        HasBegunPlay = false,
+                                        WorldTimeSeconds = 0.0f,
+                                    });
+                                }
+                                break;
+                            case SessionServicePong pong:
+                                gotSessionPong = true;
+                                RemoteSessionId = pong.SessionId;
+                                buildDate = pong.BuildDate;
+                                _remoteOwner = pong.SessionOwner;
+                                break;
+                            case SessionServicePing ping:
+                                if (gotSessionPong)
+                                {
+                                    Respond(nextMessage.V, new SessionServicePong
+                                    {
+                                        Authorized = true,
+                                        BuildDate = buildDate,
+                                        DeviceName = "UET",
+                                        InstanceId = _guid,
+                                        InstanceName = $"UET-{Process.GetCurrentProcess().Id}",
+                                        PlatformName = "WindowsEditor",
+                                        SessionId = RemoteSessionId!.Value,
+                                        SessionName = string.Empty,
+                                        SessionOwner = _remoteOwner,
+                                        Standalone = false,
+                                    });
+                                }
+                                break;
+                        }
+
+                        foreach (var queue in _listeningQueues.ToArray())
+                        {
+                            queue.Queue.Enqueue(nextMessage.V);
+                            queue.Ready.Release();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogCritical(ex, $"Exception during message receive: {ex.Message}");
+                    throw;
+                }
+            }
+        }
 
         private async Task SendInBackground()
         {
@@ -74,12 +237,12 @@
                             throw new InvalidOperationException();
                         }
 
-                        var sendArchive = new Archive(_client.GetStream(), false);
+                        var sendArchive = new Archive(_stream, false);
 
                         await sendArchive.Serialize(length);
 
                         memory.Seek(0, SeekOrigin.Begin);
-                        await memory.CopyToAsync(_client.GetStream());
+                        await memory.CopyToAsync(_stream);
 
                         _logger?.LogTrace("Flushed message to remote TCP stream!");
                     }
@@ -88,22 +251,6 @@
                 {
                     _logger?.LogCritical(ex, $"Failed to serialize message: {ex.Message}");
                 }
-            }
-        }
-
-        private async Task SendHeader()
-        {
-            using (var memoryStream = new MemoryStream())
-            {
-                Store<TcpMessageHeader> header = new(new(_guid));
-
-                var headerArchive = new Archive(memoryStream, false);
-                await headerArchive.Serialize(header);
-
-                var position = memoryStream.Position;
-                memoryStream.Seek(0, SeekOrigin.Begin);
-
-                await _client.GetStream().WriteAsync(memoryStream.GetBuffer(), 0, (int)position);
             }
         }
 
@@ -158,48 +305,31 @@
         {
             try
             {
-                var receiveArchive = new Archive(_client.GetStream(), true);
-
-                if (!_receivedHeader)
+                var listener = new AttachedListener();
+                _listeningQueues.Add(listener);
+                try
                 {
-                    var header = new Store<TcpMessageHeader>(new());
-                    await receiveArchive.Serialize(header);
-                    _remoteNodeId = header.V.NodeId;
-                    _receivedHeader = true;
-                    _logger?.LogTrace($"Received header from remote node ID {_remoteNodeId}");
-                }
-
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    var nextBytes = new Store<uint>(0);
-                    await receiveArchive.Serialize(nextBytes);
-
-                    var buffer = new Store<byte[]>(new byte[0]);
-                    await receiveArchive.Serialize(buffer, nextBytes.V);
-
-                    var nextMessage = new Store<TcpDeserializedMessage>(new());
-                    try
+                    while (!cancellationToken.IsCancellationRequested)
                     {
-                        using (var memory = new MemoryStream(buffer.V))
+                        await listener.Ready.WaitAsync(cancellationToken);
+
+                        TcpDeserializedMessage nextMessage;
+                        var didPull = false;
+                        do
                         {
-                            var memoryArchive = new Archive(memory, true);
-                            await memoryArchive.Serialize(nextMessage);
+                            didPull = listener.Queue.TryDequeue(out nextMessage!);
                         }
-                    }
-                    catch (TopLevelAssetPathNotFoundException)
-                    {
-                        _logger?.LogTrace($" {{{nextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{nextMessage.V.AssetPath.V.PackageName.V + "." + nextMessage.V.AssetPath.V.AssetName.V}]\n(no C# class registered for this message type)");
-                        continue;
-                    }
+                        while (!didPull);
 
-                    {
-                        _logger?.LogTrace($" {{{nextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{nextMessage.V.AssetPath.V.PackageName.V + "." + nextMessage.V.AssetPath.V.AssetName.V}]\n{nextMessage.V.GetMessageData()}");
-
-                        if (await onMessageReceived(nextMessage.V))
+                        if (await onMessageReceived(nextMessage))
                         {
                             return;
                         }
                     }
+                }
+                finally
+                {
+                    _listeningQueues.Remove(listener);
                 }
             }
             catch (Exception ex)
@@ -209,10 +339,10 @@
             }
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
             _disposed = true;
-            ((IDisposable)_client).Dispose();
+            await _stream.DisposeAsync();
         }
     }
 }

@@ -41,10 +41,12 @@ namespace Redpoint.UET.Automation.Tests
                     {
                         configure.Filter = (group, category) =>
                         {
+                            /*
                             if (group!.Contains("LocalEditorWorker"))
                             {
                                 return false;
                             }
+                            */
                             return true;
                         };
                     });

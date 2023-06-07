@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.OpenGE
 {
+    using Grpc.Core.Logging;
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Executor;
     using Redpoint.ProcessExecution;
@@ -11,71 +12,72 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DefaultProcessWithOpenGEExecutor : IProcessWithOpenGEExecutor
+    internal class OpenGEProcessExecutorHook : IProcessExecutorHook
     {
-        private readonly IProcessExecutor _executor;
-        private readonly ILogger<DefaultProcessWithOpenGEExecutor> _logger;
+        private readonly ILogger<OpenGEProcessExecutorHook> _logger;
         private readonly IOpenGEDaemon _daemon;
         private static SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
 
-        public DefaultProcessWithOpenGEExecutor(
-            IProcessExecutor executor,
-            ILogger<DefaultProcessWithOpenGEExecutor> logger,
+        public OpenGEProcessExecutorHook(
+            ILogger<OpenGEProcessExecutorHook> logger,
             IOpenGEDaemon daemon)
         {
-            _executor = executor;
             _logger = logger;
             _daemon = daemon;
         }
 
-        public async Task<int> ExecuteAsync(ProcessSpecification processSpecification, ICaptureSpecification captureSpecification, CancellationToken cancellationToken)
+        public async Task ModifyProcessSpecificationAsync(ProcessSpecification processSpecification, CancellationToken cancellationToken)
         {
-            var xgeShimFolder = Path.Combine(Path.GetTempPath(), $"openge-shim-{Process.GetCurrentProcess().Id}");
-            var xgeShimPath = Path.Combine(xgeShimFolder, "xgConsole.exe");
-
-            await _semaphoreSlim.WaitAsync(cancellationToken);
-            try
+            if (processSpecification is not OpenGEProcessSpecification)
             {
-                if (!File.Exists(xgeShimPath))
+                return;
+            }
+
+            var openGEProcessSpecification = (OpenGEProcessSpecification)processSpecification;
+            if (!openGEProcessSpecification.DisableOpenGE)
+            {
+                var xgeShimFolder = Path.Combine(Path.GetTempPath(), $"openge-shim-{Process.GetCurrentProcess().Id}");
+                var xgeShimPath = Path.Combine(xgeShimFolder, "xgConsole.exe");
+
+                await _semaphoreSlim.WaitAsync(cancellationToken);
+                try
                 {
-                    Directory.CreateDirectory(xgeShimFolder);
-                    using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Redpoint.OpenGE.ProcessExecution.Embedded.win_x64.xgConsole.exe"))
+                    if (!File.Exists(xgeShimPath))
                     {
-                        using (var target = new FileStream(xgeShimPath + ".tmp", FileMode.Create, FileAccess.Write, FileShare.None))
+                        Directory.CreateDirectory(xgeShimFolder);
+                        using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Redpoint.OpenGE.ProcessExecution.Embedded.win_x64.xgConsole.exe"))
                         {
-                            await stream!.CopyToAsync(target);
+                            using (var target = new FileStream(xgeShimPath + ".tmp", FileMode.Create, FileAccess.Write, FileShare.None))
+                            {
+                                await stream!.CopyToAsync(target);
+                            }
                         }
+                        File.Move(xgeShimPath + ".tmp", xgeShimPath, true);
+                        _logger.LogInformation("Extracted XGE shim to: " + xgeShimPath);
                     }
-                    File.Move(xgeShimPath + ".tmp", xgeShimPath, true);
-                    _logger.LogInformation("Extracted XGE shim to: " + xgeShimPath);
                 }
+                finally
+                {
+                    _semaphoreSlim.Release();
+                }
+
+                var path = (processSpecification.EnvironmentVariables != null && processSpecification.EnvironmentVariables.ContainsKey("PATH"))
+                    ? processSpecification.EnvironmentVariables["PATH"]
+                    : Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+
+                var pathComponents = path.Split(Path.PathSeparator).ToList();
+                pathComponents.Add(xgeShimFolder);
+
+                var newPath = string.Join(Path.PathSeparator, pathComponents);
+
+                if (processSpecification.EnvironmentVariables == null)
+                {
+                    processSpecification.EnvironmentVariables = new Dictionary<string, string>();
+                }
+                processSpecification.EnvironmentVariables["PATH"] = newPath;
+                processSpecification.EnvironmentVariables["UET_FORCE_XGE_SHIM"] = "1";
+                processSpecification.EnvironmentVariables["UET_XGE_SHIM_PIPE_NAME"] = _daemon.GetConnectionString();
             }
-            finally
-            {
-                _semaphoreSlim.Release();
-            }
-
-            var path = (processSpecification.EnvironmentVariables != null && processSpecification.EnvironmentVariables.ContainsKey("PATH"))
-                ? processSpecification.EnvironmentVariables["PATH"]
-                : Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-
-            var pathComponents = path.Split(Path.PathSeparator).ToList();
-            pathComponents.Add(xgeShimFolder);
-
-            var newPath = string.Join(Path.PathSeparator, pathComponents);
-
-            if (processSpecification.EnvironmentVariables == null)
-            {
-                processSpecification.EnvironmentVariables = new Dictionary<string, string>();
-            }
-            processSpecification.EnvironmentVariables["PATH"] = newPath;
-            processSpecification.EnvironmentVariables["UET_FORCE_XGE_SHIM"] = "1";
-            processSpecification.EnvironmentVariables["UET_XGE_SHIM_PIPE_NAME"] = _daemon.GetConnectionString();
-
-            return await _executor.ExecuteAsync(
-                processSpecification,
-                captureSpecification,
-                cancellationToken);
         }
     }
 }

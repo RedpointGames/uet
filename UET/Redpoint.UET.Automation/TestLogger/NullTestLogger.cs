@@ -6,56 +6,39 @@
 
     internal class NullTestLogger : ITestLogger
     {
-        public void LogCallstack(IWorker worker, string message)
+        public Task LogWorkerStarting(IWorker worker)
         {
+            return Task.CompletedTask;
         }
 
-        public void LogCrash(IWorker worker, string message)
+        public Task LogWorkerStarted(IWorker worker, TimeSpan startupDuration)
         {
+            return Task.CompletedTask;
         }
 
-        public void LogDiscovered(IWorker worker, TestResult testResult)
+        public Task LogWorkerStopped(IWorker worker, IWorkerCrashData? workerCrashData)
         {
+            return Task.CompletedTask;
         }
 
-        public void LogError(IWorker worker, string message)
+        public Task LogDiscovered(IWorker worker, TestProgressionInfo progressionInfo, TestResult testResult)
         {
+            return Task.CompletedTask;
         }
 
-        public void LogException(IWorker worker, Exception exception, string context)
+        public Task LogStarted(IWorker worker, TestProgressionInfo progressionInfo, TestResult testResult)
         {
+            return Task.CompletedTask;
         }
 
-        public void LogFinished(IWorker worker, TestResult testResult)
+        public Task LogFinished(IWorker worker, TestProgressionInfo progressionInfo, TestResult testResult)
         {
+            return Task.CompletedTask;
         }
 
-        public void LogInformation(IWorker worker, string message)
+        public Task LogException(IWorker worker, TestProgressionInfo progressionInfo, Exception exception, string context)
         {
-        }
-
-        public void LogStarted(IWorker worker, TestResult testResult)
-        {
-        }
-
-        public void LogStderr(IWorker IWorker, string message)
-        {
-        }
-
-        public void LogStdout(IWorker IWorker, string message)
-        {
-        }
-
-        public void LogTrace(IWorker worker, string message)
-        {
-        }
-
-        public void LogWaiting(IWorker worker, string message)
-        {
-        }
-
-        public void LogWarning(IWorker worker, string message)
-        {
+            return Task.CompletedTask;
         }
     }
 }

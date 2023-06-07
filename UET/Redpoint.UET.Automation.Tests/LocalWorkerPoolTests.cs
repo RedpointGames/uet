@@ -5,6 +5,7 @@ namespace Redpoint.UET.Automation.Tests
     using Redpoint.OpenGE.ProcessExecution;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
+    using Redpoint.UET.Automation.TestLogging;
     using Redpoint.UET.Automation.Worker;
     using Redpoint.UET.Core;
     using Redpoint.UET.UAT;
@@ -55,6 +56,7 @@ namespace Redpoint.UET.Automation.Tests
             var workerPoolFactory = sp.GetRequiredService<IWorkerPoolFactory>();
             var cancellationTokenSource = new CancellationTokenSource();
             var workerPool = await workerPoolFactory.CreateAndStartAsync(
+                sp.GetRequiredService<ITestLoggerFactory>().CreateConsole(),
                 new[]
                 {
                     new DesiredWorkerDescriptor
@@ -147,6 +149,7 @@ namespace Redpoint.UET.Automation.Tests
             var workerPoolFactory = sp.GetRequiredService<IWorkerPoolFactory>();
             var cancellationTokenSource = new CancellationTokenSource();
             var workerPool = await workerPoolFactory.CreateAndStartAsync(
+                sp.GetRequiredService<ITestLoggerFactory>().CreateConsole(),
                 new[]
                 {
                     new DesiredWorkerDescriptor
@@ -247,6 +250,7 @@ namespace Redpoint.UET.Automation.Tests
             var workerPoolFactory = sp.GetRequiredService<IWorkerPoolFactory>();
             var cancellationTokenSource = new CancellationTokenSource();
             var workerPool = await workerPoolFactory.CreateAndStartAsync(
+                sp.GetRequiredService<ITestLoggerFactory>().CreateConsole(),
                 new[]
                 {
                     new DesiredWorkerDescriptor
@@ -339,6 +343,7 @@ namespace Redpoint.UET.Automation.Tests
             var cancellationTokenSource = new CancellationTokenSource();
             IWorkerPool? workerPool = null;
             workerPool = await workerPoolFactory.CreateAndStartAsync(
+                sp.GetRequiredService<ITestLoggerFactory>().CreateConsole(),
                 new[]
                 {
                     new DesiredWorkerDescriptor
@@ -443,6 +448,7 @@ namespace Redpoint.UET.Automation.Tests
             var cancellationTokenSource = new CancellationTokenSource();
             IWorkerPool? workerPool = null;
             workerPool = await workerPoolFactory.CreateAndStartAsync(
+                sp.GetRequiredService<ITestLoggerFactory>().CreateConsole(),
                 new[] { descriptor },
                 (worker) =>
                 {

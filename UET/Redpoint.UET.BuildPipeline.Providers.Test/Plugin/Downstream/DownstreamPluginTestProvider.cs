@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.UET.BuildPipeline.Providers.Test.Plugin.Downstream
 {
     using Redpoint.UET.BuildGraph;
+    using Redpoint.UET.Configuration;
     using Redpoint.UET.Configuration.Dynamic;
     using Redpoint.UET.Configuration.Plugin;
     using System;
@@ -13,6 +14,13 @@
 
     internal class DownstreamPluginTestProvider : IPluginTestProvider
     {
+        private readonly IGlobalArgsProvider _globalArgsProvider;
+
+        public DownstreamPluginTestProvider(IGlobalArgsProvider globalArgsProvider)
+        {
+            _globalArgsProvider = globalArgsProvider;
+        }
+
         public string Type => "Downstream";
 
         public object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options)
@@ -54,7 +62,7 @@
                                     new SpawnElementProperties
                                     {
                                         Exe = "$(UETPath)",
-                                        Arguments = new[]
+                                        Arguments = _globalArgsProvider.GlobalArgsArray.Concat(new[]
                                         {
                                             "internal",
                                             "run-downstream-test",
@@ -66,7 +74,7 @@
                                             $@"""$(Distribution)""",
                                             "--packaged-plugin-path",
                                             $@"""$(TempPath)/$(PackageFolder)/""",
-                                        }
+                                        }).ToArray()
                                     });
                             });
                         await writer.WriteDynamicNodeAppendAsync(

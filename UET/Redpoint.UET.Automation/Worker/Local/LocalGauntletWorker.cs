@@ -126,10 +126,16 @@
                 // Wait for startup.
                 do
                 {
-                    if (automationTask.IsCanceled ||
-                        automationTask.IsFaulted)
+                    if (automationTask.IsCanceled)
                     {
-                        _logger.LogWarning($"[{Id}] Executable exited unexpectedly with no exit code information");
+                        _logger.LogWarning($"[{Id}] Executable exited with no exit code information, because the task was cancelled");
+                        didFireExit = true;
+                        await _onWorkerExited(this, int.MinValue, null);
+                        return;
+                    }
+                    if (automationTask.IsFaulted)
+                    {
+                        _logger.LogError($"[{Id}] Executable exited with no exit code information, because the task fired an exception: {automationTask.Exception}");
                         didFireExit = true;
                         await _onWorkerExited(this, int.MinValue, null);
                         return;
@@ -189,10 +195,14 @@
                 }
                 if (!didFireExit)
                 {
-                    if (automationTask.IsCanceled ||
-                        automationTask.IsFaulted)
+                    if (automationTask.IsCanceled)
                     {
-                        _logger.LogTrace($"[{Id}] Executable exited with no exit code information");
+                        _logger.LogTrace($"[{Id}] Executable exited with no exit code information, because the task was cancelled");
+                        await _onWorkerExited(this, int.MinValue, null);
+                    }
+                    if (automationTask.IsFaulted)
+                    {
+                        _logger.LogError($"[{Id}] Executable exited with no exit code information, because the task fired an exception: {automationTask.Exception}");
                         await _onWorkerExited(this, int.MinValue, null);
                     }
                     if (automationTask.IsCompletedSuccessfully)

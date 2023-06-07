@@ -3,6 +3,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
+    using Redpoint.UET.Automation.TestLogging;
     using Redpoint.UET.UAT;
     using System;
     using System.Collections.Generic;
@@ -15,6 +16,7 @@
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<LocalWorkerPool> _logger;
+        private readonly ITestLogger _testLogger;
         private readonly DesiredWorkerDescriptor[] _workerDescriptors;
         private readonly OnWorkerStarted _onWorkerStarted;
         private readonly OnWorkerExited _onWorkedExited;
@@ -29,6 +31,7 @@
         public LocalWorkerPool(
             IServiceProvider serviceProvider,
             ILogger<LocalWorkerPool> logger,
+            ITestLogger testLogger,
             IEnumerable<DesiredWorkerDescriptor> workerDescriptors,
             OnWorkerStarted onWorkerStarted,
             OnWorkerExited onWorkedExited,
@@ -37,6 +40,7 @@
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
+            _testLogger = testLogger;
             _workerDescriptors = workerDescriptors.ToArray();
             _onWorkerStarted = onWorkerStarted;
             _onWorkedExited = onWorkedExited;
@@ -80,16 +84,18 @@
             }
         }
 
-        private Task OnInternalWorkerStarted(IWorker worker)
+        private async Task OnInternalWorkerStarted(IWorker worker)
         {
-            return _onWorkerStarted(worker);
+            await _testLogger.LogWorkerStarted(worker, worker.StartupDuration);
+            await _onWorkerStarted(worker);
         }
 
-        private Task OnInternalWorkerExited(IWorker worker, int exitCode, IWorkerCrashData? crashData)
+        private async Task OnInternalWorkerExited(IWorker worker, int exitCode, IWorkerCrashData? crashData)
         {
             _currentWorkers.Remove((LocalWorker)worker);
             _reservedWorkers.Remove((LocalWorker)worker);
-            return _onWorkedExited(worker, exitCode, crashData);
+            await _testLogger.LogWorkerStopped(worker, crashData);
+            await _onWorkedExited(worker, exitCode, crashData);
         }
 
         private async Task RunLoopAsync()
@@ -108,9 +114,11 @@
 
                         if (currentWorkers.Length < targetWorkerCount && !_descriptorsWindingDown.Contains(workerDescriptor))
                         {
+                            _logger.LogTrace($"There are currently {currentWorkers.Length} workers and the target is {targetWorkerCount}. Starting a new worker...");
+
                             var newId = Guid.NewGuid().ToString();
                             var displayName = Enumerable.Range(1, targetWorkerCount + 1)
-                                .Select(x => $"{workerDescriptor.Platform}_{x}")
+                                .Select(x => $"{workerDescriptor.Platform}.{x}")
                                 .First(x => !currentWorkers.Any(y => y.DisplayName == x));
 
                             LocalWorker newWorker;
@@ -133,6 +141,7 @@
                                     workerDescriptor,
                                     OnInternalWorkerStarted,
                                     OnInternalWorkerExited);
+                                await _testLogger.LogWorkerStarting(newWorker);
                             }
                             else
                             {
@@ -147,6 +156,7 @@
                                     workerDescriptor,
                                     OnInternalWorkerStarted,
                                     OnInternalWorkerExited);
+                                await _testLogger.LogWorkerStarting(newWorker);
                             }
                             _currentWorkers.Add(newWorker);
                             newWorker.StartInBackground();
@@ -193,6 +203,8 @@
         {
             if (_currentWorkers.Contains(worker))
             {
+                _logger.LogTrace($"Caller indicated that worker {worker.Id} is no longer needed. Stopping the worker and marking the descriptor as winding down...");
+
                 _descriptorsWindingDown.Add(worker.Descriptor);
                 if (_reservedWorkers.Contains(worker))
                 {
@@ -211,6 +223,8 @@
 
         public void FinishedWithDescriptor(DesiredWorkerDescriptor descriptor)
         {
+            _logger.LogTrace($"Caller indicated that descriptor {descriptor.Platform} is no longer needed. Stopping the worker and marking the descriptor as winding down...");
+
             _descriptorsWindingDown.Add(descriptor);
             foreach (var worker in _currentWorkers.ToArray())
             {

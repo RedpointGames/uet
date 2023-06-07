@@ -360,6 +360,7 @@
                             {
                                 _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} [executor failed]");
                             }
+                            _logger.LogError(ex, ex.Message);
                         }
 
                         // @note: Is this correct?

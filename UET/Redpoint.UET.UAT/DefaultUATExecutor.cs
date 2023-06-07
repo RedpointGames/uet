@@ -12,7 +12,7 @@
 
     internal class DefaultUATExecutor : IUATExecutor
     {
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IProcessExecutor _processExecutor;
         private readonly ILogger<DefaultUATExecutor> _logger;
         private readonly IBuildConfigurationManager _buildConfigurationManager;
         private readonly ILocalHandleCloser _localHandleCloser;
@@ -29,14 +29,14 @@
         }
 
         public DefaultUATExecutor(
-            IServiceProvider serviceProvider,
+            IProcessExecutor processExecutor,
             ILogger<DefaultUATExecutor> logger,
             IBuildConfigurationManager buildConfigurationManager,
             ILocalHandleCloser localHandleCloser,
             IRemoteHandleCloser remoteHandleCloser,
             IPathResolver pathResolver)
         {
-            _serviceProvider = serviceProvider;
+            _processExecutor = processExecutor;
             _logger = logger;
             _buildConfigurationManager = buildConfigurationManager;
             _localHandleCloser = localHandleCloser;
@@ -225,10 +225,10 @@
                     }
 
                     // Determine the process specification to use based on whether we're running on macOS/Linux or Windows.
-                    ProcessSpecification processSpecification;
+                    OpenGEProcessSpecification processSpecification;
                     if (OperatingSystem.IsWindows())
                     {
-                        processSpecification = new ProcessSpecification
+                        processSpecification = new OpenGEProcessSpecification
                         {
                             FilePath = await _pathResolver.ResolveBinaryPath("cmd"),
                             Arguments = new[]
@@ -240,11 +240,12 @@
                             WorkingDirectory = doScriptWorkaround ? enginePath : uatSpecification.WorkingDirectory,
                             EnvironmentVariables = uatSpecification.EnvironmentVariables,
                             StdinData = uatSpecification.StdinData,
+                            DisableOpenGE = uatSpecification.DisableOpenGE,
                         };
                     }
                     else if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
                     {
-                        processSpecification = new ProcessSpecification
+                        processSpecification = new OpenGEProcessSpecification
                         {
                             FilePath = Path.Combine(enginePath, "Engine", "Build", "BatchFiles", "RunUAT.sh"),
                             Arguments = new[]
@@ -254,6 +255,7 @@
                             WorkingDirectory = doScriptWorkaround ? enginePath : uatSpecification.WorkingDirectory,
                             EnvironmentVariables = uatSpecification.EnvironmentVariables,
                             StdinData = uatSpecification.StdinData,
+                            DisableOpenGE = uatSpecification.DisableOpenGE,
                         };
                     }
                     else
@@ -265,10 +267,7 @@
                     var retryCaptureSpecification = new UATCaptureSpecification(captureSpecification);
 
                     // Execute UAT.
-                    var executor = uatSpecification.DisableOpenGE
-                        ? _serviceProvider.GetRequiredService<IProcessExecutor>()
-                        : _serviceProvider.GetRequiredService<IProcessWithOpenGEExecutor>();
-                    reportedExitCode = await executor.ExecuteAsync(
+                    reportedExitCode = await _processExecutor.ExecuteAsync(
                         processSpecification,
                         retryCaptureSpecification,
                         cancellationToken);

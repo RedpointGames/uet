@@ -7,10 +7,12 @@ using System.Net.Sockets;
 var instanceId = Guid.NewGuid();
 var sessionId = Guid.NewGuid();
 
-var client = new TcpClient();
-await client.ConnectAsync(new IPEndPoint(IPAddress.Loopback, 6666));
-
-var connection = await TcpMessageTransportConnection.CreateAsync(client);
+var connection = await TcpMessageTransportConnection.CreateAsync(async () =>
+{
+    var client = new TcpClient();
+    await client.ConnectAsync(new IPEndPoint(IPAddress.Loopback, 6666));
+    return client;
+});
 
 // Detect the remote's engine version so we can pretend to be the same.
 var engineVersion = 0;

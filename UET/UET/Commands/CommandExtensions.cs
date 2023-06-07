@@ -24,6 +24,9 @@
     using System.Linq;
     using System.Reflection;
     using UET.Services;
+    using Redpoint.UET.Automation;
+    using Redpoint.ApplicationLifecycle;
+    using Redpoint.UET.Automation.TestLogger;
 
     internal static class CommandExtensions
     {
@@ -44,6 +47,7 @@
             minimalServices.AddUETBuildPipelineProvidersTest();
             minimalServices.AddUETBuildPipelineProvidersDeployment();
             minimalServices.AddTransient<TOptions, TOptions>();
+            minimalServices.AddSingleton<IGlobalArgsProvider>(new CommandUETGlobalArgsProvider(string.Empty, new string[0]));
             var minimalServiceProvider = minimalServices.BuildServiceProvider();
 
             // Get the options instance from the minimal service provider.
@@ -69,6 +73,19 @@
             }
         }
 
+        private class CommandUETGlobalArgsProvider : IGlobalArgsProvider
+        {
+            public CommandUETGlobalArgsProvider(string globalArgsString, string[] globalArgsArray)
+            {
+                GlobalArgsString = globalArgsString;
+                GlobalArgsArray = globalArgsArray;
+            }
+
+            public string GlobalArgsString { get; }
+
+            public string[] GlobalArgsArray { get; }
+        }
+
         internal static void AddCommonHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TCommand>(this Command command, object options, Action<IServiceCollection>? extraServices = null) where TCommand : class, ICommandInstance
         {
             command.SetHandler(async (context) =>
@@ -84,6 +101,7 @@
                 services.AddOpenGEExecutor();
                 services.AddOpenGEProcessExecution();
                 services.AddSdkManagement();
+                services.AddUETAutomation();
                 services.AddUETUAT();
                 services.AddUETBuildPipeline();
                 services.AddUETBuildPipelineExecutorsLocal();
@@ -95,30 +113,58 @@
                 services.AddSingleton<TCommand>();
                 services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
                 services.AddSingleton<IPluginVersioning, DefaultPluginVersioning>();
+                if (context.ParseResult.GetValueForOption(GetTraceOption()))
+                {
+                    services.AddSingleton<IGlobalArgsProvider>(new CommandUETGlobalArgsProvider("--trace", new[] { "--trace" }));
+                }
+                else
+                {
+                    services.AddSingleton<IGlobalArgsProvider>(new CommandUETGlobalArgsProvider(string.Empty, new string[0]));
+                }
                 if (extraServices != null)
                 {
                     extraServices(services);
                 }
-                var sp = services.BuildServiceProvider();
-                var instance = sp.GetRequiredService<TCommand>();
-                var daemon = sp.GetRequiredService<IOpenGEDaemon>();
-
-                // Run the command with an XGE shim if we don't already have one.
                 if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("UET_XGE_SHIM_PIPE_NAME")))
                 {
-                    await daemon.StartAsync(context.GetCancellationToken());
-                    try
-                    {
-                        context.ExitCode = await instance.ExecuteAsync(context);
-                    }
-                    finally
-                    {
-                        await daemon.StopAsync();
-                    }
+                    // Run commands with an XGE shim if we don't already have one.
+                    services.AddSingleton<IApplicationLifecycle>(sp => sp.GetRequiredService<IOpenGEDaemon>());
                 }
-                else
+                if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("UET_AUTOMATION_LOGGER_PIPE_NAME")))
                 {
+                    // Run commands with an automation logger shim if we don't already have one.
+                    services.AddSingleton<IApplicationLifecycle>(sp => sp.GetRequiredService<IAutomationLogForwarder>());
+                }
+                var sp = services.BuildServiceProvider();
+                var instance = sp.GetRequiredService<TCommand>();
+
+                // Run the command with all the lifecycles started and stopped around it.
+                var lifecycles = sp.GetServices<IApplicationLifecycle>();
+                var startedLifecycles = new List<IApplicationLifecycle>();
+                try
+                {
+                    foreach (var lifecycle in lifecycles)
+                    {
+                        await lifecycle.StartAsync(context.GetCancellationToken());
+                        startedLifecycles.Add(lifecycle);
+                    }
+
                     context.ExitCode = await instance.ExecuteAsync(context);
+                }
+                finally
+                {
+                    foreach (var lifecycle in startedLifecycles)
+                    {
+                        try
+                        {
+                            await lifecycle.StopAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            var logger = sp.GetRequiredService<ILogger<TCommand>>();
+                            logger.LogError(ex, $"Exception during application lifecycle shutdown: {ex}");
+                        }
+                    }
                 }
 
                 // BuildGraph misses the last line of a command's output if it does

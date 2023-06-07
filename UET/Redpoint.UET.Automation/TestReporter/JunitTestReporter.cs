@@ -15,7 +15,8 @@
 
         public Task ReportResultsAsync(TestResult[] results)
         {
-            throw new NotImplementedException();
+            // @todo: Implement
+            return Task.CompletedTask;
         }
     }
 }

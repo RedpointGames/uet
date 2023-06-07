@@ -43,12 +43,6 @@
 
             public Guid NegotiatedSessionId { get; set; }
 
-            public int NegotiatedEngineVersion { get; set; }
-
-            public string? NegotiatedBuildDate { get; set; }
-
-            public string? NegotiatedSessionOwner { get; set; }
-
             public MessageAddress? NegotiatedTargetAddress { get; set; }
 
             public Task? TestingTask { get; set; }
@@ -106,38 +100,47 @@
             }
         }
 
+        private TestProgressionInfo GetProgressionInfo()
+        {
+            return new TestProgressionInfo
+            {
+                TestsRemaining = _tests.Values.Sum(x => x.RemainingTests),
+                TestsTotal = _tests.Values.Sum(x => x.AllTests.Count),
+            };
+        }
+
         private async Task WorkerAddedToPoolAsync(IWorker worker)
         {
             _logger.LogTrace($"Received new worker {worker.Id} to pool");
 
-            // Connect to the TCP socket.
-            TcpClient? tcpClient = null;
-            do
-            {
-                _logger.LogTrace($"Attempting to connect to worker {worker.Id} on endpoint {worker.EndPoint}");
-                tcpClient = new TcpClient();
-                var connectionCts = new CancellationTokenSource();
-                var connectionTask = tcpClient.ConnectAsync(worker.EndPoint, connectionCts.Token).AsTask();
-                await Task.WhenAny(connectionTask, Task.Delay(1000));
-                if (!tcpClient.Connected)
-                {
-                    _logger.LogTrace($"Failed to connect to worker {worker.Id} on endpoint {worker.EndPoint} with 1 seconds, retrying");
-                    connectionCts.Cancel();
-                    continue;
-                }
-                break;
-            } while (!_cancellationTokenSource.IsCancellationRequested);
-            _cancellationTokenSource.Token.ThrowIfCancellationRequested();
-
-            _logger.LogTrace($"Successfully connected to worker {worker.Id} on endpoint {worker.EndPoint}");
-
             // Connect to the worker and add it.
             _logger.LogTrace($"Setting up Unreal TCP transport connection...");
-
             var workerState = new WorkerState
             {
                 Handle = await _workerPool!.ReserveAsync(worker),
-                TransportConnection = await TcpMessageTransportConnection.CreateAsync(tcpClient, _logger),
+                TransportConnection = await TcpMessageTransportConnection.CreateAsync(async () =>
+                {
+                    // Connect to the TCP socket.
+                    TcpClient? tcpClient = null;
+                    do
+                    {
+                        _logger.LogTrace($"Attempting to connect to worker {worker.Id} on endpoint {worker.EndPoint}");
+                        tcpClient = new TcpClient();
+                        var connectionCts = new CancellationTokenSource();
+                        var connectionTask = tcpClient.ConnectAsync(worker.EndPoint, connectionCts.Token).AsTask();
+                        await Task.WhenAny(connectionTask, Task.Delay(1000));
+                        if (!tcpClient.Connected)
+                        {
+                            _logger.LogTrace($"Failed to connect to worker {worker.Id} on endpoint {worker.EndPoint} with 1 seconds, retrying");
+                            connectionCts.Cancel();
+                            continue;
+                        }
+                        break;
+                    } while (!_cancellationTokenSource.IsCancellationRequested);
+                    _cancellationTokenSource.Token.ThrowIfCancellationRequested();
+                    _logger.LogTrace($"Successfully connected to worker {worker.Id} on endpoint {worker.EndPoint}");
+                    return tcpClient;
+                }, _logger),
                 CurrentTest = null,
             };
             _workers.Add(worker, workerState);
@@ -202,10 +205,13 @@
                             }).ToList();
                         foreach (var testToProcess in groupState.AllTests)
                         {
-                            _testLogger.LogDiscovered(worker, testToProcess);
                             _notification.TestDiscovered(testToProcess);
                             groupState.RemainingTests++;
                             groupState.QueuedTests.Enqueue(testToProcess);
+                        }
+                        foreach (var testToProcess in groupState.AllTests)
+                        {
+                            await _testLogger.LogDiscovered(worker, GetProgressionInfo(), testToProcess);
                         }
 
                         // We are now ready to process tests.
@@ -273,7 +279,7 @@
                     nextTest.DateStarted = DateTimeOffset.UtcNow;
                     nextTest.TestStatus = TestResultStatus.InProgress;
                     workerState.CurrentTest = nextTest;
-                    _testLogger.LogStarted(worker, nextTest);
+                    await _testLogger.LogStarted(worker, GetProgressionInfo(), nextTest);
                     _notification.TestStarted(nextTest);
                     try
                     {
@@ -288,18 +294,18 @@
                                 bSendAnalytics = false,
                                 RoleIndex = 0,
                             });
-                        await workerState.TransportConnection.ReceiveUntilAsync(message =>
+                        await workerState.TransportConnection.ReceiveUntilAsync(async message =>
                         {
                             var data = message.GetMessageData();
                             var reply = data as AutomationWorkerRunTestsReply;
                             if (reply == null)
                             {
-                                return Task.FromResult(false);
+                                return false;
                             }
 
                             if (reply.TestName != nextTest.TestName)
                             {
-                                return Task.FromResult(false);
+                                return false;
                             }
 
                             var isDone = false;
@@ -349,33 +355,55 @@
                                         LineNumber = x.LineNumber,
                                     };
                                 }).Where(x => x != null).ToArray()!;
-                                _testLogger.LogFinished(worker, nextTest);
+
+                                workerGroupState.RemainingTests--;
+                                workerGroupState.ProcessedTests.Add(nextTest);
+                                await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
                                 _notification.TestFinished(nextTest);
-                                return Task.FromResult(true);
+
+                                return true;
                             }
 
-                            return Task.FromResult(false);
+                            return false;
                         }, _cancellationTokenSource.Token);
                     }
                     catch (OperationCanceledException)
                     {
+                        nextTest.DateFinished = DateTimeOffset.UtcNow;
                         nextTest.TestStatus = TestResultStatus.Cancelled;
+                        workerGroupState.RemainingTests--;
                         workerGroupState.ProcessedTests.Add(nextTest);
+                        await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
+                        _notification.TestFinished(nextTest);
                         break;
                     }
                     catch (Exception ex)
                     {
-                        nextTest.TestStatus = TestResultStatus.Crashed;
                         nextTest.AutomationRunnerCrashInfo = ex;
-                        _testLogger.LogException(worker, ex, "Automation runner exception");
+
+                        nextTest.DateFinished = DateTimeOffset.UtcNow;
+                        nextTest.TestStatus = TestResultStatus.Crashed;
+                        workerGroupState.RemainingTests--;
                         workerGroupState.ProcessedTests.Add(nextTest);
+                        await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
+                        _notification.TestFinished(nextTest);
+
+                        await _testLogger.LogException(worker, GetProgressionInfo(), ex, "Automation runner exception");
                     }
                     finally
                     {
                         workerState.CurrentTest = null;
-                        workerGroupState.RemainingTests--;
                     }
                 }
+                _cancellationTokenSource.Token.ThrowIfCancellationRequested();
+            }
+            catch (OperationCanceledException ex)
+            {
+                _logger.LogTrace($"[{worker.Id}] Worker loop stopping because it was cancelled: {ex}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical(ex, $"[{worker.Id}] Worker loop stopping because an unexpected exception occurred: {ex}");
             }
             finally
             {
@@ -389,45 +417,12 @@
             var connection = workerState.TransportConnection;
 
             // Detect the remote engine's version so we can pretend to be the same.
-            bool gotEngineVersion = false, gotSessionId = false;
-            _logger.LogTrace("Sending EngineServicePing");
-            connection.Send(new EngineServicePing());
-            _logger.LogTrace("Sending SessionServicePing");
-            connection.Send(new SessionServicePing { UserName = string.Empty });
-            _logger.LogTrace("Waiting for EngineServicePong and SessionServicePong");
-            await connection.ReceiveUntilAsync(message =>
+            _logger.LogTrace("Waiting for the connection to be ready...");
+            while (connection.RemoteSessionId == null)
             {
-                var obj = message.GetMessageData();
-                switch (obj)
-                {
-                    case SessionServicePing ping:
-                        // Send our pings again. We can end up sending our EngineServicePing too early
-                        // for Unreal to respond to them, but we still need to make the Send calls
-                        // before so we at least do the initial negotiation. If our pings got dropped,
-                        // this ensures that we send them again when the engine starts responding.
-                        _logger.LogTrace("Received SessionServicePing, re-sending intro");
-                        connection.Send(new EngineServicePing());
-                        connection.Send(new SessionServicePing { UserName = string.Empty });
-                        return Task.FromResult(false);
-                    case EngineServicePong pong:
-                        _logger.LogTrace("Received EngineServicePong");
-                        workerState.NegotiatedEngineVersion = pong.EngineVersion;
-                        gotEngineVersion = true;
-                        return Task.FromResult(gotEngineVersion && gotSessionId);
-                    case SessionServicePong pong:
-                        _logger.LogTrace("Received SessionServicePong");
-                        workerState.NegotiatedSessionId = pong.SessionId;
-                        workerState.NegotiatedBuildDate = pong.BuildDate;
-                        workerState.NegotiatedSessionOwner = pong.SessionOwner;
-                        gotSessionId = true;
-                        return Task.FromResult(gotEngineVersion && gotSessionId);
-                    default:
-                        _logger.LogTrace($"Received object of type {obj.GetType().FullName}");
-                        break;
-                }
-
-                return Task.FromResult(false);
-            }, _cancellationTokenSource.Token);
+                await Task.Delay(500, _cancellationTokenSource.Token);
+            }
+            workerState.NegotiatedSessionId = connection.RemoteSessionId.Value;
 
             // Find the worker "address".
             _logger.LogTrace("Sending AutomationWorkerFindWorkers");
@@ -454,7 +449,7 @@
             }, _cancellationTokenSource.Token);
         }
 
-        private Task WorkerRemovedFromPoolAsync(IWorker worker, int exitCode, IWorkerCrashData? crashData)
+        private async Task WorkerRemovedFromPoolAsync(IWorker worker, int exitCode, IWorkerCrashData? crashData)
         {
             if (crashData != null)
             {
@@ -466,14 +461,15 @@
                         currentTest.EngineCrashInfo = crashData.CrashErrorMessage;
                         currentTest.TestStatus = TestResultStatus.Crashed;
                     }
+                    await _workers[worker].TransportConnection.DisposeAsync();
                     _workers.Remove(worker);
                 }
             }
-            return Task.CompletedTask;
         }
 
         private Task WorkerPoolFailureAsync(string reason)
         {
+            _logger.LogError($"Automation runner was notified of a worker pool failure: {reason}");
             _cancellationTokenSource.Cancel();
             return Task.CompletedTask;
         }
@@ -483,6 +479,7 @@
             try
             {
                 await using (_workerPool = await _workerPoolFactory.CreateAndStartAsync(
+                    _testLogger,
                     _workerDescriptors,
                     WorkerAddedToPoolAsync,
                     WorkerRemovedFromPoolAsync,
@@ -512,7 +509,7 @@
                         var ranAll = true;
                         foreach (var kv in _tests)
                         {
-                            if (kv.Value.RemainingTests > 0)
+                            if (!kv.Value.ReadyForTesting.IsSet || kv.Value.RemainingTests > 0)
                             {
                                 ranAll = false;
                                 break;
@@ -563,6 +560,11 @@
                 if (_workerPool != null)
                 {
                     await _workerPool.DisposeAsync();
+                }
+
+                foreach (var kv in _workers)
+                {
+                    await kv.Value.TransportConnection.DisposeAsync();
                 }
             }
         }

@@ -15,6 +15,7 @@
         private string _colorCyan = "\x1b[36m";
         private string _colorYellow = "\x1b[33m";
         private string _colorReset = "\x1b[0m";
+        private string _colorGray = "\u001b[38;5;8m";
 
         public ConsoleTestLogger(ILogger<ConsoleTestLogger> logger)
         {
@@ -25,53 +26,94 @@
         {
             if (worker == null)
             {
-                return "[        ]";
+                return $"[Worker {"",10}]";
             }
-            return $"[Worker {worker.DisplayName}]";
+            return $"[Worker {worker.DisplayName,10}]";
         }
 
-        public void LogDiscovered(IWorker worker, TestResult testResult)
+        private string Progress(TestProgressionInfo? progressionInfo)
         {
-            _logger.LogInformation($"{Worker(worker)} {testResult.FullTestPath} ... {_colorCyan}discovered{_colorReset}");
+            // [100%, 1234/1234]
+
+            if (progressionInfo == null)
+            {
+                return "[               ]";
+            }
+
+            int doneSoFar = progressionInfo.TestsTotal - progressionInfo.TestsRemaining;
+            double percent = 0.0;
+            if (progressionInfo.TestsTotal > 0)
+            {
+                percent = Math.Round(doneSoFar / (double)progressionInfo.TestsTotal * 100.0);
+            }
+
+            return $"[{percent,3:0}%, {doneSoFar,4}/{progressionInfo.TestsTotal,4}]";
         }
 
-        public void LogStarted(IWorker worker, TestResult testResult)
+        public Task LogWorkerStarting(IWorker worker)
         {
-            _logger.LogInformation($"{Worker(worker)} {testResult.FullTestPath} ...");
+            _logger.LogInformation($"{Progress(null)} {Worker(worker)} Worker starting...");
+            return Task.CompletedTask;
         }
 
-        public void LogFinished(IWorker worker, TestResult testResult)
+        public Task LogWorkerStarted(IWorker worker, TimeSpan startupDuration)
+        {
+            _logger.LogInformation($"{Progress(null)} {Worker(worker)} Worker started in {startupDuration.TotalSeconds} seconds.");
+            return Task.CompletedTask;
+        }
+
+        public Task LogWorkerStopped(IWorker worker, IWorkerCrashData? workerCrashData)
+        {
+            _logger.LogInformation($"{Progress(null)} {Worker(worker)} Worker stopped");
+            return Task.CompletedTask;
+        }
+
+        public Task LogDiscovered(IWorker worker, TestProgressionInfo progressionInfo, TestResult testResult)
+        {
+            _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)} {testResult.FullTestPath} {_colorCyan}[discovered]{_colorReset}");
+            return Task.CompletedTask;
+        }
+
+        public Task LogStarted(IWorker worker, TestProgressionInfo progressionInfo, TestResult testResult)
+        {
+            _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)} {testResult.FullTestPath} {_colorGray}[started]{_colorReset}");
+            return Task.CompletedTask;
+        }
+
+        public Task LogFinished(IWorker worker, TestProgressionInfo progressionInfo, TestResult testResult)
         {
             switch (testResult.TestStatus)
             {
                 case TestResultStatus.NotRun:
-                    _logger.LogInformation($"{Worker(worker)} {testResult.FullTestPath} ... {_colorBlue}not run{_colorReset}");
+                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)} {testResult.FullTestPath} {_colorBlue}[not run]{_colorReset}");
                     break;
                 case TestResultStatus.InProgress:
-                    _logger.LogInformation($"{Worker(worker)} {testResult.FullTestPath} ... {_colorBlue}in progress{_colorReset}");
+                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)} {testResult.FullTestPath} {_colorBlue}[in progress]{_colorReset}");
                     break;
                 case TestResultStatus.Passed:
-                    _logger.LogInformation($"{Worker(worker)} {testResult.FullTestPath} ... {_colorGreen}passed{_colorReset} (in {testResult.Duration:0.##} secs)");
+                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)} {testResult.FullTestPath} {_colorGreen}[passed in {testResult.Duration.TotalSeconds:0.##} secs]{_colorReset}");
                     break;
                 case TestResultStatus.Failed:
-                    _logger.LogInformation($"{Worker(worker)} {testResult.FullTestPath} ... {_colorRed}failed{_colorReset} (in {testResult.Duration:0.##} secs)");
+                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)} {testResult.FullTestPath} {_colorRed}[failed in {testResult.Duration.TotalSeconds:0.##} secs]{_colorReset}");
                     break;
                 case TestResultStatus.Skipped:
-                    _logger.LogInformation($"{Worker(worker)} {testResult.FullTestPath} ... {_colorYellow}skipped{_colorReset} (in {testResult.Duration:0.##} secs)");
+                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)} {testResult.FullTestPath} {_colorYellow}[skipped in {testResult.Duration.TotalSeconds:0.##} secs]{_colorReset}");
                     break;
                 case TestResultStatus.Cancelled:
-                    _logger.LogInformation($"{Worker(worker)} {testResult.FullTestPath} ... {_colorYellow}cancelled{_colorReset} (in {testResult.Duration:0.##} secs)");
+                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)} {testResult.FullTestPath} {_colorYellow}[cancelled in {testResult.Duration.TotalSeconds:0.##} secs]{_colorReset}");
                     break;
                 case TestResultStatus.Crashed:
-                    _logger.LogInformation($"{Worker(worker)} {testResult.FullTestPath} ... {_colorRed}crashed{_colorReset} (in {testResult.Duration:0.##} secs)");
+                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)} {testResult.FullTestPath} {_colorRed}[crashed in {testResult.Duration.TotalSeconds:0.##} secs]{_colorReset}");
                     break;
             }
+            return Task.CompletedTask;
         }
 
-        public void LogException(IWorker worker, Exception exception, string context)
+        public Task LogException(IWorker worker, TestProgressionInfo progressionInfo, Exception exception, string context)
         {
-            _logger.LogError($"{Worker(worker)} [exception] {context}: ({exception.GetType().FullName}) {exception.Message}");
+            _logger.LogError($"{Progress(progressionInfo)} {Worker(worker)} [exception] {context}: ({exception.GetType().FullName}) {exception.Message}");
             _logger.LogError(exception.StackTrace);
+            return Task.CompletedTask;
         }
     }
 }

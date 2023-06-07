@@ -2,11 +2,18 @@
 {
     using Grpc.Core.Logging;
     using Microsoft.Extensions.Logging;
+    using Redpoint.UET.Automation.Model;
+    using Redpoint.UET.Automation.Runner;
+    using Redpoint.UET.Automation.TestLogging;
+    using Redpoint.UET.Automation.TestNotification;
+    using Redpoint.UET.Automation.TestReporter;
+    using Redpoint.UET.Automation.Worker;
     using System;
     using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Linq;
+    using System.Runtime.InteropServices;
     using System.Text;
     using System.Threading.Tasks;
 
@@ -23,9 +30,9 @@
 
             public Options()
             {
-                EnginePath = new Option<string>("--engine-path");
-                TestProjectPath = new Option<string>("--test-project-path");
-                TestPrefix = new Option<string>("--test-prefix");
+                EnginePath = new Option<string>("--engine-path") { IsRequired = true };
+                TestProjectPath = new Option<string>("--test-project-path") { IsRequired = true };
+                TestPrefix = new Option<string>("--test-prefix") { IsRequired = true };
                 MinWorkerCount = new Option<int?>("--min-worker-count");
                 TimeoutMinutes = new Option<int?>("--timeout-minutes");
                 TestResultsPath = new Option<string>("--test-results-path");
@@ -44,17 +51,68 @@
         private class RunAutomationTestFromBuildGraphCommandInstance : ICommandInstance
         {
             private readonly ILogger<RunAutomationTestFromBuildGraphCommandInstance> _logger;
+            private readonly Options _options;
+            private readonly IAutomationRunnerFactory _automationRunnerFactory;
+            private readonly ITestLoggerFactory _testLoggerFactory;
+            private readonly ITestNotificationFactory _testNotificationFactory;
+            private readonly ITestReporterFactory _testReporterFactory;
 
             public RunAutomationTestFromBuildGraphCommandInstance(
-                ILogger<RunAutomationTestFromBuildGraphCommandInstance> logger)
+                ILogger<RunAutomationTestFromBuildGraphCommandInstance> logger,
+                Options options,
+                IAutomationRunnerFactory automationRunnerFactory,
+                ITestLoggerFactory testLoggerFactory,
+                ITestNotificationFactory testNotificationFactory,
+                ITestReporterFactory testReporterFactory)
             {
                 _logger = logger;
+                _options = options;
+                _automationRunnerFactory = automationRunnerFactory;
+                _testLoggerFactory = testLoggerFactory;
+                _testNotificationFactory = testNotificationFactory;
+                _testReporterFactory = testReporterFactory;
             }
 
-            public Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(InvocationContext context)
             {
-                _logger.LogError("Not yet implemented.");
-                return Task.FromResult(1);
+                var enginePath = context.ParseResult.GetValueForOption(_options.EnginePath);
+                var testProjectPath = context.ParseResult.GetValueForOption(_options.TestProjectPath);
+                var testPrefix = context.ParseResult.GetValueForOption(_options.TestPrefix);
+                var minWorkerCount = context.ParseResult.GetValueForOption(_options.MinWorkerCount);
+                var timeoutMinutes = context.ParseResult.GetValueForOption(_options.TimeoutMinutes);
+                var testResultsPath = context.ParseResult.GetValueForOption(_options.TestResultsPath);
+
+                await using (var automationRunner = await _automationRunnerFactory.CreateAndRunAsync(
+                    _testLoggerFactory.CreateConsole(),
+                    _testNotificationFactory.CreateIo(context.GetCancellationToken()),
+                    testResultsPath == null ? _testReporterFactory.CreateNull() : _testReporterFactory.CreateJunit(testResultsPath),
+                    new[]
+                    {
+                        new DesiredWorkerDescriptor
+                        {
+                            Platform = OperatingSystem.IsWindows() ? "Win64" : "Mac",
+                            IsEditor = true,
+                            Configuration = "Development",
+                            Target = "UnrealEditor",
+                            UProjectPath = testProjectPath!,
+                            EnginePath = enginePath!,
+                            MinWorkerCount = minWorkerCount,
+                            MaxWorkerCount = null,
+                            EnableRendering = false,
+                        }
+                    },
+                    testPrefix!,
+                    timeoutMinutes.HasValue ? TimeSpan.FromMinutes(timeoutMinutes.Value) : TimeSpan.MaxValue,
+                    context.GetCancellationToken()))
+                {
+                    var testResults = await automationRunner.WaitForResultsAsync();
+                    if (testResults.Length == 0 ||
+                        testResults.Any(x => x.TestStatus != TestResultStatus.Passed && x.TestStatus != TestResultStatus.Skipped))
+                    {
+                        return 1;
+                    }
+                    return 0;
+                }
             }
         }
     }

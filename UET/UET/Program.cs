@@ -10,7 +10,6 @@ using System.Text.RegularExpressions;
 using UET.Commands.Build;
 using UET.Commands.Internal;
 using UET.Commands.List;
-using UET.Commands.TestPackaged;
 using UET.Commands.Upgrade;
 
 // Ensure we do not re-use MSBuild processes, because our dotnet executables
@@ -26,7 +25,6 @@ rootCommand.AddOption(UET.Commands.CommandExtensions.GetTraceOption());
 rootCommand.AddCommand(BuildCommand.CreateBuildCommand());
 rootCommand.AddCommand(ListCommand.CreateListCommand());
 rootCommand.AddCommand(rootUpgradeCommand);
-rootCommand.AddCommand(TestPackagedCommand.CreateTestPackagedCommand());
 rootCommand.AddCommand(InternalCommand.CreateInternalCommand());
 
 // Parse the command line so we can inspect it.

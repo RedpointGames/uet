@@ -60,6 +60,7 @@
     <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
+    <ProjectReference Include="..\Redpoint.UET.Automation\Redpoint.UET.Automation.csproj" />
     <ProjectReference Include="..\Redpoint.UET.BuildPipeline.Executors.BuildServer\Redpoint.UET.BuildPipeline.Executors.BuildServer.csproj" />
     <ProjectReference Include="..\Redpoint.UET.BuildPipeline.Executors.GitLab\Redpoint.UET.BuildPipeline.Executors.GitLab.csproj" />
     <ProjectReference Include="..\Redpoint.UET.BuildPipeline.Executors.Local\Redpoint.UET.BuildPipeline.Executors.Local.csproj" />

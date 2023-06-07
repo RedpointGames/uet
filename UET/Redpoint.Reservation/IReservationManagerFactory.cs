@@ -6,7 +6,7 @@
     public interface IReservationManagerFactory
     {
         /// <summary>
-        /// Creates a new <see cref="IReservationManager"/> with the specified <see cref="rootPath"/>.
+        /// Creates a new <see cref="IReservationManager"/> with the specified <paramref name="rootPath"/>.
         /// </summary>
         /// <param name="rootPath">The path under which to make reservations.</param>
         /// <returns>The new reservation manager.</returns>

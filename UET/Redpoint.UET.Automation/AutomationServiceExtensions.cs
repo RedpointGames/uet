@@ -1,7 +1,9 @@
 ﻿namespace Redpoint.UET.Automation
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.ProcessExecution;
     using Redpoint.UET.Automation.Runner;
+    using Redpoint.UET.Automation.TestLogger;
     using Redpoint.UET.Automation.TestLogging;
     using Redpoint.UET.Automation.TestNotification;
     using Redpoint.UET.Automation.TestNotification.Io;
@@ -18,6 +20,8 @@
             services.AddSingleton<ITestReporterFactory, DefaultTestReporterFactory>();
             services.AddSingleton<IWorkerPoolFactory, LocalWorkerPoolFactory>();
             services.AddSingleton<IAutomationRunnerFactory, DefaultAutomationRunnerFactory>();
+            services.AddSingleton<IAutomationLogForwarder, GrpcTestLoggerServerLifecycle>();
+            services.AddSingleton<IProcessExecutorHook, AutomationLogForwarderProcessExecutorHook>();
         }
     }
 }

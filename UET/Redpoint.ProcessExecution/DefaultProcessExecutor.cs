@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.ProcessExecution
 {
+    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using System;
     using System.Diagnostics;
@@ -8,11 +9,14 @@
 
     internal class DefaultProcessExecutor : IProcessExecutor
     {
+        private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<DefaultProcessExecutor> _logger;
 
         public DefaultProcessExecutor(
+            IServiceProvider serviceProvider,
             ILogger<DefaultProcessExecutor> logger)
         {
+            _serviceProvider = serviceProvider;
             _logger = logger;
         }
 
@@ -30,6 +34,11 @@
             ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken)
         {
+            foreach (var hook in _serviceProvider.GetServices<IProcessExecutorHook>())
+            {
+                await hook.ModifyProcessSpecificationAsync(processSpecification, cancellationToken);
+            }
+
             var argumentsEvaluated = processSpecification.Arguments.ToArray();
             var startInfo = new ProcessStartInfo
             {

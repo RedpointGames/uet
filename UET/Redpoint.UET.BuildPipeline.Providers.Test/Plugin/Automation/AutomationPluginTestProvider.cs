@@ -11,11 +11,14 @@
     internal class AutomationPluginTestProvider : IPluginTestProvider
     {
         private readonly IPluginTestProjectEmitProvider _pluginTestProjectEmitProvider;
+        private readonly IGlobalArgsProvider _globalArgsProvider;
 
         public AutomationPluginTestProvider(
-            IPluginTestProjectEmitProvider pluginTestProjectEmitProvider)
+            IPluginTestProjectEmitProvider pluginTestProjectEmitProvider,
+            IGlobalArgsProvider globalArgsProvider)
         {
             _pluginTestProjectEmitProvider = pluginTestProjectEmitProvider;
+            _globalArgsProvider = globalArgsProvider;
         }
 
         public string Type => "Automation";
@@ -112,7 +115,7 @@
                                         new SpawnElementProperties
                                         {
                                             Exe = "$(UETPath)",
-                                            Arguments = new[]
+                                            Arguments = _globalArgsProvider.GlobalArgsArray.Concat(new[]
                                             {
                                                 "internal",
                                                 "run-automation-test-from-buildgraph",
@@ -124,7 +127,7 @@
                                                 test.settings.TestPrefix,
                                                 "--test-results-path",
                                                 $@"""{_pluginTestProjectEmitProvider.GetTestProjectDirectoryPath(platform)}/TestResults_{platform}.xml"""
-                                            }.Concat(arguments).ToArray()
+                                            }).Concat(arguments).ToArray()
                                         });
                                     await writer.WriteTagAsync(
                                         new TagElementProperties

@@ -133,7 +133,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildGraph", "Redpoint.UET.BuildGraph\Redpoint.UET.BuildGraph.csproj", "{05B65404-1B91-49A8-A079-0C90185B1B3A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.UET.Automation.Tests", "Redpoint.UET.Automation.Tests\Redpoint.UET.Automation.Tests.csproj", "{DCA366B0-0E3D-4264-98D5-D57CCF557BA8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.Automation.Tests", "Redpoint.UET.Automation.Tests\Redpoint.UET.Automation.Tests.csproj", "{DCA366B0-0E3D-4264-98D5-D57CCF557BA8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ApplicationLifecycle", "Redpoint.ApplicationLifecycle\Redpoint.ApplicationLifecycle.csproj", "{73F9578E-2774-48E4-8F91-DBA9446B720C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -401,6 +403,10 @@ Global
 		{DCA366B0-0E3D-4264-98D5-D57CCF557BA8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DCA366B0-0E3D-4264-98D5-D57CCF557BA8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DCA366B0-0E3D-4264-98D5-D57CCF557BA8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{73F9578E-2774-48E4-8F91-DBA9446B720C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73F9578E-2774-48E4-8F91-DBA9446B720C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73F9578E-2774-48E4-8F91-DBA9446B720C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73F9578E-2774-48E4-8F91-DBA9446B720C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
