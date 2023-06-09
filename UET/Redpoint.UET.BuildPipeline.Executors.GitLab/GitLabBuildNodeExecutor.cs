@@ -6,23 +6,23 @@
     using Redpoint.UET.BuildPipeline.Executors.BuildServer;
     using Redpoint.UET.BuildPipeline.Executors.Engine;
     using Redpoint.UET.Workspace;
+    using Redpoint.UET.Workspace.Descriptors;
     using System.Threading;
     using System.Threading.Tasks;
-    using System.Xml.Linq;
 
     public class GitLabBuildNodeExecutor : IBuildNodeExecutor
     {
         private readonly ILogger<GitLabBuildNodeExecutor> _logger;
         private readonly IBuildGraphExecutor _buildGraphExecutor;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
-        private readonly IWorkspaceProvider _workspaceProvider;
+        private readonly IDynamicWorkspaceProvider _workspaceProvider;
         private readonly ISdkSetupForBuildExecutor _sdkSetupForBuildExecutor;
 
         public GitLabBuildNodeExecutor(
             ILogger<GitLabBuildNodeExecutor> logger,
             IBuildGraphExecutor buildGraphExecutor,
             IEngineWorkspaceProvider engineWorkspaceProvider,
-            IWorkspaceProvider workspaceProvider,
+            IDynamicWorkspaceProvider workspaceProvider,
             ISdkSetupForBuildExecutor sdkSetupForBuildExecutor)
         {
             _logger = logger;
@@ -32,12 +32,11 @@
             _sdkSetupForBuildExecutor = sdkSetupForBuildExecutor;
         }
 
-        public string NodeExecutorName => "gitlab";
-
         public async Task<int> ExecuteBuildNodeAsync(
             BuildSpecification buildSpecification,
             IBuildExecutionEvents buildExecutionEvents,
             string nodeName,
+            string? projectFolderName,
             CancellationToken cancellationToken)
         {
             var repository = System.Environment.GetEnvironmentVariable("CI_REPOSITORY_URL")!;
@@ -49,7 +48,6 @@
                 await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
                     buildSpecification.Engine,
                     string.Empty,
-                    buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
                     cancellationToken))
                 {
                     var globalEnvironmentVariablesWithSdk = await _sdkSetupForBuildExecutor.SetupForBuildAsync(
@@ -60,12 +58,15 @@
                         cancellationToken);
 
                     int exitCode;
-                    await using (var targetWorkspace = await _workspaceProvider.GetGitWorkspaceAsync(
-                        repository,
-                        commit,
-                        new string[0],
-                        nodeName,
-                        new WorkspaceOptions { UnmountAfterUse = false },
+                    await using (var targetWorkspace = await _workspaceProvider.GetWorkspaceAsync(
+                        new GitWorkspaceDescriptor
+                        {
+                            RepositoryUrl = repository,
+                            RepositoryCommit = commit,
+                            AdditionalFolderLayers = new string[0],
+                            WorkspaceDisambiguators = new[] { nodeName },
+                            ProjectFolderName = projectFolderName,
+                        },
                         cancellationToken))
                     {
                         _logger.LogTrace($"Starting: {nodeName}");

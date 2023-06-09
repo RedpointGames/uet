@@ -8,6 +8,7 @@
     using Redpoint.UET.BuildPipeline.Executors.Engine;
     using Redpoint.UET.SdkManagement;
     using Redpoint.UET.Workspace;
+    using Redpoint.UET.Workspace.Descriptors;
     using System;
     using System.Threading;
     using System.Threading.Tasks;
@@ -18,14 +19,14 @@
         private readonly ILogger<LocalBuildExecutor> _logger;
         private readonly IBuildGraphExecutor _buildGraphExecutor;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
-        private readonly IWorkspaceProvider _workspaceProvider;
+        private readonly IDynamicWorkspaceProvider _workspaceProvider;
         private readonly ISdkSetupForBuildExecutor _sdkSetupForBuildExecutor;
 
         public LocalBuildExecutor(
             ILogger<LocalBuildExecutor> logger,
             IBuildGraphExecutor buildGraphGenerator,
             IEngineWorkspaceProvider engineWorkspaceProvider,
-            IWorkspaceProvider workspaceProvider,
+            IDynamicWorkspaceProvider workspaceProvider,
             ISdkSetupForBuildExecutor sdkSetupForBuildExecutor)
         {
             _logger = logger;
@@ -51,24 +52,28 @@
             public required DAGNode Node { get; set; }
         }
 
-        private async Task<IWorkspace> GetPotentiallyVirtualisableFolderWorkspaceAsync(
+        private async Task<IWorkspace> GetFolderWorkspaceAsync(
             string buildGraphRepositoryRoot,
-            string nodeName,
-            bool useStorageVirtualisation)
+            string nodeName)
         {
-            if (useStorageVirtualisation)
+            if (_workspaceProvider.ProvidesFastCopyOnWrite)
             {
-                return await _workspaceProvider.GetFolderWorkspaceAsync(
-                    buildGraphRepositoryRoot,
-                    new[]
+                return await _workspaceProvider.GetWorkspaceAsync(
+                    new FolderSnapshotWorkspaceDescriptor
                     {
-                        nodeName,
+                        SourcePath = buildGraphRepositoryRoot,
+                        WorkspaceDisambiguators = new[] { nodeName },
                     },
-                    new WorkspaceOptions { UnmountAfterUse = false });
+                    CancellationToken.None);
             }
             else
             {
-                return await _workspaceProvider.GetExistingPathAsWorkspaceAsync(buildGraphRepositoryRoot);
+                return await _workspaceProvider.GetWorkspaceAsync(
+                    new FolderAliasWorkspaceDescriptor
+                    {
+                        AliasedPath = buildGraphRepositoryRoot
+                    },
+                    CancellationToken.None);
             }
         }
 
@@ -132,7 +137,6 @@
                     await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
                         buildSpecification.Engine,
                         string.Empty,
-                        buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
                         cancellationToken))
                     {
                         var globalEnvironmentVariablesWithSdk = await _sdkSetupForBuildExecutor.SetupForBuildAsync(
@@ -143,10 +147,9 @@
                             cancellationToken);
 
                         int exitCode;
-                        await using (var targetWorkspace = await GetPotentiallyVirtualisableFolderWorkspaceAsync(
+                        await using (var targetWorkspace = await GetFolderWorkspaceAsync(
                             buildSpecification.BuildGraphRepositoryRoot,
-                            node.Node.Name,
-                            buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation))
+                            node.Node.Name))
                         {
                             _logger.LogTrace($"Starting: {node.Node.Name}");
                             exitCode = await _buildGraphExecutor.ExecuteGraphNodeAsync(
@@ -222,13 +225,11 @@
             await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
                 buildSpecification.Engine,
                 string.Empty,
-                buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
                 cancellationToken))
             {
-                await using (var targetWorkspace = await GetPotentiallyVirtualisableFolderWorkspaceAsync(
+                await using (var targetWorkspace = await GetFolderWorkspaceAsync(
                     buildSpecification.BuildGraphRepositoryRoot,
-                    "Generate BuildGraph JSON",
-                    buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation))
+                    "Generate BuildGraph JSON"))
                 {
                     _logger.LogInformation("Generating BuildGraph JSON based on settings...");
                     buildGraph = await _buildGraphExecutor.GenerateGraphAsync(

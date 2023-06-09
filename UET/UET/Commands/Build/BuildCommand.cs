@@ -15,6 +15,7 @@
     using Redpoint.ProcessExecution;
     using Redpoint.UET.BuildPipeline.Executors.GitLab;
     using UET.Services;
+    using System.CommandLine.Help;
 
     internal class BuildCommand
     {
@@ -22,20 +23,29 @@
         {
             public Option<EngineSpec> Engine;
             public Option<PathSpec> Path;
+            public Option<bool> Test;
+            public Option<bool> Deploy;
+            public Option<bool> StrictIncludes;
+
             public Option<DistributionSpec?> Distribution;
+
             public Option<bool> Shipping;
+            public Option<string[]> Platform;
+
             public Option<string> Executor;
             public Option<string> ExecutorOutputFile;
             public Option<string?> WindowsSharedStoragePath;
             public Option<string?> WindowsSdksPath;
             public Option<string?> MacSharedStoragePath;
             public Option<string?> MacSdksPath;
-            public Option<bool> Test;
-            public Option<bool> Deploy;
-            public Option<bool> StrictIncludes;
 
-            public Options(IServiceProvider serviceProvider)
+            public Options(
+                IServiceProvider serviceProvider)
             {
+                const string buildConfigOptions = "Options when targeting a BuildConfig.json file:";
+                const string uprojectpluginOptions = "Options when targeting a .uplugin or .uproject file:";
+                const string cicdOptions = "Options when building on CI/CD:";
+
                 Path = new Option<PathSpec>(
                     "--path",
                     description: "The directory path that contains a .uproject file, a .uplugin file, or a BuildConfig.json file. If this parameter isn't provided, defaults to the current working directory.",
@@ -51,6 +61,7 @@
                     isDefault: true);
                 Distribution.AddAlias("-d");
                 Distribution.Arity = ArgumentArity.ExactlyOne;
+                Distribution.ArgumentGroupName = buildConfigOptions;
 
                 Engine = new Option<EngineSpec>(
                     "--engine",
@@ -60,9 +71,21 @@
                 Engine.AddAlias("-e");
                 Engine.Arity = ArgumentArity.ExactlyOne;
 
+                Test = new Option<bool>(
+                    "--test",
+                    description: "If set, executes the tests after building.");
+
+                Deploy = new Option<bool>(
+                    "--deploy",
+                    description: "If set, executes the deployment after building (and testing if --test is set).");
+
+                StrictIncludes = new Option<bool>(
+                    "--strict-includes",
+                    description: "If set, disables unity and PCH builds. This forces all files to have the correct #include directives, at the cost of increased build time.");
+
                 Shipping = new Option<bool>(
                     "--shipping",
-                    description: "If set, builds for Shipping instead of Development. Only valid when not using a BuildConfig.json file to build.");
+                    description: "If set, builds for Shipping instead of Development.");
                 Shipping.AddValidator(result =>
                 {
                     PathSpec? pathSpec;
@@ -86,6 +109,12 @@
                         return;
                     }
                 });
+                Shipping.ArgumentGroupName = uprojectpluginOptions;
+
+                Platform = new Option<string[]>(
+                    "--platform",
+                    description: "Add this platform to the build. You can pass this option multiple times to target many platforms. The host platform is always built.");
+                Platform.ArgumentGroupName = uprojectpluginOptions;
 
                 Executor = new Option<string>(
                     "--executor",
@@ -93,38 +122,32 @@
                     getDefaultValue: () => "local");
                 Executor.AddAlias("-x");
                 Executor.FromAmong("local", "gitlab");
+                Executor.ArgumentGroupName = cicdOptions;
 
                 ExecutorOutputFile = new Option<string>(
                     "--executor-output-file",
                     description: "If the executor runs the build externally (e.g. a build server), this is the path to the emitted file that should be passed as the job or build description into the build server.");
+                ExecutorOutputFile.ArgumentGroupName = cicdOptions;
 
                 WindowsSharedStoragePath = new Option<string?>(
                     "--windows-shared-storage-path",
                     description: "If the build is running across multiple machines (depending on the executor), this is the network share for Windows machines to access.");
+                WindowsSharedStoragePath.ArgumentGroupName = cicdOptions;
 
                 WindowsSdksPath = new Option<string?>(
                     "--windows-sdks-path",
-                    description: "If set, UET will automatically manage and install platform SDKs, and store them in the provided path on Windows machines. This should be a local path; the SDKs will be installed on each machine as they're needed.");
+                    description: "The path that UET will automatically manage and install platform SDKs, and store them in the provided path on Windows machines. This should be a local path; the SDKs will be installed on each machine as they're needed.");
+                WindowsSdksPath.ArgumentGroupName = cicdOptions;
 
                 MacSharedStoragePath = new Option<string?>(
                     "--mac-shared-storage-path",
                     description: "If the build is running across multiple machines (depending on the executor), this is the local path on macOS pre-mounted to the network share.");
+                MacSharedStoragePath.ArgumentGroupName = cicdOptions;
 
                 MacSdksPath = new Option<string?>(
                     "--mac-sdks-path",
-                    description: "If set, UET will automatically manage and install platform SDKs, and store them in the provided path on macOS machines. This should be a local path; the SDKs will be installed on each machine as they're needed.");
-
-                Test = new Option<bool>(
-                    "--test",
-                    description: "If set, executes the tests after building.");
-
-                Deploy = new Option<bool>(
-                    "--deploy",
-                    description: "If set, executes the deployment after building (and testing if --test is set).");
-
-                StrictIncludes = new Option<bool>(
-                    "--strict-includes",
-                    description: "If set, disables unity and PCH builds. This forces all files to have the correct #include directives, at the cost of increased build time.");
+                    description: "The path that UET will automatically manage and install platform SDKs, and store them in the provided path on macOS machines. This should be a local path; the SDKs will be installed on each machine as they're needed.");
+                MacSdksPath.ArgumentGroupName = cicdOptions;
             }
         }
 
@@ -146,22 +169,19 @@
             private readonly IBuildSpecificationGenerator _buildSpecificationGenerator;
             private readonly LocalBuildExecutorFactory _localBuildExecutorFactory;
             private readonly GitLabBuildExecutorFactory _gitLabBuildExecutorFactory;
-            private readonly ISelfLocation _selfLocation;
 
             public BuildCommandInstance(
                 ILogger<BuildCommandInstance> logger,
                 Options options,
                 IBuildSpecificationGenerator buildSpecificationGenerator,
                 LocalBuildExecutorFactory localBuildExecutorFactory,
-                GitLabBuildExecutorFactory gitLabBuildExecutorFactory,
-                ISelfLocation selfLocation)
+                GitLabBuildExecutorFactory gitLabBuildExecutorFactory)
             {
                 _logger = logger;
                 _options = options;
                 _buildSpecificationGenerator = buildSpecificationGenerator;
                 _localBuildExecutorFactory = localBuildExecutorFactory;
                 _gitLabBuildExecutorFactory = gitLabBuildExecutorFactory;
-                _selfLocation = selfLocation;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
@@ -179,6 +199,7 @@
                 var test = context.ParseResult.GetValueForOption(_options.Test);
                 var deploy = context.ParseResult.GetValueForOption(_options.Deploy);
                 var strictIncludes = context.ParseResult.GetValueForOption(_options.StrictIncludes);
+                var platforms = context.ParseResult.GetValueForOption(_options.Platform);
 
                 // @todo: Move this validation to the parsing APIs.
                 if (executorName == "local")
@@ -314,7 +335,8 @@
                                 buildGraphEnvironment,
                                 path,
                                 shipping,
-                                strictIncludes);
+                                strictIncludes,
+                                platforms ?? new string[0]);
                             break;
                         case PathSpecType.UPlugin:
                             buildSpec = await _buildSpecificationGenerator.PluginPathSpecToBuildSpecAsync(
@@ -322,7 +344,8 @@
                                 buildGraphEnvironment,
                                 path,
                                 shipping,
-                                strictIncludes);
+                                strictIncludes,
+                                platforms ?? new string[0]);
                             break;
                         default:
                             throw new NotSupportedException();

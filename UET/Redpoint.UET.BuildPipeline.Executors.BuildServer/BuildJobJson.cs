@@ -36,5 +36,8 @@
 
         [JsonPropertyName("Settings"), JsonRequired]
         public Dictionary<string, string> Settings { get; set; } = new Dictionary<string, string>();
+
+        [JsonPropertyName("ProjectFolderName"), JsonRequired]
+        public string? ProjectFolderName { get; set; } = null;
     }
 }

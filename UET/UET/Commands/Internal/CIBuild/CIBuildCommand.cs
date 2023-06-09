@@ -148,13 +148,14 @@
                     BuildGraphSettingReplacements = new Dictionary<string, string>(),
                     DistributionName = buildJson.DistributionName,
                     UETPath = Process.GetCurrentProcess().MainModule!.FileName,
+                    ProjectFolderName = buildJson.ProjectFolderName,
                 };
 
                 IBuildNodeExecutor executor;
                 switch (executorName)
                 {
                     case "gitlab":
-                        executor = (IBuildNodeExecutor)_gitLabBuildExecutorFactory.CreateExecutor(string.Empty);
+                        executor = _gitLabBuildExecutorFactory.CreateNodeExecutor();
                         break;
                     default:
                         throw new NotSupportedException();
@@ -166,6 +167,7 @@
                         buildSpecification,
                         new LoggerBasedBuildExecutionEvents(_logger),
                         buildJson.NodeName,
+                        buildJson.ProjectFolderName,
                         context.GetCancellationToken());
                     return buildResult;
                 }

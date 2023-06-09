@@ -26,9 +26,19 @@
                 _serviceProvider.GetRequiredService<ILogger<BuildServerBuildExecutor>>(),
                 _serviceProvider.GetRequiredService<IBuildGraphExecutor>(),
                 _serviceProvider.GetRequiredService<IEngineWorkspaceProvider>(),
-                _serviceProvider.GetRequiredService<IWorkspaceProvider>(),
+                _serviceProvider.GetRequiredService<IDynamicWorkspaceProvider>(),
                 _serviceProvider.GetRequiredService<IStringUtilities>(),
                 buildServerOutputFilePath);
+        }
+
+        public IBuildNodeExecutor CreateNodeExecutor()
+        {
+            return new GitLabBuildNodeExecutor(
+                _serviceProvider.GetRequiredService<ILogger<GitLabBuildNodeExecutor>>(),
+                _serviceProvider.GetRequiredService<IBuildGraphExecutor>(),
+                _serviceProvider.GetRequiredService<IEngineWorkspaceProvider>(),
+                _serviceProvider.GetRequiredService<IDynamicWorkspaceProvider>(),
+                _serviceProvider.GetRequiredService<ISdkSetupForBuildExecutor>());
         }
     }
 }

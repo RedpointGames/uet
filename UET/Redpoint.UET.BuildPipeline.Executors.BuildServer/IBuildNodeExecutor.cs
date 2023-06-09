@@ -5,12 +5,11 @@
 
     public interface IBuildNodeExecutor
     {
-        string NodeExecutorName { get; }
-
         Task<int> ExecuteBuildNodeAsync(
             BuildSpecification buildSpecification,
             IBuildExecutionEvents buildExecutionEvents,
             string nodeName,
+            string? projectFolderName,
             CancellationToken cancellationToken);
     }
 }

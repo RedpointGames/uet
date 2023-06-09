@@ -1,13 +1,14 @@
 ﻿namespace Redpoint.UET.BuildPipeline.Executors.Engine
 {
     using Redpoint.UET.Workspace;
+    using Redpoint.UET.Workspace.Descriptors;
     using System.Threading.Tasks;
 
     internal class DefaultEngineWorkspaceProvider : IEngineWorkspaceProvider
     {
-        private readonly IWorkspaceProvider _workspaceProvider;
+        private readonly IDynamicWorkspaceProvider _workspaceProvider;
 
-        public DefaultEngineWorkspaceProvider(IWorkspaceProvider workspaceProvider)
+        public DefaultEngineWorkspaceProvider(IDynamicWorkspaceProvider workspaceProvider)
         {
             _workspaceProvider = workspaceProvider;
         }
@@ -15,44 +16,50 @@
         public async Task<IWorkspace> GetEngineWorkspace(
             BuildEngineSpecification buildEngineSpecification,
             string workspaceSuffix,
-            bool useStorageVirtualisation,
             CancellationToken cancellationToken)
         {
             if (buildEngineSpecification._enginePath != null)
             {
-                if (useStorageVirtualisation)
+                if (_workspaceProvider.ProvidesFastCopyOnWrite)
                 {
-                    return await _workspaceProvider.GetFolderWorkspaceAsync(
-                        buildEngineSpecification._enginePath,
-                        new[] { workspaceSuffix },
-                        new WorkspaceOptions { UnmountAfterUse = false });
+                    return await _workspaceProvider.GetWorkspaceAsync(
+                        new FolderSnapshotWorkspaceDescriptor
+                        {
+                            SourcePath = buildEngineSpecification._enginePath,
+                            WorkspaceDisambiguators = new[] { workspaceSuffix },
+                        },
+                        cancellationToken);
                 }
                 else
                 {
-                    return await _workspaceProvider.GetExistingPathAsWorkspaceAsync(buildEngineSpecification._enginePath);
+                    return await _workspaceProvider.GetWorkspaceAsync(
+                        new FolderAliasWorkspaceDescriptor
+                        {
+                            AliasedPath = buildEngineSpecification._enginePath
+                        },
+                        cancellationToken);
                 }
             }
             else if (buildEngineSpecification._uefsPackageTag != null)
             {
-                return await _workspaceProvider.GetPackageWorkspaceAsync(
-                    buildEngineSpecification._uefsPackageTag,
-                    workspaceSuffix,
-                    new WorkspaceOptions
+                return await _workspaceProvider.GetWorkspaceAsync(
+                    new UefsPackageWorkspaceDescriptor
                     {
-                        UnmountAfterUse = false,
+                        PackageTag = buildEngineSpecification._uefsPackageTag,
+                        WorkspaceDisambiguators = new[] { workspaceSuffix },
                     },
                     cancellationToken);
             }
             else if (buildEngineSpecification._uefsGitCommit != null)
             {
-                return await _workspaceProvider.GetGitWorkspaceAsync(
-                    buildEngineSpecification._uefsGitUrl!,
-                    buildEngineSpecification._uefsGitCommit,
-                    buildEngineSpecification._uefsGitFolders!,
-                    workspaceSuffix,
-                    new WorkspaceOptions
+                return await _workspaceProvider.GetWorkspaceAsync(
+                    new GitWorkspaceDescriptor
                     {
-                        UnmountAfterUse = false,
+                        RepositoryUrl = buildEngineSpecification._uefsGitUrl!,
+                        RepositoryCommit = buildEngineSpecification._uefsGitCommit,
+                        AdditionalFolderLayers = buildEngineSpecification._uefsGitFolders!,
+                        WorkspaceDisambiguators = new[] { workspaceSuffix },
+                        ProjectFolderName = null,
                     },
                     cancellationToken);
             }

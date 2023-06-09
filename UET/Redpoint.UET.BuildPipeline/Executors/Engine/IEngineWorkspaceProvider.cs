@@ -8,7 +8,6 @@
         Task<IWorkspace> GetEngineWorkspace(
             BuildEngineSpecification buildEngineSpecification,
             string workspaceSuffix,
-            bool useStorageVirtualisation,
             CancellationToken cancellationToken);
     }
 }

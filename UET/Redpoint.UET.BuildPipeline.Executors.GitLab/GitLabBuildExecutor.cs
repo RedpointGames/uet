@@ -20,7 +20,7 @@
             ILogger<BuildServerBuildExecutor> baseLogger,
             IBuildGraphExecutor buildGraphExecutor,
             IEngineWorkspaceProvider engineWorkspaceProvider,
-            IWorkspaceProvider workspaceProvider,
+            IDynamicWorkspaceProvider workspaceProvider,
             IStringUtilities stringUtilities,
             string buildServerOutputFilePath) : base(
                 baseLogger,

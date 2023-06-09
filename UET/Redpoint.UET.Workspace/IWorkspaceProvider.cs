@@ -1,30 +1,14 @@
 ﻿namespace Redpoint.UET.Workspace
 {
+    using Redpoint.UET.Workspace.Descriptors;
     using System.Threading.Tasks;
 
-    public interface IWorkspaceProvider
+    public interface IWorkspaceProviderBase
     {
-        Task<IWorkspace> GetGitWorkspaceAsync(
-            string repository,
-            string commit,
-            string[] folders,
-            string workspaceSuffix,
-            WorkspaceOptions workspaceOptions,
+        bool ProvidesFastCopyOnWrite { get; }
+
+        Task<IWorkspace> GetWorkspaceAsync(
+            IWorkspaceDescriptor workspaceDescriptor,
             CancellationToken cancellationToken);
-
-        Task<IWorkspace> GetPackageWorkspaceAsync(
-            string tag,
-            string workspaceSuffix,
-            WorkspaceOptions workspaceOptions,
-            CancellationToken cancellationToken);
-
-        Task<IWorkspace> GetFolderWorkspaceAsync(
-            string path,
-            string[] disambiguators,
-            WorkspaceOptions workspaceOptions);
-
-        Task<IWorkspace> GetTempWorkspaceAsync(string name);
-
-        Task<IWorkspace> GetExistingPathAsWorkspaceAsync(string path);
     }
 }

@@ -149,6 +149,7 @@ rootCommand.SetHandler(async (context) =>
                 { "__PROJECT_FILENAME__", projectName },
             },
             UETPath = Process.GetCurrentProcess().MainModule!.FileName,
+            ProjectFolderName = string.Empty,
         };
     }
     else

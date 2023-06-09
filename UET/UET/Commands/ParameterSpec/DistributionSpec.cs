@@ -22,7 +22,17 @@
         {
             return (result) =>
             {
-                var path = result.GetValueForOption(pathSpec);
+                PathSpec? path;
+                try
+                {
+                    path = result.GetValueForOption(pathSpec);
+                }
+                catch (InvalidOperationException)
+                {
+                    // If the path isn't valid, then it will error anyway and there's no point
+                    // reporting an error about the distribution.
+                    return null;
+                }
                 if (path == null)
                 {
                     // If the path isn't valid, then it will error anyway and there's no point

@@ -56,7 +56,6 @@
                 await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
                     engineSpec,
                     string.Empty,
-                    useStorageVirtualisation,
                     cancellationToken))
                 {
                     engineInfo = GetEngineVersionInfo(engineWorkspace.Path);

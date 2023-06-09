@@ -1,10 +1,10 @@
-﻿namespace Redpoint.UET.Workspace
+﻿namespace Redpoint.UET.Workspace.Reservation
 {
     using Redpoint.Reservation;
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DefaultReservationManagerForUET : IReservationManagerForUET
+    internal class DefaultReservationManagerForUET : IReservationManagerForUet
     {
         private readonly IReservationManager _reservationManager;
 

@@ -489,7 +489,8 @@
                 GlobalEnvironmentVariables = new Dictionary<string, string>
                 {
                     { "BUILDING_FOR_REDISTRIBUTION", "true" },
-                }
+                },
+                ProjectFolderName = null,
             };
         }
 
@@ -655,6 +656,7 @@
                 BuildGraphRepositoryRoot = repositoryRoot,
                 BuildGraphPreparationScripts = prepareCustomBuildGraphScripts,
                 UETPath = _selfLocation.GetUETLocalLocation(),
+                ProjectFolderName = distribution.FolderName,
             };
         }
 
@@ -663,7 +665,8 @@
             BuildGraphEnvironment buildGraphEnvironment,
             PathSpec pathSpec,
             bool shipping,
-            bool strictIncludes)
+            bool strictIncludes,
+            string[] extraPlatforms)
         {
             var targetPlatform = OperatingSystem.IsWindows() ? "Win64" : "Mac";
             var gameConfigurations = shipping ? "Shipping" : "Development";
@@ -705,7 +708,7 @@
                     // Build options
                     { $"ExecuteBuild", "true" },
                     { $"EditorTargetPlatforms", targetPlatform },
-                    { $"GameTargetPlatforms", targetPlatform },
+                    { $"GameTargetPlatforms", string.Join(";", new[] { targetPlatform }.Concat(extraPlatforms)) },
                     { $"GameConfigurations", gameConfigurations },
                     { $"MacPlatforms", $"IOS;Mac" },
                     { $"StrictIncludes", strictIncludes ? "true" : "false" },
@@ -739,7 +742,8 @@
                 GlobalEnvironmentVariables = new Dictionary<string, string>
                 {
                     { "BUILDING_FOR_REDISTRIBUTION", "true" },
-                }
+                },
+                ProjectFolderName = null,
             };
         }
 
@@ -748,7 +752,8 @@
             BuildGraphEnvironment buildGraphEnvironment,
             PathSpec pathSpec,
             bool shipping,
-            bool strictIncludes)
+            bool strictIncludes,
+            string[] extraPlatforms)
         {
             // Use heuristics to guess the targets for this build.
             string editorTarget;
@@ -801,7 +806,7 @@
                     { $"GameTargets", gameTarget },
                     { $"ClientTargets", string.Empty },
                     { $"ServerTargets", string.Empty },
-                    { $"GameTargetPlatforms", gameTargetPlatform },
+                    { $"GameTargetPlatforms", string.Join(";", new[] { gameTargetPlatform }.Concat(extraPlatforms)) },
                     { $"ClientTargetPlatforms", string.Empty },
                     { $"ServerTargetPlatforms", string.Empty },
                     { $"GameConfigurations", gameConfigurations },
@@ -825,6 +830,7 @@
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = pathSpec.DirectoryPath,
                 UETPath = _selfLocation.GetUETLocalLocation(),
+                ProjectFolderName = string.Empty,
             };
         }
     }

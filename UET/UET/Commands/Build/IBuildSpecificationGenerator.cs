@@ -42,13 +42,15 @@
             BuildGraphEnvironment buildGraphEnvironment,
             PathSpec pathSpec,
             bool shipping,
-            bool strictIncludes);
+            bool strictIncludes,
+            string[] extraPlatforms);
 
         Task<BuildSpecification> PluginPathSpecToBuildSpecAsync(
             BuildEngineSpecification engineSpec,
             BuildGraphEnvironment buildGraphEnvironment,
             PathSpec pathSpec,
             bool shipping,
-            bool strictIncludes);
+            bool strictIncludes,
+            string[] extraPlatforms);
     }
 }

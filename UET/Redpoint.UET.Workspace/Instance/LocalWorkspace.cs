@@ -1,4 +1,4 @@
-﻿namespace Redpoint.UET.Workspace
+﻿namespace Redpoint.UET.Workspace.Instance
 {
     using System.Threading.Tasks;
 

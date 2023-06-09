@@ -1,4 +1,4 @@
-﻿namespace Redpoint.UET.Workspace
+﻿namespace Redpoint.UET.Workspace.Instance
 {
     using Microsoft.Extensions.Logging;
     using System.Threading.Tasks;
@@ -8,7 +8,7 @@
     {
         private readonly UEFSClient _uefsClient;
         private readonly string _mountId;
-        private readonly WorkspaceOptions _workspaceOptions;
+        private readonly VirtualisedWorkspaceOptions _workspaceOptions;
         private readonly IAsyncDisposable[] _reservations;
         private readonly ILogger _logger;
         private readonly string _loggerReleaseMessage;
@@ -17,7 +17,7 @@
             UEFSClient uefsClient,
             string mountId,
             string workspacePath,
-            WorkspaceOptions workspaceOptions,
+            VirtualisedWorkspaceOptions workspaceOptions,
             IAsyncDisposable[] reservations,
             ILogger logger,
             string loggerReleaseMessage)

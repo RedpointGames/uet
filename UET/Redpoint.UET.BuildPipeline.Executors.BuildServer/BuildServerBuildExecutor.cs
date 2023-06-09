@@ -17,13 +17,14 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
     using Redpoint.UET.Core;
     using System.Reflection;
     using System.Diagnostics;
+    using Redpoint.UET.Workspace.Descriptors;
 
     public abstract class BuildServerBuildExecutor : IBuildExecutor
     {
         private readonly ILogger<BuildServerBuildExecutor> _logger;
         private readonly IBuildGraphExecutor _buildGraphExecutor;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
-        private readonly IWorkspaceProvider _workspaceProvider;
+        private readonly IDynamicWorkspaceProvider _workspaceProvider;
         private readonly IStringUtilities _stringUtilities;
         private readonly string _buildServerOutputFilePath;
 
@@ -31,7 +32,7 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
             ILogger<BuildServerBuildExecutor> logger,
             IBuildGraphExecutor buildGraphExecutor,
             IEngineWorkspaceProvider engineWorkspaceProvider,
-            IWorkspaceProvider workspaceProvider,
+            IDynamicWorkspaceProvider workspaceProvider,
             IStringUtilities stringUtilities,
             string buildServerOutputFilePath)
         {
@@ -303,12 +304,13 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
             await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
                 buildSpecification.Engine,
                 string.Empty,
-                buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
                 cancellationToken))
             {
                 // @note: Generating the BuildGraph doesn't require any files from the workspace, so we don't bother
                 // setting up a Git workspace for it.
-                await using (var temporaryWorkspace = await _workspaceProvider.GetTempWorkspaceAsync("Generate BuildGraph JSON"))
+                await using (var temporaryWorkspace = await _workspaceProvider.GetWorkspaceAsync(
+                    new TemporaryWorkspaceDescriptor { Name = "Generate BuildGraph JSON" },
+                    cancellationToken))
                 {
                     _logger.LogInformation("Generating BuildGraph JSON based on settings...");
                     buildGraph = await _buildGraphExecutor.GenerateGraphAsync(
@@ -435,6 +437,7 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                                     PreparationScripts = buildSpecification.BuildGraphPreparationScripts.ToArray(),
                                     GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
                                     Settings = buildSpecification.BuildGraphSettings,
+                                    ProjectFolderName = buildSpecification.ProjectFolderName,
                                 };
                                 job.EnvironmentVariables = new Dictionary<string, string>
                                 {
@@ -457,6 +460,7 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                                     PreparationScripts = buildSpecification.BuildGraphPreparationScripts.ToArray(),
                                     GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
                                     Settings = buildSpecification.BuildGraphSettings,
+                                    ProjectFolderName = buildSpecification.ProjectFolderName,
                                 };
                                 job.EnvironmentVariables = new Dictionary<string, string>
                                 {

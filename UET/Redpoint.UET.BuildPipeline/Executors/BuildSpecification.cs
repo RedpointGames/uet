@@ -42,5 +42,11 @@
         /// If set, specifies the environment variables that should apply to all build steps.
         /// </summary>
         public Dictionary<string, string>? GlobalEnvironmentVariables { get; init; }
+
+        /// <summary>
+        /// If this is building a project, this is the name of the folder the project is stored in. This is used by the
+        /// physical workspace provider to heavily optimize 'git checkout' for Unreal projects.
+        /// </summary>
+        public required string? ProjectFolderName { get; init; }
     }
 }

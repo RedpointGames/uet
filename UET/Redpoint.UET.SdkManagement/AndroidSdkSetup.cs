@@ -28,6 +28,11 @@
             _processExecutor = processExecutor;
         }
 
+        // @note: Gradle is always backwards compatible to Java 8, but is not forward compatible with newer JDK versions.
+        // Therefore we have to pick a JDK version that will be usable by the Gradle that Unreal wants to use.
+        private const string _jdkVersion = "jdk-11.0.19+7";
+        private const string _jdkDownloadUrl = "https://aka.ms/download-jdk/microsoft-jdk-11.0.19-windows-x64.zip";
+
         public string PlatformName => "Android";
 
         private static ConcurrentDictionary<string, Assembly> _cachedCompiles = new ConcurrentDictionary<string, Assembly>();
@@ -98,14 +103,14 @@ class AndroidVersionLoader
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
             var versions = await GetVersions(unrealEnginePath);
-            return $"{versions.platforms}-{versions.buildTools}-{versions.cmake}-{versions.ndk}";
+            return $"{versions.platforms}-{versions.buildTools}-{versions.cmake}-{versions.ndk}-{_jdkVersion}";
         }
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
         {
             var versions = await GetVersions(unrealEnginePath);
 
-            if (!File.Exists(Path.Combine(sdkPackagePath, "Jdk", "jdk-17.0.7+7", "bin", "java.exe")))
+            if (!File.Exists(Path.Combine(sdkPackagePath, "Jdk", _jdkVersion, "bin", "java.exe")))
             {
                 _logger.LogInformation("Downloading and extracting the Microsoft JDK (about 177MB)...");
                 if (Directory.Exists(Path.Combine(sdkPackagePath, "Jdk")))
@@ -114,7 +119,7 @@ class AndroidVersionLoader
                 }
                 using (var client = new HttpClient())
                 {
-                    var response = await client.GetAsync("https://download.visualstudio.microsoft.com/download/pr/d6ef5c3d-5895-4f22-84ac-1f13568b5389/25f38322a6bf3b8116b75e0a303cf492/microsoft-jdk-17.0.7-windows-x64.zip", HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                    var response = await client.GetAsync(_jdkDownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                     var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                     Directory.CreateDirectory(Path.Combine(sdkPackagePath, "Jdk"));
                     var archive = new ZipArchive(stream);
@@ -157,7 +162,7 @@ class AndroidVersionLoader
                     {
                         { "ANDROID_HOME", Path.Combine(sdkPackagePath, "Sdk") },
                         { "NDKROOT", Path.Combine(sdkPackagePath, "Sdk", "ndk", versions.ndk) },
-                        { "JAVA_HOME", Path.Combine(sdkPackagePath, "Jdk", "jdk-17.0.7+7") },
+                        { "JAVA_HOME", Path.Combine(sdkPackagePath, "Jdk", _jdkVersion) },
                     }
                 },
                 CaptureSpecification.Passthrough,
@@ -193,7 +198,7 @@ class AndroidVersionLoader
                             {
                                 { "ANDROID_HOME", Path.Combine(sdkPackagePath, "Sdk") },
                                 { "NDKROOT", Path.Combine(sdkPackagePath, "Sdk", "ndk", versions.ndk) },
-                                { "JAVA_HOME", Path.Combine(sdkPackagePath, "Jdk", "jdk-17.0.7+7") },
+                                { "JAVA_HOME", Path.Combine(sdkPackagePath, "Jdk", _jdkVersion) },
                             }
                         },
                         CaptureSpecification.Passthrough,
@@ -201,7 +206,7 @@ class AndroidVersionLoader
                 }
             }
             File.WriteAllText(Path.Combine(sdkPackagePath, "ndk-version.txt"), versions.ndk);
-            File.WriteAllText(Path.Combine(sdkPackagePath, "jre-version.txt"), "jdk-17.0.7+7");
+            File.WriteAllText(Path.Combine(sdkPackagePath, "jre-version.txt"), _jdkVersion);
         }
 
         public Task<EnvironmentForSdkUsage> EnsureSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
