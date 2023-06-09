@@ -8,7 +8,7 @@
             var bytes = Convert.FromBase64String("AgAAAPr///9oAGUAbABsAG8AAAD6////dwBvAHIAbABkAAAA/P///2YAbwBvAAAA/P///2IAYQByAAAA");
             using (var stream = new MemoryStream(bytes))
             {
-                var archive = new Archive(stream, true);
+                var archive = new Archive(stream, true, new[] { new TestSerializerRegistry() });
 
                 var v = new Store<ArchiveMap<int, UnrealString, UnrealString>>(ArchiveMap<int, UnrealString, UnrealString>.Empty);
 
@@ -26,7 +26,7 @@
         {
             using (var stream = new MemoryStream())
             {
-                var archive = new Archive(stream, false);
+                var archive = new Archive(stream, false, new[] { new TestSerializerRegistry() });
 
                 var v = new Store<ArchiveMap<int, UnrealString, UnrealString>>(new ArchiveMap<int, UnrealString, UnrealString>(new KeyValuePair<UnrealString, UnrealString>[] {
                     new ("hello", "world"),
@@ -47,7 +47,7 @@
             var bytes = Convert.FromBase64String("AgAAAPr///9oAGUAbABsAG8AAAAFAAAA/P///2YAbwBvAAAACgAAAA==");
             using (var stream = new MemoryStream(bytes))
             {
-                var archive = new Archive(stream, true);
+                var archive = new Archive(stream, true, new[] { new TestSerializerRegistry() });
 
                 var v = new Store<ArchiveMap<int, UnrealString, int>>(ArchiveMap<int, UnrealString, int>.Empty);
 
@@ -65,7 +65,7 @@
         {
             using (var stream = new MemoryStream())
             {
-                var archive = new Archive(stream, false);
+                var archive = new Archive(stream, false, new[] { new TestSerializerRegistry() });
 
                 var v = new Store<ArchiveMap<int, UnrealString, int>>(new ArchiveMap<int, UnrealString, int>(new KeyValuePair<UnrealString, int>[] {
                     new ("hello", 5),
@@ -86,7 +86,7 @@
             var bytes = Convert.FromBase64String("AgAAAAUAAAD6////dwBvAHIAbABkAAAACgAAAPz///9iAGEAcgAAAA==");
             using (var stream = new MemoryStream(bytes))
             {
-                var archive = new Archive(stream, true);
+                var archive = new Archive(stream, true, new[] { new TestSerializerRegistry() });
 
                 var v = new Store<ArchiveMap<int, int, UnrealString>>(ArchiveMap<int, int, UnrealString>.Empty);
 
@@ -104,7 +104,7 @@
         {
             using (var stream = new MemoryStream())
             {
-                var archive = new Archive(stream, false);
+                var archive = new Archive(stream, false, new[] { new TestSerializerRegistry() });
 
                 var v = new Store<ArchiveMap<int, int, UnrealString>>(new ArchiveMap<int, int, UnrealString>(new KeyValuePair<int, UnrealString>[] {
                     new (5, "world"),
@@ -125,7 +125,7 @@
             var bytes = Convert.FromBase64String("AgAAAAUAAAAPAAAACgAAABQAAAA=");
             using (var stream = new MemoryStream(bytes))
             {
-                var archive = new Archive(stream, true);
+                var archive = new Archive(stream, true, new[] { new TestSerializerRegistry() });
 
                 var v = new Store<ArchiveMap<int, int, int>>(ArchiveMap<int, int, int>.Empty);
 
@@ -143,7 +143,7 @@
         {
             using (var stream = new MemoryStream())
             {
-                var archive = new Archive(stream, false);
+                var archive = new Archive(stream, false, new[] { new TestSerializerRegistry() });
 
                 var v = new Store<ArchiveMap<int, int, int>>(new ArchiveMap<int, int, int>(new KeyValuePair<int, int>[] {
                     new (5, 15),

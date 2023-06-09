@@ -33,6 +33,11 @@
         private SemaphoreSlim _readyToSend;
         private string _remoteOwner;
 
+        private static ISerializerRegistry[] _serializerRegistries = new[]
+        {
+            new TcpMessagingUnrealSerializerRegistry()
+        };
+
         public static async Task<TcpMessageTransportConnection> CreateAsync(Func<Task<TcpClient>> connectionFactory, ILogger? logger = null)
         {
             Guid initialRemoteGuidId = Guid.Empty;
@@ -48,7 +53,7 @@
                     {
                         Store<TcpMessageHeader> header = new(new(guid));
 
-                        var headerArchive = new Archive(memoryStream, false);
+                        var headerArchive = new Archive(memoryStream, false, _serializerRegistries);
                         await headerArchive.Serialize(header);
 
                         var position = memoryStream.Position;
@@ -59,7 +64,7 @@
 
                     // Receive the remote's header from the stream.
                     {
-                        var receiveArchive = new Archive(client.GetStream(), true);
+                        var receiveArchive = new Archive(client.GetStream(), true, _serializerRegistries);
                         var header = new Store<TcpMessageHeader>(new());
                         await receiveArchive.Serialize(header);
                         if (instance == null)
@@ -119,7 +124,7 @@
             {
                 try
                 {
-                    var receiveArchive = new Archive(_stream, true);
+                    var receiveArchive = new Archive(_stream, true, _serializerRegistries);
 
                     var nextBytes = new Store<uint>(0);
                     await receiveArchive.Serialize(nextBytes);
@@ -132,7 +137,7 @@
                     {
                         using (var memory = new MemoryStream(buffer.V))
                         {
-                            var memoryArchive = new Archive(memory, true);
+                            var memoryArchive = new Archive(memory, true, _serializerRegistries);
                             await memoryArchive.Serialize(nextMessage);
                         }
                     }
@@ -235,7 +240,7 @@
 
                     using (var memory = new MemoryStream())
                     {
-                        var memoryArchive = new Archive(memory, false);
+                        var memoryArchive = new Archive(memory, false, _serializerRegistries);
 
                         _logger?.LogTrace($" {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId : "*")}}} <- {{{nextMessage.V.SenderAddress.V.UniqueId}}} [{nextMessage.V.AssetPath.V.PackageName + "." + nextMessage.V.AssetPath.V.AssetName}]\n{nextMessage.V.GetMessageData()}");
 
@@ -247,7 +252,7 @@
                             throw new InvalidOperationException();
                         }
 
-                        var sendArchive = new Archive(_stream, false);
+                        var sendArchive = new Archive(_stream, false, _serializerRegistries);
 
                         await sendArchive.Serialize(length);
 

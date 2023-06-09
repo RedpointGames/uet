@@ -54,7 +54,7 @@ namespace Redpoint.Unreal.TcpMessaging.Tests
             var bytes = Convert.FromBase64String("FwAAAC9TY3JpcHQvRW5naW5lTWVzc2FnZXMAEgAAAEVuZ2luZVNlcnZpY2VQaW5nAMsnVUfrbwhAgiR9nYxmancAAAAAAoALzuU0UtsI/z839HUoyisAAAAAewANAAoAfQA=");
             using (var stream = new MemoryStream(bytes))
             {
-                var archive = new Archive(stream, true);
+                var archive = new Archive(stream, true, new[] { new TcpMessagingUnrealSerializerRegistry() });
 
                 var message = new Store<TcpDeserializedMessage>(new());
                 await archive.Serialize(message);
@@ -75,7 +75,7 @@ namespace Redpoint.Unreal.TcpMessaging.Tests
         {
             using (var stream = new MemoryStream())
             {
-                var archive = new Archive(stream, false);
+                var archive = new Archive(stream, false, new[] { new TcpMessagingUnrealSerializerRegistry() });
 
                 var message = new Store<TcpDeserializedMessage>(new TcpDeserializedMessage
                 {
@@ -112,7 +112,7 @@ namespace Redpoint.Unreal.TcpMessaging.Tests
                 };
                 nextMessageRaw.SetMessageData(new EngineServicePing());
 
-                var memoryArchive = new Archive(memory, false);
+                var memoryArchive = new Archive(memory, false, new[] { new TcpMessagingUnrealSerializerRegistry() });
 
                 Store<TcpDeserializedMessage> nextMessage = new(nextMessageRaw);
                 await memoryArchive.Serialize(nextMessage);

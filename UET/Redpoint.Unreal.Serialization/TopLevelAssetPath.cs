@@ -27,5 +27,10 @@
         {
             return $"[{PackageName.V}.{AssetName.V}]";
         }
+
+        public bool Is(string packageName, string assetName)
+        {
+            return PackageName.V.StringName.V == packageName && AssetName.V.StringName.V == assetName;
+        }
     }
 }

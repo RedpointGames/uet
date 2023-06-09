@@ -3,4 +3,10 @@
     <EnableLinuxSupport>false</EnableLinuxSupport>
     <DefineConstants Condition="'$(EnableLinuxSupport)' == 'true'">$(DefineConstants);ENABLE_LINUX_SUPPORT</DefineConstants>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <IsTrimmable>true</IsTrimmable>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
 </Project>

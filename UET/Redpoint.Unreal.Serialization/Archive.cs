@@ -8,15 +8,20 @@
     public class Archive
     {
         private Stream _stream;
+        private readonly ISerializerRegistry[] _serializerRegistries;
 
         public bool IsLoading { get; }
 
         public bool IsLittleEndian { get; set; } = true;
 
-        public Archive(Stream stream, bool isLoading)
+        public Archive(
+            Stream stream,
+            bool isLoading,
+            ISerializerRegistry[] serializerRegistries)
         {
             _stream = stream;
             IsLoading = isLoading;
+            _serializerRegistries = new[] { new BuiltinUnrealSerializerRegistry() }.Concat(serializerRegistries).ToArray();
 
             if (IsLoading && !_stream.CanRead)
             {
@@ -242,35 +247,6 @@
             await T.Serialize(this, value);
         }
 
-        private static Dictionary<TopLevelAssetPath, Type>? _topLevelClassCache = null;
-        private static object _topLevelClassLock = new();
-        private static Type GetTypeForTopLevelAssetPath(TopLevelAssetPath assetPath)
-        {
-            if (_topLevelClassCache == null)
-            {
-                lock (_topLevelClassLock)
-                {
-                    if (_topLevelClassCache == null)
-                    {
-                        _topLevelClassCache = AppDomain.CurrentDomain.GetAssemblies()
-                            .SelectMany(x => x.GetTypes())
-                            .Where(x => x.GetCustomAttribute<TopLevelAssetPathAttribute>() != null)
-                            .ToDictionary(k =>
-                            {
-                                var attr = k.GetCustomAttribute<TopLevelAssetPathAttribute>();
-                                return new TopLevelAssetPath(attr!.PackageName, attr.AssetName);
-                            }, v => v);
-                    }
-                }
-            }
-
-            if (!_topLevelClassCache.ContainsKey(assetPath))
-            {
-                throw new TopLevelAssetPathNotFoundException(assetPath);
-            }
-            return _topLevelClassCache[assetPath];
-        }
-
         private async Task InvokeSerializeOnType<T>(Type type, Store<T> value)
         {
             if (value == null)
@@ -278,18 +254,16 @@
                 throw new ArgumentNullException(nameof(value));
             }
 
-            var args = new object[] { this, value };
-            await (Task)(type.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Static)!.Invoke(null, BindingFlags.DoNotWrapExceptions, null, args, null))!;
-        }
-
-        public async Task DynamicRpcSerialize(TopLevelAssetPath assetPath, Store<object?> value)
-        {
-            var type = GetTypeForTopLevelAssetPath(assetPath);
-            if (IsLoading)
+            foreach (var serializerRegistry in _serializerRegistries)
             {
-                value.V = type.GetConstructor(Type.EmptyTypes)!.Invoke(null);
+                if (serializerRegistry.CanHandleStoreType(type))
+                {
+                    await serializerRegistry.SerializeStoreType(this, value);
+                    return;
+                }
             }
-            await InvokeSerializeOnType(type, value);
+
+            throw new InvalidOperationException($"There is no serializer registry for the type {type.FullName}. Make sure you've generated a serializer registry with the source generator and have passed an instance of it into the Archive constructor.");
         }
 
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
@@ -299,38 +273,52 @@
 
         public async Task DynamicJsonFromRemainderOfStream(Store<TopLevelAssetPath> assetPath, Store<object?> value)
         {
-            var type = GetTypeForTopLevelAssetPath(assetPath.V);
+            foreach (var serializerRegistry in _serializerRegistries)
+            {
+                if (serializerRegistry.CanHandleTopLevelAssetPath(assetPath.V))
+                {
+                    if (IsLoading)
+                    {
+                        var buffer = new byte[_stream.Length - _stream.Position];
+                        await _stream.ReadAsync(buffer);
+                        var json = Encoding.Unicode.GetString(buffer);
+                        value.V = serializerRegistry.DeserializeTopLevelAssetPath(assetPath.V, json, _jsonOptions);
+                    }
+                    else
+                    {
+                        var json = serializerRegistry.SerializeTopLevelAssetPath(assetPath.V, value.V, _jsonOptions);
+                        var buffer = Encoding.Unicode.GetBytes(json);
+                        await _stream.WriteAsync(buffer);
+                    }
+                    return;
+                }
+            }
 
-            if (IsLoading)
-            {
-                var buffer = new byte[_stream.Length - _stream.Position];
-                await _stream.ReadAsync(buffer);
-                var json = Encoding.Unicode.GetString(buffer);
-                value.V = JsonSerializer.Deserialize(json, type, _jsonOptions);
-            }
-            else
-            {
-                var json = JsonSerializer.Serialize(value.V, type, _jsonOptions);
-                var buffer = Encoding.Unicode.GetBytes(json);
-                await _stream.WriteAsync(buffer);
-            }
+            throw new InvalidOperationException($"There is no serializer registry for the asset path {assetPath.V}. Make sure you've generated a serializer registry with the source generator and have passed an instance of it into the Archive constructor.");
         }
 
         public async Task DynamicJsonSerialize(Store<TopLevelAssetPath> assetPath, Store<object?> value)
         {
-            var type = GetTypeForTopLevelAssetPath(assetPath.V);
+            foreach (var serializerRegistry in _serializerRegistries)
+            {
+                if (serializerRegistry.CanHandleTopLevelAssetPath(assetPath.V))
+                {
+                    if (IsLoading)
+                    {
+                        Store<string> json = new Store<string>(string.Empty);
+                        await Serialize(json);
+                        value.V = serializerRegistry.DeserializeTopLevelAssetPath(assetPath.V, json.V, _jsonOptions);
+                    }
+                    else
+                    {
+                        Store<string> json = new Store<string>(serializerRegistry.SerializeTopLevelAssetPath(assetPath.V, value.V, _jsonOptions));
+                        await Serialize(json);
+                    }
+                    return;
+                }
+            }
 
-            if (IsLoading)
-            {
-                Store<string> json = new Store<string>(string.Empty);
-                await Serialize(json);
-                value.V = JsonSerializer.Deserialize(json.V, type, _jsonOptions);
-            }
-            else
-            {
-                Store<string> json = new Store<string>(JsonSerializer.Serialize(value.V, type, _jsonOptions));
-                await Serialize(json);
-            }
+            throw new InvalidOperationException($"There is no serializer registry for the asset path {assetPath.V}. Make sure you've generated a serializer registry with the source generator and have passed an instance of it into the Archive constructor.");
         }
 
         public async Task RuntimeSerialize<T>(Store<T> value) where T : new()

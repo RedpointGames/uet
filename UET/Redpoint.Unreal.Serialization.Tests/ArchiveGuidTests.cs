@@ -28,7 +28,7 @@
             var bytes = Convert.FromBase64String(_base);
             using (var stream = new MemoryStream(bytes))
             {
-                var archive = new Archive(stream, true);
+                var archive = new Archive(stream, true, new ISerializerRegistry[0]);
 
                 Store<uint> a = new Store<uint>(0),
                     b = new Store<uint>(0),
@@ -52,7 +52,7 @@
             var bytes = Convert.FromBase64String(_base);
             using (var stream = new MemoryStream(bytes))
             {
-                var archive = new Archive(stream, true);
+                var archive = new Archive(stream, true, new ISerializerRegistry[0]);
 
                 var guid = new Store<Guid>(Guid.Empty);
                 await archive.Serialize(guid);
@@ -66,7 +66,7 @@
         {
             using (var stream = new MemoryStream())
             {
-                var archive = new Archive(stream, false);
+                var archive = new Archive(stream, false, new ISerializerRegistry[0]);
 
                 var guid = new Store<Guid>(UnrealGuidToMicrosoftGuid(_unrealGuid));
                 await archive.Serialize(guid);
