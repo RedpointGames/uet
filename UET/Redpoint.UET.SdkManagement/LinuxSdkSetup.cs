@@ -1,19 +1,15 @@
 ﻿namespace Redpoint.UET.SdkManagement
 {
-    using Microsoft.CodeAnalysis.CSharp.Syntax;
-    using Microsoft.CodeAnalysis.CSharp;
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Runtime.Versioning;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
-    using Redpoint.ProgressMonitor;
     using System.IO;
     using System.Reflection;
+    using System.Text.RegularExpressions;
 
     [SupportedOSPlatform("windows")]
     public class LinuxSdkSetup : ISdkSetup
@@ -34,22 +30,14 @@
 
         public string PlatformName => "Linux";
 
-        internal static async Task<string> ParseClangToolchainVersion(string linuxPlatformSdk)
+        internal static Task<string> ParseClangToolchainVersion(string linuxPlatformSdk)
         {
-            var syntaxTree = CSharpSyntaxTree.ParseText(linuxPlatformSdk);
-            var syntaxRoot = await syntaxTree.GetRootAsync();
-            var version = syntaxRoot.DescendantNodes()
-                .OfType<MethodDeclarationSyntax>()
-                .Where(x => x.Identifier.Text == "GetMainVersion")
-                .First()
-                .DescendantNodes()
-                .OfType<ReturnStatementSyntax>()
-                .First()
-                .Expression!
-                .GetFirstToken()
-                .Value!
-                .ToString();
-            return version!;
+            var regex = new Regex("return \"([a-z0-9-_\\.]+)\"");
+            foreach (Match match in regex.Matches(linuxPlatformSdk))
+            {
+                return Task.FromResult(match.Groups[1].Value);
+            }
+            throw new InvalidOperationException("Unable to find Clang version in LinuxPlatformSDK.Versions.cs");
         }
 
         private async Task<string> GetClangToolchainVersion(string unrealEnginePath)

@@ -2,11 +2,9 @@
 {
     using Redpoint.ProcessExecution;
     using System.Threading.Tasks;
-    using Microsoft.CodeAnalysis;
-    using Microsoft.CodeAnalysis.CSharp;
-    using Microsoft.CodeAnalysis.CSharp.Syntax;
     using System.Diagnostics;
     using System.Runtime.Versioning;
+    using System.Text.RegularExpressions;
 
     [SupportedOSPlatform("macos")]
     public class MacSdkSetup : ISdkSetup
@@ -20,22 +18,16 @@
 
         public string PlatformName => "Mac";
 
-        internal static async Task<string> ParseXcodeVersion(string applePlatformSdk)
+        internal static Task<string> ParseXcodeVersion(string applePlatformSdk)
         {
-            var syntaxTree = CSharpSyntaxTree.ParseText(applePlatformSdk);
-            var syntaxRoot = await syntaxTree.GetRootAsync();
-            var version = syntaxRoot.DescendantNodes()
-                .OfType<MethodDeclarationSyntax>()
-                .Where(x => x.Identifier.Text == "GetMainVersion")
-                .First()
-                .DescendantNodes()
-                .OfType<ReturnStatementSyntax>()
-                .First()
-                .Expression!
-                .GetFirstToken()
-                .Value!
-                .ToString();
-            return version!;
+            var regex = new Regex("return \"([0-9\\.]+)\"");
+            foreach (Match match in regex.Matches(applePlatformSdk))
+            {
+                // It's the first one because GetMainVersion() is
+                // the first function in this file.
+                return Task.FromResult(match.Groups[1].Value);
+            }
+            throw new InvalidOperationException("Unable to find Clang version in ApplePlatformSDK.Versions.cs");
         }
 
         private async Task<string> GetXcodeVersion(string unrealEnginePath)

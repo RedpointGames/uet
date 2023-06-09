@@ -1,16 +1,13 @@
 ﻿namespace Redpoint.UET.SdkManagement
 {
-    using Microsoft.CodeAnalysis;
-    using Microsoft.CodeAnalysis.CSharp;
-    using Microsoft.CodeAnalysis.CSharp.Syntax;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
     using Redpoint.UET.Core;
     using System.Collections.Concurrent;
     using System.IO.Compression;
-    using System.Linq;
     using System.Reflection;
     using System.Runtime.Versioning;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -37,49 +34,17 @@
 
         private static ConcurrentDictionary<string, Assembly> _cachedCompiles = new ConcurrentDictionary<string, Assembly>();
 
-        internal static async Task<string> ParseVersion(string androidPlatformSdk, string versionCategory)
+        internal static Task<string> ParseVersion(string androidPlatformSdk, string versionCategory)
         {
-            Assembly targetAssembly;
-            if (!_cachedCompiles.TryGetValue(androidPlatformSdk, out targetAssembly!))
+            var regex = new Regex("case \"([a-z-]+)\": return \"([a-z0-9-\\.]+)\"");
+            foreach (Match match in regex.Matches(androidPlatformSdk))
             {
-                var syntaxTree = CSharpSyntaxTree.ParseText(androidPlatformSdk);
-                var syntaxRoot = await syntaxTree.GetRootAsync();
-                var blockCode = syntaxRoot.DescendantNodes()
-                    .OfType<MethodDeclarationSyntax>()
-                    .Where(x => x.Identifier.Text == "GetPlatformSpecificVersion")
-                    .First()
-                    .ChildNodes()
-                    .OfType<BlockSyntax>()
-                    .First()
-                    .ToString();
-                var classCode = @$"
-class AndroidVersionLoader
-{{
-    public static string GetPlatformSpecificVersion(string VersionType)
-    {blockCode}
-}}
-";
-                var newSyntaxTree = CSharpSyntaxTree.ParseText(classCode);
-                var rtPath = Path.GetDirectoryName(typeof(object).Assembly.Location) +
-                             Path.DirectorySeparatorChar;
-                var compilation = CSharpCompilation.Create("AndroidVersionLoader.cs")
-                    .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
-                    .WithReferences(
-                        MetadataReference.CreateFromFile(Path.Combine(rtPath, "System.Private.CoreLib.dll")),
-                        MetadataReference.CreateFromFile(Path.Combine(rtPath, "System.Runtime.dll")))
-                    .AddSyntaxTrees(newSyntaxTree);
-                using (var stream = new MemoryStream())
+                if (match.Groups[1].Value == versionCategory)
                 {
-                    var compilationResult = compilation.Emit(stream);
-                    targetAssembly = Assembly.Load(stream.ToArray());
+                    return Task.FromResult(match.Groups[2].Value);
                 }
-                _cachedCompiles.AddOrUpdate(androidPlatformSdk, targetAssembly, (_, _) => targetAssembly);
             }
-
-            var version = (string)targetAssembly.GetType("AndroidVersionLoader")!
-                .GetMethod("GetPlatformSpecificVersion", BindingFlags.Static | BindingFlags.Public)!
-                .Invoke(null, new object[] { versionCategory })!;
-            return version;
+            throw new InvalidOperationException($"Unable to find Android version for {versionCategory} in AndroidPlatformSDK.Versions.cs");
         }
 
         private async Task<(string platforms, string buildTools, string cmake, string ndk)> GetVersions(string unrealEnginePath)

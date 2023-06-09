@@ -17,7 +17,7 @@ namespace TestNamespace
         };
         static readonly VersionNumberRange[] PreferredVisualCppVersions = new VersionNumberRange[]
         {
-            VersionNumberRange.Parse(""14.34.31933"", ""14.34.99999""),
+            VersionNumberRange.Parse(""14.34.31933"", ""14.34.99999""), // VS2022
             VersionNumberRange.Parse(""14.29.30133"", ""14.29.99999""),
         };
         static readonly string[] VisualStudioSuggestedComponents = new string[]
@@ -37,48 +37,13 @@ namespace TestNamespace
     }
 }
 ";
-        private const string _versionCodeFragment = @"
-namespace TestNamespace
-{
-    class VersionNumber
-    {
-        public string Value { get; set; }
-
-        public static VersionNumber Parse(string value)
-        {
-            return new VersionNumber { Value = value };
-        }
-
-        public override string ToString()
-        {
-            return Value;
-        }
-    }
-}
-";
-        private const string _versionRangeSdkCodeFragment = @"
-namespace TestNamespace
-{
-    class VersionNumberRange
-    {
-        public VersionNumber Min { get; set; }
-
-        public static VersionNumberRange Parse(string min, string max)
-        {
-            return new VersionNumberRange { Min = VersionNumber.Parse(min) };
-        }
-    }
-}
-";
 
         [Fact]
         [SupportedOSPlatform("windows")]
         public async Task CanParseVersionsFromUnrealCSharp()
         {
             var versions = await WindowsSdkSetup.ParseVersions(
-                _microsoftPlatformSdkCodeFragment,
-                _versionCodeFragment,
-                _versionRangeSdkCodeFragment);
+                _microsoftPlatformSdkCodeFragment);
 
             Assert.Equal("10.0.18362.0", versions.windowsSdkPreferredVersion);
             Assert.Equal("14.34.31933", versions.visualCppMinimumVersion);

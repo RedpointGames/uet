@@ -1,14 +1,12 @@
 ﻿namespace Redpoint.UET.SdkManagement
 {
-    using Microsoft.CodeAnalysis;
-    using Microsoft.CodeAnalysis.CSharp;
-    using Microsoft.CodeAnalysis.CSharp.Syntax;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
     using Redpoint.UET.Core;
     using Redpoint.UET.SdkManagement.WindowsSdk;
     using System;
     using System.Collections.Concurrent;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO.Compression;
     using System.Linq;
     using System.Net.Http.Json;
@@ -42,100 +40,117 @@
 
         private static ConcurrentDictionary<string, Assembly> _cachedCompiles = new ConcurrentDictionary<string, Assembly>();
 
-        internal static async Task<(
+        private enum CurrentlyIn
+        {
+            None,
+            PreferredWindowsSdk,
+            PreferredVisualCpp,
+            VsSuggestedComponents,
+            Vs2022SuggestedComponents,
+        }
+
+        static readonly Regex _versionNumberRegex = new Regex("VersionNumber.Parse\\(\"([0-9\\.]+)\"\\)");
+        static readonly Regex _versionNumberRangeRegex = new Regex("VersionNumberRange.Parse\\(\"([0-9\\.]+)\", \"([0-9\\.]+)\"\\)");
+        static readonly Regex _elementLine = new Regex("\"([A-Za-z0-9\\.]+)\",");
+
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Assembly.Load is self-contained")]
+        [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "GetType references a type created in memory")]
+        internal static Task<(
             string windowsSdkPreferredVersion,
             string visualCppMinimumVersion,
             string[] suggestedComponents)> ParseVersions(
-            string microsoftPlatformSdkFileContent,
-            string versionNumberFileContent,
-            string versionNumberRangeFileContent)
+            string microsoftPlatformSdkFileContent)
         {
-            Assembly targetAssembly;
-            if (!_cachedCompiles.TryGetValue(microsoftPlatformSdkFileContent, out targetAssembly!))
+            string? windowsSdkPreferredVersion = null;
+            string? visualCppMinimumVersion = null;
+            List<string> suggestedComponents = new List<string>();
+
+            var currentlyIn = CurrentlyIn.None;
+            foreach (var line in microsoftPlatformSdkFileContent.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
-                var versionNumberSyntaxTree = CSharpSyntaxTree.ParseText(versionNumberFileContent);
-                var versionNumberSyntaxTreeRoot = await versionNumberSyntaxTree.GetRootAsync();
-                var versionNumberRangeSyntaxTree = CSharpSyntaxTree.ParseText(versionNumberRangeFileContent);
-                var versionNumberRangeSyntaxTreeRoot = await versionNumberRangeSyntaxTree.GetRootAsync();
-
-                var syntaxTree = CSharpSyntaxTree.ParseText(microsoftPlatformSdkFileContent);
-                var syntaxRoot = await syntaxTree.GetRootAsync();
-
-                // We need all of the static members (that hold the actual versions)
-                var staticMembers = syntaxRoot.DescendantNodes()
-                    .OfType<FieldDeclarationSyntax>()
-                    .Where(x => x.Modifiers.Any(x => x.IsKind(SyntaxKind.StaticKeyword)))
-                    .Select(x => x.ToString());
-                var staticMemberCode = string.Join("\n", staticMembers);
-
-                var classCode = @$"
-#nullable enable
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Threading.Tasks;
-class WindowsVersionLoader
-{{
-    {staticMemberCode}
-    {versionNumberSyntaxTreeRoot.DescendantNodes().OfType<ClassDeclarationSyntax>().First().ToString()}
-    {versionNumberRangeSyntaxTreeRoot.DescendantNodes().OfType<ClassDeclarationSyntax>().First().ToString()}
-}}
-";
-                var newSyntaxTree = CSharpSyntaxTree.ParseText(classCode);
-                var newSyntaxTreeCode = newSyntaxTree.ToString();
-                var rtPath = Path.GetDirectoryName(typeof(object).Assembly.Location) +
-                             Path.DirectorySeparatorChar;
-                var compilation = CSharpCompilation.Create("WindowsVersionLoader.cs")
-                    .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
-                    .WithReferences(
-                        MetadataReference.CreateFromFile(Path.Combine(rtPath, "System.Private.CoreLib.dll")),
-                        MetadataReference.CreateFromFile(Path.Combine(rtPath, "System.Linq.dll")),
-                        MetadataReference.CreateFromFile(Path.Combine(rtPath, "System.Runtime.dll")))
-                    .AddSyntaxTrees(newSyntaxTree);
-                using (var stream = new MemoryStream())
+                if (line.StartsWith("//"))
                 {
-                    var compilationResult = compilation.Emit(stream);
-                    if (!compilationResult.Success)
-                    {
-                        throw new InvalidOperationException(string.Join("\n", compilationResult.Diagnostics.Select(x => x.GetMessage())));
-                    }
-                    targetAssembly = Assembly.Load(stream.ToArray());
+                    continue;
                 }
-                _cachedCompiles.AddOrUpdate(microsoftPlatformSdkFileContent, targetAssembly, (_, _) => targetAssembly);
+                if (line.EndsWith(";"))
+                {
+                    currentlyIn = CurrentlyIn.None;
+                }
+
+                if (line.Contains(" PreferredWindowsSdkVersions "))
+                {
+                    currentlyIn = CurrentlyIn.PreferredWindowsSdk;
+                    continue;
+                }
+                else if (line.Contains(" PreferredVisualCppVersions "))
+                {
+                    currentlyIn = CurrentlyIn.PreferredVisualCpp;
+                    continue;
+                }
+                else if (line.Contains(" VisualStudioSuggestedComponents "))
+                {
+                    currentlyIn = CurrentlyIn.VsSuggestedComponents;
+                    continue;
+                }
+                else if (line.Contains(" VisualStudio2022SuggestedComponents "))
+                {
+                    currentlyIn = CurrentlyIn.Vs2022SuggestedComponents;
+                    continue;
+                }
+
+                switch (currentlyIn)
+                {
+                    case CurrentlyIn.PreferredWindowsSdk:
+                        {
+                            var match = _versionNumberRegex.Match(line);
+                            if (match.Success)
+                            {
+                                windowsSdkPreferredVersion = match.Groups[1].Value;
+                                currentlyIn = CurrentlyIn.None;
+                            }
+                            break;
+                        }
+                    case CurrentlyIn.PreferredVisualCpp:
+                        {
+                            var match = _versionNumberRangeRegex.Match(line);
+                            if (match.Success && line.Contains("VS2022"))
+                            {
+                                visualCppMinimumVersion = match.Groups[1].Value;
+                                currentlyIn = CurrentlyIn.None;
+                            }
+                            break;
+                        }
+                    case CurrentlyIn.VsSuggestedComponents:
+                        {
+                            var match = _elementLine.Match(line);
+                            if (match.Success)
+                            {
+                                suggestedComponents.Add(match.Groups[1].Value);
+                            }
+                            break;
+                        }
+                    case CurrentlyIn.Vs2022SuggestedComponents:
+                        {
+                            var match = _elementLine.Match(line);
+                            if (match.Success)
+                            {
+                                suggestedComponents.Add(match.Groups[1].Value);
+                            }
+                            break;
+                        }
+                }
             }
 
-            var windowsVersionLoader = targetAssembly.GetType("WindowsVersionLoader")!;
+            if (windowsSdkPreferredVersion == null ||
+                visualCppMinimumVersion == null)
+            {
+                throw new InvalidOperationException("Unable to parse versions from MicrosoftPlatformSDK.Versions.cs");
+            }
 
-            // Read the PreferredWindowsSdkVersions (which is an array of VersionNumber).
-            dynamic preferredWindowsSdkVersionsArray = windowsVersionLoader
-                .GetField("PreferredWindowsSdkVersions", BindingFlags.Static | BindingFlags.NonPublic)!
-                .GetValue(null)!;
-            var preferredWindowsSdkVersion = preferredWindowsSdkVersionsArray[0].ToString();
-
-            // Read the PreferredVisualCppVersions (which is an array of VersionNumberRange).
-            dynamic preferredVisualCppVersionsArray = windowsVersionLoader
-                .GetField("PreferredVisualCppVersions", BindingFlags.Static | BindingFlags.NonPublic)!
-                .GetValue(null)!;
-            object visualCppVersion = preferredVisualCppVersionsArray[0];
-            dynamic minimumVisualCppVersionObject =
-                visualCppVersion.GetType().GetProperty("Min", BindingFlags.Instance | BindingFlags.Public)!
-                .GetValue(visualCppVersion)!;
-            var minimumVisualCppVersion = minimumVisualCppVersionObject.ToString();
-
-            // Read the suggested components.
-            var visualStudioSuggestedComponents = (string[])windowsVersionLoader
-                .GetField("VisualStudioSuggestedComponents", BindingFlags.Static | BindingFlags.NonPublic)!
-                .GetValue(null)!;
-            var visualStudio2022SuggestedComponents = (string[])windowsVersionLoader
-                .GetField("VisualStudio2022SuggestedComponents", BindingFlags.Static | BindingFlags.NonPublic)!
-                .GetValue(null)!;
-
-            return (
-                preferredWindowsSdkVersion,
-                minimumVisualCppVersion,
-                visualStudioSuggestedComponents.Concat(visualStudio2022SuggestedComponents).ToArray());
+            return Task.FromResult<(string windowsSdkPreferredVersion, string visualCppMinimumVersion, string[] suggestedComponents)>((
+                windowsSdkPreferredVersion,
+                visualCppMinimumVersion,
+                suggestedComponents.ToArray()));
         }
 
         private async Task<(
@@ -152,26 +167,7 @@ class WindowsVersionLoader
                 "Platform",
                 "Windows",
                 "MicrosoftPlatformSDK.Versions.cs"));
-            var versionNumberFileContent = await File.ReadAllTextAsync(Path.Combine(
-                unrealEnginePath,
-                "Engine",
-                "Source",
-                "Programs",
-                "UnrealBuildTool",
-                "System",
-                "VersionNumber.cs"));
-            var versionNumberRangeFileContent = await File.ReadAllTextAsync(Path.Combine(
-                unrealEnginePath,
-                "Engine",
-                "Source",
-                "Programs",
-                "UnrealBuildTool",
-                "System",
-                "VersionNumberRange.cs"));
-            var rawVersions = await ParseVersions(
-                microsoftPlatformSdkFileContent,
-                versionNumberFileContent,
-                versionNumberRangeFileContent);
+            var rawVersions = await ParseVersions(microsoftPlatformSdkFileContent);
             return (
                 VersionNumber.Parse(rawVersions.windowsSdkPreferredVersion),
                 VersionNumber.Parse(rawVersions.visualCppMinimumVersion),
@@ -203,7 +199,7 @@ class WindowsVersionLoader
             VisualStudioManifest rootManifest;
             using (var client = new HttpClient())
             {
-                rootManifest = (await client.GetFromJsonAsync<VisualStudioManifest>(rootManifestUrl, serializerOptions))!;
+                rootManifest = (await client.GetFromJsonAsync(rootManifestUrl, new VisualStudioJsonSerializerContext(new JsonSerializerOptions(serializerOptions)).VisualStudioManifest))!;
             }
 
             // In the root manifest, locate the manifest with all the packages.
@@ -212,7 +208,7 @@ class WindowsVersionLoader
             using (var client = new HttpClient())
             {
                 var packagesManifestUrl = rootManifest.ChannelItems!.First(x => x.Type == "Manifest");
-                packagesManifest = (await client.GetFromJsonAsync<VisualStudioManifest>(packagesManifestUrl.Payloads!.First().Url, serializerOptions))!;
+                packagesManifest = (await client.GetFromJsonAsync(packagesManifestUrl.Payloads!.First().Url, new VisualStudioJsonSerializerContext(new JsonSerializerOptions(serializerOptions)).VisualStudioManifest))!;
             }
 
             // Generate a dictionary of components based on their ID.
@@ -454,7 +450,7 @@ class WindowsVersionLoader
                     )
                 },
             };
-            File.WriteAllText(Path.Combine(sdkPackagePath, "envs.json"), JsonSerializer.Serialize(envs, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(Path.Combine(sdkPackagePath, "envs.json"), JsonSerializer.Serialize(envs, new VisualStudioJsonSerializerContext(new JsonSerializerOptions { WriteIndented = true }).DictionaryStringString));
             var batchLines = new List<string>();
             foreach (var kv in envs)
             {
@@ -706,7 +702,7 @@ class WindowsVersionLoader
 
         public Task<EnvironmentForSdkUsage> EnsureSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
         {
-            var rawEnvs = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(sdkPackagePath, "envs.json")))!;
+            var rawEnvs = JsonSerializer.Deserialize(File.ReadAllText(Path.Combine(sdkPackagePath, "envs.json")), VisualStudioJsonSerializerContext.Default.DictionaryStringString)!;
             var newEnvs = new Dictionary<string, string>();
             foreach (var kv in rawEnvs)
             {

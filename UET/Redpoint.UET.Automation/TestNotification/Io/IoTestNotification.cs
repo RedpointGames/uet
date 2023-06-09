@@ -122,7 +122,7 @@
         {
             if (_simulateIo)
             {
-                _logger.LogTrace($"This JSON would be submitted to Io: {JsonSerializer.Serialize(changes)}");
+                _logger.LogTrace($"This JSON would be submitted to Io: {JsonSerializer.Serialize(changes, IoJsonSerializerContext.Default.ListIoChange)}");
             }
             else
             {
@@ -132,7 +132,8 @@
 
                     var response = await client.PutAsJsonAsync(
                         $"{(Environment.GetEnvironmentVariable("IO_URL") ?? string.Empty).TrimEnd('/')}/api/submit/tests",
-                        changes);
+                        changes,
+                        IoJsonSerializerContext.Default.ListIoChange);
                     if (!response.IsSuccessStatusCode)
                     {
                         _logger.LogWarning($"Failed to send test results to Io build monitor.\nStatus Code: {response.StatusCode}\nBody: {response.Content.ReadAsStringAsync()}");
