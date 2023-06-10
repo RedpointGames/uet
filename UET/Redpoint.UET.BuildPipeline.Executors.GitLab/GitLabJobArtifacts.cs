@@ -6,13 +6,13 @@
     [YamlSerializable]
     public class GitLabJobArtifacts
     {
-        [YamlMember(Alias = "when", DefaultValuesHandling = DefaultValuesHandling.OmitNull)]
+        [YamlMember(Alias = "when", DefaultValuesHandling = DefaultValuesHandling.OmitNull, ScalarStyle = YamlDotNet.Core.ScalarStyle.DoubleQuoted)]
         public string? When { get; set; } = null;
 
-        [YamlMember(Alias = "paths", DefaultValuesHandling = DefaultValuesHandling.OmitNull)]
+        [YamlMember(Alias = "paths", DefaultValuesHandling = DefaultValuesHandling.OmitNull, ScalarStyle = YamlDotNet.Core.ScalarStyle.DoubleQuoted)]
         public string[]? Paths { get; set; } = null;
 
-        [YamlMember(Alias = "reports", DefaultValuesHandling = DefaultValuesHandling.OmitNull)]
+        [YamlMember(Alias = "reports", DefaultValuesHandling = DefaultValuesHandling.OmitNull, ScalarStyle = YamlDotNet.Core.ScalarStyle.DoubleQuoted)]
         public GitLabJobArtifactsReports? Reports { get; set; } = null;
     }
 }

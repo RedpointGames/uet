@@ -6,7 +6,7 @@
     [YamlSerializable]
     public class GitLabJobArtifactsReports
     {
-        [YamlMember(Alias = "junit", DefaultValuesHandling = DefaultValuesHandling.OmitNull)]
+        [YamlMember(Alias = "junit", DefaultValuesHandling = DefaultValuesHandling.OmitNull, ScalarStyle = YamlDotNet.Core.ScalarStyle.DoubleQuoted)]
         public string? Junit { get; set; } = null;
     }
 }

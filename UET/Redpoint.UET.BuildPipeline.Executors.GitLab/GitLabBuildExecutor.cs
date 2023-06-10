@@ -127,7 +127,10 @@
             using (var stream = new StreamWriter(buildServerOutputFilePath))
             {
                 var aotContext = new GitLabYamlStaticContext();
-                var serializer = new StaticSerializerBuilder(aotContext).Build();
+                var serializer = new StaticSerializerBuilder(aotContext)
+                    .WithQuotingNecessaryStrings()
+                    .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)
+                    .Build();
                 var yaml = serializer.Serialize(file);
                 await stream.WriteLineAsync(yaml);
             }
