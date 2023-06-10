@@ -26,6 +26,8 @@
     <MetadataUpdaterSupport Condition="'$(Configuration)' == 'Release'">false</MetadataUpdaterSupport>
     <ShowLinkerSizeComparison>true</ShowLinkerSizeComparison>
 
+    <NoWarn>7035;7034</NoWarn>
+
     <BaseUetYear>$([System.DateTime]::Now.Year)</BaseUetYear>
     <BaseUetMonth>$([System.DateTime]::Now.Month)</BaseUetMonth>
     <BaseUetDay>$([System.DateTime]::Now.Day)</BaseUetDay>
