@@ -90,6 +90,8 @@ stages:
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
     echo "Package version: $PACKAGE_VERSION"
     dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION -p:OpenGEShimIsAlreadyBuilt=true UET/uet/uet.csproj
+    # Ensure the thing we built will actually run...
+    ./UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet --help
   artifacts:
     paths:
       - "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet"
@@ -173,6 +175,8 @@ stages:
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
     echo "Package version: $PACKAGE_VERSION"
     dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:EmbeddingCrossPlatform=true -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION -p:OpenGEShimIsAlreadyBuilt=true UET/uet/uet.csproj
+    # Ensure the thing we built will actually run...
+    ./UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet --help
   artifacts:
     paths:
       - "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet"
