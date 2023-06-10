@@ -37,7 +37,7 @@ stages:
     }
   artifacts:
     paths:
-      - "UET/Redpoint.OpenGE.ProcessExecution/shim-bin/Release/net7.0/win-x64"
+      - "UET/Redpoint.OpenGE.ProcessExecution/shim-bin/Release/net7.0/win-x64/publish"
 
 "Build Libraries":
   stage: Build Pass 1
@@ -75,7 +75,7 @@ stages:
     }
   artifacts:
     paths:
-      - "UET/uet/bin/Release/net7.0/win-x64/uet.exe"
+      - "UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe"
 
 "Build Mac Pass 1":
   stage: Build Pass 1
@@ -87,10 +87,11 @@ stages:
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version)
+    echo "Package version: $PACKAGE_VERSION"
     dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION -p:OpenGEShimIsAlreadyBuilt=true UET/uet/uet.csproj
   artifacts:
     paths:
-      - "UET/uet/bin/Release/net7.0/osx.11.0-arm64/uet"
+      - "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet"
 
 "Test Libraries":
   stage: Test
@@ -152,7 +153,7 @@ stages:
     }
   artifacts:
     paths:
-      - "UET/uet/bin/Release/net7.0/win-x64/uet.exe"
+      - "UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe"
 
 "Build Mac Pass 2":
   stage: Build Pass 2
@@ -168,10 +169,11 @@ stages:
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version)
+    echo "Package version: $PACKAGE_VERSION"
     dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:EmbeddingCrossPlatform=true -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION -p:OpenGEShimIsAlreadyBuilt=true UET/uet/uet.csproj
   artifacts:
     paths:
-      - "UET/uet/bin/Release/net7.0/osx.11.0-arm64/uet"
+      - "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet"
 
 "Publish Libraries":
   stage: Publish
