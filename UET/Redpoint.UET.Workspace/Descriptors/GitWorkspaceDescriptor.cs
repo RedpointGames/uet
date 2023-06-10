@@ -4,7 +4,7 @@
     {
         public required string RepositoryUrl { get; set; }
 
-        public required string RepositoryCommit { get; set; }
+        public required string RepositoryCommitOrRef { get; set; }
 
         public required string[] AdditionalFolderLayers { get; set; }
 
@@ -14,6 +14,11 @@
         /// If this is for an Unreal Engine project, specifies the project folder name.
         /// </summary>
         public string? ProjectFolderName { get; set; }
+
+        /// <summary>
+        /// If set, this is a checkout of the engine itself, instead of a project or plugin.
+        /// </summary>
+        public bool IsEngineBuild { get; set; }
 
         /// <summary>
         /// For virtualised snapshots, whether or not the mount should be unmounted after use.

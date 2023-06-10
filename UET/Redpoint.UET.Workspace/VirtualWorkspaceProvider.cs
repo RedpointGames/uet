@@ -183,7 +183,7 @@
                 normalizedRepositoryUrl = builder.Uri.ToString();
             }
 
-            var parameters = new string[] { normalizedRepositoryUrl, string.Join("/", descriptor.AdditionalFolderLayers), descriptor.RepositoryCommit };
+            var parameters = new string[] { normalizedRepositoryUrl, string.Join("/", descriptor.AdditionalFolderLayers), descriptor.RepositoryCommitOrRef };
 
             var usingMountReservation = false;
             var mountReservation = await _reservationManager.ReserveAsync("VirtualGitMount", parameters);
@@ -197,7 +197,7 @@
                         .FirstOrDefault(x => x.MountPath.Equals(mountReservation.ReservedPath, StringComparison.InvariantCultureIgnoreCase));
                     if (existingMount != null)
                     {
-                        _logger.LogInformation($"Reusing existing virtual Git workspace using UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommit}): {mountReservation.ReservedPath}");
+                        _logger.LogInformation($"Reusing existing virtual Git workspace using UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommitOrRef}): {mountReservation.ReservedPath}");
                         usingMountReservation = true;
                         usingScratchReservation = true;
                         return new UEFSWorkspace(
@@ -207,11 +207,11 @@
                             workspaceOptions,
                             new[] { mountReservation, scratchReservation },
                             _logger,
-                            $"Releasing Git workspace from UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommit}): {mountReservation.ReservedPath}");
+                            $"Releasing Git workspace from UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommitOrRef}): {mountReservation.ReservedPath}");
                     }
                     else
                     {
-                        _logger.LogInformation($"Creating virtual Git workspace using UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommit}): {mountReservation.ReservedPath}");
+                        _logger.LogInformation($"Creating virtual Git workspace using UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommitOrRef}): {mountReservation.ReservedPath}");
                         var mountId = await WaitForMountToComplete(_uefsClient.MountGitCommit(new Uefs.MountGitCommitRequest()
                         {
                             MountRequest = new Uefs.MountRequest
@@ -221,7 +221,7 @@
                                 TrackPid = workspaceOptions.UnmountAfterUse ? Process.GetCurrentProcess().Id : 0,
                             },
                             Url = descriptor.RepositoryUrl,
-                            Commit = descriptor.RepositoryCommit,
+                            Commit = descriptor.RepositoryCommitOrRef,
                             Credential = _credentialManager.GetGitCredentialForRepositoryUrl(descriptor.RepositoryUrl),
                             ScratchPath = scratchReservation.ReservedPath,
                         }));
@@ -234,7 +234,7 @@
                             workspaceOptions,
                             new[] { mountReservation, scratchReservation },
                             _logger,
-                            $"Releasing virtual Git workspace from UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommit}): {mountReservation.ReservedPath}");
+                            $"Releasing virtual Git workspace from UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommitOrRef}): {mountReservation.ReservedPath}");
                     }
                 }
                 finally

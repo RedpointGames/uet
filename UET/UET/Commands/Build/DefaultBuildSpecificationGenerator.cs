@@ -171,6 +171,7 @@
             var sharedStorageAbsolutePath = OperatingSystem.IsWindows() ?
                 env.Windows.SharedStorageAbsolutePath :
                 env.Mac!.SharedStorageAbsolutePath;
+            Directory.CreateDirectory(sharedStorageAbsolutePath);
             var filename = $"DynamicBuildGraph-{Process.GetCurrentProcess().Id}.xml";
             using (var stream = new FileStream(Path.Combine(sharedStorageAbsolutePath, filename), FileMode.Create, FileAccess.Write, FileShare.None))
             {

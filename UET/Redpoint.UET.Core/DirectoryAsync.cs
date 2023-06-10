@@ -6,7 +6,33 @@
         {
             await Task.Run(() =>
             {
-                Directory.Delete(path, recursive);
+                try
+                {
+                    Directory.Delete(path, recursive);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    // Try and remove "Read Only" flags on files and directories.
+                    foreach (var entry in Directory.GetFileSystemEntries(
+                        path,
+                        "*",
+                        new EnumerationOptions
+                        {
+                            AttributesToSkip = FileAttributes.System,
+                            RecurseSubdirectories = true
+                        }))
+                    {
+                        var attrs = File.GetAttributes(entry);
+                        if ((attrs & FileAttributes.ReadOnly) != 0)
+                        {
+                            attrs ^= FileAttributes.ReadOnly;
+                            File.SetAttributes(entry, attrs);
+                        }
+                    }
+
+                    // Now try to delete again.
+                    Directory.Delete(path, recursive);
+                }
             });
         }
 

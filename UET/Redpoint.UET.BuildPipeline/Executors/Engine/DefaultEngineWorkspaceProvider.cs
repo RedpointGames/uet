@@ -56,7 +56,7 @@
                     new GitWorkspaceDescriptor
                     {
                         RepositoryUrl = buildEngineSpecification._uefsGitUrl!,
-                        RepositoryCommit = buildEngineSpecification._uefsGitCommit,
+                        RepositoryCommitOrRef = buildEngineSpecification._uefsGitCommit,
                         AdditionalFolderLayers = buildEngineSpecification._uefsGitFolders!,
                         WorkspaceDisambiguators = new[] { workspaceSuffix },
                         ProjectFolderName = null,

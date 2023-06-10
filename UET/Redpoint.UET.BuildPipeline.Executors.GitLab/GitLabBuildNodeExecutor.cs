@@ -32,11 +32,15 @@
             _sdkSetupForBuildExecutor = sdkSetupForBuildExecutor;
         }
 
+        public string DiscoverPipelineId()
+        {
+            return System.Environment.GetEnvironmentVariable("CI_PIPELINE_ID") ?? string.Empty;
+        }
+
         public async Task<int> ExecuteBuildNodeAsync(
             BuildSpecification buildSpecification,
             IBuildExecutionEvents buildExecutionEvents,
             string nodeName,
-            string? projectFolderName,
             CancellationToken cancellationToken)
         {
             var repository = System.Environment.GetEnvironmentVariable("CI_REPOSITORY_URL")!;
@@ -62,10 +66,11 @@
                         new GitWorkspaceDescriptor
                         {
                             RepositoryUrl = repository,
-                            RepositoryCommit = commit,
+                            RepositoryCommitOrRef = commit,
                             AdditionalFolderLayers = new string[0],
                             WorkspaceDisambiguators = new[] { nodeName },
-                            ProjectFolderName = projectFolderName,
+                            ProjectFolderName = buildSpecification.ProjectFolderName,
+                            IsEngineBuild = false,
                         },
                         cancellationToken))
                     {

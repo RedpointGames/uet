@@ -98,13 +98,22 @@
                         throw new NotSupportedException();
                 }
 
+                IBuildNodeExecutor executor;
+                switch (executorName)
+                {
+                    case "gitlab":
+                        executor = _gitLabBuildExecutorFactory.CreateNodeExecutor();
+                        break;
+                    default:
+                        throw new NotSupportedException();
+                }
+
                 BuildGraphEnvironment environment;
                 if (OperatingSystem.IsWindows())
                 {
                     environment = new BuildGraphEnvironment
                     {
-                        // @todo: Make this not GitLab-dependent.
-                        PipelineId = Environment.GetEnvironmentVariable("CI_PIPELINE_ID") ?? string.Empty,
+                        PipelineId = executor.DiscoverPipelineId(),
                         Windows = new BuildGraphWindowsEnvironment
                         {
                             SharedStorageAbsolutePath = buildJson.SharedStoragePath,
@@ -118,8 +127,7 @@
                 {
                     environment = new BuildGraphEnvironment
                     {
-                        // @todo: Make this not GitLab-dependent.
-                        PipelineId = Environment.GetEnvironmentVariable("CI_PIPELINE_ID") ?? string.Empty,
+                        PipelineId = executor.DiscoverPipelineId(),
                         Windows = null!,
                         Mac = new BuildGraphMacEnvironment
                         {
@@ -151,23 +159,12 @@
                     ProjectFolderName = buildJson.ProjectFolderName,
                 };
 
-                IBuildNodeExecutor executor;
-                switch (executorName)
-                {
-                    case "gitlab":
-                        executor = _gitLabBuildExecutorFactory.CreateNodeExecutor();
-                        break;
-                    default:
-                        throw new NotSupportedException();
-                }
-
                 try
                 {
                     var buildResult = await executor.ExecuteBuildNodeAsync(
                         buildSpecification,
                         new LoggerBasedBuildExecutionEvents(_logger),
                         buildJson.NodeName,
-                        buildJson.ProjectFolderName,
                         context.GetCancellationToken());
                     return buildResult;
                 }

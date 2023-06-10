@@ -1,21 +1,19 @@
 ﻿namespace Redpoint.ProcessExecution
 {
-    internal class PassthroughContentStream : ICaptureSpecification
+    internal class SilenceCaptureSpecification : ICaptureSpecification
     {
-        public bool InterceptStandardOutput => false;
+        public bool InterceptStandardOutput => true;
 
-        public bool InterceptStandardError => false;
+        public bool InterceptStandardError => true;
 
         public bool InterceptStandardInput => false;
 
         public void OnReceiveStandardError(string data)
         {
-            throw new NotSupportedException();
         }
 
         public void OnReceiveStandardOutput(string data)
         {
-            throw new NotSupportedException();
         }
 
         public string? OnRequestStandardInputAtStartup()

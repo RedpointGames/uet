@@ -123,7 +123,7 @@
         private async Task<IWorkspace> AllocateGitAsync(GitWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
         {
             var usingReservation = false;
-            var reservation = await _reservationManager.ReserveAsync("PhysicalGit", new[] { descriptor.RepositoryUrl, descriptor.RepositoryCommit });
+            var reservation = await _reservationManager.ReserveAsync("PhysicalGit", new[] { descriptor.RepositoryUrl, descriptor.RepositoryCommitOrRef });
             try
             {
                 _logger.LogInformation($"Creating physical Git workspace: {reservation.ReservedPath}");
