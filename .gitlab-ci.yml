@@ -210,6 +210,7 @@ stages:
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
+    $env:B2_ACCOUNT_INFO = Join-Path -Path (Resolve-Path -Path ".") -ChildPath ".b2.db"
     try {
       b2 authorize-account "$env:DL_BACKBLAZE_B2_KEY_ID" "$env:DL_BACKBLAZE_B2_APPLICATION_KEY"
       if ($LASTEXITCODE -ne 0) {
@@ -236,6 +237,7 @@ stages:
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
+    $env:B2_ACCOUNT_INFO = Join-Path -Path (Resolve-Path -Path ".") -ChildPath ".b2.db"
     try {
       b2 authorize-account "$env:DL_BACKBLAZE_B2_KEY_ID" "$env:DL_BACKBLAZE_B2_APPLICATION_KEY"
       if ($LASTEXITCODE -ne 0) {
@@ -267,6 +269,7 @@ stages:
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
+    $env:B2_ACCOUNT_INFO = Join-Path -Path (Resolve-Path -Path ".") -ChildPath ".b2.db"
     try {
       b2 authorize-account "$env:DL_BACKBLAZE_B2_KEY_ID" "$env:DL_BACKBLAZE_B2_APPLICATION_KEY"
       if ($LASTEXITCODE -ne 0) {
