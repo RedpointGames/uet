@@ -21,16 +21,19 @@
             IBuildGraphExecutor buildGraphExecutor,
             IEngineWorkspaceProvider engineWorkspaceProvider,
             IDynamicWorkspaceProvider workspaceProvider,
-            IStringUtilities stringUtilities,
             string buildServerOutputFilePath) : base(
                 baseLogger,
                 buildGraphExecutor,
                 engineWorkspaceProvider,
                 workspaceProvider,
-                stringUtilities,
                 buildServerOutputFilePath)
         {
             _logger = logger;
+        }
+
+        public override string DiscoverPipelineId()
+        {
+            return System.Environment.GetEnvironmentVariable("CI_PIPELINE_ID") ?? string.Empty;
         }
 
         protected override async Task EmitBuildServerSpecificFileAsync(

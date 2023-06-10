@@ -25,7 +25,6 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
         private readonly IBuildGraphExecutor _buildGraphExecutor;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
         private readonly IDynamicWorkspaceProvider _workspaceProvider;
-        private readonly IStringUtilities _stringUtilities;
         private readonly string _buildServerOutputFilePath;
 
         public BuildServerBuildExecutor(
@@ -33,14 +32,12 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
             IBuildGraphExecutor buildGraphExecutor,
             IEngineWorkspaceProvider engineWorkspaceProvider,
             IDynamicWorkspaceProvider workspaceProvider,
-            IStringUtilities stringUtilities,
             string buildServerOutputFilePath)
         {
             _logger = logger;
             _buildGraphExecutor = buildGraphExecutor;
             _engineWorkspaceProvider = engineWorkspaceProvider;
             _workspaceProvider = workspaceProvider;
-            _stringUtilities = stringUtilities;
             _buildServerOutputFilePath = buildServerOutputFilePath;
         }
 
@@ -55,7 +52,6 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
             string windowsSharedStoragePath,
             string? macSharedStoragePath,
             string? linuxSharedStoragePath,
-            string sharedStorageName,
             bool requiresCrossPlatformForBuild)
         {
             windowsSharedStoragePath = windowsSharedStoragePath.TrimEnd('\\');
@@ -90,7 +86,7 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                 throw new PlatformNotSupportedException();
             }
 
-            var targetFolder = Path.Combine(localOsSharedStoragePath, sharedStorageName, "uet");
+            var targetFolder = Path.Combine(localOsSharedStoragePath, "uet");
             Directory.CreateDirectory(targetFolder);
 
             var preparationInfo = new UETPreparationInfo();
@@ -118,19 +114,19 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                             if (manifestName.StartsWith("UET.Embedded.linux") && linuxSharedStoragePath != null)
                             {
                                 targetName = "uet.linux";
-                                preparationInfo.LinuxPath = $"{linuxSharedStoragePath}/{sharedStorageName}/uet/uet.linux";
+                                preparationInfo.LinuxPath = $"{linuxSharedStoragePath}/uet/uet.linux";
                             }
                             else 
 #endif
                             if (manifestName.StartsWith("UET.Embedded.osx") && macSharedStoragePath != null)
                             {
                                 targetName = "uet.osx";
-                                preparationInfo.MacPath = $"{macSharedStoragePath}/{sharedStorageName}/uet/uet.osx";
+                                preparationInfo.MacPath = $"{macSharedStoragePath}/uet/uet.osx";
                             }
                             else if (manifestName.StartsWith("UET.Embedded.win"))
                             {
                                 targetName = "uet.win.exe";
-                                preparationInfo.WindowsPath = $"{windowsSharedStoragePath}\\{sharedStorageName}\\uet\\uet.win.exe";
+                                preparationInfo.WindowsPath = $"{windowsSharedStoragePath}\\uet\\uet.win.exe";
                             }
                             else
                             {
@@ -148,7 +144,7 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                 string selfTargetPath;
                 if (OperatingSystem.IsWindows())
                 {
-                    selfTargetPath = $"{windowsSharedStoragePath}\\{sharedStorageName}\\uet\\uet.win.exe";
+                    selfTargetPath = $"{windowsSharedStoragePath}\\uet\\uet.win.exe";
                     preparationInfo.WindowsPath = selfTargetPath;
                 }
                 else if (OperatingSystem.IsMacOS())
@@ -157,7 +153,7 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                     {
                         throw new InvalidOperationException();
                     }
-                    selfTargetPath = $"{macSharedStoragePath}/{sharedStorageName}/uet/uet.osx";
+                    selfTargetPath = $"{macSharedStoragePath}/uet/uet.osx";
                     preparationInfo.MacPath = selfTargetPath;
                 }
 #if ENABLE_LINUX_SUPPORT
@@ -167,7 +163,7 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                     {
                         throw new InvalidOperationException();
                     }
-                    selfTargetPath = $"{linuxSharedStoragePath}/{sharedStorageName}/uet/uet.linux";
+                    selfTargetPath = $"{linuxSharedStoragePath}/uet/uet.linux";
                     preparationInfo.LinuxPath = selfTargetPath;
                 }
 #endif
@@ -180,16 +176,13 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
             else
             {
                 // Copy our UET executable (and it's dependencies if needed) to the shared storage folder.
-                var uetTargetDirectory = Path.Combine(
-                    localOsSharedStoragePath,
-                    sharedStorageName);
                 if (string.IsNullOrWhiteSpace(Assembly.GetEntryAssembly()?.Location))
                 {
                     // This is a self-contained executable.
                     string selfTargetPath;
                     if (OperatingSystem.IsWindows())
                     {
-                        selfTargetPath = $"{windowsSharedStoragePath}\\{sharedStorageName}\\uet\\uet.win.exe";
+                        selfTargetPath = $"{windowsSharedStoragePath}\\uet\\uet.win.exe";
                         preparationInfo.WindowsPath = selfTargetPath;
                     }
                     else if (OperatingSystem.IsMacOS())
@@ -198,7 +191,7 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                         {
                             throw new InvalidOperationException();
                         }
-                        selfTargetPath = $"{macSharedStoragePath}/{sharedStorageName}/uet/uet.osx";
+                        selfTargetPath = $"{macSharedStoragePath}/uet/uet.osx";
                         preparationInfo.MacPath = selfTargetPath;
                     }
 #if ENABLE_LINUX_SUPPORT
@@ -208,7 +201,7 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                         {
                             throw new InvalidOperationException();
                         }
-                        selfTargetPath = $"{linuxSharedStoragePath}/{sharedStorageName}/uet/uet.linux";
+                        selfTargetPath = $"{linuxSharedStoragePath}/uet/uet.linux";
                         preparationInfo.LinuxPath = selfTargetPath;
                     }
 #endif
@@ -221,14 +214,14 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                 else
                 {
                     // This is a normal .NET app (during development).
-                    _logger.LogInformation($"Recursively copying UET from {AppContext.BaseDirectory} to {Path.Combine(uetTargetDirectory, "uet")}...");
+                    _logger.LogInformation($"Recursively copying UET from {AppContext.BaseDirectory} to {Path.Combine(localOsSharedStoragePath, "uet")}...");
                     await DirectoryAsync.CopyAsync(
                         AppContext.BaseDirectory,
-                        Path.Combine(uetTargetDirectory, "uet"),
+                        Path.Combine(localOsSharedStoragePath, "uet"),
                         true);
                     if (OperatingSystem.IsWindows())
                     {
-                        preparationInfo.WindowsPath = $"{windowsSharedStoragePath}\\{sharedStorageName}\\uet\\uet.exe";
+                        preparationInfo.WindowsPath = $"{windowsSharedStoragePath}\\uet\\uet.exe";
                     }
                     else if (OperatingSystem.IsMacOS())
                     {
@@ -236,7 +229,7 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                         {
                             throw new InvalidOperationException();
                         }
-                        preparationInfo.MacPath = $"{macSharedStoragePath}/{sharedStorageName}/uet/uet";
+                        preparationInfo.MacPath = $"{macSharedStoragePath}/uet/uet";
                     }
 #if ENABLE_LINUX_SUPPORT
                     else if (OperatingSystem.IsLinux())
@@ -245,7 +238,7 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                         {
                             throw new InvalidOperationException();
                         }
-                        preparationInfo.LinuxPath = $"{linuxSharedStoragePath}/{sharedStorageName}/uet/uet";
+                        preparationInfo.LinuxPath = $"{linuxSharedStoragePath}/uet/uet";
                     }
 #endif
                     else
@@ -295,10 +288,6 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
             {
                 throw new BuildPipelineExecutionFailure("This build executor requires BuildServerOutputFilePath to be set.");
             }
-
-            var sharedStorageName = _stringUtilities.GetStabilityHash(
-                $"{buildSpecification.BuildGraphEnvironment.PipelineId}-{buildSpecification.DistributionName}-{buildSpecification.Engine.ToReparsableString()}",
-                null);
 
             BuildGraphExport buildGraph;
             await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
@@ -378,7 +367,6 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                 buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath,
                 buildSpecification.BuildGraphEnvironment.Mac?.SharedStorageAbsolutePath,
                 null,
-                sharedStorageName,
                 requiresCrossPlatformBuild);
 
             foreach (var group in buildGraph.Groups)
@@ -429,7 +417,6 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                                 {
                                     Engine = buildSpecification.Engine.ToReparsableString(),
                                     SharedStoragePath = buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath,
-                                    SharedStorageName = sharedStorageName,
                                     BuildGraphTarget = buildSpecification.BuildGraphTarget,
                                     NodeName = node.Name,
                                     DistributionName = buildSpecification.DistributionName,
@@ -452,7 +439,6 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
                                 {
                                     Engine = buildSpecification.Engine.ToReparsableString(),
                                     SharedStoragePath = buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
-                                    SharedStorageName = sharedStorageName,
                                     BuildGraphTarget = buildSpecification.BuildGraphTarget,
                                     NodeName = node.Name,
                                     DistributionName = buildSpecification.DistributionName,
@@ -511,5 +497,7 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
             BuildSpecification buildSpecification,
             BuildServerPipeline buildServerPipeline,
             string buildServerOutputFilePath);
+
+        public abstract string DiscoverPipelineId();
     }
 }

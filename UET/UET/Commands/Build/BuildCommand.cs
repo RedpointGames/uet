@@ -16,6 +16,8 @@
     using Redpoint.UET.BuildPipeline.Executors.GitLab;
     using UET.Services;
     using System.CommandLine.Help;
+    using Redpoint.UET.BuildPipeline.Executors.BuildServer;
+    using Redpoint.UET.Core;
 
     internal class BuildCommand
     {
@@ -169,19 +171,22 @@
             private readonly IBuildSpecificationGenerator _buildSpecificationGenerator;
             private readonly LocalBuildExecutorFactory _localBuildExecutorFactory;
             private readonly GitLabBuildExecutorFactory _gitLabBuildExecutorFactory;
+            private readonly IStringUtilities _stringUtilities;
 
             public BuildCommandInstance(
                 ILogger<BuildCommandInstance> logger,
                 Options options,
                 IBuildSpecificationGenerator buildSpecificationGenerator,
                 LocalBuildExecutorFactory localBuildExecutorFactory,
-                GitLabBuildExecutorFactory gitLabBuildExecutorFactory)
+                GitLabBuildExecutorFactory gitLabBuildExecutorFactory,
+                IStringUtilities stringUtilities)
             {
                 _logger = logger;
                 _options = options;
                 _buildSpecificationGenerator = buildSpecificationGenerator;
                 _localBuildExecutorFactory = localBuildExecutorFactory;
                 _gitLabBuildExecutorFactory = gitLabBuildExecutorFactory;
+                _stringUtilities = stringUtilities;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
@@ -268,18 +273,45 @@
                         throw new NotSupportedException();
                 }
 
+                // @note: We need the build executor to get the pipeline ID, which is also used as an input to compute the derived storage path that's specific for this build.
+                IBuildExecutor executor;
+                switch (executorName)
+                {
+                    case "local":
+                        executor = _localBuildExecutorFactory.CreateExecutor();
+                        break;
+                    case "gitlab":
+                        executor = _gitLabBuildExecutorFactory.CreateExecutor(executorOutputFile!);
+                        break;
+                    default:
+                        throw new NotSupportedException();
+                }
+
+                // Compute the shared storage name for this build.
+                var pipelineId = executor.DiscoverPipelineId();
+                var sharedStorageName = _stringUtilities.GetStabilityHash(
+                    $"{pipelineId}-{distribution?.DistributionCanonicalName}-{engineSpec.ToReparsableString()}",
+                    null);
+                _logger.LogInformation($"Using pipeline ID: {pipelineId}");
+                _logger.LogInformation($"Using shared storage name: {sharedStorageName}");
+
+                // Derive the shared storage paths.
+                windowsSharedStoragePath = $"{windowsSharedStoragePath.TrimEnd('\\')}\\{sharedStorageName}\\";
+                macSharedStoragePath = $"{macSharedStoragePath.TrimEnd('/')}/{sharedStorageName}/";
+                _logger.LogInformation($"Derived shared storage path for Windows: {windowsSharedStoragePath}");
+                _logger.LogInformation($"Derived shared storage path for macOS: {macSharedStoragePath}");
+
                 var buildGraphEnvironment = new Redpoint.UET.BuildPipeline.Environment.BuildGraphEnvironment
                 {
-                    // @todo: Make this not GitLab-dependent.
-                    PipelineId = Environment.GetEnvironmentVariable("CI_PIPELINE_ID") ?? string.Empty,
+                    PipelineId = pipelineId,
                     Windows = new Redpoint.UET.BuildPipeline.Environment.BuildGraphWindowsEnvironment
                     {
-                        SharedStorageAbsolutePath = $"{windowsSharedStoragePath.TrimEnd('\\')}\\",
+                        SharedStorageAbsolutePath = windowsSharedStoragePath,
                         SdksPath = windowsSdksPath?.TrimEnd('\\'),
                     },
                     Mac = new Redpoint.UET.BuildPipeline.Environment.BuildGraphMacEnvironment
                     {
-                        SharedStorageAbsolutePath = $"{macSharedStoragePath.TrimEnd('/')}/",
+                        SharedStorageAbsolutePath = macSharedStoragePath,
                         SdksPath = macSdksPath?.TrimEnd('/'),
                     },
                     // @note: Turned off until we can fix folder snapshotting in UEFS.
@@ -355,19 +387,6 @@
                 {
                     _logger.LogError(ex.Message);
                     return 1;
-                }
-
-                IBuildExecutor executor;
-                switch (executorName)
-                {
-                    case "local":
-                        executor = _localBuildExecutorFactory.CreateExecutor();
-                        break;
-                    case "gitlab":
-                        executor = _gitLabBuildExecutorFactory.CreateExecutor(executorOutputFile!);
-                        break;
-                    default:
-                        throw new NotSupportedException();
                 }
 
                 try

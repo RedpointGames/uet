@@ -10,9 +10,6 @@
         [JsonPropertyName("SharedStoragePath"), JsonRequired]
         public string SharedStoragePath { get; set; } = string.Empty;
 
-        [JsonPropertyName("SharedStorageName"), JsonRequired]
-        public string SharedStorageName { get; set; } = string.Empty;
-
         [JsonPropertyName("SdksPath"), JsonRequired]
         public string? SdksPath { get; set; } = null;
 

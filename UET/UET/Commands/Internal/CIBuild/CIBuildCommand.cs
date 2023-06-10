@@ -116,7 +116,7 @@
                         PipelineId = executor.DiscoverPipelineId(),
                         Windows = new BuildGraphWindowsEnvironment
                         {
-                            SharedStorageAbsolutePath = Path.Combine(buildJson.SharedStoragePath, buildJson.SharedStorageName),
+                            SharedStorageAbsolutePath = buildJson.SharedStoragePath,
                             SdksPath = buildJson.SdksPath,
                         },
                         Mac = null!,
@@ -131,7 +131,7 @@
                         Windows = null!,
                         Mac = new BuildGraphMacEnvironment
                         {
-                            SharedStorageAbsolutePath = Path.Combine(buildJson.SharedStoragePath, buildJson.SharedStorageName),
+                            SharedStorageAbsolutePath = buildJson.SharedStoragePath,
                             SdksPath = buildJson.SdksPath,
                         },
                         UseStorageVirtualisation = Environment.GetEnvironmentVariable("UET_USE_STORAGE_VIRTUALIZATION") != "false",

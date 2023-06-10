@@ -7,6 +7,8 @@
 
     public interface IBuildExecutor
     {
+        string DiscoverPipelineId();
+
         Task<int> ExecuteBuildAsync(
             BuildSpecification buildSpecification,
             IBuildExecutionEvents buildExecutionEvents,

@@ -36,6 +36,11 @@
             _sdkSetupForBuildExecutor = sdkSetupForBuildExecutor;
         }
 
+        public string DiscoverPipelineId()
+        {
+            return string.Empty;
+        }
+
         private class DAGNode
         {
             public required BuildGraphExportNode Node { get; set; }
