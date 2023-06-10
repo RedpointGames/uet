@@ -8,7 +8,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <Target Name="BuildShim" BeforeTargets="ResolveReferences">
+  <Target Name="BuildShim" BeforeTargets="ResolveReferences" Condition="'$(OpenGEShimIsAlreadyBuilt)' != 'true'">
     <ItemGroup>
       <OpenGEShim Include="$(ProjectDir)..\Redpoint.OpenGE.Shim\Redpoint.OpenGE.Shim.csproj">
         <AdditionalProperties>RuntimeIdentifier=win-x64;OutDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64;PublishDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish</AdditionalProperties>
@@ -26,6 +26,9 @@
     <Compile Remove="shim-bin\**" />
     <EmbeddedResource Remove="shim-bin\**" />
     <None Remove="shim-bin\**" />
+    <EmbeddedResource Include="$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish\Redpoint.OpenGE.Shim.exe" Condition="'$(OpenGEShimIsAlreadyBuilt)' == 'true'">
+      <Link>Embedded\win-x64\xgConsole.exe</Link>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

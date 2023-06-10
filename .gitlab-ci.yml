@@ -1,9 +1,10 @@
 stages:
   - Timestamp
-  - Build Phase 1
+  - Build OpenGE Shim
+  - Build Pass 1
   - Test
   - Package
-  - Build Phase 2
+  - Build Pass 2
   - Publish
   - End
 
@@ -20,8 +21,8 @@ stages:
     paths:
       - package.version
 
-"Build Libraries":
-  stage: Build Phase 1
+"Build OpenGE Shim":
+  stage: Build OpenGE Shim
   tags:
     - redpoint-games-windows
   needs:
@@ -29,7 +30,26 @@ stages:
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    dotnet build -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion "-p:OutDir=$((Get-Location).Path)\UET\Redpoint.OpenGE.ProcessExecution\shim-bin\Release\net7.0\win-x64" "-p:PublishDir=$((Get-Location).Path)\UET\Redpoint.OpenGE.ProcessExecution\shim-bin\Release\net7.0\win-x64\publish" UET/Redpoint.OpenGE.Shim/Redpoint.OpenGE.Shim.csproj
+    if ($LastExitCode -ne 0) {
+      Write-Host "Publish win-x64 (Redpoint.OpenGE.Shim.csproj) failed with exit code $LastExitCode"
+      exit $LastExitCode 
+    }
+  artifacts:
+    paths:
+      - "UET/Redpoint.OpenGE.ProcessExecution/shim-bin/Release/net7.0/win-x64"
+
+"Build Libraries":
+  stage: Build Pass 1
+  tags:
+    - redpoint-games-windows
+  needs:
+    - Timestamp
+    - "Build OpenGE Shim"
+  interruptible: true
+  script: |
+    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
+    dotnet build -c Release /p:PackageVersion=$PackageVersion /p:OpenGEShimIsAlreadyBuilt=true UET/UET.sln
     if ($LastExitCode -ne 0) {
       Write-Host "dotnet build (UET.sln) failed with exit code $LastExitCode"
       exit $LastExitCode 
@@ -38,16 +58,17 @@ stages:
     paths:
       - "**/bin/**/*"
 
-"Build Win Phase 1":
-  stage: Build Phase 1
+"Build Win Pass 1":
+  stage: Build Pass 1
   tags:
     - redpoint-games-windows
   needs:
     - Timestamp
+    - "Build OpenGE Shim"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/uet/uet.csproj
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion -p:OpenGEShimIsAlreadyBuilt=true UET/uet/uet.csproj
     if ($LastExitCode -ne 0) {
       Write-Host "Publish win-x64 (uet.csproj) failed with exit code $LastExitCode"
       exit $LastExitCode 
@@ -56,16 +77,17 @@ stages:
     paths:
       - "UET/uet/bin/Release/net7.0/win-x64/uet.exe"
 
-"Build Mac Phase 1":
-  stage: Build Phase 1
+"Build Mac Pass 1":
+  stage: Build Pass 1
   tags:
     - redpoint-games-mac
   needs:
     - Timestamp
+    - "Build OpenGE Shim"
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version)
-    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION UET/uet/uet.csproj
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION -p:OpenGEShimIsAlreadyBuilt=true UET/uet/uet.csproj
   artifacts:
     paths:
       - "UET/uet/bin/Release/net7.0/osx.11.0-arm64/uet"
@@ -109,20 +131,21 @@ stages:
     paths:
       - "**/*.nupkg"
 
-"Build Win Phase 2":
-  stage: Build Phase 2
+"Build Win Pass 2":
+  stage: Build Pass 2
   tags:
     - redpoint-games-windows
   needs:
     - Timestamp
-    - "Build Win Phase 1"
-    - "Build Mac Phase 1"
+    - "Build OpenGE Shim"
+    - "Build Win Pass 1"
+    - "Build Mac Pass 1"
     - job: "Test Libraries"
       artifacts: false
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:Configuration=Release -p:EmbeddingCrossPlatform=true -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/uet/uet.csproj
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:Configuration=Release -p:EmbeddingCrossPlatform=true -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion -p:OpenGEShimIsAlreadyBuilt=true UET/uet/uet.csproj
     if ($LastExitCode -ne 0) {
       Write-Host "Publish win-x64 (uet.csproj) failed with exit code $LastExitCode"
       exit $LastExitCode 
@@ -131,20 +154,21 @@ stages:
     paths:
       - "UET/uet/bin/Release/net7.0/win-x64/uet.exe"
 
-"Build Mac Phase 2":
-  stage: Build Phase 2
+"Build Mac Pass 2":
+  stage: Build Pass 2
   tags:
     - redpoint-games-mac
   needs:
     - Timestamp
-    - "Build Win Phase 1"
-    - "Build Mac Phase 1"
+    - "Build OpenGE Shim"
+    - "Build Win Pass 1"
+    - "Build Mac Pass 1"
     - job: "Test Libraries"
       artifacts: false
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version)
-    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:EmbeddingCrossPlatform=true -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION UET/uet/uet.csproj
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:EmbeddingCrossPlatform=true -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION -p:OpenGEShimIsAlreadyBuilt=true UET/uet/uet.csproj
   artifacts:
     paths:
       - "UET/uet/bin/Release/net7.0/osx.11.0-arm64/uet"
@@ -174,7 +198,7 @@ stages:
     - redpoint-games-windows
   needs:
     - Timestamp
-    - "Build Win Phase 2"
+    - "Build Win Pass 2"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -200,7 +224,7 @@ stages:
     - redpoint-games-windows
   needs:
     - Timestamp
-    - "Build Mac Phase 2"
+    - "Build Mac Pass 2"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
