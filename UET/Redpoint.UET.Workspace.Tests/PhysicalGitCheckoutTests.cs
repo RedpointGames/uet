@@ -29,6 +29,7 @@
         public async Task CanCheckoutFresh()
         {
             Skip.IfNot(OperatingSystem.IsWindows());
+            Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
             var tempPath = Path.Combine(Path.GetTempPath(), "UETTests-CanCheckoutProject");
             Directory.CreateDirectory(tempPath);
 
@@ -77,6 +78,8 @@
         [SkippableFact]
         public async Task CanCheckoutWithGitCheckoutMissing()
         {
+            Skip.IfNot(OperatingSystem.IsWindows());
+            Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
             var tempPath = Path.Combine(Path.GetTempPath(), "UETTests-CanCheckoutProject");
             Directory.CreateDirectory(tempPath);
 
