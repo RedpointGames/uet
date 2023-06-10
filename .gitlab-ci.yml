@@ -119,12 +119,13 @@ stages:
   needs:
     - Timestamp
     - "Build Libraries"
+    - "Build OpenGE Shim"
     - job: "Test Libraries"
       artifacts: false
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    dotnet publish --no-build -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
+    dotnet publish --no-build -c Release /p:PackageVersion=$PackageVersion /p:OpenGEShimIsAlreadyBuilt=true UET/UET.sln
     if ($LastExitCode -ne 0) {
       Write-Host "dotnet publish (UET.sln) failed with exit code $LastExitCode"
       exit $LastExitCode 
