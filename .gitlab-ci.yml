@@ -16,7 +16,7 @@ stages:
   script: |
     $Timestamp = ([DateTime]::UtcNow)
     $PackageVersion = "$($Timestamp.Year).$(($Timestamp.Day * 12) + $Timestamp.Month).$(($Timestamp.Hour * 60) + $Timestamp.Minute)"
-    Set-Content -Path "package.version" -Value "$PackageVersion"
+    Set-Content -NoNewline -Path "package.version" -Value "$PackageVersion"
   artifacts:
     paths:
       - package.version
