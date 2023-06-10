@@ -59,6 +59,88 @@
             }
         }
 
+        private async Task CopyMissingEngineBitsAsync(string enginePath)
+        {
+            // Copy binaries that are missing from installed engine builds which are
+            // necessary to rebuild UBT bits.
+            var manifestResourceNames = Assembly.GetExecutingAssembly().GetManifestResourceNames();
+            var copyRules = new List<(string source, string target)>
+            {
+                (
+                    source: $"stream:{manifestResourceNames.First(x => x.EndsWith(".fastJSON.dll", StringComparison.InvariantCultureIgnoreCase))}",
+                    target: $"{enginePath}/Engine/Binaries/ThirdParty/fastJSON/netstandard2.0/fastJSON.dll"
+                ),
+                (
+                    source: $"stream:{manifestResourceNames.First(x => x.EndsWith(".fastJSON.deps.json", StringComparison.InvariantCultureIgnoreCase))}",
+                    target: $"{enginePath}/Engine/Binaries/ThirdParty/fastJSON/netstandard2.0/fastJSON.deps.json"
+                ),
+                (
+                    source: $"stream:{manifestResourceNames.First(x => x.EndsWith(".Ionic.Zip.Reduced.dll", StringComparison.InvariantCultureIgnoreCase))}",
+                    target: $"{enginePath}/Engine/Binaries/DotNET/Ionic.Zip.Reduced.dll"
+                ),
+                (
+                    source: $"stream:{manifestResourceNames.First(x => x.EndsWith(".OneSky.dll", StringComparison.InvariantCultureIgnoreCase))}",
+                    target: $"{enginePath}/Engine/Binaries/DotNET/OneSky.dll"
+                ),
+            };
+            if (Directory.Exists($"{enginePath}/Engine/Source/Programs/Shared/EpicGames.Perforce.Native"))
+            {
+                // Copy EpicGames.Perforce.Native from the engine itself.
+                copyRules.AddRange(new[]
+                {
+                    (
+                        source: $"{enginePath}/Engine/Binaries/DotNET/AutomationTool/AutomationUtils/EpicGames.Perforce.Native.dll",
+                        target: $"{enginePath}/Engine/Binaries/DotNET/EpicGames.Perforce.Native/win-x64/Release/EpicGames.Perforce.Native.dll"
+                    ),
+                    (
+                        source: $"{enginePath}/Engine/Binaries/DotNET/AutomationTool/AutomationUtils/EpicGames.Perforce.Native.dylib",
+                        target: $"{enginePath}/Engine/Binaries/DotNET/EpicGames.Perforce.Native/mac-x64/Release/EpicGames.Perforce.Native.dylib"
+                    ),
+                    (
+                        source: $"{enginePath}/Engine/Binaries/DotNET/AutomationTool/AutomationUtils/EpicGames.Perforce.Native.so",
+                        target: $"{enginePath}/Engine/Binaries/DotNET/EpicGames.Perforce.Native/linux-x64/Release/EpicGames.Perforce.Native.so"
+                    ),
+                });
+            }
+
+            // Perform the copy operations.
+            foreach (var copyRule in copyRules)
+            {
+                var source = copyRule.source;
+                var target = copyRule.target;
+                if (OperatingSystem.IsWindows())
+                {
+                    source = source.Replace('/', '\\');
+                    target = target.Replace('/', '\\');
+                }
+                if (!File.Exists(target))
+                {
+                    Stream sourceStream;
+                    if (source.StartsWith("stream:"))
+                    {
+                        sourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(source.Substring("stream:".Length))!;
+                    }
+                    else
+                    {
+                        if (!File.Exists(source))
+                        {
+                            continue;
+                        }
+                        sourceStream = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    }
+                    _logger.LogInformation($"Auto-fix: Need to copy '{target}' into place...");
+                    using (sourceStream)
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                        using (var targetStream = new FileStream(target, FileMode.Create, FileAccess.Write, FileShare.None))
+                        {
+                            await sourceStream.CopyToAsync(targetStream);
+                        }
+                    }
+                }
+            }
+        }
+
         public async Task PatchBuildGraphAsync(string enginePath)
         {
             var patchLevelFilePath = Path.Combine(enginePath, "Engine", "Source", "Programs", "UET.BuildGraphPatchLevel.txt");
@@ -110,6 +192,8 @@
                     }
                 }
             }
+
+            await CopyMissingEngineBitsAsync(enginePath);
 
             var epicGamesCoreProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "Shared", "EpicGames.Core", "EpicGames.Core.csproj");
             var epicGamesBuildProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "Shared", "EpicGames.Build", "EpicGames.Build.csproj");

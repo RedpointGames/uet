@@ -12,12 +12,20 @@
     <None Remove="BuildGraph\BuildGraph_Plugin.xml" />
     <None Remove="BuildGraph\BuildGraph_Project.xml" />
     <None Remove="BuildGraph\Patching\BuildGraphPatches.json" />
+    <None Remove="BuildGraph\Patching\fastJSON.deps.json" />
+    <None Remove="BuildGraph\Patching\fastJSON.dll" />
+    <None Remove="BuildGraph\Patching\Ionic.Zip.Reduced.dll" />
+    <None Remove="BuildGraph\Patching\OneSky.dll" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="BuildGraph\BuildGraph_Plugin.xml" />
     <EmbeddedResource Include="BuildGraph\BuildGraph_Project.xml" />
     <EmbeddedResource Include="BuildGraph\Patching\BuildGraphPatches.json" />
+    <EmbeddedResource Include="BuildGraph\Patching\fastJSON.deps.json" />
+    <EmbeddedResource Include="BuildGraph\Patching\fastJSON.dll" />
+    <EmbeddedResource Include="BuildGraph\Patching\Ionic.Zip.Reduced.dll" />
+    <EmbeddedResource Include="BuildGraph\Patching\OneSky.dll" />
   </ItemGroup>
 
   <ItemGroup>
