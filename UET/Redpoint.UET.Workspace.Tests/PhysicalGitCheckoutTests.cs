@@ -28,6 +28,7 @@
         [SkippableFact]
         public async Task CanCheckoutFresh()
         {
+            Skip.IfNot(OperatingSystem.IsWindows());
             var tempPath = Path.Combine(Path.GetTempPath(), "UETTests-CanCheckoutProject");
             Directory.CreateDirectory(tempPath);
 

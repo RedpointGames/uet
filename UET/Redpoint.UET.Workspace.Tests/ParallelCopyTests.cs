@@ -10,6 +10,7 @@ namespace Redpoint.UET.Workspace.Tests
         [SkippableFact]
         public async Task TestParallelCopyFileList()
         {
+            Skip.IfNot(OperatingSystem.IsWindows());
             Skip.IfNot(Directory.Exists(@"C:\Work\internal\EOS_OSB\EOS_OSB\Plugins\EOS"));
             Directory.CreateDirectory(@"C:\Temp\TestParallelCopyFileList");
 
