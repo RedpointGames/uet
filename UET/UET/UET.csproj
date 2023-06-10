@@ -26,8 +26,6 @@
     <MetadataUpdaterSupport Condition="'$(Configuration)' == 'Release'">false</MetadataUpdaterSupport>
     <ShowLinkerSizeComparison>true</ShowLinkerSizeComparison>
 
-    <NoWarn>7035;7034</NoWarn>
-
     <BaseUetYear>$([System.DateTime]::Now.Year)</BaseUetYear>
     <BaseUetMonth>$([System.DateTime]::Now.Month)</BaseUetMonth>
     <BaseUetDay>$([System.DateTime]::Now.Day)</BaseUetDay>
@@ -50,6 +48,10 @@
     <AssemblyVersion>$(BaseUetVersion).0</AssemblyVersion>
     <RepositoryUrl>https://src.redpoint.games/redpointgames/unreal-engine-tool</RepositoryUrl>
   </PropertyGroup>
+
+  <Target Name="DisplayTargetVersion" BeforeTargets="BeforeBuild">
+    <Message Text="Using assembly version: $(AssemblyVersion)" Importance="high" />
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
