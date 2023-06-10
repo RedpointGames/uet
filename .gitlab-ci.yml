@@ -57,6 +57,7 @@ stages:
   artifacts:
     paths:
       - "**/bin/**/*"
+      - "**/obj/**/*"
 
 "Build Win Pass 1":
   stage: Build Pass 1
