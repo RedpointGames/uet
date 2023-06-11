@@ -2,8 +2,7 @@ stages:
   - Timestamp
   - Build OpenGE Shim
   - Build Pass 1
-  - Test
-  - Package
+  - Build Libraries
   - Build Pass 2
   - Publish
   - End
@@ -38,26 +37,6 @@ stages:
   artifacts:
     paths:
       - "UET/Redpoint.OpenGE.ProcessExecution/shim-bin/Release/net7.0/win-x64/publish"
-
-"Build Libraries":
-  stage: Build Pass 1
-  tags:
-    - redpoint-games-windows
-  needs:
-    - Timestamp
-    - "Build OpenGE Shim"
-  interruptible: true
-  script: |
-    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    dotnet build -c Release /p:PackageVersion=$PackageVersion /p:OpenGEShimIsAlreadyBuilt=true UET/UET.sln
-    if ($LastExitCode -ne 0) {
-      Write-Host "dotnet build (UET.sln) failed with exit code $LastExitCode"
-      exit $LastExitCode 
-    }
-  artifacts:
-    paths:
-      - "**/bin/**/*"
-      - "**/obj/**/*"
 
 "Build Win Pass 1":
   stage: Build Pass 1
@@ -96,36 +75,26 @@ stages:
     paths:
       - "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet"
 
-"Test Libraries":
-  stage: Test
+"Build, Test and Package Libraries":
+  stage: Build Libraries
   tags:
     - redpoint-games-windows
   needs:
     - Timestamp
-    - "Build Libraries"
+    - "Build OpenGE Shim"
   interruptible: true
   script: |
+    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
+    dotnet build -c Release /p:PackageVersion=$PackageVersion /p:OpenGEShimIsAlreadyBuilt=true UET/UET.sln
+    if ($LastExitCode -ne 0) {
+      Write-Host "dotnet build (UET.sln) failed with exit code $LastExitCode"
+      exit $LastExitCode 
+    }
     dotnet test --no-build --logger:"console" --logger:"junit;LogFilePath=$((Get-Location).Path)\TestResults\{assembly}.test-result.xml" -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
     if ($LastExitCode -ne 0) {
       Write-Host "dotnet test (UET.sln) failed with exit code $LastExitCode"
       exit $LastExitCode 
     }
-  artifacts:
-    reports:
-      junit: TestResults/*.test-result.xml
-
-"Package Libraries":
-  stage: Package
-  tags:
-    - redpoint-games-windows
-  needs:
-    - Timestamp
-    - "Build Libraries"
-    - "Build OpenGE Shim"
-    - job: "Test Libraries"
-      artifacts: false
-  interruptible: true
-  script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
     dotnet publish --no-build -c Release /p:PackageVersion=$PackageVersion /p:OpenGEShimIsAlreadyBuilt=true UET/UET.sln
     if ($LastExitCode -ne 0) {
@@ -133,6 +102,8 @@ stages:
       exit $LastExitCode 
     }
   artifacts:
+    reports:
+      junit: TestResults/*.test-result.xml
     paths:
       - "**/*.nupkg"
 
@@ -145,7 +116,7 @@ stages:
     - "Build OpenGE Shim"
     - "Build Win Pass 1"
     - "Build Mac Pass 1"
-    - job: "Test Libraries"
+    - job: "Build, Test and Package Libraries"
       artifacts: false
   interruptible: true
   script: |
@@ -168,7 +139,7 @@ stages:
     - "Build OpenGE Shim"
     - "Build Win Pass 1"
     - "Build Mac Pass 1"
-    - job: "Test Libraries"
+    - job: "Build, Test and Package Libraries"
       artifacts: false
   interruptible: true
   script: |
@@ -187,7 +158,7 @@ stages:
     - redpoint-games-windows
   needs:
     - Timestamp
-    - "Package Libraries"
+    - "Build, Test and Package Libraries"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -303,69 +274,3 @@ stages:
     paths:
       - UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet
       - UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe
-  
-
-# "Build, Test, Package and Push":
-#   stage: Build
-#   tags:
-#     - redpoint-games-windows
-#   interruptible: true
-#   script: |
-#     $Timestamp = ([DateTime]::UtcNow)
-#     $PackageVersion = "$($Timestamp.Year).$(($Timestamp.Day * 12) + $Timestamp.Month).$(($Timestamp.Hour * 60) + $Timestamp.Minute)"
-#     Set-Content -Path "package.version" -Value "$PackageVersion"
-  
-#     dotnet build -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
-#     if ($LastExitCode -ne 0) {
-#       Write-Host "dotnet build (UET.sln) failed with exit code $LastExitCode"
-#       exit $LastExitCode 
-#     }
-#     dotnet msbuild -restore -t:PublishAllRids -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/uet/uet.csproj
-#     if ($LastExitCode -ne 0) {
-#       Write-Host "PublishAllRids (uet.csproj) failed with exit code $LastExitCode"
-#       exit $LastExitCode 
-#     }
-#     dotnet test --no-build --logger:"console" --logger:"junit;LogFilePath=$((Get-Location).Path)\TestResults\{assembly}.test-result.xml" -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
-#     if ($LastExitCode -ne 0) {
-#       Write-Host "dotnet test (UET.sln) failed with exit code $LastExitCode"
-#       exit $LastExitCode 
-#     }
-#     dotnet publish --no-build -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
-#     if ($LastExitCode -ne 0) {
-#       Write-Host "dotnet publish (UET.sln) failed with exit code $LastExitCode"
-#       exit $LastExitCode 
-#     }
-#     dotnet nuget push --source https://api.nuget.org/v3/index.json --api-key $env:NUGET_API_KEY (Get-ChildItem -Recurse -Filter "*.$PackageVersion.nupkg" | % { $_.FullName })
-#     if ($LastExitCode -ne 0) {
-#       Write-Host "dotnet push failed with exit code $LastExitCode"
-#       exit $LastExitCode 
-#     }
-#     $env:B2_ACCOUNT_INFO = Join-Path -Path (Resolve-Path -Path ".") -ChildPath ".b2.db"
-#     try {
-#       b2 authorize-account "$env:DL_BACKBLAZE_B2_KEY_ID" "$env:DL_BACKBLAZE_B2_APPLICATION_KEY"
-#       if ($LASTEXITCODE -ne 0) {
-#         exit $LASTEXITCODE
-#       }
-#       b2 upload-file dl-public-redpoint-games "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet" "uet/$PackageVersion/macos/uet"
-#       if ($LASTEXITCODE -ne 0) {
-#         exit $LASTEXITCODE
-#       }
-#       b2 upload-file dl-public-redpoint-games "UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe" "uet/$PackageVersion/windows/uet.exe"
-#       if ($LASTEXITCODE -ne 0) {
-#         exit $LASTEXITCODE
-#       }
-#       Set-Content -Value $PackageVersion -Path latest.txt
-#       b2 upload-file dl-public-redpoint-games "latest.txt" "uet/latest"
-#       if ($LASTEXITCODE -ne 0) {
-#         exit $LASTEXITCODE
-#       }
-#     } finally {
-#       if (Test-Path $env:B2_ACCOUNT_INFO) {
-#         Write-Output "Cleaning up B2 authentication file..."
-#         Remove-Item -Force -Path $env:B2_ACCOUNT_INFO
-#       }
-#     }
-#     exit 0
-#   artifacts:
-#     reports:
-#       junit: TestResults/*.test-result.xml
