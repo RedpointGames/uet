@@ -10,8 +10,8 @@ UET can perform simple builds of projects and plugins without a `BuildConfig.jso
 
 You can download the latest version of UET from the links below.
 
-- [Latest Windows (x64)](https://src.redpoint.games/api/v4/projects/242/jobs/artifacts/main/raw/UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe?job=Build%2C%20Test%2C%20Package%20and%20Push)
-- [Latest macOS (ARM64)](https://src.redpoint.games/api/v4/projects/242/jobs/artifacts/main/raw/UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet?job=Build%2C%20Test%2C%20Package%20and%20Push)
+- [Latest Windows (x64)](https://src.redpoint.games/api/v4/projects/242/jobs/artifacts/main/raw/UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe?job=End)
+- [Latest macOS (ARM64)](https://src.redpoint.games/api/v4/projects/242/jobs/artifacts/main/raw/UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet?job=End)
 
 Once you have UET downloaded, you can install it into your PATH by running `uet upgrade`. You can also use this command later on to update to the latest version.
 

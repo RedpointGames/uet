@@ -263,8 +263,8 @@ stages:
   tags:
     - redpoint-games-windows
   needs:
-    - job: "Publish Win"
-    - job: "Publish Mac"
+    - "Build Win Pass 2"
+    - "Build Mac Pass 2"
     - job: "Publish Timestamp"
       artifacts: false
   interruptible: true
