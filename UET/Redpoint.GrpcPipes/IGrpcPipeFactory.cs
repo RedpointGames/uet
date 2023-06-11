@@ -1,11 +1,12 @@
 ﻿namespace Redpoint.GrpcPipes
 {
-    using Grpc.Core;
+    using Grpc.Net.Client;
+    using System.Diagnostics.CodeAnalysis;
 
     public interface IGrpcPipeFactory
     {
-        IGrpcPipeServer CreateServer(string pipeName);
+        IGrpcPipeServer<T> CreateServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T>(string pipeName, T instance) where T : class;
 
-        T CreateClient<T>(string pipeName, Func<CallInvoker, T> constructor);
+        T CreateClient<T>(string pipeName, Func<GrpcChannel, T> constructor);
     }
 }

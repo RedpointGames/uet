@@ -1,13 +1,8 @@
 ﻿namespace UET.Commands.Internal.RunDownstreamTest
 {
-    using Grpc.Core.Logging;
     using Microsoft.Extensions.Logging;
-    using System;
-    using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
-    using System.Linq;
-    using System.Text;
     using System.Threading.Tasks;
 
     internal class RunDownstreamTestCommand

@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.UET.BuildPipeline.Executors.GitLab
 {
-    using System.Diagnostics.CodeAnalysis;
     using YamlDotNet.Serialization;
 
     [YamlSerializable]

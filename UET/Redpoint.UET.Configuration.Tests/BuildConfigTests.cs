@@ -6,7 +6,6 @@ namespace Redpoint.UET.Configuration.Tests
     using Redpoint.UET.Configuration.Plugin;
     using Redpoint.UET.Configuration.Project;
     using System.Text.Json;
-    using System.Text.Json.Serialization;
 
     public class BuildConfigTests
     {

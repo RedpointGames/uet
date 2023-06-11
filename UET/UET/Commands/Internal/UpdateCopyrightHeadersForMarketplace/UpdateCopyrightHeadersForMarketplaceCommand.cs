@@ -1,14 +1,10 @@
 ﻿namespace UET.Commands.Internal.UpdateCopyrightHeadersForMarketplace
 {
-    using Grpc.Core.Logging;
     using Microsoft.Extensions.Logging;
     using System;
-    using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Linq;
-    using System.Runtime.InteropServices;
-    using System.Text;
     using System.Threading.Tasks;
 
     internal class UpdateCopyrightHeadersForMarketplaceCommand

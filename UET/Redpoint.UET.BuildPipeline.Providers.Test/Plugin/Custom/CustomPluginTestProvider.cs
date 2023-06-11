@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.UET.BuildPipeline.Providers.Test.Plugin.Custom
 {
-    using Redpoint.UET.Configuration;
     using Redpoint.UET.Configuration.Plugin;
     using Redpoint.UET.BuildGraph;
     using System.Threading.Tasks;

@@ -17,7 +17,7 @@
         private readonly IOpenGEExecutorFactory _executorFactory;
         private readonly IGrpcPipeFactory _grpcPipeFactory;
         private bool _hasStarted = false;
-        private IGrpcPipeServer? _pipeServer = null;
+        private IGrpcPipeServer<DefaultOpenGEDaemon>? _pipeServer = null;
         private long _inflightJobs = 0;
         private bool _isShuttingDown = false;
         private CancellationToken _shutdownCancellationToken;
@@ -46,10 +46,7 @@
                 }
 
                 _logger.LogTrace($"Starting OpenGE daemon on pipe: {_pipeName}");
-                _pipeServer = _grpcPipeFactory.CreateServer(_pipeName);
-                _pipeServer.AddService(
-                    serviceBinder => OpenGE.BindService(serviceBinder, this),
-                    () => OpenGE.BindService(this));
+                _pipeServer = _grpcPipeFactory.CreateServer(_pipeName, this);
                 _pipeServer.Start();
                 _hasStarted = true;
                 _logger.LogTrace($"Started OpenGE daemon on pipe: {_pipeName}");

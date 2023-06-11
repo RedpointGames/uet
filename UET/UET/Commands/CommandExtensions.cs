@@ -3,7 +3,6 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.MSBuildResolution;
-    using Redpoint.OpenGE;
     using Redpoint.OpenGE.Executor;
     using Redpoint.OpenGE.ProcessExecution;
     using Redpoint.PathResolution;

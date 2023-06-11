@@ -6,9 +6,6 @@
     using Redpoint.UET.Configuration.Plugin;
     using Redpoint.UET.BuildPipeline.Providers.Test;
     using Redpoint.UET.BuildPipeline.Providers.Deployment;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
 

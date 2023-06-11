@@ -4,7 +4,6 @@
     using Redpoint.UET.Automation.Model;
     using Redpoint.UET.Automation.Worker;
     using System;
-    using static System.Runtime.InteropServices.JavaScript.JSType;
 
     internal class ConsoleTestLogger : ITestLogger
     {

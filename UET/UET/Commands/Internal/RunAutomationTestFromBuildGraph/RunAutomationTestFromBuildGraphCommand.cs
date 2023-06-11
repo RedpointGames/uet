@@ -1,6 +1,5 @@
 ﻿namespace UET.Commands.Internal.RunAutomationTestFromBuildGraph
 {
-    using Grpc.Core.Logging;
     using Microsoft.Extensions.Logging;
     using Redpoint.UET.Automation.Model;
     using Redpoint.UET.Automation.Runner;
@@ -9,12 +8,9 @@
     using Redpoint.UET.Automation.TestReporter;
     using Redpoint.UET.Automation.Worker;
     using System;
-    using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Linq;
-    using System.Runtime.InteropServices;
-    using System.Text;
     using System.Threading.Tasks;
 
     internal class RunAutomationTestFromBuildGraphCommand

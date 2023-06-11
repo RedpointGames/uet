@@ -54,8 +54,16 @@
   </Target>
 
   <ItemGroup>
+    <None Remove="Commands\Internal\TestGrpcPipes\TestPipes.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.51.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
@@ -93,6 +101,12 @@
     <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'linux-x64' and '$(EmbeddingCrossPlatform)' == 'true' and '$(EnableLinuxSupport)' == 'true'">
       <Link>Embedded\linux-x64\uet</Link>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Commands\Internal\TestGrpcPipes\TestPipes.proto">
+      <GrpcServices>Both</GrpcServices>
+    </Protobuf>
   </ItemGroup>
 
   <Target Name="PublishAllRids">

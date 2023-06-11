@@ -19,7 +19,6 @@
  * associated repository.
  */
 
-using System.Runtime.CompilerServices;
 using System;
 using System.Diagnostics;
 using System.IO;

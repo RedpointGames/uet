@@ -7,7 +7,6 @@
     using Redpoint.UET.Automation.TestLogger;
     using Redpoint.UET.Automation.TestLogging;
     using Redpoint.UET.Automation.TestNotification;
-    using Redpoint.UET.Automation.TestNotification.Io;
     using Redpoint.UET.Automation.TestReporter;
     using Redpoint.UET.Automation.Worker;
     using Redpoint.UET.Automation.Worker.Local;

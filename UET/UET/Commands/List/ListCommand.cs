@@ -1,20 +1,13 @@
 ﻿namespace UET.Commands.List
 {
-    using Microsoft.Extensions.DependencyInjection;
-    using Redpoint.UET.Configuration;
     using Redpoint.UET.Configuration.Engine;
     using Redpoint.UET.Configuration.Plugin;
     using Redpoint.UET.Configuration.Project;
     using System;
-    using System.Collections.Generic;
     using Microsoft.Extensions.Logging;
     using System.CommandLine;
     using System.CommandLine.Invocation;
-    using System.Linq;
-    using System.Text;
-    using System.Text.Json;
     using System.Threading.Tasks;
-    using UET.Commands.Build;
     using UET.Commands.EngineSpec;
     using UET.BuildConfig;
 

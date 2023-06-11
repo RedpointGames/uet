@@ -70,7 +70,7 @@
                 public TimeSpan StartupDuration => throw new NotImplementedException();
             }
 
-            private readonly IGrpcPipeServer _pipeServer;
+            private readonly IGrpcPipeServer<GrpcTestLoggerServer> _pipeServer;
             private readonly ITestLogger _testLogger;
 
             public string PipeName { get; private set; }
@@ -80,10 +80,7 @@
                 IGrpcPipeFactory grpcPipeFactory)
             {
                 PipeName = $"UETAutomationLog-{BitConverter.ToString(Guid.NewGuid().ToByteArray()).Replace("-", "").ToLowerInvariant()}";
-                _pipeServer = grpcPipeFactory.CreateServer(PipeName);
-                _pipeServer.AddService(
-                    serviceBinder => TestReporting.BindService(serviceBinder, this),
-                    () => TestReporting.BindService(this));
+                _pipeServer = grpcPipeFactory.CreateServer(PipeName, this);
                 _pipeServer.Start();
                 _testLogger = testLoggerFactory.CreateConsole();
             }

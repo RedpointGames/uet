@@ -3,7 +3,6 @@ namespace Redpoint.UET.Workspace.Tests
     using Redpoint.UET.Workspace.ParallelCopy;
     using static Redpoint.UET.Workspace.ParallelCopy.DefaultParallelCopy;
     using System.Collections.Concurrent;
-    using System.Diagnostics;
 
     public class ParallelCopyTests
     {

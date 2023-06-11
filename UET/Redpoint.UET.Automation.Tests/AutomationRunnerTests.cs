@@ -2,15 +2,12 @@ namespace Redpoint.UET.Automation.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-    using Redpoint.OpenGE.ProcessExecution;
-    using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.UET.Automation.Runner;
     using Redpoint.UET.Automation.TestLogging;
     using Redpoint.UET.Automation.TestNotification;
     using Redpoint.UET.Automation.TestReporter;
     using Redpoint.UET.Automation.Worker;
-    using Redpoint.UET.Core;
     using Redpoint.UET.UAT;
     using Xunit.Abstractions;
 

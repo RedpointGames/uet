@@ -1,7 +1,5 @@
 ﻿namespace Redpoint.UET.Configuration.Dynamic
 {
-    using System.Text.Json.Serialization;
-
     public class BuildConfigDynamic<TDistribution, TBaseClass>
     {
         /// <summary>

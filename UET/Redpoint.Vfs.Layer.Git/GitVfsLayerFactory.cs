@@ -5,7 +5,6 @@
     using Octokit;
     using Redpoint.Git.GitHub;
     using Redpoint.Git.Native;
-    using Redpoint.Vfs.Abstractions;
     using Redpoint.Vfs.LocalIo;
 
     internal class GitVfsLayerFactory : IGitVfsLayerFactory

@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.OpenGE.Tests
 {
     using Redpoint.OpenGE.Executor;
-    using System.Runtime.Versioning;
 
 #if HAS_WMI
     public class SuitableCoreTests

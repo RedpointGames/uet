@@ -1,19 +1,15 @@
 ﻿namespace UET.Commands.Upgrade
 {
-    using Grpc.Core.Logging;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProgressMonitor;
     using System;
-    using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Linq;
-    using System.Text;
     using System.Text.Encodings.Web;
     using System.Text.Json;
     using System.Text.Json.Nodes;
-    using System.Text.Json.Serialization;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using UET.Commands.Build;

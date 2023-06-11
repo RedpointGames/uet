@@ -1,13 +1,11 @@
 ﻿namespace UET.Commands.Internal.CIBuild
 {
     using Microsoft.Extensions.Logging;
-    using Redpoint.ProcessExecution;
     using Redpoint.UET.BuildPipeline.BuildGraph;
     using Redpoint.UET.BuildPipeline.Environment;
     using Redpoint.UET.BuildPipeline.Executors;
     using Redpoint.UET.BuildPipeline.Executors.BuildServer;
     using Redpoint.UET.BuildPipeline.Executors.GitLab;
-    using Redpoint.UET.BuildPipeline.Executors.Local;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Diagnostics;

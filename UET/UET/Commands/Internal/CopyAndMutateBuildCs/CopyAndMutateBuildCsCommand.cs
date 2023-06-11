@@ -1,13 +1,10 @@
 ﻿namespace UET.Commands.Internal.CopyAndMutateBuildCs
 {
-    using Grpc.Core.Logging;
     using Microsoft.Extensions.Logging;
-    using System;
     using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Linq;
-    using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
 

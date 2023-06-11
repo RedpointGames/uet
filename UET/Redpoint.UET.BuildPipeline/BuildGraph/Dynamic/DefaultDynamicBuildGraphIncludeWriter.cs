@@ -1,13 +1,11 @@
 ﻿namespace Redpoint.UET.BuildPipeline.BuildGraph.Dynamic
 {
     using Microsoft.Extensions.DependencyInjection;
-    using Redpoint.UET.Configuration;
     using Redpoint.UET.Configuration.Dynamic;
     using Redpoint.UET.Configuration.Plugin;
     using Redpoint.UET.Configuration.Project;
     using System;
     using System.Collections.Concurrent;
-    using System.Reflection;
     using System.Text;
     using System.Threading.Tasks;
     using System.Xml;

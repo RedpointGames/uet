@@ -3,7 +3,6 @@
     using Redpoint.ProcessExecution;
     using Redpoint.UET.BuildPipeline.BuildGraph.Export;
     using Redpoint.UET.BuildPipeline.BuildGraph.Patching;
-    using Redpoint.UET.Configuration;
     using Redpoint.UET.UAT;
     using System.Collections.Generic;
     using System.Reflection;

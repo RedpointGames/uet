@@ -1,7 +1,5 @@
 ﻿namespace UET.Commands.Build
 {
-    using Grpc.Core;
-    using Grpc.Core.Logging;
     using Microsoft.Extensions.Logging;
     using Redpoint.UET.BuildPipeline.BuildGraph;
     using Redpoint.UET.BuildPipeline.BuildGraph.Dynamic;

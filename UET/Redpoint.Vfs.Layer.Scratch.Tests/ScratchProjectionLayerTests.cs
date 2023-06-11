@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.Vfs.Layer.Scratch.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Logging;
     using Redpoint.Vfs.Abstractions;
     using Redpoint.Vfs.Layer.Git;
     using Redpoint.Vfs.LocalIo;

@@ -7,11 +7,6 @@
     using Redpoint.UET.Configuration.Dynamic;
     using Redpoint.UET.Configuration.Plugin;
     using Redpoint.UET.Configuration.Project;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
 
     public static class DeploymentProviderServiceCollections
     {

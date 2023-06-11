@@ -6,7 +6,6 @@ namespace Redpoint.Vfs.Windows
 {
     using Microsoft.Win32.SafeHandles;
     using Redpoint.Vfs.Abstractions;
-    using System.Reflection.Metadata;
     using System.Runtime.InteropServices;
 
     public partial class NativeMethods

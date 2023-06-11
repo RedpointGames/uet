@@ -10,7 +10,6 @@ using Redpoint.UET.Workspace;
 using Redpoint.UET.Core;
 using Microsoft.Extensions.Logging;
 using Redpoint.MSBuildResolution;
-using System.Text.RegularExpressions;
 using Redpoint.UET.BuildPipeline.Executors.Local;
 using System.Diagnostics;
 

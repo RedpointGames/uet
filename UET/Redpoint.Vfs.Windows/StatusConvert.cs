@@ -1,11 +1,5 @@
 ﻿namespace Redpoint.Vfs.Windows
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
-
     public static class StatusConvert
     {
         public static int ConvertHResultToNTSTATUS(int hresult)

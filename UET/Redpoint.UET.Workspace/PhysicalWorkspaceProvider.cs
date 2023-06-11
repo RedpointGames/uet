@@ -1,11 +1,6 @@
 ﻿namespace Redpoint.UET.Workspace
 {
-    using Grpc.Core.Logging;
     using Microsoft.Extensions.Logging;
-    using Redpoint.PathResolution;
-    using Redpoint.ProcessExecution;
-    using Redpoint.Reservation;
-    using Redpoint.UET.Core;
     using Redpoint.UET.Workspace.Descriptors;
     using Redpoint.UET.Workspace.Instance;
     using Redpoint.UET.Workspace.ParallelCopy;
@@ -14,9 +9,6 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Net.Http.Headers;
-    using System.Resources;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
 

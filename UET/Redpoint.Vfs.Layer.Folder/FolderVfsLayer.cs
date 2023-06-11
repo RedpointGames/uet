@@ -5,7 +5,6 @@
     using Redpoint.Vfs.Abstractions;
     using Redpoint.Vfs.LocalIo;
     using System.Collections.Concurrent;
-    using System.Runtime.Versioning;
 
 
     internal class FolderVfsLayer : IVfsLayer

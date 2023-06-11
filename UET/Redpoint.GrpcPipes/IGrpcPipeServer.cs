@@ -1,13 +1,9 @@
 ﻿namespace Redpoint.GrpcPipes
 {
-    using Grpc.Core;
+    using System.Diagnostics.CodeAnalysis;
 
-    public interface IGrpcPipeServer
+    public interface IGrpcPipeServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T> where T : class
     {
-        void AddService(
-            Action<ServiceBinderBase> bindToServiceBinder,
-            Func<ServerServiceDefinition> returnServiceDefinition);
-
         void Start();
 
         Task StopAsync();

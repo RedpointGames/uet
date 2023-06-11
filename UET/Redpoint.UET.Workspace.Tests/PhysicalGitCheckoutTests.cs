@@ -2,17 +2,12 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-    using Microsoft.VisualStudio.TestPlatform.Utilities;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
     using Redpoint.UET.Core;
     using Redpoint.UET.Workspace.PhysicalGit;
-    using Redpoint.UET.Workspace.Reservation;
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
     using System.Threading.Tasks;
     using Xunit.Abstractions;
 

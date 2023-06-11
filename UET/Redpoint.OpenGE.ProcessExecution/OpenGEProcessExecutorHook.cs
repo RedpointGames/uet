@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.OpenGE
 {
-    using Grpc.Core.Logging;
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Executor;
     using Redpoint.ProcessExecution;

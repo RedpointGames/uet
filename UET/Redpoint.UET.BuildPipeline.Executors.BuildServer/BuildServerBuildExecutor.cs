@@ -1,7 +1,4 @@
-﻿using Redpoint.UET.BuildPipeline.Executors;
-using System.Xml.Linq;
-
-namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
+﻿namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
 {
     using Redpoint.ProcessExecution;
     using Redpoint.UET.BuildPipeline.BuildGraph.Export;
@@ -12,7 +9,6 @@ namespace Redpoint.UET.BuildPipeline.Executors.BuildServer
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using System.Linq;
-    using System.Text.Json.Serialization;
     using System.Text.Json;
     using Redpoint.UET.Core;
     using System.Reflection;

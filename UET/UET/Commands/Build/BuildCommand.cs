@@ -14,9 +14,6 @@
     using Redpoint.UET.BuildPipeline.Executors.Local;
     using Redpoint.ProcessExecution;
     using Redpoint.UET.BuildPipeline.Executors.GitLab;
-    using UET.Services;
-    using System.CommandLine.Help;
-    using Redpoint.UET.BuildPipeline.Executors.BuildServer;
     using Redpoint.UET.Core;
 
     internal class BuildCommand

@@ -2,13 +2,11 @@
 {
     using Redpoint.UET.Configuration.Dynamic;
     using Redpoint.UET.Configuration.Project;
-    using Redpoint.UET.Configuration;
     using System;
     using System.Collections.Generic;
     using System.Text.Json;
     using System.Threading.Tasks;
     using System.Xml;
-    using Redpoint.UET.Configuration.Plugin;
 
     internal class CustomProjectTestProvider : IProjectTestProvider
     {

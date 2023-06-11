@@ -5,7 +5,6 @@
     using Redpoint.UET.BuildPipeline.BuildGraph;
     using Redpoint.UET.BuildPipeline.Executors.BuildServer;
     using Redpoint.UET.BuildPipeline.Executors.Engine;
-    using Redpoint.UET.Core;
     using Redpoint.UET.Workspace;
     using System;
 

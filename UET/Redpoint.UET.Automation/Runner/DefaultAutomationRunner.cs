@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.UET.Automation.Runner
 {
-    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Redpoint.UET.Automation.Model;
     using Redpoint.UET.Automation.TestLogging;
@@ -16,7 +15,6 @@
     using System.Diagnostics;
     using System.Linq;
     using System.Net.Sockets;
-    using System.Runtime.InteropServices;
     using System.Threading;
     using System.Threading.Tasks;
 

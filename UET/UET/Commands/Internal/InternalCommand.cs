@@ -7,6 +7,7 @@
     using UET.Commands.Internal.RunDownstreamTest;
     using UET.Commands.Internal.RunGauntletTestFromBuildGraph;
     using UET.Commands.Internal.SetFilterFile;
+    using UET.Commands.Internal.TestGrpcPipes;
     using UET.Commands.Internal.UpdateCopyrightHeadersForMarketplace;
     using UET.Commands.Internal.UpdateUPlugin;
     using UET.Commands.Internal.UploadToBackblazeB2;
@@ -26,6 +27,7 @@
             command.AddCommand(UpdateCopyrightHeadersForMarketplaceCommand.CreateUpdateCopyrightHeadersForMarketplaceCommand());
             command.AddCommand(UpdateUPluginCommand.CreateUpdateUPluginCommand());
             command.AddCommand(UploadToBackblazeB2Command.CreateUploadToBackblazeB2Command());
+            command.AddCommand(TestGrpcPipesCommand.CreateTestGrpcPipesCommand());
             return command;
         }
     }

@@ -1,24 +1,12 @@
 ﻿namespace Redpoint.GrpcPipes
 {
-    using Grpc.Core;
+    using Grpc.Net.Client;
 
     public static class GrpcPipesCore
     {
-        public static T CreateClient<T>(string pipeName, Func<CallInvoker, T> constructor)
+        public static T CreateClient<T>(string pipeName, Func<GrpcChannel, T> constructor)
         {
-            if (OperatingSystem.IsWindows())
-            {
-                return new WindowsGrpcPipeFactory().CreateClient(pipeName, constructor);
-            }
-            else if (OperatingSystem.IsMacOS() ||
-                OperatingSystem.IsLinux())
-            {
-                return new UnixGrpcPipeFactory().CreateClient(pipeName, constructor);
-            }
-            else
-            {
-                throw new PlatformNotSupportedException();
-            }
+            return new AspNetGrpcPipeFactory().CreateClient(pipeName, constructor);
         }
     }
 }

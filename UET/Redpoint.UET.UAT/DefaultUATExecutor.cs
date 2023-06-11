@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.UET.UAT
 {
-    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE;
     using Redpoint.PathResolution;

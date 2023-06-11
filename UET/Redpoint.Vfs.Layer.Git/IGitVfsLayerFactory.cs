@@ -1,7 +1,5 @@
 ﻿namespace Redpoint.Vfs.Layer.Git
 {
-    using Redpoint.Vfs.Abstractions;
-
     public interface IGitVfsLayerFactory
     {
         IGitVfsLayer CreateNativeLayer(
