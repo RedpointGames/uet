@@ -16,6 +16,10 @@ namespace Redpoint.UET.UAT
             {
                 services.AddSingleton<ILocalHandleCloser, NativeLocalHandleCloser>();
             }
+            else
+            {
+                services.AddSingleton<ILocalHandleCloser, NullLocalHandleCloser>();
+            }
             services.AddSingleton<IRemoteHandleCloser, DefaultRemoteHandleCloser>();
 
             services.AddSingleton<IUATExecutor, DefaultUATExecutor>();
