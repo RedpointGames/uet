@@ -1,9 +1,9 @@
 ﻿namespace Redpoint.OpenGE.Executor
 {
     using Grpc.Core;
-    using GrpcDotNetNamedPipes;
     using Microsoft.Extensions.Logging;
     using OpenGEAPI;
+    using Redpoint.GrpcPipes;
     using System;
     using System.Diagnostics;
     using System.Text;
@@ -15,8 +15,9 @@
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
         private readonly ILogger<DefaultOpenGEDaemon> _logger;
         private readonly IOpenGEExecutorFactory _executorFactory;
+        private readonly IGrpcPipeFactory _grpcPipeFactory;
         private bool _hasStarted = false;
-        private NamedPipeServer? _pipeServer = null;
+        private IGrpcPipeServer? _pipeServer = null;
         private long _inflightJobs = 0;
         private bool _isShuttingDown = false;
         private CancellationToken _shutdownCancellationToken;
@@ -25,10 +26,12 @@
 
         public DefaultOpenGEDaemon(
             ILogger<DefaultOpenGEDaemon> logger,
-            IOpenGEExecutorFactory executorFactory)
+            IOpenGEExecutorFactory executorFactory,
+            IGrpcPipeFactory grpcPipeFactory)
         {
             _logger = logger;
             _executorFactory = executorFactory;
+            _grpcPipeFactory = grpcPipeFactory;
         }
 
         public async Task StartAsync(CancellationToken shutdownCancellationToken)
@@ -43,8 +46,10 @@
                 }
 
                 _logger.LogTrace($"Starting OpenGE daemon on pipe: {_pipeName}");
-                _pipeServer = new NamedPipeServer(_pipeName);
-                OpenGE.BindService(_pipeServer.ServiceBinder, this);
+                _pipeServer = _grpcPipeFactory.CreateServer(_pipeName);
+                _pipeServer.AddService(
+                    serviceBinder => OpenGE.BindService(serviceBinder, this),
+                    () => OpenGE.BindService(this));
                 _pipeServer.Start();
                 _hasStarted = true;
                 _logger.LogTrace($"Started OpenGE daemon on pipe: {_pipeName}");
@@ -97,7 +102,7 @@
                     }
 
                     _logger.LogTrace($"Stopped OpenGE daemon on pipe: {_pipeName}");
-                    _pipeServer!.Kill();
+                    await _pipeServer!.StopAsync();
                     _hasStarted = false;
                 }
             }

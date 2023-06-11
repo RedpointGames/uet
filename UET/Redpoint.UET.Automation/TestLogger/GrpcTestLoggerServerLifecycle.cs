@@ -1,7 +1,7 @@
 ﻿namespace Redpoint.UET.Automation.TestLogger
 {
     using Grpc.Core;
-    using GrpcDotNetNamedPipes;
+    using Redpoint.GrpcPipes;
     using Redpoint.UET.Automation.Model;
     using Redpoint.UET.Automation.TestLogging;
     using Redpoint.UET.Automation.Worker;
@@ -15,12 +15,15 @@
     internal class GrpcTestLoggerServerLifecycle : IAutomationLogForwarder
     {
         private readonly ITestLoggerFactory _testLoggerFactory;
+        private readonly IGrpcPipeFactory _grpcPipeFactory;
         private GrpcTestLoggerServer? _loggerServer;
 
         public GrpcTestLoggerServerLifecycle(
-            ITestLoggerFactory testLoggerFactory)
+            ITestLoggerFactory testLoggerFactory,
+            IGrpcPipeFactory grpcPipeFactory)
         {
             _testLoggerFactory = testLoggerFactory;
+            _grpcPipeFactory = grpcPipeFactory;
         }
 
         public string? GetPipeName()
@@ -30,18 +33,19 @@
 
         public Task StartAsync(CancellationToken shutdownCancellationToken)
         {
-            _loggerServer = new GrpcTestLoggerServer(_testLoggerFactory);
+            _loggerServer = new GrpcTestLoggerServer(
+                _testLoggerFactory,
+                _grpcPipeFactory);
             return Task.CompletedTask;
         }
 
-        public Task StopAsync()
+        public async Task StopAsync()
         {
             if (_loggerServer != null)
             {
-                _loggerServer.Stop();
+                await _loggerServer.StopAsync();
             }
             _loggerServer = null;
-            return Task.CompletedTask;
         }
 
         private class GrpcTestLoggerServer : TestReporting.TestReportingBase
@@ -66,23 +70,27 @@
                 public TimeSpan StartupDuration => throw new NotImplementedException();
             }
 
-            private readonly NamedPipeServer _pipeServer;
+            private readonly IGrpcPipeServer _pipeServer;
             private readonly ITestLogger _testLogger;
 
             public string PipeName { get; private set; }
 
-            public GrpcTestLoggerServer(ITestLoggerFactory testLoggerFactory)
+            public GrpcTestLoggerServer(
+                ITestLoggerFactory testLoggerFactory,
+                IGrpcPipeFactory grpcPipeFactory)
             {
                 PipeName = $"UETAutomationLog-{BitConverter.ToString(Guid.NewGuid().ToByteArray()).Replace("-", "").ToLowerInvariant()}";
-                _pipeServer = new NamedPipeServer(PipeName);
-                TestReporting.BindService(_pipeServer.ServiceBinder, this);
+                _pipeServer = grpcPipeFactory.CreateServer(PipeName);
+                _pipeServer.AddService(
+                    serviceBinder => TestReporting.BindService(serviceBinder, this),
+                    () => TestReporting.BindService(this));
                 _pipeServer.Start();
                 _testLogger = testLoggerFactory.CreateConsole();
             }
 
-            public void Stop()
+            public Task StopAsync()
             {
-                _pipeServer.Kill();
+                return _pipeServer.StopAsync();
             }
 
             public override async Task<LogResponse> LogWorkerStarting(LogWorkerStartingRequest request, ServerCallContext context)

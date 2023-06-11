@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.UET.Automation.TestLogger
 {
-    using GrpcDotNetNamedPipes;
+    using Redpoint.GrpcPipes;
     using Redpoint.UET.Automation.Model;
     using Redpoint.UET.Automation.TestLogging;
     using Redpoint.UET.Automation.Worker;
@@ -14,8 +14,9 @@
 
         public GrpcTestLogger(string pipeName)
         {
-            var channel = new NamedPipeChannel(".", pipeName);
-            _client = new TestReporting.TestReportingClient(channel);
+            _client = GrpcPipesCore.CreateClient(
+                pipeName,
+                channel => new TestReporting.TestReportingClient(channel));
         }
 
         public async Task LogDiscovered(IWorker worker, TestProgressionInfo progressionInfo, TestResult testResult)

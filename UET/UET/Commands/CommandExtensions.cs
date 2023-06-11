@@ -27,6 +27,7 @@
     using Redpoint.UET.Automation;
     using Redpoint.ApplicationLifecycle;
     using Redpoint.UET.Automation.TestLogger;
+    using Redpoint.GrpcPipes;
 
     internal static class CommandExtensions
     {
@@ -100,6 +101,7 @@
                 services.AddOpenGEExecutor();
                 services.AddOpenGEProcessExecution();
                 services.AddSdkManagement();
+                services.AddGrpcPipes();
                 services.AddUETAutomation();
                 services.AddUETUAT();
                 services.AddUETBuildPipeline();

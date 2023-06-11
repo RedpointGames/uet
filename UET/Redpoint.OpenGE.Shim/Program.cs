@@ -1,4 +1,4 @@
-﻿using GrpcDotNetNamedPipes;
+﻿using Redpoint.GrpcPipes;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 
@@ -26,8 +26,17 @@ rootCommand.AddOption(useIdeMonitor);
 rootCommand.AddArgument(fileArgument);
 rootCommand.SetHandler(async (InvocationContext context) =>
 {
-    var channel = new NamedPipeChannel(".", Environment.GetEnvironmentVariable("UET_XGE_SHIM_PIPE_NAME"));
-    var client = new OpenGEAPI.OpenGE.OpenGEClient(channel);
+    var pipeName = Environment.GetEnvironmentVariable("UET_XGE_SHIM_PIPE_NAME");
+    if (string.IsNullOrWhiteSpace(pipeName))
+    {
+        Console.Error.WriteLine("Expected UET_XGE_SHIM_PIPE_NAME environment variable to be set!");
+        context.ExitCode = 1;
+        return;
+    }
+
+    var client = GrpcPipesCore.CreateClient(
+        pipeName,
+        channel => new OpenGEAPI.OpenGE.OpenGEClient(channel));
 
     using (var reader = new StreamReader(new FileStream(context.ParseResult.GetValueForArgument(fileArgument), FileMode.Open, FileAccess.Read, FileShare.Read)))
     {

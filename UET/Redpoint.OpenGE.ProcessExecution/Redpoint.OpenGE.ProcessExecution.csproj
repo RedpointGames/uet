@@ -10,11 +10,15 @@
 
   <Target Name="BuildShim" BeforeTargets="ResolveReferences" Condition="'$(OpenGEShimIsAlreadyBuilt)' != 'true'">
     <ItemGroup>
-      <OpenGEShim Include="$(ProjectDir)..\Redpoint.OpenGE.Shim\Redpoint.OpenGE.Shim.csproj">
+      <ShimProjects Include="$(ProjectDir)..\Redpoint.GrpcPipes\Redpoint.GrpcPipes.csproj">
         <AdditionalProperties>RuntimeIdentifier=win-x64;OutDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64;PublishDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish</AdditionalProperties>
-      </OpenGEShim>
+      </ShimProjects>
+      <ShimProjects Include="$(ProjectDir)..\Redpoint.OpenGE.Shim\Redpoint.OpenGE.Shim.csproj">
+        <AdditionalProperties>RuntimeIdentifier=win-x64;OutDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64;PublishDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish</AdditionalProperties>
+      </ShimProjects>
     </ItemGroup>
-    <MSBuild Projects="@(OpenGEShim)" Targets="Publish" BuildInParallel="true" />
+    <MSBuild Projects="@(ShimProjects)" Targets="Restore" BuildInParallel="false" />
+    <MSBuild Projects="@(ShimProjects)" Targets="Publish" BuildInParallel="false" />
     <ItemGroup>
       <EmbeddedResource Include="$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish\Redpoint.OpenGE.Shim.exe">
         <Link>Embedded\win-x64\xgConsole.exe</Link>

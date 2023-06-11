@@ -1,7 +1,7 @@
 ﻿namespace Redpoint.UET.Workspace
 {
-    using GrpcDotNetNamedPipes;
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.GrpcPipes;
     using Redpoint.Reservation;
     using Redpoint.UET.Workspace.Credential;
     using Redpoint.UET.Workspace.ParallelCopy;
@@ -21,8 +21,10 @@
             services.AddSingleton<IDynamicWorkspaceProvider, DynamicWorkspaceProvider>();
             services.AddSingleton(sp =>
             {
-                var channel = new NamedPipeChannel(".", "UEFS");
-                return new UEFSClient(channel);
+                var factory = sp.GetRequiredService<IGrpcPipeFactory>();
+                return factory.CreateClient(
+                    "UEFS",
+                    channel => new UEFSClient(channel));
             });
             services.AddSingleton<IReservationManagerForUet>(sp =>
             {
