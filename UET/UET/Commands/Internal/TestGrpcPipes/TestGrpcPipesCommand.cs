@@ -45,7 +45,7 @@
                 var pipeName = $"test-grpc-pipes-{Process.GetCurrentProcess().Id}";
 
                 var server = _grpcPipeFactory.CreateServer(pipeName, this);
-                server.Start();
+                await server.StartAsync();
 
                 var client = _grpcPipeFactory.CreateClient(
                     pipeName,

@@ -40,9 +40,9 @@
             _app = app;
         }
 
-        public void Start()
+        public Task StartAsync()
         {
-            _app.Start();
+            return _app.StartAsync();
         }
 
         public Task StopAsync()

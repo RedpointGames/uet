@@ -31,12 +31,12 @@
             return _loggerServer?.PipeName;
         }
 
-        public Task StartAsync(CancellationToken shutdownCancellationToken)
+        public async Task StartAsync(CancellationToken shutdownCancellationToken)
         {
             _loggerServer = new GrpcTestLoggerServer(
                 _testLoggerFactory,
                 _grpcPipeFactory);
-            return Task.CompletedTask;
+            await _loggerServer.StartAsync();
         }
 
         public async Task StopAsync()
@@ -81,8 +81,12 @@
             {
                 PipeName = $"UETAutomationLog-{BitConverter.ToString(Guid.NewGuid().ToByteArray()).Replace("-", "").ToLowerInvariant()}";
                 _pipeServer = grpcPipeFactory.CreateServer(PipeName, this);
-                _pipeServer.Start();
                 _testLogger = testLoggerFactory.CreateConsole();
+            }
+
+            public Task StartAsync()
+            {
+                return _pipeServer.StartAsync();
             }
 
             public Task StopAsync()
