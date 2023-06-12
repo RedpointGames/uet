@@ -11,7 +11,7 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
   <PropertyGroup>
-    <Description>Provides abstractions for virtual filesystem drivers and layers.</Description>
+    <Description>Provides abstractions for virtual filesystem layers and files.</Description>
     <PackageTags>virtual filesystem, vfs</PackageTags>
   </PropertyGroup>
 
