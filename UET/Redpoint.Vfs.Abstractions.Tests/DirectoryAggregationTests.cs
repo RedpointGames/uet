@@ -56,7 +56,7 @@ namespace Redpoint.Vfs.Abstractions.Tests
                 SimpleEntry("e"),
             };
 
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<CorrectnessCheckFailureException>(() =>
             {
                 _ = DirectoryAggregation.Aggregate(a, b, true).ToList();
             });
@@ -78,7 +78,7 @@ namespace Redpoint.Vfs.Abstractions.Tests
                 SimpleEntry("c"),
             };
 
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<CorrectnessCheckFailureException>(() =>
             {
                 _ = DirectoryAggregation.Aggregate(a, b, true).ToList();
             });
@@ -94,7 +94,7 @@ namespace Redpoint.Vfs.Abstractions.Tests
                 SimpleEntry("c"),
             };
 
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<CorrectnessCheckFailureException>(() =>
             {
                 _ = DirectoryAggregation.Aggregate(null, b, true).ToList();
             });
