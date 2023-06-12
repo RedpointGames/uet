@@ -6,6 +6,8 @@
     using System;
     using System.Diagnostics;
     using System.Linq;
+    using System.Runtime.InteropServices;
+    using System.Runtime.Versioning;
     using System.Security.Cryptography;
     using System.Security.Principal;
     using System.Text;
@@ -19,6 +21,18 @@
         private readonly ILogger<GitRepoManager> _logger;
         private readonly List<Process> _processes;
         private readonly SemaphoreSlim _processSemaphore;
+
+        [SupportedOSPlatform("macos"), SupportedOSPlatform("linux")]
+        [DllImport("libc")]
+        private static extern int chown(string path, uint owner, uint group);
+
+        [SupportedOSPlatform("macos"), SupportedOSPlatform("linux")]
+        [DllImport("libc")]
+        internal static extern uint geteuid();
+
+        [SupportedOSPlatform("macos"), SupportedOSPlatform("linux")]
+        [DllImport("libc")]
+        internal static extern uint getegid();
 
         public GitRepoManager(
             ILogger<GitRepoManager> logger,
@@ -37,6 +51,10 @@
                     fs.SetOwner(user);
                     directoryInfo.SetAccessControl(fs);
                 }
+            }
+            else if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+            {
+                chown(_gitRepoPath, geteuid(), getegid());
             }
 
             try
