@@ -151,8 +151,11 @@
             }
             if (existingBuildGraphPatchLevel == _patchHash)
             {
+                _logger.LogTrace($"Build graph patch version is already {_patchHash}, no patches need to be applied.");
                 return;
             }
+
+            _logger.LogTrace($"Build graph patch version is {existingBuildGraphPatchLevel}, but the target patch version is {_patchHash}, applying patches...");
 
             await MakeReadWriteAsync(new DirectoryInfo(Path.Combine(enginePath, "Engine", "Source", "Programs")));
 
@@ -163,15 +166,21 @@
                 {
                     var content = await File.ReadAllTextAsync(sourceFile);
                     var originalContent = content;
-                    foreach (var patch in patchDefinition.Patches)
+                    for (int i = 0; i < patchDefinition.Patches.Length; i++)
                     {
+                        var patch = patchDefinition.Patches[i];
                         if (patch.Mode == "Snip")
                         {
                             if (content.Contains(patch.Contains!))
                             {
+                                _logger.LogTrace($"Patch {patchDefinition.File} #{i}: Applying...");
                                 var startIndex = content.IndexOf(patch.StartIndex!);
                                 var endIndex = content.IndexOf(patch.EndIndex!);
                                 content = content.Substring(0, startIndex) + content.Substring(endIndex);
+                            }
+                            else
+                            {
+                                _logger.LogTrace($"Patch {patchDefinition.File} #{i}: Does not apply because contains could not be found: {patch.Contains}");
                             }
                         }
                         else
@@ -182,7 +191,12 @@
                             }
                             if (content.Contains(patch.Find!))
                             {
+                                _logger.LogTrace($"Patch {patchDefinition.File} #{i}: Applying...");
                                 content = content.Replace(patch.Find!, patch.Replace!);
+                            }
+                            else
+                            {
+                                _logger.LogTrace($"Patch {patchDefinition.File} #{i}: Does not apply because content could not be found: {patch.Find}");
                             }
                         }
                     }
@@ -190,6 +204,10 @@
                     {
                         await File.WriteAllTextAsync(sourceFile, content);
                     }
+                }
+                else
+                {
+                    _logger.LogTrace($"Patch {patchDefinition.File}: Does not apply because file does not exist: {sourceFile}");
                 }
             }
 
