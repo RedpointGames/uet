@@ -251,7 +251,7 @@
                         Directory.CreateDirectory(latestLink.FullName);
                         foreach (var fileFullName in Directory.GetFiles(Path.Combine(baseFolder, version)))
                         {
-                            File.Copy(fileFullName, Path.Combine(baseFolder, version, Path.GetFileName(fileFullName)));
+                            File.Copy(fileFullName, Path.Combine(baseFolder, "Current", Path.GetFileName(fileFullName)));
                         }
                     }
                 }
