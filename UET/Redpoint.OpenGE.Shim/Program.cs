@@ -36,6 +36,7 @@ rootCommand.SetHandler(async (InvocationContext context) =>
 
     var client = GrpcPipesCore.CreateClient(
         pipeName,
+        GrpcPipeNamespace.User,
         channel => new OpenGEAPI.OpenGE.OpenGEClient(channel));
 
     using (var reader = new StreamReader(new FileStream(context.ParseResult.GetValueForArgument(fileArgument), FileMode.Open, FileAccess.Read, FileShare.Read)))

@@ -46,7 +46,10 @@
                 }
 
                 _logger.LogTrace($"Starting OpenGE daemon on pipe: {_pipeName}");
-                _pipeServer = _grpcPipeFactory.CreateServer(_pipeName, this);
+                _pipeServer = _grpcPipeFactory.CreateServer(
+                    _pipeName,
+                    GrpcPipeNamespace.User,
+                    this);
                 await _pipeServer.StartAsync();
                 _hasStarted = true;
                 _logger.LogTrace($"Started OpenGE daemon on pipe: {_pipeName}");

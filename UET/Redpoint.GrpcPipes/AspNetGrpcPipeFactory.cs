@@ -3,85 +3,141 @@
     using Grpc.Net.Client;
     using System.Diagnostics.CodeAnalysis;
     using System.Net.Sockets;
+    using System.Security.AccessControl;
+    using System.Security.Principal;
 
     internal class AspNetGrpcPipeFactory : IGrpcPipeFactory
     {
-        private string GetBasePath()
+        private string GetUserPipePath(string pipeName)
         {
             if (OperatingSystem.IsWindows())
             {
-                var path = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    ".redpoint-grpc-pipes",
-                    Environment.UserName);
-                Directory.CreateDirectory(path);
-                return path;
-            }
-            else if (OperatingSystem.IsMacOS())
-            {
-                var rootPath = "/Users/Shared/.redpoint-grpc-pipes";
-                Directory.CreateDirectory(rootPath);
-                File.SetUnixFileMode(
-                    rootPath,
-                    UnixFileMode.UserRead |
-                    UnixFileMode.UserWrite |
-                    UnixFileMode.UserExecute |
-                    UnixFileMode.GroupRead |
-                    UnixFileMode.GroupWrite |
-                    UnixFileMode.GroupExecute |
-                    UnixFileMode.OtherRead |
-                    UnixFileMode.OtherWrite |
-                    UnixFileMode.OtherExecute);
-                var path = Path.Combine(
-                    rootPath,
-                    Environment.UserName);
-                Directory.CreateDirectory(path);
-                return path;
-            }
-            else if (OperatingSystem.IsLinux())
-            {
-                var rootPath = "/tmp/.redpoint-grpc-pipes";
-                Directory.CreateDirectory(rootPath);
-                File.SetUnixFileMode(
-                    rootPath,
-                    UnixFileMode.UserRead |
-                    UnixFileMode.UserWrite |
-                    UnixFileMode.UserExecute |
-                    UnixFileMode.GroupRead |
-                    UnixFileMode.GroupWrite |
-                    UnixFileMode.GroupExecute |
-                    UnixFileMode.OtherRead |
-                    UnixFileMode.OtherWrite |
-                    UnixFileMode.OtherExecute);
-                var path = Path.Combine(
-                    rootPath,
-                    Environment.UserName);
-                Directory.CreateDirectory(path);
-                return path;
+                if (WindowsIdentity.GetCurrent().IsSystem)
+                {
+                    return Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                        ".grpc",
+                        "sysuser",
+                        pipeName);
+                }
+                else
+                {
+                    return Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                        ".grpc",
+                        pipeName);
+                }
             }
             else
             {
-                throw new PlatformNotSupportedException();
+                return Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".grpc",
+                    pipeName);
             }
         }
 
-        public IGrpcPipeServer<T> CreateServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T>(string pipeName, T instance) where T : class
+        private string GetComputerPipePath(string pipeName)
         {
-            return new AspNetGrpcPipeServer<T>(Path.Combine(GetBasePath(), pipeName), instance);
+            if (OperatingSystem.IsWindows())
+            {
+                return Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    ".grpc",
+                    pipeName);
+            }
+            else
+            {
+                return Path.Combine("/tmp/.grpc", pipeName);
+            }
         }
 
-        public T CreateClient<T>(string pipeName, Func<GrpcChannel, T> constructor)
+        private string GetPipePath(string pipeName, GrpcPipeNamespace pipeNamespace)
+        {
+            if (pipeNamespace == GrpcPipeNamespace.User)
+            {
+                return GetUserPipePath(pipeName);
+            }
+            else
+            {
+                return GetComputerPipePath(pipeName);
+            }
+        }
+
+        private void CreateDirectoryWithPermissions(
+            string directoryPath,
+            GrpcPipeNamespace pipeNamespace)
+        {
+            Directory.CreateDirectory(directoryPath);
+            switch (pipeNamespace)
+            {
+                case GrpcPipeNamespace.User:
+                    if (OperatingSystem.IsWindows())
+                    {
+                        // We don't need to do anything for this.
+                    }
+                    else
+                    {
+                        File.SetUnixFileMode(
+                            directoryPath,
+                            UnixFileMode.UserRead |
+                            UnixFileMode.UserWrite |
+                            UnixFileMode.UserExecute);
+                    }
+                    break;
+                case GrpcPipeNamespace.Computer:
+                    if (OperatingSystem.IsWindows())
+                    {
+                        var di = new DirectoryInfo(directoryPath);
+                        var ac = di.GetAccessControl();
+                        var everyone = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
+                        ac.AddAccessRule(new FileSystemAccessRule(everyone, FileSystemRights.Modify | FileSystemRights.Synchronize, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+                        di.SetAccessControl(ac);
+                    }
+                    else
+                    {
+                        File.SetUnixFileMode(
+                            directoryPath,
+                            UnixFileMode.UserRead |
+                            UnixFileMode.UserWrite |
+                            UnixFileMode.UserExecute |
+                            UnixFileMode.GroupRead |
+                            UnixFileMode.GroupWrite |
+                            UnixFileMode.GroupExecute |
+                            UnixFileMode.OtherRead |
+                            UnixFileMode.OtherWrite |
+                            UnixFileMode.OtherExecute);
+                    }
+                    break;
+            }
+        }
+
+        public IGrpcPipeServer<T> CreateServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T>(
+            string pipeName,
+            GrpcPipeNamespace pipeNamespace,
+            T instance) where T : class
+        {
+            var pipePath = GetPipePath(pipeName, pipeNamespace);
+            CreateDirectoryWithPermissions(Path.GetDirectoryName(pipePath)!, pipeNamespace);
+            return new AspNetGrpcPipeServer<T>(pipePath, instance);
+        }
+
+        public T CreateClient<T>(
+            string pipeName,
+            GrpcPipeNamespace pipeNamespace,
+            Func<GrpcChannel, T> constructor)
         {
             var socketsHandler = new SocketsHttpHandler
             {
                 ConnectCallback = async (_, cancellationToken) =>
                 {
+                    var pipePath = GetPipePath(pipeName, pipeNamespace);
                     var socket = new Socket(
                         AddressFamily.Unix,
                         SocketType.Stream,
                         ProtocolType.Unspecified);
                     await socket.ConnectAsync(
-                        new UnixDomainSocketEndPoint(Path.Combine(GetBasePath(), pipeName)),
+                        new UnixDomainSocketEndPoint(pipePath),
                         cancellationToken);
                     return new NetworkStream(socket, true);
                 }

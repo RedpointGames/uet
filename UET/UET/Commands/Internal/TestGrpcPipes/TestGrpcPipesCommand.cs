@@ -44,11 +44,15 @@
             {
                 var pipeName = $"test-grpc-pipes-{Process.GetCurrentProcess().Id}";
 
-                var server = _grpcPipeFactory.CreateServer(pipeName, this);
+                var server = _grpcPipeFactory.CreateServer(
+                    pipeName,
+                    GrpcPipeNamespace.User,
+                    this);
                 await server.StartAsync();
 
                 var client = _grpcPipeFactory.CreateClient(
                     pipeName,
+                    GrpcPipeNamespace.User,
                     channel => new TestServiceClient(channel));
 
                 await client.TestMethodAsync(new TestRequest());

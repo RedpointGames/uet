@@ -16,6 +16,7 @@
         {
             _client = GrpcPipesCore.CreateClient(
                 pipeName,
+                GrpcPipeNamespace.User,
                 channel => new TestReporting.TestReportingClient(channel));
         }
 

@@ -80,7 +80,10 @@
                 IGrpcPipeFactory grpcPipeFactory)
             {
                 PipeName = $"UETAutomationLog-{BitConverter.ToString(Guid.NewGuid().ToByteArray()).Replace("-", "").ToLowerInvariant()}";
-                _pipeServer = grpcPipeFactory.CreateServer(PipeName, this);
+                _pipeServer = grpcPipeFactory.CreateServer(
+                    PipeName,
+                    GrpcPipeNamespace.User,
+                    this);
                 _testLogger = testLoggerFactory.CreateConsole();
             }
 

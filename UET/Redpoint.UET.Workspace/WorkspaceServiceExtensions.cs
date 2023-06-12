@@ -24,6 +24,7 @@
                 var factory = sp.GetRequiredService<IGrpcPipeFactory>();
                 return factory.CreateClient(
                     "UEFS",
+                    GrpcPipeNamespace.Computer,
                     channel => new UEFSClient(channel));
             });
             services.AddSingleton<IReservationManagerForUet>(sp =>
