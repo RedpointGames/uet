@@ -24,7 +24,7 @@
                 length);
         }
 
-        public IVfsFileHandle<IVfsFile> CreateVfsFileHandle(string path, FileMode fileMode, FileAccess fileAccess, FileShare fileShare, IWindowsVfsFileCallbacks? callbacks, string? scratchPath)
+        public IVfsFileHandle<IVfsFile> CreateVfsFileHandle(string path, FileMode fileMode, FileAccess fileAccess, FileShare fileShare, IVfsFileWriteCallbacks? callbacks, string? scratchPath)
         {
             return new WindowsVfsFile(
                 _serviceProvider.GetRequiredService<ILogger<WindowsOffsetVfsFile>>(),

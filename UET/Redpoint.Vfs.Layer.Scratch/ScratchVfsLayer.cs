@@ -10,19 +10,6 @@
     using Redpoint.Vfs.Abstractions;
     using Redpoint.Vfs.LocalIo;
 
-    public interface IScratchVfsLayer : IVfsLayer
-    {
-        (ScratchVfsPathStatus status, VfsEntryExistence existence) GetPathStatus(string path);
-    }
-
-    public enum ScratchVfsPathStatus
-    {
-        Materialized,
-        Passthrough,
-        Nonexistent,
-        NonexistentTombstoned,
-    }
-
     internal class ScratchVfsLayer : IScratchVfsLayer
     {
         private readonly ILogger<ScratchVfsLayer> _logger;

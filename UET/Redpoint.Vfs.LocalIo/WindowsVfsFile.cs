@@ -11,7 +11,7 @@
     internal class WindowsVfsFile : IVfsFile, IVfsFileHandle<IVfsFile>, IAsyncIoHandle
     {
         private readonly ILogger _logger;
-        private readonly IWindowsVfsFileCallbacks? _callbacks;
+        private readonly IVfsFileWriteCallbacks? _callbacks;
         private readonly string? _scratchPath;
         private readonly SafeFileHandle _handle;
         private long _lastLength;
@@ -22,7 +22,7 @@
             FileMode fileMode,
             FileAccess fileAccess,
             FileShare fileShare,
-            IWindowsVfsFileCallbacks? callbacks,
+            IVfsFileWriteCallbacks? callbacks,
             string? scratchPath)
         {
             _handle = File.OpenHandle(path, fileMode, fileAccess, fileShare);
