@@ -83,7 +83,7 @@
 
         private async Task<string> WaitForMountToComplete(AsyncServerStreamingCall<MountResponse> stream)
         {
-            while (await stream.ResponseStream.MoveNext())
+            while (await stream.ResponseStream.MoveNext(new CancellationTokenSource(TimeSpan.FromSeconds(60)).Token))
             {
                 var entry = stream.ResponseStream.Current;
                 if (entry.PollingResponse.Complete)
@@ -117,7 +117,7 @@
                 var scratchReservation = await _reservationManager.ReserveAsync("VirtualSnapshotScratch", parameters);
                 try
                 {
-                    var existingMount = (await _uefsClient.ListAsync(new ListRequest())).Mounts
+                    var existingMount = (await _uefsClient.ListAsync(new ListRequest(), deadline: DateTime.UtcNow.AddSeconds(5))).Mounts
                         .FirstOrDefault(x => x.MountPath.Equals(mountReservation.ReservedPath, StringComparison.InvariantCultureIgnoreCase));
                     if (existingMount != null)
                     {
@@ -146,7 +146,7 @@
                             },
                             SourcePath = descriptor.SourcePath,
                             ScratchPath = scratchReservation.ReservedPath,
-                        }));
+                        }, deadline: DateTime.UtcNow.AddSeconds(60)));
                         usingMountReservation = true;
                         usingScratchReservation = true;
                         return new UEFSWorkspace(
@@ -218,7 +218,7 @@
                 var scratchReservation = await _reservationManager.ReserveAsync("VirtualGitScratch", parameters);
                 try
                 {
-                    var existingMount = (await _uefsClient.ListAsync(new ListRequest())).Mounts
+                    var existingMount = (await _uefsClient.ListAsync(new ListRequest(), deadline: DateTime.UtcNow.AddSeconds(5))).Mounts
                         .FirstOrDefault(x => x.MountPath.Equals(mountReservation.ReservedPath, StringComparison.InvariantCultureIgnoreCase));
                     if (existingMount != null)
                     {
@@ -249,7 +249,7 @@
                             Commit = descriptor.RepositoryCommitOrRef,
                             Credential = _credentialManager.GetGitCredentialForRepositoryUrl(descriptor.RepositoryUrl),
                             ScratchPath = scratchReservation.ReservedPath,
-                        }));
+                        }, deadline: DateTime.UtcNow.AddSeconds(60)));
                         usingMountReservation = true;
                         usingScratchReservation = true;
                         return new UEFSWorkspace(
@@ -289,7 +289,7 @@
             var mountReservation = await _reservationManager.ReserveAsync("VirtualPackageMount", parameters);
             try
             {
-                var existingMount = (await _uefsClient.ListAsync(new ListRequest())).Mounts
+                var existingMount = (await _uefsClient.ListAsync(new ListRequest(), deadline: DateTime.UtcNow.AddSeconds(5))).Mounts
                     .FirstOrDefault(x => x.MountPath.Equals(mountReservation.ReservedPath, StringComparison.InvariantCultureIgnoreCase));
                 if (existingMount != null)
                 {
@@ -317,7 +317,7 @@
                         },
                         Tag = descriptor.PackageTag,
                         Credential = _credentialManager.GetRegistryCredentialForTag(descriptor.PackageTag),
-                    }));
+                    }, deadline: DateTime.UtcNow.AddSeconds(60)));
                     usingMountReservation = true;
                     return new UEFSWorkspace(
                         _uefsClient,

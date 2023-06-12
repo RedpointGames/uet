@@ -41,7 +41,7 @@
                 await _uefsClient.UnmountAsync(new Uefs.UnmountRequest
                 {
                     MountId = _mountId
-                });
+                }, deadline: DateTime.UtcNow.AddSeconds(60));
             }
             else
             {
