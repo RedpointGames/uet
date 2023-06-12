@@ -243,8 +243,8 @@
                     _logger.LogInformation($"Setting {version} as the current version on the command line...");
                     try
                     {
-                    Directory.CreateSymbolicLink(latestLink.FullName, Path.Combine(baseFolder, version));
-                }
+                        Directory.CreateSymbolicLink(latestLink.FullName, Path.Combine(baseFolder, version));
+                    }
                     catch (IOException ex) when (ex.Message.Contains("A required privilege is not held by the client"))
                     {
                         _logger.LogWarning("You don't have permission to create symbolic links on this system. The new UET version will be copied into Current instead.");
@@ -256,13 +256,53 @@
                     }
                 }
 
-                var path = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User)!.Split(Path.PathSeparator).ToList();
-                if (!path.Contains(Path.Combine(baseFolder, "Current")))
+                if (OperatingSystem.IsWindows())
                 {
-                    _logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to your PATH variable...");
-                    path.Add(Path.Combine(baseFolder, "Current"));
-                    Environment.SetEnvironmentVariable("PATH", string.Join(Path.PathSeparator, path), EnvironmentVariableTarget.User);
-                    _logger.LogInformation($"Your PATH environment variable has been updated. You may need to restart your terminal for the changes to take effect.");
+                    var path = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User)!.Split(Path.PathSeparator).ToList();
+                    if (!path.Contains(Path.Combine(baseFolder, "Current")))
+                    {
+                        _logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to your PATH variable...");
+                        path.Add(Path.Combine(baseFolder, "Current"));
+                        Environment.SetEnvironmentVariable("PATH", string.Join(Path.PathSeparator, path), EnvironmentVariableTarget.User);
+                        _logger.LogInformation($"Your PATH environment variable has been updated. You may need to restart your terminal for the changes to take effect.");
+                    }
+                }
+                else
+                {
+                    var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                    var pathLine = $@"PATH=""{Path.Combine(baseFolder, "Current")}:$PATH""";
+                    var updated = false;
+                    if (OperatingSystem.IsMacOS())
+                    {
+                        var zprofile = Path.Combine(home, ".zprofile");
+                        if (File.Exists(zprofile))
+                        {
+                            var lines = (await File.ReadAllLinesAsync(zprofile)).ToList();
+                            if (!lines.Contains(pathLine))
+                            {
+                                _logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to your .zprofile...");
+                                lines.Add(pathLine);
+                                await File.WriteAllLinesAsync(zprofile, lines);
+                                updated = true;
+                            }
+                        }
+                    }
+                    var bashprofile = Path.Combine(home, ".bash_profile");
+                    if (File.Exists(bashprofile))
+                    {
+                        var lines = (await File.ReadAllLinesAsync(bashprofile)).ToList();
+                        if (!lines.Contains(pathLine))
+                        {
+                            _logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to your .bash_profile...");
+                            lines.Add(pathLine);
+                            await File.WriteAllLinesAsync(bashprofile, lines);
+                            updated = true;
+                        }
+                    }
+                    if (updated)
+                    {
+                        _logger.LogInformation($"Your shell profile has been updated to add {Path.Combine(baseFolder, "Current")} to your PATH. You may need to restart your terminal for the changes to take effect.");
+                    }
                 }
 
                 var currentBuildConfigPath = Path.Combine(Environment.CurrentDirectory, "BuildConfig.json");
