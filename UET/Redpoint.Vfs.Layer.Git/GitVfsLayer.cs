@@ -79,7 +79,13 @@
                     }
                 }
 
-                var metrics = new GitTreeEnumerationMetrics(true);
+                var metrics = new GitTreeEnumerationMetrics(objectsMapped =>
+                {
+                    if (objectsMapped % 10000 == 0)
+                    {
+                        Console.WriteLine($"Git parsed objects: {objectsMapped}");
+                    }
+                });
                 await _index.InitializeFromTreeAsync(tree, metrics, cancellationToken);
 
                 try

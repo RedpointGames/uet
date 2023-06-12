@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
@@ -8,8 +8,20 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>Provides common abstractions for Git data structures. The other `Redpoint.Git.*` libraries implement these interfaces.</Description>
+    <PackageTags>git, abstractions, data structures</PackageTags>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.Vfs.Abstractions\Redpoint.Vfs.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+    </None>
   </ItemGroup>
 
 </Project>
