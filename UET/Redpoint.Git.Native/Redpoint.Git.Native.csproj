@@ -10,7 +10,7 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
   <PropertyGroup>
-    <Description>An implementation of `Redpoint.Git.Abstractions` that represents a local repository. Also provides `IGitRepoManagerFactory` which allows you to fetch commits via the `IGitRepoManager` interface.</Description>
+    <Description>An implementation of Redpoint.Git.Abstractions that represents a local repository. Also provides IGitRepoManagerFactory which allows you to fetch commits via the IGitRepoManager interface.</Description>
     <PackageTags>git, native, libgit2sharp</PackageTags>
   </PropertyGroup>
 

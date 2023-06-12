@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
@@ -10,7 +10,7 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
   <PropertyGroup>
-    <Description>An implementation of `Redpoint.Git.Abstractions` that connects directly to GitHub through an access token.</Description>
+    <Description>An implementation of Redpoint.Git.Abstractions that connects directly to GitHub through an access token.</Description>
     <PackageTags>git, github</PackageTags>
   </PropertyGroup>
 

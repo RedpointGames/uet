@@ -10,7 +10,7 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
   <PropertyGroup>
-    <Description>Provides common abstractions for Git data structures. The other `Redpoint.Git.*` libraries implement these interfaces.</Description>
+    <Description>Provides common abstractions for Git data structures. The other Redpoint.Git.* libraries implement these interfaces.</Description>
     <PackageTags>git, abstractions, data structures</PackageTags>
   </PropertyGroup>
 
