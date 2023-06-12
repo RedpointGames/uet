@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
@@ -11,7 +11,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
   <PropertyGroup>
     <Description>Provides abstractions for virtual filesystem drivers.</Description>
-    <PackageTags>virtual filesystem, vfs</PackageTags>
+    <PackageTags>virtual filesystem, vfs, drivers</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
