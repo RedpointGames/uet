@@ -3,10 +3,21 @@
     using System;
     using System.Collections.Generic;
 
+    /// <summary>
+    /// Provides <see cref="Aggregate(IEnumerable{VfsEntry}?, IEnumerable{VfsEntry}, bool)"/> to aggregate virtual filesystem entries across layers.
+    /// </summary>
     public static class DirectoryAggregation
     {
         private static IComparer<string> _comparer = new FileSystemNameComparer();
 
+        /// <summary>
+        /// Aggregate the virtual filesystem entries across two virtual filesystem layers.
+        /// </summary>
+        /// <param name="upstream">Entries from the parent virtual filesystem layer.</param>
+        /// <param name="local">Entries from the current virtual filesystem layer.</param>
+        /// <param name="enableCorrectnessChecks">If true, this function will validate it's inputs to ensure they are correct for returning to the virtual filesystem driver.</param>
+        /// <returns>The aggregated virtual filesystem entries.</returns>
+        /// <exception cref="CorrectnessCheckFailureException">Thrown if <paramref name="enableCorrectnessChecks"/> is true and the entries are not sorted correctly.</exception>
         public static IEnumerable<VfsEntry> Aggregate(
             IEnumerable<VfsEntry>? upstream,
             IEnumerable<VfsEntry> local,
@@ -32,11 +43,11 @@
                     {
                         if (previousUpstreamName != null && _comparer.Compare(upstreamItem.Name, previousUpstreamName) < 0)
                         {
-                            throw new InvalidOperationException("Input upstream enumerable is not sorted correctly!");
+                            throw new CorrectnessCheckFailureException("Input upstream enumerable is not sorted correctly!");
                         }
                         if (previousLocalName != null && _comparer.Compare(localItem.Name, previousLocalName) < 0)
                         {
-                            throw new InvalidOperationException("Input local enumerable is not sorted correctly!");
+                            throw new CorrectnessCheckFailureException("Input local enumerable is not sorted correctly!");
                         }
                     }
 
@@ -76,7 +87,7 @@
                     {
                         if (previousUpstreamName != null && _comparer.Compare(upstreamItem.Name, previousUpstreamName) < 0)
                         {
-                            throw new InvalidOperationException("Input upstream enumerable is not sorted correctly!");
+                            throw new CorrectnessCheckFailureException("Input upstream enumerable is not sorted correctly!");
                         }
                     }
 
@@ -92,7 +103,7 @@
                     {
                         if (previousLocalName != null && _comparer.Compare(localItem.Name, previousLocalName) < 0)
                         {
-                            throw new InvalidOperationException("Input local enumerable is not sorted correctly!");
+                            throw new CorrectnessCheckFailureException("Input local enumerable is not sorted correctly!");
                         }
                     }
 

@@ -145,7 +145,7 @@
                 ApplyDeletionAndTombstoningToPathInternal(path);
             }))
             {
-                throw new ScratchLayerDeadlockException($"Deadlocked while trying to obtain MaterializationAndTombstoningLock for ApplyDeletionAndTombstoningToPath({path})!");
+                throw new VfsLayerDeadlockException($"Deadlocked while trying to obtain MaterializationAndTombstoningLock for ApplyDeletionAndTombstoningToPath({path})!");
             }
         }
 
@@ -186,7 +186,7 @@
                 ApplyTombstoningToPathInternal(path);
             }))
             {
-                throw new ScratchLayerDeadlockException($"Deadlocked while trying to obtain MaterializationAndTombstoningLock for ApplyTombstoningToPath({path})!");
+                throw new VfsLayerDeadlockException($"Deadlocked while trying to obtain MaterializationAndTombstoningLock for ApplyTombstoningToPath({path})!");
             }
         }
 
@@ -205,7 +205,7 @@
                 ApplyMaterializationToPathInternal(path);
             }))
             {
-                throw new ScratchLayerDeadlockException($"Deadlocked while trying to obtain MaterializationAndTombstoningLock for ApplyMaterializationToPath({path})!");
+                throw new VfsLayerDeadlockException($"Deadlocked while trying to obtain MaterializationAndTombstoningLock for ApplyMaterializationToPath({path})!");
             }
         }
 
@@ -468,11 +468,11 @@
                     result = MoveFileInternal(oldPath, newPath, replace);
                 }))
                 {
-                    throw new ScratchLayerDeadlockException($"Deadlocked while trying to obtain OpenAndReadLock on old path for MoveFile({oldPath}, {newPath}, {replace})!");
+                    throw new VfsLayerDeadlockException($"Deadlocked while trying to obtain OpenAndReadLock on old path for MoveFile({oldPath}, {newPath}, {replace})!");
                 }
             }))
             {
-                throw new ScratchLayerDeadlockException($"Deadlocked while trying to obtain OpenAndReadLock on new path for MoveFile({oldPath}, {newPath}, {replace})!");
+                throw new VfsLayerDeadlockException($"Deadlocked while trying to obtain OpenAndReadLock on new path for MoveFile({oldPath}, {newPath}, {replace})!");
             }
             return result;
         }
@@ -652,7 +652,7 @@
 #endif
             }))
             {
-                throw new ScratchLayerDeadlockException($"Deadlocked while trying to obtain OpenAndReadLock on OpenFile({path}, ...)!");
+                throw new VfsLayerDeadlockException($"Deadlocked while trying to obtain OpenAndReadLock on OpenFile({path}, ...)!");
             }
             metadata = metadataResult;
             return result;
@@ -913,7 +913,7 @@
                 result = true;
             }))
             {
-                throw new ScratchLayerDeadlockException($"Deadlocked while trying to obtain OpenAndReadLock on SetBasicInfo({path}, ...)!");
+                throw new VfsLayerDeadlockException($"Deadlocked while trying to obtain OpenAndReadLock on SetBasicInfo({path}, ...)!");
             }
             return result;
         }
