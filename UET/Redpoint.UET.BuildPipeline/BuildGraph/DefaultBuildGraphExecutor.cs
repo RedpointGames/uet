@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.UET.BuildPipeline.BuildGraph
 {
+    using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
     using Redpoint.UET.BuildPipeline.BuildGraph.Export;
     using Redpoint.UET.BuildPipeline.BuildGraph.Patching;
@@ -11,15 +12,18 @@
 
     internal class DefaultBuildGraphExecutor : IBuildGraphExecutor
     {
+        private readonly ILogger<DefaultBuildGraphExecutor> _logger;
         private readonly IUATExecutor _uatExecutor;
         private readonly IBuildGraphArgumentGenerator _buildGraphArgumentGenerator;
         private readonly IBuildGraphPatcher _buildGraphPatcher;
 
         public DefaultBuildGraphExecutor(
+            ILogger<DefaultBuildGraphExecutor> logger,
             IUATExecutor uatExecutor,
             IBuildGraphArgumentGenerator buildGraphArgumentGenerator,
             IBuildGraphPatcher buildGraphPatcher)
         {
+            _logger = logger;
             _uatExecutor = uatExecutor;
             _buildGraphArgumentGenerator = buildGraphArgumentGenerator;
             _buildGraphPatcher = buildGraphPatcher;
@@ -186,6 +190,20 @@
             }
 
             await _buildGraphPatcher.PatchBuildGraphAsync(enginePath);
+
+            var envTraceLines = new List<string>();
+            foreach (var kv in buildGraphEnvironmentVariables)
+            {
+                envTraceLines.Add($"- {kv.Key}={kv.Value}");
+            }
+            if (envTraceLines.Count == 0)
+            {
+                _logger.LogTrace("Executing UAT with no environment variables.");
+            }
+            else
+            {
+                _logger.LogTrace($"Executing UAT with the following environment variables:\n{string.Join("\n", envTraceLines)}");
+            }
 
             try
             {
