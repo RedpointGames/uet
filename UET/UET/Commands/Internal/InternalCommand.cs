@@ -14,20 +14,30 @@
 
     internal class InternalCommand
     {
-        public static Command CreateInternalCommand()
+        public static Command CreateInternalCommand(HashSet<Command> globalCommands)
         {
+            var subcommands = new List<Command>
+            {
+                CIBuildCommand.CreateCIBuildCommand(),
+                CopyAndMutateBuildCsCommand.CreateCopyAndMutateBuildCsCommand(),
+                RunAutomationTestFromBuildGraphCommand.CreateRunAutomationTestFromBuildGraphCommand(),
+                RunDownstreamTestCommand.CreateRunDownstreamTestCommand(),
+                RunGauntletTestFromBuildGraphCommand.CreateRunGauntletCommand(),
+                SetFilterFileCommand.CreateSetFilterFileCommand(),
+                UpdateCopyrightHeadersForMarketplaceCommand.CreateUpdateCopyrightHeadersForMarketplaceCommand(),
+                UpdateUPluginCommand.CreateUpdateUPluginCommand(),
+                UploadToBackblazeB2Command.CreateUploadToBackblazeB2Command(),
+                TestGrpcPipesCommand.CreateTestGrpcPipesCommand(),
+            };
+
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
             command.IsHidden = true;
-            command.AddCommand(CIBuildCommand.CreateCIBuildCommand());
-            command.AddCommand(CopyAndMutateBuildCsCommand.CreateCopyAndMutateBuildCsCommand());
-            command.AddCommand(RunAutomationTestFromBuildGraphCommand.CreateRunAutomationTestFromBuildGraphCommand());
-            command.AddCommand(RunDownstreamTestCommand.CreateRunDownstreamTestCommand());
-            command.AddCommand(RunGauntletTestFromBuildGraphCommand.CreateRunGauntletCommand());
-            command.AddCommand(SetFilterFileCommand.CreateSetFilterFileCommand());
-            command.AddCommand(UpdateCopyrightHeadersForMarketplaceCommand.CreateUpdateCopyrightHeadersForMarketplaceCommand());
-            command.AddCommand(UpdateUPluginCommand.CreateUpdateUPluginCommand());
-            command.AddCommand(UploadToBackblazeB2Command.CreateUploadToBackblazeB2Command());
-            command.AddCommand(TestGrpcPipesCommand.CreateTestGrpcPipesCommand());
+            foreach (var subcommand in subcommands)
+            {
+                globalCommands.Add(subcommand);
+                command.AddCommand(subcommand);
+            }
+            globalCommands.Add(command);
             return command;
         }
     }

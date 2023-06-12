@@ -35,7 +35,7 @@
             }
         }
 
-        public static Command CreateUpgradeCommand()
+        public static Command CreateUpgradeCommand(HashSet<Command> globalCommands)
         {
             var options = new Options();
             var command = new Command("upgrade", "Upgrades your version of UET.");
@@ -46,6 +46,7 @@
                 {
                     services.AddSingleton<IBuildSpecificationGenerator, DefaultBuildSpecificationGenerator>();
                 });
+            globalCommands.Add(command);
             return command;
         }
 

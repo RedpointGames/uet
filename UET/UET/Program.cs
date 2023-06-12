@@ -21,16 +21,16 @@ Environment.SetEnvironmentVariable("MSBUILDDISABLENODEREUSE", "1");
 // is invoking, to make sure we don't do the BuildConfig.json-based version switch
 // if the user is invoking a "global" command.
 var rootCommand = new RootCommand("An unofficial tool for Unreal Engine.");
-var rootUpgradeCommand = UpgradeCommand.CreateUpgradeCommand();
+var globalCommands = new HashSet<Command>();
 rootCommand.AddOption(UET.Commands.CommandExtensions.GetTraceOption());
 rootCommand.AddCommand(BuildCommand.CreateBuildCommand());
 rootCommand.AddCommand(ListCommand.CreateListCommand());
-rootCommand.AddCommand(rootUpgradeCommand);
-rootCommand.AddCommand(InternalCommand.CreateInternalCommand());
+rootCommand.AddCommand(UpgradeCommand.CreateUpgradeCommand(globalCommands));
+rootCommand.AddCommand(InternalCommand.CreateInternalCommand(globalCommands));
 
 // Parse the command line so we can inspect it.
 var parseResult = rootCommand.Parse(args);
-var isGlobalCommand = parseResult.CommandResult.Command == rootUpgradeCommand;
+var isGlobalCommand = globalCommands.Contains(parseResult.CommandResult.Command);
 
 // If we have a BuildConfig.json file in this folder, and that file specifies a
 // UETVersion, then we must use that version specifically.
@@ -90,7 +90,7 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                 try
                 {
                     var upgradeRootCommand = new RootCommand("An unofficial tool for Unreal Engine.");
-                    upgradeRootCommand.AddCommand(UpgradeCommand.CreateUpgradeCommand());
+                    upgradeRootCommand.AddCommand(UpgradeCommand.CreateUpgradeCommand(new HashSet<Command>()));
                     var upgradeArgs = new[] { "upgrade", "--version", targetVersion!, "--do-not-set-as-current" };
                     if (targetVersion == "BleedingEdge")
                     {
