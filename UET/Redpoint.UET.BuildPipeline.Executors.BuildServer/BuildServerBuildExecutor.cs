@@ -14,6 +14,7 @@
     using System.Reflection;
     using System.Diagnostics;
     using Redpoint.UET.Workspace.Descriptors;
+    using Redpoint.UET.Configuration;
 
     public abstract class BuildServerBuildExecutor : IBuildExecutor
     {
@@ -21,6 +22,7 @@
         private readonly IBuildGraphExecutor _buildGraphExecutor;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
         private readonly IDynamicWorkspaceProvider _workspaceProvider;
+        private readonly IGlobalArgsProvider? _globalArgsProvider;
         private readonly string _buildServerOutputFilePath;
 
         public BuildServerBuildExecutor(
@@ -28,12 +30,14 @@
             IBuildGraphExecutor buildGraphExecutor,
             IEngineWorkspaceProvider engineWorkspaceProvider,
             IDynamicWorkspaceProvider workspaceProvider,
+            IGlobalArgsProvider? globalArgsProvider,
             string buildServerOutputFilePath)
         {
             _logger = logger;
             _buildGraphExecutor = buildGraphExecutor;
             _engineWorkspaceProvider = engineWorkspaceProvider;
             _workspaceProvider = workspaceProvider;
+            _globalArgsProvider = globalArgsProvider;
             _buildServerOutputFilePath = buildServerOutputFilePath;
         }
 
@@ -404,11 +408,13 @@
                         job.ArtifactJUnitReportPath = ".uet/tmp/*/TestResults_*.xml";
                     }
 
+                    var globalArgs = _globalArgsProvider != null ? $" {_globalArgsProvider.GlobalArgsString}" : string.Empty;
+
                     switch (job.Platform)
                     {
                         case BuildServerJobPlatform.Windows:
                             {
-                                job.Script = $"& \"{preparationInfo.WindowsPath}\" internal ci-build --executor gitlab";
+                                job.Script = $"& \"{preparationInfo.WindowsPath}\"{globalArgs} internal ci-build --executor gitlab";
                                 var buildJobJson = new BuildJobJson
                                 {
                                     Engine = buildSpecification.Engine.ToReparsableString(),
@@ -430,7 +436,7 @@
                             break;
                         case BuildServerJobPlatform.Mac:
                             {
-                                job.Script = $"chmod a+x \"{preparationInfo.MacPath}\" && \"{preparationInfo.MacPath}\" internal ci-build --executor gitlab";
+                                job.Script = $"chmod a+x \"{preparationInfo.MacPath}\" && \"{preparationInfo.MacPath}\"{globalArgs} internal ci-build --executor gitlab";
                                 var buildJobJson = new BuildJobJson
                                 {
                                     Engine = buildSpecification.Engine.ToReparsableString(),

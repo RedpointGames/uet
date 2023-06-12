@@ -5,6 +5,7 @@
     using Redpoint.UET.BuildPipeline.Executors;
     using Redpoint.UET.BuildPipeline.Executors.BuildServer;
     using Redpoint.UET.BuildPipeline.Executors.Engine;
+    using Redpoint.UET.Configuration;
     using Redpoint.UET.Workspace;
     using System.Threading.Tasks;
     using YamlDotNet.Serialization;
@@ -19,11 +20,13 @@
             IBuildGraphExecutor buildGraphExecutor,
             IEngineWorkspaceProvider engineWorkspaceProvider,
             IDynamicWorkspaceProvider workspaceProvider,
+            IGlobalArgsProvider? globalArgsProvider,
             string buildServerOutputFilePath) : base(
                 baseLogger,
                 buildGraphExecutor,
                 engineWorkspaceProvider,
                 workspaceProvider,
+                globalArgsProvider,
                 buildServerOutputFilePath)
         {
             _logger = logger;

@@ -5,6 +5,7 @@
     using Redpoint.UET.BuildPipeline.BuildGraph;
     using Redpoint.UET.BuildPipeline.Executors.BuildServer;
     using Redpoint.UET.BuildPipeline.Executors.Engine;
+    using Redpoint.UET.Configuration;
     using Redpoint.UET.Workspace;
     using System;
 
@@ -26,6 +27,7 @@
                 _serviceProvider.GetRequiredService<IBuildGraphExecutor>(),
                 _serviceProvider.GetRequiredService<IEngineWorkspaceProvider>(),
                 _serviceProvider.GetRequiredService<IDynamicWorkspaceProvider>(),
+                _serviceProvider.GetService<IGlobalArgsProvider>(),
                 buildServerOutputFilePath);
         }
 
