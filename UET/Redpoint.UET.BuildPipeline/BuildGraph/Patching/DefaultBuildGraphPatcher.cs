@@ -161,7 +161,9 @@
 
             foreach (var patchDefinition in _patches)
             {
-                var sourceFile = Path.Combine(enginePath, patchDefinition.File);
+                var filename = patchDefinition.File.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+
+                var sourceFile = Path.Combine(enginePath, filename);
                 if (File.Exists(sourceFile))
                 {
                     var content = await File.ReadAllTextAsync(sourceFile);
@@ -173,14 +175,14 @@
                         {
                             if (content.Contains(patch.Contains!))
                             {
-                                _logger.LogTrace($"Patch {patchDefinition.File} #{i}: Applying...");
+                                _logger.LogTrace($"Patch {filename} #{i}: Applying...");
                                 var startIndex = content.IndexOf(patch.StartIndex!);
                                 var endIndex = content.IndexOf(patch.EndIndex!);
                                 content = content.Substring(0, startIndex) + content.Substring(endIndex);
                             }
                             else
                             {
-                                _logger.LogTrace($"Patch {patchDefinition.File} #{i}: Does not apply because contains could not be found: {patch.Contains}");
+                                _logger.LogTrace($"Patch {filename} #{i}: Does not apply because contains could not be found: {patch.Contains}");
                             }
                         }
                         else
@@ -191,12 +193,12 @@
                             }
                             if (content.Contains(patch.Find!))
                             {
-                                _logger.LogTrace($"Patch {patchDefinition.File} #{i}: Applying...");
+                                _logger.LogTrace($"Patch {filename} #{i}: Applying...");
                                 content = content.Replace(patch.Find!, patch.Replace!);
                             }
                             else
                             {
-                                _logger.LogTrace($"Patch {patchDefinition.File} #{i}: Does not apply because content could not be found: {patch.Find}");
+                                _logger.LogTrace($"Patch {filename} #{i}: Does not apply because content could not be found: {patch.Find}");
                             }
                         }
                     }
@@ -207,7 +209,7 @@
                 }
                 else
                 {
-                    _logger.LogTrace($"Patch {patchDefinition.File}: Does not apply because file does not exist: {sourceFile}");
+                    _logger.LogTrace($"Patch {filename}: Does not apply because file does not exist: {sourceFile}");
                 }
             }
 
