@@ -191,18 +191,17 @@
 
             await _buildGraphPatcher.PatchBuildGraphAsync(enginePath);
 
-            var envTraceLines = new List<string>();
-            foreach (var kv in buildGraphEnvironmentVariables)
+            if (buildGraphEnvironmentVariables.Count == 0)
             {
-                envTraceLines.Add($"- {kv.Key}={kv.Value}");
-            }
-            if (envTraceLines.Count == 0)
-            {
-                _logger.LogTrace("Executing UAT with no environment variables.");
+                _logger.LogTrace("Executing BuildGraph with no environment variables.");
             }
             else
             {
-                _logger.LogTrace($"Executing UAT with the following environment variables:\n{string.Join("\n", envTraceLines)}");
+                _logger.LogTrace($"Executing BuildGraph with the following environment variables:");
+                foreach (var kv in buildGraphEnvironmentVariables)
+                {
+                    _logger.LogTrace($"  {kv.Key}={kv.Value}");
+                }
             }
 
             try
