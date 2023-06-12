@@ -3,6 +3,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProgressMonitor;
+    using Redpoint.UET.Core;
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
@@ -213,6 +214,11 @@
 
                 var wasAlreadyUpToDate = true;
 
+                if (Directory.Exists(Path.Combine(baseFolder, "Old")))
+                {
+                    await DirectoryAsync.DeleteAsync(Path.Combine(baseFolder, "Old"), true);
+                }
+
                 var needsToUpdateLink = true;
                 var latestLink = new DirectoryInfo(Path.Combine(baseFolder, "Current"));
                 if (latestLink.Exists && latestLink.Attributes.HasFlag(FileAttributes.ReparsePoint))
@@ -227,11 +233,27 @@
                         Directory.Delete(latestLink.FullName);
                     }
                 }
+                else if (latestLink.Exists)
+                {
+                    Directory.Move(latestLink.FullName, Path.Combine(baseFolder, "Old"));
+                }
                 if (needsToUpdateLink)
                 {
                     wasAlreadyUpToDate = false;
                     _logger.LogInformation($"Setting {version} as the current version on the command line...");
+                    try
+                    {
                     Directory.CreateSymbolicLink(latestLink.FullName, Path.Combine(baseFolder, version));
+                }
+                    catch (IOException ex) when (ex.Message.Contains("A required privilege is not held by the client"))
+                    {
+                        _logger.LogWarning("You don't have permission to create symbolic links on this system. The new UET version will be copied into Current instead.");
+                        Directory.CreateDirectory(latestLink.FullName);
+                        foreach (var fileFullName in Directory.GetFiles(Path.Combine(baseFolder, version)))
+                        {
+                            File.Copy(fileFullName, Path.Combine(baseFolder, version, Path.GetFileName(fileFullName)));
+                        }
+                    }
                 }
 
                 var path = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User)!.Split(Path.PathSeparator).ToList();
