@@ -13,6 +13,7 @@
     using Redpoint.UET.Workspace.Reservation;
     using System.Linq;
     using Grpc.Core;
+    using System.Net.Sockets;
 
     internal class VirtualWorkspaceProvider : IVirtualWorkspaceProvider
     {
@@ -35,22 +36,48 @@
 
         public bool ProvidesFastCopyOnWrite => true;
 
+        private static bool IsUefsUnavailableException(RpcException ex)
+        {
+            if (ex.StatusCode != StatusCode.Unavailable)
+            {
+                return false;
+            }
+            switch (ex.InnerException)
+            {
+                case HttpRequestException hre:
+                    switch (hre.InnerException)
+                    {
+                        case SocketException se:
+                            return se.SocketErrorCode == SocketError.ConnectionRefused;
+                    }
+                    return false;
+            }
+            return false;
+        }
+
         public async Task<IWorkspace> GetWorkspaceAsync(IWorkspaceDescriptor workspaceDescriptor, CancellationToken cancellationToken)
         {
-            switch (workspaceDescriptor)
+            try
             {
-                case FolderAliasWorkspaceDescriptor descriptor:
-                    return new LocalWorkspace(descriptor.AliasedPath);
-                case FolderSnapshotWorkspaceDescriptor descriptor:
-                    return await AllocateSnapshotAsync(descriptor, cancellationToken);
-                case TemporaryWorkspaceDescriptor descriptor:
-                    return await AllocateTemporaryAsync(descriptor, cancellationToken);
-                case GitWorkspaceDescriptor descriptor:
-                    return await AllocateGitAsync(descriptor, cancellationToken);
-                case UefsPackageWorkspaceDescriptor descriptor:
-                    return await AllocateUefsPackageAsync(descriptor, cancellationToken);
-                default:
-                    throw new NotSupportedException();
+                switch (workspaceDescriptor)
+                {
+                    case FolderAliasWorkspaceDescriptor descriptor:
+                        return new LocalWorkspace(descriptor.AliasedPath);
+                    case FolderSnapshotWorkspaceDescriptor descriptor:
+                        return await AllocateSnapshotAsync(descriptor, cancellationToken);
+                    case TemporaryWorkspaceDescriptor descriptor:
+                        return await AllocateTemporaryAsync(descriptor, cancellationToken);
+                    case GitWorkspaceDescriptor descriptor:
+                        return await AllocateGitAsync(descriptor, cancellationToken);
+                    case UefsPackageWorkspaceDescriptor descriptor:
+                        return await AllocateUefsPackageAsync(descriptor, cancellationToken);
+                    default:
+                        throw new NotSupportedException();
+                }
+            }
+            catch (RpcException ex) when (IsUefsUnavailableException(ex))
+            {
+                throw new UefsServiceNotRunningException();
             }
         }
 
