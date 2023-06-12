@@ -211,6 +211,13 @@
                 }
             }
 
+            // Check that we applied the minimum patches correctly.
+            var buildGraphFile = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "BuildGraph", "BuildGraph.cs");
+            if (!File.Exists(buildGraphFile) || !File.ReadAllText(buildGraphFile).Contains("BUILD_GRAPH_PROJECT_ROOT"))
+            {
+                throw new InvalidOperationException("Patching process failed to produce BuildGraph.cs file that contains BUILD_GRAPH_PROJECT_ROOT. Turn on --trace to see logs about the patching process.");
+            }
+
             await CopyMissingEngineBitsAsync(enginePath);
 
             var epicGamesCoreProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "Shared", "EpicGames.Core", "EpicGames.Core.csproj");
