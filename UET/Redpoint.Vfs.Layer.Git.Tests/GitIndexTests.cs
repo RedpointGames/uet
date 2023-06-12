@@ -16,7 +16,7 @@ namespace Redpoint.Vfs.Layer.Git.Tests
             var index = new GitIndex();
             var commit = await repository.GetCommitByShaAsync("cdaec5b33ea5d332e51eee4e4866495c90442122", cancellationToken);
             var tree = await commit.GetRootTreeAsync(cancellationToken);
-            var metrics = new IGitTree.GitTreeEnumerationMetrics();
+            var metrics = new IGitTree.GitTreeEnumerationMetrics(_ => { });
             await index.InitializeFromTreeAsync(tree, metrics, cancellationToken);
             using (var stream = new MemoryStream())
             {
@@ -34,7 +34,7 @@ namespace Redpoint.Vfs.Layer.Git.Tests
             var index = new GitIndex();
             var commit = await repository.GetCommitByShaAsync("cdaec5b33ea5d332e51eee4e4866495c90442122", cancellationToken);
             var tree = await commit.GetRootTreeAsync(cancellationToken);
-            var metrics = new IGitTree.GitTreeEnumerationMetrics();
+            var metrics = new IGitTree.GitTreeEnumerationMetrics(_ => { });
             await index.InitializeFromTreeAsync(tree, metrics, cancellationToken);
 
             byte[] storage;
@@ -68,7 +68,7 @@ namespace Redpoint.Vfs.Layer.Git.Tests
             var index = new GitIndex();
             var commit = await repository.GetCommitByShaAsync("cdaec5b33ea5d332e51eee4e4866495c90442122", cancellationToken);
             var tree = await commit.GetRootTreeAsync(cancellationToken);
-            var metrics = new IGitTree.GitTreeEnumerationMetrics();
+            var metrics = new IGitTree.GitTreeEnumerationMetrics(_ => { });
             await index.InitializeFromTreeAsync(tree, metrics, cancellationToken);
 
             Assert.DoesNotContain(index._paths.Values, v => v.Name == ".");
