@@ -9,12 +9,21 @@
     using System.Threading;
     using System.Threading.Tasks;
 
+    /// <summary>
+    /// Provides access to a GitHub repository.
+    /// </summary>
     public class GitHubGitRepository : IGitRepository
     {
         private readonly GitHubClient _client;
         private readonly string _owner;
         private readonly string _repo;
 
+        /// <summary>
+        /// Constructs a <see cref="GitHubGitRepository"/> which represents direct access to a GitHub repository.
+        /// </summary>
+        /// <param name="client">The GitHub client to use.</param>
+        /// <param name="owner">The owner of the repository.</param>
+        /// <param name="repo">The repository name.</param>
         public GitHubGitRepository(
             GitHubClient client,
             string owner,
@@ -25,10 +34,12 @@
             _repo = repo;
         }
 
+        /// <inheritdoc />
         public void Dispose()
         {
         }
 
+        /// <inheritdoc />
         public async Task<string?> ResolveRefToShaAsync(string @ref, CancellationToken cancellationToken)
         {
             if (Regex.IsMatch(@ref, "^[0-9a-f]{40}$"))
@@ -39,12 +50,14 @@
             return resolvedRef.Object.Sha;
         }
 
+        /// <inheritdoc />
         public async Task<IGitCommit> GetCommitByShaAsync(string sha, CancellationToken cancellationToken)
         {
             var commit = await _client.Git.Commit.Get(_owner, _repo, sha);
             return new GitHubGitCommit(_client, _owner, _repo, commit);
         }
 
+        /// <inheritdoc />
         public async Task<long> MaterializeBlobToDiskByShaAsync(string sha, string destinationPath, Func<string, string>? contentAdjust, CancellationToken cancellationToken)
         {
             using (var client = new HttpClient())

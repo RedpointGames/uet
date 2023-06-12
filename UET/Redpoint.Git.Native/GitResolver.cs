@@ -2,9 +2,9 @@
 {
     using LibGit2Sharp;
 
-    public static class GitResolver
+    internal static class GitResolver
     {
-        public static string? ResolveToCommitHash(Repository repository, string @ref)
+        internal static string? ResolveToCommitHash(Repository repository, string @ref)
         {
             try
             {

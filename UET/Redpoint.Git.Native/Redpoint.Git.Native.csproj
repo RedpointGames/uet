@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
@@ -6,6 +6,12 @@
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>An implementation of `Redpoint.Git.Abstractions` that represents a local repository. Also provides `IGitRepoManagerFactory` which allows you to fetch commits via the `IGitRepoManager` interface.</Description>
+    <PackageTags>git, native, libgit2sharp</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +23,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.Git.Abstractions\Redpoint.Git.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+    </None>
   </ItemGroup>
 
 </Project>
