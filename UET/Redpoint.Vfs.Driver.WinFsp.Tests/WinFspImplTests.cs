@@ -7,6 +7,7 @@
     using Redpoint.Vfs.Layer.Git;
     using Redpoint.Vfs.LocalIo;
     using Redpoint.Vfs.Layer.Scratch;
+    using System.Collections.Generic;
 
     public class WinFspImplTests
     {

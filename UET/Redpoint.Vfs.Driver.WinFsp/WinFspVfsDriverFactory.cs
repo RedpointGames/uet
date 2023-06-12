@@ -12,7 +12,7 @@
         private readonly ILogger<WinFspVfsDriverFactory> _factoryLogger;
         private readonly ILogger<WinFspVfsDriverImpl> _instanceLogger;
 
-        internal WinFspVfsDriverFactory(
+        public WinFspVfsDriverFactory(
             ILogger<WinFspVfsDriverFactory> factoryLogger,
             ILogger<WinFspVfsDriverImpl> instanceLogger)
         {

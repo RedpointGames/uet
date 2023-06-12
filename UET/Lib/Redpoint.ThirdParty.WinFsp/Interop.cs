@@ -1549,10 +1549,6 @@ namespace Fsp.Interop
             UInt32 Version = 0, VersionMajor, VersionMinor;
             Info = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
             FspVersion(out Version); VersionMajor = Version >> 16; VersionMinor = Version & 0xFFFF;
-            if (Info.FileMajorPart != VersionMajor || Info.FileMinorPart > VersionMinor)
-                throw new TypeLoadException(String.Format(
-                    "incorrect dll version (need {0}.{1}, have {2}.{3})",
-                    Info.FileMajorPart, Info.FileMinorPart, VersionMajor, VersionMinor));
         }
         static Api()
         {
@@ -1560,15 +1556,6 @@ namespace Fsp.Interop
             if (Debugger.IsAttached)
                 Debugger.Break();
 #endif
-            object[] attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(
-                typeof(AssemblyProductAttribute), false);
-            if (null != attributes &&
-                0 < attributes.Length &&
-                null != attributes[0] as AssemblyProductAttribute)
-            {
-                ProductName = (attributes[0] as AssemblyProductAttribute).Product;
-                ProductFileName = ProductName.ToLowerInvariant();
-            }
             LoadProto(LoadDll());
             CheckVersion();
         }
