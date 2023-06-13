@@ -228,6 +228,29 @@
                 }
                 else
                 {
+                    // Inherit from environment variables if things aren't specified on the command line.
+                    var windowsSharedStoragePathEnv = Environment.GetEnvironmentVariable("UET_WINDOWS_SHARED_STORAGE_PATH");
+                    var windowsSdksPathEnv = Environment.GetEnvironmentVariable("UET_WINDOWS_SDKS_PATH");
+                    var macSharedStoragePathEnv = Environment.GetEnvironmentVariable("UET_MAC_SHARED_STORAGE_PATH");
+                    var macSdksPathEnv = Environment.GetEnvironmentVariable("UET_MAC_SDKS_PATH");
+                    if (string.IsNullOrWhiteSpace(windowsSharedStoragePath))
+                    {
+                        windowsSharedStoragePath = windowsSharedStoragePathEnv;
+                    }
+                    if (string.IsNullOrWhiteSpace(windowsSdksPath))
+                    {
+                        windowsSdksPath = windowsSdksPathEnv;
+                    }
+                    if (string.IsNullOrWhiteSpace(macSharedStoragePath))
+                    {
+                        macSharedStoragePath = macSharedStoragePathEnv;
+                    }
+                    if (string.IsNullOrWhiteSpace(macSdksPath))
+                    {
+                        macSdksPath = macSdksPathEnv;
+                    }
+
+                    // Ensure that at least the shared storage paths are set.
                     if (string.IsNullOrWhiteSpace(windowsSharedStoragePath))
                     {
                         _logger.LogError("--windows-shared-storage-path must be set when not using the local executor.");
