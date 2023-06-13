@@ -86,5 +86,35 @@ namespace Redpoint.GrpcPipes.Tests
 
             Assert.True(isCalled, "Expected TestMethod to be called");
         }
+
+        [Fact]
+        public async Task TestNewServerCanRemoveOldPipe()
+        {
+            var services = new ServiceCollection();
+            services.AddGrpcPipes();
+
+            var sp = services.BuildServiceProvider();
+            var pipeFactory = sp.GetRequiredService<IGrpcPipeFactory>();
+
+            var pipeName = $"test-grpc-pipes-{Process.GetCurrentProcess().Id}";
+
+            var testService = new TestServiceServer(() => { });
+
+            var server = pipeFactory.CreateServer(
+                pipeName,
+                GrpcPipeNamespace.Computer,
+                testService);
+            await server.StartAsync();
+
+            var server2 = pipeFactory.CreateServer(
+                pipeName,
+                GrpcPipeNamespace.Computer,
+                testService);
+            await server2.StartAsync();
+
+            await server.StopAsync();
+
+            await server2.StopAsync();
+        }
     }
 }
