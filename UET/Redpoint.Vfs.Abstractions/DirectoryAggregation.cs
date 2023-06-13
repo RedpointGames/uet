@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.Vfs.Abstractions
 {
-    using System;
     using System.Collections.Generic;
 
     /// <summary>

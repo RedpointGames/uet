@@ -3,7 +3,6 @@
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
     using Redpoint.GrpcPipes;
-    using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Diagnostics;

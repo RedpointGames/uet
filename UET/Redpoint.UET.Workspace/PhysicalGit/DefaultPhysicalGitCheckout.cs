@@ -125,6 +125,47 @@
             throw new InvalidOperationException($"Can't figure out what .git directory {cleanFile.FullName} is located in.");
         }
 
+        private async Task<int> FaultTolerantFetchAsync(
+            ProcessSpecification processSpecification,
+            ICaptureSpecification captureSpecification,
+            CancellationToken cancellationToken)
+        {
+            var backoff = 1000;
+            var attempts = 0;
+            do
+            {
+                var exitCode = await _processExecutor.ExecuteAsync(
+                    processSpecification,
+                    captureSpecification,
+                    cancellationToken);
+                if (exitCode == 128 && attempts < 10)
+                {
+                    // 'git fetch' returns exit code 128 when the remote host
+                    // unexpectedly disconnects. We want to handle unreliable
+                    // network connections by simply retrying the 'git fetch'
+                    // operation.
+                    _logger.LogWarning($"'git fetch' encountered a network error while fetching commits. Retrying the fetch operation in {backoff}ms...");
+                    await Task.Delay(backoff);
+                    backoff *= 2;
+                    if (backoff > 30000)
+                    {
+                        backoff = 30000;
+                    }
+                    attempts++;
+                    continue;
+                }
+                else if (exitCode == 128)
+                {
+                    // We attempted too many times and can't continue.
+                    _logger.LogError("Fault tolerant fetch ran into exit code 128 over 10 attempts, permanently failing...");
+                    return exitCode;
+                }
+
+                // Some other exit code, just return.
+                return exitCode;
+            } while (true);
+        }
+
         private async IAsyncEnumerable<(DirectoryInfo contentDirectory, SubmoduleDescription submodule, DirectoryInfo submoduleGitDirectory)> IterateContentBasedSubmodulesAsync(
             IReservation reservation,
             GitWorkspaceDescriptor descriptor)
@@ -380,7 +421,7 @@
             {
                 // Fetch the commit that we need.
                 _logger.LogInformation($"Fetching submodule {submodule.Path} from remote server...");
-                exitCode = await _processExecutor.ExecuteAsync(
+                exitCode = await FaultTolerantFetchAsync(
                     new ProcessSpecification
                     {
                         FilePath = git,
@@ -675,7 +716,7 @@
                     var fetchStringBuilder = new StringBuilder();
                     if (targetIsPotentialAnnotatedTag)
                     {
-                        exitCode = await _processExecutor.ExecuteAsync(
+                        exitCode = await FaultTolerantFetchAsync(
                             new ProcessSpecification
                             {
                                 FilePath = git,
@@ -741,7 +782,7 @@
                     }
                     else
                     {
-                        exitCode = await _processExecutor.ExecuteAsync(
+                        exitCode = await FaultTolerantFetchAsync(
                             new ProcessSpecification
                             {
                                 FilePath = git,
