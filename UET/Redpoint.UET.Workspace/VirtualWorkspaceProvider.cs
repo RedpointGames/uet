@@ -117,7 +117,7 @@
                 var scratchReservation = await _reservationManager.ReserveAsync("VirtualSnapshotScratch", parameters);
                 try
                 {
-                    var existingMount = (await _uefsClient.ListAsync(new ListRequest(), deadline: DateTime.UtcNow.AddSeconds(5))).Mounts
+                    var existingMount = (await _uefsClient.ListAsync(new ListRequest(), deadline: DateTime.UtcNow.AddSeconds(60))).Mounts
                         .FirstOrDefault(x => x.MountPath.Equals(mountReservation.ReservedPath, StringComparison.InvariantCultureIgnoreCase));
                     if (existingMount != null)
                     {
@@ -218,7 +218,7 @@
                 var scratchReservation = await _reservationManager.ReserveAsync("VirtualGitScratch", parameters);
                 try
                 {
-                    var existingMount = (await _uefsClient.ListAsync(new ListRequest(), deadline: DateTime.UtcNow.AddSeconds(5))).Mounts
+                    var existingMount = (await _uefsClient.ListAsync(new ListRequest(), deadline: DateTime.UtcNow.AddSeconds(60))).Mounts
                         .FirstOrDefault(x => x.MountPath.Equals(mountReservation.ReservedPath, StringComparison.InvariantCultureIgnoreCase));
                     if (existingMount != null)
                     {
@@ -289,7 +289,7 @@
             var mountReservation = await _reservationManager.ReserveAsync("VirtualPackageMount", parameters);
             try
             {
-                var existingMount = (await _uefsClient.ListAsync(new ListRequest(), deadline: DateTime.UtcNow.AddSeconds(5))).Mounts
+                var existingMount = (await _uefsClient.ListAsync(new ListRequest(), deadline: DateTime.UtcNow.AddSeconds(60))).Mounts
                     .FirstOrDefault(x => x.MountPath.Equals(mountReservation.ReservedPath, StringComparison.InvariantCultureIgnoreCase));
                 if (existingMount != null)
                 {
