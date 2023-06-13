@@ -43,6 +43,8 @@
             ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken)
         {
+            var nugetPackages = Path.Combine(buildGraphRepositoryRootPath, ".uet", "nuget");
+            Directory.CreateDirectory(nugetPackages);
             var environmentVariables = new Dictionary<string, string>
             {
                 { "IsBuildMachine", "1" },
@@ -56,6 +58,9 @@
                 // is used.
                 { "UET_RUNNING_UNDER_BUILDGRAPH", "true" },
                 { "UET_XGE_SHIM_BUILD_NODE_NAME", buildGraphNodeName },
+                // Isolate NuGet package restore so that multiple jobs can restore at
+                // the same time.
+                { "NUGET_PACKAGES", nugetPackages }
             };
             foreach (var kv in globalEnvironmentVariables)
             {
