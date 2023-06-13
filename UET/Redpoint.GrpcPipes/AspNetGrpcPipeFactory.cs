@@ -1,6 +1,8 @@
 ﻿namespace Redpoint.GrpcPipes
 {
     using Grpc.Net.Client;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
     using System.Diagnostics.CodeAnalysis;
     using System.Net.Sockets;
     using System.Security.AccessControl;
@@ -8,6 +10,14 @@
 
     internal class AspNetGrpcPipeFactory : IGrpcPipeFactory
     {
+        private readonly IServiceProvider? _serviceProvider;
+
+        public AspNetGrpcPipeFactory(
+            IServiceProvider? serviceProvider)
+        {
+            _serviceProvider = serviceProvider;
+        }
+
         private string GetUserPipePath(string pipeName)
         {
             if (OperatingSystem.IsWindows())
@@ -119,12 +129,10 @@
         {
             var pipePath = GetPipePath(pipeName, pipeNamespace);
             CreateDirectoryWithPermissions(Path.GetDirectoryName(pipePath)!, pipeNamespace);
-            if (File.Exists(pipePath))
-            {
-                // Remove the existing pipe. Newer servers always take over from older ones.
-                File.Delete(pipePath);
-            }
-            return new AspNetGrpcPipeServer<T>(pipePath, instance);
+            return new AspNetGrpcPipeServer<T>(
+                _serviceProvider!.GetRequiredService<ILogger<AspNetGrpcPipeServer<T>>>(),
+                pipePath,
+                instance);
         }
 
         public T CreateClient<T>(

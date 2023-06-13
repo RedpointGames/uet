@@ -20,7 +20,7 @@
             GrpcPipeNamespace pipeNamespace,
             Func<GrpcChannel, T> constructor)
         {
-            return new AspNetGrpcPipeFactory().CreateClient(pipeName, pipeNamespace, constructor);
+            return new AspNetGrpcPipeFactory(null).CreateClient(pipeName, pipeNamespace, constructor);
         }
     }
 }
