@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.GrpcPipes
 {
+    using Grpc.Core;
     using Grpc.Net.Client;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
@@ -140,26 +141,79 @@
             GrpcPipeNamespace pipeNamespace,
             Func<GrpcChannel, T> constructor)
         {
-            var socketsHandler = new SocketsHttpHandler
-            {
-                ConnectCallback = async (_, cancellationToken) =>
-                {
-                    var pipePath = GetPipePath(pipeName, pipeNamespace);
-                    var socket = new Socket(
-                        AddressFamily.Unix,
-                        SocketType.Stream,
-                        ProtocolType.Unspecified);
-                    await socket.ConnectAsync(
-                        new UnixDomainSocketEndPoint(pipePath),
-                        cancellationToken);
-                    return new NetworkStream(socket, true);
-                }
-            };
+            var pipePath = GetPipePath(pipeName, pipeNamespace);
 
-            var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
+            if (!File.Exists(pipePath))
             {
-                HttpHandler = socketsHandler,
-            });
+                throw new FileNotFoundException($"The gRPC pipe was not found at: {pipePath}", pipePath);
+            }
+
+            var isUnixSocket = false;
+            if (OperatingSystem.IsWindows())
+            {
+                var attributes = File.GetAttributes(pipePath);
+                if ((attributes & FileAttributes.ReparsePoint) != 0)
+                {
+                    // This is a Unix socket on Windows. Maintain compatibility with older versions.
+                    isUnixSocket = true;
+                }
+            }
+            else
+            {
+                isUnixSocket = true;
+            }
+
+            GrpcChannel channel;
+            if (isUnixSocket)
+            {
+                var socketsHandler = new SocketsHttpHandler
+                {
+                    ConnectCallback = async (_, cancellationToken) =>
+                    {
+                        var socket = new Socket(
+                            AddressFamily.Unix,
+                            SocketType.Stream,
+                            ProtocolType.Unspecified);
+                        await socket.ConnectAsync(
+                            new UnixDomainSocketEndPoint(pipePath),
+                            cancellationToken);
+                        return new NetworkStream(socket, true);
+                    }
+                };
+
+                channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
+                {
+                    HttpHandler = socketsHandler,
+                });
+            }
+            else
+            {
+                if (!OperatingSystem.IsWindows())
+                {
+                    throw new InvalidOperationException("Did not expect pointer file on non-Windows system!");
+                }
+
+                string pointerFileContent;
+                using (var reader = new StreamReader(new FileStream(
+                    pipePath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    // @note: FileShare.Write is necessary here because the server still holds ReadWrite
+                    // access, even though it won't be writing into the file after it starts.
+                    FileShare.Read | FileShare.Write | FileShare.Delete)))
+                {
+                    pointerFileContent = reader.ReadToEnd().Trim();
+                }
+                if (!pointerFileContent.StartsWith("pointer: "))
+                {
+                    throw new InvalidOperationException("Pointer file format is invalid!");
+                }
+
+                channel = GrpcChannel.ForAddress(pointerFileContent.Substring("pointer: ".Length).Trim(), new GrpcChannelOptions
+                {
+                    Credentials = ChannelCredentials.Insecure
+                });
+            }
 
             return constructor(channel);
         }

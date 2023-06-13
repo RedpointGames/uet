@@ -1,20 +1,24 @@
 ﻿namespace Redpoint.GrpcPipes
 {
     using Microsoft.AspNetCore.Builder;
+    using Microsoft.AspNetCore.Components.Forms;
     using Microsoft.AspNetCore.Connections;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Server.Kestrel.Core;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Win32.SafeHandles;
     using System;
     using System.Diagnostics.CodeAnalysis;
+    using System.Net;
 
     internal class AspNetGrpcPipeServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T> : IGrpcPipeServer<T> where T : class
     {
-        private readonly string _unixSocketPath;
+        private readonly string _pipePath;
         private readonly T _instance;
         private readonly ILogger<AspNetGrpcPipeServer<T>> _logger;
         private WebApplication? _app;
+        private FileStream? _pipePointerStream;
 
         private class ForwardingLoggerProvider : ILoggerProvider
         {
@@ -66,11 +70,11 @@
 
         public AspNetGrpcPipeServer(
             ILogger<AspNetGrpcPipeServer<T>> logger,
-            string unixSocketPath,
+            string pipePath,
             T instance)
         {
             _logger = logger;
-            _unixSocketPath = unixSocketPath;
+            _pipePath = pipePath;
             _instance = instance;
         }
 
@@ -87,7 +91,7 @@
                 {
                     _logger.LogTrace("Attempting to start gRPC server...");
 
-                    Directory.CreateDirectory(Path.GetDirectoryName(_unixSocketPath)!);
+                    Directory.CreateDirectory(Path.GetDirectoryName(_pipePath)!);
                     var builder = WebApplication.CreateBuilder();
                     builder.Logging.ClearProviders();
                     builder.Logging.AddProvider(new ForwardingLoggerProvider(_logger));
@@ -97,12 +101,29 @@
                         _instance));
                     builder.WebHost.ConfigureKestrel(serverOptions =>
                     {
-                        serverOptions.ListenUnixSocket(
-                            _unixSocketPath,
-                            listenOptions =>
-                            {
-                                listenOptions.Protocols = HttpProtocols.Http2;
-                            });
+                        if (OperatingSystem.IsWindows())
+                        {
+                            // Pick a free TCP port and listen on that. Unix sockets are broken
+                            // on Windows (see https://github.com/dotnet/aspnetcore/issues/47043#issuecomment-1589922597),
+                            // so until we can move to .NET 8 with named pipes, we have to do this
+                            // jank workaround.
+                            _logger.LogTrace("Using TCP socket with plain text pointer file to workaround issue in .NET 7 where Unix sockets do not work on Windows.");
+                            serverOptions.Listen(
+                                new IPEndPoint(IPAddress.Loopback, 0),
+                                listenOptions =>
+                                {
+                                    listenOptions.Protocols = HttpProtocols.Http2;
+                                });
+                        }
+                        else
+                        {
+                            serverOptions.ListenUnixSocket(
+                                _pipePath,
+                                listenOptions =>
+                                {
+                                    listenOptions.Protocols = HttpProtocols.Http2;
+                                });
+                        }
                     });
 
                     app = builder.Build();
@@ -111,20 +132,52 @@
 
                     await app.StartAsync();
 
+                    if (OperatingSystem.IsWindows())
+                    {
+                        var pointerContent = $"pointer: {app.Urls.First()}";
+                        _logger.LogTrace($"Wrote pointer file with content '{pointerContent}' to: {_pipePath}");
+                        _pipePointerStream = new FileStream(
+                            _pipePath,
+                            FileMode.Create,
+                            FileAccess.ReadWrite,
+                            FileShare.Read | FileShare.Delete,
+                            4096,
+                            FileOptions.DeleteOnClose);
+                        using (var writer = new StreamWriter(_pipePointerStream, leaveOpen: true))
+                        {
+                            writer.Write(pointerContent);
+                            writer.Flush();
+                        }
+                        _pipePointerStream.Flush();
+                        // @note: Now we hold the FileStream open until we shutdown and then let FileOptions.DeleteOnClose delete it.
+                    }
+
                     _logger.LogTrace("gRPC server started successfully.");
                     _app = app;
                     return;
                 }
-                catch (IOException ex) when (ex.InnerException is AddressInUseException && File.Exists(_unixSocketPath))
+                catch (IOException ex) when ((ex.InnerException is AddressInUseException || ex.Message.Contains("used by another process")) && File.Exists(_pipePath))
                 {
                     // Remove the existing pipe. Newer servers always take over from older ones.
-                    _logger.LogTrace($"Removing existing UNIX socket from: {_unixSocketPath}");
+                    if (OperatingSystem.IsWindows())
+                    {
+                        if (_pipePointerStream != null)
+                        {
+                            _pipePointerStream.Dispose();
+                            _pipePointerStream = null;
+                        }
+                        _logger.LogTrace($"Removing existing pointer file from: {_pipePath}");
+                    }
+                    else
+                    {
+                        _logger.LogTrace($"Removing existing UNIX socket from: {_pipePath}");
+                    }
                     if (app != null)
                     {
                         await app.StopAsync();
                         app = null;
                     }
-                    File.Delete(_unixSocketPath);
+                    File.Delete(_pipePath);
                     continue;
                 }
             } while (true);
@@ -132,6 +185,12 @@
 
         public async Task StopAsync()
         {
+            if (_pipePointerStream != null)
+            {
+                _pipePointerStream.Dispose();
+                _pipePointerStream = null;
+            }
+
             if (_app != null)
             {
                 await _app.StopAsync();

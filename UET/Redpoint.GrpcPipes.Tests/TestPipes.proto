@@ -10,4 +10,5 @@ message TestResponse {
 
 service TestService {
 	rpc TestMethod(TestRequest) returns (TestResponse) {}
+	rpc TestStreamingMethod(TestRequest) returns (stream TestResponse) {}
 }
