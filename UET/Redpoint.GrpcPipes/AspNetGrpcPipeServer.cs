@@ -156,7 +156,13 @@
                     _app = app;
                     return;
                 }
-                catch (IOException ex) when ((ex.InnerException is AddressInUseException || ex.Message.Contains("used by another process")) && File.Exists(_pipePath))
+                catch (IOException ex) when ((
+                    // Unix socket is in use by another process.
+                    ex.InnerException is AddressInUseException ||
+                    // Pointer file is open by another server.
+                    ex.Message.Contains("used by another process") ||
+                    // Old Unix socket on Windows which we can't write the pointer file into (because it's still a Unix socket).
+                    ex.Message.Contains("cannot be accessed by the system")) && File.Exists(_pipePath))
                 {
                     // Remove the existing pipe. Newer servers always take over from older ones.
                     if (OperatingSystem.IsWindows())
