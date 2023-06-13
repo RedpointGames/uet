@@ -38,11 +38,13 @@ message MountPackageTagRequest {
 	MountRequest mountRequest = 1;
 	string tag = 2;
 	RegistryCredential credential = 3;
+	string scratchPath = 4;
 }
 
 message MountPackageFileRequest {
 	MountRequest mountRequest = 1;
 	string path = 2;
+	string scratchPath = 3;
 }
 
 message MountGitCommitRequest {

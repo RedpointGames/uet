@@ -107,8 +107,6 @@
             }
             var parameters = new[] { pathKey }.Concat(descriptor.WorkspaceDisambiguators).ToArray();
 
-            var workspaceOptions = descriptor.WorkspaceOptions ?? new VirtualisedWorkspaceOptions();
-
             var usingMountReservation = false;
             var mountReservation = await _reservationManager.ReserveAsync("VirtualSnapshotMount", parameters);
             try
@@ -128,8 +126,7 @@
                             _uefsClient,
                             existingMount.Id,
                             mountReservation.ReservedPath,
-                            workspaceOptions,
-                        new[] { mountReservation, scratchReservation },
+                            new[] { mountReservation, scratchReservation },
                             _logger,
                             $"Releasing virtual snapshot workspace from UEFS ({descriptor.SourcePath}: {mountReservation.ReservedPath})");
                     }
@@ -142,7 +139,7 @@
                             {
                                 MountPath = mountReservation.ReservedPath,
                                 PersistMode = Uefs.MountPersistMode.None,
-                                TrackPid = workspaceOptions.UnmountAfterUse ? Process.GetCurrentProcess().Id : 0,
+                                TrackPid = Process.GetCurrentProcess().Id,
                             },
                             SourcePath = descriptor.SourcePath,
                             ScratchPath = scratchReservation.ReservedPath,
@@ -153,8 +150,7 @@
                             _uefsClient,
                             mountId,
                             mountReservation.ReservedPath,
-                            workspaceOptions,
-                        new[] { mountReservation, scratchReservation },
+                            new[] { mountReservation, scratchReservation },
                             _logger,
                             $"Releasing virtual snapshot workspace from UEFS ({descriptor.SourcePath}: {mountReservation.ReservedPath})");
                     }
@@ -196,8 +192,6 @@
 
         private async Task<IWorkspace> AllocateGitAsync(GitWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
         {
-            var workspaceOptions = descriptor.WorkspaceOptions ?? new VirtualisedWorkspaceOptions();
-
             var normalizedRepositoryUrl = descriptor.RepositoryUrl;
             if (normalizedRepositoryUrl.StartsWith("https://", StringComparison.InvariantCultureIgnoreCase) ||
                 normalizedRepositoryUrl.StartsWith("http://", StringComparison.InvariantCultureIgnoreCase))
@@ -229,7 +223,6 @@
                             _uefsClient,
                             existingMount.Id,
                             mountReservation.ReservedPath,
-                            workspaceOptions,
                             new[] { mountReservation, scratchReservation },
                             _logger,
                             $"Releasing Git workspace from UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommitOrRef}): {mountReservation.ReservedPath}");
@@ -243,7 +236,7 @@
                             {
                                 MountPath = mountReservation.ReservedPath,
                                 PersistMode = Uefs.MountPersistMode.None,
-                                TrackPid = workspaceOptions.UnmountAfterUse ? Process.GetCurrentProcess().Id : 0,
+                                TrackPid = Process.GetCurrentProcess().Id,
                             },
                             Url = descriptor.RepositoryUrl,
                             Commit = descriptor.RepositoryCommitOrRef,
@@ -256,7 +249,6 @@
                             _uefsClient,
                             mountId,
                             mountReservation.ReservedPath,
-                            workspaceOptions,
                             new[] { mountReservation, scratchReservation },
                             _logger,
                             $"Releasing virtual Git workspace from UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommitOrRef}): {mountReservation.ReservedPath}");
@@ -281,52 +273,61 @@
 
         private async Task<IWorkspace> AllocateUefsPackageAsync(UefsPackageWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
         {
-            var workspaceOptions = descriptor.WorkspaceOptions ?? new VirtualisedWorkspaceOptions();
-
             var parameters = new string[] { descriptor.PackageTag }.Concat(descriptor.WorkspaceDisambiguators).ToArray();
 
             var usingMountReservation = false;
             var mountReservation = await _reservationManager.ReserveAsync("VirtualPackageMount", parameters);
             try
             {
-                var existingMount = (await _uefsClient.ListAsync(new ListRequest(), deadline: DateTime.UtcNow.AddSeconds(60))).Mounts
-                    .FirstOrDefault(x => x.MountPath.Equals(mountReservation.ReservedPath, StringComparison.InvariantCultureIgnoreCase));
-                if (existingMount != null)
+                var usingScratchReservation = false;
+                var scratchReservation = await _reservationManager.ReserveAsync("VirtualPackageScratch", parameters);
+                try
                 {
-                    _logger.LogInformation($"Reusing existing virtual package workspace using UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
-                    usingMountReservation = true;
-                    return new UEFSWorkspace(
-                        _uefsClient,
-                        existingMount.Id,
-                        mountReservation.ReservedPath,
-                        workspaceOptions,
-                        new[] { mountReservation },
-                        _logger,
-                        $"Releasing virtual package workspace from UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
-                }
-                else
-                {
-                    _logger.LogInformation($"Creating virtual package workspace using UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
-                    var mountId = await WaitForMountToComplete(_uefsClient.MountPackageTag(new Uefs.MountPackageTagRequest()
+                    var existingMount = (await _uefsClient.ListAsync(new ListRequest(), deadline: DateTime.UtcNow.AddSeconds(60))).Mounts
+                        .FirstOrDefault(x => x.MountPath.Equals(mountReservation.ReservedPath, StringComparison.InvariantCultureIgnoreCase));
+                    if (existingMount != null)
                     {
-                        MountRequest = new Uefs.MountRequest
+                        _logger.LogInformation($"Reusing existing virtual package workspace using UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
+                        usingMountReservation = true;
+                        return new UEFSWorkspace(
+                            _uefsClient,
+                            existingMount.Id,
+                            mountReservation.ReservedPath,
+                            new[] { mountReservation },
+                            _logger,
+                            $"Releasing virtual package workspace from UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"Creating virtual package workspace using UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
+                        var mountId = await WaitForMountToComplete(_uefsClient.MountPackageTag(new Uefs.MountPackageTagRequest()
                         {
-                            MountPath = mountReservation.ReservedPath,
-                            PersistMode = Uefs.MountPersistMode.None,
-                            TrackPid = workspaceOptions.UnmountAfterUse ? Process.GetCurrentProcess().Id : 0,
-                        },
-                        Tag = descriptor.PackageTag,
-                        Credential = _credentialManager.GetRegistryCredentialForTag(descriptor.PackageTag),
-                    }, deadline: DateTime.UtcNow.AddSeconds(60)));
-                    usingMountReservation = true;
-                    return new UEFSWorkspace(
-                        _uefsClient,
-                        mountId,
-                        mountReservation.ReservedPath,
-                        workspaceOptions,
-                        new[] { mountReservation },
-                        _logger,
-                        $"Releasing virtual package workspace from UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
+                            MountRequest = new Uefs.MountRequest
+                            {
+                                MountPath = mountReservation.ReservedPath,
+                                PersistMode = Uefs.MountPersistMode.None,
+                                TrackPid = Process.GetCurrentProcess().Id,
+                            },
+                            Tag = descriptor.PackageTag,
+                            Credential = _credentialManager.GetRegistryCredentialForTag(descriptor.PackageTag),
+                            ScratchPath = scratchReservation.ReservedPath,
+                        }, deadline: DateTime.UtcNow.AddSeconds(60)));
+                        usingMountReservation = true;
+                        return new UEFSWorkspace(
+                            _uefsClient,
+                            mountId,
+                            mountReservation.ReservedPath,
+                            new[] { mountReservation },
+                            _logger,
+                            $"Releasing virtual package workspace from UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
+                    }
+                }
+                finally
+                {
+                    if (!usingScratchReservation)
+                    {
+                        await scratchReservation.DisposeAsync();
+                    }
                 }
             }
             finally
