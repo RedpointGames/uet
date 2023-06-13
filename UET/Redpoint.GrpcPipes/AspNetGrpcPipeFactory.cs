@@ -119,6 +119,11 @@
         {
             var pipePath = GetPipePath(pipeName, pipeNamespace);
             CreateDirectoryWithPermissions(Path.GetDirectoryName(pipePath)!, pipeNamespace);
+            if (File.Exists(pipePath))
+            {
+                // Remove the existing pipe. Newer servers always take over from older ones.
+                File.Delete(pipePath);
+            }
             return new AspNetGrpcPipeServer<T>(pipePath, instance);
         }
 
