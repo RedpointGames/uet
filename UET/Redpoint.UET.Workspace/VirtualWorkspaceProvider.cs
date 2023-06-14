@@ -6,32 +6,40 @@
     using System.Diagnostics;
     using System.Threading;
     using System.Threading.Tasks;
-    using static Uefs.UEFS;
-    using Uefs;
     using Microsoft.Extensions.Logging;
     using Redpoint.UET.Workspace.Credential;
     using Redpoint.UET.Workspace.Reservation;
     using System.Linq;
     using Grpc.Core;
     using System.Net.Sockets;
+    using Redpoint.ProgressMonitor;
+    using static Redpoint.Uefs.Protocol.Uefs;
+    using Redpoint.Uefs.Protocol;
+    using Redpoint.GrpcPipes;
 
     internal class VirtualWorkspaceProvider : IVirtualWorkspaceProvider
     {
         private readonly ILogger<VirtualWorkspaceProvider> _logger;
         private readonly IReservationManagerForUet _reservationManager;
-        private readonly UEFSClient _uefsClient;
+        private readonly UefsClient _uefsClient;
         private readonly ICredentialManager _credentialManager;
+        private readonly IRetryableGrpc _retryableGrpc;
+        private readonly IMonitorFactory _monitorFactory;
 
         public VirtualWorkspaceProvider(
             ILogger<VirtualWorkspaceProvider> logger,
             IReservationManagerForUet reservationManager,
-            UEFSClient uefsClient,
-            ICredentialManager credentialManager)
+            UefsClient uefsClient,
+            ICredentialManager credentialManager,
+            IRetryableGrpc retryableGrpc,
+            IMonitorFactory monitorFactory)
         {
             _logger = logger;
             _reservationManager = reservationManager;
             _uefsClient = uefsClient;
             _credentialManager = credentialManager;
+            _retryableGrpc = retryableGrpc;
+            _monitorFactory = monitorFactory;
         }
 
         public bool ProvidesFastCopyOnWrite => true;
@@ -81,21 +89,30 @@
             }
         }
 
-        private async Task<string> WaitForMountToComplete(AsyncServerStreamingCall<MountResponse> stream)
+
+        private async Task<Mount?> GetExistingMountAsync(string mountPath, CancellationToken cancellationToken)
         {
-            while (await stream.ResponseStream.MoveNext(new CancellationTokenSource(TimeSpan.FromSeconds(60)).Token))
-            {
-                var entry = stream.ResponseStream.Current;
-                if (entry.PollingResponse.Complete)
-                {
-                    if (!string.IsNullOrWhiteSpace(entry.PollingResponse.Err))
-                    {
-                        throw new RpcException(new Status(StatusCode.Internal, entry.PollingResponse.Err));
-                    }
-                    return entry.MountId;
-                }
-            }
-            throw new InvalidOperationException();
+            var response = await _retryableGrpc.RetryableGrpcAsync(
+                _uefsClient.ListAsync,
+                new ListRequest(),
+                new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromSeconds(60) },
+                cancellationToken);
+            return response.Mounts.FirstOrDefault(x => x.MountPath.Equals(mountPath, StringComparison.InvariantCultureIgnoreCase));
+        }
+
+        private async Task<string> MountAsync<TRequest>(
+            Func<TRequest, Metadata?, DateTime?, CancellationToken, AsyncServerStreamingCall<MountResponse>> call,
+            TRequest request,
+            CancellationToken cancellationToken)
+        {
+            var operation = new ObservableMountOperation<TRequest>(
+                _retryableGrpc,
+                _monitorFactory,
+                call,
+                request,
+                TimeSpan.FromSeconds(60),
+                cancellationToken);
+            return await operation.RunAndWaitForMountIdAsync();
         }
 
         private async Task<IWorkspace> AllocateSnapshotAsync(FolderSnapshotWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
@@ -115,8 +132,7 @@
                 var scratchReservation = await _reservationManager.ReserveAsync("VirtualSnapshotScratch", parameters);
                 try
                 {
-                    var existingMount = (await _uefsClient.ListAsync(new ListRequest(), deadline: DateTime.UtcNow.AddSeconds(60))).Mounts
-                        .FirstOrDefault(x => x.MountPath.Equals(mountReservation.ReservedPath, StringComparison.InvariantCultureIgnoreCase));
+                    var existingMount = await GetExistingMountAsync(mountReservation.ReservedPath, cancellationToken);
                     if (existingMount != null)
                     {
                         _logger.LogInformation($"Reusing virtual snapshot workspace using UEFS ({descriptor.SourcePath}: {mountReservation.ReservedPath})");
@@ -133,17 +149,21 @@
                     else
                     {
                         _logger.LogInformation($"Creating virtual snapshot workspace using UEFS ({descriptor.SourcePath}: {mountReservation.ReservedPath})");
-                        var mountId = await WaitForMountToComplete(_uefsClient.MountFolderSnapshot(new Uefs.MountFolderSnapshotRequest()
-                        {
-                            MountRequest = new Uefs.MountRequest
+                        var mountId = await MountAsync(
+                            _uefsClient.MountFolderSnapshot,
+                            new MountFolderSnapshotRequest()
                             {
-                                MountPath = mountReservation.ReservedPath,
-                                PersistMode = Uefs.MountPersistMode.None,
-                                TrackPid = Process.GetCurrentProcess().Id,
+                                MountRequest = new MountRequest
+                                {
+                                    MountPath = mountReservation.ReservedPath,
+                                    TrackPid = Process.GetCurrentProcess().Id,
+                                    WriteScratchPath = scratchReservation.ReservedPath,
+                                    WriteScratchPersistence = WriteScratchPersistence.Keep,
+                                    StartupBehaviour = StartupBehaviour.None,
+                                },
+                                SourcePath = descriptor.SourcePath,
                             },
-                            SourcePath = descriptor.SourcePath,
-                            ScratchPath = scratchReservation.ReservedPath,
-                        }, deadline: DateTime.UtcNow.AddSeconds(60)));
+                            cancellationToken);
                         usingMountReservation = true;
                         usingScratchReservation = true;
                         return new UefsWorkspace(
@@ -212,8 +232,7 @@
                 var scratchReservation = await _reservationManager.ReserveAsync("VirtualGitScratch", parameters);
                 try
                 {
-                    var existingMount = (await _uefsClient.ListAsync(new ListRequest(), deadline: DateTime.UtcNow.AddSeconds(60))).Mounts
-                        .FirstOrDefault(x => x.MountPath.Equals(mountReservation.ReservedPath, StringComparison.InvariantCultureIgnoreCase));
+                    var existingMount = await GetExistingMountAsync(mountReservation.ReservedPath, cancellationToken);
                     if (existingMount != null)
                     {
                         _logger.LogInformation($"Reusing existing virtual Git workspace using UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommitOrRef}): {mountReservation.ReservedPath}");
@@ -230,19 +249,23 @@
                     else
                     {
                         _logger.LogInformation($"Creating virtual Git workspace using UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommitOrRef}): {mountReservation.ReservedPath}");
-                        var mountId = await WaitForMountToComplete(_uefsClient.MountGitCommit(new Uefs.MountGitCommitRequest()
-                        {
-                            MountRequest = new Uefs.MountRequest
+                        var mountId = await MountAsync(
+                            _uefsClient.MountGitCommit,
+                            new MountGitCommitRequest()
                             {
-                                MountPath = mountReservation.ReservedPath,
-                                PersistMode = Uefs.MountPersistMode.None,
-                                TrackPid = Process.GetCurrentProcess().Id,
+                                MountRequest = new MountRequest
+                                {
+                                    MountPath = mountReservation.ReservedPath,
+                                    TrackPid = Process.GetCurrentProcess().Id,
+                                    WriteScratchPath = scratchReservation.ReservedPath,
+                                    WriteScratchPersistence = WriteScratchPersistence.Keep,
+                                    StartupBehaviour = StartupBehaviour.None,
+                                },
+                                Url = descriptor.RepositoryUrl,
+                                Commit = descriptor.RepositoryCommitOrRef,
+                                Credential = _credentialManager.GetGitCredentialForRepositoryUrl(descriptor.RepositoryUrl),
                             },
-                            Url = descriptor.RepositoryUrl,
-                            Commit = descriptor.RepositoryCommitOrRef,
-                            Credential = _credentialManager.GetGitCredentialForRepositoryUrl(descriptor.RepositoryUrl),
-                            ScratchPath = scratchReservation.ReservedPath,
-                        }, deadline: DateTime.UtcNow.AddSeconds(60)));
+                            cancellationToken);
                         usingMountReservation = true;
                         usingScratchReservation = true;
                         return new UefsWorkspace(
@@ -283,8 +306,7 @@
                 var scratchReservation = await _reservationManager.ReserveAsync("VirtualPackageScratch", parameters);
                 try
                 {
-                    var existingMount = (await _uefsClient.ListAsync(new ListRequest(), deadline: DateTime.UtcNow.AddSeconds(60))).Mounts
-                        .FirstOrDefault(x => x.MountPath.Equals(mountReservation.ReservedPath, StringComparison.InvariantCultureIgnoreCase));
+                    var existingMount = await GetExistingMountAsync(mountReservation.ReservedPath, cancellationToken);
                     if (existingMount != null)
                     {
                         _logger.LogInformation($"Reusing existing virtual package workspace using UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
@@ -301,18 +323,22 @@
                     else
                     {
                         _logger.LogInformation($"Creating virtual package workspace using UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
-                        var mountId = await WaitForMountToComplete(_uefsClient.MountPackageTag(new Uefs.MountPackageTagRequest()
-                        {
-                            MountRequest = new Uefs.MountRequest
+                        var mountId = await MountAsync(
+                            _uefsClient.MountPackageTag,
+                            new MountPackageTagRequest()
                             {
-                                MountPath = mountReservation.ReservedPath,
-                                PersistMode = Uefs.MountPersistMode.None,
-                                TrackPid = Process.GetCurrentProcess().Id,
+                                MountRequest = new MountRequest
+                                {
+                                    MountPath = mountReservation.ReservedPath,
+                                    WriteScratchPath = scratchReservation.ReservedPath,
+                                    WriteScratchPersistence = WriteScratchPersistence.Keep,
+                                    StartupBehaviour = StartupBehaviour.None,
+                                    TrackPid = Process.GetCurrentProcess().Id,
+                                },
+                                Tag = descriptor.PackageTag,
+                                Credential = _credentialManager.GetRegistryCredentialForTag(descriptor.PackageTag),
                             },
-                            Tag = descriptor.PackageTag,
-                            Credential = _credentialManager.GetRegistryCredentialForTag(descriptor.PackageTag),
-                            ScratchPath = scratchReservation.ReservedPath,
-                        }, deadline: DateTime.UtcNow.AddSeconds(60)));
+                            cancellationToken);
                         usingMountReservation = true;
                         usingScratchReservation = true;
                         return new UefsWorkspace(

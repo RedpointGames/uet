@@ -9,6 +9,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
 
   <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Uefs.Protocol\Redpoint.Uefs.Protocol.csproj" />
     <ProjectReference Include="..\Redpoint.UET.Workspace\Redpoint.UET.Workspace.csproj" />
   </ItemGroup>
 

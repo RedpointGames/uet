@@ -7,7 +7,6 @@
     using Redpoint.UET.Workspace.ParallelCopy;
     using Redpoint.UET.Workspace.PhysicalGit;
     using Redpoint.UET.Workspace.Reservation;
-    using static Uefs.UEFS;
 
     public static class WorkspaceServiceExtensions
     {
@@ -19,14 +18,6 @@
             services.AddSingleton<IPhysicalWorkspaceProvider, PhysicalWorkspaceProvider>();
             services.AddSingleton<IVirtualWorkspaceProvider, VirtualWorkspaceProvider>();
             services.AddSingleton<IDynamicWorkspaceProvider, DynamicWorkspaceProvider>();
-            services.AddSingleton(sp =>
-            {
-                var factory = sp.GetRequiredService<IGrpcPipeFactory>();
-                return factory.CreateClient(
-                    "UEFS",
-                    GrpcPipeNamespace.Computer,
-                    channel => new UEFSClient(channel));
-            });
             services.AddSingleton<IReservationManagerForUet>(sp =>
             {
                 var factory = sp.GetRequiredService<IReservationManagerFactory>();

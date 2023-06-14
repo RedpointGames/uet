@@ -8,5 +8,6 @@
     <IsTrimmable>true</IsTrimmable>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
   </PropertyGroup>
 </Project>

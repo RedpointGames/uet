@@ -15,6 +15,7 @@
     using System.Diagnostics;
     using Redpoint.UET.Workspace.Descriptors;
     using Redpoint.UET.Configuration;
+    using System.Diagnostics.CodeAnalysis;
 
     public abstract class BuildServerBuildExecutor : IBuildExecutor
     {
@@ -48,6 +49,7 @@
             public string? LinuxPath { get; set; }
         }
 
+        [UnconditionalSuppressMessage("SingleFile", "IL3000:Avoid accessing Assembly file path when publishing as a single file", Justification = "This method is aware of single file publishing.")]
         private async Task<UETPreparationInfo> PrepareUETStorageAsync(
             string windowsSharedStoragePath,
             string? macSharedStoragePath,

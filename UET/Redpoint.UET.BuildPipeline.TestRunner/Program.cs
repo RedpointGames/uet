@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Redpoint.MSBuildResolution;
 using Redpoint.UET.BuildPipeline.Executors.Local;
 using System.Diagnostics;
+using Redpoint.Uefs.Protocol;
 
 var enginePathOpt = new Option<DirectoryInfo>(
     name: "--engine-path",
@@ -66,6 +67,7 @@ rootCommand.SetHandler(async (context) =>
     services.AddPathResolution();
     services.AddMSBuildPathResolution();
     services.AddProcessExecution();
+    services.AddUefs();
     services.AddUETUAT();
     services.AddUETBuildPipeline();
     services.AddUETBuildPipelineExecutorsLocal();

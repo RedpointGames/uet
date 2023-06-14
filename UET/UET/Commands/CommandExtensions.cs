@@ -9,6 +9,7 @@
     using Redpoint.ProcessExecution;
     using Redpoint.ProgressMonitor;
     using Redpoint.Reservation;
+    using Redpoint.Uefs.Protocol;
     using Redpoint.UET.BuildPipeline;
     using Redpoint.UET.BuildPipeline.Executors.Local;
     using Redpoint.UET.Configuration;
@@ -101,6 +102,7 @@
                 services.AddOpenGEProcessExecution();
                 services.AddSdkManagement();
                 services.AddGrpcPipes();
+                services.AddUefs();
                 services.AddUETAutomation();
                 services.AddUETUAT();
                 services.AddUETBuildPipeline();

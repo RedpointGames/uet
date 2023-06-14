@@ -1,19 +1,20 @@
 ﻿namespace Redpoint.UET.Workspace.Instance
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Uefs.Protocol;
     using System.Threading.Tasks;
-    using static Uefs.UEFS;
+    using static Redpoint.Uefs.Protocol.Uefs;
 
     internal class UefsWorkspace : IWorkspace
     {
-        private readonly UEFSClient _uefsClient;
+        private readonly UefsClient _uefsClient;
         private readonly string _mountId;
         private readonly IAsyncDisposable[] _reservations;
         private readonly ILogger _logger;
         private readonly string _loggerReleaseMessage;
 
         public UefsWorkspace(
-            UEFSClient uefsClient,
+            UefsClient uefsClient,
             string mountId,
             string workspacePath,
             IAsyncDisposable[] reservations,
@@ -33,7 +34,7 @@
         public async ValueTask DisposeAsync()
         {
             _logger.LogInformation($"{_loggerReleaseMessage} (unmounting)");
-            await _uefsClient.UnmountAsync(new Uefs.UnmountRequest
+            await _uefsClient.UnmountAsync(new UnmountRequest
             {
                 MountId = _mountId
             }, deadline: DateTime.UtcNow.AddSeconds(60));

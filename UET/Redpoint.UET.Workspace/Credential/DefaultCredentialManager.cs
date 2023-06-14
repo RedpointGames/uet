@@ -4,8 +4,8 @@
     using System.Text;
     using System.Text.Json;
     using System.Text.RegularExpressions;
-    using Uefs;
     using Redpoint.ThirdParty.CredentialManagement;
+    using Redpoint.Uefs.Protocol;
 
     internal class DefaultCredentialManager : ICredentialManager
     {

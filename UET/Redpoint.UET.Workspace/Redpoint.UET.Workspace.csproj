@@ -9,13 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="UEFS.proto" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.CredentialManagement\Redpoint.ThirdParty.CredentialManagement.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+    <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
     <ProjectReference Include="..\Redpoint.Reservation\Redpoint.Reservation.csproj" />
+    <ProjectReference Include="..\Redpoint.Uefs.Protocol\Redpoint.Uefs.Protocol.csproj" />
     <ProjectReference Include="..\Redpoint.UET.Core\Redpoint.UET.Core.csproj" />
   </ItemGroup>
 
@@ -28,10 +26,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.GrpcPipes\Redpoint.GrpcPipes.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Protobuf Include="UEFS.proto" GrpcServices="Client" />
   </ItemGroup>
 
 </Project>

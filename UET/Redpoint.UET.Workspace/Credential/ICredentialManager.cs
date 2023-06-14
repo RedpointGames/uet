@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.UET.Workspace.Credential
 {
-    using Uefs;
+    using Redpoint.Uefs.Protocol;
 
     internal interface ICredentialManager
     {

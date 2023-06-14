@@ -5,6 +5,7 @@
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
+    using Redpoint.Uefs.Protocol;
     using Redpoint.UET.Core;
     using Redpoint.UET.Workspace.PhysicalGit;
     using System;
@@ -41,6 +42,7 @@
             });
             services.AddPathResolution();
             services.AddProcessExecution();
+            services.AddUefs();
             services.AddUETWorkspace();
             services.AddReservation();
 
@@ -91,6 +93,7 @@
             });
             services.AddPathResolution();
             services.AddProcessExecution();
+            services.AddUefs();
             services.AddUETWorkspace();
             services.AddReservation();
 
