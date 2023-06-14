@@ -52,7 +52,7 @@ namespace Redpoint.Uefs.ContainerRegistry
             }
             var dockerConfig = JsonSerializer.Deserialize(
                 File.ReadAllText(dockerJsonPath),
-                UefsRegistryInternalJsonSerializerContext.Default.DockerConfigJson);
+                UefsRegistryJsonSerializerContext.Default.DockerConfigJson);
 
             if (dockerConfig?.CredsStore == "wincred")
             {
