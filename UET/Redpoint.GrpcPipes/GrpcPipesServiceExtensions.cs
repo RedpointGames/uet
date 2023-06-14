@@ -14,6 +14,7 @@
         public static void AddGrpcPipes(this IServiceCollection services)
         {
             services.AddSingleton<IGrpcPipeFactory, AspNetGrpcPipeFactory>();
+            services.AddSingleton<IRetryableGrpc, DefaultRetryableGrpc>();
         }
     }
 }
