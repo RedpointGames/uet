@@ -151,7 +151,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uefs.Protocol", "R
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ThirdParty.Docker.Registry.DotNet", "Lib\Redpoint.ThirdParty.Docker.Registry.DotNet\Redpoint.ThirdParty.Docker.Registry.DotNet.csproj", "{B11BC4F1-7AC8-401C-873F-501A2C4714B3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uefs.Registry", "Redpoint.Uefs.Registry\Redpoint.Uefs.Registry.csproj", "{680A5D87-1E6F-4698-8FEA-9F6472A7C549}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uefs.ContainerRegistry", "Redpoint.Uefs.ContainerRegistry\Redpoint.Uefs.ContainerRegistry.csproj", "{B0F9C08C-D102-4BDC-AA1C-10BEC917B416}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -451,10 +451,10 @@ Global
 		{B11BC4F1-7AC8-401C-873F-501A2C4714B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B11BC4F1-7AC8-401C-873F-501A2C4714B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B11BC4F1-7AC8-401C-873F-501A2C4714B3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{680A5D87-1E6F-4698-8FEA-9F6472A7C549}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{680A5D87-1E6F-4698-8FEA-9F6472A7C549}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{680A5D87-1E6F-4698-8FEA-9F6472A7C549}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{680A5D87-1E6F-4698-8FEA-9F6472A7C549}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0F9C08C-D102-4BDC-AA1C-10BEC917B416}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0F9C08C-D102-4BDC-AA1C-10BEC917B416}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0F9C08C-D102-4BDC-AA1C-10BEC917B416}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0F9C08C-D102-4BDC-AA1C-10BEC917B416}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

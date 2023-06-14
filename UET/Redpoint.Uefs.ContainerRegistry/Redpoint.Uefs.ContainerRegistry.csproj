@@ -10,8 +10,8 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
   <PropertyGroup>
-    <Description>Various utilities for parsing Docker tags and obtaining Docker credentials from the local system.</Description>
-    <PackageTags>uefs, docker registry</PackageTags>
+    <Description>Various utilities for parsing container image tags and obtaining container registry credentials from the local system.</Description>
+    <PackageTags>uefs, container registry</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
