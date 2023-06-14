@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>The gRPC protocol specification for the UEFS service, plus dependency injection bindings to create a UEFS client.</Description>
+    <PackageTags>uefs, protocol</PackageTags>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.GrpcPipes\Redpoint.GrpcPipes.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.Tools" Version="2.51.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Uefs.proto" />
+  </ItemGroup>
+  <ItemGroup>
+    <Protobuf Include="Uefs.proto">
+      <GrpcServices>Both</GrpcServices>
+    </Protobuf>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+    </None>
+  </ItemGroup>
+
+</Project>

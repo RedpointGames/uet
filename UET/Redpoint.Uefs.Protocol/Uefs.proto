@@ -1,0 +1,155 @@
+syntax = 'proto3';
+
+import "google/protobuf/timestamp.proto";
+
+package Redpoint.Uefs.Protocol;
+
+message RegistryCredential {
+	string username = 1;
+	string password = 2;
+}
+
+message GitCredential {
+	string username = 1;
+	string password = 2;
+	string sshPrivateKeyAsPem = 3;
+	string sshPublicKeyAsPem = 4;
+}
+
+message GitHubCredential {
+	string token = 1;
+}
+
+enum WriteScratchPersistence {
+	DiscardOnUnmount = 0;
+	Keep = 1;
+}
+
+enum StartupBehaviour {
+	None = 0;
+	MountOnStartup = 1;
+}
+
+message MountRequest {
+	string mountPath = 1;
+	int32 trackPid = 2;
+	string writeScratchPath = 4;
+	string overrideId = 5;
+	WriteScratchPersistence writeScratchPersistence = 6;
+	StartupBehaviour startupBehaviour = 7;
+}
+
+message MountPackageTagRequest {
+	MountRequest mountRequest = 1;
+	string tag = 2;
+	RegistryCredential credential = 3;
+}
+
+message MountPackageFileRequest {
+	MountRequest mountRequest = 1;
+	string path = 2;
+}
+
+message MountGitCommitRequest {
+	MountRequest mountRequest = 1;
+	string url = 2;
+	string commit = 3;
+	repeated string folderLayers = 4;
+	GitCredential credential = 5;
+}
+
+message MountGitHubCommitRequest {
+	MountRequest mountRequest = 1;
+	string owner = 2;
+	string repo = 3;
+	string commit = 4;
+	repeated string folderLayers = 5;
+	GitHubCredential credential = 6;
+}
+
+message MountFolderSnapshotRequest {
+	MountRequest mountRequest = 1;
+	string sourcePath = 2;
+}
+
+enum PollingResponseType {
+	Package = 0;
+	Git = 1;
+	Verify = 2;
+	Immediate = 3;
+}
+
+message PollingResponse {
+	PollingResponseType type = 1;
+	bool complete = 2;
+	int64 position = 3;
+	int64 length = 4;
+	string status = 5;
+	string packagePath = 6;
+	string err = 7;
+	google.protobuf.Timestamp startTime = 8;
+	string gitServerProgressMessage = 9;
+	int32 gitTotalObjects = 10;
+	int32 gitIndexedObjects = 11;
+	int32 gitReceivedObjects = 12;
+	int64 gitReceivedBytes = 13;
+	bool gitSlowFetch = 14;
+	int32 verifyPackageIndex = 15;
+	int32 verifyPackageTotal = 16;
+	int32 verifyChunksFixed = 17;
+	string packageHash = 18;
+}
+
+message MountResponse {
+	string mountId = 1;
+	PollingResponse pollingResponse = 2;
+}
+
+message VerifyRequest {
+	bool fix = 1;
+}
+
+message VerifyResponse {
+	PollingResponse pollingResponse = 1;
+}
+
+message UnmountRequest {
+	string mountId = 1;
+}
+
+message UnmountResponse {
+	string err = 2;
+}
+
+message ListRequest {
+}
+
+message Mount {
+	string id = 1;
+	string packagePath = 2;
+	string mountPath = 3;
+	string tagHint = 4;
+	string gitCommit = 6;
+	string gitUrl = 7;
+	WriteScratchPersistence writeScratchPersistence = 8;
+	StartupBehaviour startupBehaviour = 9;
+}
+
+message ListResponse {
+	repeated Mount mounts = 1;
+	string err = 2;
+}
+
+service Uefs {
+	rpc MountPackageTag(MountPackageTagRequest) returns (stream MountResponse) {}
+	rpc MountPackageFile(MountPackageFileRequest) returns (stream MountResponse) {}
+	rpc MountGitCommit(MountGitCommitRequest) returns (stream MountResponse) {}
+	rpc MountGitHubCommit(MountGitHubCommitRequest) returns (stream MountResponse) {}
+	rpc MountFolderSnapshot(MountFolderSnapshotRequest) returns (stream MountResponse) {}
+
+	rpc Verify(VerifyRequest) returns (stream VerifyResponse) {}
+	
+	rpc Unmount(UnmountRequest) returns (UnmountResponse) {}
+
+	rpc List(ListRequest) returns (ListResponse) {}
+}
