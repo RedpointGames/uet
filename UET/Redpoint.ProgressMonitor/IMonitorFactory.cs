@@ -10,5 +10,17 @@
         /// </summary>
         /// <returns>The new monitor.</returns>
         IByteBasedMonitor CreateByteBasedMonitor();
+
+        /// <summary>
+        /// Creates a monitor for a Git fetch operation.
+        /// </summary>
+        /// <returns>The new monitor.</returns>
+        IGitFetchBasedMonitor CreateGitFetchBasedMonitor();
+
+        /// <summary>
+        /// Creates a monitor for a task based operation.
+        /// </summary>
+        /// <returns>The new monitor.</returns>
+        ITaskBasedMonitor CreateTaskBasedMonitor();
     }
 }

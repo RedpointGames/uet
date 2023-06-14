@@ -3,7 +3,7 @@
     /// <summary>
     /// Represents a monitor which observes a byte position within a length and computes progress messages.
     /// </summary>
-    public interface IByteBasedMonitor : IMonitor<IByteBasedProgress>
+    public interface IByteBasedMonitor : IEmbeddableMonitor<IByteBasedProgress>
     {
     }
 }

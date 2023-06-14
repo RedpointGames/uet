@@ -1,4 +1,4 @@
-﻿namespace Redpoint.ProgressMonitor
+﻿namespace Redpoint.ProgressMonitor.Implementations
 {
     internal class StreamByteBasedProgress : IByteBasedProgress
     {

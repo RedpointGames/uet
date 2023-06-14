@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.ProgressMonitor
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.ProgressMonitor.Implementations;
 
     /// <summary>
     /// Extensions for registering progress monitoring services.
@@ -15,6 +16,7 @@
         {
             services.AddSingleton<IMonitorFactory, DefaultMonitorFactory>();
             services.AddSingleton<IProgressFactory, DefaultProgressFactory>();
+            services.AddSingleton<IUtilities, DefaultUtilities>();
         }
     }
 }
