@@ -1,4 +1,4 @@
-﻿namespace uefs.Registry
+﻿namespace Redpoint.Uefs.ContainerRegistry
 {
     /// <summary>
     /// Various media type and constants used by UEFS when interacting with Docker registries.

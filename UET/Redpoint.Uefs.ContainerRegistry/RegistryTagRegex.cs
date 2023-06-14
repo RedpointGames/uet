@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace uefs.Registry
+namespace Redpoint.Uefs.ContainerRegistry
 {
     /// <summary>
     /// Provides a regular expression for parsing container images (like <c>host.com/path/subpath/image:tag</c>).

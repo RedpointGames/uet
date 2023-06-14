@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace uefs.Registry
+namespace Redpoint.Uefs.ContainerRegistry
 {
     /// <summary>
     /// The <see cref="JsonSerializerContext"/> for JSON serializable types provided by this library.

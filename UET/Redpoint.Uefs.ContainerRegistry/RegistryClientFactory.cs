@@ -5,7 +5,7 @@ using Redpoint.ThirdParty.CredentialManagement;
 using System.Text;
 using System.Text.Json;
 
-namespace uefs.Registry
+namespace Redpoint.Uefs.ContainerRegistry
 {
     /// <summary>
     /// Provides helper functions for obtaining registry credentials and constructing authenticated <see cref="IRegistryClient"/> instances.

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace uefs.Registry
+namespace Redpoint.Uefs.ContainerRegistry
 {
     [JsonSerializable(typeof(DockerConfigJson))]
     internal partial class UefsRegistryInternalJsonSerializerContext : JsonSerializerContext
