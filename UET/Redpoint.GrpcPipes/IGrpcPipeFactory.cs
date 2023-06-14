@@ -28,10 +28,12 @@
         /// <param name="pipeName">The name of the pipe to connect to.</param>
         /// <param name="pipeNamespace">The namespace of the pipe.</param>
         /// <param name="constructor">The callback to construct the client type using the provided channel.</param>
+        /// <param name="grpcChannelOptions">Additional options to apply to the channel.</param>
         /// <returns>The constructor gRPC client.</returns>
         T CreateClient<T>(
             string pipeName,
             GrpcPipeNamespace pipeNamespace,
-            Func<GrpcChannel, T> constructor);
+            Func<GrpcChannel, T> constructor,
+            GrpcChannelOptions? grpcChannelOptions = null);
     }
 }

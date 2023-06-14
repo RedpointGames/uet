@@ -139,7 +139,8 @@
         public T CreateClient<T>(
             string pipeName,
             GrpcPipeNamespace pipeNamespace,
-            Func<GrpcChannel, T> constructor)
+            Func<GrpcChannel, T> constructor,
+            GrpcChannelOptions? grpcChannelOptions)
         {
             var pipePath = GetPipePath(pipeName, pipeNamespace);
 
@@ -181,10 +182,10 @@
                     }
                 };
 
-                channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
-                {
-                    HttpHandler = socketsHandler,
-                });
+                var options = grpcChannelOptions ?? new GrpcChannelOptions();
+                options.HttpHandler = socketsHandler;
+
+                channel = GrpcChannel.ForAddress("http://localhost", options);
             }
             else
             {
@@ -209,10 +210,10 @@
                     throw new InvalidOperationException("Pointer file format is invalid!");
                 }
 
-                channel = GrpcChannel.ForAddress(pointerFileContent.Substring("pointer: ".Length).Trim(), new GrpcChannelOptions
-                {
-                    Credentials = ChannelCredentials.Insecure
-                });
+                var options = grpcChannelOptions ?? new GrpcChannelOptions();
+                options.Credentials = ChannelCredentials.Insecure;
+
+                channel = GrpcChannel.ForAddress(pointerFileContent.Substring("pointer: ".Length).Trim(), options);
             }
 
             return constructor(channel);
