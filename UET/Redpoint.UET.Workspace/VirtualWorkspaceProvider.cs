@@ -122,7 +122,7 @@
                         _logger.LogInformation($"Reusing virtual snapshot workspace using UEFS ({descriptor.SourcePath}: {mountReservation.ReservedPath})");
                         usingMountReservation = true;
                         usingScratchReservation = true;
-                        return new UEFSWorkspace(
+                        return new UefsWorkspace(
                             _uefsClient,
                             existingMount.Id,
                             mountReservation.ReservedPath,
@@ -146,7 +146,7 @@
                         }, deadline: DateTime.UtcNow.AddSeconds(60)));
                         usingMountReservation = true;
                         usingScratchReservation = true;
-                        return new UEFSWorkspace(
+                        return new UefsWorkspace(
                             _uefsClient,
                             mountId,
                             mountReservation.ReservedPath,
@@ -219,7 +219,7 @@
                         _logger.LogInformation($"Reusing existing virtual Git workspace using UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommitOrRef}): {mountReservation.ReservedPath}");
                         usingMountReservation = true;
                         usingScratchReservation = true;
-                        return new UEFSWorkspace(
+                        return new UefsWorkspace(
                             _uefsClient,
                             existingMount.Id,
                             mountReservation.ReservedPath,
@@ -245,7 +245,7 @@
                         }, deadline: DateTime.UtcNow.AddSeconds(60)));
                         usingMountReservation = true;
                         usingScratchReservation = true;
-                        return new UEFSWorkspace(
+                        return new UefsWorkspace(
                             _uefsClient,
                             mountId,
                             mountReservation.ReservedPath,
@@ -289,11 +289,12 @@
                     {
                         _logger.LogInformation($"Reusing existing virtual package workspace using UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
                         usingMountReservation = true;
-                        return new UEFSWorkspace(
+                        usingScratchReservation = true;
+                        return new UefsWorkspace(
                             _uefsClient,
                             existingMount.Id,
                             mountReservation.ReservedPath,
-                            new[] { mountReservation },
+                            new[] { mountReservation, scratchReservation },
                             _logger,
                             $"Releasing virtual package workspace from UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
                     }
@@ -313,11 +314,12 @@
                             ScratchPath = scratchReservation.ReservedPath,
                         }, deadline: DateTime.UtcNow.AddSeconds(60)));
                         usingMountReservation = true;
-                        return new UEFSWorkspace(
+                        usingScratchReservation = true;
+                        return new UefsWorkspace(
                             _uefsClient,
                             mountId,
                             mountReservation.ReservedPath,
-                            new[] { mountReservation },
+                            new[] { mountReservation, scratchReservation },
                             _logger,
                             $"Releasing virtual package workspace from UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
                     }

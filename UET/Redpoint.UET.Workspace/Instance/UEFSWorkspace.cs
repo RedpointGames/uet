@@ -4,7 +4,7 @@
     using System.Threading.Tasks;
     using static Uefs.UEFS;
 
-    internal class UEFSWorkspace : IWorkspace
+    internal class UefsWorkspace : IWorkspace
     {
         private readonly UEFSClient _uefsClient;
         private readonly string _mountId;
@@ -12,7 +12,7 @@
         private readonly ILogger _logger;
         private readonly string _loggerReleaseMessage;
 
-        public UEFSWorkspace(
+        public UefsWorkspace(
             UEFSClient uefsClient,
             string mountId,
             string workspacePath,
