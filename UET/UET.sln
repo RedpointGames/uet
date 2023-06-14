@@ -149,6 +149,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.GrpcPipes.Tests", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uefs.Protocol", "Redpoint.Uefs.Protocol\Redpoint.Uefs.Protocol.csproj", "{54D23E01-A34F-426B-9E59-6C2A714DD519}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ThirdParty.Docker.Registry.DotNet", "Lib\Redpoint.ThirdParty.Docker.Registry.DotNet\Redpoint.ThirdParty.Docker.Registry.DotNet.csproj", "{B11BC4F1-7AC8-401C-873F-501A2C4714B3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uefs.Registry", "Redpoint.Uefs.Registry\Redpoint.Uefs.Registry.csproj", "{680A5D87-1E6F-4698-8FEA-9F6472A7C549}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -443,6 +447,14 @@ Global
 		{54D23E01-A34F-426B-9E59-6C2A714DD519}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{54D23E01-A34F-426B-9E59-6C2A714DD519}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{54D23E01-A34F-426B-9E59-6C2A714DD519}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B11BC4F1-7AC8-401C-873F-501A2C4714B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B11BC4F1-7AC8-401C-873F-501A2C4714B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B11BC4F1-7AC8-401C-873F-501A2C4714B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B11BC4F1-7AC8-401C-873F-501A2C4714B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{680A5D87-1E6F-4698-8FEA-9F6472A7C549}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{680A5D87-1E6F-4698-8FEA-9F6472A7C549}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{680A5D87-1E6F-4698-8FEA-9F6472A7C549}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{680A5D87-1E6F-4698-8FEA-9F6472A7C549}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -451,6 +463,7 @@ Global
 		{A7A7B9B7-67F0-49B9-9413-56DB172ED9F5} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
 		{EBDE9DB2-A31F-4FCF-A5D7-2ADED01D9234} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
 		{DA90E23F-C2A7-4BBC-A376-4016FC4921EA} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
+		{B11BC4F1-7AC8-401C-873F-501A2C4714B3} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}

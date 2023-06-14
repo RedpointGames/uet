@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>Various utilities for parsing Docker tags and obtaining Docker credentials from the local system.</Description>
+    <PackageTags>uefs, docker registry</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.CredentialManagement\Redpoint.ThirdParty.CredentialManagement.csproj" />
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.Docker.Registry.DotNet\Redpoint.ThirdParty.Docker.Registry.DotNet.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+    </None>
+  </ItemGroup>
+
+</Project>

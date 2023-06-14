@@ -1,0 +1,14 @@
+﻿using System.Text.Json.Serialization;
+
+namespace uefs.Registry
+{
+    /// <summary>
+    /// The <see cref="JsonSerializerContext"/> for JSON serializable types provided by this library.
+    /// </summary>
+    [JsonSerializable(typeof(RegistryCredential))]
+    [JsonSerializable(typeof(RegistryReferenceInfo))]
+    [JsonSerializable(typeof(RegistryImageConfig))]
+    public partial class UefsRegistryJsonSerializerContext : JsonSerializerContext
+    {
+    }
+}
