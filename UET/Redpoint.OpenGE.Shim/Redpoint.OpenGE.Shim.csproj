@@ -24,13 +24,12 @@
     <InvariantGlobalization Condition="'$(Configuration)' == 'Release'">true</InvariantGlobalization>
     <MetadataUpdaterSupport Condition="'$(Configuration)' == 'Release'">false</MetadataUpdaterSupport>
 
-    <BaseUetYear>$([System.DateTime]::Now.Year)</BaseUetYear>
-    <BaseUetMonth>$([System.DateTime]::Now.Month)</BaseUetMonth>
-    <BaseUetDay>$([System.DateTime]::Now.Day)</BaseUetDay>
-    <BaseUetHour>$([System.DateTime]::Now.Hour)</BaseUetHour>
-    <BaseUetMinute>$([System.DateTime]::Now.Minute)</BaseUetMinute>
+    <BaseUetYear>$([System.DateTime]::UtcNow.Year)</BaseUetYear>
+    <BaseUetDayOfYear>$([System.DateTime]::UtcNow.DayOfYear)</BaseUetDayOfYear>
+    <BaseUetHour>$([System.DateTime]::UtcNow.Hour)</BaseUetHour>
+    <BaseUetMinute>$([System.DateTime]::UtcNow.Minute)</BaseUetMinute>
     <BaseUetVersionMajor>$(BaseUetYear)</BaseUetVersionMajor>
-    <BaseUetVersionMinor>$([MSBuild]::Add($([MSBuild]::Multiply($(BaseUetDay), 12)), $(BaseUetMonth)))</BaseUetVersionMinor>
+    <BaseUetVersionMinor>$([MSBuild]::Add($(BaseUetDayOfYear), 1000))</BaseUetVersionMinor>
     <BaseUetVersionPatch>$([MSBuild]::Add($([MSBuild]::Multiply($(BaseUetHour), 60)), $(BaseUetMinute)))</BaseUetVersionPatch>
 
     <BaseUetVersionSuffix Condition="'$(BaseUetVersion)' == ''">-pre</BaseUetVersionSuffix>

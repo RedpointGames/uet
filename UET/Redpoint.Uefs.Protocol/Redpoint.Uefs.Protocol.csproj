@@ -14,7 +14,6 @@
     <PackageTags>uefs, protocol</PackageTags>
   </PropertyGroup>
 
-
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.GrpcPipes\Redpoint.GrpcPipes.csproj" />
   </ItemGroup>
