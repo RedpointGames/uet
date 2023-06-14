@@ -5,8 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <NoWarn>1701;1702;1591;SYSLIB0003</NoWarn>
+    <NoWarn>1701;1702;1591</NoWarn>
     <IsTrimmable>true</IsTrimmable>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -15,20 +14,21 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../LibraryPackaging.Build.props" />
   <PropertyGroup>
-    <Description>CredentialManagement is a free, open source library that can be utilized to help the application manage storing and retrieving of user credentials using the Windows Credential Management API. This is a fork of the original CredentialManagement library, ported to .NET 7.</Description>
+    <Description>Docker.Registry.DotNet is a library that allows you to interact with the Docker Registry API V2 programmatically with fully asynchronous, non-blocking and object-oriented code in your .NET applications. This is a fork of the original Docker.Registry.DotNet library, ported to .NET 7.</Description>
     <PackageTags>windows, credential management</PackageTags>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <Authors>iLya Lozovyy, June Rhodes</Authors>
+    <Authors>Rich Quackenbush, Jaben Cargman, June Rhodes and the Docker.Registry.DotNet Contributors</Authors>
     <Company></Company>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
-    <PackageReference Include="System.Security.Permissions" Version="6.0.0" />
+    <PackageReference Include="JetBrains.Annotations" Version="2022.3.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <SupportedPlatform Include="windows6.2" />
+    <None Update="README.md">
+      <Pack>True</Pack>
+    </None>
   </ItemGroup>
 
 </Project>

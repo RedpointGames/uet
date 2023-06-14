@@ -1545,9 +1545,7 @@ namespace Fsp.Interop
         }
         private static void CheckVersion()
         {
-            FileVersionInfo Info;
             UInt32 Version = 0, VersionMajor, VersionMinor;
-            Info = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
             FspVersion(out Version); VersionMajor = Version >> 16; VersionMinor = Version & 0xFFFF;
         }
         static Api()
