@@ -10,10 +10,12 @@ namespace Redpoint.Windows.HandleManagement.Tests
             public int HandlePathsQueriedSuccessfully;
         }
 
-        [Fact]
+        [SkippableFact]
         [SupportedOSPlatform("windows6.2")]
         public async Task CanQuerySystemHandlesInternal()
         {
+            Skip.IfNot(OperatingSystem.IsWindowsVersionAtLeast(6, 2));
+
             var handles = NativeHandles.GetSystemHandles();
             Assert.NotEmpty(handles);
 
@@ -44,24 +46,30 @@ namespace Redpoint.Windows.HandleManagement.Tests
             Assert.True(holder.HandlePathsQueriedSuccessfully > 0, "Expected to be able to get the path of at least one handle on the system.");
         }
 
-        [Fact]
+        [SkippableFact]
         [SupportedOSPlatform("windows6.2")]
         public async Task CanQueryRawHandles()
         {
+            Skip.IfNot(OperatingSystem.IsWindowsVersionAtLeast(6, 2));
+
             Assert.NotEmpty(await NativeHandles.GetAllHandlesAsync(CancellationToken.None).ToListAsync());
         }
 
-        [Fact]
+        [SkippableFact]
         [SupportedOSPlatform("windows6.2")]
         public async Task CanQueryFileHandles()
         {
+            Skip.IfNot(OperatingSystem.IsWindowsVersionAtLeast(6, 2));
+
             Assert.NotEmpty(await NativeHandles.GetAllFileHandlesAsync(CancellationToken.None).ToListAsync());
         }
 
-        [Fact]
+        [SkippableFact]
         [SupportedOSPlatform("windows6.2")]
         public async Task CanSeeOurOwnHandle()
         {
+            Skip.IfNot(OperatingSystem.IsWindowsVersionAtLeast(6, 2));
+
             var tempPath = Path.GetTempFileName();
             var found = false;
             using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
@@ -82,10 +90,12 @@ namespace Redpoint.Windows.HandleManagement.Tests
             Assert.True(found);
         }
 
-        [Fact]
+        [SkippableFact]
         [SupportedOSPlatform("windows6.2")]
         public async Task CanCloseOurOwnHandle()
         {
+            Skip.IfNot(OperatingSystem.IsWindowsVersionAtLeast(6, 2));
+
             var tempPath = Path.GetTempFileName();
             var found = false;
             using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))

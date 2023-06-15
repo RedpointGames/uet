@@ -18,7 +18,7 @@ namespace Redpoint.UET.Configuration.Tests
 
             var sp = services.BuildServiceProvider();
 
-            var basePath = "TestCases\\NestedProjectDistributions";
+            var basePath = Path.Combine("TestCases", "NestedProjectDistributions");
             using (var stream = new FileStream(Path.Combine(basePath, "BuildConfig.json"), FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 var buildConfig = JsonSerializer.Deserialize(stream, BuildConfigSourceGenerationContext.Create(sp, basePath).BuildConfig);
@@ -40,7 +40,7 @@ namespace Redpoint.UET.Configuration.Tests
 
             var sp = services.BuildServiceProvider();
 
-            var basePath = "TestCases\\PluginTests";
+            var basePath = Path.Combine("TestCases", "PluginTests");
             using (var stream = new FileStream(Path.Combine(basePath, "BuildConfig.json"), FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 var buildConfig = JsonSerializer.Deserialize(stream, BuildConfigSourceGenerationContext.Create(sp, basePath).BuildConfig);
@@ -70,7 +70,7 @@ namespace Redpoint.UET.Configuration.Tests
 
             var sp = services.BuildServiceProvider();
 
-            var basePath = "TestCases\\PluginTestsWithExtraParameter";
+            var basePath = Path.Combine("TestCases", "PluginTestsWithExtraParameter");
             using (var stream = new FileStream(Path.Combine(basePath, "BuildConfig.json"), FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 var ex = Assert.Throws<JsonException>(() =>
@@ -90,7 +90,7 @@ namespace Redpoint.UET.Configuration.Tests
 
             var sp = services.BuildServiceProvider();
 
-            var basePath = "TestCases\\PluginTestsWithNoProvider";
+            var basePath = Path.Combine("TestCases", "PluginTestsWithNoProvider");
             using (var stream = new FileStream(Path.Combine(basePath, "BuildConfig.json"), FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 var ex = Assert.Throws<JsonException>(() =>

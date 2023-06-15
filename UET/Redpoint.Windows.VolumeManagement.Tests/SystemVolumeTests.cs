@@ -4,10 +4,12 @@ namespace Redpoint.Windows.VolumeManagement.Tests
 
     public class SystemVolumeTests
     {
-        [Fact]
+        [SkippableFact]
         [SupportedOSPlatform("windows6.2")]
         public void CanQuerySystemVolumes()
         {
+            Skip.IfNot(OperatingSystem.IsWindowsVersionAtLeast(6, 2));
+
             var volumes = new SystemVolumes().ToList();
             Assert.NotEmpty(volumes);
             Assert.NotEmpty(volumes[0].VolumeName);
