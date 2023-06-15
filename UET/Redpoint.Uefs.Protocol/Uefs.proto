@@ -72,15 +72,21 @@ message MountFolderSnapshotRequest {
 	string sourcePath = 2;
 }
 
+message PullRequest {
+	bool noWait = 1;
+}
+
 message PullPackageTagRequest {
-	string tag = 1;
-	RegistryCredential credential = 2;
+	PullRequest pullRequest = 1;
+	string tag = 2;
+	RegistryCredential credential = 3;
 }
 
 message PullGitCommitRequest {
-	string url = 1;
-	string commit = 2;
-	GitCredential credential = 3;
+	PullRequest pullRequest = 1;
+	string url = 2;
+	string commit = 3;
+	GitCredential credential = 4;
 }
 
 enum PollingResponseType {
@@ -117,15 +123,18 @@ message MountResponse {
 }
 
 message PullResponse {
-	PollingResponse pollingResponse = 1;
+	string operationId = 1;
+	PollingResponse pollingResponse = 2;
 }
 
 message VerifyRequest {
-	bool fix = 1;
+	bool noWait = 1;
+	bool fix = 2;
 }
 
 message VerifyResponse {
-	PollingResponse pollingResponse = 1;
+	string operationId = 1;
+	PollingResponse pollingResponse = 2;
 }
 
 message UnmountRequest {
