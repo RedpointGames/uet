@@ -18,22 +18,22 @@ IMonitorFactory _monitorFactory;
 
 using (var stream = new FileStream(...))
 {
+    var consoleWidth = 0;
+    try
+    {
+        consoleWidth = Console.BufferWidth;
+    }
+    catch
+    {
+        // Not connected to a console, e.g. output is
+        // redirected.
+    }
+
     // Start monitoring.
     var cts = new CancellationTokenSource();
     var progress = _progressFactory.CreateProgressForStream(stream);
     var monitorTask = Task.Run(async () =>
     {
-        var consoleWidth = 0;
-        try
-        {
-            consoleWidth = Console.BufferWidth;
-        }
-        catch
-        {
-            // Not connected to a console, e.g. output is
-            // redirected.
-        }
-
         var monitor = _monitorFactory.CreateByteBasedMonitor();
         await monitor.MonitorAsync(
             progress,

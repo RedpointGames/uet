@@ -72,6 +72,17 @@ message MountFolderSnapshotRequest {
 	string sourcePath = 2;
 }
 
+message PullPackageTagRequest {
+	string tag = 1;
+	RegistryCredential credential = 2;
+}
+
+message PullGitCommitRequest {
+	string url = 1;
+	string commit = 2;
+	GitCredential credential = 3;
+}
+
 enum PollingResponseType {
 	Package = 0;
 	Git = 1;
@@ -103,6 +114,10 @@ message PollingResponse {
 message MountResponse {
 	string mountId = 1;
 	PollingResponse pollingResponse = 2;
+}
+
+message PullResponse {
+	PollingResponse pollingResponse = 1;
 }
 
 message VerifyRequest {
@@ -140,6 +155,21 @@ message ListResponse {
 	string err = 2;
 }
 
+message GetInProgressOperationsRequest {
+}
+
+message GetInProgressOperationsResponse {
+	repeated string operationId = 1;
+}
+
+message WaitRequest {
+	string operationId = 1;
+}
+
+message WaitResponse {
+	PollingResponse pollingResponse = 1;
+}
+
 service Uefs {
 	rpc MountPackageTag(MountPackageTagRequest) returns (stream MountResponse) {}
 	rpc MountPackageFile(MountPackageFileRequest) returns (stream MountResponse) {}
@@ -147,9 +177,15 @@ service Uefs {
 	rpc MountGitHubCommit(MountGitHubCommitRequest) returns (stream MountResponse) {}
 	rpc MountFolderSnapshot(MountFolderSnapshotRequest) returns (stream MountResponse) {}
 
+	rpc PullPackageTag(PullPackageTagRequest) returns (stream PullResponse) {}
+	rpc PullGitCommit(PullGitCommitRequest) returns (stream PullResponse) {}
+
 	rpc Verify(VerifyRequest) returns (stream VerifyResponse) {}
 	
 	rpc Unmount(UnmountRequest) returns (UnmountResponse) {}
 
 	rpc List(ListRequest) returns (ListResponse) {}
+
+	rpc GetInProgressOperations(GetInProgressOperationsRequest) returns (GetInProgressOperationsResponse) {}
+	rpc Wait(WaitRequest) returns (stream WaitResponse) {}
 }
