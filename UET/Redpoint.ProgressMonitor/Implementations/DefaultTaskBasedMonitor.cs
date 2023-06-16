@@ -30,6 +30,11 @@
                 message += $": {progress.GitFetchBasedMonitor.ComputeProgressMessage(progress.GitFetchBasedProgress, nestedWidthHint, progress.CurrentTaskStartTime)}";
             }
 
+            if (!string.IsNullOrWhiteSpace(progress.TaskAdditionalInfoSuffix))
+            {
+                message += $" {progress.TaskAdditionalInfoSuffix}";
+            }
+
             return message;
         }
 

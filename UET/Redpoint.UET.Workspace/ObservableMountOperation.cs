@@ -48,6 +48,8 @@
 
         public int? TotalTasks { get; private set; }
 
+        public string? TaskAdditionalInfoSuffix { get; private set; }
+
         public IByteBasedProgress? ByteBasedProgress { get; private set; }
 
         public IByteBasedMonitor? ByteBasedMonitor { get; private set; }

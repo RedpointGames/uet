@@ -28,6 +28,11 @@
         int? TotalTasks { get; }
 
         /// <summary>
+        /// If set, the additional information to append to the end of the progress message.
+        /// </summary>
+        string? TaskAdditionalInfoSuffix { get; }
+
+        /// <summary>
         /// If this and <see cref="ByteBasedMonitor"/>, the byte-based progress is shown.
         /// </summary>
         IByteBasedProgress? ByteBasedProgress { get; }
