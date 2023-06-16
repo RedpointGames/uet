@@ -75,7 +75,7 @@ stages:
     paths:
       - "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet"
 
-"Build, Test and Package Libraries":
+"Build and Test Libraries on Windows":
   stage: Build Libraries
   tags:
     - redpoint-games-windows
@@ -93,12 +93,6 @@ stages:
     dotnet test --no-build --logger:"console" --logger:"junit;LogFilePath=$((Get-Location).Path)\TestResults\{assembly}.test-result.xml" -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
     if ($LastExitCode -ne 0) {
       Write-Host "dotnet test (UET.sln) failed with exit code $LastExitCode"
-      exit $LastExitCode 
-    }
-    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    dotnet publish --no-build -c Release /p:PackageVersion=$PackageVersion /p:OpenGEShimIsAlreadyBuilt=true UET/UET.sln
-    if ($LastExitCode -ne 0) {
-      Write-Host "dotnet publish (UET.sln) failed with exit code $LastExitCode"
       exit $LastExitCode 
     }
   artifacts:
@@ -133,7 +127,7 @@ stages:
     - "Build OpenGE Shim"
     - "Build Win Pass 1"
     - "Build Mac Pass 1"
-    - job: "Build, Test and Package Libraries"
+    - job: "Build and Test Libraries on Windows"
       artifacts: false
   interruptible: true
   script: |
@@ -156,7 +150,7 @@ stages:
     - "Build OpenGE Shim"
     - "Build Win Pass 1"
     - "Build Mac Pass 1"
-    - job: "Build, Test and Package Libraries"
+    - job: "Build and Test Libraries on macOS"
       artifacts: false
   interruptible: true
   script: |
@@ -175,7 +169,9 @@ stages:
     - redpoint-games-windows
   needs:
     - Timestamp
-    - "Build, Test and Package Libraries"
+    - "Build and Test Libraries on Windows"
+    - job: "Build and Test Libraries on macOS"
+      artifacts: false
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
