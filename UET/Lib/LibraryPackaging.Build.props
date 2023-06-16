@@ -4,7 +4,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Copyright>Redpoint Games</Copyright>
     <PackageProjectUrl></PackageProjectUrl>
-    <RepositoryUrl>https://src.redpoint.games/redpointgames/unreal-engine-tool</RepositoryUrl>
+    <RepositoryUrl>https://src.redpoint.games/redpointgames/uet</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Authors>June Rhodes</Authors>
