@@ -94,6 +94,7 @@ enum PollingResponseType {
 	Git = 1;
 	Verify = 2;
 	Immediate = 3;
+	Backgrounded = 4;
 }
 
 message PollingResponse {
