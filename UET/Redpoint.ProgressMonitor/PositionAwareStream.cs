@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.ProgressMonitor
 {
     using System;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -78,6 +79,7 @@
             return bytesRead;
         }
 
+#if NETCOREAPP2_1_OR_GREATER
         /// <inheritdoc/>
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
@@ -85,6 +87,7 @@
             _position += bytesRead;
             return bytesRead;
         }
+#endif
 
         /// <inheritdoc/>
         public override long Seek(long offset, SeekOrigin origin)

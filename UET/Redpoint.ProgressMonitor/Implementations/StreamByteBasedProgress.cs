@@ -1,5 +1,7 @@
 ﻿namespace Redpoint.ProgressMonitor.Implementations
 {
+    using System.IO;
+
     internal class StreamByteBasedProgress : IByteBasedProgress
     {
         private readonly Stream _stream;

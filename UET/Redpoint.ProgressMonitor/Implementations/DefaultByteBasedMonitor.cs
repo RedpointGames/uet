@@ -1,5 +1,9 @@
 ﻿namespace Redpoint.ProgressMonitor.Implementations
 {
+    using System;
+    using System.Threading;
+    using System.Threading.Tasks;
+
     internal class DefaultByteBasedMonitor : IByteBasedMonitor
     {
         private readonly IUtilities _utilities;

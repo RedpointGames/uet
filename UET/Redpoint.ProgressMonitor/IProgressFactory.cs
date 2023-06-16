@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.ProgressMonitor
 {
     using System;
+    using System.IO;
 
     /// <summary>
     /// Factory interface for creating progress objects.

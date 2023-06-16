@@ -1,5 +1,7 @@
 ﻿namespace Redpoint.ProgressMonitor
 {
+    using System;
+
     /// <summary>
     /// Represents a progress object that proceeds through multiple tasks (stages) to report on.
     /// </summary>

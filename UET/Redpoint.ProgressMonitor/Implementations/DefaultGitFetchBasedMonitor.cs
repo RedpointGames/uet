@@ -76,7 +76,7 @@
             }
             else if (!string.IsNullOrWhiteSpace(progress.ServerProgressMessage))
             {
-                return $"preparing...{progress.FetchContext} {0,9:#####0.00} % {progress.ServerProgressMessage.ToLowerInvariant().Trim()}";
+                return $"preparing...{progress.FetchContext} {0,9:#####0.00} % {(progress.ServerProgressMessage ?? string.Empty).ToLowerInvariant().Trim()}";
             }
             else
             {

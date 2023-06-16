@@ -1,5 +1,8 @@
 ﻿namespace Redpoint.ProgressMonitor
 {
+    using System.Threading;
+    using System.Threading.Tasks;
+
     /// <summary>
     /// Represents a monitor which receives progress information and computes progress messages.
     /// </summary>

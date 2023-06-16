@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.ProgressMonitor.Implementations
 {
     using Microsoft.Extensions.DependencyInjection;
+    using System;
 
     internal class DefaultMonitorFactory : IMonitorFactory
     {

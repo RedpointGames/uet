@@ -1,5 +1,7 @@
 ﻿namespace Redpoint.ProgressMonitor.Implementations
 {
+    using System;
+
     internal class DefaultUtilities : IUtilities
     {
         public string FormatDataAmount(long totalBytes)

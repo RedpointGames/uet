@@ -1,5 +1,7 @@
 ﻿namespace Redpoint.ProgressMonitor
 {
+    using System;
+
     /// <summary>
     /// Represnts a monitor which can be embedded into the progress reports of other monitors.
     /// </summary>

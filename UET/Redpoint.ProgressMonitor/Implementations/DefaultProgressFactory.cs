@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.ProgressMonitor.Implementations
 {
     using System;
+    using System.IO;
 
     internal class DefaultProgressFactory : IProgressFactory
     {
