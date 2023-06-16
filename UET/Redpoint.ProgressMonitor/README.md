@@ -6,6 +6,7 @@ Read on for the following examples:
 
 - [Example for a generic stream](#example-for-a-generic-stream)
 - [Example for a HTTP download](#example-for-a-http-download)
+- [The SystemConsole static class](#the-systemconsole-static-class)
 
 ## Example for a generic stream
 
@@ -18,17 +19,6 @@ IMonitorFactory _monitorFactory;
 
 using (var stream = new FileStream(...))
 {
-    var consoleWidth = 0;
-    try
-    {
-        consoleWidth = Console.BufferWidth;
-    }
-    catch
-    {
-        // Not connected to a console, e.g. output is
-        // redirected.
-    }
-
     // Start monitoring.
     var cts = new CancellationTokenSource();
     var progress = _progressFactory.CreateProgressForStream(stream);
@@ -37,26 +27,8 @@ using (var stream = new FileStream(...))
         var monitor = _monitorFactory.CreateByteBasedMonitor();
         await monitor.MonitorAsync(
             progress,
-            null,
-            (message, count) =>
-            {
-                if (consoleWidth != 0)
-                {
-                    // Emit the progress information in such a
-                    // way that we overwrite the previous info
-                    // reported to the console.
-                    Console.Write($"\r{message}".PadRight(consoleWidth));
-                }
-                else
-                {
-                    // Emit onto a new line every 5 seconds. This
-                    // callback is invoked every 100ms.
-                    if (count % 50 == 0)
-                    {
-                        Console.WriteLine(message);
-                    }
-                }
-            },
+            SystemConsole.ConsoleInformation,
+            SystemConsole.WriteProgressToConsole,
             cts.Token);
     });
 
@@ -68,18 +40,7 @@ using (var stream = new FileStream(...))
     }
 
     // Stop monitoring.
-    cts.Cancel();
-    try
-    {
-        await monitorTask;
-    }
-    catch (OperationCanceledException) { }
-
-    // Emit a newline after our progress message.
-    if (consoleWidth != 0)
-    {
-        Console.WriteLine();
-    }
+    await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);
 }
 ```
 
@@ -108,40 +69,22 @@ using (var client = new HttpClient())
             var progress = _progressFactory.CreateProgressForStream(stream);
             var monitorTask = Task.Run(async () =>
             {
-                var consoleWidth = 0;
-                try
-                {
-                    consoleWidth = Console.BufferWidth;
-                }
-                catch { }
-
                 var monitor = _monitorFactory.CreateByteBasedMonitor();
                 await monitor.MonitorAsync(
                     progress,
-                    null,
-                    (message, count) =>
-                    {
-                        if (consoleWidth != 0)
-                        {
-                            Console.Write($"\r{message}".PadRight(consoleWidth));
-                        }
-                        else if (count % 50 == 0)
-                        {
-                            Console.WriteLine(message);
-                        }
-                    },
+                    SystemConsole.ConsoleInformation,
+                    SystemConsole.WriteProgressToConsole,
                     cts.Token);
             });
 
             await stream.CopyToAsync(target);
-
-            cts.Cancel();
-            try
-            {
-                await monitorTask;
-            }
-            catch (OperationCanceledException) { }
+            
+            await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);
         }
     }
 }
 ```
+
+## The SystemConsole static class
+
+The `SystemConsole` type provides common values for monitoring parameters, such as the current console information and rendering progress information to the console. You should replace the static values in the examples above with your own callbacks and values if you're not rendering progress to the console.

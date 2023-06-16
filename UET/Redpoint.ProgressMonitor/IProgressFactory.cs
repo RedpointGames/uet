@@ -16,6 +16,14 @@
         IByteBasedProgress CreateProgressForStream(Stream stream);
 
         /// <summary>
+        /// Creates a byte-based progress object which reports on the position and length of a chunked stream.
+        /// </summary>
+        /// <param name="chunkedStreamProgress">The chunked stream to report the progress of.</param>
+        /// <param name="totalLength">The total length of all chunks combined.</param>
+        /// <returns>The new progress object.</returns>
+        IByteBasedProgress CreateProgressForStream(ChunkedStreamProgress chunkedStreamProgress, long totalLength);
+
+        /// <summary>
         /// Creates a byte-based progress object which reports on position and length using callbacks.
         /// </summary>
         /// <param name="getPosition">Called to receive the current position.</param>

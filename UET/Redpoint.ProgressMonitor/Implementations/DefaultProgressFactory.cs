@@ -14,5 +14,10 @@
         {
             return new StreamByteBasedProgress(stream);
         }
+
+        public IByteBasedProgress CreateProgressForStream(ChunkedStreamProgress chunkedStreamProgress, long totalLength)
+        {
+            return new ChunkedStreamByteBasedProgress(chunkedStreamProgress, totalLength);
+        }
     }
 }
