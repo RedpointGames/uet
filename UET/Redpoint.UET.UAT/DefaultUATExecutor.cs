@@ -229,11 +229,9 @@
                     {
                         processSpecification = new OpenGEProcessSpecification
                         {
-                            FilePath = await _pathResolver.ResolveBinaryPath("cmd"),
+                            FilePath = Path.Combine(enginePath, "Engine", "Build", "BatchFiles", "RunUAT.bat"),
                             Arguments = new[]
                             {
-                                "/C",
-                                Path.Combine(enginePath, "Engine", "Build", "BatchFiles", "RunUAT.bat"),
                                 uatSpecification.Command,
                             }.Concat(finalArgs),
                             WorkingDirectory = doScriptWorkaround ? enginePath : uatSpecification.WorkingDirectory,
