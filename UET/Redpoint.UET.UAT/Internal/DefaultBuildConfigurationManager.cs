@@ -54,7 +54,7 @@
                         _logger.LogInformation("Creating required directory for build configuration");
                         Directory.CreateDirectory(xmlConfigDirectoryPath);
                     }
-                    if (!File.Exists(xmlConfigFilePath) && !File.Exists($"{xmlConfigFilePath}.backup"))
+                    if (File.Exists(xmlConfigFilePath) && !File.Exists($"{xmlConfigFilePath}.backup"))
                     {
                         _logger.LogInformation("Moving existing build configuration file out of the way");
                         File.Move(xmlConfigFilePath, $"{xmlConfigFilePath}.backup");
