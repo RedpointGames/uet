@@ -146,7 +146,22 @@
 
             if (!File.Exists(pipePath))
             {
-                throw new FileNotFoundException($"The gRPC pipe was not found at: {pipePath}", pipePath);
+                // We still have to return the client, but act as a "dead" channel. It should act the same
+                // as if you created a gRPC client to an endpoint that is not responding (i.e. it should
+                // create the client successfully, but calls should fail).
+                var socketsHandler = new SocketsHttpHandler
+                {
+                    ConnectCallback = (_, cancellationToken) =>
+                    {
+                        // $"The gRPC pipe was not found at: {pipePath}"
+                        throw new SocketException((int)SocketError.ConnectionRefused);
+                    }
+                };
+
+                var options = grpcChannelOptions ?? new GrpcChannelOptions();
+                options.HttpHandler = socketsHandler;
+
+                return constructor(GrpcChannel.ForAddress("http://localhost", options));
             }
 
             var isUnixSocket = false;
