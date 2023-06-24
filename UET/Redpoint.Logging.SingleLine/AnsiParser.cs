@@ -1,4 +1,4 @@
-﻿namespace Redpoint.UET.Core.Console
+﻿namespace Redpoint.Logging.SingleLine
 {
     using System;
     using System.Runtime.CompilerServices;

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
+using Redpoint.Logging.SingleLine;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Redpoint.UET.Core
@@ -18,19 +19,11 @@ namespace Redpoint.UET.Core
             {
                 builder.ClearProviders();
                 builder.SetMinimumLevel(minimumLogLevel);
-                builder.AddConsoleFormatter<SimpleBuildConsoleFormatter, ExtendedSimpleConsoleFormatterOptions>(options =>
+                builder.AddSingleLineConsoleFormatter(options =>
                 {
-                    options.ColorBehavior = LoggerColorBehavior.Default;
-                    options.SingleLine = true;
-                    options.IncludeScopes = false;
-                    options.TimestampFormat = "HH:mm:ss ";
                     options.OmitLogPrefix = omitLogPrefix;
                 });
-                builder.AddConsole(options =>
-                {
-                    options.FormatterName = "simple-build";
-                    options.LogToStandardErrorThreshold = LogLevel.None;
-                });
+                builder.AddSingleLineConsole();
             });
         }
     }

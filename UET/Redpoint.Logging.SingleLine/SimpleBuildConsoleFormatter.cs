@@ -1,4 +1,4 @@
-﻿namespace Redpoint.UET.Core
+﻿namespace Redpoint.Logging.SingleLine
 {
     using Microsoft.Extensions.Logging.Abstractions;
     using Microsoft.Extensions.Logging.Console;
@@ -6,7 +6,6 @@
     using Microsoft.Extensions.Options;
     using System;
     using System.Diagnostics.CodeAnalysis;
-    using Redpoint.UET.Core.Console;
 
     /// <summary>
     /// Based on https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Logging.Console/src/SimpleConsoleFormatter.cs because
@@ -27,7 +26,7 @@
         private readonly IDisposable? _optionsReloadToken;
 
         public SimpleBuildConsoleFormatter(IOptionsMonitor<ExtendedSimpleConsoleFormatterOptions> options)
-            : base("simple-build")
+            : base("redpoint-singleline")
         {
             ReloadLoggerOptions(options.CurrentValue);
             _optionsReloadToken = options.OnChange(ReloadLoggerOptions);

@@ -14,9 +14,10 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
-    <ProjectReference Include="..\Redpoint.UET.Configuration\Redpoint.UET.Configuration.csproj" />
-  </ItemGroup>
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>Provides a console logger that emits messages on a single line, intended for use in console applications.</Description>
+    <PackageTags>logging, console</PackageTags>
+  </PropertyGroup>
 
 </Project>
