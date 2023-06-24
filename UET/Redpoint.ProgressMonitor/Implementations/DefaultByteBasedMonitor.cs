@@ -33,7 +33,7 @@
 
             var rate = _utilities.FormatDataTransferRate(bytesPerSecond);
 
-            return $"{bytesProgress,9:#####0.00} % ({progress.Position / 1024 / 1024,7:######0} / {progress.Length / 1024 / 1024:######0}) MB, {rate}, {remainingMinutes}:{remainingSeconds:00} to go";
+            return $"{bytesProgress,9:#####0.00} % ({progress.Position / 1024 / 1024,7:######0} /{progress.Length / 1024 / 1024,7:######0}) MB, {rate}, {remainingMinutes}:{remainingSeconds:00} to go";
         }
 
         public async Task MonitorAsync(
