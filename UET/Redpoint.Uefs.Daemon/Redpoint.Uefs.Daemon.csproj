@@ -8,6 +8,9 @@
     <Description>The UEFS daemon.</Description>
     <Product>UEFS Daemon</Product>
     <AssemblyTitle>UEFS Daemon</AssemblyTitle>
+
+    <!-- We haven't fixed all the trim warnings here yet. -->
+    <PublishTrimmed>false</PublishTrimmed>
   </PropertyGroup>
 
   <ItemGroup>
