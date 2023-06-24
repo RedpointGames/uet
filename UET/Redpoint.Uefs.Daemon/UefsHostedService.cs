@@ -24,7 +24,7 @@
             }
             else if (OperatingSystem.IsMacOS())
             {
-                rootPath = Path.Combine("/Users", "Shared", "UEFS", "uefs.json");
+                rootPath = Path.Combine("/Users", "Shared", "UEFS");
             }
             else
             {
