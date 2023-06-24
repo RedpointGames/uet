@@ -175,7 +175,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uefs.Commands", "R
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uefs.Client", "Redpoint.Uefs.Client\Redpoint.Uefs.Client.csproj", "{2DA94C42-16CF-4203-9A29-9FD8D3A0E992}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uefs.ContainerRegistry.Tests", "Redpoint.Uefs.ContainerRegistry.Tests\Redpoint.Uefs.ContainerRegistry.Tests.csproj", "{7E03D964-85D1-4B17-B210-7AE1DC377993}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uefs.ContainerRegistry.Tests", "Redpoint.Uefs.ContainerRegistry.Tests\Redpoint.Uefs.ContainerRegistry.Tests.csproj", "{7E03D964-85D1-4B17-B210-7AE1DC377993}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uefs.Daemon.Transactional.Abstractions", "Redpoint.Uefs.Daemon.Transactional.Abstractions\Redpoint.Uefs.Daemon.Transactional.Abstractions.csproj", "{EDFA5315-F7F4-4A0D-87EE-258CE47FE530}"
 EndProject
@@ -206,6 +206,14 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uefs.Daemon.Abstractions", "Redpoint.Uefs.Daemon.Abstractions\Redpoint.Uefs.Daemon.Abstractions.csproj", "{4ACA3DDE-96CF-4FB4-A30F-5E2E5541D20D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uefs.Daemon", "Redpoint.Uefs.Daemon\Redpoint.Uefs.Daemon.csproj", "{3253D2FA-73AE-47E0-9F33-CDFB046BC7B5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ThirdParty.DiscUtils.Streams", "Lib\Redpoint.ThirdParty.DiscUtils.Streams\Redpoint.ThirdParty.DiscUtils.Streams.csproj", "{6652F50E-E7B1-4195-A5DB-586FA531FCF7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ThirdParty.DiscUtils.Core", "Lib\Redpoint.ThirdParty.DiscUtils.Core\Redpoint.ThirdParty.DiscUtils.Core.csproj", "{6A9A761B-E7AE-4AB0-AE46-38112DBF2CDA}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ThirdParty.DiscUtils.Ntfs", "Lib\Redpoint.ThirdParty.DiscUtils.Ntfs\Redpoint.ThirdParty.DiscUtils.Ntfs.csproj", "{B65A9F0C-FAA0-4EBB-A863-475EBC67F6CD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ThirdParty.DiscUtils.Vhd", "Lib\Redpoint.ThirdParty.DiscUtils.Vhd\Redpoint.ThirdParty.DiscUtils.Vhd.csproj", "{8B9BE5F8-7242-4E65-8169-3D4D4B60A71A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -605,6 +613,22 @@ Global
 		{3253D2FA-73AE-47E0-9F33-CDFB046BC7B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3253D2FA-73AE-47E0-9F33-CDFB046BC7B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3253D2FA-73AE-47E0-9F33-CDFB046BC7B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6652F50E-E7B1-4195-A5DB-586FA531FCF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6652F50E-E7B1-4195-A5DB-586FA531FCF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6652F50E-E7B1-4195-A5DB-586FA531FCF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6652F50E-E7B1-4195-A5DB-586FA531FCF7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6A9A761B-E7AE-4AB0-AE46-38112DBF2CDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6A9A761B-E7AE-4AB0-AE46-38112DBF2CDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6A9A761B-E7AE-4AB0-AE46-38112DBF2CDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6A9A761B-E7AE-4AB0-AE46-38112DBF2CDA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B65A9F0C-FAA0-4EBB-A863-475EBC67F6CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B65A9F0C-FAA0-4EBB-A863-475EBC67F6CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B65A9F0C-FAA0-4EBB-A863-475EBC67F6CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B65A9F0C-FAA0-4EBB-A863-475EBC67F6CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B9BE5F8-7242-4E65-8169-3D4D4B60A71A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B9BE5F8-7242-4E65-8169-3D4D4B60A71A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B9BE5F8-7242-4E65-8169-3D4D4B60A71A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B9BE5F8-7242-4E65-8169-3D4D4B60A71A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -614,6 +638,10 @@ Global
 		{EBDE9DB2-A31F-4FCF-A5D7-2ADED01D9234} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
 		{DA90E23F-C2A7-4BBC-A376-4016FC4921EA} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
 		{B11BC4F1-7AC8-401C-873F-501A2C4714B3} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
+		{6652F50E-E7B1-4195-A5DB-586FA531FCF7} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
+		{6A9A761B-E7AE-4AB0-AE46-38112DBF2CDA} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
+		{B65A9F0C-FAA0-4EBB-A863-475EBC67F6CD} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
+		{8B9BE5F8-7242-4E65-8169-3D4D4B60A71A} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}

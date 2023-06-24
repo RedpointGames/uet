@@ -10,8 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.DiscUtils.Streams\Redpoint.ThirdParty.DiscUtils.Streams.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Protocol\Redpoint.Uefs.Protocol.csproj" />
-    <PackageReference Include="DiscUtils.Streams" Version="0.16.13" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
     <ProjectReference Include="..\Redpoint.Vfs.Driver\Redpoint.Vfs.Driver.csproj" />

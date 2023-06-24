@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <NoWarn>1701;1702;1591</NoWarn>
+    <IsTrimmable>true</IsTrimmable>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <Description>DiscUtils VHD</Description>
+    <Authors>Kenneth Bell;LordMike</Authors>
+    <PackageTags>DiscUtils;VHD</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.ThirdParty.DiscUtils.Core\Redpoint.ThirdParty.DiscUtils.Core.csproj" />
+  </ItemGroup>
+
+</Project>
