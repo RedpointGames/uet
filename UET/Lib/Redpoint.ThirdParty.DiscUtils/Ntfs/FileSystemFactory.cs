@@ -20,37 +20,28 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using DiscUtils.Internal;
+using System.IO;
+using DiscUtils.Vfs;
 
-namespace DiscUtils.LogicalDiskManager
+namespace DiscUtils.Ntfs
 {
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-    [LogicalVolumeFactory]
-    internal class DynamicDiskManagerFactory : LogicalVolumeFactory
+    [VfsFileSystemFactory]
+    internal class FileSystemFactory : VfsFileSystemFactory
     {
-        public override bool HandlesPhysicalVolume(PhysicalVolumeInfo volume)
+        public override FileSystemInfo[] Detect(Stream stream, VolumeInfo volume)
         {
-            return DynamicDiskManager.HandlesPhysicalVolume(volume);
+            if (NtfsFileSystem.Detect(stream))
+            {
+                return new FileSystemInfo[] { new VfsFileSystemInfo("NTFS", "Microsoft NTFS", Open) };
+            }
+
+            return new FileSystemInfo[0];
         }
 
-        public override void MapDisks(IEnumerable<VirtualDisk> disks, Dictionary<string, LogicalVolumeInfo> result)
+        private DiscFileSystem Open(Stream stream, VolumeInfo volumeInfo, FileSystemParameters parameters)
         {
-            DynamicDiskManager mgr = new DynamicDiskManager();
-
-            foreach (VirtualDisk disk in disks)
-            {
-                if (DynamicDiskManager.IsDynamicDisk(disk))
-                {
-                    mgr.Add(disk);
-                }
-            }
-
-            foreach (LogicalVolumeInfo vol in mgr.GetLogicalVolumes())
-            {
-                result.Add(vol.Identity, vol);
-            }
+            return new NtfsFileSystem(stream);
         }
     }
 }

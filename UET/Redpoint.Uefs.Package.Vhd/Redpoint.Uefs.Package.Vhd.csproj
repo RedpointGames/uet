@@ -24,8 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.DiscUtils.Ntfs\Redpoint.ThirdParty.DiscUtils.Ntfs.csproj" />
-    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.DiscUtils.Vhd\Redpoint.ThirdParty.DiscUtils.Vhd.csproj" />
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.DiscUtils\Redpoint.ThirdParty.DiscUtils.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Package\Redpoint.Uefs.Package.csproj" />
     <ProjectReference Include="..\Redpoint.Windows.VolumeManagement\Redpoint.Windows.VolumeManagement.csproj" />
   </ItemGroup>

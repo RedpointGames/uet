@@ -1,4 +1,4 @@
-﻿//
+//
 // Copyright (c) 2008-2011, Kenneth Bell
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -20,49 +20,36 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using DiscUtils.Partitions;
-using DiscUtils.Streams;
+using DiscUtils.Internal;
 
-namespace DiscUtils.ApplePartitionMap
+namespace DiscUtils.LogicalDiskManager
 {
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-    [PartitionTableFactory]
-    internal sealed class PartitionMapFactory : PartitionTableFactory
+    [LogicalVolumeFactory]
+    internal class DynamicDiskManagerFactory : LogicalVolumeFactory
     {
-        public override bool DetectIsPartitioned(Stream s)
+        public override bool HandlesPhysicalVolume(PhysicalVolumeInfo volume)
         {
-            if (s.Length < 1024)
-            {
-                return false;
-            }
-
-            s.Position = 0;
-
-            byte[] initialBytes = StreamUtilities.ReadExact(s, 1024);
-
-            BlockZero b0 = new BlockZero();
-            b0.ReadFrom(initialBytes, 0);
-            if (b0.Signature != 0x4552)
-            {
-                return false;
-            }
-
-            PartitionMapEntry initialPart = new PartitionMapEntry(s);
-            initialPart.ReadFrom(initialBytes, 512);
-
-            return initialPart.Signature == 0x504d;
+            return DynamicDiskManager.HandlesPhysicalVolume(volume);
         }
 
-        public override PartitionTable DetectPartitionTable(VirtualDisk disk)
+        public override void MapDisks(IEnumerable<VirtualDisk> disks, Dictionary<string, LogicalVolumeInfo> result)
         {
-            if (!DetectIsPartitioned(disk.Content))
+            DynamicDiskManager mgr = new DynamicDiskManager();
+
+            foreach (VirtualDisk disk in disks)
             {
-                return null;
+                if (DynamicDiskManager.IsDynamicDisk(disk))
+                {
+                    mgr.Add(disk);
+                }
             }
 
-            return new PartitionMap(disk.Content);
+            foreach (LogicalVolumeInfo vol in mgr.GetLogicalVolumes())
+            {
+                result.Add(vol.Identity, vol);
+            }
         }
     }
 }

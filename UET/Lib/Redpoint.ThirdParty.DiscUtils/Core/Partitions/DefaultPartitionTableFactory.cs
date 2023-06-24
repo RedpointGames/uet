@@ -1,4 +1,4 @@
-//
+﻿//
 // Copyright (c) 2008-2011, Kenneth Bell
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -22,27 +22,29 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using DiscUtils.Vfs;
 
-namespace DiscUtils.Ntfs
+namespace DiscUtils.Partitions
 {
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-    [VfsFileSystemFactory]
-    internal class FileSystemFactory : VfsFileSystemFactory
+    [PartitionTableFactory]
+    internal sealed class DefaultPartitionTableFactory : PartitionTableFactory
     {
-        public override FileSystemInfo[] Detect(Stream stream, VolumeInfo volume)
+        public override bool DetectIsPartitioned(Stream s)
         {
-            if (NtfsFileSystem.Detect(stream))
-            {
-                return new FileSystemInfo[] { new VfsFileSystemInfo("NTFS", "Microsoft NTFS", Open) };
-            }
-
-            return new FileSystemInfo[0];
+            return BiosPartitionTable.IsValid(s);
         }
 
-        private DiscFileSystem Open(Stream stream, VolumeInfo volumeInfo, FileSystemParameters parameters)
+        public override PartitionTable DetectPartitionTable(VirtualDisk disk)
         {
-            return new NtfsFileSystem(stream);
+            if (BiosPartitionTable.IsValid(disk.Content))
+            {
+                BiosPartitionTable table = new BiosPartitionTable(disk);
+                if (table.Count == 1 && table[0].BiosType == BiosPartitionTypes.GptProtective)
+                {
+                    return new GuidPartitionTable(disk);
+                }
+                return table;
+            }
+            return null;
         }
     }
 }

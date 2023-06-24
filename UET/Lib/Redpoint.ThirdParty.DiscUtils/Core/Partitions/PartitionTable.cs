@@ -54,8 +54,6 @@ namespace DiscUtils.Partitions
         /// </summary>
         public abstract Guid DiskGuid { get; }
 
-        [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "The types are marked with DynamicallyAccessedMembers.All")]
-        [SuppressMessage("Trimming", "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "The types are marked with DynamicallyAccessedMembers.All")]
         private static List<PartitionTableFactory> Factories
         {
             get
@@ -64,11 +62,11 @@ namespace DiscUtils.Partitions
                 {
                     List<PartitionTableFactory> factories = new List<PartitionTableFactory>();
 
-                    foreach (Type type in ReflectionHelper.GetAssembly(typeof(VolumeManager)).GetTypes())
+                    foreach (var type in DynamicTypes.GetDynamicTypes())
                     {
-                        foreach (PartitionTableFactoryAttribute attr in ReflectionHelper.GetCustomAttributes(type, typeof(PartitionTableFactoryAttribute), false))
+                        foreach (PartitionTableFactoryAttribute attr in ReflectionHelper.GetCustomAttributes(type.Type, typeof(PartitionTableFactoryAttribute), false))
                         {
-                            factories.Add((PartitionTableFactory)Activator.CreateInstance(type));
+                            factories.Add((PartitionTableFactory)Activator.CreateInstance(type.Type));
                         }
                     }
 

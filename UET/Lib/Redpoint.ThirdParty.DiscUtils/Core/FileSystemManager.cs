@@ -94,18 +94,20 @@ namespace DiscUtils
             return DoDetect(stream, null);
         }
 
-        [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "The types are marked with DynamicallyAccessedMembers.All")]
-        [SuppressMessage("Trimming", "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "The types are marked with DynamicallyAccessedMembers.All")]
         private static IEnumerable<VfsFileSystemFactory> DetectFactories(Assembly assembly)
         {
-            foreach (Type type in assembly.GetTypes())
+            var results = new List<VfsFileSystemFactory>();
+            foreach (var type in DynamicTypes.GetDynamicTypes())
             {
-                Attribute attrib = ReflectionHelper.GetCustomAttribute(type, typeof(VfsFileSystemFactoryAttribute), false);
+                Attribute attrib = ReflectionHelper.GetCustomAttribute(type.Type, typeof(VfsFileSystemFactoryAttribute), false);
                 if (attrib == null)
+                {
                     continue;
+                }
 
-                yield return (VfsFileSystemFactory)Activator.CreateInstance(type);
+                results.Add((VfsFileSystemFactory)Activator.CreateInstance(type.Type));
             }
+            return results;
         }
 
         private static FileSystemInfo[] DoDetect(Stream stream, VolumeInfo volume)

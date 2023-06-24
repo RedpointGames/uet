@@ -107,18 +107,16 @@ namespace DiscUtils
         /// 'foo', the files 'foo.vmdk' and 'foo-flat.vmdk' could be returned.</remarks>
         public abstract DiskImageFileSpecification[] Build(string baseName);
 
-        [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "The types are marked with DynamicallyAccessedMembers.All")]
-        [SuppressMessage("Trimming", "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "The types are marked with DynamicallyAccessedMembers.All")]
         private static void InitializeMaps()
         {
             Dictionary<string, VirtualDiskFactory> typeMap = new Dictionary<string, VirtualDiskFactory>();
 
-            foreach (Type type in ReflectionHelper.GetAssembly(typeof(VirtualDisk)).GetTypes())
+            foreach (var type in DynamicTypes.GetDynamicTypes())
             {
-                VirtualDiskFactoryAttribute attr = (VirtualDiskFactoryAttribute)ReflectionHelper.GetCustomAttribute(type, typeof(VirtualDiskFactoryAttribute), false);
+                VirtualDiskFactoryAttribute attr = (VirtualDiskFactoryAttribute)ReflectionHelper.GetCustomAttribute(type.Type, typeof(VirtualDiskFactoryAttribute), false);
                 if (attr != null)
                 {
-                    VirtualDiskFactory factory = (VirtualDiskFactory)Activator.CreateInstance(type);
+                    VirtualDiskFactory factory = (VirtualDiskFactory)Activator.CreateInstance(type.Type);
                     typeMap.Add(attr.Type, factory);
                 }
             }

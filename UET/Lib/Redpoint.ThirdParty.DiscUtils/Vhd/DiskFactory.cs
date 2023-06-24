@@ -22,36 +22,61 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using DiscUtils.Internal;
-using DiscUtils.Streams;
 
-namespace DiscUtils.Raw
+namespace DiscUtils.Vhd
 {
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-    [VirtualDiskFactory("RAW", ".img,.ima,.vfd,.flp,.bif")]
+    [VirtualDiskFactory("VHD", ".vhd,.avhd")]
     internal sealed class DiskFactory : VirtualDiskFactory
     {
         public override string[] Variants
         {
-            get { return new string[] { }; }
+            get { return new[] { "fixed", "dynamic" }; }
         }
 
         public override VirtualDiskTypeInfo GetDiskTypeInformation(string variant)
         {
-            return MakeDiskTypeInfo();
+            return MakeDiskTypeInfo(variant);
         }
 
         public override DiskImageBuilder GetImageBuilder(string variant)
         {
-            throw new NotSupportedException();
+            DiskBuilder builder = new DiskBuilder();
+
+            switch (variant)
+            {
+                case "fixed":
+                    builder.DiskType = FileType.Fixed;
+                    break;
+                case "dynamic":
+                    builder.DiskType = FileType.Dynamic;
+                    break;
+                default:
+                    throw new ArgumentException(
+                        string.Format(CultureInfo.InvariantCulture, "Unknown VHD disk variant '{0}'", variant),
+                        nameof(variant));
+            }
+
+            return builder;
         }
 
         public override VirtualDisk CreateDisk(FileLocator locator, string variant, string path,
                                                VirtualDiskParameters diskParameters)
         {
-            return Disk.Initialize(locator.Open(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None),
-                Ownership.Dispose, diskParameters.Capacity, diskParameters.Geometry);
+            switch (variant)
+            {
+                case "fixed":
+                    return Disk.InitializeFixed(locator, path, diskParameters.Capacity, diskParameters.Geometry);
+                case "dynamic":
+                    return Disk.InitializeDynamic(locator, path, diskParameters.Capacity, diskParameters.Geometry,
+                        DynamicHeader.DefaultBlockSize);
+                default:
+                    throw new ArgumentException(
+                        string.Format(CultureInfo.InvariantCulture, "Unknown VHD disk variant '{0}'", variant),
+                        nameof(variant));
+            }
         }
 
         public override VirtualDisk OpenDisk(string path, FileAccess access)
@@ -61,21 +86,20 @@ namespace DiscUtils.Raw
 
         public override VirtualDisk OpenDisk(FileLocator locator, string path, FileAccess access)
         {
-            FileShare share = access == FileAccess.Read ? FileShare.Read : FileShare.None;
-            return new Disk(locator.Open(path, FileMode.Open, access, share), Ownership.Dispose);
+            return new Disk(locator, path, access);
         }
 
         public override VirtualDiskLayer OpenDiskLayer(FileLocator locator, string path, FileAccess access)
         {
-            return null;
+            return new DiskImageFile(locator, path, access);
         }
 
-        internal static VirtualDiskTypeInfo MakeDiskTypeInfo()
+        internal static VirtualDiskTypeInfo MakeDiskTypeInfo(string variant)
         {
             return new VirtualDiskTypeInfo
             {
-                Name = "RAW",
-                Variant = string.Empty,
+                Name = "VHD",
+                Variant = variant,
                 CanBeHardDisk = true,
                 DeterministicGeometry = true,
                 PreservesBiosGeometry = false,

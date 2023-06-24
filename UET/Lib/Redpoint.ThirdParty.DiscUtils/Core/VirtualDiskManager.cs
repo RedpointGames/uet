@@ -44,16 +44,14 @@ namespace DiscUtils
         /// Locates VirtualDiskFactory factories attributed with VirtualDiskFactoryAttribute, and types marked with VirtualDiskTransportAttribute, that are able to work with Virtual Disk types.
         /// </summary>
         /// <param name="assembly">An assembly to scan</param>
-        [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "The types are marked with DynamicallyAccessedMembers.All")]
-        [SuppressMessage("Trimming", "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "The types are marked with DynamicallyAccessedMembers.All")]
         public static void RegisterVirtualDiskTypes(Assembly assembly)
         {
-            foreach (Type type in assembly.GetTypes())
+            foreach (var type in DynamicTypes.GetDynamicTypes())
             {
-                VirtualDiskFactoryAttribute diskFactoryAttribute = (VirtualDiskFactoryAttribute)ReflectionHelper.GetCustomAttribute(type, typeof(VirtualDiskFactoryAttribute), false);
+                VirtualDiskFactoryAttribute diskFactoryAttribute = (VirtualDiskFactoryAttribute)ReflectionHelper.GetCustomAttribute(type.Type, typeof(VirtualDiskFactoryAttribute), false);
                 if (diskFactoryAttribute != null)
                 {
-                    VirtualDiskFactory factory = (VirtualDiskFactory)Activator.CreateInstance(type);
+                    VirtualDiskFactory factory = (VirtualDiskFactory)Activator.CreateInstance(type.Type);
                     TypeMap.Add(diskFactoryAttribute.Type, factory);
 
                     foreach (string extension in diskFactoryAttribute.FileExtensions)
@@ -62,10 +60,10 @@ namespace DiscUtils
                     }
                 }
 
-                VirtualDiskTransportAttribute diskTransportAttribute = ReflectionHelper.GetCustomAttribute(type, typeof(VirtualDiskTransportAttribute), false) as VirtualDiskTransportAttribute;
+                VirtualDiskTransportAttribute diskTransportAttribute = ReflectionHelper.GetCustomAttribute(type.Type, typeof(VirtualDiskTransportAttribute), false) as VirtualDiskTransportAttribute;
                 if (diskTransportAttribute != null)
                 {
-                    DiskTransports.Add(diskTransportAttribute.Scheme.ToUpperInvariant(), type);
+                    DiskTransports.Add(diskTransportAttribute.Scheme.ToUpperInvariant(), type.Type);
                 }
             }
         }

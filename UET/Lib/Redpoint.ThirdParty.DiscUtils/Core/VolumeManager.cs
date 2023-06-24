@@ -101,15 +101,13 @@ namespace DiscUtils
             }
         }
 
-        [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "The types are marked with DynamicallyAccessedMembers.All")]
-        [SuppressMessage("Trimming", "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "The types are marked with DynamicallyAccessedMembers.All")]
         private static IEnumerable<LogicalVolumeFactory> GetLogicalVolumeFactories(Assembly assembly)
         {
-            foreach (Type type in assembly.GetTypes())
+            foreach (var type in DynamicTypes.GetDynamicTypes())
             {
-                foreach (LogicalVolumeFactoryAttribute attr in ReflectionHelper.GetCustomAttributes(type, typeof(LogicalVolumeFactoryAttribute), false))
+                foreach (LogicalVolumeFactoryAttribute attr in ReflectionHelper.GetCustomAttributes(type.Type, typeof(LogicalVolumeFactoryAttribute), false))
                 {
-                    yield return (LogicalVolumeFactory)Activator.CreateInstance(type);
+                    yield return (LogicalVolumeFactory)Activator.CreateInstance(type.Type);
                 }
             }
         }

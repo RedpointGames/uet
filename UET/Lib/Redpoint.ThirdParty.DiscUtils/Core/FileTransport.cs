@@ -1,4 +1,4 @@
-﻿//
+//
 // Copyright (c) 2008-2011, Kenneth Bell
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -20,32 +20,55 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
+using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
+using DiscUtils.Internal;
 
-namespace DiscUtils.Partitions
+namespace DiscUtils
 {
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-    [PartitionTableFactory]
-    internal sealed class DefaultPartitionTableFactory : PartitionTableFactory
+    [VirtualDiskTransport("file")]
+    internal sealed class FileTransport : VirtualDiskTransport
     {
-        public override bool DetectIsPartitioned(Stream s)
+        private string _extraInfo;
+        private string _path;
+
+        public override bool IsRawDisk
         {
-            return BiosPartitionTable.IsValid(s);
+            get { return false; }
         }
 
-        public override PartitionTable DetectPartitionTable(VirtualDisk disk)
+        public override void Connect(Uri uri, string username, string password)
         {
-            if (BiosPartitionTable.IsValid(disk.Content))
+            _path = uri.LocalPath;
+            _extraInfo = uri.Fragment.TrimStart('#');
+
+            if (!Directory.Exists(Path.GetDirectoryName(_path)))
             {
-                BiosPartitionTable table = new BiosPartitionTable(disk);
-                if (table.Count == 1 && table[0].BiosType == BiosPartitionTypes.GptProtective)
-                {
-                    return new GuidPartitionTable(disk);
-                }
-                return table;
+                throw new FileNotFoundException(
+                    string.Format(CultureInfo.InvariantCulture, "No such file '{0}'", uri.OriginalString), _path);
             }
-            return null;
+        }
+
+        public override VirtualDisk OpenDisk(FileAccess access)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override FileLocator GetFileLocator()
+        {
+            return new LocalFileLocator(Path.GetDirectoryName(_path) + @"\");
+        }
+
+        public override string GetFileName()
+        {
+            return Path.GetFileName(_path);
+        }
+
+        public override string GetExtraInfo()
+        {
+            return _extraInfo;
         }
     }
 }
