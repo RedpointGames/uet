@@ -75,6 +75,76 @@ stages:
     paths:
       - "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet"
 
+"Build Win UEFS Client":
+  stage: Build Pass 1
+  tags:
+    - redpoint-games-windows
+  needs:
+    - Timestamp
+  interruptible: true
+  script: |
+    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion -p:OpenGEShimIsAlreadyBuilt=true UET/Redpoint.Uefs.Client/Redpoint.Uefs.Client.csproj
+    if ($LastExitCode -ne 0) {
+      Write-Host "Publish win-x64 (Redpoint.Uefs.Client.csproj) failed with exit code $LastExitCode"
+      exit $LastExitCode 
+    }
+  artifacts:
+    paths:
+      - "UET/Redpoint.Uefs.Client/bin/Release/net7.0/win-x64/publish/uefs.exe"
+
+"Build Mac UEFS Client":
+  stage: Build Pass 1
+  tags:
+    - redpoint-games-mac
+  needs:
+    - Timestamp
+  interruptible: true
+  script: |
+    PACKAGE_VERSION=$(cat package.version | tr -d '\n')
+    echo "Package version: $PACKAGE_VERSION"
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION -p:OpenGEShimIsAlreadyBuilt=true UET/Redpoint.Uefs.Client/Redpoint.Uefs.Client.csproj
+    # Ensure the thing we built will actually run...
+    ./UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs --help
+  artifacts:
+    paths:
+      - "UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs"
+
+"Build Win UEFS Daemon":
+  stage: Build Pass 1
+  tags:
+    - redpoint-games-windows
+  needs:
+    - Timestamp
+  interruptible: true
+  script: |
+    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion -p:OpenGEShimIsAlreadyBuilt=true UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
+    if ($LastExitCode -ne 0) {
+      Write-Host "Publish win-x64 (Redpoint.Uefs.Daemon.csproj) failed with exit code $LastExitCode"
+      exit $LastExitCode 
+    }
+  artifacts:
+    paths:
+      - "UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/win-x64/publish/uefs-daemon.exe"
+
+"Build Mac UEFS Daemon":
+  stage: Build Pass 1
+  tags:
+    - redpoint-games-mac
+  needs:
+    - Timestamp
+  interruptible: true
+  script: |
+    PACKAGE_VERSION=$(cat package.version | tr -d '\n')
+    echo "Package version: $PACKAGE_VERSION"
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION -p:OpenGEShimIsAlreadyBuilt=true UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
+    # Ensure the thing we built will actually run...
+    ./UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/osx.11.0-arm64/publish/uefs-daemon --help
+  artifacts:
+    paths:
+      - "UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/osx.11.0-arm64/publish/uefs-daemon"
+
 "Build and Test Libraries on Windows":
   stage: Build Libraries
   tags:
@@ -191,6 +261,8 @@ stages:
   needs:
     - Timestamp
     - "Build Win Pass 2"
+    - "Build Win UEFS Client"
+    - "Build Win UEFS Daemon"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -201,6 +273,14 @@ stages:
         exit $LASTEXITCODE
       }
       b2 upload-file dl-public-redpoint-games "UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe" "uet/$PackageVersion/windows/uet.exe"
+      if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+      }
+      b2 upload-file dl-public-redpoint-games "UET/Redpoint.Uefs.Client/bin/Release/net7.0/win-x64/publish/uefs.exe" "uet/$PackageVersion/windows/uefs.exe"
+      if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+      }
+      b2 upload-file dl-public-redpoint-games "UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/win-x64/publish/uefs-daemon.exe" "uet/$PackageVersion/windows/uefs-daemon.exe"
       if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
       }
@@ -218,6 +298,8 @@ stages:
   needs:
     - Timestamp
     - "Build Mac Pass 2"
+    - "Build Mac UEFS Client"
+    - "Build Mac UEFS Daemon"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -228,6 +310,14 @@ stages:
         exit $LASTEXITCODE
       }
       b2 upload-file dl-public-redpoint-games "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet" "uet/$PackageVersion/macos/uet"
+      if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+      }
+      b2 upload-file dl-public-redpoint-games "UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs" "uet/$PackageVersion/macos/uefs"
+      if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+      }
+      b2 upload-file dl-public-redpoint-games "UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/osx.11.0-arm64/publish/uefs-daemon" "uet/$PackageVersion/macos/uefs-daemon"
       if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
       }
@@ -277,7 +367,11 @@ stages:
     - redpoint-games-windows
   needs:
     - "Build Win Pass 2"
+    - "Build Win UEFS Client"
+    - "Build Win UEFS Daemon"
     - "Build Mac Pass 2"
+    - "Build Mac UEFS Client"
+    - "Build Mac UEFS Daemon"
     - job: "Publish Timestamp"
       artifacts: false
   interruptible: true
@@ -285,5 +379,9 @@ stages:
     Write-Host "Build complete."
   artifacts:
     paths:
-      - UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet
       - UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe
+      - UET/Redpoint.Uefs.Client/bin/Release/net7.0/win-x64/publish/uefs.exe
+      - UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/win-x64/publish/uefs-daemon.exe
+      - UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet
+      - UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs
+      - UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/osx.11.0-arm64/publish/uefs-daemon
