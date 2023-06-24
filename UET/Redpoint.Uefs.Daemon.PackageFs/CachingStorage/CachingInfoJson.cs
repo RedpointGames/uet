@@ -5,12 +5,12 @@
     internal class CachingInfoJson
     {
         [JsonPropertyName("type")]
-        public string Type = string.Empty;
+        public string Type { get; set; } = string.Empty;
 
         [JsonPropertyName("serializedObject")]
-        public string SerializedObject = "{}";
+        public string SerializedObject { get; set; } = "{}";
 
         [JsonPropertyName("length")]
-        public long Length = 0;
+        public long Length { get; set; } = 0;
     }
 }

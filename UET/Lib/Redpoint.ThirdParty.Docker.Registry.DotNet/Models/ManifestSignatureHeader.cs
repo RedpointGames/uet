@@ -1,11 +1,10 @@
 ﻿namespace Docker.Registry.DotNet.Models
 {
-    using System.Runtime.Serialization;
+    using System.Text.Json.Serialization;
 
-    [DataContract]
     public class ManifestSignatureHeader
     {
-        [DataMember(Name = "alg")]
+        [JsonPropertyName("alg")]
         public string Alg { get; set; }
     }
 }

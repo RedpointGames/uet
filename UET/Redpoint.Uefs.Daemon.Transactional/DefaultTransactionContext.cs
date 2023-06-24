@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uefs.Daemon.Transactional
 {
+    using Microsoft.AspNetCore.DataProtection.KeyManagement;
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using Redpoint.Uefs.Protocol;
     using System;
@@ -10,9 +11,8 @@
     {
         private readonly DefaultTransactionalDatabase _database;
         protected readonly ITransaction _transaction;
-        
-        // @note: This is not a concurrent collection since the ITransactionContext is unique per transaction.
         private readonly List<IDisposable> _obtainedLocks;
+        private bool _disposed;
 
         public ITransactionalDatabase Database => _database;
 
@@ -29,51 +29,61 @@
             _database = database;
             _transaction = transaction;
             _obtainedLocks = new List<IDisposable>();
+            _disposed = false;
         }
 
         private class LockWrapper : IDisposable
         {
             private readonly DefaultTransactionContext _context;
+            private readonly string _key;
             private readonly IDisposable _underlyingLock;
+            private bool _disposed;
 
             public LockWrapper(
                 DefaultTransactionContext context,
+                string key,
                 IDisposable underlyingLock)
             {
                 _context = context;
+                _key = key;
                 _underlyingLock = underlyingLock;
+                _disposed = false;
             }
 
             public void Dispose()
             {
+                if (_disposed)
+                {
+                    throw new ObjectDisposedException(typeof(LockWrapper).Name);
+                }
+                _disposed = true;
                 _underlyingLock.Dispose();
-                _context._obtainedLocks.Remove(_underlyingLock);
+                _context._obtainedLocks.Remove(this);
             }
         }
 
         public async Task<IDisposable> ObtainLockAsync(string key, CancellationToken cancellationToken)
         {
-            var @lock = await _database._semaphores.LockAsync(key, cancellationToken);
-            try
-            {
-                _obtainedLocks.Add(new LockWrapper(this, @lock));
-                return @lock;
-            }
-            catch
-            {
-                // I don't think the above code can throw, but just be careful to ensure we don't end up with locks that are never freed.
-                @lock.Dispose();
-                throw;
-            }
+            var @lock = await _database.GetInternalLockAsync(key, cancellationToken);
+            var lockWrapper = new LockWrapper(this, key, @lock);
+            _obtainedLocks.Add(lockWrapper);
+            return lockWrapper;
         }
 
         public ValueTask DisposeAsync()
         {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(typeof(DefaultTransactionContext).Name);
+            }
+            _disposed = true;
+
             // @note: We make a copy of obtained locks since calling Dispose will mutate it.
             foreach (var @lock in _obtainedLocks.ToArray())
             {
                 @lock.Dispose();
             }
+            _obtainedLocks.Clear();
 
             return ValueTask.CompletedTask;
         }

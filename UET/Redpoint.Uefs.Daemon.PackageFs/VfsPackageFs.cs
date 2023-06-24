@@ -84,7 +84,7 @@
                     blobFactory = _registryRemoteStorage.GetFactory(JsonSerializer.Deserialize(info.SerializedObject, PackageFsJsonSerializerContext.Default.ManifestLayer)!);
                     break;
                 default:
-                    throw new InvalidOperationException($"Unsupported info type for {normalizedPackageHash}!");
+                    throw new InvalidOperationException($"Unsupported info type for {normalizedPackageHash}: {info!.Type}");
             }
 
             // Open the cache file so we can verify it.
@@ -215,7 +215,7 @@
                                 PackageFsJsonSerializerContext.Default.ManifestLayer)!);
                             break;
                         default:
-                            throw new InvalidOperationException($"Unsupported info type for {filename}!");
+                            throw new InvalidOperationException($"Unsupported info type for {filename}: {info!.Type}");
                     }
                     return blobFactory;
                 });

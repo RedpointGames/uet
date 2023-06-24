@@ -9,13 +9,13 @@
         /// the SHA-256 of this value.
         /// </summary>
         [JsonPropertyName("url")]
-        public string Tag = string.Empty;
+        public string Tag { get; set; } = string.Empty;
 
         /// <summary>
         /// The hash of the data file. This will be something like sha256_4f6...a05.
         /// For local storage, the VHD or sparse image is named "hash.vhd".
         /// </summary>
         [JsonPropertyName("hash")]
-        public string Hash = string.Empty;
+        public string Hash { get; set; } = string.Empty;
     }
 }

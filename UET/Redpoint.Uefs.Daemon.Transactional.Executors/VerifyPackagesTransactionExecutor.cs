@@ -3,6 +3,7 @@
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using System.Threading;
     using System.Threading.Tasks;
+    using Redpoint.Uefs.Protocol;
 
     internal class VerifyPackagesTransactionExecutor : ITransactionExecutor<VerifyPackagesTransactionRequest>
     {

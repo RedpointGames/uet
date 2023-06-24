@@ -53,7 +53,7 @@
         /// <returns>The logging builder.</returns>
         public static ILoggingBuilder AddSingleLineConsole(this ILoggingBuilder builder)
         {
-            builder.AddConsole(options =>
+            builder.AddSingleLineConsole(options =>
             {
                 options.LogToStandardErrorThreshold = LogLevel.None;
             });

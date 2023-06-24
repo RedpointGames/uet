@@ -16,6 +16,7 @@
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Reflection;
+    using Redpoint.ProcessTree;
 
     internal static class CommandExtensions
     {
@@ -52,6 +53,10 @@
                 services.AddSingleton(options.GetType(), sp => options);
                 services.AddSingleton<TCommand>();
                 services.AddProgressMonitor();
+                if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
+                {
+                    services.AddProcessTree();
+                }
                 services.AddUefs();
                 services.AddGrpcPipes();
                 services.AddUefsPackage();

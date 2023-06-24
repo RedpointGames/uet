@@ -3,7 +3,6 @@
     using Docker.Registry.DotNet.Endpoints.Implementations;
     using Docker.Registry.DotNet.Models;
     using Docker.Registry.DotNet.OAuth;
-    using System.Net.Http.Json;
     using System.Text.Json;
     using System.Text.Json.Serialization;
 
@@ -21,6 +20,7 @@
             get
             {
                 var settings = new JsonSerializerOptions();
+                settings.PropertyNameCaseInsensitive = true;
                 settings.Converters.Add(new JsonStringEnumConverter());
                 return new DockerJsonSerializerContext(settings);
             }

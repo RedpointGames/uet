@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Net.Http;
     using System.Net.Http.Headers;
-    using System.Runtime.Serialization;
+    using System.Text.Json.Serialization;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -209,10 +209,10 @@
             /// <summary>
             ///     This field specifies the image manifest schema version as an integer.
             /// </summary>
-            [DataMember(Name = "schemaVersion")]
+            [JsonPropertyName("schemaVersion")]
             public int? SchemaVersion { get; set; }
 
-            [DataMember(Name = "mediaType")]
+            [JsonPropertyName("mediaType")]
             public string MediaType { get; set; }
         }
     }

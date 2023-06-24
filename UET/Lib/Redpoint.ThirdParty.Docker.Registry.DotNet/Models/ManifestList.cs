@@ -1,6 +1,6 @@
 ﻿namespace Docker.Registry.DotNet.Models
 {
-    using System.Runtime.Serialization;
+    using System.Text.Json.Serialization;
 
     /// <summary>
     ///     The manifest list is the “fat manifest” which points to specific image manifests for one or more platforms. Its use
@@ -13,13 +13,13 @@
         ///     The MIME type of the manifest list. This should be set to
         ///     application/vnd.docker.distribution.manifest.list.v2+json.
         /// </summary>
-        [DataMember(Name = "mediaType")]
+        [JsonPropertyName("mediaType")]
         public string MediaType { get; set; }
 
         /// <summary>
         ///     The manifests field contains a list of manifests for specific platforms.
         /// </summary>
-        [DataMember(Name = "manifests")]
+        [JsonPropertyName("manifests")]
         public Manifest[] Manifests { get; set; }
     }
 }

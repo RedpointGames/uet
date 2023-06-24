@@ -195,8 +195,11 @@
                                 transaction.Tag,
                                 () =>
                                 {
-                                    @lock.Dispose();
-                                    didReleaseSemaphore = true;
+                                    if (!didReleaseSemaphore)
+                                    {
+                                        didReleaseSemaphore = true;
+                                        @lock.Dispose();
+                                    }
                                 },
                                 (callback, packagePath) =>
                                 {
@@ -209,6 +212,7 @@
                         {
                             if (!didReleaseSemaphore)
                             {
+                                didReleaseSemaphore = true;
                                 @lock.Dispose();
                             }
                         }
@@ -239,8 +243,11 @@
                                 transaction.Tag,
                                 () =>
                                 {
-                                    @lock.Dispose();
-                                    didReleaseSemaphore = true;
+                                    if (!didReleaseSemaphore)
+                                    {
+                                        didReleaseSemaphore = true;
+                                        @lock.Dispose();
+                                    }
                                 },
                                 (callback, packagePath) =>
                                 {
@@ -253,6 +260,7 @@
                         {
                             if (!didReleaseSemaphore)
                             {
+                                didReleaseSemaphore = true;
                                 @lock.Dispose();
                             }
                         }

@@ -1,10 +1,8 @@
 ﻿namespace Docker.Registry.DotNet.Models
 {
-    using System.Runtime.Serialization;
-
     using JetBrains.Annotations;
+    using System.Text.Json.Serialization;
 
-    [PublicAPI]
     public class Manifest
     {
         /// <summary>
@@ -12,7 +10,7 @@
         ///     it could also be application/vnd.docker.image.manifest.v1+json if the manifest list references a legacy schema-1
         ///     manifest.
         /// </summary>
-        [DataMember(Name = "mediaType")]
+        [JsonPropertyName("mediaType")]
         public string MediaType { get; set; }
 
         /// <summary>
@@ -20,14 +18,14 @@
         ///     before validating. If the length of the retrieved content does not match the specified length, the content should
         ///     not be trusted.
         /// </summary>
-        [DataMember(Name = "size")]
+        [JsonPropertyName("size")]
         public int Size { get; set; }
 
         /// <summary>
         ///     The digest of the content, as defined by the Registry V2 HTTP API Specificiation.
         /// </summary>
         /// <remarks>https://docs.docker.com/registry/spec/api/#digest-parameter</remarks>
-        [DataMember(Name = "digest")]
+        [JsonPropertyName("digest")]
         public string Digest { get; set; }
 
         /// <summary>
@@ -37,7 +35,7 @@
         /// <remarks>
         ///     https://golang.org/doc/install/source#environment
         /// </remarks>
-        [DataMember(Name = "platform")]
+        [JsonPropertyName("platform")]
         public Platform Platform { get; set; }
     }
 }

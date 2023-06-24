@@ -65,6 +65,11 @@ namespace Redpoint.Uefs.ContainerRegistry
                     return null;
                 }
                 var password = Encoding.UTF8.GetString(Encoding.Unicode.GetBytes(credential.Password));
+                if (password.Contains("\0"))
+                {
+                    // This was probably encoded by C# instead.
+                    password = credential.Password;
+                }
                 return new RegistryCredential
                 {
                     Username = credential.Username,

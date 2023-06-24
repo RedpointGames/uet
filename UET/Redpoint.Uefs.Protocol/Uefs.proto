@@ -97,12 +97,23 @@ enum PollingResponseType {
 	Backgrounded = 4;
 }
 
+enum PollingResponseStatus {
+	Unknown = 0;
+	Waiting = 1;
+	Starting = 2;
+	Checking = 3;
+	Pulling = 4;
+	Verifying = 5;
+	Complete = 6;
+	Error = 7;
+}
+
 message PollingResponse {
 	PollingResponseType type = 1;
 	bool complete = 2;
 	int64 position = 3;
 	int64 length = 4;
-	string status = 5;
+	PollingResponseStatus status = 5;
 	string packagePath = 6;
 	string err = 7;
 	google.protobuf.Timestamp startTime = 8;

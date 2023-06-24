@@ -1,8 +1,7 @@
 ﻿namespace Docker.Registry.DotNet.Models
 {
-    using System.Runtime.Serialization;
+    using System.Text.Json.Serialization;
 
-    [DataContract]
     public class ManifestLayer
     {
         /// <summary>
@@ -10,7 +9,7 @@
         ///     Layers of type application/vnd.docker.image.rootfs.foreign.diff.tar.gzip may be pulled from a remote location but
         ///     they should never be pushed.
         /// </summary>
-        [DataMember(Name = "mediaType")]
+        [JsonPropertyName("mediaType")]
         public string MediaType { get; set; }
 
         /// <summary>
@@ -18,14 +17,14 @@
         ///     before validating. If the length of the retrieved content does not match the specified length, the content should
         ///     not be trusted.
         /// </summary>
-        [DataMember(Name = "size")]
+        [JsonPropertyName("size")]
         public long Size { get; set; }
 
         /// <summary>
         ///     The digest of the content, as defined by the Registry V2 HTTP API Specification.
         /// </summary>
         /// <remarks>https://docs.docker.com/registry/spec/api/#digest-parameter</remarks>
-        [DataMember(Name = "digest")]
+        [JsonPropertyName("digest")]
         public string Digest { get; set; }
 
         /// <summary>
@@ -33,7 +32,7 @@
         ///     size.
         ///     This field is optional and uncommon.
         /// </summary>
-        [DataMember(Name = "urls")]
+        [JsonPropertyName("urls")]
         public string[] Urls { get; set; }
     }
 }

@@ -46,7 +46,9 @@
 
                 var body = await response.Content.ReadAsStringAsync();
 
-                var token = System.Text.Json.JsonSerializer.Deserialize(body, DockerJsonSerializerContext.WithSettings.OAuthToken);
+                var token = System.Text.Json.JsonSerializer.Deserialize(
+                    body,
+                    DockerJsonSerializerContext.WithSettings.OAuthToken);
 
                 return token;
             }

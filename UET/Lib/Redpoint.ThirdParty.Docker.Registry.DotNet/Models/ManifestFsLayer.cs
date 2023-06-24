@@ -1,11 +1,10 @@
 ﻿namespace Docker.Registry.DotNet.Models
 {
-    using System.Runtime.Serialization;
+    using System.Text.Json.Serialization;
 
-    [DataContract]
     public class ManifestFsLayer
     {
-        [DataMember(Name = "blobSum")]
+        [JsonPropertyName("blobSum")]
         public string BlobSum { get; set; }
     }
 }

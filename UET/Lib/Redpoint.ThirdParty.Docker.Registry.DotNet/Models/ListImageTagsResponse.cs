@@ -1,14 +1,13 @@
 ﻿namespace Docker.Registry.DotNet.Models
 {
-    using System.Runtime.Serialization;
+    using System.Text.Json.Serialization;
 
-    [DataContract]
     public class ListImageTagsResponse
     {
-        [DataMember(Name = "name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
-        [DataMember(Name = "tags")]
+        [JsonPropertyName("tags")]
         public string[] Tags { get; set; }
     }
 }

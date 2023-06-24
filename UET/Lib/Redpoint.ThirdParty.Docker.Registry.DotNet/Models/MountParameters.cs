@@ -1,8 +1,6 @@
 ﻿namespace Docker.Registry.DotNet.Models
 {
-    using System.Runtime.Serialization;
 
-    [DataContract]
     public class MountParameters
     {
         /// <summary>

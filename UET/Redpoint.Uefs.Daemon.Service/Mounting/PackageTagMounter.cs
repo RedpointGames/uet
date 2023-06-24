@@ -50,7 +50,14 @@
                     Credential = request.Credential,
                     NoWait = false,
                 },
-                (response, _) => onPollingResponse(response),
+                async (response, _) => 
+                {
+                    // Don't propagate the completion status, because we still have the mount to do.
+                    if (response.Status != PollingResponseStatus.Complete)
+                    {
+                        await onPollingResponse(response);
+                    }
+                },
                 cancellationToken))
             {
                 result = await transaction.WaitForCompletionAsync(cancellationToken);

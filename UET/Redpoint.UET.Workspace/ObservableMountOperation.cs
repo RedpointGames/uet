@@ -36,11 +36,13 @@
             GitFetchBasedMonitor = monitorFactory.CreateGitFetchBasedMonitor();
             ByteBasedMonitor = monitorFactory.CreateByteBasedMonitor();
 
-            CurrentTaskStatus = "starting";
+            CurrentStatus = PollingResponseStatus.Starting;
             CurrentTaskStartTime = DateTimeOffset.UtcNow;
         }
 
-        public string CurrentTaskStatus { get; private set; }
+        public PollingResponseStatus CurrentStatus { get; private set; }
+
+        public string CurrentTaskStatus => CurrentStatus.ToDisplayString();
 
         public DateTimeOffset CurrentTaskStartTime { get; private set; }
 
@@ -134,13 +136,13 @@
                         throw new InvalidOperationException($"Failed to mount via UEFS: {entry.PollingResponse.Err}");
                     }
 
-                    if (entry.PollingResponse.Status == "pulling")
+                    if (entry.PollingResponse.Status == PollingResponseStatus.Pulling)
                     {
                         switch (entry.PollingResponse.Type)
                         {
                             case PollingResponseType.Git:
                                 {
-                                    CurrentTaskStatus = entry.PollingResponse.Status;
+                                    CurrentStatus = entry.PollingResponse.Status;
                                     if (!gotInitialChange)
                                     {
                                         CurrentTaskStartTime = DateTimeOffset.UtcNow;
@@ -173,7 +175,7 @@
                                 break;
                             case PollingResponseType.Package:
                                 {
-                                    CurrentTaskStatus = entry.PollingResponse.Status;
+                                    CurrentStatus = entry.PollingResponse.Status;
                                     if (!gotInitialChange)
                                     {
                                         CurrentTaskStartTime = DateTimeOffset.UtcNow;
@@ -198,7 +200,7 @@
                     }
                     else
                     {
-                        CurrentTaskStatus = entry.PollingResponse.Status;
+                        CurrentStatus = entry.PollingResponse.Status;
                         GitFetchBasedProgress = null;
                         ByteBasedProgress = null;
                     }

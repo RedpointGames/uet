@@ -97,16 +97,20 @@
             Func<TransactionListenerDelegate, Task> operation)
         {
             PollingResponse? lastPollingResponse = null;
+            var streamClosed = false;
             try
             {
                 await operation(async response =>
                 {
                     lastPollingResponse = response;
-                    await stream.WriteAsync(new MountResponse
+                    if (!streamClosed)
                     {
-                        PollingResponse = response,
-                        MountId = response.Complete && string.IsNullOrWhiteSpace(response.Err) ? mountContext.MountId : string.Empty,
-                    });
+                        await stream.WriteAsync(new MountResponse
+                        {
+                            PollingResponse = response,
+                            MountId = response.Complete && string.IsNullOrWhiteSpace(response.Err) ? mountContext.MountId : string.Empty,
+                        });
+                    }
                 });
                 if (lastPollingResponse == null)
                 {
@@ -121,6 +125,7 @@
                     PollingResponse = lastPollingResponse,
                     MountId = mountContext.MountId,
                 });
+                streamClosed = true;
             }
             catch (Exception ex)
             {
@@ -132,11 +137,15 @@
                     };
                 }
                 lastPollingResponse.Exception(ex);
-                await stream.WriteAsync(new MountResponse
+                try
                 {
-                    PollingResponse = lastPollingResponse,
-                    MountId = string.Empty,
-                });
+                    await stream.WriteAsync(new MountResponse
+                    {
+                        PollingResponse = lastPollingResponse,
+                        MountId = string.Empty,
+                    });
+                }
+                catch { }
                 _logger.LogError(ex, ex.Message);
             }
         }
@@ -232,17 +241,21 @@
         {
             string? transactionId = null;
             PollingResponse? lastPollingResponse = null;
+            var streamClosed = false;
             try
             {
                 await operation(
                     async response =>
                     {
                         lastPollingResponse = response;
-                        await stream.WriteAsync(new PullResponse
+                        if (!streamClosed)
                         {
-                            PollingResponse = response,
-                            OperationId = transactionId ?? string.Empty,
-                        });
+                            await stream.WriteAsync(new PullResponse
+                            {
+                                PollingResponse = response,
+                                OperationId = transactionId ?? string.Empty,
+                            });
+                        }
                     }, 
                     t => 
                     { 
@@ -257,6 +270,7 @@
                     PollingResponse = lastPollingResponse,
                     OperationId = transactionId ?? string.Empty,
                 });
+                streamClosed = true;
             }
             catch (Exception ex)
             {
@@ -268,11 +282,15 @@
                     };
                 }
                 lastPollingResponse.Exception(ex);
-                await stream.WriteAsync(new PullResponse
+                try
                 {
-                    PollingResponse = lastPollingResponse,
-                    OperationId = transactionId ?? string.Empty,
-                });
+                    await stream.WriteAsync(new PullResponse
+                    {
+                        PollingResponse = lastPollingResponse,
+                        OperationId = transactionId ?? string.Empty,
+                    });
+                }
+                catch { }
                 _logger.LogError(ex, ex.Message);
             }
         }

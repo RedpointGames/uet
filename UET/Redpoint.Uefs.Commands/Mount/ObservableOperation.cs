@@ -39,11 +39,13 @@
             GitFetchBasedMonitor = monitorFactory.CreateGitFetchBasedMonitor();
             ByteBasedMonitor = monitorFactory.CreateByteBasedMonitor();
 
-            CurrentTaskStatus = "starting";
+            CurrentStatus = PollingResponseStatus.Starting;
             CurrentTaskStartTime = DateTimeOffset.UtcNow;
         }
 
-        public string CurrentTaskStatus { get; private set; }
+        public PollingResponseStatus CurrentStatus { get; private set; }
+
+        public string CurrentTaskStatus => CurrentStatus.ToDisplayString();
 
         public DateTimeOffset CurrentTaskStartTime { get; private set; }
 
@@ -139,13 +141,13 @@
                         throw new InvalidOperationException($"Failed to mount via UEFS: {pollingResponse.Err}");
                     }
 
-                    if (pollingResponse.Status == "pulling")
+                    if (pollingResponse.Status == PollingResponseStatus.Pulling)
                     {
                         switch (pollingResponse.Type)
                         {
                             case PollingResponseType.Git:
                                 {
-                                    CurrentTaskStatus = pollingResponse.Status;
+                                    CurrentStatus = pollingResponse.Status;
                                     if (!gotInitialChange)
                                     {
                                         CurrentTaskStartTime = DateTimeOffset.UtcNow;
@@ -182,7 +184,7 @@
                                 break;
                             case PollingResponseType.Package:
                                 {
-                                    CurrentTaskStatus = pollingResponse.Status;
+                                    CurrentStatus = pollingResponse.Status;
                                     if (!gotInitialChange)
                                     {
                                         CurrentTaskStartTime = DateTimeOffset.UtcNow;
@@ -209,7 +211,7 @@
                                 break;
                             case PollingResponseType.Verify:
                                 {
-                                    CurrentTaskStatus = pollingResponse.Status;
+                                    CurrentStatus = pollingResponse.Status;
                                     if (!gotInitialChange)
                                     {
                                         CurrentTaskStartTime = DateTimeOffset.UtcNow;
@@ -245,7 +247,7 @@
                     }
                     else
                     {
-                        CurrentTaskStatus = pollingResponse.Status;
+                        CurrentStatus = pollingResponse.Status;
                         GitFetchBasedProgress = null;
                         ByteBasedProgress = null;
                     }

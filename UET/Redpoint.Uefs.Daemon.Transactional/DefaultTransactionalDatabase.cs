@@ -2,6 +2,7 @@
 {
     using KeyedSemaphores;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using System;
     using System.Collections.Generic;
@@ -11,7 +12,7 @@
     internal class DefaultTransactionalDatabase : ITransactionalDatabase
     {
         private IServiceProvider _serviceProvider;
-        internal KeyedSemaphoresCollection<string> _semaphores;
+        private KeyedSemaphoresCollection<string> _semaphores;
         internal string? _currentMountOperation;
 
         private readonly SemaphoreSlim _transactionListSemasphore;
@@ -22,11 +23,16 @@
             IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;
-            _semaphores = new KeyedSemaphoresCollection<string>();
+            _semaphores = new KeyedSemaphoresCollection<string>(1024);
 
             _transactionListSemasphore = new SemaphoreSlim(1);
             _transactionList = new Dictionary<string, IWaitableTransaction>();
             _transactionExecutorTasks = new Dictionary<string, Task>();
+        }
+
+        internal async ValueTask<IDisposable> GetInternalLockAsync(string key, CancellationToken cancellationToken)
+        {
+            return await _semaphores.LockAsync(key, cancellationToken);
         }
 
         public async Task<ITransactionHandle> BeginTransactionAsync<TRequest>(
