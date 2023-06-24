@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="windows6.2" />
+    <SupportedPlatform Include="macos" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.GrpcPipes\Redpoint.GrpcPipes.csproj" />
+    <ProjectReference Include="..\Redpoint.Uefs.Protocol\Redpoint.Uefs.Protocol.csproj" />
+    <ProjectReference Include="..\Redpoint.Vfs.Driver.WinFsp\Redpoint.Vfs.Driver.WinFsp.csproj" />
+    <ProjectReference Include="..\Redpoint.Vfs.Layer.Folder\Redpoint.Vfs.Layer.Folder.csproj" />
+    <ProjectReference Include="..\Redpoint.Vfs.Layer.Git\Redpoint.Vfs.Layer.Git.csproj" />
+    <ProjectReference Include="..\Redpoint.Vfs.Layer.GitDependencies\Redpoint.Vfs.Layer.GitDependencies.csproj" />
+    <ProjectReference Include="..\Redpoint.Vfs.Layer.Scratch\Redpoint.Vfs.Layer.Scratch.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Uefs.Daemon.Abstractions\Redpoint.Uefs.Daemon.Abstractions.csproj" />
+    <ProjectReference Include="..\Redpoint.Uefs.Daemon.Transactional.Executors\Redpoint.Uefs.Daemon.Transactional.Executors.csproj" />
+  </ItemGroup>
+
+</Project>

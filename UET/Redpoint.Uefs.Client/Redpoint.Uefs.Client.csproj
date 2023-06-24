@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
+
+  <PropertyGroup>
+    <AssemblyName>uefs</AssemblyName>
+    <Description>The UEFS client.</Description>
+    <Product>UEFS Client</Product>
+    <AssemblyTitle>UEFS Client</AssemblyTitle>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
+    <ProjectReference Include="..\Redpoint.Uefs.Commands\Redpoint.Uefs.Commands.csproj" />
+  </ItemGroup>
+
+</Project>

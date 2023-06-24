@@ -73,7 +73,7 @@ namespace Redpoint.Uefs.ContainerRegistry
             }
             else if (dockerConfig?.Auths?.ContainsKey(host) ?? false)
             {
-                var basicAuth = Encoding.UTF8.GetString(Convert.FromBase64String(dockerConfig.Auths[host].Auth)).Split(":", 2);
+                var basicAuth = Encoding.UTF8.GetString(Convert.FromBase64String(dockerConfig.Auths[host].Auth!)).Split(":", 2);
                 return new RegistryCredential
                 {
                     Username = basicAuth[0],

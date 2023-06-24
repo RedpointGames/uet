@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
+
+  <PropertyGroup>
+    <AssemblyName>uefs-daemon</AssemblyName>
+    <Description>The UEFS daemon.</Description>
+    <Product>UEFS Daemon</Product>
+    <AssemblyTitle>UEFS Daemon</AssemblyTitle>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="7.0.1" />
+    <PackageReference Include="Sentry" Version="3.33.1" />
+    <PackageReference Include="Sentry.Extensions.Logging" Version="3.33.1" />
+    <ProjectReference Include="..\Redpoint.Vfs.Driver\Redpoint.Vfs.Driver.csproj" />
+    <ProjectReference Include="..\Redpoint.Vfs.Driver.WinFsp\Redpoint.Vfs.Driver.WinFsp.csproj" />
+    <ProjectReference Include="..\Redpoint.Vfs.Layer.Folder\Redpoint.Vfs.Layer.Folder.csproj" />
+    <ProjectReference Include="..\Redpoint.Vfs.Layer.Git\Redpoint.Vfs.Layer.Git.csproj" />
+    <ProjectReference Include="..\Redpoint.Vfs.Layer.GitDependencies\Redpoint.Vfs.Layer.GitDependencies.csproj" />
+    <ProjectReference Include="..\Redpoint.Vfs.Layer.Scratch\Redpoint.Vfs.Layer.Scratch.csproj" />
+    <ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Uefs.Daemon.Integration.Docker\Redpoint.Uefs.Daemon.Integration.Docker.csproj" />
+    <ProjectReference Include="..\Redpoint.Uefs.Daemon.Integration.Kubernetes\Redpoint.Uefs.Daemon.Integration.Kubernetes.csproj" />
+    <ProjectReference Include="..\Redpoint.Uefs.Daemon.PackageFs\Redpoint.Uefs.Daemon.PackageFs.csproj" />
+    <ProjectReference Include="..\Redpoint.Uefs.Daemon.PackageStorage\Redpoint.Uefs.Daemon.PackageStorage.csproj" />
+    <ProjectReference Include="..\Redpoint.Uefs.Daemon.RemoteStorage\Redpoint.Uefs.Daemon.RemoteStorage.csproj" />
+    <ProjectReference Include="..\Redpoint.Uefs.Daemon.Service\Redpoint.Uefs.Daemon.Service.csproj" />
+    <ProjectReference Include="..\Redpoint.Uefs.Daemon.Transactional\Redpoint.Uefs.Daemon.Transactional.csproj" />
+  </ItemGroup>
+
+</Project>
