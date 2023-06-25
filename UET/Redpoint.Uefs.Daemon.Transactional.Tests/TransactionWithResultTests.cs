@@ -15,6 +15,8 @@
         private class TestTransactionRequest : ITransactionRequest<TransactionResult>
         { 
             public required string Data;
+
+            public required ManualResetEventSlim ResetEvent;
         }
 
         private class TestTransactionExecutor : ITransactionExecutor<TestTransactionRequest, TransactionResult>
@@ -24,7 +26,7 @@
                 TestTransactionRequest transactionRequest, 
                 CancellationToken cancellationToken)
             {
-                await Task.Delay(200, cancellationToken);
+                transactionRequest.ResetEvent.Wait(cancellationToken);
                 return new TransactionResult { Data = transactionRequest.Data };
             }
         }
@@ -72,10 +74,12 @@
             var factory = sp.GetRequiredService<ITransactionalDatabaseFactory>();
             var database = factory.CreateTransactionalDatabase();
 
+            var resetEvent = new ManualResetEventSlim();
             var transaction1 = await database.BeginTransactionAsync<TestTransactionRequest, TransactionResult>(
-                new TestTransactionRequest { Data = "test" },
+                new TestTransactionRequest { Data = "test", ResetEvent = resetEvent },
                 (_, _) => Task.CompletedTask,
                 CancellationToken.None)!;
+            resetEvent.Set();
             Assert.Equal("test", (await transaction1.WaitForCompletionAsync(CancellationToken.None)).Data);
         }
 
@@ -91,11 +95,11 @@
             var factory = sp.GetRequiredService<ITransactionalDatabaseFactory>();
             var database = factory.CreateTransactionalDatabase();
 
+            var resetEvent = new ManualResetEventSlim();
             var transaction1 = await database.BeginTransactionAsync<TestTransactionRequest, TransactionResult>(
-                new TestTransactionRequest { Data = "test" },
+                new TestTransactionRequest { Data = "test", ResetEvent = resetEvent },
                 (_, _) => Task.CompletedTask,
                 CancellationToken.None)!;
-            await Task.Delay(100);
             await transaction1.DisposeAsync();
 
             await Assert.ThrowsAsync<TaskCanceledException>(async () =>
@@ -117,16 +121,17 @@
             var factory = sp.GetRequiredService<ITransactionalDatabaseFactory>();
             var database = factory.CreateTransactionalDatabase();
 
+            var resetEvent = new ManualResetEventSlim();
             var transaction1 = await database.BeginTransactionAsync<TestTransactionRequest, TransactionResult>(
-                new TestTransactionRequest { Data = "test" },
+                new TestTransactionRequest { Data = "test", ResetEvent = resetEvent },
                 (_, _) => Task.CompletedTask,
                 CancellationToken.None)!;
             var transaction2 = await database.BeginTransactionAsync<TestTransactionRequest, TransactionResult>(
-                new TestTransactionRequest { Data = "test" },
+                new TestTransactionRequest { Data = "test", ResetEvent = resetEvent },
                 (_, _) => Task.CompletedTask,
                 CancellationToken.None)!;
-            await Task.Delay(100);
             await transaction1.DisposeAsync();
+            resetEvent.Set();
             Assert.Equal("test", (await transaction2.WaitForCompletionAsync(CancellationToken.None)).Data);
         }
 
@@ -143,16 +148,17 @@
             var factory = sp.GetRequiredService<ITransactionalDatabaseFactory>();
             var database = factory.CreateTransactionalDatabase();
 
+            var resetEvent = new ManualResetEventSlim();
             var transaction1 = await database.BeginTransactionAsync<TestTransactionRequest, TransactionResult>(
-                new TestTransactionRequest { Data = "test" },
+                new TestTransactionRequest { Data = "test", ResetEvent = resetEvent },
                 (_, _) => Task.CompletedTask,
                 CancellationToken.None)!;
             var transaction2 = await database.BeginTransactionAsync<TestTransactionRequest, TransactionResult>(
-                new TestTransactionRequest { Data = "test" },
+                new TestTransactionRequest { Data = "test", ResetEvent = resetEvent },
                 (_, _) => Task.CompletedTask,
                 CancellationToken.None)!;
-            await Task.Delay(100);
             await transaction2.DisposeAsync();
+            resetEvent.Set();
             Assert.Equal("test", (await transaction1.WaitForCompletionAsync(CancellationToken.None)).Data);
         }
 
@@ -169,15 +175,15 @@
             var factory = sp.GetRequiredService<ITransactionalDatabaseFactory>();
             var database = factory.CreateTransactionalDatabase();
 
+            var resetEvent = new ManualResetEventSlim();
             var transaction1 = await database.BeginTransactionAsync<TestTransactionRequest, TransactionResult>(
-                new TestTransactionRequest { Data = "test" },
+                new TestTransactionRequest { Data = "test", ResetEvent = resetEvent },
                 (_, _) => Task.CompletedTask,
                 CancellationToken.None)!;
             var transaction2 = await database.BeginTransactionAsync<TestTransactionRequest, TransactionResult>(
-                new TestTransactionRequest { Data = "test" },
+                new TestTransactionRequest { Data = "test", ResetEvent = resetEvent },
                 (_, _) => Task.CompletedTask,
                 CancellationToken.None)!;
-            await Task.Delay(100);
             await transaction1.DisposeAsync();
             await transaction2.DisposeAsync();
 

@@ -9,6 +9,8 @@
     {
         private class TestTransactionRequest : ITransactionRequest
         { 
+            public required ManualResetEventSlim ResetEvent;
+
             public required Action Success;
 
             public required Action Cancelled;
@@ -16,14 +18,14 @@
 
         private class TestTransactionExecutor : ITransactionExecutor<TestTransactionRequest>
         {
-            public async Task ExecuteTransactionAsync(
+            public Task ExecuteTransactionAsync(
                 ITransactionContext context,
                 TestTransactionRequest transactionRequest, 
                 CancellationToken cancellationToken)
             {
                 try
                 {
-                    await Task.Delay(200, cancellationToken);
+                    transactionRequest.ResetEvent.Wait(cancellationToken);
                     transactionRequest.Success();
                 }
                 catch (OperationCanceledException)
@@ -31,6 +33,8 @@
                     transactionRequest.Cancelled();
                     throw;
                 }
+
+                return Task.CompletedTask;
             }
         }
 
@@ -81,10 +85,12 @@
             Action success = () => { didSucceed++; };
             Action cancelled = () => { Assert.False(true, "Transaction should not be cancelled"); };
 
+            var resetEvent = new ManualResetEventSlim();
             var transaction1 = await database.BeginTransactionAsync(
-                new TestTransactionRequest { Success = success, Cancelled = cancelled },
+                new TestTransactionRequest { Success = success, Cancelled = cancelled, ResetEvent = resetEvent },
                 _ => Task.CompletedTask,
                 CancellationToken.None)!;
+            resetEvent.Set();
             await transaction1.WaitForCompletionAsync(CancellationToken.None);
 
             Assert.Equal(1, didSucceed);
@@ -106,11 +112,12 @@
             Action success = () => { Assert.False(true, "Transaction should not succeed"); };
             Action cancelled = () => { didCancel++; };
 
+            var resetEvent = new ManualResetEventSlim();
             var transaction1 = await database.BeginTransactionAsync(
-                new TestTransactionRequest { Success = success, Cancelled = cancelled },
+                new TestTransactionRequest { Success = success, Cancelled = cancelled, ResetEvent = resetEvent },
                 _ => Task.CompletedTask,
                 CancellationToken.None)!;
-            await Task.Delay(100);
+            resetEvent.Set();
             await transaction1.DisposeAsync();
 
             Assert.Equal(1, didCancel);
@@ -132,16 +139,17 @@
             var didSucceed = 0;
             Action success = () => { didSucceed++; };
             Action cancelled = () => { Assert.False(true, "Transaction should not be cancelled"); };
-            
+
+            var resetEvent = new ManualResetEventSlim();
             var transaction1 = await database.BeginTransactionAsync(
-                new TestTransactionRequest { Success = success, Cancelled = cancelled },
+                new TestTransactionRequest { Success = success, Cancelled = cancelled, ResetEvent = resetEvent },
                 _ => Task.CompletedTask,
                 CancellationToken.None)!;
             var transaction2 = await database.BeginTransactionAsync(
-                new TestTransactionRequest { Success = success, Cancelled = cancelled },
+                new TestTransactionRequest { Success = success, Cancelled = cancelled, ResetEvent = resetEvent },
                 _ => Task.CompletedTask,
                 CancellationToken.None)!;
-            await Task.Delay(100);
+            resetEvent.Set();
             await transaction1.DisposeAsync();
             await transaction2.WaitForCompletionAsync(CancellationToken.None);
 
@@ -165,15 +173,16 @@
             Action success = () => { didSucceed++; };
             Action cancelled = () => { Assert.False(true, "Transaction should not be cancelled"); };
 
+            var resetEvent = new ManualResetEventSlim();
             var transaction1 = await database.BeginTransactionAsync(
-                new TestTransactionRequest { Success = success, Cancelled = cancelled },
+                new TestTransactionRequest { Success = success, Cancelled = cancelled, ResetEvent = resetEvent },
                 _ => Task.CompletedTask,
                 CancellationToken.None)!;
             var transaction2 = await database.BeginTransactionAsync(
-                new TestTransactionRequest { Success = success, Cancelled = cancelled },
+                new TestTransactionRequest { Success = success, Cancelled = cancelled, ResetEvent = resetEvent },
                 _ => Task.CompletedTask,
                 CancellationToken.None)!;
-            await Task.Delay(100);
+            resetEvent.Set();
             await transaction2.DisposeAsync();
             await transaction1.WaitForCompletionAsync(CancellationToken.None);
 
@@ -197,15 +206,16 @@
             Action success = () => { Assert.False(true, "Transaction should not succeed"); };
             Action cancelled = () => { didCancel++; };
 
+            var resetEvent = new ManualResetEventSlim();
             var transaction1 = await database.BeginTransactionAsync(
-                new TestTransactionRequest { Success = success, Cancelled = cancelled },
+                new TestTransactionRequest { Success = success, Cancelled = cancelled, ResetEvent = resetEvent },
                 _ => Task.CompletedTask,
                 CancellationToken.None)!;
             var transaction2 = await database.BeginTransactionAsync(
-                new TestTransactionRequest { Success = success, Cancelled = cancelled },
+                new TestTransactionRequest { Success = success, Cancelled = cancelled, ResetEvent = resetEvent },
                 _ => Task.CompletedTask,
                 CancellationToken.None)!;
-            await Task.Delay(100);
+            resetEvent.Set();
             await transaction1.DisposeAsync();
             await transaction2.DisposeAsync();
 
