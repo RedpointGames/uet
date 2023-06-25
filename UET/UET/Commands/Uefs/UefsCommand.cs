@@ -16,7 +16,7 @@
     {
         public static Command CreateUefsCommand()
         {
-            var rootCommand = new Command("uefs", "Runs UEFS commands from UET.");
+            var rootCommand = new Command("uefs", "Run a UEFS command from UET.");
             rootCommand.AddCommand(BuildCommand.CreateBuildCommand());
             rootCommand.AddCommand(MountCommand.CreateMountCommand());
             rootCommand.AddCommand(UnmountCommand.CreateUnmountCommand());
