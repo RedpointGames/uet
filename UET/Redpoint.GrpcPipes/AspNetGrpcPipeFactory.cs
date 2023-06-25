@@ -133,7 +133,8 @@
             return new AspNetGrpcPipeServer<T>(
                 _serviceProvider!.GetRequiredService<ILogger<AspNetGrpcPipeServer<T>>>(),
                 pipePath,
-                instance);
+                instance,
+                pipeNamespace);
         }
 
         public T CreateClient<T>(

@@ -16,6 +16,7 @@
     {
         private readonly string _pipePath;
         private readonly T _instance;
+        private readonly GrpcPipeNamespace _pipeNamespace;
         private readonly ILogger<AspNetGrpcPipeServer<T>> _logger;
         private WebApplication? _app;
         private FileStream? _pipePointerStream;
@@ -71,11 +72,13 @@
         public AspNetGrpcPipeServer(
             ILogger<AspNetGrpcPipeServer<T>> logger,
             string pipePath,
-            T instance)
+            T instance,
+            GrpcPipeNamespace pipeNamespace)
         {
             _logger = logger;
             _pipePath = pipePath;
             _instance = instance;
+            _pipeNamespace = pipeNamespace;
         }
 
         public async Task StartAsync()
@@ -150,6 +153,21 @@
                         }
                         _pipePointerStream.Flush();
                         // @note: Now we hold the FileStream open until we shutdown and then let FileOptions.DeleteOnClose delete it.
+                    }
+                    else if (_pipeNamespace == GrpcPipeNamespace.Computer)
+                    {
+                        // Allow everyone to access the pipe if it's meant to be available system-wide.
+                        File.SetUnixFileMode(
+                            _pipePath,
+                            UnixFileMode.UserRead |
+                            UnixFileMode.UserWrite |
+                            UnixFileMode.UserExecute |
+                            UnixFileMode.GroupRead |
+                            UnixFileMode.GroupWrite |
+                            UnixFileMode.GroupExecute |
+                            UnixFileMode.OtherRead |
+                            UnixFileMode.OtherWrite |
+                            UnixFileMode.OtherExecute);
                     }
 
                     _logger.LogTrace("gRPC server started successfully.");
