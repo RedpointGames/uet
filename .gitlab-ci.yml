@@ -251,6 +251,9 @@ stages:
   artifacts:
     paths:
       - "**/*.nupkg"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
 
 "Publish Win":
   stage: Publish
@@ -288,6 +291,9 @@ stages:
         Remove-Item -Force -Path $env:B2_ACCOUNT_INFO
       }
     }
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
 
 "Publish Mac":
   stage: Publish
@@ -325,6 +331,9 @@ stages:
         Remove-Item -Force -Path $env:B2_ACCOUNT_INFO
       }
     }
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
 
 "Publish Timestamp":
   stage: Publish
@@ -358,6 +367,9 @@ stages:
         Remove-Item -Force -Path $env:B2_ACCOUNT_INFO
       }
     }
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
 
 "Publish Container":
   stage: Publish
@@ -377,6 +389,9 @@ stages:
     docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "registry.redpoint.games/redpointgames/uet/uefs:latest" .
   after_script:
     - rm -Rf "$(pwd)/.docker" || true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
 
 "End":
   stage: End
@@ -404,3 +419,6 @@ stages:
       - UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet
       - UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs
       - UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/osx.11.0-arm64/publish/uefs-daemon
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
