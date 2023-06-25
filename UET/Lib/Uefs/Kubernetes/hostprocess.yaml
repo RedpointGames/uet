@@ -1,0 +1,32 @@
+#
+# This is an example configuration for deploying UEFS into a Kubernetes cluster. You'll need to
+# replace the image path with the version of UEFS you want to use. You can find all of the available
+# versions here: https://src.redpoint.games/redpointgames/uet/container_registry
+#
+# We plan to make Helm charts available in the future.
+#
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: uefs
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      name: uefs
+  template:
+    metadata:
+      labels:
+        name: uefs
+    spec:
+      hostNetwork: true
+      securityContext:
+        windowsOptions:
+          hostProcess: true
+          runAsUserName: "NT AUTHORITY\\SYSTEM"
+      nodeSelector:
+        kubernetes.io/os: windows
+      containers:
+      - name: uefs
+        image: registry.redpoint.games/redpointgames/uet/uefs:latest
+      terminationGracePeriodSeconds: 30

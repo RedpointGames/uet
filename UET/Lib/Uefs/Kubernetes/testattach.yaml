@@ -1,0 +1,29 @@
+#
+# This is an example on how to attach a UEFS package to a container 
+# using the CSI driver. Super experimental!
+#
+apiVersion: v1
+kind: Pod
+metadata:
+  name: uefs-test-attach
+  namespace: default
+spec:
+  containers:
+    - name: uefs-test-attach
+      image: mcr.microsoft.com/powershell:lts-7.2-windowsserver-ltsc2022
+      stdin: true
+      tty: true
+      resources: {}
+      volumeMounts:
+      - name: pkg-vol
+        mountPath: "C:\\UnrealEngine"
+  terminationGracePeriodSeconds: 0
+  volumes:
+    - name: pkg-vol
+      csi:
+        driver: uefs.redpoint.games
+        volumeAttributes:
+          tag: "yourregistry.example.com/yourcompany/packageregistry/unreal-engine-epic:5.0"
+          pullSecretPropertyName: ".dockerconfigjson"
+        nodePublishSecretRef:
+          name: gitlab

@@ -1,0 +1,10 @@
+apiVersion: storage.k8s.io/v1
+kind: CSIDriver
+metadata:
+  name: uefs.redpoint.games
+spec:
+  attachRequired: false
+  podInfoOnMount: true
+  volumeLifecycleModes:
+    - Ephemeral
+  requiresRepublish: false

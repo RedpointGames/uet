@@ -359,6 +359,25 @@ stages:
       }
     }
 
+"Publish Container":
+  stage: Publish
+  needs:
+    - Timestamp
+    - "Build Win UEFS Client"
+    - "Build Win UEFS Daemon"
+  tags:
+    - redpoint-games-linux
+  script: |
+    PACKAGE_VERSION=$(cat package.version | tr -d '\n')
+    mkdir "$(pwd)/.docker" || true
+    export DOCKER_CONFIG="$(pwd)/.docker"
+    docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    docker buildx create --name img-builder --use --platform windows/amd64
+    docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "registry.redpoint.games/redpointgames/uet/uefs:$PACKAGE_VERSION" .
+    docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "registry.redpoint.games/redpointgames/uet/uefs:latest" .
+  after_script:
+    - rm -Rf "$(pwd)/.docker" || true
+
 "End":
   stage: End
   tags:
@@ -371,6 +390,8 @@ stages:
     - "Build Mac UEFS Client"
     - "Build Mac UEFS Daemon"
     - job: "Publish Timestamp"
+      artifacts: false
+    - job: "Publish Container"
       artifacts: false
   interruptible: true
   script: |
