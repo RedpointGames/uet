@@ -4,7 +4,7 @@
   
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
-    <PackageReference Include="Redpoint.ThirdParty.LibGit2Sharp" Version="2023.163.61394" />
+    <PackageReference Include="Redpoint.ThirdParty.LibGit2Sharp" Version="[2023.176.63293]" />
     <ProjectReference Include="..\Redpoint.Uefs.ContainerRegistry\Redpoint.Uefs.ContainerRegistry.csproj" />
     <ProjectReference Include="..\Redpoint.Git.Native\Redpoint.Git.Native.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Driver\Redpoint.Vfs.Driver.csproj" />

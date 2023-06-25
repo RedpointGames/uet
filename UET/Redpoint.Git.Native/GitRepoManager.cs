@@ -57,6 +57,12 @@
                 chown(_gitRepoPath, geteuid(), getegid());
             }
 
+            var configuration = Configuration.BuildFrom(null);
+            if (!(configuration.Get<string>("safe.directory")?.Value?.Contains(_gitRepoPath.Replace("\\", "\\\\")) ?? false))
+            {
+                configuration.Add("safe.directory", _gitRepoPath.Replace("\\", "\\\\"), ConfigurationLevel.Global);
+            }
+
             try
             {
                 _repository = new Repository(_gitRepoPath);
