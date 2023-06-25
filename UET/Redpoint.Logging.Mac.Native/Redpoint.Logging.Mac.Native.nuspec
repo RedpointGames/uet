@@ -11,8 +11,4 @@
     <tags>logging, macos</tags>
     <repository type="git" url="https://src.redpoint.games/redpointgames/uet" />
   </metadata>
-  <files>
-    <file src="runtimes/osx.11.0-arm64/native/libLogging.dylib" target="runtimes/osx.11.0-arm64/native" />
-    <file src="runtimes/osx.11.0-x64/native/libLogging.dylib" target="runtimes/osx.11.0-x64/native" />
-  </files>
 </package>

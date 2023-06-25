@@ -20,7 +20,18 @@
             nint handle = nint.Zero;
             if (libraryName == "Logging")
             {
-                NativeLibrary.TryLoad("libLogging.dylib", assembly, null, out handle);
+                if (RuntimeInformation.ProcessArchitecture == Architecture.X64)
+                {
+                    handle = NativeLibrary.Load("libLogging.x64.dylib", assembly, null);
+                }
+                else if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+                {
+                    handle = NativeLibrary.Load("libLogging.arm64.dylib", assembly, null);
+                }
+                else
+                {
+                    throw new PlatformNotSupportedException();
+                }
             }
             return handle;
         }
