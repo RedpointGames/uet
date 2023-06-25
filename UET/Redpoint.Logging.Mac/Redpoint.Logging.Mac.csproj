@@ -4,6 +4,7 @@
 
   <PropertyGroup>
     <RestoreSources Condition="Exists('$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)')">$(RestoreSources);$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)</RestoreSources>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

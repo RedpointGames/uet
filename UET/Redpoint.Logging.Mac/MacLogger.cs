@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using System.Diagnostics;
+    using System.Reflection;
     using System.Runtime.InteropServices;
     using System.Runtime.Versioning;
 
@@ -11,15 +12,6 @@
         private string _name;
         private MacLoggerOptions _options;
         private readonly nint _logger;
-
-        [DllImport("System", EntryPoint = "os_log_create")]
-        private static extern nint os_log_create(string subsystem, string category);
-
-        [DllImport("Logging", EntryPoint = "redpoint_os_log")]
-        private static extern nint redpoint_os_log(
-            nint osLog,
-            int type,
-            [MarshalAs(UnmanagedType.LPStr)] string message);
 
         private const int _typeDefault = 0x00;
         private const int _typeInfo = 0x01;
@@ -31,7 +23,7 @@
         {
             _name = name;
             _options = options;
-            _logger = os_log_create(Process.GetCurrentProcess().ProcessName, _name);
+            _logger = MacNative.os_log_create(Process.GetCurrentProcess().ProcessName, _name);
         }
 
         public IDisposable? BeginScope<TState>(
@@ -56,20 +48,20 @@
             {
                 case LogLevel.Debug:
                 case LogLevel.Trace:
-                    redpoint_os_log(_logger, _typeDebug, formatter(state, exception));
+                    MacNative.redpoint_os_log(_logger, _typeDebug, formatter(state, exception));
                     break;
                 case LogLevel.Information:
-                    redpoint_os_log(_logger, _typeInfo, formatter(state, exception));
+                    MacNative.redpoint_os_log(_logger, _typeInfo, formatter(state, exception));
                     break;
                 case LogLevel.Warning:
                     // @note: There is no warning level.
-                    redpoint_os_log(_logger, _typeInfo, formatter(state, exception));
+                    MacNative.redpoint_os_log(_logger, _typeInfo, formatter(state, exception));
                     break;
                 case LogLevel.Error:
-                    redpoint_os_log(_logger, _typeError, formatter(state, exception));
+                    MacNative.redpoint_os_log(_logger, _typeError, formatter(state, exception));
                     break;
                 case LogLevel.Critical:
-                    redpoint_os_log(_logger, _typeFault, formatter(state, exception));
+                    MacNative.redpoint_os_log(_logger, _typeFault, formatter(state, exception));
                     break;
             }
         }
