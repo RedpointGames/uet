@@ -16,13 +16,18 @@ namespace Redpoint.Logging.Mac.Tests
             services.AddLogging(logging =>
             {
                 logging.ClearProviders();
+                logging.SetMinimumLevel(LogLevel.Trace);
                 logging.AddMac();
             });
 
             var sp = services.BuildServiceProvider();
 
             var logger = sp.GetRequiredService<ILogger<MacLoggerTests>>();
+            logger.LogError("This is my test message.");
+            logger.LogWarning("This is my test message.");
             logger.LogInformation("This is my test message.");
+            logger.LogDebug("This is my test message.");
+            logger.LogTrace("This is my test message.");
         }
     }
 }

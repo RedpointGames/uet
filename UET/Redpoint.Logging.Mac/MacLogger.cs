@@ -14,10 +14,6 @@
         private readonly nint _logger;
 
         private const int _typeDefault = 0x00;
-        private const int _typeInfo = 0x01;
-        private const int _typeDebug = 0x02;
-        private const int _typeError = 0x10;
-        private const int _typeFault = 0x11;
 
         public MacLogger(string name, MacLoggerOptions options)
         {
@@ -36,6 +32,19 @@
         {
             return true;
         }
+        private static string GetLogLevelString(LogLevel logLevel)
+        {
+            return logLevel switch
+            {
+                LogLevel.Trace => "trce",
+                LogLevel.Debug => "dbug",
+                LogLevel.Information => "info",
+                LogLevel.Warning => "warn",
+                LogLevel.Error => "fail",
+                LogLevel.Critical => "crit",
+                _ => throw new ArgumentOutOfRangeException(nameof(logLevel))
+            };
+        }
 
         public void Log<TState>(
             LogLevel logLevel,
@@ -44,26 +53,9 @@
             Exception? exception,
             Func<TState, Exception?, string> formatter)
         {
-            switch (logLevel)
-            {
-                case LogLevel.Debug:
-                case LogLevel.Trace:
-                    MacNative.redpoint_os_log(_logger, _typeDebug, formatter(state, exception));
-                    break;
-                case LogLevel.Information:
-                    MacNative.redpoint_os_log(_logger, _typeInfo, formatter(state, exception));
-                    break;
-                case LogLevel.Warning:
-                    // @note: There is no warning level.
-                    MacNative.redpoint_os_log(_logger, _typeInfo, formatter(state, exception));
-                    break;
-                case LogLevel.Error:
-                    MacNative.redpoint_os_log(_logger, _typeError, formatter(state, exception));
-                    break;
-                case LogLevel.Critical:
-                    MacNative.redpoint_os_log(_logger, _typeFault, formatter(state, exception));
-                    break;
-            }
+            var message = formatter(state, exception);
+            var prefix = GetLogLevelString(logLevel);
+            MacNative.redpoint_os_log(_logger, _typeDefault, $"[{prefix}] {message}");
         }
     }
 }
