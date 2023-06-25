@@ -2,12 +2,6 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-
   <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
   <PropertyGroup>
     <Description>The gRPC protocol specification for the UEFS service, plus dependency injection bindings to create a UEFS client.</Description>

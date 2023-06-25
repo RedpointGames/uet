@@ -2,12 +2,6 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Docker.DotNet" Version="3.125.10" />
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.Docker.Registry.DotNet\Redpoint.ThirdParty.Docker.Registry.DotNet.csproj" />

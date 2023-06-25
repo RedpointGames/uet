@@ -2,12 +2,6 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-
   <Target Name="BuildShim" BeforeTargets="ResolveReferences" Condition="'$(OpenGEShimIsAlreadyBuilt)' != 'true'">
     <ItemGroup>
       <ShimProjects Include="$(ProjectDir)..\Redpoint.GrpcPipes\Redpoint.GrpcPipes.csproj">

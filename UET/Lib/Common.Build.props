@@ -1,4 +1,5 @@
 <Project>
+
   <PropertyGroup>
     <EnableLinuxSupport>false</EnableLinuxSupport>
     <DefineConstants Condition="'$(EnableLinuxSupport)' == 'true'">$(DefineConstants);ENABLE_LINUX_SUPPORT</DefineConstants>
@@ -10,4 +11,12 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
   </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)./Framework.Build.props" />
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
 </Project>

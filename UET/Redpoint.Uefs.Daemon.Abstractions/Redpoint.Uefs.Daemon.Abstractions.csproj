@@ -2,12 +2,6 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.Uefs.Daemon.Database\Redpoint.Uefs.Daemon.Database.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Daemon.PackageStorage\Redpoint.Uefs.Daemon.PackageStorage.csproj" />
