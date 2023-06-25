@@ -215,9 +215,9 @@
                 new TestTransactionRequest { Success = success, Cancelled = cancelled, ResetEvent = resetEvent },
                 _ => Task.CompletedTask,
                 CancellationToken.None)!;
-            resetEvent.Set();
             await transaction1.DisposeAsync();
             await transaction2.DisposeAsync();
+            resetEvent.Set();
 
             Assert.Equal(1, didCancel);
         }
