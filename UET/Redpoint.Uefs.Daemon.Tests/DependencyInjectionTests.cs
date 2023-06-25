@@ -19,6 +19,7 @@ namespace Redpoint.Uefs.Daemon.Tests
         {
             return _serviceCollection
                 .Where(x => x.ServiceType.FullName!.StartsWith("Redpoint."))
+                .DistinctBy(x => x.ServiceType.FullName)
                 .Select(x => new object[] { x.ServiceType })
                 .GetEnumerator();
         }
