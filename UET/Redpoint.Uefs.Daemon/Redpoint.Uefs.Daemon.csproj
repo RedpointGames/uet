@@ -4,7 +4,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
 
   <PropertyGroup>
-    <RestoreSources>$(RestoreSources);$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)</RestoreSources>
+    <RestoreSources>$(RestoreSources);$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin</RestoreSources>
   </PropertyGroup>
 
   <PropertyGroup>

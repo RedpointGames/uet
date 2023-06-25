@@ -46,11 +46,15 @@ stages:
     - Timestamp
   interruptible: true
   script: |
-    dotnet msbuild -t:BuildNativeMacLibraries UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.csproj
+    PACKAGE_VERSION=$(cat package.version | tr -d '\n')
+    echo "Package version: $PACKAGE_VERSION"
+    dotnet msbuild -t:BuildNativeMacLibraries -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.csproj
+    dotnet msbuild -t:BuildAndReferenceNupkg -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.csproj
   artifacts:
     paths:
-      - "UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.Native/runtimes/osx.11.0-arm64/libLogging.dylib"
-      - "UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.Native/runtimes/osx.11.0-x64/libLogging.dylib"
+      - "UET/Redpoint.Logging.Mac.Native/runtimes/osx.11.0-arm64/libLogging.arm64.dylib"
+      - "UET/Redpoint.Logging.Mac.Native/runtimes/osx-x64/libLogging.x64.dylib"
+      - "UET/Redpoint.Logging.Mac/bin/Redpoint.Logging.Mac.Native.*.nupkg"
 
 "Build Win Pass 1":
   stage: Build Pass 1

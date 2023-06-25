@@ -3,7 +3,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
 
   <PropertyGroup>
-    <RestoreSources>$(RestoreSources);$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)</RestoreSources>
+    <RestoreSources>$(RestoreSources);$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin</RestoreSources>
   </PropertyGroup>
 
   <ItemGroup>
