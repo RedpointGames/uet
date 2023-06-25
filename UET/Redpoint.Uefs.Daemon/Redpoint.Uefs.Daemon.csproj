@@ -4,7 +4,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
 
   <PropertyGroup>
-    <RestoreSources Condition="Exists('$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)')">$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)</RestoreSources>
+    <RestoreSources Condition="Exists('$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)')">$(RestoreSources);$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)</RestoreSources>
   </PropertyGroup>
 
   <PropertyGroup>

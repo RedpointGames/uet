@@ -3,7 +3,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <PropertyGroup>
-    <RestoreSources Condition="Exists('$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)')">$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)</RestoreSources>
+    <RestoreSources Condition="Exists('$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)')">$(RestoreSources);$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)</RestoreSources>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,7 +32,7 @@
     <DownloadFile SourceUrl="https://dist.nuget.org/win-x86-commandline/latest/nuget.exe" DestinationFolder="$(MSBuildThisFileDirectory)" Condition="$([MSBuild]::IsOSPlatform('Windows')) and !Exists('$(MSBuildThisFileDirectory)/bin/$(Configuration)/Redpoint.Logging.Mac.Native.$(PackageVersion).nupkg')" />
     <Exec Command="$(NugetPath) pack &quot;$(MSBuildThisFileDirectory)/Redpoint.Logging.Mac.Native/Redpoint.Logging.Mac.Native.nuspec&quot; -Version &quot;$(PackageVersion)&quot; -OutputDirectory &quot;$(MSBuildThisFileDirectory)/bin/$(Configuration)&quot;" Condition="!Exists('$(MSBuildThisFileDirectory)/bin/$(Configuration)/Redpoint.Logging.Mac.Native.$(PackageVersion).nupkg')" />
     <PropertyGroup>
-      <RestoreSources>$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)</RestoreSources>
+      <RestoreSources>$(RestoreSources);$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)</RestoreSources>
     </PropertyGroup>
     <ItemGroup>
       <PackageReference Include="Redpoint.Logging.Mac.Native" Version="$(PackageVersion)" />
