@@ -2,6 +2,10 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
+  <PropertyGroup>
+    <RestoreSources Condition="Exists('$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)')">$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)</RestoreSources>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.0" />
@@ -12,14 +16,6 @@
     <None Update="README.md">
       <Pack>True</Pack>
     </None>
-    <None Include="runtimes\osx.11.0-arm64\native\libLogging.dylib">
-      <PackagePath>runtimes\osx.11.0-arm64\native\</PackagePath>
-      <Pack>true</Pack>
-    </None>
-    <None Include="runtimes\osx.11.0-x64\native\libLogging.dylib">
-      <PackagePath>runtimes\osx.11.0-x64\native\</PackagePath>
-      <Pack>true</Pack>
-    </None>
   </ItemGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
@@ -28,10 +24,20 @@
     <PackageTags>logging, macos</PackageTags>
   </PropertyGroup>
 
+  <Target Name="BuildAndReferenceNupkg" BeforeTargets="ResolvePackageAssets">
+    <Exec Command="nuget pack &quot;$(MSBuildThisFileDirectory)/Redpoint.Logging.Mac.Native/Redpoint.Logging.Mac.Native.nuspec&quot; -Version &quot;$(PackageVersion)&quot; -OutputDirectory &quot;$(MSBuildThisFileDirectory)/bin/$(Configuration)&quot;" Condition="!Exists('$(MSBuildThisFileDirectory)/bin/$(Configuration)/Redpoint.Logging.Mac.Native.$(PackageVersion).nupkg')" />
+    <PropertyGroup>
+      <RestoreSources>$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)</RestoreSources>
+    </PropertyGroup>
+    <ItemGroup>
+      <PackageReference Include="Redpoint.Logging.Mac.Native" Version="$(PackageVersion)" />
+    </ItemGroup>
+  </Target>
+
   <Target Name="BuildNativeMacLibraries">
     <Message Importance="high" Text="Building native logging libraries for macOS..." Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
-    <Exec Command="clang -dynamiclib -o &quot;$(ProjectDir)/runtimes/osx.11.0-arm64/libLogging.dylib&quot; -arch arm64 &quot;$(ProjectDir)/logging.c&quot;" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
-    <Exec Command="clang -dynamiclib -o &quot;$(ProjectDir)/runtimes/osx.11.0-x64/libLogging.dylib&quot; -arch x86_64 &quot;$(ProjectDir)/logging.c&quot;" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
+    <Exec Command="clang -dynamiclib -o &quot;$(MSBuildThisFileDirectory)Redpoint.Logging.Mac.Native/runtimes/osx.11.0-arm64/libLogging.dylib&quot; -arch arm64 &quot;$(MSBuildThisFileDirectory)Redpoint.Logging.Mac.Native/logging.c&quot;" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
+    <Exec Command="clang -dynamiclib -o &quot;$(MSBuildThisFileDirectory)Redpoint.Logging.Mac.Native/runtimes/osx.11.0-x64/libLogging.dylib&quot; -arch x86_64 &quot;$(MSBuildThisFileDirectory)Redpoint.Logging.Mac.Native/logging.c&quot;" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
   </Target>
 
 </Project>

@@ -46,11 +46,11 @@ stages:
     - Timestamp
   interruptible: true
   script: |
-    dotnet msbuild -restore -t:BuildNativeMacLibraries UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.csproj
+    dotnet msbuild -t:BuildNativeMacLibraries UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.csproj
   artifacts:
     paths:
-      - "UET/Redpoint.Logging.Mac/runtimes/osx.11.0-arm64/libLogging.dylib"
-      - "UET/Redpoint.Logging.Mac/runtimes/osx.11.0-x64/libLogging.dylib"
+      - "UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.Native/runtimes/osx.11.0-arm64/libLogging.dylib"
+      - "UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.Native/runtimes/osx.11.0-x64/libLogging.dylib"
 
 "Build Win Pass 1":
   stage: Build Pass 1

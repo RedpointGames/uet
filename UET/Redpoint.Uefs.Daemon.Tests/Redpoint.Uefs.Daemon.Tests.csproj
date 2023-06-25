@@ -2,6 +2,10 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
 
+  <PropertyGroup>
+    <RestoreSources Condition="Exists('$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)')">$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin/$(Configuration)</RestoreSources>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.Uefs.Daemon\Redpoint.Uefs.Daemon.csproj" />
   </ItemGroup>
