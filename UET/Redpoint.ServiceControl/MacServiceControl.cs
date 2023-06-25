@@ -208,10 +208,6 @@
                 UseShellExecute = false,
             })!;
             await process.WaitForExitAsync();
-            if (process.ExitCode != 0)
-            {
-                throw new InvalidOperationException($"Failed to start service: {name}");
-            }
         }
 
         public async Task StopService(string name)
@@ -228,10 +224,6 @@
                 UseShellExecute = false,
             })!;
             await process.WaitForExitAsync();
-            if (process.ExitCode != 0)
-            {
-                throw new InvalidOperationException($"Failed to stop service: {name}");
-            }
         }
 
         public async Task UninstallService(string name)
