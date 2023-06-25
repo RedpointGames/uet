@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
@@ -12,6 +12,14 @@
     <None Update="README.md">
       <Pack>True</Pack>
     </None>
+    <None Include="runtimes\osx.11.0-arm64\native\libLogging.dylib">
+      <PackagePath>runtimes\osx.11.0-arm64\native\</PackagePath>
+      <Pack>true</Pack>
+    </None>
+    <None Include="runtimes\osx.11.0-x64\native\libLogging.dylib">
+      <PackagePath>runtimes\osx.11.0-x64\native\</PackagePath>
+      <Pack>true</Pack>
+    </None>
   </ItemGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
@@ -19,5 +27,11 @@
     <Description>Provides a logger which sends log entries to the macOS system logs.</Description>
     <PackageTags>logging, macos</PackageTags>
   </PropertyGroup>
+
+  <Target Name="BuildNativeMacLibraries">
+    <Message Importance="high" Text="Building native logging libraries for macOS..." Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
+    <Exec Command="clang -dynamiclib -o &quot;$(ProjectDir)/runtimes/osx.11.0-arm64/libLogging.dylib&quot; -arch arm64 &quot;$(ProjectDir)/logging.c&quot;" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
+    <Exec Command="clang -dynamiclib -o &quot;$(ProjectDir)/runtimes/osx.11.0-x64/libLogging.dylib&quot; -arch x86_64 &quot;$(ProjectDir)/logging.c&quot;" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
+  </Target>
 
 </Project>

@@ -15,9 +15,8 @@
         [DllImport("System", EntryPoint = "os_log_create")]
         private static extern nint os_log_create(string subsystem, string category);
 
-        [DllImport("System", EntryPoint = "_os_log_internal")]
-        private static extern nint _os_log_internal(
-            nint dso,
+        [DllImport("Logging", EntryPoint = "redpoint_os_log")]
+        private static extern nint redpoint_os_log(
             nint osLog,
             int type,
             [MarshalAs(UnmanagedType.LPStr)] string message);
@@ -57,20 +56,20 @@
             {
                 case LogLevel.Debug:
                 case LogLevel.Trace:
-                    _os_log_internal(IntPtr.Zero, _logger, _typeDebug, formatter(state, exception));
+                    redpoint_os_log(_logger, _typeDebug, formatter(state, exception));
                     break;
                 case LogLevel.Information:
-                    _os_log_internal(IntPtr.Zero, _logger, _typeInfo, formatter(state, exception));
+                    redpoint_os_log(_logger, _typeInfo, formatter(state, exception));
                     break;
                 case LogLevel.Warning:
                     // @note: There is no warning level.
-                    _os_log_internal(IntPtr.Zero, _logger, _typeInfo, formatter(state, exception));
+                    redpoint_os_log(_logger, _typeInfo, formatter(state, exception));
                     break;
                 case LogLevel.Error:
-                    _os_log_internal(IntPtr.Zero, _logger, _typeError, formatter(state, exception));
+                    redpoint_os_log(_logger, _typeError, formatter(state, exception));
                     break;
                 case LogLevel.Critical:
-                    _os_log_internal(IntPtr.Zero, _logger, _typeFault, formatter(state, exception));
+                    redpoint_os_log(_logger, _typeFault, formatter(state, exception));
                     break;
             }
         }

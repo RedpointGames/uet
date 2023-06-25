@@ -1,6 +1,6 @@
 stages:
   - Timestamp
-  - Build OpenGE Shim
+  - Prebuild
   - Build Pass 1
   - Build Libraries
   - Build Pass 2
@@ -21,7 +21,7 @@ stages:
       - package.version
 
 "Build OpenGE Shim":
-  stage: Build OpenGE Shim
+  stage: Prebuild
   tags:
     - redpoint-games-windows
   needs:
@@ -38,6 +38,20 @@ stages:
     paths:
       - "UET/Redpoint.OpenGE.ProcessExecution/shim-bin/Release/net7.0/win-x64/publish"
 
+"Build Mac Logging":
+  stage: Prebuild
+  tags:
+    - redpoint-games-mac
+  needs:
+    - Timestamp
+  interruptible: true
+  script: |
+    dotnet msbuild -restore -t:BuildNativeMacLibraries UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.csproj
+  artifacts:
+    paths:
+      - "UET/Redpoint.Logging.Mac/runtimes/osx.11.0-arm64/libLogging.dylib"
+      - "UET/Redpoint.Logging.Mac/runtimes/osx.11.0-x64/libLogging.dylib"
+
 "Build Win Pass 1":
   stage: Build Pass 1
   tags:
@@ -45,6 +59,7 @@ stages:
   needs:
     - Timestamp
     - "Build OpenGE Shim"
+    - "Build Mac Logging"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -64,6 +79,7 @@ stages:
   needs:
     - Timestamp
     - "Build OpenGE Shim"
+    - "Build Mac Logging"
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
@@ -81,6 +97,7 @@ stages:
     - redpoint-games-windows
   needs:
     - Timestamp
+    - "Build Mac Logging"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -99,6 +116,7 @@ stages:
     - redpoint-games-mac
   needs:
     - Timestamp
+    - "Build Mac Logging"
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
@@ -116,6 +134,7 @@ stages:
     - redpoint-games-windows
   needs:
     - Timestamp
+    - "Build Mac Logging"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -134,6 +153,7 @@ stages:
     - redpoint-games-mac
   needs:
     - Timestamp
+    - "Build Mac Logging"
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
@@ -150,6 +170,7 @@ stages:
   needs:
     - Timestamp
     - "Build OpenGE Shim"
+    - "Build Mac Logging"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -176,6 +197,7 @@ stages:
   needs:
     - Timestamp
     - "Build OpenGE Shim"
+    - "Build Mac Logging"
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
@@ -193,6 +215,7 @@ stages:
   needs:
     - Timestamp
     - "Build OpenGE Shim"
+    - "Build Mac Logging"
     - "Build Win Pass 1"
     - "Build Mac Pass 1"
     - job: "Build and Test Libraries on Windows"
@@ -216,6 +239,7 @@ stages:
   needs:
     - Timestamp
     - "Build OpenGE Shim"
+    - "Build Mac Logging"
     - "Build Win Pass 1"
     - "Build Mac Pass 1"
     - job: "Build and Test Libraries on macOS"
