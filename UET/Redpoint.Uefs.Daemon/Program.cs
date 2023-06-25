@@ -23,6 +23,7 @@
     using Redpoint.Logging.SingleLine;
     using Redpoint.Uefs.Package.Vhd;
     using Redpoint.Uefs.Package.SparseImage;
+    using Redpoint.Logging.Mac;
 
     public static class Program
     {
@@ -69,6 +70,11 @@
                 logging.SetMinimumLevel(LogLevel.Information);
                 logging.AddSingleLineConsoleFormatter();
                 logging.AddSingleLineConsole();
+
+                if (OperatingSystem.IsMacOS())
+                {
+                    logging.AddMac();
+                }
 
                 logging.AddSentry(o =>
                 {

@@ -4,6 +4,10 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
 
   <PropertyGroup>
+    <RestoreSources>$(RestoreSources);$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin</RestoreSources>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <AssemblyName>uefs-daemon</AssemblyName>
     <Description>The UEFS daemon.</Description>
     <Product>UEFS Daemon</Product>
@@ -26,6 +30,7 @@
     <ProjectReference Include="..\Redpoint.Vfs.Layer.GitDependencies\Redpoint.Vfs.Layer.GitDependencies.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Layer.Scratch\Redpoint.Vfs.Layer.Scratch.csproj" />
     <ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
+    <ProjectReference Include="..\Redpoint.Logging.Mac\Redpoint.Logging.Mac.csproj" />
   </ItemGroup>
 
   <ItemGroup>

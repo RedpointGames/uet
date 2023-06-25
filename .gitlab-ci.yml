@@ -1,6 +1,6 @@
 stages:
   - Timestamp
-  - Build OpenGE Shim
+  - Prebuild
   - Build Pass 1
   - Build Libraries
   - Build Pass 2
@@ -21,7 +21,7 @@ stages:
       - package.version
 
 "Build OpenGE Shim":
-  stage: Build OpenGE Shim
+  stage: Prebuild
   tags:
     - redpoint-games-windows
   needs:
@@ -38,6 +38,24 @@ stages:
     paths:
       - "UET/Redpoint.OpenGE.ProcessExecution/shim-bin/Release/net7.0/win-x64/publish"
 
+"Build Mac Logging":
+  stage: Prebuild
+  tags:
+    - redpoint-games-mac
+  needs:
+    - Timestamp
+  interruptible: true
+  script: |
+    PACKAGE_VERSION=$(cat package.version | tr -d '\n')
+    echo "Package version: $PACKAGE_VERSION"
+    dotnet msbuild -t:BuildNativeMacLibraries -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.csproj
+    dotnet msbuild -t:BuildAndReferenceNupkg -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.csproj
+  artifacts:
+    paths:
+      - "UET/Redpoint.Logging.Mac.Native/runtimes/osx.11.0-arm64/libLogging.arm64.dylib"
+      - "UET/Redpoint.Logging.Mac.Native/runtimes/osx-x64/libLogging.x64.dylib"
+      - "UET/Redpoint.Logging.Mac/bin/Redpoint.Logging.Mac.Native.*.nupkg"
+
 "Build Win Pass 1":
   stage: Build Pass 1
   tags:
@@ -45,6 +63,7 @@ stages:
   needs:
     - Timestamp
     - "Build OpenGE Shim"
+    - "Build Mac Logging"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -64,6 +83,7 @@ stages:
   needs:
     - Timestamp
     - "Build OpenGE Shim"
+    - "Build Mac Logging"
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
@@ -81,6 +101,7 @@ stages:
     - redpoint-games-windows
   needs:
     - Timestamp
+    - "Build Mac Logging"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -99,6 +120,7 @@ stages:
     - redpoint-games-mac
   needs:
     - Timestamp
+    - "Build Mac Logging"
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
@@ -116,6 +138,7 @@ stages:
     - redpoint-games-windows
   needs:
     - Timestamp
+    - "Build Mac Logging"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -134,6 +157,7 @@ stages:
     - redpoint-games-mac
   needs:
     - Timestamp
+    - "Build Mac Logging"
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
@@ -150,6 +174,7 @@ stages:
   needs:
     - Timestamp
     - "Build OpenGE Shim"
+    - "Build Mac Logging"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -176,6 +201,7 @@ stages:
   needs:
     - Timestamp
     - "Build OpenGE Shim"
+    - "Build Mac Logging"
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
@@ -193,6 +219,7 @@ stages:
   needs:
     - Timestamp
     - "Build OpenGE Shim"
+    - "Build Mac Logging"
     - "Build Win Pass 1"
     - "Build Mac Pass 1"
     - job: "Build and Test Libraries on Windows"
@@ -216,6 +243,7 @@ stages:
   needs:
     - Timestamp
     - "Build OpenGE Shim"
+    - "Build Mac Logging"
     - "Build Win Pass 1"
     - "Build Mac Pass 1"
     - job: "Build and Test Libraries on macOS"
@@ -251,6 +279,9 @@ stages:
   artifacts:
     paths:
       - "**/*.nupkg"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
 
 "Publish Win":
   stage: Publish
@@ -288,6 +319,9 @@ stages:
         Remove-Item -Force -Path $env:B2_ACCOUNT_INFO
       }
     }
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
 
 "Publish Mac":
   stage: Publish
@@ -325,6 +359,9 @@ stages:
         Remove-Item -Force -Path $env:B2_ACCOUNT_INFO
       }
     }
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
 
 "Publish Timestamp":
   stage: Publish
@@ -358,6 +395,9 @@ stages:
         Remove-Item -Force -Path $env:B2_ACCOUNT_INFO
       }
     }
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
 
 "Publish Container":
   stage: Publish
@@ -377,6 +417,9 @@ stages:
     docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "registry.redpoint.games/redpointgames/uet/uefs:latest" .
   after_script:
     - rm -Rf "$(pwd)/.docker" || true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
 
 "End":
   stage: End
@@ -404,3 +447,6 @@ stages:
       - UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet
       - UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs
       - UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/osx.11.0-arm64/publish/uefs-daemon
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
