@@ -28,6 +28,7 @@
     using Redpoint.ApplicationLifecycle;
     using Redpoint.UET.Automation.TestLogger;
     using Redpoint.GrpcPipes;
+    using Redpoint.ServiceControl;
 
     internal static class CommandExtensions
     {
@@ -98,6 +99,10 @@
                 services.AddReservation();
                 services.AddProcessExecution();
                 services.AddProgressMonitor();
+                if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
+                {
+                    services.AddServiceControl();
+                }
                 services.AddOpenGEExecutor();
                 services.AddOpenGEProcessExecution();
                 services.AddSdkManagement();
