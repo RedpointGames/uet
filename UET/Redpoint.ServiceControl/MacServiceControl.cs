@@ -91,7 +91,7 @@
         {
             using (var writer = XmlWriter.Create(
                 $"/Library/LaunchDaemons/{name}.plist",
-                new XmlWriterSettings { Async = true }))
+                new XmlWriterSettings { Async = true, Indent = true, IndentChars = "  " }))
             {
                 await writer.WriteStartDocumentAsync();
 
@@ -111,10 +111,22 @@
                 await writer.WriteStartElementAsync(null, "true", null);
                 await writer.WriteEndElementAsync();
 
+                await writer.WriteElementStringAsync(null, "key", null, "RunAtLoad");
+                await writer.WriteStartElementAsync(null, "true", null);
+                await writer.WriteEndElementAsync();
+
+                await writer.WriteElementStringAsync(null, "key", null, "KeepAlive");
+                await writer.WriteStartElementAsync(null, "dict", null);
+                await writer.WriteElementStringAsync(null, "key", null, "SuccessfulExit");
+                await writer.WriteStartElementAsync(null, "false", null);
+                await writer.WriteEndElementAsync();
+                await writer.WriteEndElementAsync();
+
                 await writer.WriteElementStringAsync(null, "key", null, "Program");
                 await writer.WriteElementStringAsync(null, "string", null, "/bin/bash");
                 await writer.WriteElementStringAsync(null, "key", null, "ProgramArguments");
                 await writer.WriteStartElementAsync(null, "array", null);
+                await writer.WriteElementStringAsync(null, "string", null, "/bin/bash");
                 await writer.WriteElementStringAsync(null, "string", null, "-c");
                 await writer.WriteElementStringAsync(null, "string", null, executableAndArguments);
                 await writer.WriteEndElementAsync();
@@ -126,12 +138,20 @@
                 await writer.WriteEndDocumentAsync();
             }
 
+            File.SetUnixFileMode(
+                $"/Library/LaunchDaemons/{name}.plist",
+                UnixFileMode.UserRead |
+                UnixFileMode.UserWrite |
+                UnixFileMode.GroupRead |
+                UnixFileMode.OtherRead);
+
             await Process.Start(new ProcessStartInfo
             {
                 FileName = "/bin/launchctl",
                 ArgumentList =
                 {
                     "load",
+                    "-w",
                     $"/Library/LaunchDaemons/{name}.plist"
                 },
                 CreateNoWindow = true,
@@ -190,7 +210,7 @@
             await process.WaitForExitAsync();
             if (process.ExitCode != 0)
             {
-                throw new InvalidOperationException($"Failed to stop service: {name}");
+                throw new InvalidOperationException($"Failed to start service: {name}");
             }
         }
 
@@ -233,7 +253,8 @@
                 FileName = "/bin/launchctl",
                 ArgumentList =
                 {
-                    "load",
+                    "unload",
+                    "-w",
                     $"/Library/LaunchDaemons/{name}.plist"
                 },
                 CreateNoWindow = true,
