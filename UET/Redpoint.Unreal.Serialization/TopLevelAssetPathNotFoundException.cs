@@ -7,6 +7,11 @@
             AssetPath = assetPath;
         }
 
+        public TopLevelAssetPathNotFoundException(string message) : base(message)
+        {
+            AssetPath = new TopLevelAssetPath();
+        }
+
         public TopLevelAssetPath AssetPath { get; }
     }
 }

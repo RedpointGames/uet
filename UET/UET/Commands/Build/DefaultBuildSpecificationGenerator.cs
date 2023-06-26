@@ -189,7 +189,8 @@
             bool executeTests,
             bool executeDeployment,
             bool strictIncludes,
-            bool localExecutor)
+            bool localExecutor,
+            bool isPluginRooted)
         {
             // Determine build matrix.
             var editorTargetPlatforms = FilterIncompatiblePlatforms((distribution.Build.Editor?.Platforms ?? new[] { BuildConfigPluginBuildEditorPlatform.Win64 }).Select(x =>
@@ -274,60 +275,6 @@
                 localExecutor,
                 distribution);
 
-            // Compute automation tests.
-            var automationTests = new List<string>();
-            /*
-            if (distribution.Tests != null)
-            {
-                foreach (var test in distribution.Tests)
-                {
-                    if (test.Type == BuildConfigPluginTestType.Automation && test.Automation != null)
-                    {
-                        var minWorkerCount = test.Automation.MinWorkerCount ?? 4;
-                        var timeoutMinutes = test.Automation.TimeoutMinutes ?? 5;
-                        var automationTestValues = new[]
-                        {
-                            test.Name,
-                            string.Join(';', FilterIncompatiblePlatforms(test.Automation.Platforms, localExecutor)),
-                            string.Join(';', test.Automation.ConfigFiles ?? new string[0]),
-                            minWorkerCount.ToString(),
-                            timeoutMinutes.ToString(),
-                        };
-                        automationTests.Add(string.Join('~', automationTestValues.Select(x => string.IsNullOrWhiteSpace(x) ? "__EMPTY__" : x)));
-                    }
-                }
-            }
-            */
-
-            // Determine Gauntlet tasks.
-            var gauntletTests = new List<string>();
-            var gauntletPlatforms = new List<string>();
-            /*
-            if (distribution.Tests != null)
-            {
-                foreach (var test in distribution.Tests)
-                {
-                    if (test.Type == BuildConfigPluginTestType.Gauntlet &&
-                        test.Gauntlet != null)
-                    {
-                        var requires = new List<string>();
-                        foreach (var require in test.Gauntlet.Requires ?? new BuildConfigPluginTestGauntletRequire[0])
-                        {
-                            foreach (var platform in FilterIncompatiblePlatforms(require.Platforms ?? new string[0], localExecutor))
-                            {
-                                requires.Add($"#GauntletStaged_{platform}");
-                                if (!gauntletPlatforms.Contains(platform))
-                                {
-                                    gauntletPlatforms.Add(platform);
-                                }
-                            }
-                        }
-                        gauntletTests.Add($"{test.Name}~{string.Join(";", requires)}");
-                    }
-                }
-            }
-            */
-
             // Compute the Gauntlet config paths.
             var gauntletPaths = new List<string>();
             if (distribution.Gauntlet != null)
@@ -337,59 +284,6 @@
                     gauntletPaths.Add(path);
                 }
             }
-
-            // Compute custom tests.
-            var customTests = new List<string>();
-            /*
-            if (distribution.Tests != null)
-            {
-                foreach (var test in distribution.Tests)
-                {
-                    if (test.Type == BuildConfigPluginTestType.Custom &&
-                        test.Custom != null)
-                    {
-                        var testAgainst = test.Custom.TestAgainst;
-                        var platformsList = FilterIncompatiblePlatforms(test.Custom.Platforms, localExecutor);
-                        if (platformsList.Length > 0)
-                        {
-                            var platforms = string.Join(";", platformsList);
-                            customTests.Add($"{test.Name}~{testAgainst}~{test.Custom.ScriptPath}~{platforms}");
-                        }
-                    }
-                }
-            }
-            */
-
-            // Compute downstream tests.
-            var downstreamTests = new List<string>();
-            /*
-            if (distribution.Tests != null)
-            {
-                foreach (var test in distribution.Tests)
-                {
-                    if (test.Type == BuildConfigPluginTestType.Downstream)
-                    {
-                        downstreamTests.Add(test.Name);
-                    }
-                }
-            }
-            */
-
-            // Compute deployment tasks.
-            var deploymentBackblazeB2 = new List<string>();
-            /*
-            if (executeDeployment && distribution.Deployment != null)
-            {
-                foreach (var deploy in distribution.Deployment)
-                {
-                    var manualDeploy = (deploy.Manual ?? false) ? "true" : "false";
-                    if (deploy.Type == BuildConfigPluginDeploymentType.BackblazeB2 && deploy.BackblazeB2 != null)
-                    {
-                        deploymentBackblazeB2.Add($"{deploy.Name};{manualDeploy};{deploy.BackblazeB2.BucketName};{deploy.BackblazeB2.FolderPrefixEnvVar}");
-                    }
-                }
-            }
-            */
 
             // Compute copyright header.
             var copyrightHeader = string.Empty;
@@ -432,7 +326,7 @@
                     { "EnginePath", "__ENGINE_PATH__" },
                     { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
-                    { $"PluginDirectory", $"__REPOSITORY_ROOT__/{pluginInfo.PluginName}" },
+                    { $"PluginDirectory", isPluginRooted ? $"__REPOSITORY_ROOT__" : $"__REPOSITORY_ROOT__/{pluginInfo.PluginName}" },
                     { $"PluginName", pluginInfo.PluginName },
                     { $"Distribution", distribution.Name },
 
@@ -473,13 +367,7 @@
 
                     // Test options
                     { $"ExecuteTests", executeTests ? "true" : "false" },
-                    { $"GauntletTests", string.Join("+", gauntletTests) },
-                    { $"CustomTests", string.Join("+", customTests) },
-                    { $"GauntletGameTargetPlatforms", string.Join(";", gauntletPlatforms) },
                     { $"GauntletConfigPaths", string.Join(";", gauntletPaths) },
-
-                    // Deploy options
-                    { $"DeploymentBackblazeB2", string.Join("+", deploymentBackblazeB2) },
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = repositoryRoot,
@@ -539,65 +427,6 @@
                 localExecutor,
                 distribution);
 
-            // Compute custom tests.
-            var customTests = new List<string>();
-            /*
-            if (distribution.Tests != null)
-            {
-                foreach (var test in distribution.Tests)
-                {
-                    if (test.Type == BuildConfigProjectTestType.Custom && test.Custom != null)
-                    {
-                        customTests.Add($"{test.Name}~{test.Custom.ScriptPath}");
-                    }
-                }
-            }
-            */
-
-            // Determine Gauntlet tasks.
-            var gauntletTests = new List<string>();
-            /*
-            if (distribution.Tests != null)
-            {
-                foreach (var test in distribution.Tests)
-                {
-                    if (test.Type == BuildConfigProjectTestType.Gauntlet && test.Gauntlet != null)
-                    {
-                        var requires = new List<string>();
-                        foreach (var require in test.Gauntlet.Requires ?? new BuildConfigProjectTestGauntletRequire[0])
-                        {
-                            foreach (var platform in FilterIncompatiblePlatforms(require.Platforms ?? new string[0], localExecutor))
-                            {
-                                requires.Add($"#{require.Type.ToString()}Staged_{require.Target}_{platform}_{require.Configuration}");
-                            }
-                        }
-                        gauntletTests.Add($"{test.Name}~{string.Join(";", requires)}");
-                    }
-                }
-            }
-            */
-
-            // Compute deployment tasks.
-            var deploymentSteam = new List<string>();
-            var deploymentCustom = new List<string>();
-            /*
-            if (executeDeployment && distribution.Deployment != null)
-            {
-                foreach (var deploy in distribution.Deployment)
-                {
-                    var manualDeploy = (deploy.Manual ?? false) ? "true" : "false";
-                    if (deploy.Type == BuildConfigProjectDeploymentType.Steam && deploy.Steam != null && deploy.Package != null)
-                    {
-                        deploymentSteam.Add($"{deploy.Name};{manualDeploy};{deploy.Package.Type};{deploy.Package.Target};{deploy.Package.Platform};{deploy.Package.Configuration};{deploy.Steam.AppId};{deploy.Steam.DepotId};{deploy.Steam.Channel}");
-                    }
-                    else if (deploy.Type == BuildConfigProjectDeploymentType.Custom && deploy.Custom != null && deploy.Package != null)
-                    {
-                        deploymentCustom.Add($"{deploy.Name};{manualDeploy};{deploy.Package.Type};{deploy.Package.Target};{deploy.Package.Platform};{deploy.Package.Configuration};{deploy.Custom.ScriptPath}");
-                    }
-                }
-            }
-            */
-
             // Compute final settings for BuildGraph.
             return new BuildSpecification
             {
@@ -644,12 +473,6 @@
 
                     // Test options
                     { $"ExecuteTests", executeTests ? "true" : "false" },
-                    { $"GauntletTests", string.Join("+", gauntletTests) },
-                    { $"CustomTests", string.Join("+", customTests) },
-
-                    // Deploy options
-                    { $"DeploymentSteam", string.Join("+", deploymentSteam) },
-                    { $"DeploymentCustom", string.Join("+", deploymentCustom) },
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = repositoryRoot,

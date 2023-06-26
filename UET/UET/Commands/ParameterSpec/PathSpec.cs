@@ -20,6 +20,11 @@
 
         public static PathSpec ParsePathSpec(ArgumentResult result)
         {
+            return ParsePathSpec(result, false);
+        }
+
+        public static PathSpec ParsePathSpec(ArgumentResult result, bool ignoreBuildJson)
+        {
             var path = result.Tokens.Count == 0
                 ? Environment.CurrentDirectory
                 : string.Join(" ", result.Tokens);
@@ -30,7 +35,7 @@
             {
                 var info = new DirectoryInfo(path);
 
-                if (File.Exists(Path.Combine(info.FullName, "BuildConfig.json")))
+                if (File.Exists(Path.Combine(info.FullName, "BuildConfig.json")) && !ignoreBuildJson)
                 {
                     return new PathSpec
                     {
@@ -85,13 +90,19 @@
                     return null!;
                 }
 
+                var containExpectations = "contain a BuildConfig.json file, a '.uproject' file or a '.uplugin' file";
+                if (ignoreBuildJson)
+                {
+                    containExpectations = "contain a '.uproject' or a '.uplugin' file";
+                }
+
                 if (isCurrentDirectory)
                 {
-                    result.ErrorMessage = $"The current directory does not contain a BuildConfig.json file, a '.uproject' file or a '.uplugin' file.";
+                    result.ErrorMessage = $"The current directory does not {containExpectations}.";
                 }
                 else
                 {
-                    result.ErrorMessage = $"The --{result.Argument.Name} is invalid because it does not contain a BuildConfig.json file, a '.uproject' file or a '.uplugin' file.";
+                    result.ErrorMessage = $"The --{result.Argument.Name} is invalid because it does not {containExpectations}.";
                 }
                 return null!;
             }
@@ -99,7 +110,7 @@
             {
                 var info = new FileInfo(path);
 
-                if (info.Name.Equals("BuildConfig.json", StringComparison.InvariantCultureIgnoreCase))
+                if (info.Name.Equals("BuildConfig.json", StringComparison.InvariantCultureIgnoreCase) && !ignoreBuildJson)
                 {
                     return new PathSpec
                     {
@@ -128,7 +139,14 @@
                     };
                 }
 
-                result.ErrorMessage = $"The --{result.Argument.Name} is invalid because it must either be a BuildConfig.json file, a '.uproject' file, a '.uplugin' file, or a directory that contains one of those files.";
+                if (ignoreBuildJson)
+                {
+                    result.ErrorMessage = $"The --{result.Argument.Name} is invalid because it must either be a '.uproject' file, a '.uplugin' file, or a directory that contains one of those files.";
+                }
+                else
+                {
+                    result.ErrorMessage = $"The --{result.Argument.Name} is invalid because it must either be a BuildConfig.json file, a '.uproject' file, a '.uplugin' file, or a directory that contains one of those files.";
+                }
                 return null!;
             }
             else

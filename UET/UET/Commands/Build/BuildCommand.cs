@@ -370,7 +370,8 @@
                                         executeTests: test,
                                         executeDeployment: deploy,
                                         strictIncludes: strictIncludes,
-                                        localExecutor: executorName == "local");
+                                        localExecutor: executorName == "local",
+                                        isPluginRooted: false);
                                     break;
                                 case BuildConfigEngineDistribution engineDistribution:
                                     buildSpec = _buildSpecificationGenerator.BuildConfigEngineToBuildSpec(

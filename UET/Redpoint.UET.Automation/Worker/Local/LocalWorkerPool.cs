@@ -27,7 +27,7 @@
         private List<LocalWorker> _currentWorkers;
         private List<LocalWorker> _reservedWorkers;
         private readonly HashSet<DesiredWorkerDescriptor> _descriptorsWindingDown;
-        private static int _nextPort = 6666;
+        private static int _nextPort = 36495;
         private Task _runLoopTask;
 
         public LocalWorkerPool(

@@ -18,7 +18,7 @@
 
         public static ParseArgument<EngineSpec> ParseEngineSpec(
             Option<PathSpec> pathSpec,
-            Option<DistributionSpec?> distributionOpt)
+            Option<DistributionSpec?>? distributionOpt)
         {
             return (result) =>
             {
@@ -40,13 +40,16 @@
                 {
                     return null!;
                 }
-                try
+                if (distributionOpt != null)
                 {
-                    distribution = result.GetValueForOption(distributionOpt);
-                }
-                catch (InvalidOperationException)
-                {
-                    return null!;
+                    try
+                    {
+                        distribution = result.GetValueForOption(distributionOpt);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        return null!;
+                    }
                 }
                 if (path == null)
                 {
@@ -83,7 +86,7 @@
                         // If this build configuration is for a project, determine which project file based on
                         // the distribution and then read the engine association from that project file.
                         var selectedDistribution = distribution?.Distribution as BuildConfigProjectDistribution;
-                        if (selectedDistribution == null)
+                        if (selectedDistribution == null || distributionOpt == null)
                         {
                             result.ErrorMessage = $"The engine version can not be inferred automatically for plugins; use --{result.Argument.Name} to specify the engine instead.";
                             return null!;

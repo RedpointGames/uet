@@ -293,7 +293,7 @@
                 }
             }
 
-            throw new InvalidOperationException($"There is no serializer registry for the asset path {assetPath.V}. Make sure you've generated a serializer registry with the source generator and have passed an instance of it into the Archive constructor.");
+            throw new TopLevelAssetPathNotFoundException($"There is no serializer registry for the asset path {assetPath.V}. Make sure you've generated a serializer registry with the source generator and have passed an instance of it into the Archive constructor.");
         }
 
         public async Task DynamicJsonSerialize(Store<TopLevelAssetPath> assetPath, Store<object?> value)
@@ -317,7 +317,7 @@
                 }
             }
 
-            throw new InvalidOperationException($"There is no serializer registry for the asset path {assetPath.V}. Make sure you've generated a serializer registry with the source generator and have passed an instance of it into the Archive constructor.");
+            throw new TopLevelAssetPathNotFoundException($"There is no serializer registry for the asset path {assetPath.V}. Make sure you've generated a serializer registry with the source generator and have passed an instance of it into the Archive constructor.");
         }
 
         public async Task RuntimeSerialize<T>(Store<T> value) where T : new()

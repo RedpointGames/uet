@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using UET.Commands.Build;
 using UET.Commands.Internal;
 using UET.Commands.List;
+using UET.Commands.Test;
 using UET.Commands.Uefs;
 using UET.Commands.Upgrade;
 
@@ -25,6 +26,7 @@ var rootCommand = new RootCommand("An unofficial tool for Unreal Engine.");
 var globalCommands = new HashSet<Command>();
 rootCommand.AddOption(UET.Commands.CommandExtensions.GetTraceOption());
 rootCommand.AddCommand(BuildCommand.CreateBuildCommand());
+rootCommand.AddCommand(TestCommand.CreateTestCommand());
 rootCommand.AddCommand(ListCommand.CreateListCommand());
 rootCommand.AddCommand(UpgradeCommand.CreateUpgradeCommand(globalCommands));
 rootCommand.AddCommand(UefsCommand.CreateUefsCommand());

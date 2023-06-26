@@ -31,7 +31,8 @@
             bool executeTests,
             bool executeDeployment,
             bool strictIncludes,
-            bool localExecutor);
+            bool localExecutor,
+            bool isPluginRooted);
 
         BuildSpecification BuildConfigEngineToBuildSpec(
             BuildEngineSpecification engineSpec,
