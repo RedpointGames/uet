@@ -421,6 +421,7 @@
                                 {
                                     Engine = buildSpecification.Engine.ToReparsableString(),
                                     SharedStoragePath = buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath,
+                                    SdksPath = buildSpecification.BuildGraphEnvironment.Windows.SdksPath,
                                     BuildGraphTarget = buildSpecification.BuildGraphTarget,
                                     NodeName = node.Name,
                                     DistributionName = buildSpecification.DistributionName,
@@ -443,6 +444,7 @@
                                 {
                                     Engine = buildSpecification.Engine.ToReparsableString(),
                                     SharedStoragePath = buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                                    SdksPath = buildSpecification.BuildGraphEnvironment.Mac.SdksPath,
                                     BuildGraphTarget = buildSpecification.BuildGraphTarget,
                                     NodeName = node.Name,
                                     DistributionName = buildSpecification.DistributionName,
