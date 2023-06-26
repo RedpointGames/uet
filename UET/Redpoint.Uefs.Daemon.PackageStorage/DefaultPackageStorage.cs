@@ -9,7 +9,9 @@
     {
         private readonly ILogger<DefaultPackageStorage> _logger;
         private readonly IGitRepoManager _gitRepoManager;
+        private readonly string _storagePath;
         private readonly IPackageFs _packageFs;
+        private Task? _healthCheckTask;
 
         public DefaultPackageStorage(
             ILogger<DefaultPackageStorage> logger,
@@ -20,6 +22,7 @@
             _logger = logger;
             _gitRepoManager = gitRepoManagerFactory.CreateGitRepoManager(
                 Path.Combine(storagePath, "git-repo"));
+            _storagePath = storagePath;
 
             if (OperatingSystem.IsWindows())
             {
@@ -35,6 +38,7 @@
                         try
                         {
                             _packageFs = packageFsFactory.CreateVfsBackedPackageFs(storagePath);
+                            _healthCheckTask = Task.Run(HealthCheckVirtualFs);
                         }
                         catch (FileNotFoundException ex) when (ex.Message.Contains("winfsp-msil"))
                         {
@@ -56,6 +60,25 @@
             else
             {
                 _packageFs = packageFsFactory.CreateLocallyBackedPackageFs(storagePath);
+            }
+        }
+
+        private async Task HealthCheckVirtualFs()
+        {
+            var vfsStorageMount = Path.Combine(
+                _storagePath,
+                "hostpkgs",
+                "vfsmount");
+            while (true)
+            {
+                if (!Directory.Exists(vfsStorageMount))
+                {
+                    _logger.LogError($"Detected unexpected disappearance of VFS mount at '{vfsStorageMount}'! Forcing UEFS to exit!");
+                    Environment.Exit(1);
+                    return;
+                }
+
+                await Task.Delay(10000);
             }
         }
 
