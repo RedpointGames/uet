@@ -55,6 +55,14 @@
                         _logger.LogWarning($"Failed to automatically set up SDK for platform {sdkPlatform}, relying on global environment instead: {ex.Message}");
                     }
                 }
+                else
+                {
+                    _logger.LogInformation($"The platform {sdkPlatform} is not recognised as a platform for automatic setup.");
+                }
+            }
+            else
+            {
+                _logger.LogTrace($"Automatic SDK setup is being skipped because there is no SDKs path configured.");
             }
 
             var globalEnvironmentVariablesWithSdk = inputEnvironmentVariables;
