@@ -156,7 +156,7 @@
                                 MountRequest = new MountRequest
                                 {
                                     MountPath = mountReservation.ReservedPath,
-                                    TrackPid = Process.GetCurrentProcess().Id,
+                                    TrackPid = GetTrackedPid(),
                                     WriteScratchPath = scratchReservation.ReservedPath,
                                     WriteScratchPersistence = WriteScratchPersistence.Keep,
                                     StartupBehaviour = StartupBehaviour.None,
@@ -190,6 +190,15 @@
                     await mountReservation.DisposeAsync();
                 }
             }
+        }
+
+        private static int GetTrackedPid()
+        {
+            if (Environment.GetEnvironmentVariable("UET_UEFS_SKIP_UNMOUNT") == "1")
+            {
+                return 0;
+            }
+            return Process.GetCurrentProcess().Id;
         }
 
         private async Task<IWorkspace> AllocateTemporaryAsync(TemporaryWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
