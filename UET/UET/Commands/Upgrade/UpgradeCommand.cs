@@ -219,6 +219,7 @@
                     await DirectoryAsync.DeleteAsync(Path.Combine(baseFolder, "Old"), true);
                 }
 
+                var targetPathForPath = Path.Combine(baseFolder, "Current");
                 var needsToUpdateLink = true;
                 var latestLink = new DirectoryInfo(Path.Combine(baseFolder, "Current"));
                 if (latestLink.Exists && latestLink.Attributes.HasFlag(FileAttributes.ReparsePoint))
@@ -233,10 +234,6 @@
                         Directory.Delete(latestLink.FullName);
                     }
                 }
-                else if (latestLink.Exists)
-                {
-                    Directory.Move(latestLink.FullName, Path.Combine(baseFolder, "Old"));
-                }
                 if (needsToUpdateLink)
                 {
                     wasAlreadyUpToDate = false;
@@ -247,22 +244,38 @@
                     }
                     catch (IOException ex) when (ex.Message.Contains("A required privilege is not held by the client"))
                     {
-                        _logger.LogWarning("You don't have permission to create symbolic links on this system. The new UET version will be copied into Current instead.");
-                        Directory.CreateDirectory(latestLink.FullName);
-                        foreach (var fileFullName in Directory.GetFiles(Path.Combine(baseFolder, version)))
-                        {
-                            File.Copy(fileFullName, Path.Combine(baseFolder, "Current", Path.GetFileName(fileFullName)));
-                        }
+                        _logger.LogWarning("You don't have permission to create symbolic links on this system. Your PATH will be set to the specific UET version instead, which will require you to restart your terminal to start using the new UET version.");
+                        targetPathForPath = Path.Combine(baseFolder, version);
                     }
                 }
 
                 if (OperatingSystem.IsWindows())
                 {
                     var path = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User)!.Split(Path.PathSeparator).ToList();
-                    if (!path.Contains(Path.Combine(baseFolder, "Current")))
+                    var hasPath = false;
+                    var didRemove = false;
+                    for (var i = path.Count - 1; i >= 0; i--)
+                    {
+                        var entry = path[i];
+                        if (entry == targetPathForPath)
+                        {
+                            // We already have it in the PATH.
+                            hasPath = true;
+                        }
+                        else if (entry.StartsWith(baseFolder))
+                        {
+                            // Remove old versions from PATH.
+                            path.RemoveAt(i);
+                            didRemove = true;
+                        }
+                    }
+                    if (!hasPath)
                     {
                         _logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to your PATH variable...");
-                        path.Add(Path.Combine(baseFolder, "Current"));
+                        path.Add(targetPathForPath);
+                    }
+                    if (!hasPath || didRemove)
+                    {
                         Environment.SetEnvironmentVariable("PATH", string.Join(Path.PathSeparator, path), EnvironmentVariableTarget.User);
                         _logger.LogInformation($"Your PATH environment variable has been updated. You may need to restart your terminal for the changes to take effect.");
                     }
