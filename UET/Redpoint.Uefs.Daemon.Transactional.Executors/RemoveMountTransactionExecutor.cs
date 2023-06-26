@@ -35,6 +35,11 @@
                     _logger.LogInformation($"Unmounting {transaction.MountId}...");
                     var mount = _mountTracking.CurrentMounts[transaction.MountId];
                     mount.DisposeUnderlying();
+                    if (mount.MountPath != null)
+                    {
+                        await _mountTracking.RemovePersistentMountAsync(mount.MountPath);
+                    }
+                    await _mountTracking.RemoveCurrentMountAsync(transaction.MountId);
                 }
             }
         }

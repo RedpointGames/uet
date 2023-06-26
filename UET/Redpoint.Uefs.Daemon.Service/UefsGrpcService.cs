@@ -155,7 +155,7 @@
             var mountContext = GetMountContext(request.MountRequest);
             await RunMountAsync(
                 responseStream,
-                mountContext, 
+                mountContext,
                 async onPollingResponse =>
                 {
                     await _packageTagMounter.MountAsync(
@@ -176,9 +176,9 @@
                 async onPollingResponse =>
                 {
                     await _packageFileMounter.MountAsync(
-                        _daemon, 
-                        mountContext, 
-                        request, 
+                        _daemon,
+                        mountContext,
+                        request,
                         onPollingResponse,
                         context.CancellationToken);
                 });
@@ -256,10 +256,10 @@
                                 OperationId = transactionId ?? string.Empty,
                             });
                         }
-                    }, 
-                    t => 
-                    { 
-                        transactionId = t; 
+                    },
+                    t =>
+                    {
+                        transactionId = t;
                     });
                 if (lastPollingResponse == null || !lastPollingResponse.Complete)
                 {
@@ -393,49 +393,30 @@
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "No such mount exists."));
             }
 
-            try
+            await using (var transaction = await _daemon.TransactionalDatabase.BeginTransactionAsync<RemoveMountTransactionRequest>(
+                new RemoveMountTransactionRequest
+                {
+                    MountId = request.MountId,
+                },
+                _ => Task.CompletedTask,
+                context.CancellationToken))
             {
-                var mount = _daemon.CurrentMounts[request.MountId];
-                await _daemon.RemovePersistentMountAsync(mount.MountPath!);
-
-                _daemon.CurrentMounts[request.MountId].DisposeUnderlying();
-                await _daemon.RemoveCurrentMountAsync(request.MountId);
-
+                await transaction.WaitForCompletionAsync(context.CancellationToken);
                 return new UnmountResponse();
-            }
-            catch (Exception ex)
-            {
-                throw new RpcException(new Status(StatusCode.Internal, $"Failed to unmount package: {ex}"));
             }
         }
 
-        public override Task<ListResponse> List(ListRequest request, ServerCallContext context)
+        public override async Task<ListResponse> List(ListRequest request, ServerCallContext context)
         {
-            var response = new ListResponse();
-            response.Mounts.AddRange(_daemon.CurrentMounts.Select(x =>
+            await using (var transaction = await _daemon.TransactionalDatabase.BeginTransactionAsync<ListMountsTransactionRequest, ListResponse>(
+                new ListMountsTransactionRequest
+                {
+                },
+                (_, _) => Task.CompletedTask,
+                context.CancellationToken))
             {
-                var mount = new Mount
-                {
-                    Id = x.Key,
-                    MountPath = x.Value.MountPath!,
-                    WriteScratchPersistence = x.Value.WriteScratchPersistence,
-                    StartupBehaviour = x.Value.StartupBehaviour,
-                };
-
-                if (x.Value is CurrentPackageUefsMount pkg)
-                {
-                    mount.PackagePath = pkg.PackagePath;
-                    mount.TagHint = pkg.TagHint;
-                }
-                else if (x.Value is CurrentGitUefsMount git)
-                {
-                    mount.GitUrl = git.GitUrl;
-                    mount.GitCommit = git.GitCommit;
-                }
-
-                return mount;
-            }));
-            return Task.FromResult(response);
+                return await transaction.WaitForCompletionAsync(context.CancellationToken);
+            }
         }
     }
 }
