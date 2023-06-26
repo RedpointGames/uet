@@ -143,10 +143,14 @@
             Func<GrpcChannel, T> constructor,
             GrpcChannelOptions? grpcChannelOptions)
         {
+            var logger = _serviceProvider?.GetService<ILogger<AspNetGrpcPipeFactory>>();
+
             var pipePath = GetPipePath(pipeName, pipeNamespace);
 
             if (!File.Exists(pipePath))
             {
+                logger?.LogTrace($"Pipe does not exist at '{pipePath}', returning dead gRPC channel.");
+
                 // We still have to return the client, but act as a "dead" channel. It should act the same
                 // as if you created a gRPC client to an endpoint that is not responding (i.e. it should
                 // create the client successfully, but calls should fail).
@@ -172,6 +176,7 @@
                 if ((attributes & FileAttributes.ReparsePoint) != 0)
                 {
                     // This is a Unix socket on Windows. Maintain compatibility with older versions.
+                    logger?.LogTrace($"Detected UNIX socket on Windows system. This is for backwards compatibility only.");
                     isUnixSocket = true;
                 }
             }
@@ -183,10 +188,14 @@
             GrpcChannel channel;
             if (isUnixSocket)
             {
+                logger?.LogTrace($"Creating gRPC channel with UNIX socket at path: {pipePath}");
+
                 var socketsHandler = new SocketsHttpHandler
                 {
                     ConnectCallback = async (_, cancellationToken) =>
                     {
+                        logger?.LogTrace($"Connecting to UNIX socket at path: {pipePath}");
+
                         var socket = new Socket(
                             AddressFamily.Unix,
                             SocketType.Stream,
@@ -210,6 +219,8 @@
                     throw new InvalidOperationException("Did not expect pointer file on non-Windows system!");
                 }
 
+                logger?.LogTrace($"Reading pointer file from path: {pipePath}");
+
                 string pointerFileContent;
                 using (var reader = new StreamReader(new FileStream(
                     pipePath,
@@ -226,10 +237,14 @@
                     throw new InvalidOperationException("Pointer file format is invalid!");
                 }
 
+                var pointer = pointerFileContent.Substring("pointer: ".Length).Trim();
+
+                logger?.LogTrace($"Creating gRPC channel with TCP socket from pointer file: {pointer}");
+
                 var options = grpcChannelOptions ?? new GrpcChannelOptions();
                 options.Credentials = ChannelCredentials.Insecure;
 
-                channel = GrpcChannel.ForAddress(pointerFileContent.Substring("pointer: ".Length).Trim(), options);
+                channel = GrpcChannel.ForAddress(pointer, options);
             }
 
             return constructor(channel);
