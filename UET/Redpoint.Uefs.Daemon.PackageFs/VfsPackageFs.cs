@@ -52,6 +52,7 @@
 
         protected override void Mount()
         {
+            _logger.LogInformation($"Mounting VFS to: {_storagePath}");
             _vfs = _vfsFactory.InitializeAndMount(
                 new StorageProjectionLayer(
                     _logger,
@@ -63,6 +64,7 @@
 
         protected override void Unmount()
         {
+            _logger.LogInformation($"Unmounting VFS from: {_storagePath}");
             _vfs?.Dispose();
             _vfs = null;
         }

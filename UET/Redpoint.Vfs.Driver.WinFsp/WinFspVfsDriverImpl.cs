@@ -190,10 +190,12 @@
 
         public override void Unmounted(object Host)
         {
+            _logger.LogInformation("WinFsp driver is being unmounted...");
             _running = false;
             _pendingAsyncIo.Set(); // So that it can pick up _running.
             _asyncIoThread.Join();
             base.Unmounted(Host);
+            _logger.LogInformation("WinFsp driver has been unmounted.");
         }
 
         private int Trace(string fileName, int result, object?[]? parameters = null, [CallerMemberName] string memberName = "", [CallerLineNumber] int lineNumber = 0)

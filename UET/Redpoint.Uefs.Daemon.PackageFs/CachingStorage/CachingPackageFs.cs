@@ -114,6 +114,8 @@
 
         public void Dispose()
         {
+            _logger.LogInformation($"CachingPackageFs is being disposed!");
+
             // Unmount the implementation.
             Unmount();
         }
