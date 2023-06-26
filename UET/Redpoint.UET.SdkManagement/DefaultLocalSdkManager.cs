@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.UET.SdkManagement
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
     using Redpoint.Reservation;
     using Redpoint.UET.Core;
     using System;
@@ -13,15 +14,18 @@
     {
         private readonly IReservationManagerFactory _reservationManagerFactory;
         private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger<DefaultLocalSdkManager> _logger;
         private ConcurrentDictionary<string, IReservationManager> _reservationManagers;
 
         public DefaultLocalSdkManager(
             IReservationManagerFactory reservationManagerFactory,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider,
+            ILogger<DefaultLocalSdkManager> logger)
         {
             _reservationManagers = new ConcurrentDictionary<string, IReservationManager>(StringComparer.InvariantCultureIgnoreCase);
             _reservationManagerFactory = reservationManagerFactory;
             _serviceProvider = serviceProvider;
+            _logger = logger;
         }
 
         public string[] GetRecognisedPlatforms()
@@ -35,6 +39,8 @@
             string platform,
             CancellationToken cancellationToken)
         {
+            _logger.LogInformation($"Requesting SDK for platform {platform}...");
+
             var reservationManager = _reservationManagers.GetOrAdd(
                 sdksPath.TrimEnd(new[] { '\\', '/' }),
                 _reservationManagerFactory.CreateReservationManager);
@@ -46,6 +52,7 @@
                 case "Win64":
                     if (OperatingSystem.IsWindows())
                     {
+                        _logger.LogInformation("Using Windows SDK setup provider.");
                         setup = _serviceProvider.GetRequiredService<WindowsSdkSetup>();
                         platform = "Windows";
                     }
@@ -53,24 +60,28 @@
                 case "Mac":
                     if (OperatingSystem.IsMacOS())
                     {
+                        _logger.LogInformation("Using macOS SDK setup provider.");
                         setup = _serviceProvider.GetRequiredService<MacSdkSetup>();
                     }
                     break;
                 case "Android":
                     if (OperatingSystem.IsWindows())
                     {
+                        _logger.LogInformation("Using Android SDK setup provider.");
                         setup = _serviceProvider.GetRequiredService<AndroidSdkSetup>();
                     }
                     break;
                 case "Linux":
                     if (OperatingSystem.IsWindows())
                     {
+                        _logger.LogInformation("Using Linux SDK setup provider.");
                         setup = _serviceProvider.GetRequiredService<LinuxSdkSetup>();
                     }
                     break;
             }
             if (setup == null)
             {
+                _logger.LogWarning($"The platform {platform} has no automatic SDK setup provider. The necessary dependencies and environment for the build must already be installed on this machine.");
                 return new Dictionary<string, string>();
             }
 
@@ -120,6 +131,19 @@
                 }
 
                 env = await setup.EnsureSdkPackage(reservation.ReservedPath, cancellationToken);
+            }
+
+            if (env.EnvironmentVariables.Count == 0)
+            {
+                _logger.LogInformation($"The {platform} SDK setup did not provide any environment variables for the build.");
+            }
+            else
+            {
+                _logger.LogInformation($"The {platform} SDK setup provided the following environment variables:");
+                foreach (var kv in env.EnvironmentVariables)
+                {
+                    _logger.LogInformation($"  {kv.Key}={kv.Value}");
+                }
             }
 
             return env.EnvironmentVariables;
