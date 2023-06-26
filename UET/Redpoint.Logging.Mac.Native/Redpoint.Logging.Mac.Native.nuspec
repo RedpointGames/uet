@@ -10,5 +10,14 @@
     <copyright>Redpoint Games</copyright>
     <tags>logging, macos</tags>
     <repository type="git" url="https://src.redpoint.games/redpointgames/uet" />
+    <icon>PackageIcon.png</icon>
+    <readme>README.md</readme>
   </metadata>
+  <files>
+    <file src="../Lib/PackageIcon.png" target="PackageIcon.png" />
+    <file src="README.md" target="README.md" />
+    <file src="build/**" target="/" />
+    <file src="buildTransitive/**" target="/" />
+    <file src="runtimes/**" target="/" />
+  </files>
 </package>
