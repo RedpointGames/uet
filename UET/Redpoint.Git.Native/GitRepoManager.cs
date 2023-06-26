@@ -43,6 +43,7 @@
 
             if (OperatingSystem.IsWindows())
             {
+                logger.LogInformation($"Setting {_gitRepoPath} to be accessible by the current user...");
                 var directoryInfo = new DirectoryInfo(_gitRepoPath);
                 var fs = directoryInfo.GetAccessControl();
                 var user = WindowsIdentity.GetCurrent().User;
@@ -54,31 +55,37 @@
             }
             else if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
             {
+                logger.LogInformation($"Changing {_gitRepoPath} to be owned by the current user...");
                 chown(_gitRepoPath, geteuid(), getegid());
             }
 
             var gitGlobalPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                 ".gitconfig");
-            if (File.Exists(gitGlobalPath))
+            if (!File.Exists(gitGlobalPath))
             {
+                logger.LogInformation($"Creating global Git configuration file at {gitGlobalPath}...");
                 File.WriteAllText(gitGlobalPath, string.Empty);
             }
 
+            logger.LogInformation($"Loading the Git configuration...");
             var configuration = Configuration.BuildFrom(null);
             if (!(configuration.Get<string>("safe.directory")?.Value?.Contains(_gitRepoPath.Replace("\\", "\\\\")) ?? false))
             {
+                logger.LogInformation($"Adding {_gitRepoPath} to safe.directory in the global Git configuration file.");
                 configuration.Add("safe.directory", _gitRepoPath.Replace("\\", "\\\\"), ConfigurationLevel.Global);
             }
 
             try
             {
                 _repository = new Repository(_gitRepoPath);
+                logger.LogInformation($"Loaded existing repository located at: {_gitRepoPath}");
             }
             catch (RepositoryNotFoundException)
             {
                 Repository.Init(_gitRepoPath, true);
                 _repository = new Repository(_gitRepoPath);
+                logger.LogInformation($"Initialized new repository located at: {_gitRepoPath}");
             }
 
             _logger = logger;
