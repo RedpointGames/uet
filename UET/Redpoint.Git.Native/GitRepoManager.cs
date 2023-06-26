@@ -57,6 +57,14 @@
                 chown(_gitRepoPath, geteuid(), getegid());
             }
 
+            var gitGlobalPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".gitconfig");
+            if (File.Exists(gitGlobalPath))
+            {
+                File.WriteAllText(gitGlobalPath, string.Empty);
+            }
+
             var configuration = Configuration.BuildFrom(null);
             if (!(configuration.Get<string>("safe.directory")?.Value?.Contains(_gitRepoPath.Replace("\\", "\\\\")) ?? false))
             {
