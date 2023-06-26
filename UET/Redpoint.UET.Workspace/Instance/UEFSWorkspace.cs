@@ -33,11 +33,18 @@
 
         public async ValueTask DisposeAsync()
         {
-            _logger.LogInformation($"{_loggerReleaseMessage} (unmounting)");
-            await _uefsClient.UnmountAsync(new UnmountRequest
+            if (Environment.GetEnvironmentVariable("UET_UEFS_SKIP_UNMOUNT") == "1")
             {
-                MountId = _mountId
-            }, deadline: DateTime.UtcNow.AddSeconds(60));
+                _logger.LogInformation($"{_loggerReleaseMessage} (not unmounting)");
+            }
+            else
+            {
+                _logger.LogInformation($"{_loggerReleaseMessage} (unmounting)");
+                await _uefsClient.UnmountAsync(new UnmountRequest
+                {
+                    MountId = _mountId
+                }, deadline: DateTime.UtcNow.AddSeconds(60));
+            }
             foreach (var reservation in _reservations)
             {
                 await reservation.DisposeAsync();
