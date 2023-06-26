@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Redpoint.ThirdParty.LibGit2Sharp" Version="[2023.176.63495]" />
+    <PackageReference Include="Redpoint.ThirdParty.LibGit2Sharp" Version="[2023.177.63629]" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />

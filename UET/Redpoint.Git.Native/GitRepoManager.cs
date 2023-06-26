@@ -64,8 +64,12 @@
                 ".gitconfig");
             if (!File.Exists(gitGlobalPath))
             {
-                logger.LogInformation($"Creating global Git configuration file at {gitGlobalPath}...");
+                logger.LogInformation($"Creating global Git configuration file at: {gitGlobalPath}");
                 File.WriteAllText(gitGlobalPath, string.Empty);
+            }
+            else
+            {
+                logger.LogInformation($"Global Git configuration file is located at: {gitGlobalPath}");
             }
 
             logger.LogInformation($"Loading the Git configuration...");
