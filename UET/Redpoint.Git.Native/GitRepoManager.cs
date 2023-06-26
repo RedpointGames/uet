@@ -72,12 +72,19 @@
                 logger.LogInformation($"Global Git configuration file is located at: {gitGlobalPath}");
             }
 
-            logger.LogInformation($"Loading the Git configuration...");
-            var configuration = Configuration.BuildFrom(null);
-            if (!(configuration.Get<string>("safe.directory")?.Value?.Contains(_gitRepoPath.Replace("\\", "\\\\")) ?? false))
+            try
             {
-                logger.LogInformation($"Adding {_gitRepoPath} to safe.directory in the global Git configuration file.");
-                configuration.Add("safe.directory", _gitRepoPath.Replace("\\", "\\\\"), ConfigurationLevel.Global);
+                logger.LogInformation($"Loading the Git configuration...");
+                var configuration = Configuration.BuildFrom(null);
+                if (!(configuration.Get<string>("safe.directory")?.Value?.Contains(_gitRepoPath.Replace("\\", "\\\\")) ?? false))
+                {
+                    logger.LogInformation($"Adding {_gitRepoPath} to safe.directory in the global Git configuration file.");
+                    configuration.Add("safe.directory", _gitRepoPath.Replace("\\", "\\\\"), ConfigurationLevel.Global);
+                }
+            }
+            catch (LibGit2SharpException)
+            {
+                // This just doesn't seem to work on macOS when running as a launchctl service.
             }
 
             try
