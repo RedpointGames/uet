@@ -16,8 +16,9 @@
   <files>
     <file src="../Lib/PackageIcon.png" target="PackageIcon.png" />
     <file src="README.md" target="README.md" />
-    <file src="build/**" target="/" />
-    <file src="buildTransitive/**" target="/" />
-    <file src="runtimes/**" target="/" />
+    <file src="build/Redpoint.Logging.Mac.Native.targets" target="build" />
+    <file src="buildTransitive/Redpoint.Logging.Mac.Native.targets" target="buildTransitive" />
+    <file src="runtimes/osx.11.0-arm64/native/libLogging.arm64.dylib" target="runtimes/osx.11.0-arm64/native" />
+    <file src="runtimes/osx-x64/native/libLogging.x64.dylib" target="runtimes/osx-x64/native" />
   </files>
 </package>
