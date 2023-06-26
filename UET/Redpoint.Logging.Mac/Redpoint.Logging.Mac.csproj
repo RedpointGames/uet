@@ -2,10 +2,10 @@
 
   <Target Name="BuildAndReferenceNupkg" BeforeTargets="ResolvePackageAssets;_LoadRestoreGraphEntryPoints">
     <PropertyGroup>
-      <NugetPath>nuget</NugetPath>
+      <NugetPath>mono &quot;$(MSBuildThisFileDirectory)nuget.exe&quot;</NugetPath>
       <NugetPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">&quot;$(MSBuildThisFileDirectory)nuget.exe&quot;</NugetPath>
     </PropertyGroup>
-    <DownloadFile SourceUrl="https://dist.nuget.org/win-x86-commandline/latest/nuget.exe" DestinationFolder="$(MSBuildThisFileDirectory)" Condition="$([MSBuild]::IsOSPlatform('Windows')) and !Exists('$(MSBuildThisFileDirectory)/bin/Redpoint.Logging.Mac.Native.$(PackageVersion).nupkg')" />
+    <DownloadFile SourceUrl="https://dist.nuget.org/win-x86-commandline/latest/nuget.exe" DestinationFolder="$(MSBuildThisFileDirectory)" Condition="!Exists('$(MSBuildThisFileDirectory)/bin/Redpoint.Logging.Mac.Native.$(PackageVersion).nupkg')" />
     <Exec Command="$(NugetPath) pack &quot;$(MSBuildThisFileDirectory)/../Redpoint.Logging.Mac.Native/Redpoint.Logging.Mac.Native.nuspec&quot; -Version &quot;$(PackageVersion)&quot; -OutputDirectory &quot;$(MSBuildThisFileDirectory)/bin&quot;" Condition="!Exists('$(MSBuildThisFileDirectory)/bin/Redpoint.Logging.Mac.Native.$(PackageVersion).nupkg')" />
   </Target>
 
