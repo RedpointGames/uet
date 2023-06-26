@@ -88,12 +88,16 @@
                 string baseFolder;
                 string filename;
                 string daemonName;
+                string? stdoutPath;
+                string? stderrPath;
                 if (OperatingSystem.IsWindows())
                 {
                     downloadUrl = $"https://dl-public.redpoint.games/file/dl-public-redpoint-games/uet/{version}/windows/uefs-daemon.exe";
                     baseFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "UET");
                     filename = "uefs-daemon.exe";
                     daemonName = "UEFS Service";
+                    stdoutPath = null;
+                    stderrPath = null;
                 }
                 else if (OperatingSystem.IsMacOS())
                 {
@@ -101,6 +105,9 @@
                     baseFolder = "/Users/Shared/UET";
                     filename = "uefs-daemon";
                     daemonName = "games.redpoint.UEFS";
+                    stdoutPath = "/Users/Shared/UEFS/logs/stdout.log";
+                    stderrPath = "/Users/Shared/UEFS/logs/stderr.log";
+                    Directory.CreateDirectory("/Users/Shared/UEFS/logs");
                 }
                 else
                 {
@@ -168,7 +175,9 @@
                 await _serviceControl.InstallService(
                     daemonName,
                     "The UEFS daemon provides storage virtualization APIs.",
-                    $"{Path.Combine(baseFolder, version, filename)} --service");
+                    $"{Path.Combine(baseFolder, version, filename)} --service",
+                    stdoutPath,
+                    stderrPath);
 
                 _logger.LogInformation("Starting UEFS daemon...");
                 await _serviceControl.StartService(daemonName);

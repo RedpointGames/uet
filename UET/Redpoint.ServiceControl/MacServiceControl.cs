@@ -87,7 +87,7 @@
             }
         }
 
-        public async Task InstallService(string name, string description, string executableAndArguments)
+        public async Task InstallService(string name, string description, string executableAndArguments, string? stdoutLogPath, string? stderrLogPath)
         {
             using (var writer = XmlWriter.Create(
                 $"/Library/LaunchDaemons/{name}.plist",
@@ -130,6 +130,18 @@
                 await writer.WriteElementStringAsync(null, "string", null, "-c");
                 await writer.WriteElementStringAsync(null, "string", null, executableAndArguments);
                 await writer.WriteEndElementAsync();
+
+                if (stdoutLogPath != null)
+                {
+                    await writer.WriteElementStringAsync(null, "key", null, "StandardOutPath");
+                    await writer.WriteElementStringAsync(null, "string", null, stdoutLogPath);
+                }
+
+                if (stderrLogPath != null)
+                {
+                    await writer.WriteElementStringAsync(null, "key", null, "StandardErrorPath");
+                    await writer.WriteElementStringAsync(null, "string", null, stderrLogPath);
+                }
 
                 await writer.WriteEndElementAsync();
 

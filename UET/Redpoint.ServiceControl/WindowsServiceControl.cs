@@ -81,7 +81,7 @@
             return output.Contains("RUNNING");
         }
 
-        public async Task InstallService(string name, string description, string executableAndArguments)
+        public async Task InstallService(string name, string description, string executableAndArguments, string? stdoutLogPath, string? stderrLogPath)
         {
             await Process.Start(new ProcessStartInfo
             {

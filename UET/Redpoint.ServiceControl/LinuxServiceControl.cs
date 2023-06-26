@@ -46,7 +46,7 @@
             return checkProcess.ExitCode == 0;
         }
 
-        public async Task InstallService(string name, string description, string executableAndArguments)
+        public async Task InstallService(string name, string description, string executableAndArguments, string? stdoutLogPath, string? stderrLogPath)
         {
             await File.WriteAllTextAsync($"/etc/systemd/system/{name}.service", @$"
 [Unit]
