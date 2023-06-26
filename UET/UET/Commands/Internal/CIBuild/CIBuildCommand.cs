@@ -155,6 +155,7 @@
                     DistributionName = buildJson.DistributionName,
                     UETPath = Process.GetCurrentProcess().MainModule!.FileName,
                     ProjectFolderName = buildJson.ProjectFolderName,
+                    GlobalEnvironmentVariables = buildJson.GlobalEnvironmentVariables,
                 };
 
                 try
