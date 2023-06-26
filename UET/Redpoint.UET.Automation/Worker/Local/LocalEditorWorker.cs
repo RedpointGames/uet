@@ -77,7 +77,7 @@
                 "-CrashForUAT",
                 $"-SessionId={Id.ToString().Replace("-", "").Replace("{", "").Replace("}", "").ToUpperInvariant()}",
                 $"-SessionName={DisplayName}",
-                $"-SessionOwner={Environment.UserName}",
+                $"-SessionOwner={(Environment.UserName.Contains("$") ? "SYSTEM" : Environment.UserName)}",
                 $"-abslog={logPath}",
                 // The engine will check for UObject leaks inside world memory and force a crash if it detects them. However, these are unrelated to
                 // automation tests (which don't operate in the world for the most part), so we want to avoid these crashes.

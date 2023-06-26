@@ -155,6 +155,7 @@
                                 gotEnginePong = true;
                                 engineVersion = pong.EngineVersion;
                                 engineSessionId = pong.SessionId;
+                                _logger?.LogTrace($"Got EngineServicePong EngineVersion={engineVersion} EngineSessionId={engineSessionId}");
                                 break;
                             case EngineServicePing ping:
                                 if (gotEnginePong)
@@ -176,6 +177,7 @@
                                 RemoteSessionId = pong.SessionId;
                                 buildDate = pong.BuildDate;
                                 _remoteOwner = pong.SessionOwner;
+                                _logger?.LogTrace($"Got SessionServicePong RemoteSessionId={RemoteSessionId} BuildDate={pong.BuildDate} SessionOwner={pong.SessionOwner}");
                                 break;
                             case SessionServicePing ping:
                                 if (gotSessionPong)
