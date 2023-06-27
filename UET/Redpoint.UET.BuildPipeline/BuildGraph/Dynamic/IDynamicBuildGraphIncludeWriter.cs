@@ -7,6 +7,8 @@
         Task WriteBuildGraphInclude(
             Stream stream,
             bool filterHostToCurrentPlatformOnly,
-            object buildConfigDistribution);
+            object buildConfigDistribution,
+            bool executeTests,
+            bool executeDeployment);
     }
 }

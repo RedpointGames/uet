@@ -120,14 +120,18 @@
                 // Execute our editor automation tests.
                 foreach (var platform in allPlatforms)
                 {
+                    var marketplaceCondition = $"'$(IsForMarketplaceSubmission)' == 'true' and '$(CanBuildEditor{platform})' == 'true'";
+                    if (platform == BuildConfigHostPlatform.Mac)
+                    {
+                        marketplaceCondition += " and '$(IsBuildMachine)' == 'true'";
+                    }
+
                     await writer.WriteAgentAsync(
                         new AgentElementProperties
                         {
                             Name = $"Compile {platform} Test Project",
                             Type = platform.ToString(),
-                            If = platform == BuildConfigHostPlatform.Mac
-                                ? "'$(IsBuildMachine)' == 'true' and '$(ExecuteTests)' == 'true'"
-                                : "'$(ExecuteTests)' == 'true'",
+                            If = marketplaceCondition,
                         },
                         async writer =>
                         {
@@ -137,7 +141,6 @@
                                     Name = $"Compile {platform} Test Project",
                                     Requires = $"#{_propertyPrefix}_Project_{platform}",
                                     Produces = $"#{_propertyPrefix}_ProjectCompiled_{platform}",
-                                    If = $"'$(IsForMarketplaceSubmission)' == 'true' and '$(CanBuildEditor{platform})' == 'true'",
                                 },
                                 async writer =>
                                 {
@@ -168,14 +171,13 @@
                         {
                             Name = $"{_propertyPrefix}_ProjectCompiled_{platform}",
                             Value = string.Empty,
-                            If = $"'$(IsForMarketplaceSubmission)' == 'false' or '$(CanBuildEditor{platform})' == 'false'"
                         });
                     await writer.WritePropertyAsync(
                         new PropertyElementProperties
                         {
                             Name = $"{_propertyPrefix}_ProjectCompiled_{platform}",
                             Value = $"#{_propertyPrefix}_ProjectCompiled_{platform}",
-                            If = $"'$(IsForMarketplaceSubmission)' == 'true' and '$(CanBuildEditor{platform})' == 'true'"
+                            If = marketplaceCondition
                         });
                 }
             });

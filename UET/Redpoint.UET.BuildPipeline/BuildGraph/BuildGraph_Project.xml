@@ -34,15 +34,6 @@
   <!-- Stage options -->
   <Option Name="StageDirectory" Restrict=".+" DefaultValue="Saved\StagedBuilds" Description="The path under which to place all of the staged builds" />
 
-  <!-- Test options -->
-  <Option Name="ExecuteTests" Restrict="true|false" DefaultValue="true" Description="Whether the tests should be executed" />
-  <Option Name="GauntletTests" DefaultValue="" Description="An array of Gauntlet tests formatted like so: Name1|#GameBinaries_ExampleOSS_Win64_DebugGame;#ServerBinaries_ExampleOSSServer_Win64_DebugGame+Name2|#GameBinaries_ExampleOSS_IOS_DebugGame" />
-  <Option Name="CustomTests" DefaultValue="" Description="An array of custom tests formatted like so: Name1~PathToScript1.ps1+Name2~PathToScript2.ps1" />
-
-  <!-- Deployment options -->
-  <Option Name="DeploymentSteam" DefaultValue="" Description="An array of Steam deployments to run formatted like so: Win64 Steam;true;Game;ExampleOSS;Win64;DebugGame;1382480;1382481;eostesting+Mac Steam;true;Game;ExampleOSS;Mac;DebugGame;1382480;1382482;eostesting" />
-  <Option Name="DeploymentCustom" DefaultValue="" Description="An array of custom deployments to run formatted like so: Win64 Custom;true;Game;ExampleOSS;Win64;DebugGame+Mac Custom;true;Game;ExampleOSS;Mac;DebugGame" />
-
   <!-- Dynamic include options, used by UET to dynamically generate test and deployment nodes -->
   <Option Name="ScriptIncludes" DefaultValue="" Description="Additional script includes paths" />
   <Include Script="$(ScriptIncludes)" />
@@ -59,11 +50,10 @@
   <Property Name="GameStaged" Value="" />
   <Property Name="ClientStaged" Value="" />
   <Property Name="ServerStaged" Value="" />
-  <Property Name="GauntletTasks" Value="" />
-  <Property Name="CustomTasks" Value="" />
-  <Property Name="DeploymentTasks" Value="" />
   <Property Name="AdditionalArguments" Value="" If="'$(StrictIncludes)' == 'false'" />
   <Property Name="AdditionalArguments" Value=" -NoPCH -NoSharedPCH -DisableUnity" If="'$(StrictIncludes)' == 'true'" />
+  <Property Name="DynamicNodes" Value="" />
+  <Property Name="DynamicOutputFiles" Value="" />
 
   <!-- Targets that we will execute on a Windows machine. -->
   <Agent Name="Windows Build" Type="Win64" If="'$(ExecuteBuild)' == 'true'">
@@ -361,173 +351,17 @@
 
   </Agent>
 
-  <Agent Name="Windows Gauntlet" Type="Win64" If="'$(ExecuteTests)' == 'true'">
+  <!-- 
+    Run all of the tests and deployments (which are dynamically defined by UET).
+  -->
 
-    <!-- Run all the defined Gauntlet tests when their dependencies are ready -->
-    <ForEach Name="GauntletPairs" Values="$(GauntletTests)" Separator="+">
-      <Property Name="GauntletTestName" Value="" />
-      <Property Name="GauntletTestRequirements" Value="" />
-      <ForEach Name="GauntletPair" Values="$(GauntletPairs)" Separator="~">
-        <Switch>
-          <Case If="'$(GauntletTestName)' == ''">
-            <Property Name="GauntletTestName" Value="$(GauntletPair)" />
-          </Case>
-          <Default>
-            <Property Name="GauntletTestRequirements" Value="$(GauntletPair)" />
-          </Default>
-        </Switch>
-      </ForEach>
-      <Node Name="Gauntlet $(GauntletTestName)" Requires="$(GauntletTestRequirements)" If="'$(ExecuteBuild)' == 'true'">
-        <Spawn Exe="$(UETPath)" Arguments="internal run-gauntlet-test-from-buildgraph --engine-path &quot;$(EnginePath)&quot; --distribution &quot;$(Distribution)&quot; --test-name &quot;$(GauntletTestName)&quot;" />
-      </Node>
-      <Node Name="Gauntlet $(GauntletTestName)" If="'$(ExecuteBuild)' == 'false'">
-        <Spawn Exe="$(UETPath)" Arguments="internal run-gauntlet-test-from-buildgraph --engine-path &quot;$(EnginePath)&quot; --distribution &quot;$(Distribution)&quot; --test-name &quot;$(GauntletTestName)&quot;" />
-      </Node>
-      <Property Name="GauntletTasks" Value="$(GauntletTasks)Gauntlet $(GauntletTestName);"/>
-    </ForEach>
-
-  </Agent>
-
-  <Agent Name="Windows Test" Type="Win64" If="'$(ExecuteTests)' == 'true'">
-
-    <!-- Run all the custom tests that target the test project -->
-    <ForEach Name="CustomEntry" Values="$(CustomTests)" Separator="+">
-      <Property Name="CustomTestName" Value="" />
-      <Property Name="CustomTestScriptPath" Value="" />
-      <ForEach Name="CustomEntryValue" Values="$(CustomEntry)" Separator="~">
-        <Switch>
-          <Case If="'$(CustomTestName)' == ''">
-            <Property Name="CustomTestName" Value="$(CustomEntryValue)" />
-          </Case>
-          <Default>
-            <Property Name="CustomTestScriptPath" Value="$(CustomEntryValue)" />
-          </Default>
-        </Switch>
-      </ForEach>
-      <Node 
-        Name="Test $(CustomTestName)" 
-        Requires="$(GameStaged);$(ClientStaged);$(ServerStaged)" 
-      >
-        <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass -File &quot;$(RepositoryRoot)\$(CustomTestScriptPath)&quot; -EnginePath &quot;$(EnginePath)&quot; -StageDirectory &quot;$(StageDirectory)&quot;" />
-      </Node>
-      <Property Name="CustomTasks" Value="$(CustomTasks)Test $(CustomTestName);" />
-    </ForEach>
-
-  </Agent>
-
-  <Agent Name="Deployment" Type="Win64">
-
-    <ForEach Name="Entry" Values="$(DeploymentSteam)" Separator="+">
-      <Property Name="NodeName" Value="" />
-      <Property Name="Manual" Value="" />
-      <Property Name="PackageType" Value="" />
-      <Property Name="PackageTarget" Value="" />
-      <Property Name="PackagePlatform" Value="" />
-      <Property Name="PackageConfiguration" Value="" />
-      <Property Name="SteamAppID" Value="" />
-      <Property Name="SteamDepotID" Value="" />
-      <Property Name="SteamChannel" Value="" />
-      <ForEach Name="EntryValue" Values="$(Entry)">
-        <Switch>
-          <Case If="'$(NodeName)' == ''">
-            <Property Name="NodeName" Value="$(EntryValue)" />
-          </Case>
-          <Case If="'$(Manual)' == ''">
-            <Property Name="Manual" Value="$(EntryValue)" />
-          </Case>
-          <Case If="'$(PackageType)' == ''">
-            <Property Name="PackageType" Value="$(EntryValue)" />
-          </Case>
-          <Case If="'$(PackageTarget)' == ''">
-            <Property Name="PackageTarget" Value="$(EntryValue)" />
-          </Case>
-          <Case If="'$(PackagePlatform)' == ''">
-            <Property Name="PackagePlatform" Value="$(EntryValue)" />
-          </Case>
-          <Case If="'$(PackageConfiguration)' == ''">
-            <Property Name="PackageConfiguration" Value="$(EntryValue)" />
-          </Case>
-          <Case If="'$(SteamAppID)' == ''">
-            <Property Name="SteamAppID" Value="$(EntryValue)" />
-          </Case>
-          <Case If="'$(SteamDepotID)' == ''">
-            <Property Name="SteamDepotID" Value="$(EntryValue)" />
-          </Case>
-          <Default>
-            <Property Name="SteamChannel" Value="$(EntryValue)" />
-          </Default>
-        </Switch>
-      </ForEach>
-      <Property Name="ManualMode" Value="Auto" />
-      <Property Name="ManualMode" Value="Manual" If="'$(Manual)' == 'true'" />
-
-      <Node Name="Deploy $(ManualMode) $(NodeName)" Requires="#$(PackageType)Staged_$(PackageTarget)_$(PackagePlatform)_$(PackageConfiguration)">
-        <Property Name="StagePlatform" Value="$(PackagePlatform)" />
-        <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
-        <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="('$(PackageType)' == 'Game' and ('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and '$(IsUnrealEngine5)' == 'false'" />
-        <Property Name="StagePlatform" Value="$(StagePlatform)Client" If="('$(PackageType)' == 'Client' and ('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux'))" />
-        <Property Name="StagePlatform" Value="$(StagePlatform)Server" If="('$(PackageType)' == 'Server' and ('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux'))" />
-        <Spawn Exe="$(UETPath)" Arguments="internal deploy --target steam --package-type &quot;$(PackageType)&quot; --package-target &quot;$(PackageTarget)&quot; --package-platform &quot;$(PackagePlatform)&quot; --package-configuration &quot;$(PackageConfiguration)&quot; --steam-app-id &quot;$(SteamAppID)&quot; --steam-depot-id &quot;$(SteamDepotID)&quot; --steam-channel &quot;$(SteamChannel)&quot; --staged-data &quot;$(StageDirectory)/$(StagePlatform)&quot;" />
-      </Node>
-      <Property Name="DeploymentTasks" Value="$(DeploymentTasks)Deploy $(ManualMode) $(NodeName);" />
-
-    </ForEach>
-
-    <ForEach Name="Entry" Values="$(DeploymentCustom)" Separator="+">
-      <Property Name="NodeName" Value="" />
-      <Property Name="Manual" Value="" />
-      <Property Name="PackageType" Value="" />
-      <Property Name="PackageTarget" Value="" />
-      <Property Name="PackagePlatform" Value="" />
-      <Property Name="PackageConfiguration" Value="" />
-      <Property Name="CustomDeploymentScriptPath" Value="" />
-      <ForEach Name="EntryValue" Values="$(Entry)">
-        <Switch>
-          <Case If="'$(NodeName)' == ''">
-            <Property Name="NodeName" Value="$(EntryValue)" />
-          </Case>
-          <Case If="'$(Manual)' == ''">
-            <Property Name="Manual" Value="$(EntryValue)" />
-          </Case>
-          <Case If="'$(PackageType)' == ''">
-            <Property Name="PackageType" Value="$(EntryValue)" />
-          </Case>
-          <Case If="'$(PackageTarget)' == ''">
-            <Property Name="PackageTarget" Value="$(EntryValue)" />
-          </Case>
-          <Case If="'$(PackagePlatform)' == ''">
-            <Property Name="PackagePlatform" Value="$(EntryValue)" />
-          </Case>
-          <Case If="'$(PackageConfiguration)' == ''">
-            <Property Name="PackageConfiguration" Value="$(EntryValue)" />
-          </Case>
-          <Default>
-            <Property Name="CustomDeploymentScriptPath" Value="$(EntryValue)" />
-          </Default>
-        </Switch>
-      </ForEach>
-      <Property Name="ManualMode" Value="Auto" />
-      <Property Name="ManualMode" Value="Manual" If="'$(Manual)' == 'true'" />
-
-      <Node Name="Deploy $(ManualMode) $(NodeName)" Requires="#$(PackageType)Staged_$(PackageTarget)_$(PackagePlatform)_$(PackageConfiguration)">
-        <Property Name="StagePlatform" Value="$(PackagePlatform)" />
-        <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
-        <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="('$(PackageType)' == 'Game' and ('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and '$(IsUnrealEngine5)' == 'false'" />
-        <Property Name="StagePlatform" Value="$(StagePlatform)Client" If="('$(PackageType)' == 'Client' and (('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')))" />
-        <Property Name="StagePlatform" Value="$(StagePlatform)Server" If="('$(PackageType)' == 'Server' and (('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')))" />
-        <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass -File &quot;$(RepositoryRoot)/$(CustomDeploymentScriptPath)&quot; -PackageType &quot;$(PackageType)&quot; -PackageTarget &quot;$(PackageTarget)&quot; -PackagePlatform &quot;$(PackagePlatform)&quot; -PackageConfiguration &quot;$(PackageConfiguration)&quot; -EnginePath &quot;$(EnginePath)&quot; -StageDirectory &quot;$(StageDirectory)&quot; -PackageDirectory &quot;$(StageDirectory)/$(StagePlatform)&quot;" />
-      </Node>
-      <Property Name="DeploymentTasks" Value="$(DeploymentTasks)Deploy $(ManualMode) $(NodeName);" />
-
-    </ForEach>
-
-  </Agent>
+  <Include Script="$(ScriptIncludes)" />
 
   <!-- Targets that we will execute on a Windows machine. -->
   <Agent Name="Windows Tag" Type="Win64">
 
     <!-- Node that we just use to easily execute all required nodes -->
-    <Node Name="End" Requires="$(GameStaged);$(ClientStaged);$(ServerStaged);$(GauntletTasks);$(CustomTasks);$(DeploymentTasks)">
+    <Node Name="End" Requires="$(GameStaged);$(ClientStaged);$(ServerStaged);$(DynamicNodes);$(DynamicOutputFiles)">
     </Node>
 
   </Agent>

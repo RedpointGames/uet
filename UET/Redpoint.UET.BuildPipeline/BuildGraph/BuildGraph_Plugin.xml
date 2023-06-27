@@ -46,20 +46,9 @@
   <Option Name="CopyrightHeader" DefaultValue="" Description="Copyright header to apply to all source code files when packaging" />
   <Option Name="CopyrightExcludes" DefaultValue="" Description="Relative paths inside the package to exclude from copyright updates, separated with semicolons" />
   <Option Name="IsForMarketplaceSubmission" Restrict="true|false" DefaultValue="false" Description="If true, the plugin is packaged in a way that is suitable for Marketplace submission" />
-
-  <!-- Test options -->
-  <Option Name="ExecuteTests" Restrict="true|false" DefaultValue="true" Description="If false, no tests are run" />
-  <Option Name="GauntletTests" Restrict=".*" DefaultValue="" Description="An array of Gauntlet tests formatted like so: Name1~#GauntletStaged_Win64+Name2~#GauntletStaged_Win64;#GauntletStaged_IOS" />
-  <Option Name="CustomTests" DefaultValue="" Description="An array of custom tests formatted like so: Name1~PathToScript1.ps1~Win64;Mac+Name2~PathToScript2.ps1~Win64" />
-  <Option Name="GauntletGameTargetPlatforms" Restrict="[^ ]*" DefaultValue="" Description="List of the game target platforms to build the Gauntlet test project for, separated by semicolons, eg. Win64;Win32;Android"/>
-  <Option Name="GauntletConfigPaths" Restrict="[^ ]*" DefaultValue="" Description="List of the paths to copy files out of into the Config/ folder before building the project for Gauntlet tests."/>
-
-  <!-- Deployment options -->
-  <Option Name="DeploymentBackblazeB2" DefaultValue="" Description="An array of Backblaze B2 deployments to run formatted like so: Upload Package;true;bucket-name;FOLDER_ENV_VAR+Upload Package2;false;other-bucket;OTHER_ENV_VAR" />
  
   <!-- Debug options -->
   <Option Name="HostProjectName" DefaultValue="H" Description="Name for the host project folder and .uproject file" />
-  <Option Name="TestProjectName" DefaultValue="T" Description="Name for the automation test project folder and .uproject file" />
 
   <!-- Dynamic scripts to include, used by UET to dynamically generate test and deployment nodes -->
   <Option Name="ScriptIncludes" DefaultValue="" Description="Additional script includes paths" />
@@ -70,18 +59,11 @@
   <Property Name="GameBinaries" Value="" />
   <Property Name="AdditionalArguments" Value="" If="'$(StrictIncludes)' == 'false'" />
   <Property Name="AdditionalArguments" Value=" -NoPCH -NoSharedPCH -DisableUnity" If="'$(StrictIncludes)' == 'true'" />
-  <Property Name="GauntletBinaries" Value="" />
-  <Property Name="GauntletCookedContent" Value="" />
-  <Property Name="GauntletStaged" Value="" />
-  <Property Name="GauntletTasks" Value="" />
   <Property Name="BuildTasks" Value="" />
   <Property Name="PackageTasks" Value="" />
-  <Property Name="CustomTasks" Value="" />
-  <Property Name="DownstreamTasks" Value="" />
   <Property Name="ShortPluginName" Value="P" />
   <Property Name="CanBuildEditorWin64" Value="false" />
   <Property Name="CanBuildEditorMac" Value="false" />
-  <Property Name="DeploymentTasks" Value="" />
   <ForEach Name="EditorTargetPlatform" Values="$(EditorTargetPlatforms)">
     <Property Name="CanBuildEditorWin64" Value="true" If="'$(EditorTargetPlatform)' == 'Win64'" />
     <Property Name="CanBuildEditorMac" Value="true" If="'$(EditorTargetPlatform)' == 'Mac'" />
@@ -613,237 +595,16 @@ $(PackageExclude);
 
   </Agent>
 
-  <!--
-    Run our custom tests that target the packaged plugin, if we have any. Custom tests running against the packaged plugin don't require the assembled project.
-  -->
-
-  <Agent Name="Mac Test Full" Type="Mac" If="'$(ExecutePackage)' == 'true' and '$(ExecuteTests)' == 'true'">
-
-    <!-- Run all the defined custom tests for Mac -->
-    <ForEach Name="CustomEntry" Values="$(CustomTests)" Separator="+">
-      <Property Name="CustomTestName" Value="" />
-      <Property Name="CustomTestTestAgainst" Value="" />
-      <Property Name="CustomTestScriptPath" Value="" />
-      <Property Name="CustomTestPlatforms" Value="" />
-      <ForEach Name="CustomEntryValue" Values="$(CustomEntry)" Separator="~">
-        <Switch>
-          <Case If="'$(CustomTestName)' == ''">
-            <Property Name="CustomTestName" Value="$(CustomEntryValue)" />
-          </Case>
-          <Case If="'$(CustomTestTestAgainst)' == ''">
-            <Property Name="CustomTestTestAgainst" Value="$(CustomEntryValue)" />
-          </Case>
-          <Case If="'$(CustomTestScriptPath)' == ''">
-            <Property Name="CustomTestScriptPath" Value="$(CustomEntryValue)" />
-          </Case>
-          <Default>
-            <Property Name="CustomTestPlatforms" Value="$(CustomEntryValue)" />
-          </Default>
-        </Switch>
-      </ForEach>
-      <ForEach Name="TestPlatform" Values="$(CustomTestPlatforms)">
-        <Node 
-          Name="Test $(CustomTestName) $(TestPlatform)" 
-          Requires="#PackagedPlugin" 
-          If="'$(CustomTestTestAgainst)' == 'PackagedPlugin' and '$(TestPlatform)' == 'Mac'"
-        >
-          <Spawn Exe="pwsh" Arguments="-ExecutionPolicy Bypass -File &quot;$(ProjectRoot)/$(CustomTestScriptPath)&quot; -EnginePath &quot;$(EnginePath)&quot; -TempPath &quot;$(TempPath)/&quot; -PackagedPluginPath &quot;$(TempPath)/$(PackageFolder)/&quot;" />
-        </Node>
-        <Property Name="CustomTasks" Value="$(CustomTasks)Test $(CustomTestName) $(TestPlatform);" If="'$(CustomTestTestAgainst)' == 'PackagedPlugin' and '$(TestPlatform)' == 'Mac'" />
-      </ForEach>
-    </ForEach>
-
-  </Agent>
-
-  <Agent Name="Windows Test Full" Type="Win64" If="'$(ExecutePackage)' == 'true' and '$(ExecuteTests)' == 'true'">
-
-    <!-- Run all the defined custom tests for Win64 -->
-    <ForEach Name="CustomEntry" Values="$(CustomTests)" Separator="+">
-      <Property Name="CustomTestName" Value="" />
-      <Property Name="CustomTestTestAgainst" Value="" />
-      <Property Name="CustomTestScriptPath" Value="" />
-      <Property Name="CustomTestPlatforms" Value="" />
-      <ForEach Name="CustomEntryValue" Values="$(CustomEntry)" Separator="~">
-        <Switch>
-          <Case If="'$(CustomTestName)' == ''">
-            <Property Name="CustomTestName" Value="$(CustomEntryValue)" />
-          </Case>
-          <Case If="'$(CustomTestTestAgainst)' == ''">
-            <Property Name="CustomTestTestAgainst" Value="$(CustomEntryValue)" />
-          </Case>
-          <Case If="'$(CustomTestScriptPath)' == ''">
-            <Property Name="CustomTestScriptPath" Value="$(CustomEntryValue)" />
-          </Case>
-          <Default>
-            <Property Name="CustomTestPlatforms" Value="$(CustomEntryValue)" />
-          </Default>
-        </Switch>
-      </ForEach>
-      <ForEach Name="TestPlatform" Values="$(CustomTestPlatforms)">
-        <Node 
-          Name="Test $(CustomTestName) $(TestPlatform)" 
-          Requires="#PackagedPlugin" 
-          If="'$(CustomTestTestAgainst)' == 'PackagedPlugin' and '$(TestPlatform)' == 'Win64'"
-        >
-          <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass -File &quot;$(ProjectRoot)/$(CustomTestScriptPath)&quot; -EnginePath &quot;$(EnginePath)&quot; -TempPath &quot;$(TempPath)/&quot; -PackagedPluginPath &quot;$(TempPath)/$(PackageFolder)/&quot;" />
-        </Node>
-        <Property Name="CustomTasks" Value="$(CustomTasks)Test $(CustomTestName) $(TestPlatform);" If="'$(CustomTestTestAgainst)' == 'PackagedPlugin' and '$(TestPlatform)' == 'Win64'" />
-      </ForEach>
-    </ForEach>
-
-  </Agent>
-
   <!-- 
     Run all of the tests and deployments (which are dynamically defined by UET).
   -->
   
   <Include Script="$(ScriptIncludes)" />
-
-  <!-- 
-    Build the test project editor and game binaries for the appropriate platforms, then cook and stage to get ready to run Gauntlet tests.
-  -->
-
-  <Agent Name="Gauntlet Assemble" Type="Win64" If="'$(ExecutePackage)' == 'true' and '$(ExecuteTests)' == 'true'">
-
-    <Expand 
-      Name="Assemble Test Project" 
-      NodeName="Assemble Gauntlet Project"
-      AssembledProjectName="$(TestProjectName)"
-      InputFiles="#PackagedPlugin"
-      InputPackageDir="$(TempPath)/$(PackageFolder)"
-      OutputTag="#TestProject"
-      IsForGauntlet="true"
-    />
-
-  </Agent>
-
-  <Agent Name="Gauntlet Build Editor" Type="Win64" If="'$(ExecutePackage)' == 'true' and '$(ExecuteTests)' == 'true'">
-
-    <Node Name="Compile Gauntlet Editor Win64" Requires="#TestProject" Produces="#GauntletBinaries_Editor">
-      <Compile Target="$(TestProjectName)Editor" Platform="Win64" Configuration="Development" Tag="#GauntletBinaries_Editor" Arguments="-Project=&quot;$(TempPath)/$(TestProjectName)/$(TestProjectName).uproject&quot; $(AdditionalArguments)" />
-    </Node>
-
-  </Agent>
-
-  <Agent Name="Gauntlet Build Game" Type="Win64" If="'$(ExecutePackage)' == 'true' and '$(ExecuteTests)' == 'true'">
-
-    <ForEach Name="TargetPlatform" Values="$(GauntletGameTargetPlatforms)">
-      <Node Name="Compile Gauntlet $(TargetPlatform)" Requires="#TestProject" Produces="#GauntletBinaries_$(TargetPlatform)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-        <Compile Target="$(TestProjectName)" Platform="$(TargetPlatform)" Configuration="Development" Tag="#GauntletBinaries_$(TargetPlatform)" Arguments="-Project=&quot;$(TempPath)/$(TestProjectName)/$(TestProjectName).uproject&quot; $(AdditionalArguments)"/>
-        <Tag Files="#GauntletBinaries_$(TargetPlatform)" Filter="*.target" With="#GauntletReceipts_$(TargetPlatform)"/>
-        <SanitizeReceipt Files="#GauntletReceipts_$(TargetPlatform)" />
-      </Node>
-      <Property Name="GauntletBinaries" Value="$(GauntletBinaries)#GauntletBinaries_$(TargetPlatform);"/>
-    </ForEach>
-
-  </Agent>
-
-  <Agent Name="Gauntlet Cook" Type="Win64" If="'$(ExecutePackage)' == 'true' and '$(ExecuteTests)' == 'true'">
-
-    <ForEach Name="TargetPlatform" Values="$(GauntletGameTargetPlatforms)">
-      <Node Name="Gauntlet Cook $(TargetPlatform)" Requires="#TestProject;#GauntletBinaries_Editor" Produces="#GauntletCookedContent_$(TargetPlatform)">
-        <Property Name="CookPlatform" Value="$(TargetPlatform)" />
-        <Property Name="CookPlatform" Value="Windows" If="'$(CookPlatform)' == 'Win64'" />
-        <Property Name="CookPlatform" Value="$(CookPlatform)NoEditor" If="(('$(CookPlatform)' == 'Windows') or ('$(CookPlatform)' == 'Mac') or ('$(CookPlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
-        <Cook Project="$(TempPath)/$(TestProjectName)/$(TestProjectName).uproject" Platform="$(CookPlatform)" Tag="#GauntletCookedContent_$(TargetPlatform)" Arguments="-cookall -allmaps" />
-      </Node>
-      <Property Name="GauntletCookedContent" Value="$(GauntletCookedContent)#GauntletCookedContent_$(TargetPlatform);"/>
-    </ForEach>
-
-  </Agent>
-
-  <Agent Name="Gauntlet Pak and Stage" Type="Win64" If="'$(ExecutePackage)' == 'true' and '$(ExecuteTests)' == 'true'">
-
-    <ForEach Name="TargetPlatform" Values="$(GauntletGameTargetPlatforms)">
-      <Node Name="Gauntlet Pak and Stage $(TargetPlatform)" Requires="#TestProject;#GauntletBinaries_$(TargetPlatform);#GauntletCookedContent_$(TargetPlatform)" Produces="#GauntletStaged_$(TargetPlatform)"  If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-        <Property Name="StagePlatform" Value="$(TargetPlatform)" />
-        <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
-        <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="(('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
-        <Property Name="DisableCodeSign" Value="" />
-        <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
-        <Property Name="PackageFlag" Value="" />
-        <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
-        <Command Name="BuildCookRun" Arguments="-project=$(TempPath)/$(TestProjectName)/$(TestProjectName).uproject&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=Development&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(TempPath)\$(TestProjectName)\Saved\StagedBuilds&quot; -unattended -stdlog" />
-        <Tag BaseDir="$(TempPath)\$(TestProjectName)\Saved\StagedBuilds\$(StagePlatform)" Files="..." With="#GauntletStaged_$(TargetPlatform)" />
-        <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="#GauntletStaged_$(TargetPlatform)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
-      </Node>
-      <Property Name="GauntletStaged" Value="$(GauntletStaged)#GauntletStaged_$(TargetPlatform);"  If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
-    </ForEach>
-
-  </Agent>
-
-  <!--
-    Execute the Gauntlet tests if needed.
-  -->
-
-  <Agent Name="Gauntlet Test" Type="Win64" If="'$(ExecutePackage)' == 'true' and '$(ExecuteTests)' == 'true'">
-
-    <!-- Run all the defined Gauntlet tests -->
-    <ForEach Name="GauntletPairs" Values="$(GauntletTests)" Separator="+">
-      <Property Name="GauntletTestName" Value="" />
-      <Property Name="GauntletTestRequirements" Value="" />
-      <ForEach Name="GauntletPair" Values="$(GauntletPairs)" Separator="~">
-        <Switch>
-          <Case If="'$(GauntletTestName)' == ''">
-            <Property Name="GauntletTestName" Value="$(GauntletPair)" />
-          </Case>
-          <Default>
-            <Property Name="GauntletTestRequirements" Value="$(GauntletPair)" />
-          </Default>
-        </Switch>
-      </ForEach>
-      <Node Name="Gauntlet $(GauntletTestName)" Requires="$(GauntletTestRequirements)" If="'$(ExecuteTests)' == 'true'">
-        <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal run-gauntlet-test-from-buildgraph --engine-path &quot;$(EnginePath)&quot; --distribution &quot;$(Distribution)&quot; --test-name &quot;$(GauntletTestName)&quot;" />
-      </Node>
-      <Property Name="GauntletTasks" Value="$(GauntletTasks)Gauntlet $(GauntletTestName);"/>
-    </ForEach>
-
-  </Agent>
-
-  <!--
-    Deploy the package to Backblaze B2.
-  -->
-
-  <Agent Name="Deployment" Type="Win64" If="'$(ExecutePackage)' == 'true' and '$(IsBuildMachine)' == 'true'">
-    <ForEach Name="BackblazeEntry" Values="$(DeploymentBackblazeB2)" Separator="+">
-      <Property Name="BackblazeNodeName" Value="" />
-      <Property Name="BackblazeManual" Value="" />
-      <Property Name="BackblazeBucketName" Value="" />
-      <Property Name="BackblazeFolderEnvVar" Value="" />
-      <ForEach Name="BackblazeEntryValue" Values="$(BackblazeEntry)">
-        <Switch>
-          <Case If="'$(BackblazeNodeName)' == ''">
-            <Property Name="BackblazeNodeName" Value="$(BackblazeEntryValue)" />
-          </Case>
-          <Case If="'$(BackblazeManual)' == ''">
-            <Property Name="BackblazeManual" Value="$(BackblazeEntryValue)" />
-          </Case>
-          <Case If="'$(BackblazeBucketName)' == ''">
-            <Property Name="BackblazeBucketName" Value="$(BackblazeEntryValue)" />
-          </Case>
-          <Default>
-            <Property Name="BackblazeFolderEnvVar" Value="$(BackblazeEntryValue)" />
-          </Default>
-        </Switch>
-      </ForEach>
-      <Property Name="BackblazeManualMode" Value="Auto" />
-      <Property Name="BackblazeManualMode" Value="Manual" If="'$(BackblazeManual)' == 'true'" />
-
-      <Node Name="Deploy $(BackblazeManualMode) $(BackblazeNodeName)" Requires="#PackagedZip">
-        <Property Name="MarketplaceFlag" Value="" />
-        <Property Name="MarketplaceFlag" Value="--marketplace" If="'$(IsForMarketplaceSubmission)' == 'true'" />
-        <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal upload-to-backblaze-b2 --zip-path &quot;$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip&quot; --bucket-name &quot;$(BackblazeBucketName)&quot; --folder-env-var &quot;$(BackblazeFolderEnvVar)&quot; $(MarketplaceFlag)" />
-      </Node>
-      <Property Name="DeploymentTasks" Value="$(DeploymentTasks)Deploy $(BackblazeManualMode) $(BackblazeNodeName);" />
-
-    </ForEach>
-
-  </Agent>
   
   <Agent Name="Windows End" Type="Win64">
 
     <!-- Node that we just use to easily execute all required nodes -->
-    <Node Name="End" Requires="$(BuildTasks);$(PackageTasks);$(DownstreamTasks);$(CustomTasks);$(GauntletTasks);$(DeploymentTasks);$(DynamicNodes);$(DynamicOutputFiles)">
+    <Node Name="End" Requires="$(BuildTasks);$(PackageTasks);$(DynamicNodes);$(DynamicOutputFiles)">
     </Node>
 
   </Agent>

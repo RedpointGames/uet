@@ -123,11 +123,6 @@ rootCommand.SetHandler(async (context) =>
                 { $"MacPlatforms", $"IOS;Mac" },
                 { $"StrictIncludes", $"false" },
                 { $"StageDirectory", $"__REPOSITORY_ROOT__/Saved/StagedBuilds" },
-                { $"ExecuteTests", $"false" },
-                { $"GauntletTests", $"" },
-                { $"CustomTests", $"" },
-                { $"DeploymentSteam", $"" },
-                { $"DeploymentCustom", $"" },
             },
             BuildGraphEnvironment = new Redpoint.UET.BuildPipeline.Environment.BuildGraphEnvironment
             {

@@ -164,7 +164,9 @@
         private async Task<string> WriteDynamicBuildGraphIncludeAsync(
             BuildGraphEnvironment env,
             bool localExecutor,
-            object distribution)
+            object distribution,
+            bool executeTests,
+            bool executeDeployment)
         {
             var sharedStorageAbsolutePath = OperatingSystem.IsWindows() ?
                 env.Windows.SharedStorageAbsolutePath :
@@ -173,7 +175,12 @@
             var filename = $"DynamicBuildGraph-{Process.GetCurrentProcess().Id}.xml";
             using (var stream = new FileStream(Path.Combine(sharedStorageAbsolutePath, filename), FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                await _dynamicBuildGraphIncludeWriter.WriteBuildGraphInclude(stream, localExecutor, distribution);
+                await _dynamicBuildGraphIncludeWriter.WriteBuildGraphInclude(
+                    stream,
+                    localExecutor,
+                    distribution,
+                    executeTests,
+                    executeDeployment);
             }
             return $"__SHARED_STORAGE_PATH__/{filename}";
         }
@@ -273,7 +280,9 @@
             var scriptIncludes = await WriteDynamicBuildGraphIncludeAsync(
                 buildGraphEnvironment,
                 localExecutor,
-                distribution);
+                distribution,
+                executeTests,
+                executeDeployment);
 
             // Compute the Gauntlet config paths.
             var gauntletPaths = new List<string>();
@@ -364,10 +373,6 @@
                     { "IsForMarketplaceSubmission", isForMarketplaceSubmission ? "true" : "false" },
                     { "CopyrightHeader", copyrightHeader },
                     { "CopyrightExcludes", copyrightExcludes },
-
-                    // Test options
-                    { $"ExecuteTests", executeTests ? "true" : "false" },
-                    { $"GauntletConfigPaths", string.Join(";", gauntletPaths) },
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = repositoryRoot,
@@ -425,7 +430,9 @@
             var scriptIncludes = await WriteDynamicBuildGraphIncludeAsync(
                 buildGraphEnvironment,
                 localExecutor,
-                distribution);
+                distribution,
+                executeTests,
+                executeDeployment);
 
             // Compute final settings for BuildGraph.
             return new BuildSpecification
@@ -470,9 +477,6 @@
 
                     // Stage options
                     { $"StageDirectory", $"__REPOSITORY_ROOT__/{distribution.FolderName}/Saved/StagedBuilds" },
-
-                    // Test options
-                    { $"ExecuteTests", executeTests ? "true" : "false" },
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = repositoryRoot,
@@ -547,16 +551,6 @@
                     { "IsForMarketplaceSubmission", "false" },
                     { "CopyrightHeader", string.Empty },
                     { "CopyrightExcludes", string.Empty },
-
-                    // Test options
-                    { $"ExecuteTests", "false" },
-                    { $"GauntletTests", string.Empty },
-                    { $"CustomTests", string.Empty },
-                    { $"GauntletGameTargetPlatforms", string.Empty },
-                    { $"GauntletConfigPaths", string.Empty },
-
-                    // Deploy options
-                    { $"DeploymentBackblazeB2", string.Empty },
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = pathSpec.DirectoryPath,
@@ -639,15 +633,6 @@
 
                     // Stage options
                     { $"StageDirectory", $"__REPOSITORY_ROOT__/Saved/StagedBuilds" },
-
-                    // Test options
-                    { $"ExecuteTests", "false" },
-                    { $"GauntletTests", string.Empty },
-                    { $"CustomTests", string.Empty },
-
-                    // Deploy options
-                    { $"DeploymentSteam", string.Empty },
-                    { $"DeploymentCustom", string.Empty },
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = pathSpec.DirectoryPath,

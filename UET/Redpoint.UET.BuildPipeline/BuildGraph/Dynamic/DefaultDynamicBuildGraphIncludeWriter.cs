@@ -84,7 +84,9 @@
         public async Task WriteBuildGraphInclude(
             Stream stream,
             bool filterHostToCurrentPlatformOnly,
-            object buildConfigDistribution)
+            object buildConfigDistribution,
+            bool executeTests,
+            bool executeDeployment)
         {
             var emitContext = new BuildGraphEmitContext(filterHostToCurrentPlatformOnly);
 
@@ -101,7 +103,7 @@
 
                 if (buildConfigDistribution is BuildConfigPluginDistribution pluginDistribution)
                 {
-                    if (pluginDistribution.Tests != null)
+                    if (pluginDistribution.Tests != null && executeTests)
                     {
                         await WriteBuildGraphNodesAsync(
                             emitContext,
@@ -111,7 +113,7 @@
                             pluginDistribution.Tests);
                     }
 
-                    if (pluginDistribution.Deployment != null)
+                    if (pluginDistribution.Deployment != null && executeDeployment)
                     {
                         await WriteBuildGraphNodesAsync(
                             emitContext,
@@ -123,7 +125,7 @@
                 }
                 else if (buildConfigDistribution is BuildConfigProjectDistribution projectDistribution)
                 {
-                    if (projectDistribution.Tests != null)
+                    if (projectDistribution.Tests != null && executeTests)
                     {
                         await WriteBuildGraphNodesAsync(
                             emitContext,
@@ -133,7 +135,7 @@
                             projectDistribution.Tests);
                     }
 
-                    if (projectDistribution.Deployment != null)
+                    if (projectDistribution.Deployment != null && executeDeployment)
                     {
                         await WriteBuildGraphNodesAsync(
                             emitContext,

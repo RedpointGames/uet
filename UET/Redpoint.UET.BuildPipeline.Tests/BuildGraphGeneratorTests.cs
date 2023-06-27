@@ -63,11 +63,6 @@ namespace Redpoint.UET.BuildPipeline.Tests
                     { $"MacPlatforms", $"IOS;Mac" },
                     { $"StrictIncludes", $"false" },
                     { $"StageDirectory", $"__REPOSITORY_ROOT__/Saved/StagedBuilds" },
-                    { $"ExecuteTests", $"false" },
-                    { $"GauntletTests", $"" },
-                    { $"CustomTests", $"" },
-                    { $"DeploymentSteam", $"" },
-                    { $"DeploymentCustom", $"" },
                 },
                 new Dictionary<string, string>
                 {
@@ -144,12 +139,6 @@ namespace Redpoint.UET.BuildPipeline.Tests
                     { $"IsForMarketplaceSubmission", $"false" },
                     { $"CopyrightHeader", $"" },
                     { $"CopyrightExcludes", $"" },
-                    { $"ExecuteTests", $"false" },
-                    { $"GauntletTests", $"" },
-                    { $"CustomTests", $"" },
-                    { $"GauntletGameTargetPlatforms", $"" },
-                    { $"GauntletConfigPaths", $"" },
-                    { $"DeploymentBackblazeB2", $"" },
                 },
                 new Dictionary<string, string>
                 {
