@@ -209,13 +209,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uefs.Daemon", "Red
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ThirdParty.DiscUtils", "Lib\Redpoint.ThirdParty.DiscUtils\Redpoint.ThirdParty.DiscUtils.csproj", "{8A10D911-5C71-4EAC-9174-D05DE8263FFB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ServiceControl", "Redpoint.ServiceControl\Redpoint.ServiceControl.csproj", "{456D512C-519B-4C15-895F-B0DEFBAF0276}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ServiceControl", "Redpoint.ServiceControl\Redpoint.ServiceControl.csproj", "{456D512C-519B-4C15-895F-B0DEFBAF0276}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ServiceControl.Tests", "Redpoint.ServiceControl.Tests\Redpoint.ServiceControl.Tests.csproj", "{B5639A77-CD62-4AD9-9796-36105398C375}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ServiceControl.Tests", "Redpoint.ServiceControl.Tests\Redpoint.ServiceControl.Tests.csproj", "{B5639A77-CD62-4AD9-9796-36105398C375}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Logging.Mac", "Redpoint.Logging.Mac\Redpoint.Logging.Mac.csproj", "{5B12AF5D-2108-4CD7-AA8B-CFCDC79806CD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Logging.Mac", "Redpoint.Logging.Mac\Redpoint.Logging.Mac.csproj", "{5B12AF5D-2108-4CD7-AA8B-CFCDC79806CD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Logging.Mac.Tests", "Redpoint.Logging.Mac.Tests\Redpoint.Logging.Mac.Tests.csproj", "{3BDC0498-6B0E-49B2-87C4-F73138495666}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Logging.Mac.Tests", "Redpoint.Logging.Mac.Tests\Redpoint.Logging.Mac.Tests.csproj", "{3BDC0498-6B0E-49B2-87C4-F73138495666}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ThirdParty.B2Net", "Lib\Redpoint.ThirdParty.B2Net\Redpoint.ThirdParty.B2Net.csproj", "{770176ED-F5A8-4245-9DF4-70C1CD27DB59}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -635,6 +637,10 @@ Global
 		{3BDC0498-6B0E-49B2-87C4-F73138495666}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3BDC0498-6B0E-49B2-87C4-F73138495666}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3BDC0498-6B0E-49B2-87C4-F73138495666}.Release|Any CPU.Build.0 = Release|Any CPU
+		{770176ED-F5A8-4245-9DF4-70C1CD27DB59}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{770176ED-F5A8-4245-9DF4-70C1CD27DB59}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{770176ED-F5A8-4245-9DF4-70C1CD27DB59}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{770176ED-F5A8-4245-9DF4-70C1CD27DB59}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -645,6 +651,7 @@ Global
 		{DA90E23F-C2A7-4BBC-A376-4016FC4921EA} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
 		{B11BC4F1-7AC8-401C-873F-501A2C4714B3} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
 		{8A10D911-5C71-4EAC-9174-D05DE8263FFB} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
+		{770176ED-F5A8-4245-9DF4-70C1CD27DB59} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}

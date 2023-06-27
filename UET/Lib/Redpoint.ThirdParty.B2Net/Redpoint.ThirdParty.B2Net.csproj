@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Framework.Build.props" />
+  <PropertyGroup>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <IsTrimmable>true</IsTrimmable>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+    <RootNamespace>B2Net</RootNamespace>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>1591</NoWarn>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>A port of the B2Net library to .NET 7, which provides access to Backblaze B2 storage.</Description>
+    <PackageTags>backblaze b2</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Authors>Westropp Ventures, June Rhodes</Authors>
+    <Company></Company>
+  </PropertyGroup>
+
+</Project>
