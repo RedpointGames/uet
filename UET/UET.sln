@@ -219,6 +219,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Logging.Mac.Tests"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ThirdParty.B2Net", "Lib\Redpoint.ThirdParty.B2Net\Redpoint.ThirdParty.B2Net.csproj", "{770176ED-F5A8-4245-9DF4-70C1CD27DB59}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Concurrency", "Redpoint.Concurrency\Redpoint.Concurrency.csproj", "{DB9BBF50-AA05-442B-B8C1-F4C9C199BDA0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Concurrency.Tests", "Redpoint.Concurrency.Tests\Redpoint.Concurrency.Tests.csproj", "{486505E8-0113-4403-B197-66B347A820DE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -641,6 +645,14 @@ Global
 		{770176ED-F5A8-4245-9DF4-70C1CD27DB59}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{770176ED-F5A8-4245-9DF4-70C1CD27DB59}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{770176ED-F5A8-4245-9DF4-70C1CD27DB59}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB9BBF50-AA05-442B-B8C1-F4C9C199BDA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB9BBF50-AA05-442B-B8C1-F4C9C199BDA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB9BBF50-AA05-442B-B8C1-F4C9C199BDA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB9BBF50-AA05-442B-B8C1-F4C9C199BDA0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{486505E8-0113-4403-B197-66B347A820DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{486505E8-0113-4403-B197-66B347A820DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{486505E8-0113-4403-B197-66B347A820DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{486505E8-0113-4403-B197-66B347A820DE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

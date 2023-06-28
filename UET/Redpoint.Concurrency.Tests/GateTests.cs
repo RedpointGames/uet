@@ -1,6 +1,5 @@
-﻿namespace Redpoint.UET.Automation.Tests
+﻿namespace Redpoint.Concurrency.Tests
 {
-    using Redpoint.UET.Automation.Runner;
     using System;
     using System.Diagnostics;
     using System.Threading.Tasks;

@@ -3,6 +3,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
 
   <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Daemon.Transactional.Abstractions\Redpoint.Uefs.Daemon.Transactional.Abstractions.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Daemon.Transactional\Redpoint.Uefs.Daemon.Transactional.csproj" />
   </ItemGroup>
