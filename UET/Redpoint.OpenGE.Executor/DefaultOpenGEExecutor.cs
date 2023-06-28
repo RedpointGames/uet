@@ -287,31 +287,71 @@
 
                         var arguments = SplitArguments(tool.Params);
 
-                        var exitCode = await _processExecutor.ExecuteAsync(
-                            new ProcessSpecification
+                        bool needsRetry = false;
+                        void CheckForRetry(string data)
+                        {
+                            if (data.Contains("error C3859"))
                             {
-                                FilePath = tool.Path,
-                                Arguments = arguments,
-                                EnvironmentVariables = env.Variables,
-                                WorkingDirectory = task.BuildSetTask.WorkingDir,
-                            },
-                            CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
+                                _logger.LogTrace($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} Detected out-of-memory for MSVC (marking as retry needed)");
+                                needsRetry = true;
+                            }
+                            if (data.Contains("fatal error C1356"))
                             {
-                                ReceiveStdout = (line) =>
+                                _logger.LogTrace($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} Detected high contention for MSVC (marking as retry needed)");
+                                needsRetry = true;
+                            }
+                            if (data.Contains("error LNK1107"))
+                            {
+                                _logger.LogTrace($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} Detected out-of-memory for clang-tidy (marking as retry needed)");
+                                needsRetry = true;
+                            }
+                            if (data.Contains("LLVM ERROR: out of memory"))
+                            {
+                                _logger.LogTrace($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} Detected out-of-memory for clang (marking as retry needed)");
+                                needsRetry = true;
+                            }
+                        }
+
+                        int exitCode;
+                        do
+                        {
+                            needsRetry = false;
+                            exitCode = await _processExecutor.ExecuteAsync(
+                                new ProcessSpecification
                                 {
-                                    if (line.Trim() != task.BuildSetTask.Caption)
-                                    {
-                                        _logger.LogInformation($"{GetBuildStatusLogPrefix(0)} {line}");
-                                    }
-                                    return false;
+                                    FilePath = tool.Path,
+                                    Arguments = arguments,
+                                    EnvironmentVariables = env.Variables,
+                                    WorkingDirectory = task.BuildSetTask.WorkingDir,
                                 },
-                                ReceiveStderr = (line) =>
+                                CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                                 {
-                                    _logger.LogError($"{GetBuildStatusLogPrefix(0)} {line}");
-                                    return false;
-                                }
-                            }),
-                            cancellationToken);
+                                    ReceiveStdout = (line) =>
+                                    {
+                                        CheckForRetry(line.Trim());
+                                        if (line.Trim() != task.BuildSetTask.Caption)
+                                        {
+                                            _logger.LogInformation($"{GetBuildStatusLogPrefix(0)} {line}");
+                                        }
+                                        return false;
+                                    },
+                                    ReceiveStderr = (line) =>
+                                    {
+                                        _logger.LogError($"{GetBuildStatusLogPrefix(0)} {line}");
+                                        CheckForRetry(line.Trim());
+                                        return false;
+                                    }
+                                }),
+                                cancellationToken);
+                            if (exitCode == 0)
+                            {
+                                break;
+                            }
+                            if (needsRetry)
+                            {
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[33m[automatically retrying]\u001b[0m");
+                            }
+                        } while (needsRetry);
 
                         if (exitCode == 0)
                         {
