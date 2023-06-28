@@ -29,6 +29,7 @@
         private readonly Task _backgroundReceiver;
         private readonly Task _backgroundPinger;
         private readonly List<AttachedListener> _listeningQueues;
+        private bool _isLegacyTcpSerialization;
         private SemaphoreSlim _readyToSend;
         private string _remoteOwner;
 
@@ -81,6 +82,8 @@
             return instance;
         }
 
+        public event EventHandler? OnUnrecoverablyBroken;
+
         private TcpMessageTransportConnection(TcpReconnectableStream stream, Guid guid, Guid initialRemoteGuidId, ILogger? logger)
         {
             _logger = logger;
@@ -95,6 +98,7 @@
             _backgroundReceiver = Task.Run(ReceiveInBackground);
             _backgroundPinger = Task.Run(PingInBackground);
             _listeningQueues = new List<AttachedListener>();
+            _isLegacyTcpSerialization = false;
 
             _remoteOwner = string.Empty;
         }
@@ -134,16 +138,58 @@
                     var nextMessage = new Store<TcpDeserializedMessage>(new());
                     try
                     {
-                        using (var memory = new MemoryStream(buffer.V))
+                        if (_isLegacyTcpSerialization)
                         {
-                            var memoryArchive = new Archive(memory, true, _serializerRegistries);
-                            await memoryArchive.Serialize(nextMessage);
+                            var legacyNextMessage = new Store<LegacyTcpDeserializedMessage>(new());
+                            using (var memory = new MemoryStream(buffer.V))
+                            {
+                                var memoryArchive = new Archive(memory, true, _serializerRegistries);
+                                await memoryArchive.Serialize(legacyNextMessage);
+                            }
+                            nextMessage.V = legacyNextMessage.V.ToModernMessage();
+                        }
+                        else
+                        {
+                            using (var memory = new MemoryStream(buffer.V))
+                            {
+                                var memoryArchive = new Archive(memory, true, _serializerRegistries);
+                                await memoryArchive.Serialize(nextMessage);
+                            }
                         }
                     }
                     catch (TopLevelAssetPathNotFoundException)
                     {
                         _logger?.LogTrace($" {{{nextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{nextMessage.V.AssetPath.V.PackageName.V + "." + nextMessage.V.AssetPath.V.AssetName.V}]\n(no C# class registered for this message type)");
                         continue;
+                    }
+                    catch (Exception ex) when ((!_isLegacyTcpSerialization) && (ex is EndOfStreamException || ex is OverflowException))
+                    {
+                        var legacyNextMessage = new Store<LegacyTcpDeserializedMessage>(new());
+                        var shouldContinue = false;
+                        try
+                        {
+                            // Try legacy deserialization.
+                            using (var memory = new MemoryStream(buffer.V))
+                            {
+                                var memoryArchive = new Archive(memory, true, _serializerRegistries);
+                                await memoryArchive.Serialize(legacyNextMessage);
+                            }
+                            nextMessage.V = legacyNextMessage.V.ToModernMessage();
+                        }
+                        catch (TopLevelAssetPathNotFoundException)
+                        {
+                            // We still decoded the header properly, so we still turn on legacy serialization in this case.
+                            _logger?.LogTrace($" {{{legacyNextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(legacyNextMessage.V.RecipientAddresses.V.Data.Length > 0 ? legacyNextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{legacyNextMessage.V.AssetPath.V}]\n(no C# class registered for this message type)");
+                            shouldContinue = true;
+                        }
+
+                        // We successfully decoded via legacy serialization.
+                        _logger?.LogTrace("Detected serialization mode used by Unreal Engine 5.0, switching to legacy serialization.");
+                        _isLegacyTcpSerialization = true;
+                        if (shouldContinue)
+                        {
+                            continue;
+                        }
                     }
 
                     {
@@ -218,7 +264,12 @@
                 }
                 catch (Exception ex)
                 {
-                    _logger?.LogCritical(ex, $"Exception during message receive: {ex.Message}");
+                    _logger?.LogError(ex, $"Exception during message receive: {ex.Message}");
+                    if (OnUnrecoverablyBroken != null)
+                    {
+                        OnUnrecoverablyBroken(this, new EventArgs());
+                    }
+                    await DisposeAsync();
                     throw;
                 }
             }
@@ -245,7 +296,15 @@
 
                         _logger?.LogTrace($" {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId : "*")}}} <- {{{nextMessage.V.SenderAddress.V.UniqueId}}} [{nextMessage.V.AssetPath.V.PackageName + "." + nextMessage.V.AssetPath.V.AssetName}]\n{nextMessage.V.GetMessageData()}");
 
-                        await memoryArchive.Serialize(nextMessage);
+                        if (_isLegacyTcpSerialization)
+                        {
+                            var legacyNextMessage = new Store<LegacyTcpDeserializedMessage>(nextMessage.V.ToLegacyMessage());
+                            await memoryArchive.Serialize(legacyNextMessage);
+                        }
+                        else
+                        {
+                            await memoryArchive.Serialize(nextMessage);
+                        }
 
                         var length = new Store<uint>((uint)memory.Position);
                         if (length.V == 0)

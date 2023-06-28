@@ -1,12 +1,13 @@
 ﻿namespace Redpoint.Unreal.TcpMessaging
 {
     using System;
+    using System.IO.Pipes;
     using System.Reflection;
     using Redpoint.Unreal.Serialization;
 
-    public record class TcpDeserializedMessage : ISerializable<TcpDeserializedMessage>
+    public record class LegacyTcpDeserializedMessage : ISerializable<LegacyTcpDeserializedMessage>
     {
-        public Store<TopLevelAssetPath> AssetPath = new(new());
+        public Store<Name> AssetPath = new(new());
         public Store<MessageAddress> SenderAddress = new(new());
         public Store<ArchiveArray<int, MessageAddress>> RecipientAddresses = new(new());
         public Store<byte> MessageScope = new(new());
@@ -41,7 +42,7 @@
             {
                 throw new InvalidOperationException($"Can't use {typeof(T).FullName} for SetMessageData as it does not have [TopLevelAssetPath]");
             }
-            AssetPath.V = new TopLevelAssetPath(attr.PackageName, attr.AssetName);
+            AssetPath.V = (new TopLevelAssetPath(attr.PackageName, attr.AssetName)).AssetName.V;
             _message.V = message;
         }
 
@@ -50,7 +51,7 @@
             _message.V = message;
         }
 
-        public static async Task Serialize(Archive ar, Store<TcpDeserializedMessage> value)
+        public static async Task Serialize(Archive ar, Store<LegacyTcpDeserializedMessage> value)
         {
             await ar.Serialize(value.V.AssetPath);
             await ar.Serialize(value.V.SenderAddress);
@@ -62,14 +63,16 @@
 
             // The JSON content in this value does not have
             // a length prefix, so we can't use DynamicJsonSerialize.
-            await ar.DynamicJsonFromRemainderOfStream(value.V.AssetPath, value.V._message!);
+            await ar.DynamicJsonFromRemainderOfStream(
+                new Store<TopLevelAssetPath>(new TopLevelAssetPath(Name.Empty, value.V.AssetPath.V)),
+                value.V._message!);
         }
 
-        public LegacyTcpDeserializedMessage ToLegacyMessage()
+        public TcpDeserializedMessage ToModernMessage()
         {
-            var message = new LegacyTcpDeserializedMessage
+            var message = new TcpDeserializedMessage
             {
-                AssetPath = AssetPath.V.AssetName,
+                AssetPath = new Store<TopLevelAssetPath>(new TopLevelAssetPath(Name.Empty, AssetPath.V)),
                 SenderAddress = SenderAddress,
                 RecipientAddresses = RecipientAddresses,
                 MessageScope = MessageScope,

@@ -51,6 +51,11 @@
 
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
 
+        public async Task ForceReconnectAsync()
+        {
+            await ReconnectAsync(_client);
+        }
+
         private async Task ReconnectAsync(TcpClient brokenClient)
         {
             await _reconnectionLock.WaitAsync();
@@ -120,6 +125,7 @@
                 var client = _client;
                 try
                 {
+                    _logger?.LogTrace($"Reading {buffer.Length} bytes from stream.");
                     return await client.GetStream().ReadAsync(buffer, offset, count, cancellationToken);
                 }
                 catch (Exception ex) when (IsExceptionDisconnection(ex))
@@ -137,6 +143,7 @@
                 var client = _client;
                 try
                 {
+                    _logger?.LogTrace($"Reading {buffer.Length} bytes from stream.");
                     return await client.GetStream().ReadAsync(buffer, cancellationToken);
                 }
                 catch (Exception ex) when (IsExceptionDisconnection(ex))

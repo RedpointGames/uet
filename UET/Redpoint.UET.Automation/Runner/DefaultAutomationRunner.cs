@@ -134,7 +134,6 @@
                         do
                         {
                             _logger.LogTrace($"Attempting to connect to worker {worker.Id} on endpoint {worker.EndPoint}");
-                            _logger.LogTrace($"Attempting to connect to worker {worker.Id} on endpoint {worker.EndPoint}");
                             tcpClient = new TcpClient();
                             var connectionCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
                             var connectionTask = tcpClient.ConnectAsync(worker.EndPoint, connectionCts.Token).AsTask();
@@ -161,6 +160,12 @@
             }
             _workers.Add(worker, workerState);
             var connection = workerState.TransportConnection;
+
+            connection.OnUnrecoverablyBroken += (_, _) =>
+            {
+                _logger.LogError("Worker died due to TCP transport error. Killing worker.");
+                _workerPool!.KillWorker(worker);
+            };
 
             _logger.LogTrace($"Connected to worker {worker.Id}");
 

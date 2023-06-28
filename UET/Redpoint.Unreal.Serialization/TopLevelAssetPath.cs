@@ -30,7 +30,10 @@
 
         public bool Is(string packageName, string assetName)
         {
-            return PackageName.V.StringName.V == packageName && AssetName.V.StringName.V == assetName;
+            return (PackageName.V.StringName.V == packageName ||
+                packageName == string.Empty ||
+                PackageName.V.StringName.V == string.Empty) &&
+                AssetName.V.StringName.V == assetName;
         }
     }
 }

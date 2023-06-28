@@ -90,6 +90,8 @@
                 $"-ini:Engine:[/Script/TcpMessaging.TcpMessagingSettings]:ListenEndpoint={EndPoint}",
                 "-ini:Engine:[/Script/UdpMessaging.UdpMessagingSettings]:EnabledByDefault=False",
                 "-ini:Engine:[/Script/UdpMessaging.UdpMessagingSettings]:EnableTransport=False",
+                // Increase logging for TCP messaging.
+                "-ini:Engine:[Core.Log]:LogTcpMessaging=VeryVerbose",
             };
             if (!Descriptor.EnableRendering)
             {
