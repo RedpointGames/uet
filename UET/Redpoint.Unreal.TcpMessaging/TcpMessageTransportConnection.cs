@@ -262,6 +262,12 @@
                     // Transport connection is shutting down.
                     return;
                 }
+                catch (TcpReconnectionRequiredException)
+                {
+                    // The connection must be reconnected.
+                    _logger?.LogTrace("TCP stream disconnected during received, reconnecting...");
+                    await _stream.ReconnectAsync();
+                }
                 catch (Exception ex)
                 {
                     _logger?.LogError(ex, $"Exception during message receive: {ex.Message}");
@@ -288,38 +294,51 @@
                     {
                         throw new InvalidOperationException();
                     }
-                    Store<TcpDeserializedMessage> nextMessage = new(nextMessageRaw);
 
-                    using (var memory = new MemoryStream())
+                    try
                     {
-                        var memoryArchive = new Archive(memory, false, _serializerRegistries);
+                        Store<TcpDeserializedMessage> nextMessage = new(nextMessageRaw);
 
-                        _logger?.LogTrace($" {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId : "*")}}} <- {{{nextMessage.V.SenderAddress.V.UniqueId}}} [{nextMessage.V.AssetPath.V.PackageName + "." + nextMessage.V.AssetPath.V.AssetName}]\n{nextMessage.V.GetMessageData()}");
-
-                        if (_isLegacyTcpSerialization)
+                        using (var memory = new MemoryStream())
                         {
-                            var legacyNextMessage = new Store<LegacyTcpDeserializedMessage>(nextMessage.V.ToLegacyMessage());
-                            await memoryArchive.Serialize(legacyNextMessage);
+                            var memoryArchive = new Archive(memory, false, _serializerRegistries);
+
+                            _logger?.LogTrace($" {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId : "*")}}} <- {{{nextMessage.V.SenderAddress.V.UniqueId}}} [{nextMessage.V.AssetPath.V.PackageName + "." + nextMessage.V.AssetPath.V.AssetName}]\n{nextMessage.V.GetMessageData()}");
+
+                            if (_isLegacyTcpSerialization)
+                            {
+                                var legacyNextMessage = new Store<LegacyTcpDeserializedMessage>(nextMessage.V.ToLegacyMessage());
+                                await memoryArchive.Serialize(legacyNextMessage);
+                            }
+                            else
+                            {
+                                await memoryArchive.Serialize(nextMessage);
+                            }
+
+                            var length = new Store<uint>((uint)memory.Position);
+                            if (length.V == 0)
+                            {
+                                throw new InvalidOperationException();
+                            }
+
+                            var sendArchive = new Archive(_stream, false, _serializerRegistries);
+
+                            await sendArchive.Serialize(length);
+
+                            memory.Seek(0, SeekOrigin.Begin);
+                            await memory.CopyToAsync(_stream);
+
+                            _logger?.LogTrace("Flushed message to remote TCP stream!");
                         }
-                        else
-                        {
-                            await memoryArchive.Serialize(nextMessage);
-                        }
-
-                        var length = new Store<uint>((uint)memory.Position);
-                        if (length.V == 0)
-                        {
-                            throw new InvalidOperationException();
-                        }
-
-                        var sendArchive = new Archive(_stream, false, _serializerRegistries);
-
-                        await sendArchive.Serialize(length);
-
-                        memory.Seek(0, SeekOrigin.Begin);
-                        await memory.CopyToAsync(_stream);
-
-                        _logger?.LogTrace("Flushed message to remote TCP stream!");
+                    }
+                    catch (TcpReconnectionRequiredException)
+                    {
+                        // The connection must be reconnected and the message resent.
+                        _logger?.LogTrace("TCP stream disconnected during send, reconnecting...");
+                        await _stream.ReconnectAsync();
+                        _queuedToSend.Enqueue(nextMessageRaw);
+                        _readyToSend.Release();
+                        continue;
                     }
                 }
                 catch (InvalidOperationException ex) when (ex.Message.Contains("The operation is not allowed on non-connected sockets"))

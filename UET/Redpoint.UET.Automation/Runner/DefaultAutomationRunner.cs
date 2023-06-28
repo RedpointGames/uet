@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.UET.Automation.Runner
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Concurrency;
     using Redpoint.UET.Automation.Model;
     using Redpoint.UET.Automation.TestLogging;
     using Redpoint.UET.Automation.TestNotification;

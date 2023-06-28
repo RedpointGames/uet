@@ -13,6 +13,8 @@
         private readonly SemaphoreSlim _reconnectionLock;
         private readonly Func<Task<TcpClient>> _reconnectionFactory;
         private readonly Func<TcpClient, Task> _initialNegotiation;
+        private bool _canAutoReconnect;
+        private bool _isBroken;
 
         public static async Task<TcpReconnectableStream> CreateAsync(
             ILogger? logger,
@@ -35,6 +37,7 @@
             _reconnectionLock = new SemaphoreSlim(1);
             _reconnectionFactory = reconnectionFactory;
             _initialNegotiation = initialNegotiation;
+            _canAutoReconnect = true;
             if (!_client.Connected)
             {
                 throw new InvalidOperationException();
@@ -51,12 +54,12 @@
 
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
 
-        public async Task ForceReconnectAsync()
+        public async Task ReconnectAsync()
         {
-            await ReconnectAsync(_client);
+            await ReconnectInternalAsync(_client);
         }
 
-        private async Task ReconnectAsync(TcpClient brokenClient)
+        private async Task ReconnectInternalAsync(TcpClient brokenClient)
         {
             await _reconnectionLock.WaitAsync();
             try
@@ -75,6 +78,8 @@
                     throw new InvalidOperationException();
                 }
                 await _initialNegotiation(_client);
+                _isBroken = false;
+                _canAutoReconnect = true;
             }
             finally
             {
@@ -100,112 +105,115 @@
             return false;
         }
 
-        public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
+        private async Task DoReconnectableOperationAsync(Func<TcpClient, Task> operation)
         {
+            if (_isBroken)
+            {
+                throw new TcpReconnectionRequiredException();
+            }
+
             while (true)
             {
                 var client = _client;
                 try
                 {
-                    await client.GetStream().CopyToAsync(destination, bufferSize, cancellationToken);
+                    await operation(client);
+                    _canAutoReconnect = false;
                     break;
                 }
                 catch (Exception ex) when (IsExceptionDisconnection(ex))
                 {
-                    await ReconnectAsync(client);
-                    continue;
+                    if (_canAutoReconnect)
+                    {
+                        await ReconnectInternalAsync(client);
+                        continue;
+                    }
+                    else
+                    {
+                        _isBroken = true;
+                        throw new TcpReconnectionRequiredException();
+                    }
                 }
             }
         }
 
-        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        private async Task<T> DoReconnectableOperationAsync<T>(Func<TcpClient, Task<T>> operation)
         {
+            if (_isBroken)
+            {
+                throw new TcpReconnectionRequiredException();
+            }
+
             while (true)
             {
                 var client = _client;
                 try
                 {
-                    _logger?.LogTrace($"Reading {buffer.Length} bytes from stream.");
-                    return await client.GetStream().ReadAsync(buffer, offset, count, cancellationToken);
+                    var result = await operation(client);
+                    _canAutoReconnect = false;
+                    return result;
                 }
                 catch (Exception ex) when (IsExceptionDisconnection(ex))
                 {
-                    await ReconnectAsync(client);
-                    continue;
+                    if (_canAutoReconnect)
+                    {
+                        await ReconnectInternalAsync(client);
+                        continue;
+                    }
+                    else
+                    {
+                        _isBroken = true;
+                        throw new TcpReconnectionRequiredException();
+                    }
                 }
             }
+        }
+
+        public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
+        {
+            return DoReconnectableOperationAsync(client => client.GetStream().CopyToAsync(destination, bufferSize, cancellationToken));
+        }
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            return DoReconnectableOperationAsync(client =>
+            {
+                _logger?.LogTrace($"Reading {buffer.Length} bytes from stream.");
+                return client.GetStream().ReadAsync(buffer, offset, count, cancellationToken);
+            });
         }
 
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
-            while (true)
+            return await DoReconnectableOperationAsync<int>(async client =>
             {
-                var client = _client;
-                try
-                {
-                    _logger?.LogTrace($"Reading {buffer.Length} bytes from stream.");
-                    return await client.GetStream().ReadAsync(buffer, cancellationToken);
-                }
-                catch (Exception ex) when (IsExceptionDisconnection(ex))
-                {
-                    await ReconnectAsync(client);
-                    continue;
-                }
-            }
+                _logger?.LogTrace($"Reading {buffer.Length} bytes from stream.");
+                return await client.GetStream().ReadAsync(buffer, cancellationToken);
+            });
         }
 
-        public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            while (true)
+            return DoReconnectableOperationAsync(client =>
             {
-                var client = _client;
-                try
-                {
-                    await client.GetStream().WriteAsync(buffer, offset, count, cancellationToken);
-                    break;
-                }
-                catch (Exception ex) when (IsExceptionDisconnection(ex))
-                {
-                    await ReconnectAsync(client);
-                    continue;
-                }
-            }
+                return client.GetStream().WriteAsync(buffer, offset, count, cancellationToken);
+            });
         }
 
         public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
         {
-            while (true)
+            await DoReconnectableOperationAsync(async client =>
             {
-                var client = _client;
-                try
-                {
-                    await client.GetStream().WriteAsync(buffer, cancellationToken);
-                    break;
-                }
-                catch (Exception ex) when (IsExceptionDisconnection(ex))
-                {
-                    await ReconnectAsync(client);
-                    continue;
-                }
-            }
+                await client.GetStream().WriteAsync(buffer, cancellationToken);
+            });
         }
 
-        public override async Task FlushAsync(CancellationToken cancellationToken)
+        public override Task FlushAsync(CancellationToken cancellationToken)
         {
-            while (true)
+            return DoReconnectableOperationAsync(client =>
             {
-                var client = _client;
-                try
-                {
-                    await client.GetStream().FlushAsync(cancellationToken);
-                    break;
-                }
-                catch (Exception ex) when (IsExceptionDisconnection(ex))
-                {
-                    await ReconnectAsync(client);
-                    continue;
-                }
-            }
+                return client.GetStream().FlushAsync(cancellationToken);
+            });
         }
 
         public override async ValueTask DisposeAsync()
