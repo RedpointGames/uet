@@ -47,6 +47,9 @@
   <Option Name="CopyrightExcludes" DefaultValue="" Description="Relative paths inside the package to exclude from copyright updates, separated with semicolons" />
   <Option Name="IsForMarketplaceSubmission" Restrict="true|false" DefaultValue="false" Description="If true, the plugin is packaged in a way that is suitable for Marketplace submission" />
  
+  <!-- Test options -->
+  <Option Name="GauntletConfigPaths" Restrict="[^ ]*" DefaultValue="" Description="List of the paths to copy files out of into the Config/ folder before building the project for Gauntlet tests."/>
+
   <!-- Debug options -->
   <Option Name="HostProjectName" DefaultValue="H" Description="Name for the host project folder and .uproject file" />
 
