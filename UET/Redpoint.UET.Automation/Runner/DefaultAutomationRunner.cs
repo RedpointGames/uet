@@ -65,7 +65,7 @@
 
             public int RemainingTests { get; set; }
 
-            public ManualResetEventSlim ReadyForTesting { get; } = new ManualResetEventSlim();
+            public Gate ReadyForTesting { get; } = new Gate();
         }
 
         public DefaultAutomationRunner(
@@ -242,7 +242,7 @@
 
                         // We are now ready to process tests.
                         _logger.LogTrace($"Ready to begin testing for descriptor {groupState.Descriptor.Platform}");
-                        groupState.ReadyForTesting.Set();
+                        groupState.ReadyForTesting.Unlock();
                     }
                     catch (Exception ex)
                     {
@@ -284,11 +284,7 @@
             try
             {
                 _logger.LogTrace($"Waiting for testing to be ready...");
-                if (!workerGroupState.ReadyForTesting.Wait(0))
-                {
-                    // Wait until we can pull tests off the queue.
-                    await Task.Delay(100, workerCancellationToken);
-                }
+                await workerGroupState.ReadyForTesting.WaitAsync(workerCancellationToken);
 
                 _logger.LogTrace($"Testing loop for worker {worker.Id} is now starting...");
 
@@ -624,7 +620,7 @@
                         var ranAll = true;
                         foreach (var kv in _tests)
                         {
-                            if (!kv.Value.ReadyForTesting.IsSet || kv.Value.RemainingTests > 0)
+                            if (!kv.Value.ReadyForTesting.Unlocked || kv.Value.RemainingTests > 0)
                             {
                                 ranAll = false;
                                 break;
