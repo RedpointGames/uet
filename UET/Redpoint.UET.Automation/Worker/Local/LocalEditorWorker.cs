@@ -7,6 +7,7 @@
     using System.Diagnostics;
     using System.Net;
     using System.Net.Sockets;
+    using System.Text;
     using System.Threading.Tasks;
 
     internal class LocalEditorWorker : LocalWorker, ICaptureSpecification
@@ -63,6 +64,51 @@
 
             var logPath = Path.Combine(projectRoot, "Saved", "Logs", $"Worker_{Descriptor.Platform}_{Id}.log");
 
+            // Before we run Unreal, we must add an exception for the port if it does not already exist.
+            if (OperatingSystem.IsWindows())
+            {
+                var sb = new StringBuilder();
+                await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "netsh.exe"),
+                        Arguments = new[]
+                        {
+                            "advfirewall",
+                            "firewall",
+                            "show",
+                            "rule",
+                            @$"name=""UET_{EndPoint.Port}"""
+                        }
+                    },
+                    CaptureSpecification.CreateFromStdoutStringBuilder(sb),
+                    _cancellationTokenSource.Token);
+                if (sb.ToString().Contains("no rules"))
+                {
+                    _logger.LogInformation($"Adding firewall rule to permit port {EndPoint.Port}...");
+                    await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "netsh.exe"),
+                            Arguments = new[]
+                            {
+                                "advfirewall",
+                                "firewall",
+                                "add",
+                                "rule",
+                                @$"name=""UET_{EndPoint.Port}""",
+                                "dir=in",
+                                "action=allow",
+                                "protocol=TCP",
+                                $"localport={EndPoint.Port}"
+                            }
+                        },
+                        CaptureSpecification.Passthrough,
+                        _cancellationTokenSource.Token);
+                }
+            }
+
+            // Compute the arguments for Unreal Engine.
             var arguments = new List<string>
             {
                 Descriptor.UProjectPath,
