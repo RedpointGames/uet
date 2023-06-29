@@ -74,6 +74,7 @@
   </ForEach>
   <Property Name="DynamicNodes" Value="" />
   <Property Name="DynamicOutputFiles" Value="" />
+  <Property Name="DynamicPreDeploymentNodes" Value="" />
 
   <!--
     Define the macro for creating packages. This macro emits a node (so you don't need a <Node /> around it),

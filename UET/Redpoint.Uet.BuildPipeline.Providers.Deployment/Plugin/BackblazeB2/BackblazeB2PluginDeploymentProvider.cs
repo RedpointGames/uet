@@ -51,7 +51,7 @@
                             new NodeElementProperties
                             {
                                 Name = $"Deployment {deployment.name}",
-                                Requires = "#PackagedZip",
+                                Requires = "#PackagedZip;$(DynamicPreDeploymentNodes)",
                             },
                             async writer =>
                             {

@@ -115,6 +115,7 @@
                                 new DynamicNodeAppendElementProperties
                                 {
                                     NodeName = nodeName,
+                                    MustPassForLaterDeployment = true,
                                 });
                         }
                     });
@@ -186,6 +187,7 @@
                                 new DynamicNodeAppendElementProperties
                                 {
                                     NodeName = nodeName,
+                                    MustPassForLaterDeployment = true,
                                 });
                         }
                     });

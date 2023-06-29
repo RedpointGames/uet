@@ -164,6 +164,18 @@
             await writer.WriteAttributeStringAsync(null, "Name", null, "DynamicNodes");
             await writer.WriteAttributeStringAsync(null, "Value", null, $"$(DynamicNodes){props.NodeName};");
             await writer.WriteEndElementAsync();
+
+            if (props.MustPassForLaterDeployment)
+            {
+                await writer.WriteStartElementAsync(null, "Property", null);
+                if (props.If != null)
+                {
+                    await writer.WriteAttributeStringAsync(null, "If", null, props.If);
+                }
+                await writer.WriteAttributeStringAsync(null, "Name", null, "DynamicPreDeploymentNodes");
+                await writer.WriteAttributeStringAsync(null, "Value", null, $"$(DynamicPreDeploymentNodes){props.NodeName};");
+                await writer.WriteEndElementAsync();
+            }
         }
 
         public static async Task WriteDynamicOutputFileAppendAsync(
@@ -184,6 +196,7 @@
     public record class DynamicNodeAppendElementProperties : ElementProperties
     {
         public required string NodeName { get; set; }
+        public bool MustPassForLaterDeployment { get; set; }
     }
 
     public record class DynamicOutputFileAppendElementProperties : ElementProperties

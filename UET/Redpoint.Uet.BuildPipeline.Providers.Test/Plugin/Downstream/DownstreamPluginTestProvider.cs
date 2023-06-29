@@ -79,6 +79,7 @@
                             new DynamicNodeAppendElementProperties
                             {
                                 NodeName = nodeName,
+                                MustPassForLaterDeployment = true,
                             });
                     }
                 });

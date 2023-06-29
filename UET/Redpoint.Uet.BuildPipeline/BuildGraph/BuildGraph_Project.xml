@@ -55,6 +55,7 @@
   <Property Name="AdditionalArguments" Value=" -NoPCH -NoSharedPCH -DisableUnity" If="'$(StrictIncludes)' == 'true'" />
   <Property Name="DynamicNodes" Value="" />
   <Property Name="DynamicOutputFiles" Value="" />
+  <Property Name="DynamicPreDeploymentNodes" Value="" />
 
   <!-- Targets that we will execute on a Windows machine. -->
   <Agent Name="Windows Build" Type="Win64" If="'$(ExecuteBuild)' == 'true'">
