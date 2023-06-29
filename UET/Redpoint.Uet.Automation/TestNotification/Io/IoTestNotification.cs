@@ -7,6 +7,7 @@
     using System.Collections.Generic;
     using System.Net.Http.Json;
     using System.Text.Json;
+    using System.Threading;
     using System.Threading.Tasks;
 
     internal class IoTestNotification : ITestNotification
@@ -14,7 +15,7 @@
         private readonly Task _submitTask;
         private readonly ConcurrentQueue<IoChange> _changeQueue;
         private readonly ILogger<IoTestNotification> _logger;
-        private readonly CancellationToken _cancellationToken;
+        private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly bool _simulateIo;
 
         internal static bool IsIoAvailable()
@@ -31,7 +32,7 @@
             _submitTask = Task.Run(RunAsync);
             _changeQueue = new ConcurrentQueue<IoChange>();
             _logger = logger;
-            _cancellationToken = cancellationToken;
+            _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _simulateIo = simulateIo;
 
             if (_simulateIo)
@@ -114,6 +115,7 @@
 
         public async Task FlushAsync()
         {
+            _cancellationTokenSource.Cancel();
             await _submitTask;
         }
 
@@ -145,7 +147,7 @@
         {
             try
             {
-                while (!_cancellationToken.IsCancellationRequested)
+                while (!_cancellationTokenSource.IsCancellationRequested)
                 {
                     try
                     {
@@ -159,7 +161,7 @@
                         }
                         if (results.Count == 0)
                         {
-                            await Task.Delay(1000, _cancellationToken);
+                            await Task.Delay(1000, _cancellationTokenSource.Token);
                             continue;
                         }
 
@@ -171,7 +173,7 @@
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, $"Exception while reporting data to Io: {ex.Message}");
-                        await Task.Delay(1000, _cancellationToken);
+                        await Task.Delay(1000, _cancellationTokenSource.Token);
                     }
                 }
             }
