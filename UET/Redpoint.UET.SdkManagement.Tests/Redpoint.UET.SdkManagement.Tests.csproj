@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
-
-  <ItemGroup>
-    <ProjectReference Include="..\Redpoint.UET.SdkManagement\Redpoint.UET.SdkManagement.csproj" />
-  </ItemGroup>
-
-</Project>

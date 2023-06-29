@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline\Redpoint.Uet.BuildPipeline.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.SdkManagement\Redpoint.Uet.SdkManagement.csproj" />
+  </ItemGroup>
+
+</Project>

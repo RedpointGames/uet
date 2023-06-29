@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <ItemGroup>
+    <PackageReference Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" Version="13.0.2" />
+    <PackageReference Include="YamlDotNet" Version="13.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.BuildServer\Redpoint.Uet.BuildPipeline.Executors.BuildServer.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,14 @@
+﻿namespace Redpoint.Uet.Workspace
+{
+    using Redpoint.Uet.Workspace.Descriptors;
+    using System.Threading.Tasks;
+
+    public interface IWorkspaceProviderBase
+    {
+        bool ProvidesFastCopyOnWrite { get; }
+
+        Task<IWorkspace> GetWorkspaceAsync(
+            IWorkspaceDescriptor workspaceDescriptor,
+            CancellationToken cancellationToken);
+    }
+}

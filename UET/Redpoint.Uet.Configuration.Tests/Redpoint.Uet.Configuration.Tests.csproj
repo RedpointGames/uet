@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
+
+  <ItemGroup>
+    <Folder Include="TestCases\NestedProjectDistributions\" />
+    <Folder Include="TestCases\PluginTests\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Deployment\Redpoint.Uet.BuildPipeline.Providers.Deployment.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Test\Redpoint.Uet.BuildPipeline.Providers.Test.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.Configuration\Redpoint.Uet.Configuration.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="TestCases\NestedProjectDistributions\A\BuildConfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestCases\NestedProjectDistributions\BuildConfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestCases\NestedProjectDistributions\B\D\BuildConfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestCases\NestedProjectDistributions\B\E\BuildConfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestCases\NestedProjectDistributions\C\BuildConfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestCases\PluginTestsWithExtraParameter\BuildConfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestCases\PluginTestsWithNoProvider\BuildConfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestCases\PluginTests\BuildConfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

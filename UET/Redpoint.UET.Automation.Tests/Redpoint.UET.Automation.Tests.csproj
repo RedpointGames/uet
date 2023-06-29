@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
-
-  <ItemGroup>
-    <ProjectReference Include="..\Redpoint.UET.Automation\Redpoint.UET.Automation.csproj" />
-  </ItemGroup>
-
-</Project>

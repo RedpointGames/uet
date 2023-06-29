@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Uet.BuildGraph\Redpoint.Uet.BuildGraph.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.Configuration\Redpoint.Uet.Configuration.csproj" />
+  </ItemGroup>
+
+</Project>

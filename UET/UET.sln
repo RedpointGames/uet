@@ -17,33 +17,33 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Unreal.TcpMessagin
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ProcessExecution", "Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj", "{E1D5A2B2-D2DA-4076-9D44-66FEFDB12286}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.Configuration", "Redpoint.UET.Configuration\Redpoint.UET.Configuration.csproj", "{CF310C8C-13C4-4444-B358-8038D67488B7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.Configuration", "Redpoint.Uet.Configuration\Redpoint.Uet.Configuration.csproj", "{CF310C8C-13C4-4444-B358-8038D67488B7}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.Workspace", "Redpoint.UET.Workspace\Redpoint.UET.Workspace.csproj", "{61D4CE39-8C86-4BA0-AF8F-ECB6869AC504}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.Workspace", "Redpoint.Uet.Workspace\Redpoint.Uet.Workspace.csproj", "{61D4CE39-8C86-4BA0-AF8F-ECB6869AC504}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.Core", "Redpoint.UET.Core\Redpoint.UET.Core.csproj", "{DF778E31-98BB-4189-ADAC-D8BEC7314C5D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.Core", "Redpoint.Uet.Core\Redpoint.Uet.Core.csproj", "{DF778E31-98BB-4189-ADAC-D8BEC7314C5D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.UAT", "Redpoint.UET.UAT\Redpoint.UET.UAT.csproj", "{8F4E55B7-4215-4B66-B5C2-968E3917374F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.Uat", "Redpoint.Uet.Uat\Redpoint.Uet.Uat.csproj", "{8F4E55B7-4215-4B66-B5C2-968E3917374F}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.PathResolution", "Redpoint.PathResolution\Redpoint.PathResolution.csproj", "{B09236FD-2C6B-4578-9BE3-0C916A6FBF1A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.PathResolution.Tests", "Redpoint.PathResolution.Tests\Redpoint.PathResolution.Tests.csproj", "{3A0E6501-E703-423E-AA9A-7C17DBB9468C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.UAT.Tests", "Redpoint.UET.UAT.Tests\Redpoint.UET.UAT.Tests.csproj", "{61B4F4B2-32E2-47C0-862A-F5147E9BD56E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.Uat.Tests", "Redpoint.Uet.Uat.Tests\Redpoint.Uet.Uat.Tests.csproj", "{61B4F4B2-32E2-47C0-862A-F5147E9BD56E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.Automation", "Redpoint.UET.Automation\Redpoint.UET.Automation.csproj", "{3D095401-59B2-476D-B1FE-1617DAD78E94}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.Automation", "Redpoint.Uet.Automation\Redpoint.Uet.Automation.csproj", "{3D095401-59B2-476D-B1FE-1617DAD78E94}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.SdkManagement", "Redpoint.UET.SdkManagement\Redpoint.UET.SdkManagement.csproj", "{80348F7C-DCE0-4479-AF3E-C2AB90B2FB4C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.SdkManagement", "Redpoint.Uet.SdkManagement\Redpoint.Uet.SdkManagement.csproj", "{80348F7C-DCE0-4479-AF3E-C2AB90B2FB4C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.SdkManagement.Install", "Redpoint.UET.SdkManagement.Install\Redpoint.UET.SdkManagement.Install.csproj", "{F561F679-F434-4DAB-A0F8-BD77CF9C5958}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.SdkManagement.Install", "Redpoint.Uet.SdkManagement.Install\Redpoint.Uet.SdkManagement.Install.csproj", "{F561F679-F434-4DAB-A0F8-BD77CF9C5958}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.SdkManagement.Tests", "Redpoint.UET.SdkManagement.Tests\Redpoint.UET.SdkManagement.Tests.csproj", "{4ACFA2D2-F5D7-428B-B144-F63350848E29}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.SdkManagement.Tests", "Redpoint.Uet.SdkManagement.Tests\Redpoint.Uet.SdkManagement.Tests.csproj", "{4ACFA2D2-F5D7-428B-B144-F63350848E29}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline", "Redpoint.UET.BuildPipeline\Redpoint.UET.BuildPipeline.csproj", "{559D9E41-C462-4C71-8709-20B0BCA82E89}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.BuildPipeline", "Redpoint.Uet.BuildPipeline\Redpoint.Uet.BuildPipeline.csproj", "{559D9E41-C462-4C71-8709-20B0BCA82E89}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.Tests", "Redpoint.UET.BuildPipeline.Tests\Redpoint.UET.BuildPipeline.Tests.csproj", "{B9FDEB77-EC8B-4E1C-A9F1-218A3671574D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.BuildPipeline.Tests", "Redpoint.Uet.BuildPipeline.Tests\Redpoint.Uet.BuildPipeline.Tests.csproj", "{B9FDEB77-EC8B-4E1C-A9F1-218A3671574D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.TestRunner", "Redpoint.UET.BuildPipeline.TestRunner\Redpoint.UET.BuildPipeline.TestRunner.csproj", "{5C4E5E66-23AA-499D-B3CD-DD374F8CD2BB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.BuildPipeline.TestRunner", "Redpoint.Uet.BuildPipeline.TestRunner\Redpoint.Uet.BuildPipeline.TestRunner.csproj", "{5C4E5E66-23AA-499D-B3CD-DD374F8CD2BB}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{39698A12-7C9B-47F5-BA1A-9F4884A770AF}"
 	ProjectSection(SolutionItems) = preProject
@@ -69,11 +69,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Collections", "Red
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Windows.HandleManagement.Tests", "Redpoint.Windows.HandleManagement.Tests\Redpoint.Windows.HandleManagement.Tests.csproj", "{F152B9D8-6814-43EA-A588-D8B7172BA142}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.Executors.Local", "Redpoint.UET.BuildPipeline.Executors.Local\Redpoint.UET.BuildPipeline.Executors.Local.csproj", "{ACA6E37D-1308-4B18-A8B2-9316699E3850}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.BuildPipeline.Executors.Local", "Redpoint.Uet.BuildPipeline.Executors.Local\Redpoint.Uet.BuildPipeline.Executors.Local.csproj", "{ACA6E37D-1308-4B18-A8B2-9316699E3850}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.Executors.BuildServer", "Redpoint.UET.BuildPipeline.Executors.BuildServer\Redpoint.UET.BuildPipeline.Executors.BuildServer.csproj", "{D160E84A-97C5-4958-B196-D7C1C6A70AD8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.BuildPipeline.Executors.BuildServer", "Redpoint.Uet.BuildPipeline.Executors.BuildServer\Redpoint.Uet.BuildPipeline.Executors.BuildServer.csproj", "{D160E84A-97C5-4958-B196-D7C1C6A70AD8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.Executors.GitLab", "Redpoint.UET.BuildPipeline.Executors.GitLab\Redpoint.UET.BuildPipeline.Executors.GitLab.csproj", "{AFFE7088-DBFA-4941-96BE-A5D8C9A578EB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.BuildPipeline.Executors.GitLab", "Redpoint.Uet.BuildPipeline.Executors.GitLab\Redpoint.Uet.BuildPipeline.Executors.GitLab.csproj", "{AFFE7088-DBFA-4941-96BE-A5D8C9A578EB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "uet", "uet\uet.csproj", "{3A9215AE-E602-4BA9-839D-7103567CD17C}"
 EndProject
@@ -119,7 +119,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ProgressMonitor", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Registry", "Redpoint.Registry\Redpoint.Registry.csproj", "{77E54064-C2B5-4464-9285-4E576AA7BF21}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.Configuration.Tests", "Redpoint.UET.Configuration.Tests\Redpoint.UET.Configuration.Tests.csproj", "{A6F18B24-C2C3-47D7-B000-ED4B41105CB0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.Configuration.Tests", "Redpoint.Uet.Configuration.Tests\Redpoint.Uet.Configuration.Tests.csproj", "{A6F18B24-C2C3-47D7-B000-ED4B41105CB0}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Shim", "Redpoint.OpenGE.Shim\Redpoint.OpenGE.Shim.csproj", "{FC2E5072-FE61-47BD-AFE8-BA73A70EC2AB}"
 EndProject
@@ -133,17 +133,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Reservation", "Red
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Reservation.Tests", "Redpoint.Reservation.Tests\Redpoint.Reservation.Tests.csproj", "{F335E025-07A0-4D0C-A882-00A814C4EC52}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.Providers.Deployment", "Redpoint.UET.BuildPipeline.Providers.Deployment\Redpoint.UET.BuildPipeline.Providers.Deployment.csproj", "{FF9C0353-53C4-49D9-B8D1-7C6756120547}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.BuildPipeline.Providers.Deployment", "Redpoint.Uet.BuildPipeline.Providers.Deployment\Redpoint.Uet.BuildPipeline.Providers.Deployment.csproj", "{FF9C0353-53C4-49D9-B8D1-7C6756120547}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildPipeline.Providers.Test", "Redpoint.UET.BuildPipeline.Providers.Test\Redpoint.UET.BuildPipeline.Providers.Test.csproj", "{0E81D8C3-CAFA-4DB4-9108-49361F6D1135}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.BuildPipeline.Providers.Test", "Redpoint.Uet.BuildPipeline.Providers.Test\Redpoint.Uet.BuildPipeline.Providers.Test.csproj", "{0E81D8C3-CAFA-4DB4-9108-49361F6D1135}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.BuildGraph", "Redpoint.UET.BuildGraph\Redpoint.UET.BuildGraph.csproj", "{05B65404-1B91-49A8-A079-0C90185B1B3A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.BuildGraph", "Redpoint.Uet.BuildGraph\Redpoint.Uet.BuildGraph.csproj", "{05B65404-1B91-49A8-A079-0C90185B1B3A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.Automation.Tests", "Redpoint.UET.Automation.Tests\Redpoint.UET.Automation.Tests.csproj", "{DCA366B0-0E3D-4264-98D5-D57CCF557BA8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.Automation.Tests", "Redpoint.Uet.Automation.Tests\Redpoint.Uet.Automation.Tests.csproj", "{DCA366B0-0E3D-4264-98D5-D57CCF557BA8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ApplicationLifecycle", "Redpoint.ApplicationLifecycle\Redpoint.ApplicationLifecycle.csproj", "{73F9578E-2774-48E4-8F91-DBA9446B720C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.UET.Workspace.Tests", "Redpoint.UET.Workspace.Tests\Redpoint.UET.Workspace.Tests.csproj", "{3E3A2F9D-EAE2-48A0-B4EB-C2061913EF03}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.Workspace.Tests", "Redpoint.Uet.Workspace.Tests\Redpoint.Uet.Workspace.Tests.csproj", "{3E3A2F9D-EAE2-48A0-B4EB-C2061913EF03}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ThirdParty.System.CommandLine", "Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj", "{DA90E23F-C2A7-4BBC-A376-4016FC4921EA}"
 EndProject

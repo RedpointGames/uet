@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
+    <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Deployment\Redpoint.Uet.BuildPipeline.Providers.Deployment.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Test\Redpoint.Uet.BuildPipeline.Providers.Test.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline\Redpoint.Uet.BuildPipeline.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.Uat\Redpoint.Uet.Uat.csproj" />
+  </ItemGroup>
+
+</Project>

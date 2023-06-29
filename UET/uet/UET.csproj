@@ -1,0 +1,90 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
+  
+  <PropertyGroup>
+    <RootNamespace>UET</RootNamespace>
+    <Description>The unofficial Unreal Engine Tool.</Description>
+    <Product>Unreal Engine Tool</Product>
+    <AssemblyTitle>Unreal Engine Tool</AssemblyTitle>
+  </PropertyGroup>
+
+  <Target Name="DisplayTargetVersion" BeforeTargets="BeforeBuild">
+    <Message Text="Using assembly version: $(AssemblyVersion)" Importance="high" />
+  </Target>
+
+  <ItemGroup>
+    <None Remove="Commands\Internal\TestGrpcPipes\TestPipes.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.51.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.B2Net\Redpoint.ThirdParty.B2Net.csproj" />
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
+    <ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />
+    <ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />
+    <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
+    <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+    <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
+    <ProjectReference Include="..\Redpoint.ServiceControl\Redpoint.ServiceControl.csproj" />
+    <ProjectReference Include="..\Redpoint.Uefs.Commands\Redpoint.Uefs.Commands.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.Automation\Redpoint.Uet.Automation.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.BuildServer\Redpoint.Uet.BuildPipeline.Executors.BuildServer.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.GitLab\Redpoint.Uet.BuildPipeline.Executors.GitLab.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.Local\Redpoint.Uet.BuildPipeline.Executors.Local.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Deployment\Redpoint.Uet.BuildPipeline.Providers.Deployment.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Test\Redpoint.Uet.BuildPipeline.Providers.Test.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline\Redpoint.Uet.BuildPipeline.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.Configuration\Redpoint.Uet.Configuration.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.Core\Redpoint.Uet.Core.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.SdkManagement\Redpoint.Uet.SdkManagement.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.Uat\Redpoint.Uet.Uat.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.Workspace\Redpoint.Uet.Workspace.csproj" />
+    <ProjectReference Include="..\Redpoint.Unreal.Serialization\Redpoint.Unreal.Serialization.csproj" />
+    <ProjectReference Include="..\Redpoint.Unreal.TcpMessaging\Redpoint.Unreal.TcpMessaging.csproj" />
+    <ProjectReference Include="..\Redpoint.Windows.HandleManagement\Redpoint.Windows.HandleManagement.csproj" />
+    <ProjectReference Include="..\Redpoint.Windows.VolumeManagement\Redpoint.Windows.VolumeManagement.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\win-x64\publish\uet.exe" Condition="'$(RuntimeIdentifier)' != 'win-x64' and '$(EmbeddingCrossPlatform)' == 'true'">
+      <Link>Embedded\win-x64\uet.exe</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\osx.11.0-arm64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'osx.11.0-arm64' and '$(EmbeddingCrossPlatform)' == 'true'">
+      <Link>Embedded\osx.11.0-arm64\uet</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'linux-x64' and '$(EmbeddingCrossPlatform)' == 'true' and '$(EnableLinuxSupport)' == 'true'">
+      <Link>Embedded\linux-x64\uet</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Commands\Internal\TestGrpcPipes\TestPipes.proto">
+      <GrpcServices>Both</GrpcServices>
+    </Protobuf>
+  </ItemGroup>
+
+  <Target Name="PublishAllRids">
+    <ItemGroup>
+      <RuntimeIdentifierForPublish Include="$(RuntimeIdentifiers)" />
+      <ProjectToPublish Include="@(RuntimeIdentifierForPublish->'$(MSBuildProjectFullPath)')">
+        <AdditionalProperties>RuntimeIdentifier=%(RuntimeIdentifierForPublish.Identity)</AdditionalProperties>
+      </ProjectToPublish>
+      <ProjectToPublishWithEmbedding Include="@(RuntimeIdentifierForPublish->'$(MSBuildProjectFullPath)')">
+        <AdditionalProperties>RuntimeIdentifier=%(RuntimeIdentifierForPublish.Identity);EmbeddingCrossPlatform=true</AdditionalProperties>
+      </ProjectToPublishWithEmbedding>
+    </ItemGroup>
+    <MSBuild Projects="@(ProjectToPublish)" Targets="Publish" BuildInParallel="true" />
+    <MSBuild Projects="@(ProjectToPublishWithEmbedding)" Targets="Publish" BuildInParallel="true" />
+  </Target>
+
+</Project>
