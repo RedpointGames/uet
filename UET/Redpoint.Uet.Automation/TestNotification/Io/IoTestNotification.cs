@@ -179,6 +179,9 @@
             }
             catch (OperationCanceledException)
             {
+            }
+            finally
+            {
                 _logger.LogTrace("Performing final submission to Io");
 
                 var results = new List<IoChange>();
