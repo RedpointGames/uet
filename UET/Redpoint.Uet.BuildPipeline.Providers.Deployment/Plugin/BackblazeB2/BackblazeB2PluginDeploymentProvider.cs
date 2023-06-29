@@ -72,6 +72,11 @@
                                         }).ToArray()
                                     });
                             });
+                        await writer.WriteDynamicNodeAppendAsync(
+                            new DynamicNodeAppendElementProperties
+                            {
+                                NodeName = $"Deployment {deployment.name}",
+                            });
                     });
             }
         }
