@@ -92,6 +92,8 @@
 
                 var uploadUrl = await client.Files.GetUploadUrl(bucket.BucketId, context.GetCancellationToken());
 
+                _logger.LogInformation($"Uploading {zipPath.Name} ({zipPath.Length / 1024 / 1024} MB)...");
+
                 using (var stream = new FileStream(
                     zipPath.FullName,
                     FileMode.Open,
@@ -112,7 +114,7 @@
                     });
 
                     // Upload the file.
-                    await client.Files.Upload(
+                    var file = await client.Files.Upload(
                         fileDataWithSHA: stream,
                         fileName: $"{folderPrefix}/{zipPath.Name}",
                         uploadUrl: uploadUrl,
@@ -125,6 +127,8 @@
 
                     // Stop monitoring.
                     await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);
+
+                    _logger.LogInformation($"Friendly URL on Backblaze B2: https://f002.backblazeb2.com/file/{bucket.BucketName}/{folderPrefix}/{zipPath.Name}");
                 }
 
                 _logger.LogInformation("Successfully uploaded file to Backblaze B2.");
