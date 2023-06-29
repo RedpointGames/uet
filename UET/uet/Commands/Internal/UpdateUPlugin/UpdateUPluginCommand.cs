@@ -74,7 +74,7 @@
 
                 node["EngineVersion"] = engineVersion;
                 node["VersionName"] = versionName;
-                node["Version"] = int.Parse(versionNumber);
+                node["Version"] = ulong.Parse(versionNumber);
                 node["Installed"] = true;
 
                 if (!marketplace)
