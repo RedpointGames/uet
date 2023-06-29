@@ -18,5 +18,10 @@
                 _logger,
                 rootPath);
         }
+
+        public ILoopbackPortReservationManager CreateLoopbackPortReservationManager()
+        {
+            return new DefaultLoopbackPortReservationManager();
+        }
     }
 }

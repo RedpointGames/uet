@@ -3,6 +3,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
+    using Redpoint.Reservation;
     using Redpoint.UET.Automation.SystemResources;
     using Redpoint.UET.Automation.TestLogging;
     using Redpoint.UET.UAT;
@@ -27,7 +28,7 @@
         private List<LocalWorker> _currentWorkers;
         private List<LocalWorker> _reservedWorkers;
         private readonly HashSet<DesiredWorkerDescriptor> _descriptorsWindingDown;
-        private static int _nextPort = 36495;
+        private readonly ILoopbackPortReservationManager _loopbackPortReservationManager;
         private Task _runLoopTask;
 
         public LocalWorkerPool(
@@ -36,6 +37,7 @@
             ITestLogger testLogger,
             IEnumerable<DesiredWorkerDescriptor> workerDescriptors,
             ISystemResources systemResources,
+            IReservationManagerFactory reservationManagerFactory,
             OnWorkerStarted onWorkerStarted,
             OnWorkerExited onWorkedExited,
             OnWorkerPoolFailure onWorkerPoolFailure,
@@ -53,6 +55,7 @@
             _currentWorkers = new List<LocalWorker>();
             _reservedWorkers = new List<LocalWorker>();
             _descriptorsWindingDown = new HashSet<DesiredWorkerDescriptor>();
+            _loopbackPortReservationManager = reservationManagerFactory.CreateLoopbackPortReservationManager();
             _runLoopTask = Task.Run(RunLoopAsync);
         }
 
@@ -141,44 +144,56 @@
                                 .Select(x => $"{workerDescriptor.Platform}.{x}")
                                 .First(x => !currentWorkers.Any(y => y.DisplayName == x));
 
-                            LocalWorker newWorker;
-                            if (workerDescriptor.IsEditor)
+                            var portReservation = await _loopbackPortReservationManager.ReserveAsync();
+                            var didConsumePort = false;
+                            try
                             {
-                                if (!workerDescriptor.Platform.Equals(hostPlatform, StringComparison.InvariantCultureIgnoreCase))
+                                LocalWorker newWorker;
+                                if (workerDescriptor.IsEditor)
                                 {
-                                    await _onWorkerPoolFailure("A worker descriptor was marked as IsEditor but the target platform does not match the host platform.");
-                                    _cancellationTokenSource.Cancel();
-                                    _cancellationTokenSource.Token.ThrowIfCancellationRequested();
-                                }
+                                    if (!workerDescriptor.Platform.Equals(hostPlatform, StringComparison.InvariantCultureIgnoreCase))
+                                    {
+                                        await _onWorkerPoolFailure("A worker descriptor was marked as IsEditor but the target platform does not match the host platform.");
+                                        _cancellationTokenSource.Cancel();
+                                        _cancellationTokenSource.Token.ThrowIfCancellationRequested();
+                                    }
 
-                                newWorker = new LocalEditorWorker(
-                                    _serviceProvider.GetRequiredService<ILogger<LocalEditorWorker>>(),
-                                    _serviceProvider.GetRequiredService<IProcessExecutor>(),
-                                    newId,
-                                    displayName,
-                                    _nextPort++,
-                                    workerDescriptor,
-                                    OnInternalWorkerStarted,
-                                    OnInternalWorkerExited);
-                                await _testLogger.LogWorkerStarting(newWorker);
+                                    newWorker = new LocalEditorWorker(
+                                        _serviceProvider.GetRequiredService<ILogger<LocalEditorWorker>>(),
+                                        _serviceProvider.GetRequiredService<IProcessExecutor>(),
+                                        newId,
+                                        displayName,
+                                        portReservation,
+                                        workerDescriptor,
+                                        OnInternalWorkerStarted,
+                                        OnInternalWorkerExited);
+                                    await _testLogger.LogWorkerStarting(newWorker);
+                                }
+                                else
+                                {
+                                    newWorker = new LocalGauntletWorker(
+                                        _serviceProvider.GetRequiredService<ILogger<LocalGauntletWorker>>(),
+                                        _serviceProvider.GetRequiredService<IProcessExecutor>(),
+                                        _serviceProvider.GetRequiredService<IUATExecutor>(),
+                                        newId,
+                                        displayName,
+                                        portReservation,
+                                        workerDescriptor,
+                                        OnInternalWorkerStarted,
+                                        OnInternalWorkerExited);
+                                    await _testLogger.LogWorkerStarting(newWorker);
+                                }
+                                _currentWorkers.Add(newWorker);
+                                didConsumePort = true;
+                                newWorker.StartInBackground();
                             }
-                            else
+                            finally
                             {
-                                newWorker = new LocalGauntletWorker(
-                                    _serviceProvider.GetRequiredService<ILogger<LocalGauntletWorker>>(),
-                                    _serviceProvider.GetRequiredService<IProcessExecutor>(),
-                                    _serviceProvider.GetRequiredService<IUATExecutor>(),
-                                    newId,
-                                    displayName,
-                                    new IPEndPoint(IPAddress.Any, 6666),
-                                    new IPEndPoint(IPAddress.Loopback, 6666),
-                                    workerDescriptor,
-                                    OnInternalWorkerStarted,
-                                    OnInternalWorkerExited);
-                                await _testLogger.LogWorkerStarting(newWorker);
+                                if (!didConsumePort)
+                                {
+                                    await portReservation.DisposeAsync();
+                                }
                             }
-                            _currentWorkers.Add(newWorker);
-                            newWorker.StartInBackground();
                         }
                     }
 

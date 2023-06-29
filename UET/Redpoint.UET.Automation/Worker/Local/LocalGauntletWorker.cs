@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
+    using Redpoint.Reservation;
     using Redpoint.UET.UAT;
     using System;
     using System.Collections.Generic;
@@ -16,7 +17,7 @@
         private readonly ILogger<LocalGauntletWorker> _logger;
         private readonly IProcessExecutor _processExecutor;
         private readonly IUATExecutor _uatExecutor;
-        private readonly IPEndPoint _listenEndpoint;
+        private readonly ILoopbackPortReservation _portReservation;
 
         private readonly OnWorkerStarted _onWorkerStarted;
         private readonly OnWorkerExited _onWorkerExited;
@@ -30,8 +31,7 @@
             IUATExecutor uatExecutor,
             string id,
             string displayName,
-            IPEndPoint listenEndpoint,
-            IPEndPoint connectEndpoint,
+            ILoopbackPortReservation portReservation,
             DesiredWorkerDescriptor descriptor,
             OnWorkerStarted onWorkerStarted,
             OnWorkerExited onWorkerExited)
@@ -42,9 +42,8 @@
 
             Id = id;
             DisplayName = displayName;
+            _portReservation = portReservation;
             Descriptor = descriptor;
-            _listenEndpoint = listenEndpoint;
-            EndPoint = connectEndpoint;
             _startupDuration = TimeSpan.Zero;
             _onWorkerStarted = onWorkerStarted;
             _onWorkerExited = onWorkerExited;
@@ -57,7 +56,7 @@
 
         public override DesiredWorkerDescriptor Descriptor { get; }
 
-        public override IPEndPoint EndPoint { get; }
+        public override IPEndPoint EndPoint => _portReservation.EndPoint;
 
         public override TimeSpan StartupDuration => _startupDuration;
 
@@ -83,7 +82,7 @@
                 "-EnablePlugins=TcpMessaging",
                 "-DisablePlugins=UdpMessaging",
                 "-ini:Engine:[/Script/TcpMessaging.TcpMessagingSettings]:EnableTransport=True",
-                $"-ini:Engine:[/Script/TcpMessaging.TcpMessagingSettings]:ListenEndpoint={_listenEndpoint}",
+                $"-ini:Engine:[/Script/TcpMessaging.TcpMessagingSettings]:ListenEndpoint={_portReservation.EndPoint}",
                 "-ini:Engine:[/Script/UdpMessaging.UdpMessagingSettings]:EnabledByDefault=False",
                 "-ini:Engine:[/Script/UdpMessaging.UdpMessagingSettings]:EnableTransport=False",
             };

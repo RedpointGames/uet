@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.ApplicationLifecycle\Redpoint.ApplicationLifecycle.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+    <ProjectReference Include="..\Redpoint.Reservation\Redpoint.Reservation.csproj" />
     <ProjectReference Include="..\Redpoint.UET.UAT\Redpoint.UET.UAT.csproj" />
     <ProjectReference Include="..\Redpoint.Unreal.Serialization\Redpoint.Unreal.Serialization.csproj" />
     <ProjectReference Include="..\Redpoint.Unreal.TcpMessaging\Redpoint.Unreal.TcpMessaging.csproj" />

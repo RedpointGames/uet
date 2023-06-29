@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Reservation;
     using Redpoint.UET.Automation.SystemResources;
     using Redpoint.UET.Automation.TestLogging;
     using System;
@@ -33,6 +34,7 @@
                 testLogger,
                 workerDescriptors,
                 _serviceProvider.GetRequiredService<ISystemResources>(),
+                _serviceProvider.GetRequiredService<IReservationManagerFactory>(),
                 onWorkerStarted,
                 onWorkedExited,
                 onWorkerPoolFailure,

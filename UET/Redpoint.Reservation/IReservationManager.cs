@@ -20,7 +20,7 @@
         /// </summary>
         /// <param name="namespace">The namespace or type of reservation used to make a unique prefix.</param>
         /// <param name="parameters">The parameters to the reservation that are used to make a unique prefix.</param>
-        /// <returns></returns>
+        /// <returns>The reservation.</returns>
         Task<IReservation> ReserveAsync(string @namespace, params string[] parameters);
 
         /// <summary>

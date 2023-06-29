@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
+    using Redpoint.Reservation;
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
@@ -14,7 +15,7 @@
     {
         private readonly ILogger<LocalEditorWorker> _logger;
         private readonly IProcessExecutor _processExecutor;
-
+        private readonly ILoopbackPortReservation _portReservation;
         private readonly OnWorkerStarted _onWorkerStarted;
         private readonly OnWorkerExited _onWorkerExited;
         private readonly CancellationTokenSource _cancellationTokenSource;
@@ -26,7 +27,7 @@
             IProcessExecutor processExecutor,
             string id,
             string displayName,
-            int reservedPort,
+            ILoopbackPortReservation portReservation,
             DesiredWorkerDescriptor descriptor,
             OnWorkerStarted onWorkerStarted,
             OnWorkerExited onWorkerExited)
@@ -36,8 +37,8 @@
 
             Id = id;
             DisplayName = displayName;
+            _portReservation = portReservation;
             Descriptor = descriptor;
-            EndPoint = new IPEndPoint(IPAddress.Loopback, reservedPort);
             _startupDuration = TimeSpan.Zero;
             _onWorkerStarted = onWorkerStarted;
             _onWorkerExited = onWorkerExited;
@@ -50,7 +51,7 @@
 
         public override DesiredWorkerDescriptor Descriptor { get; }
 
-        public override IPEndPoint EndPoint { get; }
+        public override IPEndPoint EndPoint => _portReservation.EndPoint;
 
         public override TimeSpan StartupDuration => _startupDuration;
 
@@ -319,6 +320,7 @@
                 {
                 }
             }
+            await _portReservation.DisposeAsync();
         }
 
         bool ICaptureSpecification.InterceptStandardInput => true;
