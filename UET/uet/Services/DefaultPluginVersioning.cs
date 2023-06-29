@@ -42,7 +42,7 @@
             var ciCommitShortSha = Environment.GetEnvironmentVariable("CI_COMMIT_SHORT_SHA");
             var overrideDateVersion = Environment.GetEnvironmentVariable("OVERRIDE_DATE_VERSION");
             if (!string.IsNullOrWhiteSpace(ciCommitShortSha) &&
-                ciCommitShortSha.Length > 8)
+                ciCommitShortSha.Length >= 8)
             {
                 var currentTime = DateTimeOffset.UtcNow;
                 var unixTimestamp = currentTime.ToUnixTimeSeconds();
