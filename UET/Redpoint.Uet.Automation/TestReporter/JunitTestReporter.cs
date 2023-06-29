@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.Automation.TestReporter
 {
+    using Microsoft.Extensions.Logging;
     using Redpoint.Uet.Automation.Model;
     using System;
     using System.Threading.Tasks;
@@ -7,10 +8,14 @@
 
     internal class JunitTestReporter : ITestReporter
     {
+        private readonly ILogger<JunitTestReporter> _logger;
         private readonly string _path;
 
-        public JunitTestReporter(string path)
+        public JunitTestReporter(
+            ILogger<JunitTestReporter> logger,
+            string path)
         {
+            _logger = logger;
             _path = path;
         }
 
@@ -20,6 +25,7 @@
             TimeSpan duration,
             string filenamePrefixToCut)
         {
+            _logger.LogTrace($"Writing test results in Junit format to: {_path}");
             using (var stream = new FileStream(_path, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
             {
                 using (var writer = XmlWriter.Create(stream, new XmlWriterSettings

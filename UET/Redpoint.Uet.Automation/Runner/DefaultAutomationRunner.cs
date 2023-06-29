@@ -641,12 +641,19 @@
             }
             finally
             {
+                // Flush all of the data to the notification service.
+                _logger.LogTrace("Flushing results to the notification service, as testing has finished...");
+                await _notification.FlushAsync();
+                _logger.LogTrace("Flushed results to the notification service, as testing has finished.");
+
                 // Go through all the test results and report them.
+                _logger.LogTrace("Reporting test results to reporter...");
                 await _reporter.ReportResultsAsync(
                     _configuration.ProjectName,
                     _tests.Values.SelectMany(x => x.AllTests).ToArray(),
                     st.Elapsed,
                     _configuration.FilenamePrefixToCut);
+                _logger.LogTrace("Finished reporting test results to reporter.");
             }
         }
 
