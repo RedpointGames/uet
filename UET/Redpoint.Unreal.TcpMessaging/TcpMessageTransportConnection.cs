@@ -264,9 +264,17 @@
                 }
                 catch (TcpReconnectionRequiredException)
                 {
-                    // The connection must be reconnected.
-                    _logger?.LogTrace("TCP stream disconnected during received, reconnecting...");
-                    await _stream.ReconnectAsync();
+                    if (_disposed)
+                    {
+                        // Do not reconnect because we're already disposed.
+                        _logger?.LogTrace("Ignoring TcpReconnectionRequiredException during receive because this TcpMessageTransportConnection is disposed.");
+                    }
+                    else
+                    {
+                        // The connection must be reconnected.
+                        _logger?.LogTrace("TCP stream disconnected during received, reconnecting...");
+                        await _stream.ReconnectAsync();
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -333,12 +341,21 @@
                     }
                     catch (TcpReconnectionRequiredException)
                     {
-                        // The connection must be reconnected and the message resent.
-                        _logger?.LogTrace("TCP stream disconnected during send, reconnecting...");
-                        await _stream.ReconnectAsync();
-                        _queuedToSend.Enqueue(nextMessageRaw);
-                        _readyToSend.Release();
-                        continue;
+                        if (_disposed)
+                        {
+                            // Do not reconnect because we're already disposed.
+                            _logger?.LogTrace("Ignoring TcpReconnectionRequiredException during send because this TcpMessageTransportConnection is disposed.");
+                            return;
+                        }
+                        else
+                        {
+                            // The connection must be reconnected and the message resent.
+                            _logger?.LogTrace("TCP stream disconnected during send, reconnecting...");
+                            await _stream.ReconnectAsync();
+                            _queuedToSend.Enqueue(nextMessageRaw);
+                            _readyToSend.Release();
+                            continue;
+                        }
                     }
                 }
                 catch (InvalidOperationException ex) when (ex.Message.Contains("The operation is not allowed on non-connected sockets"))
