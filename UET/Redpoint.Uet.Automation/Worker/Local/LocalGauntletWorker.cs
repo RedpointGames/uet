@@ -98,6 +98,10 @@
 
             // @todo: We need to figure out how we obtain devices for this.
 
+            var gauntletOutputPath = Descriptor.WorkerLogsPath != null
+                ? Path.Combine(Descriptor.WorkerLogsPath, $"GauntletOutput")
+                : Path.Combine(Path.GetDirectoryName(Descriptor.UProjectPath)!, "Saved", "GauntletOutput");
+
             // Start the process in the background.
             var st = Stopwatch.StartNew();
             var automationTask = Task.Run(async () => await _uatExecutor.ExecuteAsync(
@@ -111,7 +115,7 @@
                         $@"-project={Descriptor.UProjectPath}",
                         $"-configuration={Descriptor.Configuration}",
                         $"-build=local",
-                        $@"-tempdir={Path.Combine(Path.GetDirectoryName(Descriptor.UProjectPath)!, "Saved", "GauntletOutput")}",
+                        $@"-tempdir={gauntletOutputPath}",
                         $@"-args={string.Join(" ", arguments)}",
                     },
                     DisableOpenGE = true,

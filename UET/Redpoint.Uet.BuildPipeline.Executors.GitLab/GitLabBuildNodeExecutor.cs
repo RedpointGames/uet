@@ -79,6 +79,7 @@
                             engineWorkspace.Path,
                             targetWorkspace.Path,
                             buildSpecification.UETPath,
+                            buildSpecification.ArtifactExportPath,
                             buildSpecification.BuildGraphScript,
                             buildSpecification.BuildGraphTarget,
                             nodeName,

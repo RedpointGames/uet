@@ -7,6 +7,7 @@
   <Option Name="EnginePath" DefaultValue="" Description="Path to the engine" />
   <Option Name="TempPath" DefaultValue="" Description="Path to the temporary directory (must not contain spaces)" />
   <Option Name="ProjectRoot" DefaultValue="" Description="Root path of the project (repository)" />
+  <Option Name="ArtifactExportPath" DefaultValue="" Description="Root path under which to export artifacts such as test results" />
 
   <!-- General options -->
   <Option Name="PluginDirectory" DefaultValue="" Description="Path to the directory that contains the .uplugin" />

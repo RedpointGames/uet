@@ -338,6 +338,7 @@
                     { $"PluginDirectory", isPluginRooted ? $"__REPOSITORY_ROOT__" : $"__REPOSITORY_ROOT__/{pluginInfo.PluginName}" },
                     { $"PluginName", pluginInfo.PluginName },
                     { $"Distribution", distribution.Name },
+                    { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
                     { "ScriptIncludes", scriptIncludes },
@@ -383,6 +384,7 @@
                     { "BUILDING_FOR_REDISTRIBUTION", "true" },
                 },
                 ProjectFolderName = null,
+                ArtifactExportPath = Environment.CurrentDirectory,
             };
         }
 
@@ -448,6 +450,7 @@
                     { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__/{distribution.FolderName}" },
                     { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
+                    { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
                     { "ScriptIncludes", scriptIncludes },
@@ -483,6 +486,7 @@
                 BuildGraphPreparationScripts = prepareCustomBuildGraphScripts,
                 UETPath = _selfLocation.GetUETLocalLocation(),
                 ProjectFolderName = distribution.FolderName,
+                ArtifactExportPath = Environment.CurrentDirectory,
             };
         }
 
@@ -516,6 +520,7 @@
                     { $"PluginDirectory", $"__REPOSITORY_ROOT__" },
                     { $"PluginName", Path.GetFileNameWithoutExtension(pathSpec.UPluginPath)! },
                     { $"Distribution", "None" },
+                    { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
                     { "ScriptIncludes", string.Empty },
@@ -560,6 +565,7 @@
                     { "BUILDING_FOR_REDISTRIBUTION", "true" },
                 },
                 ProjectFolderName = null,
+                ArtifactExportPath = Environment.CurrentDirectory,
             };
         }
 
@@ -604,6 +610,7 @@
                     { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
                     { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
+                    { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
                     { "ScriptIncludes", string.Empty },
@@ -638,6 +645,7 @@
                 BuildGraphRepositoryRoot = pathSpec.DirectoryPath,
                 UETPath = _selfLocation.GetUETLocalLocation(),
                 ProjectFolderName = string.Empty,
+                ArtifactExportPath = Environment.CurrentDirectory,
             };
         }
     }

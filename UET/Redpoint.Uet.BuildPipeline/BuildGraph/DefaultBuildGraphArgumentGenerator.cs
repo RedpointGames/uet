@@ -10,7 +10,8 @@
             string repositoryRoot,
             string uetPath,
             string enginePath,
-            string sharedStoragePath)
+            string sharedStoragePath,
+            string artifactExportPath)
         {
             var results = new List<string>();
             foreach (var kv in arguments)
@@ -20,6 +21,7 @@
                 value = value.Replace("__UET_PATH__", uetPath);
                 value = value.Replace("__ENGINE_PATH__", enginePath);
                 value = value.Replace("__SHARED_STORAGE_PATH__", sharedStoragePath);
+                value = value.Replace("__ARTIFACT_EXPORT_PATH__", artifactExportPath);
                 foreach (var sr in replacements)
                 {
                     value = value.Replace(sr.Key, sr.Value);

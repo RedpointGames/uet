@@ -43,8 +43,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.BuildPipeline"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.BuildPipeline.Tests", "Redpoint.Uet.BuildPipeline.Tests\Redpoint.Uet.BuildPipeline.Tests.csproj", "{B9FDEB77-EC8B-4E1C-A9F1-218A3671574D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.BuildPipeline.TestRunner", "Redpoint.Uet.BuildPipeline.TestRunner\Redpoint.Uet.BuildPipeline.TestRunner.csproj", "{5C4E5E66-23AA-499D-B3CD-DD374F8CD2BB}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{39698A12-7C9B-47F5-BA1A-9F4884A770AF}"
 	ProjectSection(SolutionItems) = preProject
 		Lib\Common.Build.props = Lib\Common.Build.props
@@ -219,9 +217,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Logging.Mac.Tests"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ThirdParty.B2Net", "Lib\Redpoint.ThirdParty.B2Net\Redpoint.ThirdParty.B2Net.csproj", "{770176ED-F5A8-4245-9DF4-70C1CD27DB59}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Concurrency", "Redpoint.Concurrency\Redpoint.Concurrency.csproj", "{DB9BBF50-AA05-442B-B8C1-F4C9C199BDA0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Concurrency", "Redpoint.Concurrency\Redpoint.Concurrency.csproj", "{DB9BBF50-AA05-442B-B8C1-F4C9C199BDA0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Concurrency.Tests", "Redpoint.Concurrency.Tests\Redpoint.Concurrency.Tests.csproj", "{486505E8-0113-4403-B197-66B347A820DE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Concurrency.Tests", "Redpoint.Concurrency.Tests\Redpoint.Concurrency.Tests.csproj", "{486505E8-0113-4403-B197-66B347A820DE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -309,10 +307,6 @@ Global
 		{B9FDEB77-EC8B-4E1C-A9F1-218A3671574D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B9FDEB77-EC8B-4E1C-A9F1-218A3671574D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B9FDEB77-EC8B-4E1C-A9F1-218A3671574D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5C4E5E66-23AA-499D-B3CD-DD374F8CD2BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5C4E5E66-23AA-499D-B3CD-DD374F8CD2BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5C4E5E66-23AA-499D-B3CD-DD374F8CD2BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5C4E5E66-23AA-499D-B3CD-DD374F8CD2BB}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5227BBD5-4CE7-4CB8-A60E-897E70664886}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5227BBD5-4CE7-4CB8-A60E-897E70664886}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5227BBD5-4CE7-4CB8-A60E-897E70664886}.Release|Any CPU.ActiveCfg = Release|Any CPU

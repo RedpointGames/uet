@@ -43,9 +43,6 @@
                 context,
                 writer);
 
-            // Pick a unique property prefix so we never conflict with other test providers.
-            const string propertyPrefix = "TestAutomation";
-
             // Emit the nodes to run each test.
             var allPlatforms = castedSettings.SelectMany(x => x.settings.Platforms).Where(context.CanHostPlatformBeUsed).ToHashSet();
             foreach (var platform in allPlatforms)
@@ -72,7 +69,6 @@
                                 {
                                     Name = nodeName,
                                     Requires = _pluginTestProjectEmitProvider.GetTestProjectTags(platform),
-                                    Produces = $"#{propertyPrefix}_TestResults_{test.name}_{platform}",
                                     If = $"'$(CanBuildEditor{platform})' == 'true'"
                                 },
                                 async writer =>
@@ -142,26 +138,16 @@
                                                 "--test-prefix",
                                                 test.settings.TestPrefix,
                                                 "--test-results-path",
-                                                $@"""{_pluginTestProjectEmitProvider.GetTestProjectDirectoryPath(platform)}/TestResults_{platform}.xml"""
+                                                $@"""$(ArtifactExportPath)/.uet/tmp/Automation{platform}/TestResults.xml""",
+                                                "--worker-logs-path",
+                                                $@"""$(ArtifactExportPath)/.uet/tmp/Automation{platform}"""
                                             }).Concat(arguments).ToArray()
-                                        });
-                                    await writer.WriteTagAsync(
-                                        new TagElementProperties
-                                        {
-                                            BaseDir = $"{_pluginTestProjectEmitProvider.GetTestProjectDirectoryPath(platform)}/",
-                                            Files = $"TestResults_{platform}.xml",
-                                            With = $"#{propertyPrefix}_TestResults_{test.name}_{platform}",
                                         });
                                 });
                             await writer.WriteDynamicNodeAppendAsync(
                                 new DynamicNodeAppendElementProperties
                                 {
                                     NodeName = nodeName,
-                                });
-                            await writer.WriteDynamicOutputFileAppendAsync(
-                                new DynamicOutputFileAppendElementProperties
-                                {
-                                    Tag = $"#{propertyPrefix}_TestResults_{test.name}_{platform}",
                                 });
                         }
                     });

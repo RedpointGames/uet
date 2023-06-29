@@ -25,6 +25,7 @@
             public Option<int?> TestRunTimeoutMinutes;
             public Option<int?> TestAttemptCount;
             public Option<string> TestResultsPath;
+            public Option<string> WorkerLogsPath;
 
             public Options()
             {
@@ -36,6 +37,7 @@
                 TestRunTimeoutMinutes = new Option<int?>("--test-run-timeout-minutes");
                 TestAttemptCount = new Option<int?>("--test-attempt-count");
                 TestResultsPath = new Option<string>("--test-results-path");
+                WorkerLogsPath = new Option<string>("--worker-logs-path");
             }
         }
 
@@ -83,6 +85,7 @@
                 var testRunTimeoutMinutes = context.ParseResult.GetValueForOption(_options.TestRunTimeoutMinutes);
                 var testAttemptCount = context.ParseResult.GetValueForOption(_options.TestAttemptCount);
                 var testResultsPath = context.ParseResult.GetValueForOption(_options.TestResultsPath);
+                var workerLogsPath = context.ParseResult.GetValueForOption(_options.WorkerLogsPath);
 
                 await using (var automationRunner = await _automationRunnerFactory.CreateAndRunAsync(
                     _testLoggerFactory.CreateConsole(),
@@ -101,6 +104,7 @@
                             MinWorkerCount = minWorkerCount,
                             MaxWorkerCount = null,
                             EnableRendering = false,
+                            WorkerLogsPath = workerLogsPath,
                         }
                     },
                     new AutomationRunnerConfiguration

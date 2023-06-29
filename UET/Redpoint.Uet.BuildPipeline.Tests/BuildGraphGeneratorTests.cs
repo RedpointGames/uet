@@ -37,6 +37,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
                 @"E:\EpicGames\UE_5.2",
                 projectPath,
                 string.Empty,
+                string.Empty,
                 BuildGraphScriptSpecification.ForProject(),
                 "End",
                 Path.Combine(projectPath, ".uet", "shared-storage"),
@@ -101,6 +102,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
             var buildGraph = await generator.GenerateGraphAsync(
                 @"E:\EpicGames\UE_5.2",
                 pluginPath,
+                string.Empty,
                 string.Empty,
                 BuildGraphScriptSpecification.ForPlugin(),
                 "End",

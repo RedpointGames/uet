@@ -10,6 +10,7 @@
             string repositoryRoot,
             string uetPath,
             string enginePath,
-            string sharedStoragePath);
+            string sharedStoragePath,
+            string artifactExportPath);
     }
 }

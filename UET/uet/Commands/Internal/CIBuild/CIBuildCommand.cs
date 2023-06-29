@@ -156,6 +156,7 @@
                     UETPath = Process.GetCurrentProcess().MainModule!.FileName,
                     ProjectFolderName = buildJson.ProjectFolderName,
                     GlobalEnvironmentVariables = buildJson.GlobalEnvironmentVariables,
+                    ArtifactExportPath = Environment.CurrentDirectory,
                 };
 
                 try

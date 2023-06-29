@@ -63,7 +63,9 @@
 
             var projectRoot = Path.GetDirectoryName(Descriptor.UProjectPath)!;
 
-            var logPath = Path.Combine(projectRoot, "Saved", "Logs", $"Worker_{Descriptor.Platform}_{Id}.log");
+            var logPath = Descriptor.WorkerLogsPath != null
+                ? Path.Combine(Descriptor.WorkerLogsPath, $"Worker_{Descriptor.Platform}_{Id}.log")
+                : Path.Combine(projectRoot, "Saved", "Logs", $"Worker_{Descriptor.Platform}_{Id}.log");
 
             // Before we run Unreal, we must add an exception for the port if it does not already exist.
             if (OperatingSystem.IsWindows())

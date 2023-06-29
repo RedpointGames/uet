@@ -46,5 +46,10 @@
         /// If set, rendering and audio will be enabled on the worker. Only relevant for workers running on a desktop platform. Defaults to false.
         /// </summary>
         public bool EnableRendering { get; set; }
+
+        /// <summary>
+        /// If set, worker logs will be emitted underneath this path (assuming it is a directory). If not set, worker logs will be emitted to Saved.
+        /// </summary>
+        public string? WorkerLogsPath { get; set; }
     }
 }

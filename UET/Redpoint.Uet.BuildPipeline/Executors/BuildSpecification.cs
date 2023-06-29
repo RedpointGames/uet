@@ -48,5 +48,12 @@
         /// physical workspace provider to heavily optimize 'git checkout' for Unreal projects.
         /// </summary>
         public required string? ProjectFolderName { get; init; }
+
+        /// <summary>
+        /// The root path under which to export artifacts such as test results. This should always be set to the
+        /// working directory of the original command, regardless of workspace virtualisation, so that build servers
+        /// can save artifacts.
+        /// </summary>
+        public required string ArtifactExportPath { get; init; }
     }
 }

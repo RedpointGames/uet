@@ -159,6 +159,7 @@
                                 engineWorkspace.Path,
                                 targetWorkspace.Path,
                                 buildSpecification.UETPath,
+                                buildSpecification.ArtifactExportPath,
                                 buildSpecification.BuildGraphScript,
                                 buildSpecification.BuildGraphTarget,
                                 node.Node.Name,
@@ -239,6 +240,7 @@
                         engineWorkspace.Path,
                         targetWorkspace.Path,
                         buildSpecification.UETPath,
+                        buildSpecification.ArtifactExportPath,
                         buildSpecification.BuildGraphScript,
                         buildSpecification.BuildGraphTarget,
                         OperatingSystem.IsWindows()

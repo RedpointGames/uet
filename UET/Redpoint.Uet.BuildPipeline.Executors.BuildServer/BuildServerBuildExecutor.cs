@@ -308,6 +308,7 @@
                         engineWorkspace.Path,
                         temporaryWorkspace.Path,
                         buildSpecification.UETPath,
+                        buildSpecification.ArtifactExportPath,
                         buildSpecification.BuildGraphScript,
                         buildSpecification.BuildGraphTarget,
                         OperatingSystem.IsWindows()
@@ -404,10 +405,9 @@
                     {
                         job.ArtifactPaths = new[]
                         {
-                            ".uet/tmp/*/TestResults_*.xml",
-                            ".uet/tmp/T*/Saved/Logs/Worker*.log",
+                            ".uet/tmp/Automation*/"
                         };
-                        job.ArtifactJUnitReportPath = ".uet/tmp/*/TestResults_*.xml";
+                        job.ArtifactJUnitReportPath = ".uet/tmp/Automation*/TestResults.xml";
                     }
 
                     var globalArgs = _globalArgsProvider != null ? $" {_globalArgsProvider.GlobalArgsString}" : string.Empty;

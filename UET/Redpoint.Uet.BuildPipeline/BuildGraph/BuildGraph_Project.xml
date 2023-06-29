@@ -7,6 +7,7 @@
   <Option Name="TempPath" Restrict=".*" DefaultValue="" Description="Path to the temporary directory (must not contain spaces)" />
   <Option Name="ProjectRoot" Restrict=".*" DefaultValue="" Description="Path to the directory that contains the .uproject" />
   <Option Name="RepositoryRoot" Restrict=".*" DefaultValue="" Description="Path to the directory that contains all the project folders and BuildScriptsExtra" />
+  <Option Name="ArtifactExportPath" DefaultValue="" Description="Root path under which to export artifacts such as test results" />
 
   <!-- General options -->
   <Option Name="UProjectPath" Restrict=".*" DefaultValue="" Description="Path to the .uproject file" />
