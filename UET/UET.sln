@@ -221,6 +221,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Concurrency", "Red
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Concurrency.Tests", "Redpoint.Concurrency.Tests\Redpoint.Concurrency.Tests.csproj", "{486505E8-0113-4403-B197-66B347A820DE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "uet.shim", "uet.shim\uet.shim.csproj", "{92B55412-AF63-40DB-AE27-04E4F0CAB00D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -647,6 +649,10 @@ Global
 		{486505E8-0113-4403-B197-66B347A820DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{486505E8-0113-4403-B197-66B347A820DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{486505E8-0113-4403-B197-66B347A820DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{92B55412-AF63-40DB-AE27-04E4F0CAB00D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92B55412-AF63-40DB-AE27-04E4F0CAB00D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92B55412-AF63-40DB-AE27-04E4F0CAB00D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92B55412-AF63-40DB-AE27-04E4F0CAB00D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

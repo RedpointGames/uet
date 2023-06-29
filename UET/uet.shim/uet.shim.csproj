@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
+
+  <PropertyGroup>
+    <RootNamespace>Uet.Shim</RootNamespace>
+    <Description>The unofficial Unreal Engine Tool (shim).</Description>
+    <Product>Unreal Engine Tool (shim)</Product>
+    <AssemblyTitle>Unreal Engine Tool (shim)</AssemblyTitle>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <SelfContained>false</SelfContained>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+    <RunILLink>false</RunILLink>
+    <AssemblyName>uet</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\uet\Commands\Upgrade\UpgradeCommandImplementation.cs" Link="UpgradeCommandImplementation.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
+    <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+    <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
+  </ItemGroup>
+
+</Project>

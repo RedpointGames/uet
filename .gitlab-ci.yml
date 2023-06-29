@@ -167,6 +167,41 @@ stages:
     paths:
       - "UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/osx.11.0-arm64/publish/uefs-daemon"
 
+"Build Win Shim":
+  stage: Build Pass 1
+  tags:
+    - redpoint-games-windows
+  needs:
+    - Timestamp
+  interruptible: true
+  script: |
+    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion -p:OpenGEShimIsAlreadyBuilt=true UET/uet.shim/uet.shim.csproj
+    if ($LastExitCode -ne 0) {
+      Write-Host "Publish win-x64 (uet.csproj) failed with exit code $LastExitCode"
+      exit $LastExitCode 
+    }
+  artifacts:
+    paths:
+      - "UET/uet.shim/bin/Release/net7.0/win-x64/publish/uet.exe"
+
+"Build Mac Shim":
+  stage: Build Pass 1
+  tags:
+    - redpoint-games-mac
+  needs:
+    - Timestamp
+  interruptible: true
+  script: |
+    PACKAGE_VERSION=$(cat package.version | tr -d '\n')
+    echo "Package version: $PACKAGE_VERSION"
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION -p:OpenGEShimIsAlreadyBuilt=true UET/uet.shim/uet.shim.csproj
+    # Ensure the thing we built will actually run...
+    ./UET/uet.shim/bin/Release/net7.0/osx.11.0-arm64/publish/uet --help
+  artifacts:
+    paths:
+      - "UET/uet.shim/bin/Release/net7.0/osx.11.0-arm64/publish/uet"
+
 "Build and Test Libraries on Windows":
   stage: Build Libraries
   tags:
@@ -289,36 +324,20 @@ stages:
     - redpoint-games-windows
   needs:
     - Timestamp
+    - "Build Win Shim"
     - "Build Win Pass 2"
     - "Build Win UEFS Client"
     - "Build Win UEFS Daemon"
   interruptible: true
   script: |
-    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    $env:B2_ACCOUNT_INFO = Join-Path -Path (Resolve-Path -Path ".") -ChildPath ".b2.db"
-    try {
-      b2 authorize-account "$env:DL_BACKBLAZE_B2_KEY_ID" "$env:DL_BACKBLAZE_B2_APPLICATION_KEY"
-      if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-      }
-      b2 upload-file dl-public-redpoint-games "UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe" "uet/$PackageVersion/windows/uet.exe"
-      if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-      }
-      b2 upload-file dl-public-redpoint-games "UET/Redpoint.Uefs.Client/bin/Release/net7.0/win-x64/publish/uefs.exe" "uet/$PackageVersion/windows/uefs.exe"
-      if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-      }
-      b2 upload-file dl-public-redpoint-games "UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/win-x64/publish/uefs-daemon.exe" "uet/$PackageVersion/windows/uefs-daemon.exe"
-      if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-      }
-    } finally {
-      if (Test-Path $env:B2_ACCOUNT_INFO) {
-        Write-Output "Cleaning up B2 authentication file..."
-        Remove-Item -Force -Path $env:B2_ACCOUNT_INFO
-      }
-    }
+    UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe transfer "UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe" "b2://dl-public-redpoint-games/uet/$PackageVersion/windows/uet.exe"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe transfer "UET/Redpoint.Uefs.Client/bin/Release/net7.0/win-x64/publish/uefs.exe" "b2://dl-public-redpoint-games/uet/$PackageVersion/windows/uefs.exe"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe transfer "UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/win-x64/publish/uefs-daemon.exe" "b2://dl-public-redpoint-games/uet/$PackageVersion/windows/uefs-daemon.exe"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe transfer "UET/uet.shim/bin/Release/net7.0/win-x64/publish/uet.exe" "b2://dl-public-redpoint-games/uet/shim/windows/uet.exe"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_PIPELINE_SOURCE == "web"'
@@ -329,36 +348,20 @@ stages:
     - redpoint-games-windows
   needs:
     - Timestamp
+    - "Build Mac Shim"
     - "Build Mac Pass 2"
     - "Build Mac UEFS Client"
     - "Build Mac UEFS Daemon"
   interruptible: true
   script: |
-    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    $env:B2_ACCOUNT_INFO = Join-Path -Path (Resolve-Path -Path ".") -ChildPath ".b2.db"
-    try {
-      b2 authorize-account "$env:DL_BACKBLAZE_B2_KEY_ID" "$env:DL_BACKBLAZE_B2_APPLICATION_KEY"
-      if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-      }
-      b2 upload-file dl-public-redpoint-games "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet" "uet/$PackageVersion/macos/uet"
-      if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-      }
-      b2 upload-file dl-public-redpoint-games "UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs" "uet/$PackageVersion/macos/uefs"
-      if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-      }
-      b2 upload-file dl-public-redpoint-games "UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/osx.11.0-arm64/publish/uefs-daemon" "uet/$PackageVersion/macos/uefs-daemon"
-      if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-      }
-    } finally {
-      if (Test-Path $env:B2_ACCOUNT_INFO) {
-        Write-Output "Cleaning up B2 authentication file..."
-        Remove-Item -Force -Path $env:B2_ACCOUNT_INFO
-      }
-    }
+    UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet transfer "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet" "b2://dl-public-redpoint-games/uet/$PackageVersion/macos/uet"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet transfer "UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs" "b2://dl-public-redpoint-games/uet/$PackageVersion/macos/uefs"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet transfer "UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/osx.11.0-arm64/publish/uefs-daemon" "b2://dl-public-redpoint-games/uet/$PackageVersion/macos/uefs-daemon"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet transfer "UET/uet.shim/bin/Release/net7.0/osx.11.0-arm64/publish/uet" "b2://dl-public-redpoint-games/uet/shim/macos/uet"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_PIPELINE_SOURCE == "web"'

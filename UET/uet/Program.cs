@@ -112,7 +112,7 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                     didInstall = true;
                     if (targetVersion == "BleedingEdge")
                     {
-                        targetVersion = UpgradeCommand.LastInstalledVersion!;
+                        targetVersion = UpgradeCommandImplementation.LastInstalledVersion!;
                         if (targetVersion == currentVersionAttribute.InformationalVersion)
                         {
                             isBleedingEdgeTheSame = true;
@@ -140,7 +140,7 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                     var nestedExitCode = await processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
-                            FilePath = UpgradeCommand.GetAssemblyPathForVersion(targetVersion),
+                            FilePath = UpgradeCommandImplementation.GetAssemblyPathForVersion(targetVersion),
                             Arguments = args,
                             WorkingDirectory = Environment.CurrentDirectory,
                             EnvironmentVariables = new Dictionary<string, string>
