@@ -86,7 +86,7 @@ if (targetVersion == "BleedingEdge" || !File.Exists(UpgradeCommandImplementation
             sp.GetRequiredService<IProgressFactory>(),
             sp.GetRequiredService<IMonitorFactory>(),
             logger,
-            targetVersion,
+            targetVersion == "BleedingEdge" ? string.Empty : targetVersion,
             true);
         if (targetVersion == "BleedingEdge")
         {
