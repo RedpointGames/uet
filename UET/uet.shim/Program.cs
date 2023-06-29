@@ -62,21 +62,6 @@ if (string.IsNullOrEmpty(targetVersion) && File.Exists(UpgradeCommandImplementat
     }
 }
 
-// If we have our own version attribute, use that.
-if (string.IsNullOrEmpty(targetVersion) && currentVersionAttribute != null)
-{
-    targetVersion = currentVersionAttribute.InformationalVersion;
-    if (targetVersion != null && targetVersion.EndsWith("-pre"))
-    {
-        // Can't select a pre-release version number.
-        targetVersion = null;
-    }
-    if (!string.IsNullOrEmpty(targetVersion))
-    {
-        logger.LogInformation($"UET shim selected version {targetVersion} from shim's own version.");
-    }
-}
-
 // Otherwise, pick the BleedingEdge.
 if (string.IsNullOrEmpty(targetVersion))
 {

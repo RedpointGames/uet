@@ -96,6 +96,7 @@
                     using (var target = new FileStream(Path.Combine(baseFolder, version, filename + ".tmp"), FileMode.Create, FileAccess.Write, FileShare.None))
                     {
                         var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                        response.EnsureSuccessStatusCode();
                         using (var stream = new PositionAwareStream(
                             await response.Content.ReadAsStreamAsync(),
                             response.Content.Headers.ContentLength!.Value))
