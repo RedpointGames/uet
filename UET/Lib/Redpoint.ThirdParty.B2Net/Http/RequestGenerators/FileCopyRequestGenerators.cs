@@ -47,7 +47,7 @@
             {
                 payload.Add("fileInfo", fileInfo);
             }
-            var json = JsonSerializer.Serialize(payload, B2JsonSerializerContext.Default.DictionaryStringObject);
+            var json = JsonSerializer.Serialize(payload, B2JsonSerializerContext.B2Defaults.DictionaryStringObject);
 
             var request = new HttpRequestMessage()
             {

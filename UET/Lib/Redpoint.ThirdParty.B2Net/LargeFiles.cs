@@ -39,7 +39,7 @@
             var response = await _client.SendAsync(request, cancelToken);
 
             // Create B2File from response
-            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.Default.B2File, _api);
+            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.B2Defaults.B2File, _api);
         }
 
         /// <summary>
@@ -54,7 +54,7 @@
 
             var uploadUrlResponse = await _client.SendAsync(request, cancelToken);
 
-            var uploadUrl = await ResponseParser.ParseResponse<B2UploadPartUrl>(uploadUrlResponse, B2JsonSerializerContext.Default.B2UploadPartUrl, _api);
+            var uploadUrl = await ResponseParser.ParseResponse<B2UploadPartUrl>(uploadUrlResponse, B2JsonSerializerContext.B2Defaults.B2UploadPartUrl, _api);
 
             return uploadUrl;
         }
@@ -73,7 +73,7 @@
 
             var response = await _client.SendAsync(request, cancelToken);
 
-            return await ResponseParser.ParseResponse<B2UploadPart>(response, B2JsonSerializerContext.Default.B2UploadPart, _api);
+            return await ResponseParser.ParseResponse<B2UploadPart>(response, B2JsonSerializerContext.B2Defaults.B2UploadPart, _api);
         }
 
         /// <summary>
@@ -91,7 +91,7 @@
             var response = await _client.SendAsync(request, cancelToken);
 
             // Create B2File from response
-            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.Default.B2File, _api);
+            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.B2Defaults.B2File, _api);
         }
 
         /// <summary>
@@ -110,7 +110,7 @@
             var response = await _client.SendAsync(request, cancelToken);
 
             // Create B2File from response
-            return await ResponseParser.ParseResponse<B2LargeFileParts>(response, B2JsonSerializerContext.Default.B2LargeFileParts, _api);
+            return await ResponseParser.ParseResponse<B2LargeFileParts>(response, B2JsonSerializerContext.B2Defaults.B2LargeFileParts, _api);
         }
 
         /// <summary>
@@ -127,7 +127,7 @@
             var response = await _client.SendAsync(request, cancelToken);
 
             // Create B2File from response
-            return await ResponseParser.ParseResponse<B2CancelledFile>(response, B2JsonSerializerContext.Default.B2CancelledFile, _api);
+            return await ResponseParser.ParseResponse<B2CancelledFile>(response, B2JsonSerializerContext.B2Defaults.B2CancelledFile, _api);
         }
 
         /// <summary>
@@ -146,7 +146,7 @@
             var response = await _client.SendAsync(request, cancelToken);
 
             // Create B2File from response
-            return await ResponseParser.ParseResponse<B2IncompleteLargeFiles>(response, B2JsonSerializerContext.Default.B2IncompleteLargeFiles, _api);
+            return await ResponseParser.ParseResponse<B2IncompleteLargeFiles>(response, B2JsonSerializerContext.B2Defaults.B2IncompleteLargeFiles, _api);
         }
     }
 }

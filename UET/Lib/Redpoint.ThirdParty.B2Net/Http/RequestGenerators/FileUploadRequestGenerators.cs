@@ -112,7 +112,7 @@
 
         public static HttpRequestMessage GetUploadUrl(B2Options options, string bucketId)
         {
-            var json = JsonSerializer.Serialize(new GetUploadUrlRequest { bucketId = bucketId }, B2JsonSerializerContext.Default.GetUploadUrlRequest);
+            var json = JsonSerializer.Serialize(new GetUploadUrlRequest { bucketId = bucketId }, B2JsonSerializerContext.B2Defaults.GetUploadUrlRequest);
             return BaseRequestGenerator.PostRequest(Endpoints.GetUploadUrl, json, options);
         }
     }

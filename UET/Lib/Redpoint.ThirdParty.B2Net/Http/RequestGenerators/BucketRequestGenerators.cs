@@ -7,6 +7,7 @@
     using System.Linq;
     using System.Net.Http;
     using System.Text.Json;
+    using System.Text.Json.Serialization;
     using System.Text.Json.Serialization.Metadata;
     using System.Text.RegularExpressions;
 
@@ -23,6 +24,8 @@
         public class GetBucketListRequest
         {
             public string accountId { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string bucketName { get; set; }
         }
 
         public class DeleteBucketRequest
@@ -47,13 +50,19 @@
 
         public static HttpRequestMessage GetBucketList(B2Options options)
         {
-            var json = JsonSerializer.Serialize(new GetBucketListRequest { accountId = options.AccountId }, B2JsonSerializerContext.Default.GetBucketListRequest);
+            var json = JsonSerializer.Serialize(new GetBucketListRequest { accountId = options.AccountId, bucketName = null }, B2JsonSerializerContext.B2Defaults.GetBucketListRequest);
+            return BaseRequestGenerator.PostRequest(Endpoints.List, json, options);
+        }
+
+        public static HttpRequestMessage GetBucketListForName(string bucketName, B2Options options)
+        {
+            var json = JsonSerializer.Serialize(new GetBucketListRequest { accountId = options.AccountId, bucketName = bucketName }, B2JsonSerializerContext.B2Defaults.GetBucketListRequest);
             return BaseRequestGenerator.PostRequest(Endpoints.List, json, options);
         }
 
         public static HttpRequestMessage DeleteBucket(B2Options options, string bucketId)
         {
-            var json = JsonSerializer.Serialize(new DeleteBucketRequest { accountId = options.AccountId, bucketId = bucketId }, B2JsonSerializerContext.Default.DeleteBucketRequest);
+            var json = JsonSerializer.Serialize(new DeleteBucketRequest { accountId = options.AccountId, bucketId = bucketId }, B2JsonSerializerContext.B2Defaults.DeleteBucketRequest);
             return BaseRequestGenerator.PostRequest(Endpoints.Delete, json, options);
         }
 
@@ -74,7 +83,7 @@
                             must be at least 6 characters long, and can be at most 50 characters long");
             }
 
-            var json = JsonSerializer.Serialize(new CreateBucketRequest { accountId = options.AccountId, bucketName = bucketName, bucketType = bucketType }, B2JsonSerializerContext.Default.CreateBucketRequest);
+            var json = JsonSerializer.Serialize(new CreateBucketRequest { accountId = options.AccountId, bucketName = bucketName, bucketType = bucketType }, B2JsonSerializerContext.B2Defaults.CreateBucketRequest);
             return BaseRequestGenerator.PostRequest(Endpoints.Create, json, options);
         }
 
@@ -137,7 +146,7 @@
                 body.corsRules = bucketOptions.CORSRules;
             }
 
-            var json = JsonSerialize(body, B2JsonSerializerContext.Default.B2BucketCreateModel);
+            var json = JsonSerialize(body, B2JsonSerializerContext.B2Defaults.B2BucketCreateModel);
             return BaseRequestGenerator.PostRequest(Endpoints.Create, json, options);
         }
 
@@ -150,7 +159,7 @@
         /// <returns></returns>
         public static HttpRequestMessage UpdateBucket(B2Options options, string bucketId, string bucketType)
         {
-            var json = JsonSerializer.Serialize(new UpdateBucketRequest { accountId = options.AccountId, bucketId = bucketId, bucketType = bucketType }, B2JsonSerializerContext.Default.UpdateBucketRequest);
+            var json = JsonSerializer.Serialize(new UpdateBucketRequest { accountId = options.AccountId, bucketId = bucketId, bucketType = bucketType }, B2JsonSerializerContext.B2Defaults.UpdateBucketRequest);
             return BaseRequestGenerator.PostRequest(Endpoints.Update, json, options);
         }
 
@@ -223,7 +232,7 @@
                 body.ifRevisionIs = revisionNumber.Value;
             }
 
-            var json = JsonSerialize(body, B2JsonSerializerContext.Default.B2BucketUpdateModel);
+            var json = JsonSerialize(body, B2JsonSerializerContext.B2Defaults.B2BucketUpdateModel);
             return BaseRequestGenerator.PostRequest(Endpoints.Update, json, options);
         }
 

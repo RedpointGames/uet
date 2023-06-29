@@ -83,8 +83,7 @@
                     ApplicationKey = b2AppKey,
                 });
 
-                var bucket = (await client.Buckets.GetList(context.GetCancellationToken())).FirstOrDefault(
-                    x => x.BucketName == bucketName);
+                var bucket = await client.Buckets.GetByName(bucketName, context.GetCancellationToken());
                 if (bucket == null)
                 {
                     _logger.LogError($"Unable to find bucket named '{bucketName}' (maybe you can't access it with this key?)");

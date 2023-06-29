@@ -7,6 +7,7 @@
     using System.Security.Cryptography;
     using System.Text;
     using System.Text.Json;
+    using System.Text.Json.Serialization;
     using System.Threading.Tasks;
 
     public static class Utilities
@@ -35,7 +36,7 @@
                 B2Error b2Error;
                 try
                 {
-                    b2Error = JsonSerializer.Deserialize(content, B2JsonSerializerContext.Default.B2Error);
+                    b2Error = JsonSerializer.Deserialize(content, B2JsonSerializerContext.B2Defaults.B2Error);
                 }
                 catch (Exception ex)
                 {
@@ -44,7 +45,7 @@
                 if (b2Error != null)
                 {
                     // If calling API is supplied, append to the error message
-                    if (!string.IsNullOrEmpty(callingApi) && b2Error.Code == "401")
+                    if (!string.IsNullOrEmpty(callingApi) && b2Error.Status == 401)
                     {
                         b2Error.Message = $"Unauthorized error when operating on {callingApi}. Are you sure the key you are using has access? {b2Error.Message}";
                     }
@@ -86,9 +87,12 @@
 
         internal class B2Error
         {
+            [JsonPropertyName("code")]
             public string Code { get; set; }
+            [JsonPropertyName("message")]
             public string Message { get; set; }
-            public string Status { get; set; }
+            [JsonPropertyName("status")]
+            public int Status { get; set; }
         }
     }
 

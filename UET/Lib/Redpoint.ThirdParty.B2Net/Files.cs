@@ -55,7 +55,7 @@
             var requestMessage = FileMetaDataRequestGenerators.GetList(_options, operationalBucketId, startFileName, maxFileCount, prefix, delimiter);
             var response = await _client.SendAsync(requestMessage, cancelToken);
 
-            return await ResponseParser.ParseResponse<B2FileList>(response, B2JsonSerializerContext.Default.B2FileList, _api);
+            return await ResponseParser.ParseResponse<B2FileList>(response, B2JsonSerializerContext.B2Defaults.B2FileList, _api);
         }
 
         /// <summary>
@@ -95,7 +95,7 @@
             var requestMessage = FileMetaDataRequestGenerators.ListVersions(_options, operationalBucketId, startFileName, startFileId, maxFileCount, prefix, delimiter);
             var response = await _client.SendAsync(requestMessage, cancelToken);
 
-            return await ResponseParser.ParseResponse<B2FileList>(response, B2JsonSerializerContext.Default.B2FileList, _api);
+            return await ResponseParser.ParseResponse<B2FileList>(response, B2JsonSerializerContext.B2Defaults.B2FileList, _api);
         }
 
         /// <summary>
@@ -109,7 +109,7 @@
             var requestMessage = FileMetaDataRequestGenerators.GetInfo(_options, fileId);
             var response = await _client.SendAsync(requestMessage, cancelToken);
 
-            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.Default.B2File, _api);
+            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.B2Defaults.B2File, _api);
         }
 
         /// <summary>
@@ -127,7 +127,7 @@
             var uploadUrlResponse = await _client.SendAsync(uploadUrlRequest, cancelToken);
 
             // parse response and return it.
-            var uploadUrl = await ResponseParser.ParseResponse<B2UploadUrl>(uploadUrlResponse, B2JsonSerializerContext.Default.B2UploadUrl);
+            var uploadUrl = await ResponseParser.ParseResponse<B2UploadUrl>(uploadUrlResponse, B2JsonSerializerContext.B2Defaults.B2UploadUrl);
 
             // Set the upload auth token
             _options.UploadAuthorizationToken = uploadUrl.AuthorizationToken;
@@ -154,7 +154,7 @@
             var uploadUrlRequest = FileUploadRequestGenerators.GetUploadUrl(_options, operationalBucketId);
             var uploadUrlResponse = await _client.SendAsync(uploadUrlRequest, cancelToken);
             var uploadUrlData = await uploadUrlResponse.Content.ReadAsStringAsync();
-            var uploadUrlObject = JsonSerializer.Deserialize(uploadUrlData, B2JsonSerializerContext.Default.B2UploadUrl);
+            var uploadUrlObject = JsonSerializer.Deserialize(uploadUrlData, B2JsonSerializerContext.B2Defaults.B2UploadUrl);
             // Set the upload auth token
             _options.UploadAuthorizationToken = uploadUrlObject.AuthorizationToken;
 
@@ -162,7 +162,7 @@
             var requestMessage = FileUploadRequestGenerators.Upload(_options, uploadUrlObject.UploadUrl, fileData, fileName, fileInfo);
             var response = await _client.SendAsync(requestMessage, cancelToken);
 
-            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.Default.B2File, _api);
+            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.B2Defaults.B2File, _api);
         }
 
         /// <summary>
@@ -227,7 +227,7 @@
                 response = await _client.SendAsync(retryMessage, cancelToken);
             }
 
-            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.Default.B2File, _api);
+            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.B2Defaults.B2File, _api);
         }
 
         /// <summary>
@@ -261,7 +261,7 @@
                 response = await _client.SendAsync(retryMessage, cancelToken);
             }
 
-            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.Default.B2File, _api);
+            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.B2Defaults.B2File, _api);
         }
 
         /// <summary>
@@ -282,7 +282,7 @@
             request = FileDownloadRequestGenerators.DownloadByName(_options, bucketName, fileName, $"{startByte}-{endByte}");
 
             // Send the download request
-            var response = await _client.SendAsync(request, cancelToken);
+            var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken);
 
             // Create B2File from response
             return await ParseDownloadResponse(response);
@@ -302,7 +302,7 @@
             request = FileDownloadRequestGenerators.DownloadByName(_options, bucketName, fileName);
 
             // Send the download request
-            var response = await _client.SendAsync(request, cancelToken);
+            var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken);
 
             // Create B2File from response
             return await ParseDownloadResponse(response);
@@ -323,7 +323,7 @@
             request = FileDownloadRequestGenerators.DownloadById(_options, fileId, $"{startByte}-{endByte}");
 
             // Send the download request
-            var response = await _client.SendAsync(request, cancelToken);
+            var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken);
 
             // Create B2File from response
             return await ParseDownloadResponse(response);
@@ -342,7 +342,7 @@
             request = FileDownloadRequestGenerators.DownloadById(_options, fileId);
 
             // Send the download request
-            var response = await _client.SendAsync(request, cancelToken);
+            var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken);
 
             // Create B2File from response
             return await ParseDownloadResponse(response);
@@ -360,7 +360,7 @@
             var requestMessage = FileDeleteRequestGenerator.Delete(_options, fileId, fileName);
             var response = await _client.SendAsync(requestMessage, cancelToken);
 
-            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.Default.B2File, _api);
+            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.B2Defaults.B2File, _api);
         }
 
 
@@ -401,7 +401,7 @@
             var requestMessage = FileMetaDataRequestGenerators.HideFile(_options, operationalBucketId, fileName, fileId);
             var response = await _client.SendAsync(requestMessage, cancelToken);
 
-            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.Default.B2File, _api);
+            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.B2Defaults.B2File, _api);
         }
 
         /// <summary>
@@ -438,7 +438,7 @@
             var response = await _client.SendAsync(request, cancelToken);
 
             // Create B2File from response
-            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.Default.B2File, _api);
+            return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.B2Defaults.B2File, _api);
         }
 
         /// <summary>
@@ -460,7 +460,7 @@
             var response = await _client.SendAsync(request, cancelToken);
 
             // Create B2File from response
-            return await ResponseParser.ParseResponse<B2DownloadAuthorization>(response, B2JsonSerializerContext.Default.B2DownloadAuthorization, _api);
+            return await ResponseParser.ParseResponse<B2DownloadAuthorization>(response, B2JsonSerializerContext.B2Defaults.B2DownloadAuthorization, _api);
         }
 
         private async Task<B2File> ParseDownloadResponse(HttpResponseMessage response)
@@ -499,7 +499,7 @@
             {
                 file.Size = response.Content.Headers.ContentLength.Value;
             }
-            file.FileData = await response.Content.ReadAsByteArrayAsync();
+            file.FileData = await response.Content.ReadAsStreamAsync();
 
             return await Task.FromResult(file);
         }

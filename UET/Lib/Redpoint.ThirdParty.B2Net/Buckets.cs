@@ -1,6 +1,7 @@
 namespace B2Net
 {
     using System.Collections.Generic;
+    using System.Linq;
     using System.Net.Http;
     using System.Threading;
     using System.Threading.Tasks;
@@ -24,8 +25,17 @@ namespace B2Net
             var requestMessage = BucketRequestGenerators.GetBucketList(_options);
             var response = await _client.SendAsync(requestMessage, cancelToken);
 
-            var bucketList = await ResponseParser.ParseResponse<B2BucketListDeserializeModel>(response, B2JsonSerializerContext.Default.B2BucketListDeserializeModel);
+            var bucketList = await ResponseParser.ParseResponse<B2BucketListDeserializeModel>(response, B2JsonSerializerContext.B2Defaults.B2BucketListDeserializeModel);
             return bucketList.Buckets;
+        }
+
+        public async Task<B2Bucket> GetByName(string bucketName, CancellationToken cancelToken = default(CancellationToken))
+        {
+            var requestMessage = BucketRequestGenerators.GetBucketListForName(bucketName, _options);
+            var response = await _client.SendAsync(requestMessage, cancelToken);
+
+            var bucketList = await ResponseParser.ParseResponse<B2BucketListDeserializeModel>(response, B2JsonSerializerContext.B2Defaults.B2BucketListDeserializeModel);
+            return bucketList.Buckets.FirstOrDefault();
         }
 
         /// <summary>
@@ -41,7 +51,7 @@ namespace B2Net
             var requestMessage = BucketRequestGenerators.CreateBucket(_options, bucketName, bucketType.ToString());
             var response = await _client.SendAsync(requestMessage, cancelToken);
 
-            return await ResponseParser.ParseResponse<B2Bucket>(response, B2JsonSerializerContext.Default.B2Bucket, _api);
+            return await ResponseParser.ParseResponse<B2Bucket>(response, B2JsonSerializerContext.B2Defaults.B2Bucket, _api);
         }
 
         /// <summary>
@@ -57,7 +67,7 @@ namespace B2Net
             var requestMessage = BucketRequestGenerators.CreateBucket(_options, bucketName, options);
             var response = await _client.SendAsync(requestMessage, cancelToken);
 
-            return await ResponseParser.ParseResponse<B2Bucket>(response, B2JsonSerializerContext.Default.B2Bucket, _api);
+            return await ResponseParser.ParseResponse<B2Bucket>(response, B2JsonSerializerContext.B2Defaults.B2Bucket, _api);
         }
 
         /// <summary>
@@ -73,7 +83,7 @@ namespace B2Net
             var requestMessage = BucketRequestGenerators.DeleteBucket(_options, operationalBucketId);
             var response = await _client.SendAsync(requestMessage, cancelToken);
 
-            return await ResponseParser.ParseResponse<B2Bucket>(response, B2JsonSerializerContext.Default.B2Bucket, _api);
+            return await ResponseParser.ParseResponse<B2Bucket>(response, B2JsonSerializerContext.B2Defaults.B2Bucket, _api);
         }
 
         /// <summary>
@@ -89,7 +99,7 @@ namespace B2Net
             var requestMessage = BucketRequestGenerators.UpdateBucket(_options, operationalBucketId, bucketType.ToString());
             var response = await _client.SendAsync(requestMessage, cancelToken);
 
-            return await ResponseParser.ParseResponse<B2Bucket>(response, B2JsonSerializerContext.Default.B2Bucket, _api);
+            return await ResponseParser.ParseResponse<B2Bucket>(response, B2JsonSerializerContext.B2Defaults.B2Bucket, _api);
         }
 
         /// <summary>
@@ -107,7 +117,7 @@ namespace B2Net
             var requestMessage = BucketRequestGenerators.UpdateBucket(_options, operationalBucketId, options);
             var response = await _client.SendAsync(requestMessage, cancelToken);
 
-            return await ResponseParser.ParseResponse<B2Bucket>(response, B2JsonSerializerContext.Default.B2Bucket, _api);
+            return await ResponseParser.ParseResponse<B2Bucket>(response, B2JsonSerializerContext.B2Defaults.B2Bucket, _api);
         }
 
         /// <summary>
@@ -126,7 +136,7 @@ namespace B2Net
             var requestMessage = BucketRequestGenerators.UpdateBucket(_options, operationalBucketId, options, revisionNumber);
             var response = await _client.SendAsync(requestMessage, cancelToken);
 
-            return await ResponseParser.ParseResponse<B2Bucket>(response, B2JsonSerializerContext.Default.B2Bucket, _api);
+            return await ResponseParser.ParseResponse<B2Bucket>(response, B2JsonSerializerContext.B2Defaults.B2Bucket, _api);
         }
     }
 }

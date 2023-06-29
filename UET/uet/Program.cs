@@ -12,6 +12,7 @@ using UET.Commands.Build;
 using UET.Commands.Internal;
 using UET.Commands.List;
 using UET.Commands.Test;
+using UET.Commands.Transfer;
 using UET.Commands.Uefs;
 using UET.Commands.Upgrade;
 
@@ -30,6 +31,7 @@ rootCommand.AddCommand(TestCommand.CreateTestCommand());
 rootCommand.AddCommand(ListCommand.CreateListCommand());
 rootCommand.AddCommand(UpgradeCommand.CreateUpgradeCommand(globalCommands));
 rootCommand.AddCommand(UefsCommand.CreateUefsCommand());
+rootCommand.AddCommand(TransferCommand.CreateTransferCommand());
 rootCommand.AddCommand(InternalCommand.CreateInternalCommand(globalCommands));
 
 // Parse the command line so we can inspect it.

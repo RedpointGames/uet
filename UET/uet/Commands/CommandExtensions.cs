@@ -59,6 +59,20 @@
 
         internal static void AddAllOptions<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] TOptions>(this Command command, TOptions options)
         {
+            foreach (var argument in typeof(TOptions).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(x => x.PropertyType.IsAssignableTo(typeof(Argument)))
+                .Select(x => (Argument)x.GetValue(options)!))
+            {
+                command.AddArgument(argument);
+            }
+
+            foreach (var argument in typeof(TOptions).GetFields(BindingFlags.Public | BindingFlags.Instance)
+                .Where(x => x.FieldType.IsAssignableTo(typeof(Argument)))
+                .Select(x => (Argument)x.GetValue(options)!))
+            {
+                command.AddArgument(argument);
+            }
+
             foreach (var option in typeof(TOptions).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(x => x.PropertyType.IsAssignableTo(typeof(Option)))
                 .Select(x => (Option)x.GetValue(options)!))

@@ -92,7 +92,7 @@
 
         public static HttpRequestMessage GetUploadPartUrl(B2Options options, string fileId)
         {
-            return BaseRequestGenerator.PostRequest(Endpoints.GetPartUrl, JsonSerializer.Serialize(new GetUploadPartUrlRequest { fileId = fileId }, B2JsonSerializerContext.Default.GetUploadPartUrlRequest), options);
+            return BaseRequestGenerator.PostRequest(Endpoints.GetPartUrl, JsonSerializer.Serialize(new GetUploadPartUrlRequest { fileId = fileId }, B2JsonSerializerContext.B2Defaults.GetUploadPartUrlRequest), options);
         }
 
         public class FinishRequest
@@ -103,7 +103,7 @@
 
         public static HttpRequestMessage Finish(B2Options options, string fileId, string[] partSHA1Array)
         {
-            var content = JsonSerializer.Serialize(new FinishRequest { fileId = fileId, partSha1Array = partSHA1Array }, B2JsonSerializerContext.Default.FinishRequest);
+            var content = JsonSerializer.Serialize(new FinishRequest { fileId = fileId, partSha1Array = partSHA1Array }, B2JsonSerializerContext.B2Defaults.FinishRequest);
             var request = BaseRequestGenerator.PostRequestJson(Endpoints.Finish, content, options);
             return request;
         }
@@ -122,7 +122,7 @@
                 throw new Exception("Start part number must be between 1 and 10,000");
             }
 
-            var content = JsonSerializer.Serialize(new ListPartsRequest { fileId = fileId, startPartNumber = startPartNumber, maxPartCount = maxPartCount }, B2JsonSerializerContext.Default.ListPartsRequest);
+            var content = JsonSerializer.Serialize(new ListPartsRequest { fileId = fileId, startPartNumber = startPartNumber, maxPartCount = maxPartCount }, B2JsonSerializerContext.B2Defaults.ListPartsRequest);
             var request = BaseRequestGenerator.PostRequestJson(Endpoints.ListParts, content, options);
             return request;
         }
@@ -134,7 +134,7 @@
 
         public static HttpRequestMessage Cancel(B2Options options, string fileId)
         {
-            var content = JsonSerializer.Serialize(new CancelRequest { fileId = fileId }, B2JsonSerializerContext.Default.CancelRequest);
+            var content = JsonSerializer.Serialize(new CancelRequest { fileId = fileId }, B2JsonSerializerContext.B2Defaults.CancelRequest);
             var request = BaseRequestGenerator.PostRequestJson(Endpoints.Cancel, content, options);
             return request;
         }
@@ -157,7 +157,7 @@
                     startFileId = startFileId,
                     maxFileCount = maxFileCount,
                 },
-                B2JsonSerializerContext.Default.IncompleteFilesRequest);
+                B2JsonSerializerContext.B2Defaults.IncompleteFilesRequest);
             var request = BaseRequestGenerator.PostRequestJson(Endpoints.IncompleteFiles, body, options);
             return request;
         }
@@ -174,7 +174,7 @@
             {
                 payload.Add("range", range);
             }
-            var content = JsonSerializer.Serialize(payload, B2JsonSerializerContext.Default.DictionaryStringString);
+            var content = JsonSerializer.Serialize(payload, B2JsonSerializerContext.B2Defaults.DictionaryStringString);
             var request = new HttpRequestMessage()
             {
                 Method = HttpMethod.Post,

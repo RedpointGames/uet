@@ -24,7 +24,7 @@
         {
             var uri = new Uri(options.DownloadUrl + "/b2api/" + Constants.Version + "/" + Endpoints.DownloadById);
 
-            var json = JsonSerializer.Serialize(new FileDownloadRequest { fileId = fileId }, B2JsonSerializerContext.Default.FileDownloadRequest);
+            var json = JsonSerializer.Serialize(new FileDownloadRequest { fileId = fileId }, B2JsonSerializerContext.B2Defaults.FileDownloadRequest);
             var request = new HttpRequestMessage()
             {
                 Method = HttpMethod.Post,
@@ -84,7 +84,7 @@
                     validDurationInSeconds = validDurationInSeconds,
                     b2ContentDisposition = b2ContentDisposition,
                 },
-                B2JsonSerializerContext.Default.GetDownloadAuthorizationRequest);
+                B2JsonSerializerContext.B2Defaults.GetDownloadAuthorizationRequest);
 
             var request = new HttpRequestMessage()
             {

@@ -40,7 +40,7 @@
                     prefix = prefix,
                     delimiter = delimiter,
                 },
-                B2JsonSerializerContext.Default.GetListRequest);
+                B2JsonSerializerContext.B2Defaults.GetListRequest);
             return BaseRequestGenerator.PostRequest(Endpoints.List, body, options);
         }
 
@@ -71,7 +71,7 @@
                     prefix = prefix,
                     delimiter = delimiter,
                 },
-                B2JsonSerializerContext.Default.ListVersionsRequest);
+                B2JsonSerializerContext.B2Defaults.ListVersionsRequest);
             return BaseRequestGenerator.PostRequest(Endpoints.Versions, body, options);
         }
 
@@ -93,7 +93,7 @@
                     fileName = fileName,
                     fileId = fileId,
                 },
-                B2JsonSerializerContext.Default.HideFileRequest);
+                B2JsonSerializerContext.B2Defaults.HideFileRequest);
             return BaseRequestGenerator.PostRequest(Endpoints.Hide, body, options);
         }
 
@@ -104,7 +104,7 @@
 
         public static HttpRequestMessage GetInfo(B2Options options, string fileId)
         {
-            var json = JsonSerializer.Serialize(new GetInfoRequest { fileId = fileId }, B2JsonSerializerContext.Default.GetInfoRequest);
+            var json = JsonSerializer.Serialize(new GetInfoRequest { fileId = fileId }, B2JsonSerializerContext.B2Defaults.GetInfoRequest);
             return BaseRequestGenerator.PostRequest(Endpoints.Info, json, options);
         }
     }

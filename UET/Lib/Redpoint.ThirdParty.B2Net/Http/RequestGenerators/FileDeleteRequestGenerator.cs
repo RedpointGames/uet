@@ -20,7 +20,7 @@
 
         public static HttpRequestMessage Delete(B2Options options, string fileId, string fileName)
         {
-            var json = JsonSerializer.Serialize(new FileDeleteRequest { fileId = fileId, fileName = fileName }, B2JsonSerializerContext.Default.FileDeleteRequest);
+            var json = JsonSerializer.Serialize(new FileDeleteRequest { fileId = fileId, fileName = fileName }, B2JsonSerializerContext.B2Defaults.FileDeleteRequest);
             return BaseRequestGenerator.PostRequest(Endpoints.Delete, json, options);
         }
     }

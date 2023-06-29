@@ -42,5 +42,9 @@
     [JsonSerializable(typeof(B2Error))]
     internal partial class B2JsonSerializerContext : JsonSerializerContext
     {
+        public static B2JsonSerializerContext B2Defaults { get; } = new B2JsonSerializerContext(new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+        });
     }
 }

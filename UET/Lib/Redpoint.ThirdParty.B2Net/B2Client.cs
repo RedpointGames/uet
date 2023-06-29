@@ -150,7 +150,7 @@
             var jsonResponse = await response.Content.ReadAsStringAsync();
             if (response.IsSuccessStatusCode)
             {
-                var authResponse = JsonSerializer.Deserialize<B2AuthResponse>(jsonResponse, B2JsonSerializerContext.Default.B2AuthResponse);
+                var authResponse = JsonSerializer.Deserialize<B2AuthResponse>(jsonResponse, B2JsonSerializerContext.B2Defaults.B2AuthResponse);
 
                 options.SetState(authResponse);
             }
