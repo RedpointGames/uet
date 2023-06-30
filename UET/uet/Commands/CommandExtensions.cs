@@ -160,17 +160,34 @@
                 var instance = sp.GetRequiredService<TCommand>();
 
                 // Run the command with all the lifecycles started and stopped around it.
+                var logger = sp.GetRequiredService<ILogger<TCommand>>();
                 var lifecycles = sp.GetServices<IApplicationLifecycle>();
                 var startedLifecycles = new List<IApplicationLifecycle>();
                 try
                 {
-                    foreach (var lifecycle in lifecycles)
+                    try
                     {
-                        await lifecycle.StartAsync(context.GetCancellationToken());
-                        startedLifecycles.Add(lifecycle);
+                        foreach (var lifecycle in lifecycles)
+                        {
+                            await lifecycle.StartAsync(context.GetCancellationToken());
+                            startedLifecycles.Add(lifecycle);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, $"Uncaught exception during application lifecycle startup: {ex}");
+                        throw;
                     }
 
-                    context.ExitCode = await instance.ExecuteAsync(context);
+                    try
+                    {
+                        context.ExitCode = await instance.ExecuteAsync(context);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, $"Uncaught exception during command execution: {ex}");
+                        throw;
+                    }
                 }
                 finally
                 {
@@ -182,8 +199,8 @@
                         }
                         catch (Exception ex)
                         {
-                            var logger = sp.GetRequiredService<ILogger<TCommand>>();
-                            logger.LogError(ex, $"Exception during application lifecycle shutdown: {ex}");
+                            logger.LogError(ex, $"Uncaught exception during application lifecycle shutdown: {ex}");
+                            throw;
                         }
                     }
                 }
