@@ -292,7 +292,7 @@ stages:
     paths:
       - "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet"
 
-"Publish Libraries":
+"Publish to NuGet":
   stage: Publish
   tags:
     - redpoint-games-windows
@@ -316,55 +316,7 @@ stages:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_PIPELINE_SOURCE == "web"'
 
-"Publish Win":
-  stage: Publish
-  tags:
-    - redpoint-games-windows
-  needs:
-    - Timestamp
-    - "Build Win Shim"
-    - "Build Win Pass 2"
-    - "Build Win UEFS Client"
-    - "Build Win UEFS Daemon"
-  interruptible: true
-  script: |
-    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe transfer "UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe" "b2://dl-public-redpoint-games/uet/$PackageVersion/windows/uet.exe"
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe transfer "UET/Redpoint.Uefs.Client/bin/Release/net7.0/win-x64/publish/uefs.exe" "b2://dl-public-redpoint-games/uet/$PackageVersion/windows/uefs.exe"
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe transfer "UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/win-x64/publish/uefs-daemon.exe" "b2://dl-public-redpoint-games/uet/$PackageVersion/windows/uefs-daemon.exe"
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe transfer "UET/uet.shim/bin/Release/net7.0/win-x64/publish/uet.exe" "b2://dl-public-redpoint-games/uet/shim/windows/uet.exe"
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-
-"Publish Mac":
-  stage: Publish
-  tags:
-    - redpoint-games-mac
-  needs:
-    - Timestamp
-    - "Build Mac Shim"
-    - "Build Mac Pass 2"
-    - "Build Mac UEFS Client"
-    - "Build Mac UEFS Daemon"
-  interruptible: true
-  script: |
-    PACKAGE_VERSION=$(cat package.version | tr -d '\n')
-    echo "Package version: $PACKAGE_VERSION"
-    chmod a+x UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet
-    UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet transfer "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet" "b2://dl-public-redpoint-games/uet/$PACKAGE_VERSION/macos/uet"
-    UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet transfer "UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs" "b2://dl-public-redpoint-games/uet/$PACKAGE_VERSION/macos/uefs"
-    UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet transfer "UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/osx.11.0-arm64/publish/uefs-daemon" "b2://dl-public-redpoint-games/uet/$PACKAGE_VERSION/macos/uefs-daemon"
-    UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet transfer "UET/uet.shim/bin/Release/net7.0/osx.11.0-arm64/publish/uet" "b2://dl-public-redpoint-games/uet/shim/macos/uet"
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-
-"Publish GitHub":
+"Publish to GitHub":
   stage: Publish
   tags:
     - redpoint-games-windows
@@ -397,31 +349,6 @@ stages:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_PIPELINE_SOURCE == "web"'
 
-"Publish Timestamp":
-  stage: Publish
-  tags:
-    - redpoint-games-windows
-  needs:
-    - Timestamp
-    - "Build Win Pass 2"
-    - job: "Publish Win"
-      artifacts: false
-    - job: "Publish Mac"
-      artifacts: false
-    - job: "Publish Libraries"
-      artifacts: false
-    - job: "Publish GitHub"
-      artifacts: false
-  interruptible: true
-  script: |
-    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    Set-Content -Value $PackageVersion -Path latest.txt
-    UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe transfer latest.txt "b2://dl-public-redpoint-games/uet/latest"
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-
 "Publish Container":
   stage: Publish
   needs:
@@ -440,36 +367,6 @@ stages:
     docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "registry.redpoint.games/redpointgames/uet/uefs:latest" .
   after_script:
     - rm -Rf "$(pwd)/.docker" || true
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-
-"End":
-  stage: End
-  tags:
-    - redpoint-games-windows
-  needs:
-    - "Build Win Pass 2"
-    - "Build Win UEFS Client"
-    - "Build Win UEFS Daemon"
-    - "Build Mac Pass 2"
-    - "Build Mac UEFS Client"
-    - "Build Mac UEFS Daemon"
-    - job: "Publish Timestamp"
-      artifacts: false
-    - job: "Publish Container"
-      artifacts: false
-  interruptible: true
-  script: |
-    Write-Host "Build complete."
-  artifacts:
-    paths:
-      - UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe
-      - UET/Redpoint.Uefs.Client/bin/Release/net7.0/win-x64/publish/uefs.exe
-      - UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/win-x64/publish/uefs-daemon.exe
-      - UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet
-      - UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs
-      - UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/osx.11.0-arm64/publish/uefs-daemon
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_PIPELINE_SOURCE == "web"'
