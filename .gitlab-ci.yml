@@ -330,6 +330,7 @@ stages:
     - "Build Win UEFS Daemon"
   interruptible: true
   script: |
+    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
     UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe transfer "UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe" "b2://dl-public-redpoint-games/uet/$PackageVersion/windows/uet.exe"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe transfer "UET/Redpoint.Uefs.Client/bin/Release/net7.0/win-x64/publish/uefs.exe" "b2://dl-public-redpoint-games/uet/$PackageVersion/windows/uefs.exe"
@@ -345,7 +346,7 @@ stages:
 "Publish Mac":
   stage: Publish
   tags:
-    - redpoint-games-windows
+    - redpoint-games-mac
   needs:
     - Timestamp
     - "Build Mac Shim"
@@ -354,14 +355,13 @@ stages:
     - "Build Mac UEFS Daemon"
   interruptible: true
   script: |
-    UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet transfer "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet" "b2://dl-public-redpoint-games/uet/$PackageVersion/macos/uet"
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet transfer "UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs" "b2://dl-public-redpoint-games/uet/$PackageVersion/macos/uefs"
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet transfer "UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/osx.11.0-arm64/publish/uefs-daemon" "b2://dl-public-redpoint-games/uet/$PackageVersion/macos/uefs-daemon"
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    PACKAGE_VERSION=$(cat package.version | tr -d '\n')
+    echo "Package version: $PACKAGE_VERSION"
+    chmod a+x UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet
+    UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet transfer "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet" "b2://dl-public-redpoint-games/uet/$PACKAGE_VERSION/macos/uet"
+    UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet transfer "UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs" "b2://dl-public-redpoint-games/uet/$PACKAGE_VERSION/macos/uefs"
+    UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet transfer "UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/osx.11.0-arm64/publish/uefs-daemon" "b2://dl-public-redpoint-games/uet/$PACKAGE_VERSION/macos/uefs-daemon"
     UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet transfer "UET/uet.shim/bin/Release/net7.0/osx.11.0-arm64/publish/uet" "b2://dl-public-redpoint-games/uet/shim/macos/uet"
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_PIPELINE_SOURCE == "web"'
