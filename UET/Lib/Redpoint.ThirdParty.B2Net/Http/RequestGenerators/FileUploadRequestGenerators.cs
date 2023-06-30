@@ -34,7 +34,7 @@
             {
                 Method = HttpMethod.Post,
                 RequestUri = uri,
-                Content = new ByteArrayContent(fileData)
+                Content = new ByteArrayContent(fileData),
             };
 
             // Get the file checksum

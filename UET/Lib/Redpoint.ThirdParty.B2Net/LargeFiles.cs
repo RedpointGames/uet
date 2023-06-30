@@ -12,12 +12,14 @@
     {
         private B2Options _options;
         private HttpClient _client;
+        private HttpClient _transferClient;
         private string _api = "Large Files";
 
         public LargeFiles(B2Options options)
         {
             _options = options;
             _client = HttpClientFactory.CreateHttpClient(options.RequestTimeout);
+            _transferClient = HttpClientFactory.CreateHttpClient(options.DataTransferRequestTimeout);
         }
 
         /// <summary>
@@ -71,7 +73,7 @@
         {
             var request = LargeFileRequestGenerators.Upload(_options, fileData, partNumber, uploadPartUrl);
 
-            var response = await _client.SendAsync(request, cancelToken);
+            var response = await _transferClient.SendAsync(request, cancelToken);
 
             return await ResponseParser.ParseResponse<B2UploadPart>(response, B2JsonSerializerContext.B2Defaults.B2UploadPart, _api);
         }

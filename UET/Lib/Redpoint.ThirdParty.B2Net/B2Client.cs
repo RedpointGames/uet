@@ -58,13 +58,13 @@
         /// <param name="keyId"></param>
         /// <param name="applicationkey"></param>
         /// <param name="requestTimeout"></param>
-        public B2Client(string keyId, string applicationkey, int requestTimeout = 100)
+        public B2Client(string keyId, string applicationkey, TimeSpan? requestTimeout)
         {
             _options = new B2Options()
             {
                 KeyId = keyId,
                 ApplicationKey = applicationkey,
-                RequestTimeout = requestTimeout
+                RequestTimeout = requestTimeout ?? TimeSpan.FromSeconds(100)
             };
             _options = Authorize(_options);
 
@@ -83,7 +83,7 @@
         /// <param name="keyId"></param>
         /// <param name="requestTimeout"></param>
         [Obsolete("Use B2Client(string keyId, string applicationkey, int requestTimeout = 100) instead as AccountId is no longer needed")]
-        public B2Client(string accountId, string applicationkey, string keyId, int requestTimeout = 100) : this(keyId, applicationkey, requestTimeout)
+        public B2Client(string accountId, string applicationkey, string keyId, TimeSpan? requestTimeout) : this(keyId, applicationkey, requestTimeout)
         {
         }
 

@@ -16,12 +16,14 @@
     {
         private B2Options _options;
         private HttpClient _client;
+        private HttpClient _transferClient;
         private string _api = "Files";
 
         public Files(B2Options options)
         {
             _options = options;
             _client = HttpClientFactory.CreateHttpClient(options.RequestTimeout);
+            _transferClient = HttpClientFactory.CreateHttpClient(options.DataTransferRequestTimeout);
         }
 
         /// <summary>
@@ -160,7 +162,7 @@
 
             // Now we can upload the file
             var requestMessage = FileUploadRequestGenerators.Upload(_options, uploadUrlObject.UploadUrl, fileData, fileName, fileInfo);
-            var response = await _client.SendAsync(requestMessage, cancelToken);
+            var response = await _transferClient.SendAsync(requestMessage, cancelToken);
 
             return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.B2Defaults.B2File, _api);
         }
@@ -215,7 +217,7 @@
             // Now we can upload the file
             var requestMessage = FileUploadRequestGenerators.Upload(_options, uploadUrl.UploadUrl, fileData, fileName, fileInfo, contentType);
 
-            var response = await _client.SendAsync(requestMessage, cancelToken);
+            var response = await _transferClient.SendAsync(requestMessage, cancelToken);
             // Auto retry
             if (autoRetry && (
                     response.StatusCode == (HttpStatusCode)429 ||
@@ -224,7 +226,7 @@
             {
                 Task.Delay(1000, cancelToken).Wait(cancelToken);
                 var retryMessage = FileUploadRequestGenerators.Upload(_options, uploadUrl.UploadUrl, fileData, fileName, fileInfo, contentType);
-                response = await _client.SendAsync(retryMessage, cancelToken);
+                response = await _transferClient.SendAsync(retryMessage, cancelToken);
             }
 
             return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.B2Defaults.B2File, _api);
@@ -249,7 +251,7 @@
             // Now we can upload the file
             var requestMessage = FileUploadRequestGenerators.Upload(_options, uploadUrl.UploadUrl, fileDataWithSHA, fileName, fileInfo, contentType, dontSHA);
 
-            var response = await _client.SendAsync(requestMessage, cancelToken);
+            var response = await _transferClient.SendAsync(requestMessage, cancelToken);
             // Auto retry
             if (autoRetry && (
                 response.StatusCode == (HttpStatusCode)429 ||
@@ -258,7 +260,7 @@
             {
                 Task.Delay(1000, cancelToken).Wait(cancelToken);
                 var retryMessage = FileUploadRequestGenerators.Upload(_options, uploadUrl.UploadUrl, fileDataWithSHA, fileName, fileInfo, contentType, dontSHA);
-                response = await _client.SendAsync(retryMessage, cancelToken);
+                response = await _transferClient.SendAsync(retryMessage, cancelToken);
             }
 
             return await ResponseParser.ParseResponse<B2File>(response, B2JsonSerializerContext.B2Defaults.B2File, _api);
@@ -282,7 +284,7 @@
             request = FileDownloadRequestGenerators.DownloadByName(_options, bucketName, fileName, $"{startByte}-{endByte}");
 
             // Send the download request
-            var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken);
+            var response = await _transferClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken);
 
             // Create B2File from response
             return await ParseDownloadResponse(response);
@@ -302,7 +304,7 @@
             request = FileDownloadRequestGenerators.DownloadByName(_options, bucketName, fileName);
 
             // Send the download request
-            var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken);
+            var response = await _transferClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken);
 
             // Create B2File from response
             return await ParseDownloadResponse(response);
@@ -323,7 +325,7 @@
             request = FileDownloadRequestGenerators.DownloadById(_options, fileId, $"{startByte}-{endByte}");
 
             // Send the download request
-            var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken);
+            var response = await _transferClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken);
 
             // Create B2File from response
             return await ParseDownloadResponse(response);
@@ -342,7 +344,7 @@
             request = FileDownloadRequestGenerators.DownloadById(_options, fileId);
 
             // Send the download request
-            var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken);
+            var response = await _transferClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken);
 
             // Create B2File from response
             return await ParseDownloadResponse(response);
