@@ -4,15 +4,9 @@
     using Redpoint.ProgressMonitor;
     using Redpoint.ServiceControl;
     using System;
-    using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
-    using System.Linq;
     using System.Reflection;
-    using System.Runtime.InteropServices;
-    using System.Runtime.Versioning;
-    using System.Security.Principal;
-    using System.Text;
     using System.Threading.Tasks;
 
     internal class UefsInstallCommand

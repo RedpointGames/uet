@@ -1,13 +1,11 @@
 ﻿namespace UET.Commands.Internal.CreateGitHubRelease
 {
-    using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProgressMonitor;
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Net.Http.Headers;
-    using System.Reflection.Emit;
     using System.Text.Json;
     using System.Text.Json.Serialization.Metadata;
     using System.Threading.Tasks;

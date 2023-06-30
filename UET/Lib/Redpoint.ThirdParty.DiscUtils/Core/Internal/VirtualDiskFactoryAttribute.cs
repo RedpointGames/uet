@@ -20,8 +20,6 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-
 namespace DiscUtils.Internal
 {
     [AttributeUsage(AttributeTargets.Class)]

@@ -20,9 +20,7 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System;
 using System.Collections.ObjectModel;
-using System.IO;
 using DiscUtils.Partitions;
 using DiscUtils.Streams;
 

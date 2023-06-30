@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.Unreal.TcpMessaging
 {
     using System;
-    using System.IO.Pipes;
     using System.Reflection;
     using Redpoint.Unreal.Serialization;
 

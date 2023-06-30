@@ -28,7 +28,6 @@
 // (*) Puyo tools implements a different LZ-style algorithm
 //
 
-using System;
 using DiscUtils.Compression;
 using DiscUtils.Streams;
 

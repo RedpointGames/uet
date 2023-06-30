@@ -20,7 +20,6 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DiscUtils.Internal

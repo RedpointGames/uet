@@ -20,11 +20,8 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-using System.Collections.Generic;
-using System.IO;
 using DiscUtils.Streams;
-using Buffer=DiscUtils.Streams.Buffer;
+using Buffer = DiscUtils.Streams.Buffer;
 
 namespace DiscUtils.Ntfs
 {

@@ -20,8 +20,6 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-using System.IO;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using DiscUtils.Streams;

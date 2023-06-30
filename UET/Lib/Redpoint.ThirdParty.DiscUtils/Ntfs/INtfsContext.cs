@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace DiscUtils.Ntfs
 {
     internal interface INtfsContext

@@ -1,6 +1,5 @@
 ﻿namespace Docker.Registry.DotNet.Models
 {
-    using JetBrains.Annotations;
     using System.Text.Json.Serialization;
 
     public class Manifest

@@ -2,7 +2,6 @@ namespace Redpoint.GrpcPipes.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-    using Microsoft.VisualStudio.TestPlatform.Utilities;
     using System.Diagnostics;
     using TestPipes;
     using Xunit.Abstractions;

@@ -9,7 +9,6 @@
     using Redpoint.Uefs.Daemon.PackageFs.Tagging;
     using Redpoint.Uefs.ContainerRegistry;
     using Redpoint.Uefs.Protocol;
-    using Redpoint.Uefs.Daemon.Transactional.Abstractions;
 
     internal class LocalPackageFs : IPackageFs
     {

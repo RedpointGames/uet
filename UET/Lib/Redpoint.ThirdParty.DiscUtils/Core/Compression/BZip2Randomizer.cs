@@ -24,8 +24,6 @@
 // Based on "libbzip2", Copyright (C) 1996-2007 Julian R Seward.
 //
 
-using System;
-
 namespace DiscUtils.Compression
 {
     internal class BZip2Randomizer : DataBlockTransform

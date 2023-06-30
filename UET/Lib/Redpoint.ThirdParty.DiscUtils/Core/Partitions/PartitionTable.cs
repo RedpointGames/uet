@@ -20,11 +20,7 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using DiscUtils.CoreCompat;
 using DiscUtils.Raw;
 using DiscUtils.Streams;

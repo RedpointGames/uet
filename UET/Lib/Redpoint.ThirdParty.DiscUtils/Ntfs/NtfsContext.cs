@@ -20,8 +20,6 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System.IO;
-
 namespace DiscUtils.Ntfs
 {
     internal sealed class NtfsContext : INtfsContext

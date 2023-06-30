@@ -3,7 +3,6 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProgressMonitor;
-    using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;

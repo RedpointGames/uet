@@ -2,12 +2,7 @@
 {
     using Redpoint.Uefs.Daemon.Integration.Docker.LegacyModels;
     using Redpoint.Uefs.Daemon.Integration.Docker.Models;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
     using System.Text.Json.Serialization;
-    using System.Threading.Tasks;
 
     [JsonSerializable(typeof(string[]))]
     [JsonSerializable(typeof(EmptyRequest))]

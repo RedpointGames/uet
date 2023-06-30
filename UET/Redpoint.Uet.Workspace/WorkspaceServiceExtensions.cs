@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.Uet.Workspace
 {
     using Microsoft.Extensions.DependencyInjection;
-    using Redpoint.GrpcPipes;
     using Redpoint.Reservation;
     using Redpoint.Uet.Workspace.Credential;
     using Redpoint.Uet.Workspace.ParallelCopy;

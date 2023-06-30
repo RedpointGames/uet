@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.Uet.Automation.TestLogging
 {
-    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Redpoint.Uet.Automation.Model;
     using Redpoint.Uet.Automation.Worker;

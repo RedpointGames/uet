@@ -20,9 +20,7 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System.Collections.Generic;
 #if !NETSTANDARD
-using System;
 #endif
 
 namespace DiscUtils.Streams

@@ -2,8 +2,6 @@
 {
     using Microsoft.Extensions.Logging;
     using System.Diagnostics;
-    using System.Reflection;
-    using System.Runtime.InteropServices;
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("macos")]

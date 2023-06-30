@@ -20,11 +20,8 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.IO;
 using DiscUtils.Internal;
 using DiscUtils.Streams;
 

@@ -20,9 +20,6 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-using System.IO;
-
 namespace DiscUtils.Streams
 {
     public class BigEndianDataWriter : DataWriter

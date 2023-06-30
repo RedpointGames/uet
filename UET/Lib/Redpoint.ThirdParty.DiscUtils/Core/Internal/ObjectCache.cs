@@ -20,9 +20,6 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-using System.Collections.Generic;
-
 namespace DiscUtils.Internal
 {
     /// <summary>

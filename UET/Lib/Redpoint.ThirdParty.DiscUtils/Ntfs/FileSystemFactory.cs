@@ -20,8 +20,6 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using DiscUtils.Vfs;
 
 namespace DiscUtils.Ntfs

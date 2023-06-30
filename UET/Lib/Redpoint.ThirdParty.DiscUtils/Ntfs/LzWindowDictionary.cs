@@ -25,9 +25,6 @@
 //   - Derived from Puyo tools (BSD license)
 //
 
-using System;
-using System.Collections.Generic;
-
 namespace DiscUtils.Ntfs
 {
     internal sealed class LzWindowDictionary

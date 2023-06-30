@@ -3,7 +3,6 @@
     using System.Diagnostics;
     using System.Runtime.Versioning;
     using System.Security.Principal;
-    using System.ServiceProcess;
     using System.Text.RegularExpressions;
 
     [SupportedOSPlatform("windows")]

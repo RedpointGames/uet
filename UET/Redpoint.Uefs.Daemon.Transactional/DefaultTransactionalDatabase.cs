@@ -2,7 +2,6 @@
 {
     using KeyedSemaphores;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Logging;
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using System;
     using System.Collections.Generic;

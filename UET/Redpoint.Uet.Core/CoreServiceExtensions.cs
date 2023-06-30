@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Console;
 using Redpoint.Logging.SingleLine;
 using System.Diagnostics.CodeAnalysis;
 

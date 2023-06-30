@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace DiscUtils
+﻿namespace DiscUtils
 {
     /// <summary>
     /// Converts a time to/from UTC.

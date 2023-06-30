@@ -3,7 +3,6 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.Uefs.Daemon.PackageFs.Tagging;
     using Redpoint.Uefs.Daemon.RemoteStorage;
-    using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using Redpoint.Uefs.Protocol;
     using System.Security.Cryptography;
     using System.Text;

@@ -20,10 +20,7 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.IO;
 using DiscUtils.Internal;
 
 namespace DiscUtils.Vhd

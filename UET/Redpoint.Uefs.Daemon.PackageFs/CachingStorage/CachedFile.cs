@@ -4,7 +4,6 @@
     using Microsoft.Win32.SafeHandles;
     using Redpoint.Uefs.Daemon.RemoteStorage;
     using Redpoint.Uefs.Daemon.RemoteStorage.Pooling;
-    using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using Redpoint.Uefs.Protocol;
     using Redpoint.Vfs.Abstractions;
     using Redpoint.Vfs.Windows;

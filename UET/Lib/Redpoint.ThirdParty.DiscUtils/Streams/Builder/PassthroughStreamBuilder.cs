@@ -20,9 +20,6 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System.Collections.Generic;
-using System.IO;
-
 namespace DiscUtils.Streams
 {
     public class PassthroughStreamBuilder : StreamBuilder

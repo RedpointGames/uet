@@ -5,13 +5,11 @@
     using Redpoint.Uefs.Daemon.Abstractions;
     using Redpoint.Uefs.Daemon.Service.Mounting;
     using Redpoint.Uefs.Daemon.Service.Pulling;
-    using Redpoint.Uefs.Daemon.State;
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using Redpoint.Uefs.Daemon.Transactional.Executors;
     using Redpoint.Uefs.Protocol;
     using System;
     using System.Diagnostics;
-    using System.Linq;
     using System.Threading.Tasks;
     using static Redpoint.Uefs.Protocol.Uefs;
 

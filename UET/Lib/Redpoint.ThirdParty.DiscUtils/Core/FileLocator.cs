@@ -20,8 +20,6 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-using System.IO;
 using DiscUtils.Internal;
 using DiscUtils.Setup;
 

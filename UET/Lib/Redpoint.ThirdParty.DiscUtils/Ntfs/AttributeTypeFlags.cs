@@ -1,5 +1,3 @@
-using System;
-
 namespace DiscUtils.Ntfs
 {
     [Flags]

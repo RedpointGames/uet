@@ -20,10 +20,6 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Reflection;
 using DiscUtils.CoreCompat;
 using DiscUtils.Vfs;

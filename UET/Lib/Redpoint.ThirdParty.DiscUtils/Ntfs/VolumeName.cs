@@ -20,7 +20,6 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System.IO;
 using System.Text;
 using DiscUtils.Streams;
 

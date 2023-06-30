@@ -20,11 +20,8 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.IO;
 using System.Reflection;
 using DiscUtils.CoreCompat;
 using DiscUtils.Internal;

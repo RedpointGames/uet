@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.Uefs.Daemon.Transactional
 {
-    using Microsoft.AspNetCore.DataProtection.KeyManagement;
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using Redpoint.Uefs.Protocol;
     using System;

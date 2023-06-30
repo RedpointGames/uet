@@ -20,8 +20,6 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-using System.IO;
 using System.IO.Compression;
 
 namespace DiscUtils.Compression

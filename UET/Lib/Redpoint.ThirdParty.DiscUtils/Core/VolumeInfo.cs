@@ -21,7 +21,6 @@
 //
 
 #if !NETSTANDARD
-using System;
 #endif
 using DiscUtils.Streams;
 

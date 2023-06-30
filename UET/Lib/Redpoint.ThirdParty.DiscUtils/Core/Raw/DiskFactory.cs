@@ -20,9 +20,6 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using DiscUtils.Internal;
 using DiscUtils.Streams;
 

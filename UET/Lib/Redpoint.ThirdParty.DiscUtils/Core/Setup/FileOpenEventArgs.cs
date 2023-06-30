@@ -20,9 +20,6 @@
 // DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-using System.IO;
-
 namespace DiscUtils.Setup
 {
     internal delegate Stream FileOpenDelegate(string fileName, FileMode mode, FileAccess access, FileShare share);
