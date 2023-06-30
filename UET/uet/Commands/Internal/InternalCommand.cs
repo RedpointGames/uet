@@ -3,6 +3,7 @@
     using System.CommandLine;
     using UET.Commands.Internal.CIBuild;
     using UET.Commands.Internal.CopyAndMutateBuildCs;
+    using UET.Commands.Internal.CreateGitHubRelease;
     using UET.Commands.Internal.RunAutomationTestFromBuildGraph;
     using UET.Commands.Internal.RunDownstreamTest;
     using UET.Commands.Internal.RunGauntletTestFromBuildGraph;
@@ -30,6 +31,7 @@
                 UploadToBackblazeB2Command.CreateUploadToBackblazeB2Command(),
                 TestGrpcPipesCommand.CreateTestGrpcPipesCommand(),
                 TestUefsConnectionCommand.CreateTestUefsConnectionCommand(),
+                CreateGitHubReleaseCommand.CreateCreateGitHubReleaseCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
