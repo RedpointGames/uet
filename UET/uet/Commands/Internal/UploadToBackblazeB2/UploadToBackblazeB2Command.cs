@@ -1,5 +1,6 @@
 ﻿namespace UET.Commands.Internal.UploadToBackblazeB2
 {
+    using B2Net.Models;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProgressMonitor;
     using System.CommandLine;
@@ -114,16 +115,36 @@
                     });
 
                     // Upload the file.
-                    var file = await client.Files.Upload(
-                        fileDataWithSHA: stream,
-                        fileName: $"{folderPrefix}/{zipPath.Name}",
-                        uploadUrl: uploadUrl,
-                        contentType: "application/zip",
-                        autoRetry: false,
-                        bucketId: bucket.BucketId,
-                        fileInfo: null,
-                        dontSHA: true,
-                        context.GetCancellationToken());
+                    B2File? file;
+                    do
+                    {
+                        try
+                        {
+                            file = await client.Files.Upload(
+                                fileDataWithSHA: stream,
+                                fileName: $"{folderPrefix}/{zipPath.Name}",
+                                uploadUrl: uploadUrl,
+                                contentType: "application/zip",
+                                autoRetry: false,
+                                bucketId: bucket.BucketId,
+                                fileInfo: null,
+                                dontSHA: true,
+                                context.GetCancellationToken());
+                            break;
+                        }
+                        catch (B2Exception ex) when (ex.Message.Contains("no tomes available"))
+                        {
+                            if (SystemConsole.ConsoleWidth.HasValue)
+                            {
+                                Console.WriteLine();
+                            }
+                            _logger.LogWarning("Temporary issue with Backblaze B2 while uploading. Retrying in 1 second...");
+                            stream.Seek(0, SeekOrigin.Begin);
+                            await Task.Delay(1000);
+                            continue;
+                        }
+                    }
+                    while (true);
 
                     // Stop monitoring.
                     await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);

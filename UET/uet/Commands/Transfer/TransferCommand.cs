@@ -1,12 +1,14 @@
 ﻿namespace UET.Commands.Transfer
 {
     using B2Net;
+    using B2Net.Models;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProgressMonitor;
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Diagnostics;
+    using System.IO;
     using System.Threading.Tasks;
 
     internal class TransferCommand
@@ -77,6 +79,10 @@
                 public HttpClient HttpClient { get; } = new HttpClient();
             }
 
+            private class RetryTransferException : Exception
+            {
+            }
+
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
                 var from = context.ParseResult.GetValueForArgument(_options.From);
@@ -99,31 +105,45 @@
                     streamContext.AppKey = Environment.GetEnvironmentVariable("DL_BACKBLAZE_B2_APPLICATION_KEY");
                 }
 
-                try
+                do
                 {
-                    using (var fromStream = await GetFromStreamAsync(from, streamContext, context.GetCancellationToken()))
+                    try
                     {
-                        var cts = new CancellationTokenSource();
-                        var progress = _progressFactory.CreateProgressForStream(fromStream);
-                        var monitorTask = Task.Run(async () =>
+                        using (var fromStream = await GetFromStreamAsync(from, streamContext, context.GetCancellationToken()))
                         {
-                            var monitor = _monitorFactory.CreateByteBasedMonitor();
-                            await monitor.MonitorAsync(
-                                progress,
-                                SystemConsole.ConsoleInformation,
-                                SystemConsole.WriteProgressToConsole,
-                                cts.Token);
-                        });
+                            var cts = new CancellationTokenSource();
+                            var progress = _progressFactory.CreateProgressForStream(fromStream);
+                            var monitorTask = Task.Run(async () =>
+                            {
+                                var monitor = _monitorFactory.CreateByteBasedMonitor();
+                                await monitor.MonitorAsync(
+                                    progress,
+                                    SystemConsole.ConsoleInformation,
+                                    SystemConsole.WriteProgressToConsole,
+                                    cts.Token);
+                            });
 
-                        await PerformUploadAsync(to, fromStream, streamContext, context.GetCancellationToken());
+                            await PerformUploadAsync(to, fromStream, streamContext, context.GetCancellationToken());
 
-                        await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);
+                            await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);
+                        }
+                        break;
                     }
-                }
-                finally
-                {
-                    streamContext.HttpClient.Dispose();
-                }
+                    catch (RetryTransferException)
+                    {
+                        if (SystemConsole.ConsoleWidth.HasValue)
+                        {
+                            Console.WriteLine();
+                        }
+                        _logger.LogWarning("Temporary network issue while transferring data. Retrying in 1 second...");
+                        await Task.Delay(1000);
+                        continue;
+                    }
+                    finally
+                    {
+                        streamContext.HttpClient.Dispose();
+                    }
+                } while (true);
 
                 _logger.LogInformation($"Transfer complete.");
                 return 0;
@@ -175,16 +195,23 @@
                         var url = new Uri(to);
                         var bucketId = (await client.Buckets.GetByName(url.Host, cancellationToken)).BucketId;
                         var uploadUrl = await client.Files.GetUploadUrl(bucketId, cancellationToken);
-                        await client.Files.Upload(
-                            source,
-                            url.AbsolutePath.TrimStart('/'),
-                            uploadUrl,
-                            "application/octet-stream",
-                            false,
-                            bucketId,
-                            null,
-                            true,
-                            cancellationToken);
+                        try
+                        {
+                            await client.Files.Upload(
+                                source,
+                                url.AbsolutePath.TrimStart('/'),
+                                uploadUrl,
+                                "application/octet-stream",
+                                false,
+                                bucketId,
+                                null,
+                                true,
+                                cancellationToken);
+                        }
+                        catch (B2Exception ex) when (ex.Message.Contains("no tomes available"))
+                        {
+                            throw new RetryTransferException();
+                        }
                         return;
                     case "local":
                         using (var stream = new FileStream(to, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
