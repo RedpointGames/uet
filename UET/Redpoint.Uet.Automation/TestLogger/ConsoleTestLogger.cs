@@ -97,28 +97,28 @@
             switch (testResult.TestStatus)
             {
                 case TestResultStatus.NotRun:
-                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Blue("[not run]")}");
+                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Bright.Blue("[not run]")}");
                     break;
                 case TestResultStatus.InProgress:
-                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Blue("[in progress]")}");
+                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Bright.Blue("[in progress]")}");
                     break;
                 case TestResultStatus.Passed:
-                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Green($"[passed in {testResult.Duration.TotalSeconds:0.##} secs]")}");
+                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Bright.Green($"[passed in {testResult.Duration.TotalSeconds:0.##} secs]")}");
                     break;
                 case TestResultStatus.Failed:
-                    _logger.LogError($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Red($"[failed in {testResult.Duration.TotalSeconds:0.##} secs]")}");
+                    _logger.LogError($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Bright.Red($"[failed in {testResult.Duration.TotalSeconds:0.##} secs]")}");
                     break;
                 case TestResultStatus.Skipped:
-                    _logger.LogWarning($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Yellow($"[skipped in {testResult.Duration.TotalSeconds:0.##} secs]")}");
+                    _logger.LogWarning($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Bright.Yellow($"[skipped in {testResult.Duration.TotalSeconds:0.##} secs]")}");
                     break;
                 case TestResultStatus.Cancelled:
-                    _logger.LogWarning($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Yellow($"[cancelled in {testResult.Duration.TotalSeconds:0.##} secs]")}");
+                    _logger.LogWarning($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Bright.Yellow($"[cancelled in {testResult.Duration.TotalSeconds:0.##} secs]")}");
                     break;
                 case TestResultStatus.Crashed:
-                    _logger.LogError($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Red($"[crashed in {testResult.Duration.TotalSeconds:0.##} secs]")}");
+                    _logger.LogError($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Bright.Red($"[crashed in {testResult.Duration.TotalSeconds:0.##} secs]")}");
                     break;
                 case TestResultStatus.TimedOut:
-                    _logger.LogError($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Red($"[timed out in {testResult.Duration.TotalSeconds:0.##} secs]")}");
+                    _logger.LogError($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Bright.Red($"[timed out in {testResult.Duration.TotalSeconds:0.##} secs]")}");
                     break;
             }
             return Task.CompletedTask;

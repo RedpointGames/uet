@@ -171,8 +171,8 @@
             {
                 LogLevel.Trace => x => Dim(White(x)),
                 LogLevel.Debug => x => Dim(White(x)),
-                LogLevel.Information => Green,
-                LogLevel.Warning => Yellow,
+                LogLevel.Information => Bright.Green,
+                LogLevel.Warning => Bright.Yellow,
                 LogLevel.Error => x => Background.Red(Black(x)),
                 LogLevel.Critical => x => Background.Red(White(x)),
                 _ => x => x,

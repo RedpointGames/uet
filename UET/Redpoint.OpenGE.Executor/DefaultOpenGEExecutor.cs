@@ -351,7 +351,7 @@
                             }
                             if (needsRetry)
                             {
-                                _logger.LogInformation($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Yellow($"[automatically retrying]")}");
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Bright.Yellow($"[automatically retrying]")}");
                             }
                         } while (needsRetry);
 
@@ -360,7 +360,7 @@
                             task.Status = OpenGEStatus.Success;
                             if (!_turnOffExtraLogInfo)
                             {
-                                _logger.LogInformation($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Green($"[done in {stopwatch.Elapsed.TotalSeconds:F2} secs]")}");
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Bright.Green($"[done in {stopwatch.Elapsed.TotalSeconds:F2} secs]")}");
                             }
                             else
                             {
@@ -375,7 +375,7 @@
                             CancelledDueToFailure = true;
                             if (!_turnOffExtraLogInfo)
                             {
-                                _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Red("[build failed]")}");
+                                _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Bright.Red("[build failed]")}");
                             }
                             else
                             {
@@ -400,7 +400,7 @@
                             }
                             else
                             {
-                                _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Red("[executor failed]")}");
+                                _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Bright.Red("[executor failed]")}");
                             }
                             _logger.LogError(ex, ex.Message);
                         }
@@ -417,7 +417,7 @@
                     {
                         if (!_turnOffExtraLogInfo)
                         {
-                            _logger.LogWarning($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Yellow($"[terminating due to cancellation]")}");
+                            _logger.LogWarning($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Bright.Yellow($"[terminating due to cancellation]")}");
                         }
                         else
                         {

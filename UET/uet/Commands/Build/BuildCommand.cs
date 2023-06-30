@@ -421,26 +421,26 @@
                         context.GetCancellationToken());
                     if (buildResult == 0)
                     {
-                        _logger.LogInformation($"All build jobs {Green("passed successfully")}.");
+                        _logger.LogInformation($"All build jobs {Bright.Green("passed successfully")}.");
                     }
                     else
                     {
-                        _logger.LogError($"One or more build jobs {Red("failed")}:");
+                        _logger.LogError($"One or more build jobs {Bright.Red("failed")}:");
                         foreach (var kv in executionEvents.GetResults())
                         {
                             switch (kv.resultStatus)
                             {
                                 case BuildResultStatus.Success:
-                                    _logger.LogInformation($"{kv.nodeName} = \x001B[32mPassed\x001B[0m");
+                                    _logger.LogInformation($"{kv.nodeName} = {Bright.Green("Passed")}");
                                     break;
                                 case BuildResultStatus.Failed:
-                                    _logger.LogInformation($"{kv.nodeName} = \x001B[31mFailed\x001B[0m");
+                                    _logger.LogInformation($"{kv.nodeName} = {Bright.Red("Failed")}");
                                     break;
                                 case BuildResultStatus.Cancelled:
-                                    _logger.LogInformation($"{kv.nodeName} = \x001B[33mCancelled\x001B[0m");
+                                    _logger.LogInformation($"{kv.nodeName} = {Bright.Yellow("Cancelled")}");
                                     break;
                                 case BuildResultStatus.NotRun:
-                                    _logger.LogInformation($"{kv.nodeName} = \x001B[36mNot Run\x001B[0m");
+                                    _logger.LogInformation($"{kv.nodeName} = {Bright.Cyan("Not Run")}");
                                     break;
                             }
                         }

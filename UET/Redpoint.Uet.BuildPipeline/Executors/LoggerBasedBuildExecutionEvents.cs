@@ -43,16 +43,16 @@
             switch (resultStatus)
             {
                 case BuildResultStatus.Success:
-                    _logger.LogInformation($"[{nodeName}] \x001B[32mPassed\x001B[0m");
+                    _logger.LogInformation($"[{nodeName}] {Bright.Green("Passed")}");
                     break;
                 case BuildResultStatus.Failed:
-                    _logger.LogInformation($"[{nodeName}] \x001B[31mFailed\x001B[0m");
+                    _logger.LogInformation($"[{nodeName}] {Bright.Red("Failed")}");
                     break;
                 case BuildResultStatus.Cancelled:
-                    _logger.LogInformation($"[{nodeName}] \x001B[33mCancelled\x001B[0m");
+                    _logger.LogInformation($"[{nodeName}] {Bright.Yellow("Cancelled")}");
                     break;
                 case BuildResultStatus.NotRun:
-                    _logger.LogInformation($"[{nodeName}] \x001B[36mNot Run\x001B[0m");
+                    _logger.LogInformation($"[{nodeName}] {Bright.Cyan("Not Run")}");
                     break;
             }
             return Task.CompletedTask;
@@ -62,12 +62,12 @@
         {
             foreach (var line in lines)
             {
-                var highlightedLine = _warningRegex.Replace(line, m => $"{m.Groups[1].Value}{Yellow(m.Groups[2].Value)}{m.Groups[3].Value}");
-                highlightedLine = _errorRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}{Red(m.Groups[2].Value)}{m.Groups[3].Value}");
-                highlightedLine = _successfulRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}{Green(m.Groups[2].Value)}{m.Groups[3].Value}");
-                highlightedLine = _uetInfoRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}{Green(m.Groups[2].Value)}{m.Groups[3].Value}");
-                highlightedLine = _uetWarnRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}{Yellow(m.Groups[2].Value)}{m.Groups[3].Value}");
-                highlightedLine = _uetFailRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}{Red(m.Groups[2].Value)}{m.Groups[3].Value}");
+                var highlightedLine = _warningRegex.Replace(line, m => $"{m.Groups[1].Value}{Bright.Yellow(m.Groups[2].Value)}{m.Groups[3].Value}");
+                highlightedLine = _errorRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}{Bright.Red(m.Groups[2].Value)}{m.Groups[3].Value}");
+                highlightedLine = _successfulRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}{Bright.Green(m.Groups[2].Value)}{m.Groups[3].Value}");
+                highlightedLine = _uetInfoRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}{Bright.Green(m.Groups[2].Value)}{m.Groups[3].Value}");
+                highlightedLine = _uetWarnRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}{Bright.Yellow(m.Groups[2].Value)}{m.Groups[3].Value}");
+                highlightedLine = _uetFailRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}{Bright.Red(m.Groups[2].Value)}{m.Groups[3].Value}");
                 _logger.LogInformation($"[{nodeName}] {highlightedLine}");
             }
             return Task.CompletedTask;
@@ -79,7 +79,7 @@
             {
                 return Task.CompletedTask;
             }
-            _logger.LogInformation($"[{nodeName}] \x001B[35mStarting...\x001B[0m");
+            _logger.LogInformation($"[{nodeName}] {Bright.Magenta("Starting...")}");
             if (!_buildResultsOrder.Contains(nodeName))
             {
                 _buildResultsOrder.Add(nodeName);

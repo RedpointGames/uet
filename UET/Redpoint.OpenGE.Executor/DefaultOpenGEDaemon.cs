@@ -163,11 +163,11 @@
                         globalCts.Token.ThrowIfCancellationRequested();
                         if (exitCode == 0)
                         {
-                            _logger.LogInformation($"[{request.BuildNodeName}] {Green("success")} in {st.Elapsed.TotalSeconds:F2} secs");
+                            _logger.LogInformation($"[{request.BuildNodeName}] {Bright.Green("success")} in {st.Elapsed.TotalSeconds:F2} secs");
                         }
                         else
                         {
-                            _logger.LogInformation($"[{request.BuildNodeName}] {Red("failure")} in {st.Elapsed.TotalSeconds:F2} secs");
+                            _logger.LogInformation($"[{request.BuildNodeName}] {Bright.Red("failure")} in {st.Elapsed.TotalSeconds:F2} secs");
                         }
                     }
                     await responseStream.WriteAsync(new SubmitJobResponse
@@ -179,11 +179,11 @@
                 {
                     if (executor?.CancelledDueToFailure ?? false)
                     {
-                        _logger.LogInformation($"[{request.BuildNodeName}] {Red("failure")} in {st.Elapsed.TotalSeconds:F2} secs");
+                        _logger.LogInformation($"[{request.BuildNodeName}] {Bright.Red("failure")} in {st.Elapsed.TotalSeconds:F2} secs");
                     }
                     else
                     {
-                        _logger.LogInformation($"[{request.BuildNodeName}] {Yellow("cancelled")} in {st.Elapsed.TotalSeconds:F2} secs");
+                        _logger.LogInformation($"[{request.BuildNodeName}] {Bright.Yellow("cancelled")} in {st.Elapsed.TotalSeconds:F2} secs");
                     }
                     exitCode = 1;
 
