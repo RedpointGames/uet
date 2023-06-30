@@ -9,6 +9,11 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using UET.Commands.Upgrade;
 
+if (Environment.GetEnvironmentVariable("CI") == "true")
+{
+    Crayon.Output.Enable();
+}
+
 // Ensure we do not re-use MSBuild processes, because our dotnet executables
 // will often be inside UEFS packages and mounts that might go away at any time.
 Environment.SetEnvironmentVariable("MSBUILDDISABLENODEREUSE", "1");

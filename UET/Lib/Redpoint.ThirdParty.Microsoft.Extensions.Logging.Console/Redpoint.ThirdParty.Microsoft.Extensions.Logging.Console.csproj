@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Framework.Build.props" />
+  <PropertyGroup>
+    <EnableDefaultItems>true</EnableDefaultItems>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>$(DefineConstants);NO_SUPPRESS_GC_TRANSITION</DefineConstants>
+    <IncludePlatformAttributes>true</IncludePlatformAttributes>
+    <IsPackable>true</IsPackable>
+    <EnableAOTAnalyzer>true</EnableAOTAnalyzer>
+    <PackageDescription>A fork of Microsoft.Extensions.Logging.Console that allows forcing ANSI colors on Windows.</PackageDescription>
+    <RootNamespace>Microsoft.Extensions.Logging.Console</RootNamespace>
+    <AssemblyName>Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console</AssemblyName>
+    <Nullable>enable</Nullable>
+    <NoWarn>1591</NoWarn>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>A fork of Microsoft.Extensions.Logging.Console that allows forcing ANSI colors on Windows.</Description>
+    <PackageTags>console logging</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Authors>Microsoft, June Rhodes</Authors>
+    <Company></Company>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.0" />
+  </ItemGroup>
+
+</Project>

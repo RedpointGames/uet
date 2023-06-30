@@ -72,6 +72,10 @@
             builder.AddConsole(o =>
             {
                 o.FormatterName = "redpoint-singleline";
+                if (Environment.GetEnvironmentVariable("CI") == "true")
+                {
+                    o.ForceColors = true;
+                }
                 options(o);
             });
             return builder;

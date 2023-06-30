@@ -1,40 +1,30 @@
-﻿namespace Redpoint.Logging.SingleLine
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+
+namespace Microsoft.Extensions.Logging.Console
 {
-    using Microsoft.Extensions.Logging.Abstractions;
-    using Microsoft.Extensions.Logging.Console;
-    using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Options;
-    using System;
-    using System.Diagnostics.CodeAnalysis;
-    using static Crayon.Output;
-
-    /// <summary>
-    /// Based on https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Logging.Console/src/SimpleConsoleFormatter.cs because
-    /// we need to modify it in unsupported ways.
-    /// </summary>
-    internal class SimpleBuildConsoleFormatter : ConsoleFormatter, IDisposable
+    internal sealed class SimpleConsoleFormatter : ConsoleFormatter, IDisposable
     {
-        private const string _loglevelPadding = ":";
-        private static readonly string _messagePadding = new string(' ', GetLogLevelString(LogLevel.Information).Length + _loglevelPadding.Length);
+        private const string LoglevelPadding = ": ";
+        private static readonly string _messagePadding = new string(' ', GetLogLevelString(LogLevel.Information).Length + LoglevelPadding.Length);
         private static readonly string _newLineWithMessagePadding = Environment.NewLine + _messagePadding;
-#if NETCOREAPP
-        private static bool IsAndroidOrAppleMobile => OperatingSystem.IsAndroid() ||
-                                                      OperatingSystem.IsTvOS() ||
-                                                      OperatingSystem.IsIOS(); // returns true on MacCatalyst
-#else
-        private static bool IsAndroidOrAppleMobile => false;
-#endif
-        private readonly IDisposable? _optionsReloadToken;
+        private IDisposable? _optionsReloadToken;
 
-        public SimpleBuildConsoleFormatter(IOptionsMonitor<ExtendedSimpleConsoleFormatterOptions> options)
-            : base("redpoint-singleline")
+        public SimpleConsoleFormatter(IOptionsMonitor<SimpleConsoleFormatterOptions> options)
+            : base(ConsoleFormatterNames.Simple)
         {
             ReloadLoggerOptions(options.CurrentValue);
             _optionsReloadToken = options.OnChange(ReloadLoggerOptions);
         }
 
         [MemberNotNull(nameof(FormatterOptions))]
-        private void ReloadLoggerOptions(ExtendedSimpleConsoleFormatterOptions options)
+        private void ReloadLoggerOptions(SimpleConsoleFormatterOptions options)
         {
             FormatterOptions = options;
         }
@@ -44,7 +34,7 @@
             _optionsReloadToken?.Dispose();
         }
 
-        internal ExtendedSimpleConsoleFormatterOptions FormatterOptions { get; set; }
+        internal SimpleConsoleFormatterOptions FormatterOptions { get; set; }
 
         public override void Write<TState>(in LogEntry<TState> logEntry, IExternalScopeProvider? scopeProvider, TextWriter textWriter)
         {
@@ -54,7 +44,7 @@
                 return;
             }
             LogLevel logLevel = logEntry.LogLevel;
-            Func<string, string> logLevelColors = GetLogLevelConsoleColors(logLevel);
+            ConsoleColors logLevelColors = GetLogLevelConsoleColors(logLevel);
             string logLevelString = GetLogLevelString(logLevel);
 
             string? timestamp = null;
@@ -64,30 +54,21 @@
                 DateTimeOffset dateTimeOffset = GetCurrentDateTime();
                 timestamp = dateTimeOffset.ToString(timestampFormat);
             }
-            if (!FormatterOptions.OmitLogPrefix)
+            if (timestamp != null)
             {
-                if (timestamp != null)
-                {
-                    textWriter.Write(timestamp);
-                }
-                if (logLevelString != null)
-                {
-                    textWriter.Write("[");
-                    WriteColoredMessage(textWriter, logLevelString, logLevelColors);
-                    textWriter.Write("]");
-                }
+                textWriter.Write(timestamp);
+            }
+            if (logLevelString != null)
+            {
+                textWriter.WriteColoredMessage(logLevelString, logLevelColors.Background, logLevelColors.Foreground);
             }
             CreateDefaultLogMessage(textWriter, logEntry, message, scopeProvider);
-        }
-
-        private static void WriteColoredMessage(TextWriter textWriter, string message, Func<string, string> colorise)
-        {
-            textWriter.Write(colorise(message));
         }
 
         private void CreateDefaultLogMessage<TState>(TextWriter textWriter, in LogEntry<TState> logEntry, string message, IExternalScopeProvider? scopeProvider)
         {
             bool singleLine = FormatterOptions.SingleLine;
+            int eventId = logEntry.EventId.Id;
             Exception? exception = logEntry.Exception;
 
             // Example:
@@ -95,7 +76,19 @@
             //       Request received
 
             // category and event id
-            //textWriter.Write("");
+            textWriter.Write(LoglevelPadding);
+            textWriter.Write(logEntry.Category);
+            textWriter.Write('[');
+
+#if NETCOREAPP
+            Span<char> span = stackalloc char[10];
+            if (eventId.TryFormat(span, out int charsWritten))
+                textWriter.Write(span.Slice(0, charsWritten));
+            else
+#endif
+                textWriter.Write(eventId.ToString());
+
+            textWriter.Write(']');
             if (!singleLine)
             {
                 textWriter.Write(Environment.NewLine);
@@ -103,7 +96,7 @@
 
             // scope information
             WriteScopeInformation(textWriter, scopeProvider, singleLine);
-            WriteMessage(textWriter, message, singleLine, FormatterOptions.OmitLogPrefix);
+            WriteMessage(textWriter, message, singleLine);
 
             // Example:
             // System.InvalidOperationException
@@ -111,7 +104,7 @@
             if (exception != null)
             {
                 // exception message
-                WriteMessage(textWriter, exception.ToString(), singleLine, FormatterOptions.OmitLogPrefix);
+                WriteMessage(textWriter, exception.ToString(), singleLine);
             }
             if (singleLine)
             {
@@ -119,16 +112,13 @@
             }
         }
 
-        private static void WriteMessage(TextWriter textWriter, string message, bool singleLine, bool omitLogPrefix)
+        private static void WriteMessage(TextWriter textWriter, string message, bool singleLine)
         {
             if (!string.IsNullOrEmpty(message))
             {
                 if (singleLine)
                 {
-                    if (!omitLogPrefix)
-                    {
-                        textWriter.Write(' ');
-                    }
+                    textWriter.Write(' ');
                     WriteReplacing(textWriter, Environment.NewLine, " ", message);
                 }
                 else
@@ -165,17 +155,25 @@
             };
         }
 
-        private Func<string, string> GetLogLevelConsoleColors(LogLevel logLevel)
+        private ConsoleColors GetLogLevelConsoleColors(LogLevel logLevel)
         {
+            bool disableColors = (FormatterOptions.ColorBehavior == LoggerColorBehavior.Disabled) ||
+                (FormatterOptions.ColorBehavior == LoggerColorBehavior.Default && !ConsoleUtils.EmitAnsiColorCodes);
+            if (disableColors)
+            {
+                return new ConsoleColors(null, null);
+            }
+            // We must explicitly set the background color if we are setting the foreground color,
+            // since just setting one can look bad on the users console.
             return logLevel switch
             {
-                LogLevel.Trace => x => Background.Black(Dim(White(x))),
-                LogLevel.Debug => x => Background.Black(Dim(White(x))),
-                LogLevel.Information => x => Background.Black(Green(x)),
-                LogLevel.Warning => x => Background.Black(Yellow(x)),
-                LogLevel.Error => x => Background.Red(Black(x)),
-                LogLevel.Critical => x => Background.Red(White(x)),
-                _ => x => x,
+                LogLevel.Trace => new ConsoleColors(ConsoleColor.Gray, ConsoleColor.Black),
+                LogLevel.Debug => new ConsoleColors(ConsoleColor.Gray, ConsoleColor.Black),
+                LogLevel.Information => new ConsoleColors(ConsoleColor.DarkGreen, ConsoleColor.Black),
+                LogLevel.Warning => new ConsoleColors(ConsoleColor.Yellow, ConsoleColor.Black),
+                LogLevel.Error => new ConsoleColors(ConsoleColor.Black, ConsoleColor.DarkRed),
+                LogLevel.Critical => new ConsoleColors(ConsoleColor.White, ConsoleColor.DarkRed),
+                _ => new ConsoleColors(null, null)
             };
         }
 
@@ -204,6 +202,19 @@
                     textWriter.Write(Environment.NewLine);
                 }
             }
+        }
+
+        private readonly struct ConsoleColors
+        {
+            public ConsoleColors(ConsoleColor? foreground, ConsoleColor? background)
+            {
+                Foreground = foreground;
+                Background = background;
+            }
+
+            public ConsoleColor? Foreground { get; }
+
+            public ConsoleColor? Background { get; }
         }
     }
 }
