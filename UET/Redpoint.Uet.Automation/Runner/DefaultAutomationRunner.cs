@@ -98,6 +98,7 @@
             if (_configuration.TestRunTimeout.HasValue && _configuration.TestRunTimeout.Value != TimeSpan.MaxValue)
             {
                 await Task.Delay((int)_configuration.TestRunTimeout.Value.TotalMilliseconds, _cancellationTokenSource.Token);
+                _logger.LogWarning($"Test run exceeded timeout of {_configuration.TestRunTimeout.Value.TotalMinutes:0.##} minutes, so the test run is being cancelled. If you're using a BuildConfig.json file, you can increase the overall timeout by setting the 'TestRunTimeoutMinutes' property.");
                 _cancellationTokenSource.Cancel();
             }
         }
@@ -467,6 +468,7 @@
                             // The test run is being cancelled or timed out.
                             nextTest.DateFinished = DateTimeOffset.UtcNow;
                             nextTest.TestStatus = TestResultStatus.Cancelled;
+                            nextTest.Duration = nextTest.DateFinished - nextTest.DateStarted;
                             workerGroupState.RemainingTests--;
                             workerGroupState.ProcessedTests.Add(nextTest);
                             await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
@@ -482,6 +484,7 @@
                         nextTest.AutomationRunnerCrashInfo = ex;
                         nextTest.DateFinished = DateTimeOffset.UtcNow;
                         nextTest.TestStatus = TestResultStatus.Crashed;
+                        nextTest.Duration = nextTest.DateFinished - nextTest.DateStarted;
                         workerGroupState.RemainingTests--;
                         workerGroupState.ProcessedTests.Add(nextTest);
                         await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
