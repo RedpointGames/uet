@@ -1,7 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
-  
+
+  <ItemGroup>
+    <PackageReference Include="Crayon" Version="2.0.69" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Remove="BuildGraph\BuildGraph_Plugin.xml" />
     <None Remove="BuildGraph\BuildGraph_Project.xml" />

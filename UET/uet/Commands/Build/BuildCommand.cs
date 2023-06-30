@@ -15,6 +15,7 @@
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildPipeline.Executors.GitLab;
     using Redpoint.Uet.Core;
+    using static Crayon.Output;
 
     internal class BuildCommand
     {
@@ -420,11 +421,11 @@
                         context.GetCancellationToken());
                     if (buildResult == 0)
                     {
-                        _logger.LogInformation("All build jobs \u001b[32mpassed successfully\u001b[0m.");
+                        _logger.LogInformation($"All build jobs {Green("passed successfully")}.");
                     }
                     else
                     {
-                        _logger.LogError("One or more build jobs \u001b[31mfailed\u001b[0m:");
+                        _logger.LogError($"One or more build jobs {Red("failed")}:");
                         foreach (var kv in executionEvents.GetResults())
                         {
                             switch (kv.resultStatus)

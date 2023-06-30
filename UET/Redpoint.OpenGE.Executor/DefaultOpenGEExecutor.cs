@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.OpenGE.Executor
 {
+    using Crayon;
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Executor.BuildSetData;
     using Redpoint.ProcessExecution;
@@ -9,6 +10,7 @@
     using System.Diagnostics;
     using System.Linq;
     using System.Threading.Tasks;
+    using static Crayon.Output;
 
     internal class DefaultOpenGEExecutor : IOpenGEExecutor
     {
@@ -274,7 +276,7 @@
                         task.Status = OpenGEStatus.Running;
                         if (!_turnOffExtraLogInfo)
                         {
-                            _logger.LogInformation($"{GetBuildStatusLogPrefix(0)} {task.BuildSetTask.Caption} \u001b[38;5;8m[started on core {selectedCore}]\u001b[0m");
+                            _logger.LogInformation($"{GetBuildStatusLogPrefix(0)} {task.BuildSetTask.Caption} {Bright.Black($"[started on core {selectedCore}]")}");
                         }
                         else
                         {
@@ -349,7 +351,7 @@
                             }
                             if (needsRetry)
                             {
-                                _logger.LogInformation($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[33m[automatically retrying]\u001b[0m");
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Yellow($"[automatically retrying]")}");
                             }
                         } while (needsRetry);
 
@@ -358,7 +360,7 @@
                             task.Status = OpenGEStatus.Success;
                             if (!_turnOffExtraLogInfo)
                             {
-                                _logger.LogInformation($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[32m[done in {stopwatch.Elapsed.TotalSeconds:F2} secs]\u001b[0m");
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Green($"[done in {stopwatch.Elapsed.TotalSeconds:F2} secs]")}");
                             }
                             else
                             {
@@ -373,7 +375,7 @@
                             CancelledDueToFailure = true;
                             if (!_turnOffExtraLogInfo)
                             {
-                                _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[31m[build failed]\u001b[0m");
+                                _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Red("[build failed]")}");
                             }
                             else
                             {
@@ -394,11 +396,11 @@
                             CancelledDueToFailure = true;
                             if (!_turnOffExtraLogInfo)
                             {
-                                _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[30m\u001b[41m[executor exception]\u001b[0m");
+                                _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Output.Background.Red(Black("[executor exception]"))}");
                             }
                             else
                             {
-                                _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} [executor failed]");
+                                _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Red("[executor failed]")}");
                             }
                             _logger.LogError(ex, ex.Message);
                         }
@@ -415,7 +417,7 @@
                     {
                         if (!_turnOffExtraLogInfo)
                         {
-                            _logger.LogWarning($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} \u001b[33m[terminating due to cancellation]\u001b[0m");
+                            _logger.LogWarning($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Yellow($"[terminating due to cancellation]")}");
                         }
                         else
                         {

@@ -3,6 +3,7 @@
     using Microsoft.Extensions.Logging;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
+    using static Crayon.Output;
 
     public class LoggerBasedBuildExecutionEvents : IBuildExecutionEvents
     {
@@ -61,12 +62,12 @@
         {
             foreach (var line in lines)
             {
-                var highlightedLine = _warningRegex.Replace(line, m => $"{m.Groups[1].Value}\u001b[33m{m.Groups[2].Value}\u001b[0m{m.Groups[3].Value}");
-                highlightedLine = _errorRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}\u001b[31m{m.Groups[2].Value}\u001b[0m{m.Groups[3].Value}");
-                highlightedLine = _successfulRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}\u001b[32m{m.Groups[2].Value}\u001b[0m{m.Groups[3].Value}");
-                highlightedLine = _uetInfoRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}\u001b[32m{m.Groups[2].Value}\u001b[0m{m.Groups[3].Value}");
-                highlightedLine = _uetWarnRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}\u001b[33m{m.Groups[2].Value}\u001b[0m{m.Groups[3].Value}");
-                highlightedLine = _uetFailRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}\u001b[31m{m.Groups[2].Value}\u001b[0m{m.Groups[3].Value}");
+                var highlightedLine = _warningRegex.Replace(line, m => $"{m.Groups[1].Value}{Yellow(m.Groups[2].Value)}{m.Groups[3].Value}");
+                highlightedLine = _errorRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}{Red(m.Groups[2].Value)}{m.Groups[3].Value}");
+                highlightedLine = _successfulRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}{Green(m.Groups[2].Value)}{m.Groups[3].Value}");
+                highlightedLine = _uetInfoRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}{Green(m.Groups[2].Value)}{m.Groups[3].Value}");
+                highlightedLine = _uetWarnRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}{Yellow(m.Groups[2].Value)}{m.Groups[3].Value}");
+                highlightedLine = _uetFailRegex.Replace(highlightedLine, m => $"{m.Groups[1].Value}{Red(m.Groups[2].Value)}{m.Groups[3].Value}");
                 _logger.LogInformation($"[{nodeName}] {highlightedLine}");
             }
             return Task.CompletedTask;

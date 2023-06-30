@@ -6,6 +6,7 @@
     using Microsoft.Extensions.Options;
     using System;
     using System.Diagnostics.CodeAnalysis;
+    using static Crayon.Output;
 
     /// <summary>
     /// Based on https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Logging.Console/src/SimpleConsoleFormatter.cs because
@@ -53,7 +54,7 @@
                 return;
             }
             LogLevel logLevel = logEntry.LogLevel;
-            ConsoleColors logLevelColors = GetLogLevelConsoleColors(logLevel);
+            Func<string, string> logLevelColors = GetLogLevelConsoleColors(logLevel);
             string logLevelString = GetLogLevelString(logLevel);
 
             string? timestamp = null;
@@ -72,39 +73,21 @@
                 if (logLevelString != null)
                 {
                     textWriter.Write("[");
-                    WriteColoredMessage(textWriter, logLevelString, logLevelColors.Background, logLevelColors.Foreground);
+                    WriteColoredMessage(textWriter, logLevelString, logLevelColors);
                     textWriter.Write("]");
                 }
             }
             CreateDefaultLogMessage(textWriter, logEntry, message, scopeProvider);
         }
 
-        private static void WriteColoredMessage(TextWriter textWriter, string message, ConsoleColor? background, ConsoleColor? foreground)
+        private static void WriteColoredMessage(TextWriter textWriter, string message, Func<string, string> colorise)
         {
-            // Order: backgroundcolor, foregroundcolor, Message, reset foregroundcolor, reset backgroundcolor
-            if (background.HasValue)
-            {
-                textWriter.Write(AnsiParser.GetBackgroundColorEscapeCode(background.Value));
-            }
-            if (foreground.HasValue)
-            {
-                textWriter.Write(AnsiParser.GetForegroundColorEscapeCode(foreground.Value));
-            }
-            textWriter.Write(message);
-            if (foreground.HasValue)
-            {
-                textWriter.Write(AnsiParser.DefaultForegroundColor); // reset to default foreground color
-            }
-            if (background.HasValue)
-            {
-                textWriter.Write(AnsiParser.DefaultBackgroundColor); // reset to the background color
-            }
+            textWriter.Write(colorise(message));
         }
 
         private void CreateDefaultLogMessage<TState>(TextWriter textWriter, in LogEntry<TState> logEntry, string message, IExternalScopeProvider? scopeProvider)
         {
             bool singleLine = FormatterOptions.SingleLine;
-            int eventId = logEntry.EventId.Id;
             Exception? exception = logEntry.Exception;
 
             // Example:
@@ -113,20 +96,6 @@
 
             // category and event id
             //textWriter.Write("");
-            /*
-            textWriter.Write(logEntry.Category);
-            textWriter.Write('[');
-
-#if NETCOREAPP
-            Span<char> span = stackalloc char[10];
-            if (eventId.TryFormat(span, out int charsWritten))
-                textWriter.Write(span.Slice(0, charsWritten));
-            else
-#endif
-                textWriter.Write(eventId.ToString());
-
-            textWriter.Write(']');
-            */
             if (!singleLine)
             {
                 textWriter.Write(Environment.NewLine);
@@ -196,27 +165,17 @@
             };
         }
 
-        private ConsoleColors GetLogLevelConsoleColors(LogLevel logLevel)
+        private Func<string, string> GetLogLevelConsoleColors(LogLevel logLevel)
         {
-            // We shouldn't be outputting color codes for Android/Apple mobile platforms,
-            // they have no shell (adb shell is not meant for running apps) and all the output gets redirected to some log file.
-            bool disableColors = FormatterOptions.ColorBehavior == LoggerColorBehavior.Disabled ||
-                FormatterOptions.ColorBehavior == LoggerColorBehavior.Default && (System.Console.IsOutputRedirected || IsAndroidOrAppleMobile);
-            if (disableColors)
-            {
-                return new ConsoleColors(null, null);
-            }
-            // We must explicitly set the background color if we are setting the foreground color,
-            // since just setting one can look bad on the users console.
             return logLevel switch
             {
-                LogLevel.Trace => new ConsoleColors(ConsoleColor.Gray, ConsoleColor.Black),
-                LogLevel.Debug => new ConsoleColors(ConsoleColor.Gray, ConsoleColor.Black),
-                LogLevel.Information => new ConsoleColors(ConsoleColor.DarkGreen, ConsoleColor.Black),
-                LogLevel.Warning => new ConsoleColors(ConsoleColor.Yellow, ConsoleColor.Black),
-                LogLevel.Error => new ConsoleColors(ConsoleColor.Black, ConsoleColor.DarkRed),
-                LogLevel.Critical => new ConsoleColors(ConsoleColor.White, ConsoleColor.DarkRed),
-                _ => new ConsoleColors(null, null)
+                LogLevel.Trace => x => Background.Black(Dim(White(x))),
+                LogLevel.Debug => x => Background.Black(Dim(White(x))),
+                LogLevel.Information => x => Background.Black(Green(x)),
+                LogLevel.Warning => x => Background.Black(Yellow(x)),
+                LogLevel.Error => x => Background.Red(Black(x)),
+                LogLevel.Critical => x => Background.Red(White(x)),
+                _ => x => x,
             };
         }
 

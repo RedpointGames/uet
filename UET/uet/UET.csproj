@@ -2,7 +2,7 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
-  
+
   <PropertyGroup>
     <RootNamespace>UET</RootNamespace>
     <Description>The unofficial Unreal Engine Tool.</Description>
@@ -25,6 +25,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Crayon" Version="2.0.69" />
   </ItemGroup>
 
   <ItemGroup>

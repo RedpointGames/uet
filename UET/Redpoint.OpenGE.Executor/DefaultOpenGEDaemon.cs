@@ -8,6 +8,7 @@
     using System.Diagnostics;
     using System.Text;
     using System.Threading.Tasks;
+    using static Crayon.Output;
 
     internal class DefaultOpenGEDaemon : OpenGE.OpenGEBase, IOpenGEDaemon, IDisposable
     {
@@ -162,11 +163,11 @@
                         globalCts.Token.ThrowIfCancellationRequested();
                         if (exitCode == 0)
                         {
-                            _logger.LogInformation($"[{request.BuildNodeName}] \u001b[32msuccess\u001b[0m in {st.Elapsed.TotalSeconds:F2} secs");
+                            _logger.LogInformation($"[{request.BuildNodeName}] {Green("success")} in {st.Elapsed.TotalSeconds:F2} secs");
                         }
                         else
                         {
-                            _logger.LogInformation($"[{request.BuildNodeName}] \u001b[31mfailure\u001b[0m in {st.Elapsed.TotalSeconds:F2} secs");
+                            _logger.LogInformation($"[{request.BuildNodeName}] {Red("failure")} in {st.Elapsed.TotalSeconds:F2} secs");
                         }
                     }
                     await responseStream.WriteAsync(new SubmitJobResponse
@@ -178,11 +179,11 @@
                 {
                     if (executor?.CancelledDueToFailure ?? false)
                     {
-                        _logger.LogInformation($"[{request.BuildNodeName}] \u001b[31mfailure\u001b[0m in {st.Elapsed.TotalSeconds:F2} secs");
+                        _logger.LogInformation($"[{request.BuildNodeName}] {Red("failure")} in {st.Elapsed.TotalSeconds:F2} secs");
                     }
                     else
                     {
-                        _logger.LogInformation($"[{request.BuildNodeName}] \u001b[33mcancelled\u001b[0m in {st.Elapsed.TotalSeconds:F2} secs");
+                        _logger.LogInformation($"[{request.BuildNodeName}] {Yellow("cancelled")} in {st.Elapsed.TotalSeconds:F2} secs");
                     }
                     exitCode = 1;
 

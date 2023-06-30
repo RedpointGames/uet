@@ -4,18 +4,11 @@
     using Redpoint.Uet.Automation.Model;
     using Redpoint.Uet.Automation.Worker;
     using System;
+    using static Crayon.Output;
 
     internal class ConsoleTestLogger : ITestLogger
     {
         private readonly ILogger<ConsoleTestLogger> _logger;
-
-        private string _colorRed = "\x1b[31m";
-        private string _colorGreen = "\x1b[32m";
-        private string _colorBlue = "\x1b[34m";
-        private string _colorCyan = "\x1b[36m";
-        private string _colorYellow = "\x1b[33m";
-        private string _colorReset = "\x1b[0m";
-        private string _colorGray = "\u001b[38;5;8m";
 
         public ConsoleTestLogger(ILogger<ConsoleTestLogger> logger)
         {
@@ -70,13 +63,13 @@
 
         public Task LogDiscovered(IWorker worker, TestProgressionInfo progressionInfo, TestResult testResult)
         {
-            _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {_colorCyan}[discovered]{_colorReset}");
+            _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Cyan("[discovered]")}");
             return Task.CompletedTask;
         }
 
         public Task LogStarted(IWorker worker, TestProgressionInfo progressionInfo, TestResult testResult)
         {
-            _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {_colorGray}[started]{_colorReset}");
+            _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Bright.Black("[started]")}");
             return Task.CompletedTask;
         }
 
@@ -104,28 +97,28 @@
             switch (testResult.TestStatus)
             {
                 case TestResultStatus.NotRun:
-                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {_colorBlue}[not run]{_colorReset}");
+                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Blue("[not run]")}");
                     break;
                 case TestResultStatus.InProgress:
-                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {_colorBlue}[in progress]{_colorReset}");
+                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Blue("[in progress]")}");
                     break;
                 case TestResultStatus.Passed:
-                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {_colorGreen}[passed in {testResult.Duration.TotalSeconds:0.##} secs]{_colorReset}");
+                    _logger.LogInformation($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Green($"[passed in {testResult.Duration.TotalSeconds:0.##} secs]")}");
                     break;
                 case TestResultStatus.Failed:
-                    _logger.LogError($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {_colorRed}[failed in {testResult.Duration.TotalSeconds:0.##} secs]{_colorReset}");
+                    _logger.LogError($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Red($"[failed in {testResult.Duration.TotalSeconds:0.##} secs]")}");
                     break;
                 case TestResultStatus.Skipped:
-                    _logger.LogWarning($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {_colorYellow}[skipped in {testResult.Duration.TotalSeconds:0.##} secs]{_colorReset}");
+                    _logger.LogWarning($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Yellow($"[skipped in {testResult.Duration.TotalSeconds:0.##} secs]")}");
                     break;
                 case TestResultStatus.Cancelled:
-                    _logger.LogWarning($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {_colorYellow}[cancelled in {testResult.Duration.TotalSeconds:0.##} secs]{_colorReset}");
+                    _logger.LogWarning($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Yellow($"[cancelled in {testResult.Duration.TotalSeconds:0.##} secs]")}");
                     break;
                 case TestResultStatus.Crashed:
-                    _logger.LogError($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {_colorRed}[crashed in {testResult.Duration.TotalSeconds:0.##} secs]{_colorReset}");
+                    _logger.LogError($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Red($"[crashed in {testResult.Duration.TotalSeconds:0.##} secs]")}");
                     break;
                 case TestResultStatus.TimedOut:
-                    _logger.LogError($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {_colorRed}[timed out in {testResult.Duration.TotalSeconds:0.##} secs]{_colorReset}");
+                    _logger.LogError($"{Progress(progressionInfo)} {Worker(worker)}{testResult.FullTestPath} {Red($"[timed out in {testResult.Duration.TotalSeconds:0.##} secs]")}");
                     break;
             }
             return Task.CompletedTask;
