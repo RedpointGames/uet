@@ -390,7 +390,8 @@ stages:
       --file "uet=UET for macOS=UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet" `
       --file "uefs=UEFS Client for macOS=UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs" `
       --file "uefs-daemon=UEFS Daemon for macOS=UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/osx.11.0-arm64/publish/uefs-daemon" `
-      --file "uet.shim=UET Shim for macOS=UET/uet.shim/bin/Release/net7.0/osx.11.0-arm64/publish/uet"
+      --file "uet.shim=UET Shim for macOS=UET/uet.shim/bin/Release/net7.0/osx.11.0-arm64/publish/uet" `
+      --file "package.version=Version File=package.version"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
@@ -414,7 +415,7 @@ stages:
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-      Set-Content -Value $PackageVersion -Path latest.txt
+    Set-Content -Value $PackageVersion -Path latest.txt
     UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe transfer latest.txt "b2://dl-public-redpoint-games/uet/latest"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   rules:
