@@ -169,10 +169,10 @@
         {
             return logLevel switch
             {
-                LogLevel.Trace => x => Background.Black(Dim(White(x))),
-                LogLevel.Debug => x => Background.Black(Dim(White(x))),
-                LogLevel.Information => x => Background.Black(Green(x)),
-                LogLevel.Warning => x => Background.Black(Yellow(x)),
+                LogLevel.Trace => x => Dim(White(x)),
+                LogLevel.Debug => x => Dim(White(x)),
+                LogLevel.Information => Green,
+                LogLevel.Warning => Yellow,
                 LogLevel.Error => x => Background.Red(Black(x)),
                 LogLevel.Critical => x => Background.Red(White(x)),
                 _ => x => x,
