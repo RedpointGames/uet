@@ -40,5 +40,10 @@
         {
             return Task.CompletedTask;
         }
+
+        public Task LogTestRunTimedOut(TimeSpan testRunTimeout)
+        {
+            return Task.CompletedTask;
+        }
     }
 }

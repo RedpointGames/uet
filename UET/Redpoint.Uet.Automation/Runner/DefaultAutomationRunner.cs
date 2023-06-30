@@ -98,7 +98,7 @@
             if (_configuration.TestRunTimeout.HasValue && _configuration.TestRunTimeout.Value != TimeSpan.MaxValue)
             {
                 await Task.Delay((int)_configuration.TestRunTimeout.Value.TotalMilliseconds, _cancellationTokenSource.Token);
-                _logger.LogError($"Test run exceeded timeout of {_configuration.TestRunTimeout.Value.TotalMinutes:0.##} minutes, so the test run is being cancelled. If you're using a BuildConfig.json file, you can increase the overall timeout by setting the 'TestRunTimeoutMinutes' property.");
+                await _testLogger.LogTestRunTimedOut(_configuration.TestRunTimeout.Value);
                 _cancellationTokenSource.Cancel();
             }
         }

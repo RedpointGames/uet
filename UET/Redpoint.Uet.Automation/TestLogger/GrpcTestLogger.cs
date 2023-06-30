@@ -78,6 +78,14 @@
             });
         }
 
+        public async Task LogTestRunTimedOut(TimeSpan testRunTimeout)
+        {
+            await _client.LogTestRunTimedOutAsync(new LogTestRunTimedOutRequest
+            {
+                TimeoutDurationSeconds = testRunTimeout.TotalSeconds,
+            });
+        }
+
         public async Task LogWorkerStarted(IWorker worker, TimeSpan startupDuration)
         {
             await _client.LogWorkerStartedAsync(new LogWorkerStartedRequest

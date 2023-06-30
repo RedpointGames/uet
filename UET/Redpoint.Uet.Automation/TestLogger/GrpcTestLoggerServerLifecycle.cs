@@ -224,6 +224,12 @@
                 return new LogResponse();
             }
 
+            public override async Task<LogResponse> LogTestRunTimedOut(LogTestRunTimedOutRequest request, ServerCallContext context)
+            {
+                await _testLogger.LogTestRunTimedOut(TimeSpan.FromSeconds(request.TimeoutDurationSeconds));
+                return new LogResponse();
+            }
+
             private Model.TestResultStatus Convert(UETAutomation.TestResultStatus testStatus)
             {
                 switch (testStatus)

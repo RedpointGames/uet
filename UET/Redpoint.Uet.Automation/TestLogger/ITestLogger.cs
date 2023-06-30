@@ -25,5 +25,7 @@
         Task LogFinished(IWorker worker, TestProgressionInfo progressionInfo, TestResult testResult);
 
         Task LogException(IWorker worker, TestProgressionInfo progressionInfo, Exception exception, string context);
+
+        Task LogTestRunTimedOut(TimeSpan testRunTimeout);
     }
 }

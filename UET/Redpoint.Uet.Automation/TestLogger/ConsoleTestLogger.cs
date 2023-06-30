@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.Automation.TestLogging
 {
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Redpoint.Uet.Automation.Model;
     using Redpoint.Uet.Automation.Worker;
@@ -128,6 +129,12 @@
         {
             _logger.LogError($"{Progress(progressionInfo)} {Worker(worker)}[exception] {context}: ({exception.GetType().FullName}) {exception.Message}");
             _logger.LogError(exception.StackTrace);
+            return Task.CompletedTask;
+        }
+
+        public Task LogTestRunTimedOut(TimeSpan testRunTimeout)
+        {
+            _logger.LogError($"Test run exceeded timeout of {testRunTimeout.TotalMinutes:0.##} minutes, so the test run is being cancelled. If you're using a BuildConfig.json file, you can increase the overall timeout by setting the 'TestRunTimeoutMinutes' property.");
             return Task.CompletedTask;
         }
     }

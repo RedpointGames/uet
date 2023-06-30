@@ -63,6 +63,10 @@ message LogRunnerExceptionRequest {
 	string exceptionContext = 5;
 }
 
+message LogTestRunTimedOutRequest {
+	double timeoutDurationSeconds = 1;
+}
+
 message LogResponse {
 }
 
@@ -74,4 +78,5 @@ service TestReporting {
 	rpc LogTestStarted(LogTestStartedRequest) returns (LogResponse) {}
 	rpc LogTestFinished(LogTestFinishedRequest) returns (LogResponse) {}
 	rpc LogRunnerException(LogRunnerExceptionRequest) returns (LogResponse) {}
+	rpc LogTestRunTimedOut(LogTestRunTimedOutRequest) returns (LogResponse) {}
 }
