@@ -141,6 +141,7 @@
                                     Name = version,
                                     Body = "This is an automatic release from the GitLab build server.",
                                     Draft = true,
+                                    MakeLatest = "false",
                                 },
                                 GitHubJsonSerializerContext.Default.GitHubNewRelease),
                             context.GetCancellationToken());
@@ -216,19 +217,20 @@
                             throw;
                         }
 
-                        if (release.Draft)
+                        _logger.LogInformation($"Publishing release {version} on GitHub...");
+                        response = await client.PatchAsync(
+                            $"https://api.github.com/repos/RedpointGames/uet/releases/{release.Id}",
+                            MakeContent(
+                                new GitHubNewRelease
+                                {
+                                    TagName = version,
+                                    Draft = false,
+                                    MakeLatest = "false",
+                                },
+                                GitHubJsonSerializerContext.Default.GitHubNewRelease),
+                            context.GetCancellationToken());
+                        if (response.StatusCode != System.Net.HttpStatusCode.UnprocessableEntity)
                         {
-                            _logger.LogInformation($"Publishing release {version} on GitHub...");
-                            response = await client.PatchAsync(
-                                $"https://api.github.com/repos/RedpointGames/uet/releases/{release.Id}",
-                                MakeContent(
-                                    new GitHubNewRelease
-                                    {
-                                        TagName = version,
-                                        Draft = false,
-                                    },
-                                    GitHubJsonSerializerContext.Default.GitHubNewRelease),
-                                context.GetCancellationToken());
                             response.EnsureSuccessStatusCode();
                         }
                     }
@@ -261,6 +263,8 @@
                                         TagName = "latest",
                                         Name = $"{version} (latest)",
                                         Body = latestDescription,
+                                        Draft = false,
+                                        MakeLatest = "true",
                                     },
                                     GitHubJsonSerializerContext.Default.GitHubNewRelease),
                                 context.GetCancellationToken());
