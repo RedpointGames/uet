@@ -35,7 +35,8 @@
             IMonitorFactory monitorFactory,
             ILogger logger,
             string? version,
-            bool doNotSetAsCurrent)
+            bool doNotSetAsCurrent,
+            CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(version))
             {
@@ -95,10 +96,13 @@
                 {
                     using (var target = new FileStream(Path.Combine(baseFolder, version, filename + ".tmp"), FileMode.Create, FileAccess.Write, FileShare.None))
                     {
-                        var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                        var response = await client.GetAsync(
+                            downloadUrl,
+                            HttpCompletionOption.ResponseHeadersRead,
+                            cancellationToken);
                         response.EnsureSuccessStatusCode();
                         using (var stream = new PositionAwareStream(
-                            await response.Content.ReadAsStreamAsync(),
+                            await response.Content.ReadAsStreamAsync(cancellationToken),
                             response.Content.Headers.ContentLength!.Value))
                         {
                             var cts = new CancellationTokenSource();
@@ -130,7 +134,7 @@
                                     cts.Token);
                             });
 
-                            await stream.CopyToAsync(target);
+                            await stream.CopyToAsync(target, cancellationToken);
 
                             cts.Cancel();
                             try
@@ -239,12 +243,12 @@
                     var zprofile = Path.Combine(home, ".zprofile");
                     if (File.Exists(zprofile))
                     {
-                        var lines = (await File.ReadAllLinesAsync(zprofile)).ToList();
+                        var lines = (await File.ReadAllLinesAsync(zprofile, cancellationToken)).ToList();
                         if (!lines.Contains(pathLine))
                         {
                             logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to your .zprofile...");
                             lines.Add(pathLine);
-                            await File.WriteAllLinesAsync(zprofile, lines);
+                            await File.WriteAllLinesAsync(zprofile, lines, cancellationToken);
                             updated = true;
                         }
                     }
@@ -252,12 +256,12 @@
                 var bashprofile = Path.Combine(home, ".bash_profile");
                 if (File.Exists(bashprofile))
                 {
-                    var lines = (await File.ReadAllLinesAsync(bashprofile)).ToList();
+                    var lines = (await File.ReadAllLinesAsync(bashprofile, cancellationToken)).ToList();
                     if (!lines.Contains(pathLine))
                     {
                         logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to your .bash_profile...");
                         lines.Add(pathLine);
-                        await File.WriteAllLinesAsync(bashprofile, lines);
+                        await File.WriteAllLinesAsync(bashprofile, lines, cancellationToken);
                         updated = true;
                     }
                 }
@@ -270,7 +274,7 @@
             var currentBuildConfigPath = Path.Combine(Environment.CurrentDirectory, "BuildConfig.json");
             if (File.Exists(currentBuildConfigPath))
             {
-                var document = JsonNode.Parse(await File.ReadAllTextAsync(currentBuildConfigPath));
+                var document = JsonNode.Parse(await File.ReadAllTextAsync(currentBuildConfigPath, cancellationToken));
                 var didUpdate = false;
                 try
                 {
@@ -339,7 +343,7 @@
                         memory.Seek(0, SeekOrigin.Begin);
                         using (var writer = new FileStream(currentBuildConfigPath, FileMode.Create, FileAccess.Write, FileShare.None))
                         {
-                            await memory.CopyToAsync(writer);
+                            await memory.CopyToAsync(writer, cancellationToken);
                         }
                     }
                 }

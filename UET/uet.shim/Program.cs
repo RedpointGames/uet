@@ -14,6 +14,12 @@ if (Environment.GetEnvironmentVariable("CI") == "true")
     Crayon.Output.Enable();
 }
 
+var cts = new CancellationTokenSource();
+Console.CancelKeyPress += (sender, args) =>
+{
+    cts.Cancel();
+};
+
 // Ensure we do not re-use MSBuild processes, because our dotnet executables
 // will often be inside UEFS packages and mounts that might go away at any time.
 Environment.SetEnvironmentVariable("MSBUILDDISABLENODEREUSE", "1");
@@ -83,27 +89,39 @@ if (targetVersion == null || (targetVersion != "BleedingEdge" && !versionRegex.I
 }
 
 // If this is BleedingEdge, or we don't have the target version installed, install it now.
-if (targetVersion == "BleedingEdge" || !File.Exists(UpgradeCommandImplementation.GetAssemblyPathForVersion(targetVersion)))
+do
 {
-    try
+    if (targetVersion == "BleedingEdge" || !File.Exists(UpgradeCommandImplementation.GetAssemblyPathForVersion(targetVersion)))
     {
-        await UpgradeCommandImplementation.PerformUpgradeAsync(
-            sp.GetRequiredService<IProgressFactory>(),
-            sp.GetRequiredService<IMonitorFactory>(),
-            logger,
-            targetVersion == "BleedingEdge" ? string.Empty : targetVersion,
-            true);
-        if (targetVersion == "BleedingEdge")
+        try
         {
-            targetVersion = UpgradeCommandImplementation.LastInstalledVersion!;
+            await UpgradeCommandImplementation.PerformUpgradeAsync(
+                sp.GetRequiredService<IProgressFactory>(),
+                sp.GetRequiredService<IMonitorFactory>(),
+                logger,
+                targetVersion == "BleedingEdge" ? string.Empty : targetVersion,
+                true,
+                cts.Token);
+            if (targetVersion == "BleedingEdge")
+            {
+                targetVersion = UpgradeCommandImplementation.LastInstalledVersion!;
+            }
+        }
+        catch (IOException ex) when (ex.Message.Contains("used by another process"))
+        {
+            logger.LogWarning($"Another UET shim instance is downloading {targetVersion}, checking if it is ready in another 2 seconds...");
+            await Task.Delay(2000);
+            continue;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Failed to install the shim determined UET version {targetVersion}. Exception was: {ex}");
+            return 1;
         }
     }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, $"Failed to install the shim determined UET version {targetVersion}. Exception was: {ex.Message}");
-        return 1;
-    }
+    break;
 }
+while (true);
 
 // We should now have the target version installed. If we don't, something went wrong.
 if (!File.Exists(UpgradeCommandImplementation.GetAssemblyPathForVersion(targetVersion)))
@@ -112,11 +130,6 @@ if (!File.Exists(UpgradeCommandImplementation.GetAssemblyPathForVersion(targetVe
     return 1;
 }
 
-var cts = new CancellationTokenSource();
-Console.CancelKeyPress += (sender, args) =>
-{
-    cts.Cancel();
-};
 // @note: We use Environment.Exit so fire-and-forget tasks that contain stallable code won't prevent the process from exiting.
 var nestedExitCode = await processExecutor.ExecuteAsync(
     new ProcessSpecification

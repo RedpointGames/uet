@@ -98,41 +98,51 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                 }
                 var didInstall = false;
                 var isBleedingEdgeTheSame = false;
-                try
+                do
                 {
-                    var upgradeRootCommand = new RootCommand("An unofficial tool for Unreal Engine.");
-                    upgradeRootCommand.AddCommand(UpgradeCommand.CreateUpgradeCommand(new HashSet<Command>()));
-                    var upgradeArgs = new[] { "upgrade", "--version", targetVersion!, "--do-not-set-as-current" };
-                    if (targetVersion == "BleedingEdge")
+                    try
                     {
-                        upgradeArgs = new[] { "upgrade", "--do-not-set-as-current" };
+                        var upgradeRootCommand = new RootCommand("An unofficial tool for Unreal Engine.");
+                        upgradeRootCommand.AddCommand(UpgradeCommand.CreateUpgradeCommand(new HashSet<Command>()));
+                        var upgradeArgs = new[] { "upgrade", "--version", targetVersion!, "--do-not-set-as-current" };
+                        if (targetVersion == "BleedingEdge")
+                        {
+                            upgradeArgs = new[] { "upgrade", "--do-not-set-as-current" };
+                        }
+                        var upgradeResult = await upgradeRootCommand.InvokeAsync(upgradeArgs);
+                        if (upgradeResult != 0)
+                        {
+                            logger.LogError($"Failed to install the requested UET version {targetVersion}. See above for details.");
+                            return 1;
+                        }
+
+                        didInstall = true;
+                        if (targetVersion == "BleedingEdge")
+                        {
+                            targetVersion = UpgradeCommandImplementation.LastInstalledVersion!;
+                            if (targetVersion == currentVersionAttribute.InformationalVersion)
+                            {
+                                isBleedingEdgeTheSame = true;
+                            }
+                            else
+                            {
+                                logger.LogInformation($"The bleeding-edge version of UET is {targetVersion}, but we are running {currentVersionAttribute.InformationalVersion}. Re-executing the requested command as version {targetVersion}...");
+                            }
+                        }
                     }
-                    var upgradeResult = await upgradeRootCommand.InvokeAsync(upgradeArgs);
-                    if (upgradeResult != 0)
+                    catch (IOException ex) when (ex.Message.Contains("used by another process"))
                     {
-                        logger.LogError($"Failed to install the requested UET version {targetVersion}. See above for details.");
+                        logger.LogWarning($"Another UET instance is downloading {targetVersion}, checking if it is ready in another 2 seconds...");
+                        await Task.Delay(2000);
+                        continue;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, $"Failed to install the requested UET version {targetVersion}. Exception was: {ex.Message}");
                         return 1;
                     }
-
-                    didInstall = true;
-                    if (targetVersion == "BleedingEdge")
-                    {
-                        targetVersion = UpgradeCommandImplementation.LastInstalledVersion!;
-                        if (targetVersion == currentVersionAttribute.InformationalVersion)
-                        {
-                            isBleedingEdgeTheSame = true;
-                        }
-                        else
-                        {
-                            logger.LogInformation($"The bleeding-edge version of UET is {targetVersion}, but we are running {currentVersionAttribute.InformationalVersion}. Re-executing the requested command as version {targetVersion}...");
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, $"Failed to install the requested UET version {targetVersion}. Exception was: {ex.Message}");
-                    return 1;
-                }
+                    break;
+                } while (true);
 
                 if (didInstall && !isBleedingEdgeTheSame)
                 {

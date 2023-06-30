@@ -66,12 +66,26 @@
             {
                 var version = context.ParseResult.GetValueForOption(_options.Version);
                 var doNotSetAsCurrent = context.ParseResult.GetValueForOption(_options.DoNotSetAsCurrent);
-                return await UpgradeCommandImplementation.PerformUpgradeAsync(
-                    _progressFactory,
-                    _monitorFactory,
-                    _logger,
-                    version,
-                    doNotSetAsCurrent);
+                do
+                {
+                    try
+                    {
+                        return await UpgradeCommandImplementation.PerformUpgradeAsync(
+                            _progressFactory,
+                            _monitorFactory,
+                            _logger,
+                            version,
+                            doNotSetAsCurrent,
+                            context.GetCancellationToken());
+                    }
+                    catch (IOException ex) when (ex.Message.Contains("used by another process"))
+                    {
+                        _logger.LogWarning($"Another UET shim instance is downloading this version, checking if it is ready in another 2 seconds...");
+                        await Task.Delay(2000);
+                        continue;
+                    }
+                }
+                while (true);
             }
         }
     }
