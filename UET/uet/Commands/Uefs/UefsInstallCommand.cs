@@ -69,7 +69,7 @@
                 }
                 else
                 {
-                    const string latestUrl = "https://dl-public.redpoint.games/file/dl-public-redpoint-games/uet/latest";
+                    const string latestUrl = "https://github.com/RedpointGames/uet/releases/download/latest/package.version";
 
                     _logger.LogInformation("Checking for the latest version...");
                     using (var client = new HttpClient())
@@ -92,7 +92,7 @@
                 string? stderrPath;
                 if (OperatingSystem.IsWindows())
                 {
-                    downloadUrl = $"https://dl-public.redpoint.games/file/dl-public-redpoint-games/uet/{version}/windows/uefs-daemon.exe";
+                    downloadUrl = $"https://github.com/RedpointGames/uet/releases/download/{version}/uefs-daemon.exe";
                     baseFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "UET");
                     filename = "uefs-daemon.exe";
                     daemonName = "UEFS Service";
@@ -101,7 +101,7 @@
                 }
                 else if (OperatingSystem.IsMacOS())
                 {
-                    downloadUrl = $"https://dl-public.redpoint.games/file/dl-public-redpoint-games/uet/{version}/macos/uefs-daemon";
+                    downloadUrl = $"https://github.com/RedpointGames/uet/releases/download/{version}/uefs-daemon";
                     baseFolder = "/Users/Shared/UET";
                     filename = "uefs-daemon";
                     daemonName = "games.redpoint.UEFS";
