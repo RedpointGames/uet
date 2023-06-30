@@ -234,6 +234,18 @@
                     }
 
                     {
+                        var latestDescription =
+                            $"""
+                            This is the latest release of UET, currently {version}. This tag is always updated to the latest version on every release, so you can download UET from the URLs below as part of CI scripts and always get the latest files.
+
+                            The file you want to download is either:
+
+                              - **[UET for Windows](https://github.com/RedpointGames/uet/releases/download/latest/uet.exe)**, or
+                              - **[UET for macOS](https://github.com/RedpointGames/uet/releases/download/latest/uet)**.
+
+                            The other files in this release are exist so they can be fetched on-demand by UET, or they are for specific use cases where the general UET binary is not suitable.
+                            """;
+
                         // If the "latest" release doesn't exist, make it first.
                         ReleaseResponse release;
                         _logger.LogInformation($"Checking if there is a latest release...");
@@ -248,7 +260,7 @@
                                     {
                                         TagName = "latest",
                                         Name = $"{version} (latest)",
-                                        Body = $"This is the latest release of UET, currently {version}. This tag is always updated to the latest version on every release, so you can download UET from the URLs below as part of CI scripts and always get the latest files.",
+                                        Body = latestDescription,
                                     },
                                     GitHubJsonSerializerContext.Default.GitHubNewRelease),
                                 context.GetCancellationToken());
@@ -411,7 +423,7 @@
                                 {
                                     TagName = "latest",
                                     Name = $"{version} (latest)",
-                                    Body = $"This is the latest release of UET, currently {version}. This tag is always updated to the latest version on every release, so you can download UET from the URLs below as part of CI scripts and always get the latest files.",
+                                    Body = latestDescription,
                                     Draft = false,
                                     MakeLatest = "true",
                                 },
