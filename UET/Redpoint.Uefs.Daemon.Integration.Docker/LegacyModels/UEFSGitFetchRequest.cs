@@ -1,7 +1,7 @@
-﻿using System.Text.Json.Serialization;
-
-namespace Redpoint.Uefs.Daemon.Integration.Docker.LegacyModels
+﻿namespace Redpoint.Uefs.Daemon.Integration.Docker.LegacyModels
 {
+    using System.Text.Json.Serialization;
+
     public class UEFSGitFetchRequest
     {
         [JsonPropertyName("GitUrl")]

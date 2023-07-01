@@ -1,7 +1,7 @@
-﻿using System.Text.Json.Serialization;
-
-namespace Redpoint.Uefs.ContainerRegistry
+﻿namespace Redpoint.Uefs.ContainerRegistry
 {
+    using System.Text.Json.Serialization;
+
     /// <summary>
     /// Represents a credential used to authenticate with a Docker registry.
     /// </summary>

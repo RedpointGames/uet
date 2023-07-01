@@ -1,8 +1,8 @@
-﻿using Redpoint.Uefs.ContainerRegistry;
-using System.Text.Json.Serialization;
-
-namespace Redpoint.Uefs.Daemon.Integration.Docker.LegacyModels
+﻿namespace Redpoint.Uefs.Daemon.Integration.Docker.LegacyModels
 {
+    using Redpoint.Uefs.ContainerRegistry;
+    using System.Text.Json.Serialization;
+
     public class UEFSPullRequest
     {
         [JsonPropertyName("Url")]

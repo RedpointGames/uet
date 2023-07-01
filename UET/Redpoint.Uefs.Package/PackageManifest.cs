@@ -1,7 +1,7 @@
-﻿using System.Collections;
-
-namespace Redpoint.Uefs.Package
+﻿namespace Redpoint.Uefs.Package
 {
+    using System.Collections;
+
     public class PackageManifest : IEnumerable<PackageManifestEntry>
     {
         private Dictionary<string, PackageManifestEntry> _manifestData = new Dictionary<string, PackageManifestEntry>();

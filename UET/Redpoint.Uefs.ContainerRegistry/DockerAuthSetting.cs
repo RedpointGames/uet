@@ -1,7 +1,7 @@
-﻿using System.Text.Json.Serialization;
-
-namespace Redpoint.Uefs.ContainerRegistry
+﻿namespace Redpoint.Uefs.ContainerRegistry
 {
+    using System.Text.Json.Serialization;
+
     /// <summary>
     /// Represents an authentication entry inside a Docker configuration file.
     /// </summary>

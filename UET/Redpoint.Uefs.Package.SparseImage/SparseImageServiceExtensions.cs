@@ -1,7 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
-namespace Redpoint.Uefs.Package.SparseImage
+﻿namespace Redpoint.Uefs.Package.SparseImage
 {
+    using Microsoft.Extensions.DependencyInjection;
+
     public static class SparseImageServiceExtensions
     {
         public static void AddUefsPackageSparseImage(this IServiceCollection services)

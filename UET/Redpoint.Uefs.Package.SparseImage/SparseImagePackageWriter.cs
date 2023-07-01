@@ -1,8 +1,8 @@
-﻿using System.Diagnostics;
-using System.Runtime.Versioning;
-
-namespace Redpoint.Uefs.Package.SparseImage
+﻿namespace Redpoint.Uefs.Package.SparseImage
 {
+    using System.Diagnostics;
+    using System.Runtime.Versioning;
+
     [SupportedOSPlatform("macos")]
     internal class SparseImagePackageWriter : IPackageWriter
     {

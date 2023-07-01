@@ -1,11 +1,11 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Redpoint.Logging.SingleLine;
-using Redpoint.Uet.Core.Permissions;
-using System.Diagnostics.CodeAnalysis;
-
-namespace Redpoint.Uet.Core
+﻿namespace Redpoint.Uet.Core
 {
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
+    using Redpoint.Logging.SingleLine;
+    using Redpoint.Uet.Core.Permissions;
+    using System.Diagnostics.CodeAnalysis;
+
     public static class CoreServiceExtensions
     {
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",

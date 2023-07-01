@@ -1,10 +1,10 @@
-﻿using System.Diagnostics;
-using System.Runtime.Versioning;
-using Microsoft.Extensions.Logging;
-using Redpoint.Uefs.Protocol;
-
-namespace Redpoint.Uefs.Package.SparseImage
+﻿namespace Redpoint.Uefs.Package.SparseImage
 {
+    using System.Diagnostics;
+    using System.Runtime.Versioning;
+    using Microsoft.Extensions.Logging;
+    using Redpoint.Uefs.Protocol;
+
     [SupportedOSPlatform("macos")]
     internal class SparseImagePackageMounter : IPackageMounter
     {

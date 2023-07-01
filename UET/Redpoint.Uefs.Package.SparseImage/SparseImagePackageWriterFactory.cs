@@ -1,7 +1,7 @@
-﻿using System.Runtime.Versioning;
-
-namespace Redpoint.Uefs.Package.SparseImage
+﻿namespace Redpoint.Uefs.Package.SparseImage
 {
+    using System.Runtime.Versioning;
+
     [SupportedOSPlatform("macos")]
     internal class SparseImagePackageWriterFactory : IPackageWriterFactory
     {

@@ -1,22 +1,22 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Executors.BuildServer
 {
+    using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
-    using Redpoint.Uet.BuildPipeline.BuildGraph.Export;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
+    using Redpoint.Uet.BuildPipeline.BuildGraph.Export;
     using Redpoint.Uet.BuildPipeline.Executors.Engine;
+    using Redpoint.Uet.Configuration;
+    using Redpoint.Uet.Core;
+    using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.Workspace;
+    using Redpoint.Uet.Workspace.Descriptors;
+    using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
+    using System.Linq;
+    using System.Reflection;
+    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Extensions.Logging;
-    using System.Linq;
-    using System.Text.Json;
-    using Redpoint.Uet.Core;
-    using System.Reflection;
-    using System.Diagnostics;
-    using Redpoint.Uet.Workspace.Descriptors;
-    using Redpoint.Uet.Configuration;
-    using System.Diagnostics.CodeAnalysis;
-    using Redpoint.Uet.Core.Permissions;
 
     public abstract class BuildServerBuildExecutor : IBuildExecutor
     {

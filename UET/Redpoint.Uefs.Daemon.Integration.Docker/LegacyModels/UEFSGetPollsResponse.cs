@@ -1,7 +1,7 @@
-﻿using System.Text.Json.Serialization;
-
-namespace Redpoint.Uefs.Daemon.Integration.Docker.LegacyModels
+﻿namespace Redpoint.Uefs.Daemon.Integration.Docker.LegacyModels
 {
+    using System.Text.Json.Serialization;
+
     public class UEFSGetPollsResponse
     {
         // Map of polling IDs to the tag being pulled.

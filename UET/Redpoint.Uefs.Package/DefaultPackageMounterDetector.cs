@@ -1,7 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
-namespace Redpoint.Uefs.Package
+﻿namespace Redpoint.Uefs.Package
 {
+    using Microsoft.Extensions.DependencyInjection;
+
     internal class DefaultPackageMounterDetector : IPackageMounterDetector
     {
         private readonly IServiceProvider _serviceProvider;

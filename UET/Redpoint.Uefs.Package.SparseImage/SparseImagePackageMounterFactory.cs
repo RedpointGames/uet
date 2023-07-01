@@ -1,9 +1,9 @@
-﻿using System.Runtime.Versioning;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-
-namespace Redpoint.Uefs.Package.SparseImage
+﻿namespace Redpoint.Uefs.Package.SparseImage
 {
+    using System.Runtime.Versioning;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
+
     [SupportedOSPlatform("macos")]
     internal class SparseImagePackageMounterFactory : IPackageMounterFactory
     {

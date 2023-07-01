@@ -1,7 +1,7 @@
-﻿using System.Text.Json.Serialization;
-
-namespace Redpoint.Uefs.ContainerRegistry
+﻿namespace Redpoint.Uefs.ContainerRegistry
 {
+    using System.Text.Json.Serialization;
+
     /// <summary>
     /// A reference (stored in a Docker registry) that points to a file on a network share, with the specified hash.
     /// </summary>

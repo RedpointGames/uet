@@ -1,12 +1,12 @@
-﻿using Docker.Registry.DotNet;
-using Docker.Registry.DotNet.Authentication;
-using Docker.Registry.DotNet.Registry;
-using Redpoint.ThirdParty.CredentialManagement;
-using System.Text;
-using System.Text.Json;
-
-namespace Redpoint.Uefs.ContainerRegistry
+﻿namespace Redpoint.Uefs.ContainerRegistry
 {
+    using Docker.Registry.DotNet;
+    using Docker.Registry.DotNet.Authentication;
+    using Docker.Registry.DotNet.Registry;
+    using Redpoint.ThirdParty.CredentialManagement;
+    using System.Text;
+    using System.Text.Json;
+
     /// <summary>
     /// Provides helper functions for obtaining registry credentials and constructing authenticated <see cref="IRegistryClient"/> instances.
     /// </summary>
