@@ -39,6 +39,30 @@
             {
                 NeedsRetry = true;
             }
+            if (data.Contains("it is being used by another process") &&
+                data.Contains("DynamicBuildGraph") &&
+                data.Contains(".xml"))
+            {
+                // For some reason BuildGraph wasn't able to read the DynamicBuildGraph
+                // file on the network share. This wouldn't occur if BuildGraph were built
+                // with .NET 6 or later (which seems to set up the FileShare mode more
+                // generously), but .NET 5 uses a FileStream underneath to implement
+                // ReadAllBytesAsync and can thus be blocked by another build job reading
+                // the DynamicBuildGraph at the exact same moment.
+                //
+                // Our options for working around this would be either:
+                //
+                // - Copying the DynamicBuildGraph file locally when ci-build starts up
+                //   ourselves to gracefully handle the lock. This would mean manually 
+                //   parsing the BuildGraphSettings though, because the dynamic build graph
+                //   isn't actually a special field, so it's not ideal.
+                //
+                // - Just retrying the job as part of the UAT executor. This error 
+                //   happens immediately as soon as BuildGraph starts up, so we don't lose
+                //   any build time by working around this issue with a retry.
+                //
+                NeedsRetry = true;
+            }
             if (data.Contains("fatal error CVT1107") && data.Contains("is corrupt"))
             {
                 // fatal error CVT1107: '(file path)' is corrupt
