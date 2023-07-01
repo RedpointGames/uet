@@ -6,6 +6,7 @@
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.BuildServer;
     using Redpoint.Uet.BuildPipeline.Executors.GitLab;
+    using Redpoint.Uet.Core.Permissions;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Diagnostics;
@@ -44,15 +45,18 @@
             private readonly ILogger<CIBuildCommandInstance> _logger;
             private readonly Options _options;
             private readonly GitLabBuildExecutorFactory _gitLabBuildExecutorFactory;
+            private readonly IWorldPermissionApplier _worldPermissionApplier;
 
             public CIBuildCommandInstance(
                 ILogger<CIBuildCommandInstance> logger,
                 Options options,
-                GitLabBuildExecutorFactory gitLabBuildExecutorFactory)
+                GitLabBuildExecutorFactory gitLabBuildExecutorFactory,
+                IWorldPermissionApplier worldPermissionApplier)
             {
                 _logger = logger;
                 _options = options;
                 _gitLabBuildExecutorFactory = gitLabBuildExecutorFactory;
+                _worldPermissionApplier = worldPermissionApplier;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
@@ -172,6 +176,14 @@
                 {
                     _logger.LogError(ex.Message);
                     return 1;
+                }
+                finally
+                {
+                    // Update the permissions on our emitted files for this node, so that all machines
+                    // have read-write access to the folder. I'm pretty sure BuildGraph already does this
+                    // for us, but there are other cases (like when we copy UET to shared storage) that we
+                    // need to do permission updates, so let's just do this for consistency.
+                    await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(buildJson.SharedStoragePath, buildJson.NodeName), context.GetCancellationToken());
                 }
             }
         }

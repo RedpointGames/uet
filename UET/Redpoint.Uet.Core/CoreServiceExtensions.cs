@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Redpoint.Logging.SingleLine;
+using Redpoint.Uet.Core.Permissions;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Redpoint.Uet.Core
@@ -13,6 +14,7 @@ namespace Redpoint.Uet.Core
         public static void AddUETCore(this IServiceCollection services, bool omitLogPrefix = false, LogLevel minimumLogLevel = LogLevel.Information)
         {
             services.AddSingleton<IStringUtilities, DefaultStringUtilities>();
+            services.AddSingleton<IWorldPermissionApplier, DefaultWorldPermissionApplier>();
 
             services.AddLogging(builder =>
             {

@@ -6,6 +6,7 @@
     using Redpoint.Uet.BuildPipeline.Executors.BuildServer;
     using Redpoint.Uet.BuildPipeline.Executors.Engine;
     using Redpoint.Uet.Configuration;
+    using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.Workspace;
     using System.Threading.Tasks;
     using YamlDotNet.Serialization;
@@ -20,12 +21,14 @@
             IBuildGraphExecutor buildGraphExecutor,
             IEngineWorkspaceProvider engineWorkspaceProvider,
             IDynamicWorkspaceProvider workspaceProvider,
+            IWorldPermissionApplier worldPermissionApplier,
             IGlobalArgsProvider? globalArgsProvider,
             string buildServerOutputFilePath) : base(
                 baseLogger,
                 buildGraphExecutor,
                 engineWorkspaceProvider,
                 workspaceProvider,
+                worldPermissionApplier,
                 globalArgsProvider,
                 buildServerOutputFilePath)
         {

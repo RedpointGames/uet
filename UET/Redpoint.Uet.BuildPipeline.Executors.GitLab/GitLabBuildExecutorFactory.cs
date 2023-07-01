@@ -6,6 +6,7 @@
     using Redpoint.Uet.BuildPipeline.Executors.BuildServer;
     using Redpoint.Uet.BuildPipeline.Executors.Engine;
     using Redpoint.Uet.Configuration;
+    using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.Workspace;
     using System;
 
@@ -27,6 +28,7 @@
                 _serviceProvider.GetRequiredService<IBuildGraphExecutor>(),
                 _serviceProvider.GetRequiredService<IEngineWorkspaceProvider>(),
                 _serviceProvider.GetRequiredService<IDynamicWorkspaceProvider>(),
+                _serviceProvider.GetRequiredService<IWorldPermissionApplier>(),
                 _serviceProvider.GetService<IGlobalArgsProvider>(),
                 buildServerOutputFilePath);
         }

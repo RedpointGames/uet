@@ -16,6 +16,7 @@
     using Redpoint.Uet.Workspace.Descriptors;
     using Redpoint.Uet.Configuration;
     using System.Diagnostics.CodeAnalysis;
+    using Redpoint.Uet.Core.Permissions;
 
     public abstract class BuildServerBuildExecutor : IBuildExecutor
     {
@@ -23,6 +24,7 @@
         private readonly IBuildGraphExecutor _buildGraphExecutor;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
         private readonly IDynamicWorkspaceProvider _workspaceProvider;
+        private readonly IWorldPermissionApplier _worldPermissionApplier;
         private readonly IGlobalArgsProvider? _globalArgsProvider;
         private readonly string _buildServerOutputFilePath;
 
@@ -31,6 +33,7 @@
             IBuildGraphExecutor buildGraphExecutor,
             IEngineWorkspaceProvider engineWorkspaceProvider,
             IDynamicWorkspaceProvider workspaceProvider,
+            IWorldPermissionApplier worldPermissionApplier,
             IGlobalArgsProvider? globalArgsProvider,
             string buildServerOutputFilePath)
         {
@@ -38,6 +41,7 @@
             _buildGraphExecutor = buildGraphExecutor;
             _engineWorkspaceProvider = engineWorkspaceProvider;
             _workspaceProvider = workspaceProvider;
+            _worldPermissionApplier = worldPermissionApplier;
             _globalArgsProvider = globalArgsProvider;
             _buildServerOutputFilePath = buildServerOutputFilePath;
         }
@@ -90,6 +94,7 @@
 
             var targetFolder = Path.Combine(localOsSharedStoragePath, "uet");
             Directory.CreateDirectory(targetFolder);
+            await _worldPermissionApplier.GrantEveryonePermissionAsync(targetFolder, CancellationToken.None);
 
             var preparationInfo = new UETPreparationInfo();
 
@@ -138,6 +143,7 @@
                             {
                                 await stream.CopyToAsync(target);
                             }
+                            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(targetFolder, targetName), CancellationToken.None);
                         }
                     }
                 }
@@ -174,6 +180,7 @@
                     throw new PlatformNotSupportedException();
                 }
                 File.Copy(Process.GetCurrentProcess().MainModule!.FileName, selfTargetPath, true);
+                await _worldPermissionApplier.GrantEveryonePermissionAsync(selfTargetPath, CancellationToken.None);
             }
             else
             {
@@ -212,6 +219,7 @@
                         throw new PlatformNotSupportedException();
                     }
                     File.Copy(Process.GetCurrentProcess().MainModule!.FileName, selfTargetPath, true);
+                    await _worldPermissionApplier.GrantEveryonePermissionAsync(selfTargetPath, CancellationToken.None);
                 }
                 else
                 {
@@ -221,6 +229,7 @@
                         AppContext.BaseDirectory,
                         Path.Combine(localOsSharedStoragePath, "uet"),
                         true);
+                    await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(localOsSharedStoragePath, "uet"), CancellationToken.None);
                     if (OperatingSystem.IsWindows())
                     {
                         preparationInfo.WindowsPath = $"{windowsSharedStoragePath}\\uet\\uet.exe";

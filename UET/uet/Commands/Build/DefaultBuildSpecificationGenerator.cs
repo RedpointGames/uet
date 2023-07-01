@@ -9,6 +9,7 @@
     using Redpoint.Uet.Configuration.Engine;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
+    using Redpoint.Uet.Core.Permissions;
     using System;
     using System.Diagnostics;
     using System.Linq;
@@ -21,6 +22,7 @@
         private readonly ISelfLocation _selfLocation;
         private readonly IPluginVersioning _versioning;
         private readonly IDynamicBuildGraphIncludeWriter _dynamicBuildGraphIncludeWriter;
+        private readonly IWorldPermissionApplier _worldPermissionApplier;
         private readonly IGlobalArgsProvider? _globalArgsProvider;
 
         public DefaultBuildSpecificationGenerator(
@@ -28,12 +30,14 @@
             ISelfLocation selfLocation,
             IPluginVersioning versioning,
             IDynamicBuildGraphIncludeWriter dynamicBuildGraphIncludeWriter,
+            IWorldPermissionApplier worldPermissionApplier,
             IGlobalArgsProvider? globalArgsProvider = null)
         {
             _logger = logger;
             _selfLocation = selfLocation;
             _versioning = versioning;
             _dynamicBuildGraphIncludeWriter = dynamicBuildGraphIncludeWriter;
+            _worldPermissionApplier = worldPermissionApplier;
             _globalArgsProvider = globalArgsProvider;
         }
 
@@ -182,6 +186,7 @@
                     executeTests,
                     executeDeployment);
             }
+            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(sharedStorageAbsolutePath, filename), CancellationToken.None);
             return $"__SHARED_STORAGE_PATH__/{filename}";
         }
 

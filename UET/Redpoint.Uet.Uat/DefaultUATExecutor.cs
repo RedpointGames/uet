@@ -5,6 +5,7 @@
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.Core;
+    using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.Uat.Internal;
     using System.Text.Json;
     using System.Text.Json.Serialization;
@@ -17,6 +18,7 @@
         private readonly ILocalHandleCloser _localHandleCloser;
         private readonly IRemoteHandleCloser _remoteHandleCloser;
         private readonly IPathResolver _pathResolver;
+        private readonly IWorldPermissionApplier _worldPermissionApplier;
 
         internal class ScriptModuleJson
         {
@@ -33,7 +35,8 @@
             IBuildConfigurationManager buildConfigurationManager,
             ILocalHandleCloser localHandleCloser,
             IRemoteHandleCloser remoteHandleCloser,
-            IPathResolver pathResolver)
+            IPathResolver pathResolver,
+            IWorldPermissionApplier worldPermissionApplier)
         {
             _processExecutor = processExecutor;
             _logger = logger;
@@ -41,6 +44,7 @@
             _localHandleCloser = localHandleCloser;
             _remoteHandleCloser = remoteHandleCloser;
             _pathResolver = pathResolver;
+            _worldPermissionApplier = worldPermissionApplier;
         }
 
         public async Task<int> ExecuteAsync(
@@ -167,7 +171,7 @@
                                 {
                                     var localOutputPath = Path.Combine(buildGraphProjectRoot, "Engine", "Saved", "BuildGraph", singleNodeName);
                                     if (Directory.Exists(localOutputPath) &&
-                                    Directory.GetFileSystemEntries(localOutputPath).Any())
+                                        Directory.GetFileSystemEntries(localOutputPath).Any())
                                     {
                                         _logger.LogWarning($"Detected existing local output directory at '{localOutputPath}'. Deleting contents...");
                                         try
@@ -203,6 +207,7 @@
                                         await DirectoryAsync.DeleteAsync(targetPath, true);
                                     }
                                     Directory.CreateDirectory(targetPath);
+                                    await _worldPermissionApplier.GrantEveryonePermissionAsync(targetPath, CancellationToken.None);
                                 }
                                 break;
                             }
