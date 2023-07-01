@@ -92,171 +92,199 @@
                 throw new PlatformNotSupportedException();
             }
 
-            var targetFolder = Path.Combine(localOsSharedStoragePath, "uet");
-            Directory.CreateDirectory(targetFolder);
-            await _worldPermissionApplier.GrantEveryonePermissionAsync(targetFolder, CancellationToken.None);
-
+            var targetFolderName = "uet";
+            var targetFolderNumber = 1;
             var preparationInfo = new UETPreparationInfo();
-
-            if (requiresCrossPlatformForBuild)
+            do
             {
-                // Check that we can run cross-platform builds.
-                var entryAssembly = Assembly.GetEntryAssembly()!;
-                var manifestNames = entryAssembly.GetManifestResourceNames();
-                if (!string.IsNullOrWhiteSpace(entryAssembly.Location) ||
-                    !manifestNames.Any(x => x.StartsWith("UET.Embedded.")))
+                try
                 {
-                    throw new BuildPipelineExecutionFailure("UET is not built as a self-contained cross-platform binary, and the build contains cross-platform targets. Create a version of UET with 'dotnet msbuild -restore -t:PublishAllRids' and use the resulting binary.");
-                }
+                    var targetFolder = Path.Combine(localOsSharedStoragePath, targetFolderName);
+                    Directory.CreateDirectory(targetFolder);
+                    await _worldPermissionApplier.GrantEveryonePermissionAsync(targetFolder, CancellationToken.None);
 
-                // Copy the binaries for other platforms from our embedded resources.
-                foreach (var manifestName in manifestNames)
-                {
-                    if (manifestName.StartsWith("UET.Embedded."))
+                    if (requiresCrossPlatformForBuild)
                     {
-                        using (var stream = entryAssembly.GetManifestResourceStream(manifestName)!)
+                        // Check that we can run cross-platform builds.
+                        var entryAssembly = Assembly.GetEntryAssembly()!;
+                        var manifestNames = entryAssembly.GetManifestResourceNames();
+                        if (!string.IsNullOrWhiteSpace(entryAssembly.Location) ||
+                            !manifestNames.Any(x => x.StartsWith("UET.Embedded.")))
                         {
-                            string targetName;
+                            throw new BuildPipelineExecutionFailure("UET is not built as a self-contained cross-platform binary, and the build contains cross-platform targets. Create a version of UET with 'dotnet msbuild -restore -t:PublishAllRids' and use the resulting binary.");
+                        }
+
+                        // Copy the binaries for other platforms from our embedded resources.
+                        foreach (var manifestName in manifestNames)
+                        {
+                            if (manifestName.StartsWith("UET.Embedded."))
+                            {
+                                using (var stream = entryAssembly.GetManifestResourceStream(manifestName)!)
+                                {
+                                    string targetName;
 #if ENABLE_LINUX_SUPPORT
-                            if (manifestName.StartsWith("UET.Embedded.linux") && linuxSharedStoragePath != null)
-                            {
-                                targetName = "uet.linux";
-                                preparationInfo.LinuxPath = $"{linuxSharedStoragePath}/uet/uet.linux";
-                            }
-                            else 
+                                    if (manifestName.StartsWith("UET.Embedded.linux") && linuxSharedStoragePath != null)
+                                    {
+                                        targetName = "uet.linux";
+                                        preparationInfo.LinuxPath = $"{linuxSharedStoragePath}/{targetFolderName}/uet.linux";
+                                    }
+                                    else 
 #endif
-                            if (manifestName.StartsWith("UET.Embedded.osx") && macSharedStoragePath != null)
-                            {
-                                targetName = "uet.osx";
-                                preparationInfo.MacPath = $"{macSharedStoragePath}/uet/uet.osx";
+                                    if (manifestName.StartsWith("UET.Embedded.osx") && macSharedStoragePath != null)
+                                    {
+                                        targetName = "uet.osx";
+                                        preparationInfo.MacPath = $"{macSharedStoragePath}/{targetFolderName}/uet.osx";
+                                    }
+                                    else if (manifestName.StartsWith("UET.Embedded.win"))
+                                    {
+                                        targetName = "uet.win.exe";
+                                        preparationInfo.WindowsPath = $"{windowsSharedStoragePath}\\{targetFolderName}\\uet.win.exe";
+                                    }
+                                    else
+                                    {
+                                        continue;
+                                    }
+                                    using (var target = new FileStream(Path.Combine(targetFolder, targetName), FileMode.Create, FileAccess.Write, FileShare.None))
+                                    {
+                                        await stream.CopyToAsync(target);
+                                    }
+                                    await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(targetFolder, targetName), CancellationToken.None);
+                                }
                             }
-                            else if (manifestName.StartsWith("UET.Embedded.win"))
+                        }
+
+                        // Copy our own binary for the current platform.
+                        string selfTargetPath;
+                        if (OperatingSystem.IsWindows())
+                        {
+                            selfTargetPath = $"{windowsSharedStoragePath}\\{targetFolderName}\\uet.win.exe";
+                            preparationInfo.WindowsPath = selfTargetPath;
+                        }
+                        else if (OperatingSystem.IsMacOS())
+                        {
+                            if (macSharedStoragePath == null)
                             {
-                                targetName = "uet.win.exe";
-                                preparationInfo.WindowsPath = $"{windowsSharedStoragePath}\\uet\\uet.win.exe";
+                                throw new InvalidOperationException();
                             }
+                            selfTargetPath = $"{macSharedStoragePath}/{targetFolderName}/uet.osx";
+                            preparationInfo.MacPath = selfTargetPath;
+                        }
+#if ENABLE_LINUX_SUPPORT
+                        else if (OperatingSystem.IsLinux())
+                        {
+                            if (linuxSharedStoragePath == null)
+                            {
+                                throw new InvalidOperationException();
+                            }
+                            selfTargetPath = $"{linuxSharedStoragePath}/{targetFolderName}/uet.linux";
+                            preparationInfo.LinuxPath = selfTargetPath;
+                        }
+#endif
+                        else
+                        {
+                            throw new PlatformNotSupportedException();
+                        }
+                        File.Copy(Process.GetCurrentProcess().MainModule!.FileName, selfTargetPath, true);
+                        await _worldPermissionApplier.GrantEveryonePermissionAsync(selfTargetPath, CancellationToken.None);
+                    }
+                    else
+                    {
+                        // Copy our UET executable (and it's dependencies if needed) to the shared storage folder.
+                        if (string.IsNullOrWhiteSpace(Assembly.GetEntryAssembly()?.Location))
+                        {
+                            // This is a self-contained executable.
+                            string selfTargetPath;
+                            if (OperatingSystem.IsWindows())
+                            {
+                                selfTargetPath = $"{windowsSharedStoragePath}\\{targetFolderName}\\uet.win.exe";
+                                preparationInfo.WindowsPath = selfTargetPath;
+                            }
+                            else if (OperatingSystem.IsMacOS())
+                            {
+                                if (macSharedStoragePath == null)
+                                {
+                                    throw new InvalidOperationException();
+                                }
+                                selfTargetPath = $"{macSharedStoragePath}/{targetFolderName}/uet.osx";
+                                preparationInfo.MacPath = selfTargetPath;
+                            }
+#if ENABLE_LINUX_SUPPORT
+                            else if (OperatingSystem.IsLinux())
+                            {
+                                if (linuxSharedStoragePath == null)
+                                {
+                                    throw new InvalidOperationException();
+                                }
+                                selfTargetPath = $"{linuxSharedStoragePath}/{targetFolderName}/uet.linux";
+                                preparationInfo.LinuxPath = selfTargetPath;
+                            }
+#endif
                             else
                             {
-                                continue;
+                                throw new PlatformNotSupportedException();
                             }
-                            using (var target = new FileStream(Path.Combine(targetFolder, targetName), FileMode.Create, FileAccess.Write, FileShare.None))
+                            File.Copy(Process.GetCurrentProcess().MainModule!.FileName, selfTargetPath, true);
+                            await _worldPermissionApplier.GrantEveryonePermissionAsync(selfTargetPath, CancellationToken.None);
+                        }
+                        else
+                        {
+                            // This is a normal .NET app (during development).
+                            _logger.LogInformation($"Recursively copying UET from {AppContext.BaseDirectory} to {Path.Combine(localOsSharedStoragePath, targetFolderName)}...");
+                            await DirectoryAsync.CopyAsync(
+                                AppContext.BaseDirectory,
+                                Path.Combine(localOsSharedStoragePath, targetFolderName),
+                                true);
+                            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(localOsSharedStoragePath, targetFolderName), CancellationToken.None);
+                            if (OperatingSystem.IsWindows())
                             {
-                                await stream.CopyToAsync(target);
+                                preparationInfo.WindowsPath = $"{windowsSharedStoragePath}\\{targetFolderName}\\uet.exe";
                             }
-                            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(targetFolder, targetName), CancellationToken.None);
+                            else if (OperatingSystem.IsMacOS())
+                            {
+                                if (macSharedStoragePath == null)
+                                {
+                                    throw new InvalidOperationException();
+                                }
+                                preparationInfo.MacPath = $"{macSharedStoragePath}/{targetFolderName}/uet";
+                            }
+#if ENABLE_LINUX_SUPPORT
+                            else if (OperatingSystem.IsLinux())
+                            {
+                                if (linuxSharedStoragePath == null)
+                                {
+                                    throw new InvalidOperationException();
+                                }
+                                preparationInfo.LinuxPath = $"{linuxSharedStoragePath}/{targetFolderName}/uet";
+                            }
+#endif
+                            else
+                            {
+                                throw new PlatformNotSupportedException();
+                            }
                         }
                     }
+                    break;
                 }
-
-                // Copy our own binary for the current platform.
-                string selfTargetPath;
-                if (OperatingSystem.IsWindows())
+                catch (IOException ex) when (ex.Message.Contains("being used by another process"))
                 {
-                    selfTargetPath = $"{windowsSharedStoragePath}\\uet\\uet.win.exe";
-                    preparationInfo.WindowsPath = selfTargetPath;
+                    // This can happen if you cancel a build job running UET (which doesn't terminate
+                    // the UET process), and then re-run the build job that generates the downstream
+                    // jobs. In this case, the place where "build" wants to copy UET to is still in
+                    // use by the orphaned job.
+                    //
+                    // Just pick a new directory and try again to workaround the lock.
+                    _logger.LogWarning($"Detected that UET is still in-use at '{Path.Combine(localOsSharedStoragePath, targetFolderName)}', probably because there is a cancelled build job that left a stale UET process around. Picking a new directory name for staging UET onto shared storage...");
+                    targetFolderNumber++;
+                    targetFolderName = $"uet{targetFolderNumber}";
+                    continue;
                 }
-                else if (OperatingSystem.IsMacOS())
-                {
-                    if (macSharedStoragePath == null)
-                    {
-                        throw new InvalidOperationException();
-                    }
-                    selfTargetPath = $"{macSharedStoragePath}/uet/uet.osx";
-                    preparationInfo.MacPath = selfTargetPath;
-                }
-#if ENABLE_LINUX_SUPPORT
-                else if (OperatingSystem.IsLinux())
-                {
-                    if (linuxSharedStoragePath == null)
-                    {
-                        throw new InvalidOperationException();
-                    }
-                    selfTargetPath = $"{linuxSharedStoragePath}/uet/uet.linux";
-                    preparationInfo.LinuxPath = selfTargetPath;
-                }
-#endif
-                else
-                {
-                    throw new PlatformNotSupportedException();
-                }
-                File.Copy(Process.GetCurrentProcess().MainModule!.FileName, selfTargetPath, true);
-                await _worldPermissionApplier.GrantEveryonePermissionAsync(selfTargetPath, CancellationToken.None);
             }
-            else
+            while (targetFolderNumber <= 30);
+
+            if (targetFolderNumber > 30)
             {
-                // Copy our UET executable (and it's dependencies if needed) to the shared storage folder.
-                if (string.IsNullOrWhiteSpace(Assembly.GetEntryAssembly()?.Location))
-                {
-                    // This is a self-contained executable.
-                    string selfTargetPath;
-                    if (OperatingSystem.IsWindows())
-                    {
-                        selfTargetPath = $"{windowsSharedStoragePath}\\uet\\uet.win.exe";
-                        preparationInfo.WindowsPath = selfTargetPath;
-                    }
-                    else if (OperatingSystem.IsMacOS())
-                    {
-                        if (macSharedStoragePath == null)
-                        {
-                            throw new InvalidOperationException();
-                        }
-                        selfTargetPath = $"{macSharedStoragePath}/uet/uet.osx";
-                        preparationInfo.MacPath = selfTargetPath;
-                    }
-#if ENABLE_LINUX_SUPPORT
-                    else if (OperatingSystem.IsLinux())
-                    {
-                        if (linuxSharedStoragePath == null)
-                        {
-                            throw new InvalidOperationException();
-                        }
-                        selfTargetPath = $"{linuxSharedStoragePath}/uet/uet.linux";
-                        preparationInfo.LinuxPath = selfTargetPath;
-                    }
-#endif
-                    else
-                    {
-                        throw new PlatformNotSupportedException();
-                    }
-                    File.Copy(Process.GetCurrentProcess().MainModule!.FileName, selfTargetPath, true);
-                    await _worldPermissionApplier.GrantEveryonePermissionAsync(selfTargetPath, CancellationToken.None);
-                }
-                else
-                {
-                    // This is a normal .NET app (during development).
-                    _logger.LogInformation($"Recursively copying UET from {AppContext.BaseDirectory} to {Path.Combine(localOsSharedStoragePath, "uet")}...");
-                    await DirectoryAsync.CopyAsync(
-                        AppContext.BaseDirectory,
-                        Path.Combine(localOsSharedStoragePath, "uet"),
-                        true);
-                    await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(localOsSharedStoragePath, "uet"), CancellationToken.None);
-                    if (OperatingSystem.IsWindows())
-                    {
-                        preparationInfo.WindowsPath = $"{windowsSharedStoragePath}\\uet\\uet.exe";
-                    }
-                    else if (OperatingSystem.IsMacOS())
-                    {
-                        if (macSharedStoragePath == null)
-                        {
-                            throw new InvalidOperationException();
-                        }
-                        preparationInfo.MacPath = $"{macSharedStoragePath}/uet/uet";
-                    }
-#if ENABLE_LINUX_SUPPORT
-                    else if (OperatingSystem.IsLinux())
-                    {
-                        if (linuxSharedStoragePath == null)
-                        {
-                            throw new InvalidOperationException();
-                        }
-                        preparationInfo.LinuxPath = $"{linuxSharedStoragePath}/uet/uet";
-                    }
-#endif
-                    else
-                    {
-                        throw new PlatformNotSupportedException();
-                    }
-                }
+                _logger.LogError("Could not stage UET to shared storage in any attempt, which is required for the build to run on a build server.");
+                throw new InvalidOperationException("Could not stage UET to shared storage in any attempt, which is required for the build to run on a build server.");
             }
 
             if (preparationInfo.WindowsPath != null)
