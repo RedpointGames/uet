@@ -169,24 +169,8 @@
                 return constructor(GrpcChannel.ForAddress("http://localhost", options));
             }
 
-            var isUnixSocket = false;
-            if (OperatingSystem.IsWindows())
-            {
-                var attributes = File.GetAttributes(pipePath);
-                if ((attributes & FileAttributes.ReparsePoint) != 0)
-                {
-                    // This is a Unix socket on Windows. Maintain compatibility with older versions.
-                    logger?.LogTrace($"Detected UNIX socket on Windows system. This is for backwards compatibility only.");
-                    isUnixSocket = true;
-                }
-            }
-            else
-            {
-                isUnixSocket = true;
-            }
-
             GrpcChannel channel;
-            if (isUnixSocket)
+            if (!OperatingSystem.IsWindows())
             {
                 logger?.LogTrace($"Creating gRPC channel with UNIX socket at path: {pipePath}");
 
@@ -214,11 +198,6 @@
             }
             else
             {
-                if (!OperatingSystem.IsWindows())
-                {
-                    throw new InvalidOperationException("Did not expect pointer file on non-Windows system!");
-                }
-
                 logger?.LogTrace($"Reading pointer file from path: {pipePath}");
 
                 string pointerFileContent;
