@@ -4,11 +4,11 @@
     using System;
     using System.Text.RegularExpressions;
 
-    internal class UATCaptureSpecification : ICaptureSpecification
+    internal class RetryCaptureSpecification : ICaptureSpecification
     {
         private readonly ICaptureSpecification _baseCaptureSpecification;
 
-        public UATCaptureSpecification(ICaptureSpecification baseCaptureSpecification)
+        public RetryCaptureSpecification(ICaptureSpecification baseCaptureSpecification)
         {
             _baseCaptureSpecification = baseCaptureSpecification;
         }
@@ -81,6 +81,15 @@
             if (data.Contains("had to patch your engine"))
             {
                 ForceRetry = true;
+            }
+            if (data.Trim() == "Stack overflow.")
+            {
+                // Rare scenario that was encountered when BuildGraph was generating
+                // graphs. I'm pretty sure this output was from cmd.exe inside
+                // AutomationTool and not BuildGraph, and probably caused by some
+                // transient memory issue. In any case, if we see this message on
+                // a line by itself, we'll need to restart the command.
+                NeedsRetry = true;
             }
         }
 

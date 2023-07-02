@@ -266,7 +266,7 @@
                     }
 
                     // Create the capture specification to track whether we need to 
-                    var retryCaptureSpecification = new UATCaptureSpecification(captureSpecification);
+                    var retryCaptureSpecification = new RetryCaptureSpecification(captureSpecification);
 
                     // Execute UAT.
                     reportedExitCode = await _processExecutor.ExecuteAsync(
