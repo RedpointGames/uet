@@ -25,7 +25,10 @@
             return await _consoleExecutor.ExecuteAsync(
                 new ProcessSpecification
                 {
-                    FilePath = await _pathResolver.ResolveBinaryPath("powershell"),
+                    FilePath = await _pathResolver.ResolveBinaryPath(
+                        OperatingSystem.IsWindows()
+                            ? "powershell"
+                            : "pwsh"),
                     Arguments = new[]
                     {
                         "-ExecutionPolicy",
