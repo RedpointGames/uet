@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Automation;
+    using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Commandlet;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Custom;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Downstream;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Gauntlet;
@@ -10,18 +11,20 @@
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
+    using Redpoint.Uet.Configuration;
 
     public static class TestProviderServiceCollections
     {
         public static void AddUETBuildPipelineProvidersTest(this IServiceCollection services)
         {
             services.AddSingleton<IPluginTestProjectEmitProvider, DefaultPluginTestProjectEmitProvider>();
-            services.AddSingleton<IDynamicProvider<BuildConfigPluginDistribution, ITestProvider>, AutomationPluginTestProvider>();
-            services.AddSingleton<IDynamicProvider<BuildConfigPluginDistribution, ITestProvider>, CustomPluginTestProvider>();
-            services.AddSingleton<IDynamicProvider<BuildConfigPluginDistribution, ITestProvider>, GauntletPluginTestProvider>();
-            services.AddSingleton<IDynamicProvider<BuildConfigPluginDistribution, ITestProvider>, DownstreamPluginTestProvider>();
-            services.AddSingleton<IDynamicProvider<BuildConfigProjectDistribution, ITestProvider>, CustomProjectTestProvider>();
-            services.AddSingleton<IDynamicProvider<BuildConfigProjectDistribution, ITestProvider>, GauntletProjectTestProvider>();
+            services.AddDynamicProvider<BuildConfigPluginDistribution, ITestProvider, AutomationPluginTestProvider>();
+            services.AddDynamicProvider<BuildConfigPluginDistribution, ITestProvider, CommandletPluginTestProvider>();
+            services.AddDynamicProvider<BuildConfigPluginDistribution, ITestProvider, CustomPluginTestProvider>();
+            services.AddDynamicProvider<BuildConfigPluginDistribution, ITestProvider, GauntletPluginTestProvider>();
+            services.AddDynamicProvider<BuildConfigPluginDistribution, ITestProvider, DownstreamPluginTestProvider>();
+            services.AddDynamicProvider<BuildConfigProjectDistribution, ITestProvider, CustomProjectTestProvider>();
+            services.AddDynamicProvider<BuildConfigProjectDistribution, ITestProvider, GauntletProjectTestProvider>();
         }
     }
 }

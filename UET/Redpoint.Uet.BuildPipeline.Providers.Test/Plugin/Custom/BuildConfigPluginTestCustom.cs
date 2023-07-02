@@ -1,5 +1,6 @@
-﻿namespace Redpoint.Uet.Configuration.Plugin
+﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Custom
 {
+    using Redpoint.Uet.Configuration;
     using System.Text.Json.Serialization;
 
     public class BuildConfigPluginTestCustom

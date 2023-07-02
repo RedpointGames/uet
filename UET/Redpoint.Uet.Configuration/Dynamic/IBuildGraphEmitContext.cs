@@ -1,10 +1,14 @@
 ﻿namespace Redpoint.Uet.Configuration.Dynamic
 {
-    using Redpoint.Uet.Configuration.Plugin;
     using System.Threading.Tasks;
 
     public interface IBuildGraphEmitContext
     {
+        /// <summary>
+        /// The current service provider.
+        /// </summary>
+        IServiceProvider Services { get; }
+
         /// <summary>
         /// Runs the specified block once across all providers.
         /// </summary>

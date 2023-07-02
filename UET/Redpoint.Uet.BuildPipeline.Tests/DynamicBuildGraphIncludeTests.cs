@@ -8,6 +8,8 @@
     using Redpoint.Uet.BuildPipeline.Providers.Deployment;
     using System.Text;
     using System.Threading.Tasks;
+    using Redpoint.Uet.Configuration;
+    using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Automation;
 
     public class DynamicBuildGraphIncludeTests
     {

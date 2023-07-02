@@ -1,4 +1,4 @@
-﻿namespace Redpoint.Uet.Configuration.Plugin
+﻿namespace Redpoint.Uet.Configuration
 {
     public enum BuildConfigHostPlatform
     {

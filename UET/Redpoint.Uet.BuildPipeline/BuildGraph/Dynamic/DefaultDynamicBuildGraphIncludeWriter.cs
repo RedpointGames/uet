@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.BuildGraph.Dynamic
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
@@ -16,6 +17,7 @@
         private readonly IDynamicProvider<BuildConfigProjectDistribution, ITestProvider>[] _projectTests;
         private readonly IDynamicProvider<BuildConfigPluginDistribution, IDeploymentProvider>[] _pluginDeployments;
         private readonly IDynamicProvider<BuildConfigProjectDistribution, IDeploymentProvider>[] _projectDeployments;
+        private readonly IServiceProvider _serviceProvider;
 
         public DefaultDynamicBuildGraphIncludeWriter(IServiceProvider serviceProvider)
         {
@@ -23,6 +25,7 @@
             _projectTests = serviceProvider.GetServices<IDynamicProvider<BuildConfigProjectDistribution, ITestProvider>>().ToArray();
             _pluginDeployments = serviceProvider.GetServices<IDynamicProvider<BuildConfigPluginDistribution, IDeploymentProvider>>().ToArray();
             _projectDeployments = serviceProvider.GetServices<IDynamicProvider<BuildConfigProjectDistribution, IDeploymentProvider>>().ToArray();
+            _serviceProvider = serviceProvider;
         }
 
         private class BuildGraphEmitContext : IBuildGraphEmitContext
@@ -30,10 +33,15 @@
             private readonly ConcurrentDictionary<string, bool> _emitOnce = new ConcurrentDictionary<string, bool>();
             private readonly bool _filterHostToCurrentPlatformOnly;
 
-            public BuildGraphEmitContext(bool filterHostToCurrentPlatformOnly)
+            public BuildGraphEmitContext(
+                IServiceProvider serviceProvider,
+                bool filterHostToCurrentPlatformOnly)
             {
+                Services = serviceProvider;
                 _filterHostToCurrentPlatformOnly = filterHostToCurrentPlatformOnly;
             }
+
+            public IServiceProvider Services { get; }
 
             public bool CanHostPlatformBeUsed(BuildConfigHostPlatform platform)
             {
@@ -88,7 +96,9 @@
             bool executeTests,
             bool executeDeployment)
         {
-            var emitContext = new BuildGraphEmitContext(filterHostToCurrentPlatformOnly);
+            var emitContext = new BuildGraphEmitContext(
+                _serviceProvider,
+                filterHostToCurrentPlatformOnly);
 
             using (var writer = XmlWriter.Create(stream, new XmlWriterSettings
             {

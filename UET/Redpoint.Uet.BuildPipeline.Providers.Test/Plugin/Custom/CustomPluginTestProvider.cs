@@ -6,6 +6,7 @@
     using System.Xml;
     using Redpoint.Uet.Configuration.Dynamic;
     using System.Text.Json;
+    using Redpoint.Uet.Configuration;
 
     internal class CustomPluginTestProvider : IPluginTestProvider
     {

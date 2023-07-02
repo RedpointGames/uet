@@ -4,12 +4,13 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    public interface IDynamicProvider<TDistribution, TBaseClass>
+    public interface IDynamicProvider
     {
-        string Type { get; }
-
         object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options);
+    }
 
+    public interface IDynamicProvider<TDistribution, TBaseClass> : IDynamicProviderRegistration, IDynamicProvider
+    {
         /// <summary>
         /// Writes the build graph nodes for all of the elements of the same type.
         /// </summary>

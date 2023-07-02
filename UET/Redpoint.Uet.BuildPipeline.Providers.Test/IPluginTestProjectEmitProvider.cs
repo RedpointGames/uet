@@ -2,8 +2,8 @@
 {
     using System.Threading.Tasks;
     using System.Xml;
+    using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Configuration.Dynamic;
-    using Redpoint.Uet.Configuration.Plugin;
 
     internal interface IPluginTestProjectEmitProvider
     {

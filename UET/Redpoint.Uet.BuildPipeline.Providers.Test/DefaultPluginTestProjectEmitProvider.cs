@@ -4,7 +4,7 @@
     using System.Threading.Tasks;
     using System.Xml;
     using Redpoint.Uet.Configuration.Dynamic;
-    using Redpoint.Uet.Configuration.Plugin;
+    using Redpoint.Uet.Configuration;
 
     internal class DefaultPluginTestProjectEmitProvider : IPluginTestProjectEmitProvider
     {

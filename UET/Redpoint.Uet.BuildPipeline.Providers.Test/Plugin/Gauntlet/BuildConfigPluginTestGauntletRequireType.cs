@@ -1,4 +1,4 @@
-﻿namespace Redpoint.Uet.Configuration.Plugin
+﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Gauntlet
 {
     public enum BuildConfigPluginTestGauntletRequireType
     {

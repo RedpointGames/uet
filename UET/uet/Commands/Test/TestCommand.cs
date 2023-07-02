@@ -5,6 +5,8 @@
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.Local;
+    using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Automation;
+    using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Core;

@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Downstream
 {
     using Redpoint.Uet.BuildGraph;
+    using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Custom;
     using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Plugin;

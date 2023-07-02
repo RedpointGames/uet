@@ -1,4 +1,4 @@
-﻿namespace Redpoint.Uet.Configuration.Project
+﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Project.Gauntlet
 {
     using System.Text.Json.Serialization;
 

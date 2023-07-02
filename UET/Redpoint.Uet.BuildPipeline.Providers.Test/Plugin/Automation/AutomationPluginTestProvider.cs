@@ -1,24 +1,39 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Automation
 {
-    using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.BuildGraph;
     using System.Threading.Tasks;
     using System.Xml;
     using Redpoint.Uet.Configuration.Dynamic;
     using System.Text.Json;
+    using System.Threading;
+    using Redpoint.Uet.Automation.Runner;
+    using Redpoint.Uet.Automation.TestLogging;
+    using Redpoint.Uet.Automation.TestNotification;
+    using Redpoint.Uet.Automation.TestReporter;
+    using Redpoint.Uet.Automation.Worker;
+    using Redpoint.Uet.Automation.Model;
 
-    internal class AutomationPluginTestProvider : IPluginTestProvider
+    internal class AutomationPluginTestProvider : IPluginTestProvider, IDynamicReentrantExecutor<BuildConfigPluginDistribution, BuildConfigPluginTestAutomation>
     {
         private readonly IPluginTestProjectEmitProvider _pluginTestProjectEmitProvider;
-        private readonly IGlobalArgsProvider? _globalArgsProvider;
+        private readonly IAutomationRunnerFactory _automationRunnerFactory;
+        private readonly ITestLoggerFactory _testLoggerFactory;
+        private readonly ITestNotificationFactory _testNotificationFactory;
+        private readonly ITestReporterFactory _testReporterFactory;
 
         public AutomationPluginTestProvider(
             IPluginTestProjectEmitProvider pluginTestProjectEmitProvider,
-            IGlobalArgsProvider? globalArgsProvider = null)
+            IAutomationRunnerFactory automationRunnerFactory,
+            ITestLoggerFactory testLoggerFactory,
+            ITestNotificationFactory testNotificationFactory,
+            ITestReporterFactory testReporterFactory)
         {
             _pluginTestProjectEmitProvider = pluginTestProjectEmitProvider;
-            _globalArgsProvider = globalArgsProvider;
+            _automationRunnerFactory = automationRunnerFactory;
+            _testLoggerFactory = testLoggerFactory;
+            _testNotificationFactory = testNotificationFactory;
+            _testReporterFactory = testReporterFactory;
         }
 
         public string Type => "Automation";
@@ -26,6 +41,11 @@
         public object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
             return JsonSerializer.Deserialize(ref reader, TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestAutomation)!;
+        }
+
+        public void SerializeDynamicSettings(Utf8JsonWriter writer, BuildConfigPluginTestAutomation value, JsonSerializerOptions options)
+        {
+            JsonSerializer.Serialize(writer, value, TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestAutomation);
         }
 
         public async Task WriteBuildGraphNodesAsync(
@@ -84,6 +104,7 @@
                                             });
                                     }
 
+
                                     var arguments = new List<string>();
                                     if (test.settings.MinWorkerCount != null)
                                     {
@@ -123,25 +144,20 @@
                                         {
                                             Files = $"{_pluginTestProjectEmitProvider.GetTestProjectDirectoryPath(platform)}/TestResults_{platform}.xml"
                                         });
-                                    await writer.WriteSpawnAsync(
-                                        new SpawnElementProperties
+                                    await writer.WriteDynamicReentrantSpawnAsync<
+                                        AutomationPluginTestProvider,
+                                        BuildConfigPluginDistribution,
+                                        BuildConfigPluginTestAutomation>(
+                                        this,
+                                        context,
+                                        $"{platform}.{test.name}".Replace(" ", "."),
+                                        test.settings,
+                                        new Dictionary<string, string>
                                         {
-                                            Exe = "$(UETPath)",
-                                            Arguments = (_globalArgsProvider?.GlobalArgsArray ?? new string[0]).Concat(new[]
-                                            {
-                                                "internal",
-                                                "run-automation-test-from-buildgraph",
-                                                "--engine-path",
-                                                $@"""$(EnginePath)""",
-                                                "--test-project-path",
-                                                $@"""{_pluginTestProjectEmitProvider.GetTestProjectUProjectFilePath(platform)}""",
-                                                "--test-prefix",
-                                                test.settings.TestPrefix,
-                                                "--test-results-path",
-                                                $@"""$(ArtifactExportPath)/.uet/tmp/Automation{platform}/TestResults.xml""",
-                                                "--worker-logs-path",
-                                                $@"""$(ArtifactExportPath)/.uet/tmp/Automation{platform}"""
-                                            }).Concat(arguments).ToArray()
+                                            { "EnginePath", "$(EnginePath)" },
+                                            { "TestProjectPath", _pluginTestProjectEmitProvider.GetTestProjectUProjectFilePath(platform) },
+                                            { "TestResultsPath", $"$(ArtifactExportPath)/.uet/tmp/Automation{platform}/TestResults.xml" },
+                                            { "WorkerLogsPath", $"$(ArtifactExportPath)/.uet/tmp/Automation{platform}" },
                                         });
                                 });
                             await writer.WriteDynamicNodeAppendAsync(
@@ -153,6 +169,60 @@
                         }
                     });
             }
+        }
+
+        public async Task<int> ExecuteBuildGraphNodeAsync(
+            object configUnknown,
+            Dictionary<string, string> runtimeSettings,
+            CancellationToken cancellationToken)
+        {
+            var config = (BuildConfigPluginTestAutomation)configUnknown;
+
+            var enginePath = runtimeSettings["EnginePath"];
+            var testProjectPath = runtimeSettings["TestProjectPath"];
+            var testResultsPath = runtimeSettings["TestResultsPath"];
+            var workerLogsPath = runtimeSettings["WorkerLogsPath"];
+
+            await using (var automationRunner = await _automationRunnerFactory.CreateAndRunAsync(
+                _testLoggerFactory.CreateConsole(),
+                _testNotificationFactory.CreateIo(cancellationToken),
+                _testReporterFactory.CreateJunit(testResultsPath),
+                new[]
+                {
+                    new DesiredWorkerDescriptor
+                    {
+                        Platform = OperatingSystem.IsWindows() ? "Win64" : "Mac",
+                        IsEditor = true,
+                        Configuration = "Development",
+                        Target = "UnrealEditor",
+                        UProjectPath = testProjectPath,
+                        EnginePath = enginePath,
+                        MinWorkerCount = config.MinWorkerCount,
+                        MaxWorkerCount = null,
+                        EnableRendering = false,
+                        WorkerLogsPath = workerLogsPath,
+                    }
+                },
+                new AutomationRunnerConfiguration
+                {
+                    ProjectName = Path.GetFileNameWithoutExtension(testProjectPath)!,
+                    TestPrefix = config.TestPrefix,
+                    TestTimeout = config.TestTimeoutMinutes.HasValue ? TimeSpan.FromMinutes(config.TestTimeoutMinutes.Value) : null,
+                    TestRunTimeout = config.TestRunTimeoutMinutes.HasValue ? TimeSpan.FromMinutes(config.TestRunTimeoutMinutes.Value) : TimeSpan.FromMinutes(5),
+                    TestAttemptCount = config.TestAttemptCount.HasValue ? Math.Max(config.TestAttemptCount.Value, 1) : null,
+                    FilenamePrefixToCut = Path.GetDirectoryName(testProjectPath)!,
+                },
+                cancellationToken))
+            {
+                var testResults = await automationRunner.WaitForResultsAsync();
+                if (testResults.Length == 0 ||
+                    testResults.Any(x => x.TestStatus != TestResultStatus.Passed && x.TestStatus != TestResultStatus.Skipped))
+                {
+                    return 1;
+                }
+                return 0;
+            }
+
         }
     }
 }

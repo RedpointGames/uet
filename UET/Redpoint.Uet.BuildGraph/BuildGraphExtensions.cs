@@ -1,5 +1,13 @@
 ﻿namespace Redpoint.Uet.BuildGraph
 {
+    using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.Uet.Configuration;
+    using Redpoint.Uet.Configuration.Dynamic;
+    using Redpoint.Uet.Configuration.Plugin;
+    using Redpoint.Uet.Configuration.Project;
+    using System.Text;
+    using System.Text.Json;
+    using System.Text.Json.Serialization;
     using System.Xml;
 
     public static class BuildGraphExtensions
@@ -190,6 +198,78 @@
             await writer.WriteAttributeStringAsync(null, "Name", null, "DynamicOutputFiles");
             await writer.WriteAttributeStringAsync(null, "Value", null, $"$(DynamicOutputFiles){props.Tag};");
             await writer.WriteEndElementAsync();
+        }
+
+        public static async Task WriteDynamicReentrantSpawnAsync<T, TDistribution, TConfig>(
+            this XmlWriter writer,
+            T instance,
+            IBuildGraphEmitContext context,
+            string temporaryPathNamePrefix,
+            TConfig config,
+            Dictionary<string, string> runtimeSettings) where T : IDynamicReentrantExecutor<TDistribution, TConfig>
+        {
+            var globalArgsProvider = context.Services.GetService<IGlobalArgsProvider>();
+
+            string json;
+            using (var stream = new MemoryStream())
+            {
+                await using (var jsonWriter = new Utf8JsonWriter(stream))
+                {
+                    instance.SerializeDynamicSettings(jsonWriter, config, new JsonSerializerOptions
+                    {
+                        WriteIndented = false,
+                        Converters =
+                        {
+                            new JsonStringEnumConverter(),
+                        }
+                    });
+                }
+                var buffer = new byte[stream.Position];
+                stream.Seek(0, SeekOrigin.Begin);
+                stream.Read(buffer);
+                json = Encoding.UTF8.GetString(buffer);
+            }
+
+            var emitPath = $"$(TempPath)/{temporaryPathNamePrefix}.{Guid.NewGuid()}.json";
+
+            var args = new List<string>();
+            args.AddRange(globalArgsProvider?.GlobalArgsArray ?? Array.Empty<string>());
+            args.AddRange(new[]
+            {
+                "internal",
+                "run-dynamic-reentrant-task",
+                "--distribution-type",
+                typeof(TDistribution) switch
+                {
+                    var t when t == typeof(BuildConfigPluginDistribution) => "plugin",
+                    var t when t == typeof(BuildConfigProjectDistribution) => "project",
+                    _ => throw new InvalidOperationException("Unsupported distribution type"),
+                },
+                "--reentrant-executor",
+                instance.Type,
+                "--task-json-path",
+                emitPath,
+            });
+            foreach (var kv in runtimeSettings)
+            {
+                args.AddRange(new[]
+                {
+                    "--runtime-setting",
+                    $@"{kv.Key}=""{kv.Value}"""
+                });
+            }
+
+            await writer.WriteStartElementAsync(null, "WriteTextFile", null);
+            await writer.WriteAttributeStringAsync(null, "File", null, emitPath);
+            await writer.WriteAttributeStringAsync(null, "Text", null, json);
+            await writer.WriteEndElementAsync();
+
+            await writer.WriteSpawnAsync(
+                new SpawnElementProperties
+                {
+                    Exe = "$(UETPath)",
+                    Arguments = args.ToArray()
+                });
         }
     }
 

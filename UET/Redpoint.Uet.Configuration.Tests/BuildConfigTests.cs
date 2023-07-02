@@ -6,6 +6,7 @@ namespace Redpoint.Uet.Configuration.Tests
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
     using System.Text.Json;
+    using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Automation;
 
     public class BuildConfigTests
     {
