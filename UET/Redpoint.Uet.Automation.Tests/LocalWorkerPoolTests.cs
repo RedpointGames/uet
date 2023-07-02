@@ -4,6 +4,7 @@ namespace Redpoint.Uet.Automation.Tests
     using Microsoft.Extensions.Logging;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
+    using Redpoint.Reservation;
     using Redpoint.Uet.Automation.TestLogging;
     using Redpoint.Uet.Automation.Worker;
     using Redpoint.Uet.Uat;
@@ -119,21 +120,7 @@ namespace Redpoint.Uet.Automation.Tests
             Skip.IfNot(Directory.Exists(@"E:\EpicGames\UE_5.2"));
             Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
 
-            var services = new ServiceCollection();
-            services.AddLogging(builder =>
-            {
-                builder.ClearProviders();
-                builder.SetMinimumLevel(LogLevel.Trace);
-                builder.AddXUnit(
-                    _output,
-                    configure =>
-                    {
-                    });
-            });
-            services.AddProcessExecution();
-            services.AddUETAutomation();
-            services.AddUETUAT();
-
+            var services = CreateServices();
             var sp = services.BuildServiceProvider();
 
             var didStart = false;
@@ -221,22 +208,7 @@ namespace Redpoint.Uet.Automation.Tests
             Skip.IfNot(Directory.Exists(@"E:\EpicGames\UE_5.2"));
             Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
 
-            var services = new ServiceCollection();
-            services.AddLogging(builder =>
-            {
-                builder.ClearProviders();
-                builder.SetMinimumLevel(LogLevel.Trace);
-                builder.AddXUnit(
-                    _output,
-                    configure =>
-                    {
-                    });
-            });
-            services.AddPathResolution();
-            services.AddProcessExecution();
-            services.AddUETAutomation();
-            services.AddUETUAT();
-
+            var services = CreateServices();
             var sp = services.BuildServiceProvider();
 
             var didStart = false;
@@ -313,22 +285,7 @@ namespace Redpoint.Uet.Automation.Tests
             Skip.IfNot(Directory.Exists(@"E:\EpicGames\UE_5.2"));
             Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
 
-            var services = new ServiceCollection();
-            services.AddLogging(builder =>
-            {
-                builder.ClearProviders();
-                builder.SetMinimumLevel(LogLevel.Trace);
-                builder.AddXUnit(
-                    _output,
-                    configure =>
-                    {
-                    });
-            });
-            services.AddPathResolution();
-            services.AddProcessExecution();
-            services.AddUETAutomation();
-            services.AddUETUAT();
-
+            var services = CreateServices();
             var sp = services.BuildServiceProvider();
 
             var didStart = false;
@@ -405,22 +362,7 @@ namespace Redpoint.Uet.Automation.Tests
             Skip.IfNot(Directory.Exists(@"E:\EpicGames\UE_5.2"));
             Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
 
-            var services = new ServiceCollection();
-            services.AddLogging(builder =>
-            {
-                builder.ClearProviders();
-                builder.SetMinimumLevel(LogLevel.Trace);
-                builder.AddXUnit(
-                    _output,
-                    configure =>
-                    {
-                    });
-            });
-            services.AddPathResolution();
-            services.AddProcessExecution();
-            services.AddUETAutomation();
-            services.AddUETUAT();
-
+            var services = CreateServices();
             var sp = services.BuildServiceProvider();
 
             var didStart = false;
@@ -487,6 +429,27 @@ namespace Redpoint.Uet.Automation.Tests
             Assert.True(workerPoolFailed == null, $"Worker pool failure reason: {workerPoolFailed}");
             Assert.True(didStart, "Worker is expected to start");
             Assert.True(didStop, "Worker is expected to stop");
+        }
+
+        private IServiceCollection CreateServices()
+        {
+            var services = new ServiceCollection();
+            services.AddLogging(builder =>
+            {
+                builder.ClearProviders();
+                builder.SetMinimumLevel(LogLevel.Trace);
+                builder.AddXUnit(
+                    _output,
+                    configure =>
+                    {
+                    });
+            });
+            services.AddPathResolution();
+            services.AddProcessExecution();
+            services.AddUETAutomation();
+            services.AddUETUAT();
+            services.AddReservation();
+            return services;
         }
     }
 }
