@@ -330,7 +330,7 @@ stages:
     - "Build Mac Pass 2"
     - "Build Mac UEFS Client"
     - "Build Mac UEFS Daemon"
-  interruptible: true
+  interruptible: false
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
     UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe internal create-github-release `
