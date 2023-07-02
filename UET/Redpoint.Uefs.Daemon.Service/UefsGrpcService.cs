@@ -416,5 +416,10 @@
                 return await transaction.WaitForCompletionAsync(context.CancellationToken);
             }
         }
+
+        public override Task<PingResponse> Ping(PingRequest request, ServerCallContext context)
+        {
+            return Task<PingResponse>.FromResult(new PingResponse());
+        }
     }
 }

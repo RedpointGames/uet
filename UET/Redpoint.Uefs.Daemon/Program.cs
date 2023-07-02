@@ -24,6 +24,7 @@
     using Redpoint.Uefs.Package.Vhd;
     using Redpoint.Uefs.Package.SparseImage;
     using Redpoint.Logging.Mac;
+    using Grpc.Net.Client;
 
     public static class Program
     {
@@ -116,6 +117,7 @@
             services.AddUefsDaemonIntegrationDocker();
             services.AddSingleton<UefsHostedService>();
             services.AddHostedService(sp => sp.GetRequiredService<UefsHostedService>());
+            services.AddHostedService<UefsHealthCheckService>();
             services.AddTransient(sp => sp.GetRequiredService<UefsHostedService>().UefsDaemon);
             services.AddTransient<IMountTracking>(sp => sp.GetRequiredService<IUefsDaemon>());
         }

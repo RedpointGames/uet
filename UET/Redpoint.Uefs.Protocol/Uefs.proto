@@ -191,6 +191,12 @@ message WaitResponse {
 	PollingResponse pollingResponse = 1;
 }
 
+message PingRequest {
+}
+
+message PingResponse {
+}
+
 service Uefs {
 	rpc MountPackageTag(MountPackageTagRequest) returns (stream MountResponse) {}
 	rpc MountPackageFile(MountPackageFileRequest) returns (stream MountResponse) {}
@@ -209,4 +215,6 @@ service Uefs {
 
 	rpc GetInProgressOperations(GetInProgressOperationsRequest) returns (GetInProgressOperationsResponse) {}
 	rpc Wait(WaitRequest) returns (stream WaitResponse) {}
+
+	rpc Ping(PingRequest) returns (PingResponse) {}
 }
