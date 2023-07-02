@@ -14,14 +14,17 @@
 
         public IReservationManager CreateReservationManager(string rootPath)
         {
-            return new DefaultReservationManager(
-                _logger,
-                rootPath);
+            return new DefaultReservationManager(_logger, rootPath);
         }
 
         public ILoopbackPortReservationManager CreateLoopbackPortReservationManager()
         {
-            return new DefaultLoopbackPortReservationManager();
+            return new DefaultLoopbackPortReservationManager(CreateGlobalMutexReservationManager());
+        }
+
+        public IGlobalMutexReservationManager CreateGlobalMutexReservationManager()
+        {
+            return new DefaultGlobalMutexReservationManager(this);
         }
     }
 }

@@ -6,20 +6,19 @@
     internal class DefaultLoopbackPortReservation : ILoopbackPortReservation
     {
         private readonly IPEndPoint _endpoint;
-        private readonly Mutex _mutex;
+        private readonly IGlobalMutexReservation _reservation;
 
-        internal DefaultLoopbackPortReservation(IPEndPoint endpoint, Mutex mutex)
+        internal DefaultLoopbackPortReservation(IPEndPoint endpoint, IGlobalMutexReservation reservation)
         {
             _endpoint = endpoint;
-            _mutex = mutex;
+            _reservation = reservation;
         }
 
         public IPEndPoint EndPoint => _endpoint;
 
         public ValueTask DisposeAsync()
         {
-            _mutex.Dispose();
-            return ValueTask.CompletedTask;
+            return _reservation.DisposeAsync();
         }
     }
 }

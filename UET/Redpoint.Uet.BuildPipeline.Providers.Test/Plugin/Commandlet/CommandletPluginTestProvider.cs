@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
+    using Redpoint.Reservation;
     using Redpoint.Uet.BuildGraph;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Plugin;
@@ -17,17 +18,20 @@
         private readonly IScriptExecutor _scriptExecutor;
         private readonly IProcessExecutor _processExecutor;
         private readonly IPluginTestProjectEmitProvider _pluginTestProjectEmitProvider;
+        private readonly IGlobalMutexReservationManager _reservationManager;
 
         public CommandletPluginTestProvider(
             ILogger<CommandletPluginTestProvider> logger,
             IScriptExecutor scriptExecutor,
             IProcessExecutor processExecutor,
-            IPluginTestProjectEmitProvider pluginTestProjectEmitProvider)
+            IPluginTestProjectEmitProvider pluginTestProjectEmitProvider,
+            IReservationManagerFactory reservationManagerFactory)
         {
             _logger = logger;
             _scriptExecutor = scriptExecutor;
             _processExecutor = processExecutor;
             _pluginTestProjectEmitProvider = pluginTestProjectEmitProvider;
+            _reservationManager = reservationManagerFactory.CreateGlobalMutexReservationManager();
         }
 
         public string Type => "Commandlet";
@@ -125,17 +129,13 @@
         {
             var config = (BuildConfigPluginTestCommandlet)configUnknown;
 
-            // @note: System.Threading.Mutex class can't be used with asynchronous code.
-            Semaphore? mutex = null;
+            IGlobalMutexReservation? reservation = null;
             if (config.GlobalMutexName != null)
             {
                 _logger.LogInformation($"Waiting to obtain global mutex '{config.GlobalMutexName}'...");
-                mutex = new Semaphore(1, 1, config.GlobalMutexName);
-                while (!mutex.WaitOne(1000))
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    await Task.Yield();
-                }
+                reservation = await _reservationManager.ReserveExactAsync(
+                    config.GlobalMutexName,
+                    cancellationToken);
             }
 
             try
@@ -278,7 +278,10 @@
             }
             finally
             {
-                mutex?.Release();
+                if (reservation != null)
+                {
+                    await reservation.DisposeAsync();
+                }
             }
         }
     }

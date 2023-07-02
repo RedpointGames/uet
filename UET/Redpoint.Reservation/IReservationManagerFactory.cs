@@ -17,5 +17,11 @@
         /// </summary>
         /// <returns>The new loopback port reservation manager.</returns>
         ILoopbackPortReservationManager CreateLoopbackPortReservationManager();
+
+        /// <summary>
+        /// Creates a new <see cref="IGlobalMutexReservationManager"/>.
+        /// </summary>
+        /// <returns>The new global mutex reservation manager.</returns>
+        IGlobalMutexReservationManager CreateGlobalMutexReservationManager();
     }
 }

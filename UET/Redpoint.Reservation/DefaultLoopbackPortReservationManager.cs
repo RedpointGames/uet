@@ -7,6 +7,14 @@
 
     internal class DefaultLoopbackPortReservationManager : ILoopbackPortReservationManager
     {
+        private readonly IGlobalMutexReservationManager _globalMutexReservationManager;
+
+        public DefaultLoopbackPortReservationManager(
+            IGlobalMutexReservationManager globalMutexReservationManager)
+        {
+            _globalMutexReservationManager = globalMutexReservationManager;
+        }
+
         public async ValueTask<ILoopbackPortReservation> ReserveAsync()
         {
             do
@@ -25,11 +33,12 @@
                 var port = (ushort)(Random.Shared.Next(20000, 49151) & 0xFFFF);
                 var endpoint = new IPEndPoint(loopbackAddress, port);
 
-                var mutex = new Mutex(false, $"RedpointReservation_{endpoint}");
-                if (mutex.WaitOne(0))
+                var reservation = await _globalMutexReservationManager.TryReserveExactAsync(
+                    $"RedpointReservation_{endpoint}");
+                if (reservation != null)
                 {
                     // We reserved this port.
-                    return new DefaultLoopbackPortReservation(endpoint, mutex);
+                    return new DefaultLoopbackPortReservation(endpoint, reservation);
                 }
 
                 await Task.Yield();
