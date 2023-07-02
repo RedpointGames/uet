@@ -39,17 +39,45 @@
             return _trace;
         }
 
+        private static void AddGeneralServices(IServiceCollection services, LogLevel minimumLogLevel)
+        {
+            services.AddPathResolution();
+            services.AddMSBuildPathResolution();
+            services.AddReservation();
+            services.AddProcessExecution();
+            services.AddProgressMonitor();
+            if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
+            {
+                services.AddServiceControl();
+            }
+            services.AddOpenGEExecutor();
+            services.AddOpenGEProcessExecution();
+            services.AddSdkManagement();
+            services.AddGrpcPipes();
+            services.AddUefs();
+            services.AddUETAutomation();
+            services.AddUETUAT();
+            services.AddUETBuildPipeline();
+            services.AddUETBuildPipelineExecutorsLocal();
+            services.AddUETBuildPipelineExecutorsGitLab();
+            services.AddUETBuildPipelineProvidersTest();
+            services.AddUETBuildPipelineProvidersDeployment();
+            services.AddUETWorkspace();
+            services.AddUETCore(minimumLogLevel: minimumLogLevel);
+            services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
+            services.AddSingleton<IPluginVersioning, DefaultPluginVersioning>();
+        }
+
         internal static void AddServicedOptionsHandler<
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TCommand,
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] TOptions
             >(this Command command, Action<IServiceCollection>? extraServices = null) where TCommand : class, ICommandInstance where TOptions : class
         {
-            // We need a minimal service provider for distribution option parsing.
-            var minimalServices = new ServiceCollection();
-            minimalServices.AddUETBuildPipelineProvidersTest();
-            minimalServices.AddUETBuildPipelineProvidersDeployment();
-            minimalServices.AddTransient<TOptions, TOptions>();
-            var minimalServiceProvider = minimalServices.BuildServiceProvider();
+            // We need a service provider for distribution option parsing, omitting services that are post-parsing specific.
+            var parsingServices = new ServiceCollection();
+            AddGeneralServices(parsingServices, LogLevel.Information);
+            parsingServices.AddTransient<TOptions, TOptions>();
+            var minimalServiceProvider = parsingServices.BuildServiceProvider();
 
             // Get the options instance from the minimal service provider.
             var options = minimalServiceProvider.GetRequiredService<TOptions>();
@@ -108,32 +136,8 @@
                 var services = new ServiceCollection();
                 services.AddSingleton(sp => context);
                 services.AddSingleton(options.GetType(), sp => options);
-                services.AddPathResolution();
-                services.AddMSBuildPathResolution();
-                services.AddReservation();
-                services.AddProcessExecution();
-                services.AddProgressMonitor();
-                if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
-                {
-                    services.AddServiceControl();
-                }
-                services.AddOpenGEExecutor();
-                services.AddOpenGEProcessExecution();
-                services.AddSdkManagement();
-                services.AddGrpcPipes();
-                services.AddUefs();
-                services.AddUETAutomation();
-                services.AddUETUAT();
-                services.AddUETBuildPipeline();
-                services.AddUETBuildPipelineExecutorsLocal();
-                services.AddUETBuildPipelineExecutorsGitLab();
-                services.AddUETBuildPipelineProvidersTest();
-                services.AddUETBuildPipelineProvidersDeployment();
-                services.AddUETWorkspace();
-                services.AddUETCore(minimumLogLevel: context.ParseResult.GetValueForOption(GetTraceOption()) ? LogLevel.Trace : LogLevel.Information);
+                AddGeneralServices(services, minimumLogLevel: context.ParseResult.GetValueForOption(GetTraceOption()) ? LogLevel.Trace : LogLevel.Information);
                 services.AddSingleton<TCommand>();
-                services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
-                services.AddSingleton<IPluginVersioning, DefaultPluginVersioning>();
                 if (context.ParseResult.GetValueForOption(GetTraceOption()))
                 {
                     services.AddSingleton<IGlobalArgsProvider>(new CommandUETGlobalArgsProvider("--trace", new[] { "--trace" }));

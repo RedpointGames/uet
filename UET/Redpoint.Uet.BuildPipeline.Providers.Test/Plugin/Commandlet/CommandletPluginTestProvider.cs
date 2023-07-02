@@ -104,6 +104,7 @@
                                         {
                                             { "EnginePath", "$(EnginePath)" },
                                             { "TestProjectPath", _pluginTestProjectEmitProvider.GetTestProjectUProjectFilePath(platform) },
+                                            { "RepositoryRoot", "$(ProjectRoot)" },
                                         });
                                 });
                             await writer.WriteDynamicNodeAppendAsync(
@@ -124,11 +125,12 @@
         {
             var config = (BuildConfigPluginTestCommandlet)configUnknown;
 
-            Mutex? mutex = null;
+            // @note: System.Threading.Mutex class can't be used with asynchronous code.
+            Semaphore? mutex = null;
             if (config.GlobalMutexName != null)
             {
                 _logger.LogInformation($"Waiting to obtain global mutex '{config.GlobalMutexName}'...");
-                mutex = new Mutex(false, config.GlobalMutexName);
+                mutex = new Semaphore(1, 1, config.GlobalMutexName);
                 while (!mutex.WaitOne(1000))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -150,7 +152,7 @@
                         exitCode = await _scriptExecutor.ExecutePowerShellAsync(
                             new ScriptSpecification
                             {
-                                ScriptPath = config.PreStartScriptPath,
+                                ScriptPath = Path.Combine(runtimeValues["RepositoryRoot"], config.PreStartScriptPath),
                                 Arguments = new[]
                                 {
                                     "-EnginePath",
@@ -213,6 +215,7 @@
                                     if (line.Contains(config.LogStartSignal))
                                     {
                                         // The commandlet is running because we got the signal.
+                                        _logger.LogInformation("Detected that the commandlet has started based on LogStartSignal!");
                                         timerCts.Cancel();
                                     }
                                 }
@@ -240,7 +243,7 @@
                         exitCode = await _scriptExecutor.ExecutePowerShellAsync(
                             new ScriptSpecification
                             {
-                                ScriptPath = config.ValidationScriptPath,
+                                ScriptPath = Path.Combine(runtimeValues["RepositoryRoot"], config.ValidationScriptPath),
                                 Arguments = new[]
                                 {
                                     "-EnginePath",
@@ -275,7 +278,7 @@
             }
             finally
             {
-                mutex?.ReleaseMutex();
+                mutex?.Release();
             }
         }
     }
