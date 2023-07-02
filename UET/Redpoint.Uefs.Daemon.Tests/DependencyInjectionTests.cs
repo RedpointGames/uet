@@ -19,6 +19,10 @@ namespace Redpoint.Uefs.Daemon.Tests
         {
             return _serviceCollection
                 .Where(x => x.ServiceType.FullName!.StartsWith("Redpoint."))
+                // @note: Too much of the UEFS daemon implementations do things in the constructor
+                // that require administrative permissions or otherwise conflict with an existing
+                // UEFS service running on the same machine.
+                .Where(x => !x.ServiceType.FullName!.StartsWith("Redpoint.Uefs.Daemon."))
                 .DistinctBy(x => x.ServiceType.FullName)
                 .Select(x => new object[] { x.ServiceType })
                 .GetEnumerator();

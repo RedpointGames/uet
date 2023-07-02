@@ -3,6 +3,7 @@ namespace Redpoint.Uet.Automation.Tests
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
+    using Redpoint.Reservation;
     using Redpoint.Uet.Automation.Runner;
     using Redpoint.Uet.Automation.TestLogging;
     using Redpoint.Uet.Automation.TestNotification;
@@ -51,6 +52,7 @@ namespace Redpoint.Uet.Automation.Tests
             services.AddProcessExecution();
             services.AddUETAutomation();
             services.AddUETUAT();
+            services.AddReservation();
 
             var sp = services.BuildServiceProvider();
 

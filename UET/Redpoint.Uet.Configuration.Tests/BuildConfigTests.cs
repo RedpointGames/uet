@@ -7,15 +7,28 @@ namespace Redpoint.Uet.Configuration.Tests
     using Redpoint.Uet.Configuration.Project;
     using System.Text.Json;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Automation;
+    using Redpoint.Uet.Automation;
+    using Redpoint.ProcessExecution;
+    using Redpoint.PathResolution;
 
     public class BuildConfigTests
     {
+        private static ServiceCollection CreateServices()
+        {
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddPathResolution();
+            services.AddProcessExecution();
+            services.AddUETBuildPipelineProvidersTest();
+            services.AddUETBuildPipelineProvidersDeployment();
+            services.AddUETAutomation();
+            return services;
+        }
+
         [Fact]
         public void NestedProjectDistributionsWork()
         {
-            var services = new ServiceCollection();
-            services.AddUETBuildPipelineProvidersTest();
-            services.AddUETBuildPipelineProvidersDeployment();
+            var services = CreateServices();
 
             var sp = services.BuildServiceProvider();
 
@@ -35,9 +48,7 @@ namespace Redpoint.Uet.Configuration.Tests
         [Fact]
         public void PluginTests()
         {
-            var services = new ServiceCollection();
-            services.AddUETBuildPipelineProvidersTest();
-            services.AddUETBuildPipelineProvidersDeployment();
+            var services = CreateServices();
 
             var sp = services.BuildServiceProvider();
 
@@ -65,9 +76,7 @@ namespace Redpoint.Uet.Configuration.Tests
         [Fact]
         public void PluginTestsWithExtraParameter()
         {
-            var services = new ServiceCollection();
-            services.AddUETBuildPipelineProvidersTest();
-            services.AddUETBuildPipelineProvidersDeployment();
+            var services = CreateServices();
 
             var sp = services.BuildServiceProvider();
 
@@ -85,9 +94,7 @@ namespace Redpoint.Uet.Configuration.Tests
         [Fact]
         public void PluginTestsWithNoProvider()
         {
-            var services = new ServiceCollection();
-            services.AddUETBuildPipelineProvidersTest();
-            services.AddUETBuildPipelineProvidersDeployment();
+            var services = CreateServices();
 
             var sp = services.BuildServiceProvider();
 

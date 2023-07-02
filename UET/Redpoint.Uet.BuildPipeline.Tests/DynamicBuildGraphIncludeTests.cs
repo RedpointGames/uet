@@ -10,16 +10,29 @@
     using System.Threading.Tasks;
     using Redpoint.Uet.Configuration;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Automation;
+    using Redpoint.Uet.Automation;
+    using Redpoint.ProcessExecution;
+    using Redpoint.PathResolution;
 
     public class DynamicBuildGraphIncludeTests
     {
+        private static ServiceCollection CreateServices()
+        {
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddPathResolution();
+            services.AddProcessExecution();
+            services.AddUETBuildPipeline();
+            services.AddUETBuildPipelineProvidersTest();
+            services.AddUETBuildPipelineProvidersDeployment();
+            services.AddUETAutomation();
+            return services;
+        }
+
         [Fact]
         public async Task TestPluginTests()
         {
-            var services = new ServiceCollection();
-            services.AddUETBuildPipelineProvidersTest();
-            services.AddUETBuildPipelineProvidersDeployment();
-            services.AddUETBuildPipeline();
+            var services = CreateServices();
 
             var sp = services.BuildServiceProvider();
             var writer = sp.GetRequiredService<IDynamicBuildGraphIncludeWriter>();

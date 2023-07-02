@@ -50,7 +50,14 @@
                 if (user != null)
                 {
                     fs.SetOwner(user);
-                    directoryInfo.SetAccessControl(fs);
+                    try
+                    {
+                        directoryInfo.SetAccessControl(fs);
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        logger.LogWarning($"Unable to take ownership of {_gitRepoPath} due to a lack of permissions.");
+                    }
                 }
             }
             else if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
