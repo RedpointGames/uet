@@ -7,6 +7,8 @@
     using Redpoint.Uet.Configuration.Dynamic;
     using System.Text.Json;
     using Redpoint.Uet.Configuration;
+    using System.Text.Json.Serialization.Metadata;
+    using System.Text.Json.Serialization;
 
     internal class CustomPluginTestProvider : IPluginTestProvider
     {
@@ -19,6 +21,10 @@
         }
 
         public string Type => "Custom";
+
+        public JsonTypeInfo DynamicSettingsJsonTypeInfo => TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestCustom;
+
+        public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => TestProviderSourceGenerationContext.WithStringEnum;
 
         public object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options)
         {

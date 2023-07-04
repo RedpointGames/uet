@@ -13,6 +13,8 @@
     using Redpoint.Uet.Automation.TestReporter;
     using Redpoint.Uet.Automation.Worker;
     using Redpoint.Uet.Automation.Model;
+    using System.Text.Json.Serialization.Metadata;
+    using System.Text.Json.Serialization;
 
     internal class AutomationPluginTestProvider : IPluginTestProvider, IDynamicReentrantExecutor<BuildConfigPluginDistribution, BuildConfigPluginTestAutomation>
     {
@@ -37,6 +39,10 @@
         }
 
         public string Type => "Automation";
+
+        public JsonTypeInfo DynamicSettingsJsonTypeInfo => TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestAutomation;
+
+        public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => TestProviderSourceGenerationContext.WithStringEnum;
 
         public object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options)
         {

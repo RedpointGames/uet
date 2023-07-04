@@ -69,6 +69,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\Redpoint.Uet.Configuration\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.Configuration.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.Configuration.xml" />
+    <EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Deployment\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Deployment.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Deployment.xml" />
+    <EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Test\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Test.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Test.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Protobuf Include="Commands\Internal\TestGrpcPipes\TestPipes.proto">
       <GrpcServices>Both</GrpcServices>
     </Protobuf>

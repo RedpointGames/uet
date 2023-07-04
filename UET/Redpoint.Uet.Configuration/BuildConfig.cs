@@ -7,7 +7,7 @@
         [JsonPropertyName("UETVersion")]
         public string? UETVersion { get; set; }
 
-        [JsonPropertyName("Type")]
+        [JsonPropertyName("Type"), JsonRequired]
         public BuildConfigType Type { get; set; }
     }
 }

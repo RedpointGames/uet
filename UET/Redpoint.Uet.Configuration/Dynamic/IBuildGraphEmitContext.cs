@@ -13,6 +13,7 @@
         /// Runs the specified block once across all providers.
         /// </summary>
         /// <param name="name">The unique name that determines whether something has run before.</param>
+        /// <param name="runOnce"></param>
         /// <returns></returns>
         Task EmitOnceAsync(string name, Func<Task> runOnce);
 

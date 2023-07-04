@@ -1,15 +1,19 @@
 ﻿namespace Redpoint.Uet.Configuration.Dynamic
 {
+    using System.Text.Json.Serialization;
+
     public class BuildConfigDynamic<TDistribution, TBaseClass>
     {
         /// <summary>
         /// The name of the job/step as it would be displayed on a build server. This must be unique amongst all tests defined.
         /// </summary>
+        [JsonPropertyName("Name"), JsonRequired]
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
         /// Specifies the test/deployment type.
         /// </summary>
+        [JsonPropertyName("Type"), JsonRequired]
         public string Type { get; set; } = string.Empty;
 
         /// <summary>

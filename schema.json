@@ -1,0 +1,1159 @@
+{
+  "type": "object",
+  "properties": {
+    "$schema": true,
+    "UETVersion": {
+      "const": "2023.1184.958-pre"
+    },
+    "Type": {
+      "enum": [
+        "Project",
+        "Plugin",
+        "Engine"
+      ]
+    }
+  },
+  "required": [
+    "Type"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "Type": {
+            "const": "Project"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "Distributions": {
+            "description": "A list of distributions.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Name": {
+                  "description": "The name, as passed to the --distribution argument.",
+                  "type": "string"
+                },
+                "FolderName": {
+                  "description": "The relative path that the .uproject file is located underneath.",
+                  "type": "string"
+                },
+                "ProjectName": {
+                  "description": "The name of the .uproject file underneath the folder, without the .uproject extension.",
+                  "type": "string"
+                },
+                "Prepare": {
+                  "description": "Specifies the preparation scripts to run before various steps. You can specify multiple preparation entries.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "Type": {
+                        "description": "Currently only \u0022Custom\u0022 is supported.",
+                        "enum": [
+                          "Custom"
+                        ]
+                      },
+                      "RunBefore": {
+                        "description": "The types of steps that the preparation script should run before. A set of \u0022AssembleFinalize\u0022, \u0022Compile\u0022, \u0022Test\u0022 and \u0022BuildGraph\u0022.",
+                        "type": "array",
+                        "items": {
+                          "description": "The types of steps that the preparation script should run before. A set of \u0022AssembleFinalize\u0022, \u0022Compile\u0022, \u0022Test\u0022 and \u0022BuildGraph\u0022.",
+                          "enum": [
+                            "Compile",
+                            "BuildGraph",
+                            "Stage"
+                          ]
+                        }
+                      },
+                      "Custom": {
+                        "type": "object",
+                        "properties": {
+                          "ScriptPath": {
+                            "description": "The path to the PowerShell script to execute, relative to the repository root.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "ScriptPath"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "Type",
+                      "RunBefore"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "Build": {
+                  "type": "object",
+                  "properties": {
+                    "Editor": {
+                      "type": "object",
+                      "properties": {
+                        "Target": {
+                          "description": "The editor target to build.",
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "Game": {
+                      "type": "object",
+                      "properties": {
+                        "Targets": {
+                          "description": "A list of targets to build.",
+                          "type": "array",
+                          "items": {
+                            "description": "A list of targets to build.",
+                            "type": "string"
+                          }
+                        },
+                        "Platforms": {
+                          "description": "A list of platforms to build the project for.",
+                          "type": "array",
+                          "items": {
+                            "description": "A list of platforms to build the project for.",
+                            "type": "string"
+                          }
+                        },
+                        "Configurations": {
+                          "description": "If not specified, defaults to [\u0022Development\u0022, \u0022Shipping\u0022].",
+                          "type": "array",
+                          "items": {
+                            "description": "If not specified, defaults to [\u0022Development\u0022, \u0022Shipping\u0022].",
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "Client": {
+                      "type": "object",
+                      "properties": {
+                        "Targets": {
+                          "description": "A list of targets to build.",
+                          "type": "array",
+                          "items": {
+                            "description": "A list of targets to build.",
+                            "type": "string"
+                          }
+                        },
+                        "Platforms": {
+                          "description": "A list of platforms to build the project for.",
+                          "type": "array",
+                          "items": {
+                            "description": "A list of platforms to build the project for.",
+                            "type": "string"
+                          }
+                        },
+                        "Configurations": {
+                          "description": "If not specified, defaults to [\u0022Development\u0022, \u0022Shipping\u0022].",
+                          "type": "array",
+                          "items": {
+                            "description": "If not specified, defaults to [\u0022Development\u0022, \u0022Shipping\u0022].",
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "Server": {
+                      "type": "object",
+                      "properties": {
+                        "Targets": {
+                          "description": "A list of targets to build.",
+                          "type": "array",
+                          "items": {
+                            "description": "A list of targets to build.",
+                            "type": "string"
+                          }
+                        },
+                        "Platforms": {
+                          "description": "A list of platforms to build the project for.",
+                          "type": "array",
+                          "items": {
+                            "description": "A list of platforms to build the project for.",
+                            "type": "string"
+                          }
+                        },
+                        "Configurations": {
+                          "description": "If not specified, defaults to [\u0022Development\u0022, \u0022Shipping\u0022].",
+                          "type": "array",
+                          "items": {
+                            "description": "If not specified, defaults to [\u0022Development\u0022, \u0022Shipping\u0022].",
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "Tests": {
+                  "description": "A list of tests to run for the project.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "Name": {
+                        "type": "string"
+                      },
+                      "Manual": {
+                        "type": "boolean"
+                      },
+                      "Type": [
+                        "Custom",
+                        "Gauntlet"
+                      ]
+                    },
+                    "required": [
+                      "Name"
+                    ],
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "Type": {
+                              "const": "Custom"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "Custom"
+                          ],
+                          "properties": {
+                            "Gauntlet": false,
+                            "Custom": {
+                              "properties": {
+                                "ScriptPath": {
+                                  "description": "The path to the test script, relative to the repository root.\nThe script receives the following parameters:\n  -EnginePath \u0022C:\\Path\\To\\UnrealEngine\u0022\n  -StageDirectory \u0022C:\\Path\\To\\UProject\\Saved\\StagedBuilds\u0022",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "ScriptPath"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "Type": {
+                              "const": "Gauntlet"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "Gauntlet"
+                          ],
+                          "properties": {
+                            "Custom": false,
+                            "Gauntlet": {
+                              "properties": {
+                                "Requires": {
+                                  "description": "Specifies the configurations and platforms that the Gauntlet tests is dependent on.",
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "Type": {
+                                        "description": "Specifies the dependency type (Game, Client or Server).",
+                                        "enum": [
+                                          "Game",
+                                          "Client",
+                                          "Server"
+                                        ]
+                                      },
+                                      "Target": {
+                                        "description": "The target to depend on.",
+                                        "type": "string"
+                                      },
+                                      "Platforms": {
+                                        "description": "The platforms to depend on.",
+                                        "type": "array",
+                                        "items": {
+                                          "description": "The platforms to depend on.",
+                                          "type": "string"
+                                        }
+                                      },
+                                      "Configuration": {
+                                        "description": "The configuration to depend on.",
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "Type",
+                                      "Target",
+                                      "Platforms",
+                                      "Configuration"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "ScriptPath": {
+                                  "description": "The relative path to the Gauntlet script to execute.",
+                                  "type": "string"
+                                },
+                                "DeviceListPath": {
+                                  "description": "The relative path to the device list to use.",
+                                  "type": "string"
+                                },
+                                "TestName": {
+                                  "description": "The name of the test to run inside the Gauntlet script.",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "ScriptPath",
+                                "DeviceListPath",
+                                "TestName"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "Deployments": {
+                  "description": "A list of deployments to run for the project.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "Name": {
+                        "type": "string"
+                      },
+                      "Manual": {
+                        "type": "boolean"
+                      },
+                      "Type": [
+                        "Custom",
+                        "Steam"
+                      ]
+                    },
+                    "required": [
+                      "Name"
+                    ],
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "Type": {
+                              "const": "Custom"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "Custom"
+                          ],
+                          "properties": {
+                            "Steam": false,
+                            "Custom": {
+                              "properties": {
+                                "ScriptPath": {
+                                  "description": "The path to the custom deployment script.\nThe script receives the following parameters:\n  -EnginePath \u0022C:\\Path\\To\\UnrealEngine\u0022\n  -StageDirectory \u0022C:\\Path\\To\\UProject\\Saved\\StagedBuilds\u0022\n  -PackageDirectory \u0022C:\\Path\\To\\UProject\\Saved\\StagedBuilds\\LinuxServer\u0022\n  -PackageType \u0022Game\u0022\n  -PackageTarget \u0022ExampleOSS\u0022\n  -PackagePlatform \u0022Win64\u0022\n  -PackageConfiguration \u0022DebugGame\u0022",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "ScriptPath"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "Type": {
+                              "const": "Steam"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "Steam"
+                          ],
+                          "properties": {
+                            "Custom": false,
+                            "Steam": {
+                              "properties": {
+                                "AppID": {
+                                  "description": "The Steam app ID to deploy to.",
+                                  "type": "string"
+                                },
+                                "DepotID": {
+                                  "description": "The Steam depot ID to deploy to.",
+                                  "type": "string"
+                                },
+                                "Channel": {
+                                  "description": "The Steam channel to deploy to.",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "AppID",
+                                "DepotID",
+                                "Channel"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "Name",
+                "FolderName",
+                "ProjectName"
+              ],
+              "additionalProperties": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "Type": {
+            "const": "Plugin"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "PluginName": {
+            "description": "The name of your plugin. It must be such that \u0022PluginName/PluginName.uplugin\u0022 exists.",
+            "type": "string"
+          },
+          "Copyright": {
+            "type": "object",
+            "properties": {
+              "Header": {
+                "description": "Used for Marketplace submissions and update-copyright command.",
+                "type": "string"
+              },
+              "ExcludePaths": {
+                "description": "If set, these files will not have their headers updated during packaging.",
+                "type": "array",
+                "items": {
+                  "description": "If set, these files will not have their headers updated during packaging.",
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "Distributions": {
+            "description": "A list of distributions.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Name": {
+                  "description": "The name, as passed to the --distribution argument.",
+                  "type": "string"
+                },
+                "EnvironmentVariables": {
+                  "description": "A list of environment variables to set during the build.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "description": "A list of environment variables to set during the build.",
+                    "type": "string"
+                  }
+                },
+                "Clean": {
+                  "type": "object",
+                  "properties": {
+                    "Filespecs": {
+                      "description": "A list of filespecs that should be cleaned. Use * as a wildcard for a single path component, or ... as a wildcard for multiple path components.",
+                      "type": "array",
+                      "items": {
+                        "description": "A list of filespecs that should be cleaned. Use * as a wildcard for a single path component, or ... as a wildcard for multiple path components.",
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "Prepare": {
+                  "description": "Specifies the preparation scripts to run before various steps. You can specify multiple preparation entries.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "Type": {
+                        "description": "Currently only \u0022Custom\u0022 is supported.",
+                        "enum": [
+                          "Custom"
+                        ]
+                      },
+                      "RunBefore": {
+                        "description": "The types of steps that the preparation script should run before. A set of \u0022AssembleFinalize\u0022, \u0022Compile\u0022, \u0022Test\u0022 and \u0022BuildGraph\u0022.",
+                        "type": "array",
+                        "items": {
+                          "description": "The types of steps that the preparation script should run before. A set of \u0022AssembleFinalize\u0022, \u0022Compile\u0022, \u0022Test\u0022 and \u0022BuildGraph\u0022.",
+                          "enum": [
+                            "AssembleFinalize",
+                            "Compile",
+                            "Test",
+                            "BuildGraph"
+                          ]
+                        }
+                      },
+                      "Custom": {
+                        "type": "object",
+                        "properties": {
+                          "ScriptPath": {
+                            "description": "The path to the PowerShell script to execute, relative to the repository root.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "ScriptPath"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "Type",
+                      "RunBefore"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "Build": {
+                  "type": "object",
+                  "properties": {
+                    "Editor": {
+                      "type": "object",
+                      "properties": {
+                        "Platforms": {
+                          "description": "A list of platforms to build the plugin for on the editor target.",
+                          "type": "array",
+                          "items": {
+                            "description": "A list of platforms to build the plugin for on the editor target.",
+                            "enum": [
+                              "Win64",
+                              "Mac",
+                              "Linux"
+                            ]
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "Game": {
+                      "type": "object",
+                      "properties": {
+                        "Platforms": {
+                          "description": "A list of platforms to build the plugin for on the target.",
+                          "type": "array",
+                          "items": {
+                            "description": "A list of platforms to build the plugin for on the target.",
+                            "type": "string"
+                          }
+                        },
+                        "Configurations": {
+                          "description": "If not specified, defaults to [\u0022Development\u0022, \u0022Shipping\u0022].",
+                          "type": "array",
+                          "items": {
+                            "description": "If not specified, defaults to [\u0022Development\u0022, \u0022Shipping\u0022].",
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "Client": {
+                      "type": "object",
+                      "properties": {
+                        "Platforms": {
+                          "description": "A list of platforms to build the plugin for on the target.",
+                          "type": "array",
+                          "items": {
+                            "description": "A list of platforms to build the plugin for on the target.",
+                            "type": "string"
+                          }
+                        },
+                        "Configurations": {
+                          "description": "If not specified, defaults to [\u0022Development\u0022, \u0022Shipping\u0022].",
+                          "type": "array",
+                          "items": {
+                            "description": "If not specified, defaults to [\u0022Development\u0022, \u0022Shipping\u0022].",
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "Server": {
+                      "type": "object",
+                      "properties": {
+                        "Platforms": {
+                          "description": "A list of platforms to build the plugin for on the target.",
+                          "type": "array",
+                          "items": {
+                            "description": "A list of platforms to build the plugin for on the target.",
+                            "type": "string"
+                          }
+                        },
+                        "Configurations": {
+                          "description": "If not specified, defaults to [\u0022Development\u0022, \u0022Shipping\u0022].",
+                          "type": "array",
+                          "items": {
+                            "description": "If not specified, defaults to [\u0022Development\u0022, \u0022Shipping\u0022].",
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "StrictIncludes": {
+                      "description": "Forces --strict-includes for builds.",
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "Tests": {
+                  "description": "A list of tests to run for the plugin.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "Name": {
+                        "type": "string"
+                      },
+                      "Manual": {
+                        "type": "boolean"
+                      },
+                      "Type": [
+                        "Automation",
+                        "Commandlet",
+                        "Custom",
+                        "Gauntlet",
+                        "Downstream"
+                      ]
+                    },
+                    "required": [
+                      "Name"
+                    ],
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "Type": {
+                              "const": "Automation"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "Automation"
+                          ],
+                          "properties": {
+                            "Commandlet": false,
+                            "Custom": false,
+                            "Gauntlet": false,
+                            "Downstream": false,
+                            "Automation": {
+                              "properties": {
+                                "TestPrefix": {
+                                  "description": "Only tests with this prefix will be executed for automation testing.",
+                                  "type": "string"
+                                },
+                                "Platforms": {
+                                  "description": "A list of platforms to execute automation tests on. A set of \u0022Win64\u0022, \u0022Mac\u0022 or both.",
+                                  "type": "array",
+                                  "items": {
+                                    "description": "A list of platforms to execute automation tests on. A set of \u0022Win64\u0022, \u0022Mac\u0022 or both.",
+                                    "enum": [
+                                      "Win64",
+                                      "Mac"
+                                    ]
+                                  }
+                                },
+                                "ConfigFiles": {
+                                  "description": "A list of folders whose contents should be copied into the Config folder of the host project used for automation testing. This is used to set configuration if your automation tests require specific configuration values to be set.",
+                                  "type": "array",
+                                  "items": {
+                                    "description": "A list of folders whose contents should be copied into the Config folder of the host project used for automation testing. This is used to set configuration if your automation tests require specific configuration values to be set.",
+                                    "type": "string"
+                                  }
+                                },
+                                "MinWorkerCount": {
+                                  "description": "The minimum number of processes to launch for automation testing on the machine, regardless of available RAM. If not set, defaults to 1.",
+                                  "type": "integer"
+                                },
+                                "TestRunTimeoutMinutes": {
+                                  "description": "The timeout in minutes for running the whole automation test suite. If not set, defaults to 5 minutes.",
+                                  "type": "integer"
+                                },
+                                "TestTimeoutMinutes": {
+                                  "description": "The timeout in minutes for running an individual test. If not set, no timeout applies.",
+                                  "type": "integer"
+                                },
+                                "TestAttemptCount": {
+                                  "description": "The maximum number of times a test should be attempted if it fails. If not set, tests are never retried on failure.",
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "TestPrefix",
+                                "Platforms"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "Type": {
+                              "const": "Commandlet"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "Commandlet"
+                          ],
+                          "properties": {
+                            "Automation": false,
+                            "Custom": false,
+                            "Gauntlet": false,
+                            "Downstream": false,
+                            "Commandlet": {
+                              "properties": {
+                                "Name": {
+                                  "description": "The name of the commandlet to run.",
+                                  "type": "string"
+                                },
+                                "AdditionalArguments": {
+                                  "description": "Additional command line arguments to pass to Unreal Editor when running the commandlet.",
+                                  "type": "array",
+                                  "items": {
+                                    "description": "Additional command line arguments to pass to Unreal Editor when running the commandlet.",
+                                    "type": "string"
+                                  }
+                                },
+                                "Platforms": {
+                                  "description": "A list of platforms to execute this commandlet test on. A set of \u0022Win64\u0022, \u0022Mac\u0022 or both.",
+                                  "type": "array",
+                                  "items": {
+                                    "description": "A list of platforms to execute this commandlet test on. A set of \u0022Win64\u0022, \u0022Mac\u0022 or both.",
+                                    "enum": [
+                                      "Win64",
+                                      "Mac"
+                                    ]
+                                  }
+                                },
+                                "LogStartSignal": {
+                                  "description": "To detect scenarios where the Unreal Editor stalls between startup and the commandlet\nrunning, you can make your commandlet emit a log when it starts and then set that log\nline here. If the editor doesn\u0027t start executing the commandlet code before LogStartTimeoutMinutes\nd,",
+                                  "type": "string"
+                                },
+                                "LogStartTimeoutMinutes": {
+                                  "description": "If set, the editor must emit LogStartSignal\nnumber of minutes elapses. If it doesn\u0027t, the editor instance is killed and the commandlet test is attempted\nagain, up to TestAttemptCount",
+                                  "type": "integer"
+                                },
+                                "PreStartScriptPath": {
+                                  "description": "The path to a PowerShell script to run before the commandlet starts. This can be used\nto prepare the environment for the commandlet to run in, such as terminating processes\nor writing data to the filesystem.\n\nThe pre-start script is passed the following parameters:\n  -EnginePath \u0022C:\\Path\\To\\UnrealEngine\u0022\n  -TestProjectPath \u0022C:\\Path\\To\\UProject\\File.uproject\u0022",
+                                  "type": "string"
+                                },
+                                "ValidationScriptPath": {
+                                  "description": "The path to a PowerShell script which can be used to validate that the commandlet\nperformed the intended behaviour. This script is only run if the editor exits with\na non-zero exit code, and should be used to validate some global state of the\nsystem (such that the commandlet ran a process, or modified files on the filesystem).\n\nThe validation script is passed the following parameters:\n  -EnginePath \u0022C:\\Path\\To\\UnrealEngine\u0022\n  -TestProjectPath \u0022C:\\Path\\To\\UProject\\File.uproject\u0022",
+                                  "type": "string"
+                                },
+                                "TestAttemptCount": {
+                                  "description": "The maximum number of times this commandlet test should be attempted if it fails. If not set, the commandlet is never automatically retried.",
+                                  "type": "integer"
+                                },
+                                "GlobalMutexName": {
+                                  "description": "If set, this global mutex is obtained for the duration of the test. This includes the\npre-start and validation scripts. This can be used to ensure that a commandlet that\nimpacts the global environment (like running a process) will not be run concurrently\nacross different build jobs on the same machine.",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "Name",
+                                "Platforms"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "Type": {
+                              "const": "Custom"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "Custom"
+                          ],
+                          "properties": {
+                            "Automation": false,
+                            "Commandlet": false,
+                            "Gauntlet": false,
+                            "Downstream": false,
+                            "Custom": {
+                              "properties": {
+                                "TestAgainst": {
+                                  "description": "Must be set to either \u0022TestProject\u0022 or \u0022PackagedPlugin\u0022.",
+                                  "enum": [
+                                    "TestProject",
+                                    "PackagedPlugin"
+                                  ]
+                                },
+                                "Platforms": {
+                                  "description": "A list of platforms to execute custom tests on. A set of \u0022Win64\u0022, \u0022Mac\u0022 or both.",
+                                  "type": "array",
+                                  "items": {
+                                    "description": "A list of platforms to execute custom tests on. A set of \u0022Win64\u0022, \u0022Mac\u0022 or both.",
+                                    "enum": [
+                                      "Win64",
+                                      "Mac"
+                                    ]
+                                  }
+                                },
+                                "ScriptPath": {
+                                  "description": "The path to the test script, relative to the repository root.\nIf you are testing against \u0022TestProject\u0022, then the script receives the following parameters:\n  -EnginePath \u0022C:\\Path\\To\\UnrealEngine\u0022\n  -TestProjectPath \u0022C:\\Path\\To\\UProject\\File.uproject\u0022\nIf you are testing against \u0022PackagedPlugin\u0022, then the script receives the following parameters:\n  -EnginePath \u0022C:\\Path\\To\\UnrealEngine\u0022\n  -TempPath \u0022C:\\Path\\To\\TemporaryFolder\u0022\n  -PackagedPluginPath \u0022C:\\Path\\To\\PackagedPlugin\u0022",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "TestAgainst",
+                                "ScriptPath"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "Type": {
+                              "const": "Gauntlet"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "Gauntlet"
+                          ],
+                          "properties": {
+                            "Automation": false,
+                            "Commandlet": false,
+                            "Custom": false,
+                            "Downstream": false,
+                            "Gauntlet": {
+                              "properties": {
+                                "Requires": {
+                                  "description": "Specifies the configurations and platforms that the Gauntlet tests is dependent on.",
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "Type": {
+                                        "description": "Specifies the dependency type (Game, Client or Server).",
+                                        "enum": [
+                                          "Game",
+                                          "Client",
+                                          "Server"
+                                        ]
+                                      },
+                                      "Target": {
+                                        "description": "The target to depend on.",
+                                        "type": "string"
+                                      },
+                                      "Platforms": {
+                                        "description": "The platforms to depend on.",
+                                        "type": "array",
+                                        "items": {
+                                          "description": "The platforms to depend on.",
+                                          "type": "string"
+                                        }
+                                      },
+                                      "Configuration": {
+                                        "description": "The configuration to depend on.",
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "Type",
+                                      "Target",
+                                      "Platforms",
+                                      "Configuration"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "ScriptPath": {
+                                  "description": "The relative path to the Gauntlet script to execute.",
+                                  "type": "string"
+                                },
+                                "DeviceListPath": {
+                                  "description": "The relative path to the device list to use.",
+                                  "type": "string"
+                                },
+                                "TestName": {
+                                  "description": "The name of the test to run inside the Gauntlet script.",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "ScriptPath",
+                                "DeviceListPath",
+                                "TestName"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "Type": {
+                              "const": "Downstream"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "Downstream"
+                          ],
+                          "properties": {
+                            "Automation": false,
+                            "Commandlet": false,
+                            "Custom": false,
+                            "Gauntlet": false,
+                            "Downstream": {
+                              "properties": {}
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "Package": {
+                  "type": "object",
+                  "properties": {
+                    "Marketplace": {
+                      "description": "If true, the plugin is packaged for Marketplace submission. If not set, defaults to false.",
+                      "type": "boolean"
+                    },
+                    "OutputFolderName": {
+                      "description": "If not set, defaults to \u0022Packaged\u0022.",
+                      "type": "string"
+                    },
+                    "Filter": {
+                      "description": "The path to the FilterPlugin.ini file used for packaging.",
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "Deployment": {
+                  "description": "Specifies the deployment steps.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "Name": {
+                        "type": "string"
+                      },
+                      "Manual": {
+                        "type": "boolean"
+                      },
+                      "Type": [
+                        "BackblazeB2"
+                      ]
+                    },
+                    "required": [
+                      "Name"
+                    ],
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "Type": {
+                              "const": "BackblazeB2"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "BackblazeB2"
+                          ],
+                          "properties": {
+                            "BackblazeB2": {
+                              "properties": {
+                                "BucketName": {
+                                  "description": "The Backblaze B2 bucket to upload to.",
+                                  "type": "string"
+                                },
+                                "FolderPrefixEnvVar": {
+                                  "description": "The environment variable that contains the folder prefix to use when uploading. This should be set on your build server and made available to build jobs.",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "BucketName",
+                                "FolderPrefixEnvVar"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "Gauntlet": {
+                  "type": "object",
+                  "properties": {
+                    "ConfigFiles": {
+                      "description": "Configuration files to apply to the project that hosts Gauntlet tests.",
+                      "type": "array",
+                      "items": {
+                        "description": "Configuration files to apply to the project that hosts Gauntlet tests.",
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "ConfigFiles"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "Name"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "PluginName"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "Type": {
+            "const": "Engine"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "Distributions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Name": {
+                  "type": "string"
+                },
+                "Source": {
+                  "type": "object",
+                  "properties": {
+                    "Type": {
+                      "type": "string"
+                    },
+                    "Repository": {
+                      "type": "string"
+                    },
+                    "Commit": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "Build": {
+                  "type": "object",
+                  "properties": {
+                    "TargetTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "EditorPlatforms": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "Platforms": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "ConsoleDirectories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "Cook": {
+                  "type": "object",
+                  "properties": {
+                    "GenerateDDC": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "Deployment": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "Type": {
+                        "type": "string"
+                      },
+                      "Platform": {
+                        "type": "string"
+                      },
+                      "Target": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      }
+    }
+  ]
+}

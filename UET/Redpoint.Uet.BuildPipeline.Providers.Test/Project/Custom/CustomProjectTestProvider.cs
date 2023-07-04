@@ -5,6 +5,8 @@
     using System;
     using System.Collections.Generic;
     using System.Text.Json;
+    using System.Text.Json.Serialization;
+    using System.Text.Json.Serialization.Metadata;
     using System.Threading.Tasks;
     using System.Xml;
 
@@ -15,6 +17,10 @@
         }
 
         public string Type => "Custom";
+
+        public JsonTypeInfo DynamicSettingsJsonTypeInfo => TestProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectTestCustom;
+
+        public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => TestProviderSourceGenerationContext.WithStringEnum;
 
         public object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
