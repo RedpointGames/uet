@@ -116,12 +116,21 @@
             writer.WriteStartObject();
             writer.WriteString("type", "object");
             {
+                var fullName = jsonTypeInfo.Type.FullName;
+                if (jsonTypeInfo.Type.IsConstructedGenericType)
+                {
+                    fullName = jsonTypeInfo.Type.GetGenericTypeDefinition().FullName;
+                }
                 var summary = _descriptionDocuments
-                    .SelectMany(x => x.SelectNodes($@"/doc/members/member[@name=""T:{jsonTypeInfo.Type.FullName}""]/summary")!.OfType<XmlNode>())
+                    .SelectMany(x => x.SelectNodes($@"/doc/members/member[@name=""T:{fullName}""]/summary")!.OfType<XmlNode>())
                     .FirstOrDefault();
                 if (summary != null)
                 {
                     writer.WriteString("description", ProcessSummary(summary));
+                }
+                else
+                {
+                    _logger.LogWarning($"{fullName} is undocumented. This might be because the C# property name does not match the JSON property name. Due to trimming, the C# name must exactly match the name used in JSON.");
                 }
             }
             writer.WritePropertyName("properties");
@@ -310,7 +319,6 @@
             writer.WriteEndObject();
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming", "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "We only access properties that will be included due to JSON source context generation.")]
         private void GeneratePropertiesForObject(
             Utf8JsonWriter writer,
             JsonTypeInfo jsonTypeInfo,
@@ -332,22 +340,28 @@
                     jsonTypeInfoResolver,
                     () =>
                     {
-                        var propertyInfo = jsonTypeInfo.Type
-                            .GetProperties()
-                            .FirstOrDefault(x =>
-                                (x.Name == property.Name && x.GetCustomAttribute<JsonPropertyNameAttribute>() == null) ||
-                                x.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name == property.Name);
-                        if (propertyInfo != null)
-                        {
-                            var summary = _descriptionDocuments
-                                .SelectMany(x => x.SelectNodes($@"/doc/members/member[@name=""P:{propertyInfo.DeclaringType?.FullName}.{propertyInfo.Name}""]/summary")!.OfType<XmlNode>())
-                                .FirstOrDefault();
-                            if (summary != null)
-                            {
-                                writer.WriteString("description", ProcessSummary(summary));
-                            }
-                        }
+                        EmitSchemaForXmlComments(writer, jsonTypeInfo, property);
                     });
+            }
+        }
+
+        private void EmitSchemaForXmlComments(Utf8JsonWriter writer, JsonTypeInfo jsonTypeInfo, JsonPropertyInfo property)
+        {
+            var fullName = jsonTypeInfo.Type.FullName;
+            if (jsonTypeInfo.Type.IsConstructedGenericType)
+            {
+                fullName = jsonTypeInfo.Type.GetGenericTypeDefinition().FullName;
+            }
+            var summary = _descriptionDocuments
+                .SelectMany(x => x.SelectNodes($@"/doc/members/member[@name=""P:{fullName}.{property.Name}""]/summary")!.OfType<XmlNode>())
+                .FirstOrDefault();
+            if (summary != null)
+            {
+                writer.WriteString("description", ProcessSummary(summary));
+            }
+            else
+            {
+                _logger.LogWarning($"{fullName}.{property.Name} is undocumented. This might be because the C# property name does not match the JSON property name. Due to trimming, the C# name must exactly match the name used in JSON.");
             }
         }
 
@@ -374,13 +388,17 @@
                     writer.WriteString("type", "boolean");
                     writer.WriteEndObject();
                     break;
-                case var t when t.IsValueType && t.IsPrimitive && t.GetInterfaces().Any(x => x == typeof(IBinaryNumber<>).MakeGenericType(t)):
+                case var t when t == typeof(int):
+                case var a when a == typeof(uint):
+                case var b when b == typeof(long):
+                case var c when c == typeof(ulong):
                     writer.WriteStartObject();
                     writeMetadata?.Invoke();
                     writer.WriteString("type", "integer");
                     writer.WriteEndObject();
                     break;
-                case var t when t.IsValueType && t.IsPrimitive && t.GetInterfaces().Any(x => x == typeof(IBinaryFloatingPointIeee754<>).MakeGenericType(t)):
+                case var f when f == typeof(float):
+                case var d when d == typeof(double):
                     writer.WriteStartObject();
                     writeMetadata?.Invoke();
                     writer.WriteString("type", "number");

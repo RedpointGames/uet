@@ -145,14 +145,14 @@
                             projectDistribution.Tests);
                     }
 
-                    if (projectDistribution.Deployment != null && executeDeployment)
+                    if (projectDistribution.Deployments != null && executeDeployment)
                     {
                         await WriteBuildGraphNodesAsync(
                             emitContext,
                             writer,
                             projectDistribution,
                             _projectDeployments,
-                            projectDistribution.Deployment);
+                            projectDistribution.Deployments);
                     }
                 }
                 else

@@ -45,6 +45,6 @@
         /// A list of deployments to run for the project.
         /// </summary>
         [JsonPropertyName("Deployments"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public BuildConfigDynamic<BuildConfigProjectDistribution, IDeploymentProvider>[]? Deployment { get; set; }
+        public BuildConfigDynamic<BuildConfigProjectDistribution, IDeploymentProvider>[]? Deployments { get; set; }
     }
 }

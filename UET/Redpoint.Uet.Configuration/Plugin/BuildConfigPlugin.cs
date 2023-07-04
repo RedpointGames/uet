@@ -2,9 +2,6 @@
 {
     using System.Text.Json.Serialization;
 
-    /// <summary>
-    /// test
-    /// </summary>
     public class BuildConfigPlugin : BuildConfig
     {
         /// <summary>
