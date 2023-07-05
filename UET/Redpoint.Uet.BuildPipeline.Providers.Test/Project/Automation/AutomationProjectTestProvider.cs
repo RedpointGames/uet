@@ -1,6 +1,6 @@
-﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Automation
+﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Project.Automation
 {
-    using Redpoint.Uet.Configuration.Plugin;
+    using Redpoint.Uet.Configuration.Project;
     using Redpoint.Uet.BuildGraph;
     using System.Threading.Tasks;
     using System.Xml;
@@ -15,23 +15,21 @@
     using Redpoint.Uet.Automation.Model;
     using System.Text.Json.Serialization.Metadata;
     using System.Text.Json.Serialization;
+    using Redpoint.Uet.Configuration;
 
-    internal class AutomationPluginTestProvider : IPluginTestProvider, IDynamicReentrantExecutor<BuildConfigPluginDistribution, BuildConfigPluginTestAutomation>
+    internal class AutomationProjectTestProvider : IProjectTestProvider, IDynamicReentrantExecutor<BuildConfigProjectDistribution, BuildConfigProjectTestAutomation>
     {
-        private readonly IPluginTestProjectEmitProvider _pluginTestProjectEmitProvider;
         private readonly IAutomationRunnerFactory _automationRunnerFactory;
         private readonly ITestLoggerFactory _testLoggerFactory;
         private readonly ITestNotificationFactory _testNotificationFactory;
         private readonly ITestReporterFactory _testReporterFactory;
 
-        public AutomationPluginTestProvider(
-            IPluginTestProjectEmitProvider pluginTestProjectEmitProvider,
+        public AutomationProjectTestProvider(
             IAutomationRunnerFactory automationRunnerFactory,
             ITestLoggerFactory testLoggerFactory,
             ITestNotificationFactory testNotificationFactory,
             ITestReporterFactory testReporterFactory)
         {
-            _pluginTestProjectEmitProvider = pluginTestProjectEmitProvider;
             _automationRunnerFactory = automationRunnerFactory;
             _testLoggerFactory = testLoggerFactory;
             _testNotificationFactory = testNotificationFactory;
@@ -40,37 +38,34 @@
 
         public string Type => "Automation";
 
-        public JsonTypeInfo DynamicSettingsJsonTypeInfo => TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestAutomation;
+        public JsonTypeInfo DynamicSettingsJsonTypeInfo => TestProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectTestAutomation;
 
         public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => TestProviderSourceGenerationContext.WithStringEnum;
 
         public object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
-            return JsonSerializer.Deserialize(ref reader, TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestAutomation)!;
+            return JsonSerializer.Deserialize(ref reader, TestProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectTestAutomation)!;
         }
 
-        public void SerializeDynamicSettings(Utf8JsonWriter writer, BuildConfigPluginTestAutomation value, JsonSerializerOptions options)
+        public void SerializeDynamicSettings(Utf8JsonWriter writer, BuildConfigProjectTestAutomation value, JsonSerializerOptions options)
         {
-            JsonSerializer.Serialize(writer, value, TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestAutomation);
+            JsonSerializer.Serialize(writer, value, TestProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectTestAutomation);
         }
 
         public async Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,
             XmlWriter writer,
-            BuildConfigPluginDistribution buildConfigDistribution,
-            IEnumerable<BuildConfigDynamic<BuildConfigPluginDistribution, ITestProvider>> dynamicSettings)
+            BuildConfigProjectDistribution buildConfigDistribution,
+            IEnumerable<BuildConfigDynamic<BuildConfigProjectDistribution, ITestProvider>> dynamicSettings)
         {
             var castedSettings = dynamicSettings
-                .Select(x => (name: x.Name, settings: (BuildConfigPluginTestAutomation)x.DynamicSettings))
+                .Select(x => (name: x.Name, settings: (BuildConfigProjectTestAutomation)x.DynamicSettings))
                 .ToList();
 
-            // Ensure we have the test project available.
-            await _pluginTestProjectEmitProvider.EnsureTestProjectNodesArePresentAsync(
-                context,
-                writer);
-
-            // Emit the nodes to run each test.
-            var allPlatforms = castedSettings.SelectMany(x => x.settings.Platforms).Where(context.CanHostPlatformBeUsed).ToHashSet();
+            // Emit the nodes to run each test. Projects only build the editor
+            // on Windows (never macOS), so we can only run project automation tests
+            // when building projects on Windows.
+            var allPlatforms = new[] { BuildConfigHostPlatform.Win64 }.Where(context.CanHostPlatformBeUsed).ToHashSet();
             foreach (var platform in allPlatforms)
             {
                 await writer.WriteAgentAsync(
@@ -83,34 +78,16 @@
                     {
                         foreach (var test in castedSettings)
                         {
-                            if (!test.settings.Platforms.Contains(platform))
-                            {
-                                continue;
-                            }
-
                             var nodeName = $"Automation {platform} {test.name}";
 
                             await writer.WriteNodeAsync(
                                 new NodeElementProperties
                                 {
                                     Name = nodeName,
-                                    Requires = _pluginTestProjectEmitProvider.GetTestProjectTags(platform),
-                                    If = $"'$(CanBuildEditor{platform})' == 'true'"
+                                    Requires = "#EditorBinaries"
                                 },
                                 async writer =>
                                 {
-                                    foreach (var configFile in test.settings.ConfigFiles ?? new string[0])
-                                    {
-                                        await writer.WriteCopyAsync(
-                                            new CopyElementProperties
-                                            {
-                                                Files = "...",
-                                                From = $"$(ProjectRoot)/{configFile}/",
-                                                To = $"{_pluginTestProjectEmitProvider.GetTestProjectDirectoryPath(platform)}/Config/",
-                                            });
-                                    }
-
-
                                     var arguments = new List<string>();
                                     if (test.settings.MinWorkerCount != null)
                                     {
@@ -146,9 +123,9 @@
                                     }
 
                                     await writer.WriteDynamicReentrantSpawnAsync<
-                                        AutomationPluginTestProvider,
-                                        BuildConfigPluginDistribution,
-                                        BuildConfigPluginTestAutomation>(
+                                        AutomationProjectTestProvider,
+                                        BuildConfigProjectDistribution,
+                                        BuildConfigProjectTestAutomation>(
                                         this,
                                         context,
                                         $"{platform}.{test.name}".Replace(" ", "."),
@@ -156,9 +133,10 @@
                                         new Dictionary<string, string>
                                         {
                                             { "EnginePath", "$(EnginePath)" },
-                                            { "TestProjectPath", _pluginTestProjectEmitProvider.GetTestProjectUProjectFilePath(platform) },
+                                            { "TestProjectPath", "$(UProjectPath)" },
                                             { "TestResultsPath", $"$(ArtifactExportPath)/.uet/tmp/Automation{platform}/TestResults.xml" },
                                             { "WorkerLogsPath", $"$(ArtifactExportPath)/.uet/tmp/Automation{platform}" },
+                                            { "TargetName", test.settings.TargetName ?? "UnrealEditor" },
                                         });
                                 });
                             await writer.WriteDynamicNodeAppendAsync(
@@ -177,12 +155,13 @@
             Dictionary<string, string> runtimeSettings,
             CancellationToken cancellationToken)
         {
-            var config = (BuildConfigPluginTestAutomation)configUnknown;
+            var config = (BuildConfigProjectTestAutomation)configUnknown;
 
             var enginePath = runtimeSettings["EnginePath"];
             var testProjectPath = runtimeSettings["TestProjectPath"];
             var testResultsPath = runtimeSettings["TestResultsPath"];
             var workerLogsPath = runtimeSettings["WorkerLogsPath"];
+            var targetName = runtimeSettings["TargetName"];
 
             await using (var automationRunner = await _automationRunnerFactory.CreateAndRunAsync(
                 _testLoggerFactory.CreateConsole(),
@@ -195,7 +174,7 @@
                         Platform = OperatingSystem.IsWindows() ? "Win64" : "Mac",
                         IsEditor = true,
                         Configuration = "Development",
-                        Target = "UnrealEditor",
+                        Target = targetName,
                         UProjectPath = testProjectPath,
                         EnginePath = enginePath,
                         MinWorkerCount = config.MinWorkerCount,

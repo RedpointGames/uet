@@ -37,7 +37,6 @@
 
   <!-- Dynamic include options, used by UET to dynamically generate test and deployment nodes -->
   <Option Name="ScriptIncludes" DefaultValue="" Description="Additional script includes paths" />
-  <Include Script="$(ScriptIncludes)" />
 
   <EnvVar Name="AppData" />
   <EnvVar Name="HOME" />

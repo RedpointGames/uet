@@ -6,9 +6,11 @@
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.Local;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Automation;
+    using Redpoint.Uet.BuildPipeline.Providers.Test.Project.Automation;
     using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Plugin;
+    using Redpoint.Uet.Configuration.Project;
     using Redpoint.Uet.Core;
     using System.CommandLine;
     using System.CommandLine.Invocation;
@@ -164,7 +166,66 @@
                     switch (path!.Type)
                     {
                         case PathSpecType.UProject:
-                            throw new InvalidOperationException("Running automation tests on a .uproject via 'test' is not yet supported.");
+                            // Use heuristics to guess the targets for this build.
+                            string editorTarget;
+                            string gameTarget;
+                            if (Directory.Exists(Path.Combine(path.DirectoryPath, "Source")))
+                            {
+                                var files = Directory.GetFiles(Path.Combine(path.DirectoryPath, "Source"), "*.Target.cs");
+                                editorTarget = files.Where(x => x.EndsWith("Editor.Target.cs")).Select(x => Path.GetFileName(x)).First();
+                                editorTarget = editorTarget.Substring(0, editorTarget.LastIndexOf(".Target.cs"));
+                                gameTarget = editorTarget.Substring(0, editorTarget.LastIndexOf("Editor"));
+                            }
+                            else
+                            {
+                                editorTarget = "UnrealEditor";
+                                gameTarget = "UnrealGame";
+                            }
+
+                            var buildConfigProject = new BuildConfigProject
+                            {
+                                Type = Redpoint.Uet.Configuration.BuildConfigType.Plugin,
+                                Distributions = new List<BuildConfigProjectDistribution>
+                                {
+                                    new BuildConfigProjectDistribution
+                                    {
+                                        Name = "Test",
+                                        ProjectName = Path.GetFileNameWithoutExtension(path.UProjectPath)!,
+                                        Build = new BuildConfigProjectBuild
+                                        {
+                                            Editor = new BuildConfigProjectBuildEditor
+                                            {
+                                                Target = editorTarget,
+                                            }
+                                        },
+                                        Tests = new[]
+                                        {
+                                            new BuildConfigDynamic<BuildConfigProjectDistribution, ITestProvider>
+                                            {
+                                                Type = "Automation",
+                                                Name = "Test",
+                                                Manual = false,
+                                                DynamicSettings = new BuildConfigProjectTestAutomation
+                                                {
+                                                    TestPrefix = prefix,
+                                                    TargetName = editorTarget,
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            };
+                            buildSpec = await _buildSpecificationGenerator.BuildConfigProjectToBuildSpecAsync(
+                                engineSpec,
+                                buildGraphEnvironment,
+                                buildConfigProject.Distributions[0],
+                                repositoryRoot: path.DirectoryPath,
+                                executeBuild: true,
+                                executeTests: true,
+                                executeDeployment: false,
+                                strictIncludes: false,
+                                localExecutor: true);
+                            break;
                         case PathSpecType.UPlugin:
                             var buildConfigPlugin = new BuildConfigPlugin
                             {
