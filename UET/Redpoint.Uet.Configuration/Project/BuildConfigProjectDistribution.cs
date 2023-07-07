@@ -3,6 +3,9 @@
     using Redpoint.Uet.Configuration.Dynamic;
     using System.Text.Json.Serialization;
 
+    /// <summary>
+    /// Specifies how to build, cook, test and deploy an Unreal Engine project.
+    /// </summary>
     public class BuildConfigProjectDistribution
     {
         /// <summary>

@@ -4,6 +4,9 @@
     using System.Collections.Generic;
     using System.Text.Json.Serialization;
 
+    /// <summary>
+    /// Specifies how to build, package, test and deploy an Unreal Engine plugin.
+    /// </summary>
     public class BuildConfigPluginDistribution
     {
         /// <summary>
