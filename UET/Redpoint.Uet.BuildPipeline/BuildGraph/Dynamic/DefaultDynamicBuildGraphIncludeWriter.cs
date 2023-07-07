@@ -93,12 +93,86 @@
             }
         }
 
-        public async Task WriteBuildGraphInclude(
+        public async Task WriteBuildGraphNodeInclude(
             Stream stream,
             bool filterHostToCurrentPlatformOnly,
             object buildConfigDistribution,
             bool executeTests,
             bool executeDeployment)
+        {
+            var emitContext = new BuildGraphEmitContext(
+                _serviceProvider,
+                filterHostToCurrentPlatformOnly);
+
+            using (var writer = XmlWriter.Create(stream, new XmlWriterSettings
+            {
+                Encoding = Encoding.UTF8,
+                Indent = true,
+                IndentChars = "  ",
+                Async = true,
+            }))
+            {
+                await writer.WriteStartDocumentAsync();
+                await writer.WriteStartElementAsync(null, "BuildGraph", "http://www.epicgames.com/BuildGraph");
+
+                if (buildConfigDistribution is BuildConfigPluginDistribution pluginDistribution)
+                {
+                    if (pluginDistribution.Tests != null && executeTests)
+                    {
+                        await WriteBuildGraphNodesAsync(
+                            emitContext,
+                            writer,
+                            pluginDistribution,
+                            _pluginTests,
+                            pluginDistribution.Tests);
+                    }
+
+                    if (pluginDistribution.Deployment != null && executeDeployment)
+                    {
+                        await WriteBuildGraphNodesAsync(
+                            emitContext,
+                            writer,
+                            pluginDistribution,
+                            _pluginDeployments,
+                            pluginDistribution.Deployment);
+                    }
+                }
+                else if (buildConfigDistribution is BuildConfigProjectDistribution projectDistribution)
+                {
+                    if (projectDistribution.Tests != null && executeTests)
+                    {
+                        await WriteBuildGraphNodesAsync(
+                            emitContext,
+                            writer,
+                            projectDistribution,
+                            _projectTests,
+                            projectDistribution.Tests);
+                    }
+
+                    if (projectDistribution.Deployments != null && executeDeployment)
+                    {
+                        await WriteBuildGraphNodesAsync(
+                            emitContext,
+                            writer,
+                            projectDistribution,
+                            _projectDeployments,
+                            projectDistribution.Deployments);
+                    }
+                }
+                else
+                {
+                    throw new NotSupportedException();
+                }
+
+                await writer.WriteEndElementAsync();
+                await writer.WriteEndDocumentAsync();
+            }
+        }
+
+        public async Task WriteBuildGraphMacroInclude(
+            Stream stream,
+            bool filterHostToCurrentPlatformOnly,
+            object buildConfigDistribution)
         {
             var emitContext = new BuildGraphEmitContext(
                 _serviceProvider,
@@ -126,26 +200,6 @@
                             _pluginPrepare,
                             pluginDistribution.Prepare);
                     }
-
-                    if (pluginDistribution.Tests != null && executeTests)
-                    {
-                        await WriteBuildGraphNodesAsync(
-                            emitContext,
-                            writer,
-                            pluginDistribution,
-                            _pluginTests,
-                            pluginDistribution.Tests);
-                    }
-
-                    if (pluginDistribution.Deployment != null && executeDeployment)
-                    {
-                        await WriteBuildGraphNodesAsync(
-                            emitContext,
-                            writer,
-                            pluginDistribution,
-                            _pluginDeployments,
-                            pluginDistribution.Deployment);
-                    }
                 }
                 else if (buildConfigDistribution is BuildConfigProjectDistribution projectDistribution)
                 {
@@ -157,26 +211,6 @@
                             projectDistribution,
                             _projectPrepare,
                             projectDistribution.Prepare);
-                    }
-
-                    if (projectDistribution.Tests != null && executeTests)
-                    {
-                        await WriteBuildGraphNodesAsync(
-                            emitContext,
-                            writer,
-                            projectDistribution,
-                            _projectTests,
-                            projectDistribution.Tests);
-                    }
-
-                    if (projectDistribution.Deployments != null && executeDeployment)
-                    {
-                        await WriteBuildGraphNodesAsync(
-                            emitContext,
-                            writer,
-                            projectDistribution,
-                            _projectDeployments,
-                            projectDistribution.Deployments);
                     }
                 }
                 else

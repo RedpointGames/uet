@@ -3,6 +3,7 @@ namespace Redpoint.GrpcPipes.Tests
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using System.Diagnostics;
+    using System.Security.Principal;
     using TestPipes;
     using Xunit.Abstractions;
     using static TestPipes.TestService;
@@ -70,9 +71,27 @@ namespace Redpoint.GrpcPipes.Tests
             Assert.True(isCalled, "Expected TestMethod to be called");
         }
 
-        [Fact]
+        private static bool IsAdministrator
+        {
+            get
+            {
+                if (OperatingSystem.IsWindows())
+                {
+                    using (var identity = WindowsIdentity.GetCurrent())
+                    {
+                        var principal = new WindowsPrincipal(identity);
+                        return principal.IsInRole(WindowsBuiltInRole.Administrator);
+                    }
+                }
+                return false;
+            }
+        }
+
+        [SkippableFact]
         public async Task TestComputerPipes()
         {
+            Skip.IfNot(IsAdministrator);
+
             var services = new ServiceCollection();
             services.AddLogging(builder =>
             {
@@ -108,9 +127,11 @@ namespace Redpoint.GrpcPipes.Tests
             Assert.True(isCalled, "Expected TestMethod to be called");
         }
 
-        [Fact]
+        [SkippableFact]
         public async Task TestNewServerCanRemoveOldPipe()
         {
+            Skip.IfNot(IsAdministrator);
+
             var services = new ServiceCollection();
             services.AddLogging(builder =>
             {

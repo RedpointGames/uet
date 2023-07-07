@@ -36,7 +36,8 @@
   <Option Name="StageDirectory" Restrict=".+" DefaultValue="Saved\StagedBuilds" Description="The path under which to place all of the staged builds" />
 
   <!-- Dynamic include options, used by UET to dynamically generate test and deployment nodes -->
-  <Option Name="ScriptIncludes" DefaultValue="" Description="Additional script includes paths" />
+  <Option Name="ScriptNodeIncludes" DefaultValue="" Description="Additional script includes paths for nodes" />
+  <Option Name="ScriptMacroIncludes" DefaultValue="" Description="Additional script includes paths for macros" />
 
   <EnvVar Name="AppData" />
   <EnvVar Name="HOME" />
@@ -55,6 +56,12 @@
   <Property Name="DynamicNodes" Value="" />
   <Property Name="DynamicOutputFiles" Value="" />
   <Property Name="DynamicPreDeploymentNodes" Value="" />
+
+  <!-- 
+    Include all the macros dynamically defined by UET.
+  -->
+
+  <Include Script="$(ScriptMacroIncludes)" />
 
   <!-- Targets that we will execute on a Windows machine. -->
   <Agent Name="Windows Build" Type="Win64" If="'$(ExecuteBuild)' == 'true'">
@@ -356,7 +363,7 @@
     Run all of the tests and deployments (which are dynamically defined by UET).
   -->
 
-  <Include Script="$(ScriptIncludes)" />
+  <Include Script="$(ScriptNodeIncludes)" />
 
   <!-- Targets that we will execute on a Windows machine. -->
   <Agent Name="Windows Tag" Type="Win64">

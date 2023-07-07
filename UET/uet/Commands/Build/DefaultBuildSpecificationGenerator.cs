@@ -167,7 +167,7 @@
             }
         }
 
-        private async Task<string> WriteDynamicBuildGraphIncludeAsync(
+        private async Task<(string nodeInclude, string macroInclude)> WriteDynamicBuildGraphIncludeAsync(
             BuildGraphEnvironment env,
             bool localExecutor,
             object distribution,
@@ -178,18 +178,31 @@
                 env.Windows.SharedStorageAbsolutePath :
                 env.Mac!.SharedStorageAbsolutePath;
             Directory.CreateDirectory(sharedStorageAbsolutePath);
-            var filename = $"DynamicBuildGraph-{Process.GetCurrentProcess().Id}.xml";
-            using (var stream = new FileStream(Path.Combine(sharedStorageAbsolutePath, filename), FileMode.Create, FileAccess.Write, FileShare.None))
+
+            var nodeFilename = $"DynamicBuildGraph-{Process.GetCurrentProcess().Id}.Nodes.xml";
+            var macroFilename = $"DynamicBuildGraph-{Process.GetCurrentProcess().Id}.Macros.xml";
+
+            using (var stream = new FileStream(Path.Combine(sharedStorageAbsolutePath, nodeFilename), FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                await _dynamicBuildGraphIncludeWriter.WriteBuildGraphInclude(
+                await _dynamicBuildGraphIncludeWriter.WriteBuildGraphNodeInclude(
                     stream,
                     localExecutor,
                     distribution,
                     executeTests,
                     executeDeployment);
             }
-            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(sharedStorageAbsolutePath, filename), CancellationToken.None);
-            return $"__SHARED_STORAGE_PATH__/{filename}";
+            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(sharedStorageAbsolutePath, nodeFilename), CancellationToken.None);
+            
+            using (var stream = new FileStream(Path.Combine(sharedStorageAbsolutePath, macroFilename), FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                await _dynamicBuildGraphIncludeWriter.WriteBuildGraphMacroInclude(
+                    stream,
+                    localExecutor,
+                    distribution);
+            }
+            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(sharedStorageAbsolutePath, macroFilename), CancellationToken.None);
+
+            return ($"__SHARED_STORAGE_PATH__/{nodeFilename}", $"__SHARED_STORAGE_PATH__/{macroFilename}");
         }
 
         public async Task<BuildSpecification> BuildConfigPluginToBuildSpecAsync(
@@ -261,7 +274,7 @@
             }
 
             // Write dynamic build includes for tests and deployments.
-            var scriptIncludes = await WriteDynamicBuildGraphIncludeAsync(
+            var (scriptNodeIncludes, scriptMacroIncludes) = await WriteDynamicBuildGraphIncludeAsync(
                 buildGraphEnvironment,
                 localExecutor,
                 distribution,
@@ -325,7 +338,8 @@
                     { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
-                    { "ScriptIncludes", scriptIncludes },
+                    { "ScriptNodeIncludes", scriptNodeIncludes },
+                    { "ScriptMacroIncludes", scriptMacroIncludes },
 
                     // General options
                     { "IsUnrealEngine5", "true" },
@@ -385,7 +399,7 @@
             var serverConfig = ComputeTargetConfig("Server", distribution.Build.Server, localExecutor);
 
             // Write dynamic build includes for tests and deployments.
-            var scriptIncludes = await WriteDynamicBuildGraphIncludeAsync(
+            var (scriptNodeIncludes, scriptMacroIncludes) = await WriteDynamicBuildGraphIncludeAsync(
                 buildGraphEnvironment,
                 localExecutor,
                 distribution,
@@ -409,7 +423,8 @@
                     { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
-                    { "ScriptIncludes", scriptIncludes },
+                    { "ScriptNodeIncludes", scriptNodeIncludes },
+                    { "ScriptMacroIncludes", scriptMacroIncludes },
 
                     // General options
                     { $"UProjectPath", $"__REPOSITORY_ROOT__/{distribution.FolderName}/{distribution.ProjectName}.uproject" },

@@ -43,7 +43,7 @@
 
             using (var memory = new MemoryStream())
             {
-                await writer.WriteBuildGraphInclude(
+                await writer.WriteBuildGraphNodeInclude(
                     memory,
                     false,
                     new BuildConfigPluginDistribution
