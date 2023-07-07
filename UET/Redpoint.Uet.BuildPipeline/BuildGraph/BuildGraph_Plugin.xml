@@ -71,7 +71,7 @@
   <Property Name="DynamicNodes" Value="" />
   <Property Name="DynamicOutputFiles" Value="" />
   <Property Name="DynamicPreDeploymentNodes" Value="" />
-  <Property Name="DynamicBeforeAssemblyFinalizeMacros" Value="" />
+  <Property Name="DynamicBeforeAssembleFinalizeMacros" Value="" />
   <Property Name="DynamicBeforeCompileMacros" Value="" />
 
   <!-- 
@@ -329,12 +329,12 @@ $(PackageExclude);
         <Log Message="Cleaning filespec: $(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(CleanDirectory)" />
         <Delete Files="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(CleanDirectory)" />
       </ForEach>
-      <ForEach Name="MacroName" Values="$(DynamicBeforeAssemblyFinalizeMacros)">
+      <ForEach Name="MacroName" Values="$(DynamicBeforeAssembleFinalizeMacros)">
         <Macro Name="$(MacroName)" />
       </ForEach>
       <Log 
         Message="Tagging all files under Source, Content, Resources and Source folders for the #HostProject because you have custom assembly finalize scripts specified."
-        If="'$(DynamicBeforeAssemblyFinalizeMacros)' != ''"
+        If="'$(DynamicBeforeAssembleFinalizeMacros)' != ''"
       />
       <Tag
         BaseDir="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
@@ -351,7 +351,7 @@ $(PackageExclude);
 .../.git/...
 "
         With="#HostProject"
-        If="'$(DynamicBeforeAssemblyFinalizeMacros)' != ''"
+        If="'$(DynamicBeforeAssembleFinalizeMacros)' != ''"
       />
     </Node>
 
@@ -367,7 +367,7 @@ $(PackageExclude);
 
     <Node Name="Compile $(EnginePrefix)Editor Mac" Requires="#HostProject" Produces="#EditorBinaries_Mac" If="'$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorMac)' == 'true'">
       <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-        <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Mac" TargetConfiguration="Development" />
+        <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Mac" TargetConfiguration="Development" HostPlatform="Mac" />
       </ForEach>
       <Compile Target="$(EnginePrefix)Editor" Platform="Mac" Configuration="Development" Tag="#EditorBinaries_Mac" Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; -NoPDB -NoDebugInfo $(AdditionalArguments)"/>
     </Node>
@@ -380,7 +380,7 @@ $(PackageExclude);
 
     <Node Name="Compile $(EnginePrefix)Editor Win64" Requires="#HostProject" Produces="#EditorBinaries_Win64" If="'$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorWin64)' == 'true'">
       <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-        <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Win64" TargetConfiguration="Development" />
+        <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Win64" TargetConfiguration="Development" HostPlatform="Win64" />
       </ForEach>
       <Compile Target="$(EnginePrefix)Editor" Platform="Win64" Configuration="Development" Tag="#EditorBinaries_Win64" Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(2017Flag) $(AdditionalArguments)"/>
     </Node>
@@ -425,7 +425,7 @@ $(PackageExclude);
         <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
           <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'">
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-              <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
+              <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
             </ForEach>
             <Compile
               Target="$(TargetName)"
@@ -470,7 +470,7 @@ $(PackageExclude);
         <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
           <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'">
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-              <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
+              <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
             <Compile 
               Target="$(TargetName)" 
@@ -522,7 +522,7 @@ $(PackageExclude);
               Text="#include &quot;Modules/ModuleManager.h&quot;&#10;IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, $(HostProjectName), &quot;$(HostProjectName)&quot;);"
             />
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-              <Expand Name="$(MacroName)" TargetType="Client" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
+              <Expand Name="$(MacroName)" TargetType="Client" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
             <Compile 
               Target="$(TargetName)" 
@@ -557,7 +557,7 @@ $(PackageExclude);
               Text="#include &quot;Modules/ModuleManager.h&quot;&#10;IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, $(HostProjectName), &quot;$(HostProjectName)&quot;);"
             />
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-              <Expand Name="$(MacroName)" TargetType="Server" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
+              <Expand Name="$(MacroName)" TargetType="Server" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
             <Compile 
               Target="$(TargetName)" 

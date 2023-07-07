@@ -1,6 +1,8 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Prepare.Plugin.Custom
 {
     using Redpoint.ProcessExecution;
+    using Redpoint.Uet.BuildGraph;
+    using Redpoint.Uet.BuildPipeline.Providers.Prepare.Project;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Plugin;
     using System;
@@ -36,7 +38,7 @@
             return JsonSerializer.Deserialize(ref reader, PrepareProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginPrepareCustom)!;
         }
 
-        public Task WriteBuildGraphNodesAsync(
+        public async Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context, 
             XmlWriter writer, 
             BuildConfigPluginDistribution buildConfigDistribution,
@@ -46,13 +48,118 @@
                 .Select(x => (name: x.Name, settings: (BuildConfigPluginPrepareCustom)x.DynamicSettings))
                 .ToList();
 
-            throw new NotImplementedException();
+            foreach (var entry in castedSettings)
+            {
+                foreach (var runBefore in entry.settings.RunBefore ?? Array.Empty<BuildConfigPluginPrepareRunBefore>())
+                {
+                    switch (runBefore)
+                    {
+                        case BuildConfigPluginPrepareRunBefore.AssembleFinalize:
+                            await writer.WriteMacroAsync(
+                                new MacroElementProperties
+                                {
+                                    Name = $"AssembleFinalize-{entry.name}",
+                                    Arguments = Array.Empty<string>(),
+                                },
+                                async writer =>
+                                {
+                                    await writer.WriteSpawnAsync(
+                                        new SpawnElementProperties
+                                        {
+                                            Exe = "powershell.exe",
+                                            Arguments = new[]
+                                            {
+                                                "-ExecutionPolicy",
+                                                "Bypass",
+                                                $@"""$(ProjectRoot)/{entry.settings.ScriptPath}"""
+                                            }
+                                        });
+                                });
+                            await writer.WritePropertyAsync(
+                                new PropertyElementProperties
+                                {
+                                    Name = "DynamicBeforeAssembleFinalizeMacros",
+                                    Value = $"$(DynamicBeforeAssembleFinalizeMacros)AssembleFinalize-{entry.name};",
+                                });
+                            break;
+                        case BuildConfigPluginPrepareRunBefore.Compile:
+                            await writer.WriteMacroAsync(
+                                new MacroElementProperties
+                                {
+                                    Name = $"Compile-{entry.name}",
+                                    Arguments = new[]
+                                    {
+                                        "TargetType",
+                                        "TargetName",
+                                        "TargetPlatform",
+                                        "TargetConfiguration",
+                                        "HostPlatform",
+                                    }
+                                },
+                                async writer =>
+                                {
+                                    await writer.WriteSpawnAsync(
+                                        new SpawnElementProperties
+                                        {
+                                            Exe = "powershell.exe",
+                                            Arguments = new[]
+                                            {
+                                                "-ExecutionPolicy",
+                                                "Bypass",
+                                                $@"""$(ProjectRoot)/{entry.settings.ScriptPath}""",
+                                                "-TargetType",
+                                                @"""$(TargetType)""",
+                                                "-TargetName",
+                                                @"""$(TargetName)""",
+                                                "-TargetPlatform",
+                                                @"""$(TargetPlatform)""",
+                                                "-TargetConfiguration",
+                                                @"""$(TargetConfiguration)""",
+                                            },
+                                            If = "$(HostPlatform) == 'Win64'"
+                                        });
+                                    await writer.WriteSpawnAsync(
+                                        new SpawnElementProperties
+                                        {
+                                            Exe = "pwsh",
+                                            Arguments = new[]
+                                            {
+                                                "-ExecutionPolicy",
+                                                "Bypass",
+                                                $@"""$(ProjectRoot)/{entry.settings.ScriptPath}""",
+                                                "-TargetType",
+                                                @"""$(TargetType)""",
+                                                "-TargetName",
+                                                @"""$(TargetName)""",
+                                                "-TargetPlatform",
+                                                @"""$(TargetPlatform)""",
+                                                "-TargetConfiguration",
+                                                @"""$(TargetConfiguration)""",
+                                            },
+                                            If = "$(HostPlatform) == 'Mac'"
+                                        });
+                                });
+                            await writer.WritePropertyAsync(
+                                new PropertyElementProperties
+                                {
+                                    Name = "DynamicBeforeCompileMacros",
+                                    Value = $"$(DynamicBeforeCompileMacros)Compile-{entry.name};",
+                                });
+                            break;
+                        case BuildConfigPluginPrepareRunBefore.BuildGraph:
+                            // We don't emit anything in the graph for these.
+                            break;
+                        default:
+                            throw new NotSupportedException();
+                    }
+                }
+            }
         }
 
         public async Task RunBeforeBuildGraphAsync(
-            BuildConfigPluginDistribution buildConfigDistribution, 
+            BuildConfigPluginDistribution buildConfigDistribution,
             IEnumerable<BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>> entries,
-            CancellationToken cancellationToken)
+            string repositoryRoot, CancellationToken cancellationToken)
         {
             var castedSettings = entries
                 .Select(x => (name: x.Name, settings: (BuildConfigPluginPrepareCustom)x.DynamicSettings))
@@ -66,6 +173,7 @@
                     {
                         ScriptPath = entry.settings.ScriptPath,
                         Arguments = Array.Empty<string>(),
+                        WorkingDirectory = repositoryRoot,
                     },
                     CaptureSpecification.Passthrough,
                     cancellationToken);

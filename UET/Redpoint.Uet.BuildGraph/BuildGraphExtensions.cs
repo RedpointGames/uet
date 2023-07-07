@@ -271,6 +271,22 @@
                     Arguments = args.ToArray()
                 });
         }
+
+        public static async Task WriteMacroAsync(
+            this XmlWriter writer,
+            MacroElementProperties props,
+            Func<XmlWriter, Task> writeChildren)
+        {
+            await writer.WriteStartElementAsync(null, "Macro", null);
+            if (props.If != null)
+            {
+                await writer.WriteAttributeStringAsync(null, "If", null, props.If);
+            }
+            await writer.WriteAttributeStringAsync(null, "Name", null, props.Name);
+            await writer.WriteAttributeStringAsync(null, "Arguments", null, string.Join(";", props.Arguments));
+            await writeChildren(writer);
+            await writer.WriteEndElementAsync();
+        }
     }
 
     public record class DynamicNodeAppendElementProperties : ElementProperties
@@ -301,6 +317,13 @@
     public record class SpawnElementProperties : ElementProperties
     {
         public required string Exe { get; set; }
+
+        public required string[] Arguments { get; set; }
+    }
+
+    public record class MacroElementProperties : ElementProperties
+    {
+        public required string Name { get; set; }
 
         public required string[] Arguments { get; set; }
     }

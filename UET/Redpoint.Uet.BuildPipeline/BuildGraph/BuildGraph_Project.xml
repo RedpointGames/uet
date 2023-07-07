@@ -14,9 +14,6 @@
   <Option Name="Distribution" Restrict=".*" DefaultValue="" Description="The distribution being built" />
   <Option Name="IsUnrealEngine5" Restrict="true|false" DefaultValue="false" Description="If true, this is an Unreal Engine 5 project" />
 
-  <!-- Prepare options -->
-  <Option Name="PrepareCustomCompileScripts" DefaultValue="" Description="Semicolon separated list of custom prepare scripts to run before compile" />
-
   <!-- Build options -->
   <Option Name="ExecuteBuild" Restrict="true|false" DefaultValue="true" Description="Whether the build steps should be executed" />
   <Option Name="EditorTarget" Restrict="[^ ]+" DefaultValue="UnrealEditor" Description="Name of the editor target to be built" />
@@ -56,6 +53,7 @@
   <Property Name="DynamicNodes" Value="" />
   <Property Name="DynamicOutputFiles" Value="" />
   <Property Name="DynamicPreDeploymentNodes" Value="" />
+  <Property Name="DynamicBeforeCompileMacros" Value="" />
 
   <!-- 
     Include all the macros dynamically defined by UET.
@@ -68,8 +66,8 @@
 
     <!-- Compile the editor for Windows (necessary for cook later) -->
     <Node Name="Compile $(EditorTarget) Win64" Produces="#EditorBinaries">
-      <ForEach Name="PrepareCustomCompileScript" Values="$(PrepareCustomCompileScripts)">
-        <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass &quot;$(RepositoryRoot)\$(PrepareCustomCompileScript)&quot;" />
+      <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+        <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EditorTarget)" TargetPlatform="Win64" TargetConfiguration="Development" HostPlatform="Win64" />
       </ForEach>
       <Compile Target="$(EditorTarget)" Platform="Win64" Configuration="Development" Tag="#EditorBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" />
     </Node>
@@ -79,8 +77,8 @@
       <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
           <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <ForEach Name="PrepareCustomCompileScript" Values="$(PrepareCustomCompileScripts)">
-              <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass &quot;$(RepositoryRoot)\$(PrepareCustomCompileScript)&quot;" />
+            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+              <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
             <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
             <Tag Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
@@ -96,8 +94,8 @@
       <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ClientConfigurations)">
           <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <ForEach Name="PrepareCustomCompileScript" Values="$(PrepareCustomCompileScripts)">
-              <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass &quot;$(RepositoryRoot)\$(PrepareCustomCompileScript)&quot;" />
+            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+              <Expand Name="$(MacroName)" TargetType="Client" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
             <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
             <Tag Files="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
@@ -113,8 +111,8 @@
       <ForEach Name="TargetPlatform" Values="$(ServerTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ServerConfigurations)">
           <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <ForEach Name="PrepareCustomCompileScript" Values="$(PrepareCustomCompileScripts)">
-              <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass &quot;$(RepositoryRoot)\$(PrepareCustomCompileScript)&quot;" />
+            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+              <Expand Name="$(MacroName)" TargetType="Server" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
             <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
             <Tag Files="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
@@ -135,8 +133,8 @@
       <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
           <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <ForEach Name="PrepareCustomCompileScript" Values="$(PrepareCustomCompileScripts)">
-              <Spawn Exe="pwsh" Arguments="-ExecutionPolicy Bypass '$(RepositoryRoot)/$(PrepareCustomCompileScript)'" />
+            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+              <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
             </ForEach>
             <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
             <Tag Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
@@ -152,8 +150,8 @@
       <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ClientConfigurations)">
           <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <ForEach Name="PrepareCustomCompileScript" Values="$(PrepareCustomCompileScripts)">
-              <Spawn Exe="pwsh" Arguments="-ExecutionPolicy Bypass '$(RepositoryRoot)/$(PrepareCustomCompileScript)'" />
+            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+              <Expand Name="$(MacroName)" TargetType="Client" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
             </ForEach>
             <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
             <Tag Files="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
@@ -169,8 +167,8 @@
       <ForEach Name="TargetPlatform" Values="$(ServerTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ServerConfigurations)">
           <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <ForEach Name="PrepareCustomCompileScript" Values="$(PrepareCustomCompileScripts)">
-              <Spawn Exe="pwsh" Arguments="-ExecutionPolicy Bypass '$(RepositoryRoot)/$(PrepareCustomCompileScript)'" />
+            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+              <Expand Name="$(MacroName)" TargetType="Server" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
             </ForEach>
             <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
             <Tag Files="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>

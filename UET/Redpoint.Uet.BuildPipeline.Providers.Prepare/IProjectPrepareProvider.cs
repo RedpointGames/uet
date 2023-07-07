@@ -8,6 +8,7 @@
         Task RunBeforeBuildGraphAsync(
             BuildConfigProjectDistribution buildConfigDistribution,
             IEnumerable<BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>> entries,
+            string repositoryRoot,
             CancellationToken cancellationToken);
     }
 }

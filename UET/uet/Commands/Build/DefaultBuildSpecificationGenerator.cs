@@ -531,11 +531,6 @@
                     // Clean options
                     { $"CleanDirectories", string.Empty },
 
-                    // Prepare options
-                    { $"PrepareCustomAssembleFinalizeScripts", string.Empty },
-                    { $"PrepareCustomCompileScripts", string.Empty },
-                    { $"PrepareCustomTestScripts", string.Empty },
-
                     // Build options
                     { $"ExecuteBuild", "true" },
                     { $"EditorTargetPlatforms", targetPlatform },
@@ -619,9 +614,6 @@
                     { $"UProjectPath", $"__REPOSITORY_ROOT__/{Path.GetFileName(pathSpec.UProjectPath)}" },
                     { $"Distribution", "None" },
                     { "IsUnrealEngine5", "true" },
-
-                    // Prepare options
-                    { $"PrepareCustomCompileScripts", string.Empty },
 
                     // Build options
                     { $"ExecuteBuild", "true" },
