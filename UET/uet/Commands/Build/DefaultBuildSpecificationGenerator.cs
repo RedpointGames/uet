@@ -599,7 +599,7 @@
                     { $"ExecutePackage", package ? "true" : "false" },
                     { "VersionNumber", versionInfo.versionNumber },
                     { "VersionName", versionInfo.versionName },
-                    { "PackageFolder", "Packaged" },
+                    { "PackageFolder", marketplace ? "Marketplace" : "Redistributable" },
                     { "PackageInclude", string.Empty },
                     { "PackageExclude", string.Empty },
                     { "IsForMarketplaceSubmission", marketplace ? "true" : "false" },
