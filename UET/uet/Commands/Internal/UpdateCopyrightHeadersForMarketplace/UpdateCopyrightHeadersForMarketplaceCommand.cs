@@ -49,10 +49,12 @@
             {
                 var path = context.ParseResult.GetValueForOption(_options.Path)!;
                 var copyrightHeader = context.ParseResult.GetValueForOption(_options.CopyrightHeader)!;
-                var copyrightExcludes = context.ParseResult.GetValueForOption(_options.CopyrightExcludes)!.Split(";").Select(x =>
-                {
-                    return Path.Combine(path, x).Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
-                });
+                var copyrightExcludes = context.ParseResult.GetValueForOption(_options.CopyrightExcludes)!
+                    .Split(";", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(x =>
+                    {
+                        return Path.Combine(path, x).Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+                    });
 
                 bool IsFileExcluded(string targetPath)
                 {
