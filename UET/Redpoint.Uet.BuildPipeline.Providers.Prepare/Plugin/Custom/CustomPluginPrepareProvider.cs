@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Prepare.Plugin.Custom
 {
+    using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildGraph;
     using Redpoint.Uet.BuildPipeline.Providers.Prepare.Project;
@@ -17,11 +18,14 @@
 
     internal class CustomPluginPrepareProvider : IPluginPrepareProvider
     {
+        private readonly ILogger<CustomPluginPrepareProvider> _logger;
         private readonly IScriptExecutor _scriptExecutor;
 
         public CustomPluginPrepareProvider(
+            ILogger<CustomPluginPrepareProvider> logger,
             IScriptExecutor scriptExecutor)
         {
+            _logger = logger;
             _scriptExecutor = scriptExecutor;
         }
 
@@ -157,7 +161,6 @@
         }
 
         public async Task RunBeforeBuildGraphAsync(
-            BuildConfigPluginDistribution buildConfigDistribution,
             IEnumerable<BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>> entries,
             string repositoryRoot, CancellationToken cancellationToken)
         {
@@ -168,6 +171,7 @@
             foreach (var entry in castedSettings
                 .Where(x => (x.settings.RunBefore ?? Array.Empty<BuildConfigPluginPrepareRunBefore>()).Contains(BuildConfigPluginPrepareRunBefore.BuildGraph)))
             {
+                _logger.LogInformation($"Executing pre-BuildGraph custom preparation step '{entry.name}': '{entry.settings.ScriptPath}'");
                 await _scriptExecutor.ExecutePowerShellAsync(
                     new ScriptSpecification
                     {

@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.BuildServer\Redpoint.Uet.BuildPipeline.Executors.BuildServer.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Prepare\Redpoint.Uet.BuildPipeline.Providers.Prepare.csproj" />
   </ItemGroup>
 
 </Project>

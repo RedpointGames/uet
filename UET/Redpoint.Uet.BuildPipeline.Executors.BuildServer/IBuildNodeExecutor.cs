@@ -1,5 +1,8 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Executors.BuildServer
 {
+    using Redpoint.Uet.Configuration.Dynamic;
+    using Redpoint.Uet.Configuration.Plugin;
+    using Redpoint.Uet.Configuration.Project;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -21,6 +24,8 @@
         /// <returns>The awaitable exit code.</returns>
         Task<int> ExecuteBuildNodeAsync(
             BuildSpecification buildSpecification,
+            BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>[]? preparePlugin,
+            BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>[]? prepareProject,
             IBuildExecutionEvents buildExecutionEvents,
             string nodeName,
             CancellationToken cancellationToken);

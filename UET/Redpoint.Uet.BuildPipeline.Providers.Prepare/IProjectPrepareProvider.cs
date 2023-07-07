@@ -6,7 +6,6 @@
     public interface IProjectPrepareProvider : IPrepareProvider, IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>
     {
         Task RunBeforeBuildGraphAsync(
-            BuildConfigProjectDistribution buildConfigDistribution,
             IEnumerable<BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>> entries,
             string repositoryRoot,
             CancellationToken cancellationToken);

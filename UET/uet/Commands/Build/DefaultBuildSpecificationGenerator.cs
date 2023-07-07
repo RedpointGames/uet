@@ -192,7 +192,7 @@
                     executeDeployment);
             }
             await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(sharedStorageAbsolutePath, nodeFilename), CancellationToken.None);
-            
+
             using (var stream = new FileStream(Path.Combine(sharedStorageAbsolutePath, macroFilename), FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 await _dynamicBuildGraphIncludeWriter.WriteBuildGraphMacroInclude(
@@ -318,6 +318,19 @@
                 }
             }
 
+            // Compute global environment variables.
+            var globalEnvironmentVariables = new Dictionary<string, string>
+            {
+                { "BUILDING_FOR_REDISTRIBUTION", "true" },
+            };
+            if (distribution.EnvironmentVariables != null)
+            {
+                foreach (var kv in distribution.EnvironmentVariables)
+                {
+                    globalEnvironmentVariables[kv.Key] = kv.Value;
+                }
+            }
+
             // Compute final settings for BuildGraph.
             return new BuildSpecification
             {
@@ -370,12 +383,8 @@
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = repositoryRoot,
-                BuildGraphPreparationScripts = new List<string>(),
                 UETPath = _selfLocation.GetUETLocalLocation(),
-                GlobalEnvironmentVariables = new Dictionary<string, string>
-                {
-                    { "BUILDING_FOR_REDISTRIBUTION", "true" },
-                },
+                GlobalEnvironmentVariables = globalEnvironmentVariables,
                 ProjectFolderName = null,
                 ArtifactExportPath = Environment.CurrentDirectory,
             };
@@ -451,7 +460,6 @@
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = repositoryRoot,
-                BuildGraphPreparationScripts = new List<string>(),
                 UETPath = _selfLocation.GetUETLocalLocation(),
                 ProjectFolderName = distribution.FolderName,
                 ArtifactExportPath = Environment.CurrentDirectory,

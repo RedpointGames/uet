@@ -1,5 +1,8 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Executors.BuildServer
 {
+    using Redpoint.Uet.Configuration.Dynamic;
+    using Redpoint.Uet.Configuration.Plugin;
+    using Redpoint.Uet.Configuration.Project;
     using System.Text.Json.Serialization;
 
     public class BuildJobJson
@@ -25,8 +28,11 @@
         [JsonPropertyName("BuildGraphScriptName"), JsonRequired]
         public string BuildGraphScriptName { get; set; } = string.Empty;
 
-        [JsonPropertyName("PreparationScripts"), JsonRequired]
-        public string[] PreparationScripts { get; set; } = new string[0];
+        [JsonPropertyName("PreparePlugin"), JsonRequired]
+        public BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>[]? PreparePlugin { get; set; }
+
+        [JsonPropertyName("PrepareProject"), JsonRequired]
+        public BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>[]? PrepareProject { get; set; }
 
         [JsonPropertyName("GlobalEnvironmentVariables"), JsonRequired]
         public Dictionary<string, string> GlobalEnvironmentVariables { get; set; } = new Dictionary<string, string>();

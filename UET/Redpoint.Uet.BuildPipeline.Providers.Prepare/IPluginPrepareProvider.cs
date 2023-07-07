@@ -7,8 +7,8 @@
         IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>
     {
         Task RunBeforeBuildGraphAsync(
-            BuildConfigPluginDistribution buildConfigDistribution,
             IEnumerable<BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>> entries,
-            string repositoryRoot, CancellationToken cancellationToken);
+            string repositoryRoot,
+            CancellationToken cancellationToken);
     }
 }

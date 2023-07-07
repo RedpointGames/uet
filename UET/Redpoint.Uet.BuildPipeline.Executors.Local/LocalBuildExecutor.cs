@@ -1,11 +1,16 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Executors.Local
 {
+    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Export;
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.Engine;
+    using Redpoint.Uet.BuildPipeline.Providers.Prepare;
+    using Redpoint.Uet.Configuration.Dynamic;
+    using Redpoint.Uet.Configuration.Plugin;
+    using Redpoint.Uet.Configuration.Project;
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.Workspace.Descriptors;
     using System;
@@ -19,8 +24,11 @@
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
         private readonly IDynamicWorkspaceProvider _workspaceProvider;
         private readonly ISdkSetupForBuildExecutor _sdkSetupForBuildExecutor;
+        private readonly IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>[] _pluginPrepare;
+        private readonly IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>[] _projectPrepare;
 
         public LocalBuildExecutor(
+            IServiceProvider serviceProvider,
             ILogger<LocalBuildExecutor> logger,
             IBuildGraphExecutor buildGraphGenerator,
             IEngineWorkspaceProvider engineWorkspaceProvider,
@@ -32,6 +40,8 @@
             _engineWorkspaceProvider = engineWorkspaceProvider;
             _workspaceProvider = workspaceProvider;
             _sdkSetupForBuildExecutor = sdkSetupForBuildExecutor;
+            _pluginPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>>().ToArray();
+            _projectPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>>().ToArray();
         }
 
         public string DiscoverPipelineId()
@@ -82,6 +92,8 @@
 
         private async Task<BuildResultStatus> ExecuteDAGNode(
             BuildSpecification buildSpecification,
+            BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>[]? preparePlugin,
+            BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>[]? prepareProject,
             Dictionary<string, string> globalEnvironmentVariables,
             IBuildExecutionEvents buildExecutionEvents,
             DAGNode node,
@@ -154,6 +166,38 @@
                             buildSpecification.BuildGraphRepositoryRoot,
                             node.Node.Name))
                         {
+                            if (preparePlugin != null && preparePlugin.Length > 0)
+                            {
+                                _logger.LogTrace($"Running plugin preparation steps for pre-BuildGraph hook.");
+                                foreach (var byType in preparePlugin.GroupBy(x => x.Type))
+                                {
+                                    var provider = _pluginPrepare
+                                        .Where(x => x.Type == byType.Key)
+                                        .OfType<IPluginPrepareProvider>()
+                                        .First();
+                                    await provider.RunBeforeBuildGraphAsync(
+                                        byType,
+                                        targetWorkspace.Path,
+                                        cancellationToken);
+                                }
+                            }
+
+                            if (prepareProject != null && prepareProject.Length > 0)
+                            {
+                                _logger.LogTrace($"Running project preparation steps for pre-BuildGraph hook.");
+                                foreach (var byType in prepareProject.GroupBy(x => x.Type))
+                                {
+                                    var provider = _projectPrepare
+                                        .Where(x => x.Type == byType.Key)
+                                        .OfType<IProjectPrepareProvider>()
+                                        .First();
+                                    await provider.RunBeforeBuildGraphAsync(
+                                        byType,
+                                        targetWorkspace.Path,
+                                        cancellationToken);
+                                }
+                            }
+
                             _logger.LogTrace($"Starting: {node.Node.Name}");
                             exitCode = await _buildGraphExecutor.ExecuteGraphNodeAsync(
                                 engineWorkspace.Path,
@@ -221,6 +265,8 @@
 
         public async Task<int> ExecuteBuildAsync(
             BuildSpecification buildSpecification,
+            BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>[]? preparePlugin,
+            BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>[]? prepareProject,
             IBuildExecutionEvents buildExecutionEvents,
             ICaptureSpecification generationCaptureSpecification,
             CancellationToken cancellationToken)
@@ -306,6 +352,8 @@
                     {
                         return await ExecuteDAGNode(
                             buildSpecification,
+                            preparePlugin,
+                            prepareProject,
                             globalEnvironmentVariables,
                             buildExecutionEvents,
                             nodeCopy,

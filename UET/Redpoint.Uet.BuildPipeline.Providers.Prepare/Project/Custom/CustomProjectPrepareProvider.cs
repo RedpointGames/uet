@@ -1,7 +1,9 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Prepare.Project.Custom
 {
+    using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildGraph;
+    using Redpoint.Uet.BuildPipeline.Providers.Prepare.Plugin.Custom;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Project;
     using System;
@@ -15,11 +17,14 @@
 
     internal class CustomProjectPrepareProvider : IProjectPrepareProvider
     {
+        private readonly ILogger<CustomPluginPrepareProvider> _logger;
         private readonly IScriptExecutor _scriptExecutor;
 
         public CustomProjectPrepareProvider(
+            ILogger<CustomPluginPrepareProvider> logger,
             IScriptExecutor scriptExecutor)
         {
+            _logger = logger;
             _scriptExecutor = scriptExecutor;
         }
 
@@ -116,6 +121,9 @@
                                     Value = $"$(DynamicBeforeCompileMacros)CustomOnCompile-{entry.name};",
                                 });
                             break;
+                        case BuildConfigProjectPrepareRunBefore.BuildGraph:
+                            // We don't emit anything in the graph for these.
+                            break;
                         default:
                             throw new NotSupportedException();
                     }
@@ -124,7 +132,6 @@
         }
 
         public async Task RunBeforeBuildGraphAsync(
-            BuildConfigProjectDistribution buildConfigDistribution,
             IEnumerable<BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>> entries,
             string repositoryRoot,
             CancellationToken cancellationToken)
@@ -136,6 +143,7 @@
             foreach (var entry in castedSettings
                 .Where(x => (x.settings.RunBefore ?? Array.Empty<BuildConfigProjectPrepareRunBefore>()).Contains(BuildConfigProjectPrepareRunBefore.BuildGraph)))
             {
+                _logger.LogInformation($"Executing pre-BuildGraph custom preparation step '{entry.name}': '{entry.settings.ScriptPath}'");
                 await _scriptExecutor.ExecutePowerShellAsync(
                     new ScriptSpecification
                     {

@@ -4,7 +4,7 @@
     using System.Text.Json.Serialization;
     using System.Text.Json;
 
-    internal abstract class BuildConfigDynamicConverter<TDistribution, TBaseClass> : JsonConverter<BuildConfigDynamic<TDistribution, TBaseClass>>
+    public abstract class BuildConfigDynamicConverter<TDistribution, TBaseClass> : JsonConverter<BuildConfigDynamic<TDistribution, TBaseClass>>
     {
         private readonly IDynamicProvider<TDistribution, TBaseClass>[] _providers;
 

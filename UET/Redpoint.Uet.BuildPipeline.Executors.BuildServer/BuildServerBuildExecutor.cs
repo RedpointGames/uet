@@ -1,11 +1,15 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Executors.BuildServer
 {
+    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Export;
     using Redpoint.Uet.BuildPipeline.Executors.Engine;
     using Redpoint.Uet.Configuration;
+    using Redpoint.Uet.Configuration.Dynamic;
+    using Redpoint.Uet.Configuration.Plugin;
+    using Redpoint.Uet.Configuration.Project;
     using Redpoint.Uet.Core;
     using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.Workspace;
@@ -27,23 +31,20 @@
         private readonly IWorldPermissionApplier _worldPermissionApplier;
         private readonly IGlobalArgsProvider? _globalArgsProvider;
         private readonly string _buildServerOutputFilePath;
+        private readonly BuildJobJsonSourceGenerationContext _buildJobJsonSourceGenerationContext;
 
         public BuildServerBuildExecutor(
-            ILogger<BuildServerBuildExecutor> logger,
-            IBuildGraphExecutor buildGraphExecutor,
-            IEngineWorkspaceProvider engineWorkspaceProvider,
-            IDynamicWorkspaceProvider workspaceProvider,
-            IWorldPermissionApplier worldPermissionApplier,
-            IGlobalArgsProvider? globalArgsProvider,
+            IServiceProvider serviceProvider,
             string buildServerOutputFilePath)
         {
-            _logger = logger;
-            _buildGraphExecutor = buildGraphExecutor;
-            _engineWorkspaceProvider = engineWorkspaceProvider;
-            _workspaceProvider = workspaceProvider;
-            _worldPermissionApplier = worldPermissionApplier;
-            _globalArgsProvider = globalArgsProvider;
+            _logger = serviceProvider.GetRequiredService<ILogger<BuildServerBuildExecutor>>();
+            _buildGraphExecutor = serviceProvider.GetRequiredService<IBuildGraphExecutor>();
+            _engineWorkspaceProvider = serviceProvider.GetRequiredService<IEngineWorkspaceProvider>();
+            _workspaceProvider = serviceProvider.GetRequiredService<IDynamicWorkspaceProvider>();
+            _worldPermissionApplier = serviceProvider.GetRequiredService<IWorldPermissionApplier>();
+            _globalArgsProvider = serviceProvider.GetService<IGlobalArgsProvider>();
             _buildServerOutputFilePath = buildServerOutputFilePath;
+            _buildJobJsonSourceGenerationContext = BuildJobJsonSourceGenerationContext.Create(serviceProvider);
         }
 
         private struct UETPreparationInfo
@@ -319,6 +320,8 @@
 
         public virtual async Task<int> ExecuteBuildAsync(
             BuildSpecification buildSpecification,
+            BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>[]? preparePlugin,
+            BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>[]? prepareProject,
             IBuildExecutionEvents buildExecutionEvents,
             ICaptureSpecification generationCaptureSpecification,
             CancellationToken cancellationToken)
@@ -463,14 +466,15 @@
                                     NodeName = node.Name,
                                     DistributionName = buildSpecification.DistributionName,
                                     BuildGraphScriptName = buildSpecification.BuildGraphScript.ToReparsableString(),
-                                    PreparationScripts = buildSpecification.BuildGraphPreparationScripts.ToArray(),
+                                    PreparePlugin = preparePlugin,
+                                    PrepareProject = prepareProject,
                                     GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
                                     Settings = buildSpecification.BuildGraphSettings,
                                     ProjectFolderName = buildSpecification.ProjectFolderName,
                                 };
                                 job.EnvironmentVariables = new Dictionary<string, string>
                                 {
-                                    { "UET_BUILD_JSON", JsonSerializer.Serialize(buildJobJson, BuildJobJsonSourceGenerationContext.Default.BuildJobJson) },
+                                    { "UET_BUILD_JSON", JsonSerializer.Serialize(buildJobJson, _buildJobJsonSourceGenerationContext.BuildJobJson) },
                                 };
                             }
                             break;
@@ -486,14 +490,15 @@
                                     NodeName = node.Name,
                                     DistributionName = buildSpecification.DistributionName,
                                     BuildGraphScriptName = buildSpecification.BuildGraphScript.ToReparsableString(),
-                                    PreparationScripts = buildSpecification.BuildGraphPreparationScripts.ToArray(),
+                                    PreparePlugin = preparePlugin,
+                                    PrepareProject = prepareProject,
                                     GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
                                     Settings = buildSpecification.BuildGraphSettings,
                                     ProjectFolderName = buildSpecification.ProjectFolderName,
                                 };
                                 job.EnvironmentVariables = new Dictionary<string, string>
                                 {
-                                    { "UET_BUILD_JSON", JsonSerializer.Serialize(buildJobJson, BuildJobJsonSourceGenerationContext.Default.BuildJobJson) },
+                                    { "UET_BUILD_JSON", JsonSerializer.Serialize(buildJobJson, _buildJobJsonSourceGenerationContext.BuildJobJson) },
                                 };
                             }
                             break;
