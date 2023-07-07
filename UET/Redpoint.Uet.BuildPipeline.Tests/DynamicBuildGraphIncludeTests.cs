@@ -15,6 +15,7 @@
     using Redpoint.ProcessExecution;
     using Redpoint.PathResolution;
     using Redpoint.Reservation;
+    using Redpoint.Uet.Workspace;
 
     public class DynamicBuildGraphIncludeTests
     {
@@ -29,6 +30,7 @@
             services.AddUETBuildPipelineProvidersTest();
             services.AddUETBuildPipelineProvidersDeployment();
             services.AddUETAutomation();
+            services.AddUETWorkspace();
             services.AddReservation();
             return services;
         }

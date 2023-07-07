@@ -12,6 +12,7 @@ namespace Redpoint.Uet.Configuration.Tests
     using Redpoint.ProcessExecution;
     using Redpoint.PathResolution;
     using Redpoint.Reservation;
+    using Redpoint.Uet.Workspace;
 
     public class BuildConfigTests
     {
@@ -25,6 +26,7 @@ namespace Redpoint.Uet.Configuration.Tests
             services.AddUETBuildPipelineProvidersTest();
             services.AddUETBuildPipelineProvidersDeployment();
             services.AddUETAutomation();
+            services.AddUETWorkspace();
             services.AddReservation();
             return services;
         }
