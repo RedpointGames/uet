@@ -12,6 +12,12 @@
         [JsonPropertyName("GitUrl"), JsonRequired]
         public string? GitUrl { get; set; }
 
+        /// <summary>
+        /// The Git ref to checkout. This can be a branch name.
+        /// </summary>
+        [JsonPropertyName("GitRef"), JsonRequired]
+        public string? GitRef { get; set; }
+
         // @note: When we support more than Git URL here, remove the [JsonRequired]
         // attributes from the property above.
     }

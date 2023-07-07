@@ -2,13 +2,11 @@
 {
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildGraph;
-    using Redpoint.Uet.BuildPipeline.Providers.Prepare.Plugin;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Project;
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
     using System.Text.Json;
     using System.Text.Json.Serialization;
     using System.Text.Json.Serialization.Metadata;
@@ -32,15 +30,15 @@
         public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => PrepareProviderSourceGenerationContext.WithStringEnum;
 
         public object DeserializeDynamicSettings(
-            ref Utf8JsonReader reader, 
+            ref Utf8JsonReader reader,
             JsonSerializerOptions options)
         {
             return JsonSerializer.Deserialize(ref reader, PrepareProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectPrepareCustom)!;
         }
 
         public async Task WriteBuildGraphNodesAsync(
-            IBuildGraphEmitContext context, 
-            XmlWriter writer, 
+            IBuildGraphEmitContext context,
+            XmlWriter writer,
             BuildConfigProjectDistribution buildConfigDistribution,
             IEnumerable<BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>> entries)
         {
@@ -58,7 +56,7 @@
                             await writer.WriteMacroAsync(
                                 new MacroElementProperties
                                 {
-                                    Name = $"Compile-{entry.name}",
+                                    Name = $"CustomOnCompile-{entry.name}",
                                     Arguments = new[]
                                     {
                                         "TargetType",
@@ -115,7 +113,7 @@
                                 new PropertyElementProperties
                                 {
                                     Name = "DynamicBeforeCompileMacros",
-                                    Value = $"$(DynamicBeforeCompileMacros)Compile-{entry.name};",
+                                    Value = $"$(DynamicBeforeCompileMacros)CustomOnCompile-{entry.name};",
                                 });
                             break;
                         default:
@@ -126,7 +124,7 @@
         }
 
         public async Task RunBeforeBuildGraphAsync(
-            BuildConfigProjectDistribution buildConfigDistribution, 
+            BuildConfigProjectDistribution buildConfigDistribution,
             IEnumerable<BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>> entries,
             string repositoryRoot,
             CancellationToken cancellationToken)

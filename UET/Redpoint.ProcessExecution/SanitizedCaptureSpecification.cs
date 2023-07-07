@@ -25,7 +25,7 @@
                     sb.Append(c);
                 }
             }
-            Console.Error.WriteLine(sb.ToString());
+            Console.Error.WriteLine(sb.ToString().Replace("\x1B[K", string.Empty));
         }
 
         public void OnReceiveStandardOutput(string data)
@@ -43,7 +43,7 @@
                     sb.Append(c);
                 }
             }
-            Console.WriteLine(sb.ToString());
+            Console.WriteLine(sb.ToString().Replace("\x1B[K", string.Empty));
         }
 
         public string? OnRequestStandardInputAtStartup()

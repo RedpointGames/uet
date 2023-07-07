@@ -32,15 +32,15 @@
         public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => PrepareProviderSourceGenerationContext.WithStringEnum;
 
         public object DeserializeDynamicSettings(
-            ref Utf8JsonReader reader, 
+            ref Utf8JsonReader reader,
             JsonSerializerOptions options)
         {
             return JsonSerializer.Deserialize(ref reader, PrepareProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginPrepareCustom)!;
         }
 
         public async Task WriteBuildGraphNodesAsync(
-            IBuildGraphEmitContext context, 
-            XmlWriter writer, 
+            IBuildGraphEmitContext context,
+            XmlWriter writer,
             BuildConfigPluginDistribution buildConfigDistribution,
             IEnumerable<BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>> entries)
         {
@@ -58,7 +58,7 @@
                             await writer.WriteMacroAsync(
                                 new MacroElementProperties
                                 {
-                                    Name = $"AssembleFinalize-{entry.name}",
+                                    Name = $"CustomOnAssembleFinalize-{entry.name}",
                                     Arguments = Array.Empty<string>(),
                                 },
                                 async writer =>
@@ -79,14 +79,14 @@
                                 new PropertyElementProperties
                                 {
                                     Name = "DynamicBeforeAssembleFinalizeMacros",
-                                    Value = $"$(DynamicBeforeAssembleFinalizeMacros)AssembleFinalize-{entry.name};",
+                                    Value = $"$(DynamicBeforeAssembleFinalizeMacros)CustomOnAssembleFinalize-{entry.name};",
                                 });
                             break;
                         case BuildConfigPluginPrepareRunBefore.Compile:
                             await writer.WriteMacroAsync(
                                 new MacroElementProperties
                                 {
-                                    Name = $"Compile-{entry.name}",
+                                    Name = $"CustomOnCompile-{entry.name}",
                                     Arguments = new[]
                                     {
                                         "TargetType",
@@ -143,7 +143,7 @@
                                 new PropertyElementProperties
                                 {
                                     Name = "DynamicBeforeCompileMacros",
-                                    Value = $"$(DynamicBeforeCompileMacros)Compile-{entry.name};",
+                                    Value = $"$(DynamicBeforeCompileMacros)CustomOnCompile-{entry.name};",
                                 });
                             break;
                         case BuildConfigPluginPrepareRunBefore.BuildGraph:

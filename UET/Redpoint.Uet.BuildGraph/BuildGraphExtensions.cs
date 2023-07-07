@@ -245,6 +245,14 @@
                     var t when t == typeof(BuildConfigProjectDistribution) => "project",
                     _ => throw new InvalidOperationException("Unsupported distribution type"),
                 },
+                "--reentrant-executor-category",
+                instance switch
+                {
+                    IPrepareProvider => "prepare",
+                    ITestProvider => "test",
+                    IDeploymentProvider => "deployment",
+                    var x => throw new InvalidOperationException($"Unsupported executor type on {x.GetType().FullName}"),
+                },
                 "--reentrant-executor",
                 instance.Type,
                 "--task-json-path",

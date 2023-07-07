@@ -119,7 +119,7 @@
             try
             {
                 _logger.LogInformation($"Creating physical Git workspace: {reservation.ReservedPath}");
-                await _physicalGitCheckout.PrepareGitWorkspaceAsync(reservation, descriptor, cancellationToken);
+                await _physicalGitCheckout.PrepareGitWorkspaceAsync(reservation.ReservedPath, descriptor, cancellationToken);
                 usingReservation = true;
                 return new ReservationWorkspace(reservation);
             }
