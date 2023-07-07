@@ -232,39 +232,6 @@
                 cleanDirectories.Add(filespec);
             }
 
-            // Compute prepare scripts.
-            var prepareCustomAssembleFinalizeScripts = new List<string>();
-            var prepareCustomCompileScripts = new List<string>();
-            var prepareCustomTestScripts = new List<string>();
-            var prepareCustomBuildGraphScripts = new List<string>();
-            if (distribution.Prepare != null)
-            {
-                foreach (var prepare in distribution.Prepare)
-                {
-                    if (prepare.Type == BuildConfigPluginPrepareType.Custom &&
-                        prepare.Custom != null &&
-                        !string.IsNullOrWhiteSpace(prepare.Custom.ScriptPath))
-                    {
-                        if (prepare.RunBefore.Contains(BuildConfigPluginPrepareRunBefore.AssembleFinalize))
-                        {
-                            prepareCustomAssembleFinalizeScripts.Add(prepare.Custom.ScriptPath);
-                        }
-                        if (prepare.RunBefore.Contains(BuildConfigPluginPrepareRunBefore.Compile))
-                        {
-                            prepareCustomCompileScripts.Add(prepare.Custom.ScriptPath);
-                        }
-                        if (prepare.RunBefore.Contains(BuildConfigPluginPrepareRunBefore.Test))
-                        {
-                            prepareCustomTestScripts.Add(prepare.Custom.ScriptPath);
-                        }
-                        if (prepare.RunBefore.Contains(BuildConfigPluginPrepareRunBefore.BuildGraph))
-                        {
-                            prepareCustomBuildGraphScripts.Add(prepare.Custom.ScriptPath);
-                        }
-                    }
-                }
-            }
-
             // If strict includes is turned on at the distribution level, enable it
             // regardless of the --strict-includes setting.
             var strictIncludesAtPluginLevel = distribution.Build?.StrictIncludes ?? false;
@@ -366,11 +333,6 @@
                     // Clean options
                     { $"CleanDirectories", string.Join(";", cleanDirectories) },
 
-                    // Prepare options
-                    { $"PrepareCustomAssembleFinalizeScripts", string.Join(";", prepareCustomAssembleFinalizeScripts) },
-                    { $"PrepareCustomCompileScripts", string.Join(";", prepareCustomCompileScripts) },
-                    { $"PrepareCustomTestScripts", string.Join(";", prepareCustomTestScripts) },
-
                     // Build options
                     { $"ExecuteBuild", executeBuild ? "true" : "false" },
                     { $"EditorTargetPlatforms", string.Join(";", editorTargetPlatforms) },
@@ -394,7 +356,7 @@
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = repositoryRoot,
-                BuildGraphPreparationScripts = prepareCustomBuildGraphScripts,
+                BuildGraphPreparationScripts = new List<string>(),
                 UETPath = _selfLocation.GetUETLocalLocation(),
                 GlobalEnvironmentVariables = new Dictionary<string, string>
                 {
@@ -421,29 +383,6 @@
             var gameConfig = ComputeTargetConfig("Game", distribution.Build.Game, localExecutor);
             var clientConfig = ComputeTargetConfig("Client", distribution.Build.Client, localExecutor);
             var serverConfig = ComputeTargetConfig("Server", distribution.Build.Server, localExecutor);
-
-            // Compute prepare scripts.
-            var prepareCustomCompileScripts = new List<string>();
-            var prepareCustomBuildGraphScripts = new List<string>();
-            if (distribution.Prepare != null)
-            {
-                foreach (var prepare in distribution.Prepare)
-                {
-                    if (prepare.Type == BuildConfigProjectPrepareType.Custom &&
-                        prepare.Custom != null &&
-                        !string.IsNullOrWhiteSpace(prepare.Custom.ScriptPath))
-                    {
-                        if (prepare.RunBefore.Contains(BuildConfigProjectPrepareRunBefore.Compile))
-                        {
-                            prepareCustomCompileScripts.Add(prepare.Custom.ScriptPath);
-                        }
-                        if (prepare.RunBefore.Contains(BuildConfigProjectPrepareRunBefore.BuildGraph))
-                        {
-                            prepareCustomBuildGraphScripts.Add(prepare.Custom.ScriptPath);
-                        }
-                    }
-                }
-            }
 
             // Write dynamic build includes for tests and deployments.
             var scriptIncludes = await WriteDynamicBuildGraphIncludeAsync(
@@ -477,9 +416,6 @@
                     { $"Distribution", distribution.Name },
                     { "IsUnrealEngine5", "true" },
 
-                    // Prepare options
-                    { $"PrepareCustomCompileScripts", string.Join(";", prepareCustomCompileScripts) },
-
                     // Build options
                     { $"ExecuteBuild", executeBuild ? "true" : "false" },
                     { $"EditorTarget", editorTarget },
@@ -500,7 +436,7 @@
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = repositoryRoot,
-                BuildGraphPreparationScripts = prepareCustomBuildGraphScripts,
+                BuildGraphPreparationScripts = new List<string>(),
                 UETPath = _selfLocation.GetUETLocalLocation(),
                 ProjectFolderName = distribution.FolderName,
                 ArtifactExportPath = Environment.CurrentDirectory,

@@ -27,6 +27,8 @@
                 {
                     new BuildConfigConverter(basePathForIncludes),
                     new JsonStringEnumConverter(),
+                    new BuildConfigPrepareConverter<BuildConfigPluginDistribution>(serviceProvider),
+                    new BuildConfigPrepareConverter<BuildConfigProjectDistribution>(serviceProvider),
                     new BuildConfigTestConverter<BuildConfigPluginDistribution>(serviceProvider),
                     new BuildConfigTestConverter<BuildConfigProjectDistribution>(serviceProvider),
                     new BuildConfigDeploymentConverter<BuildConfigPluginDistribution>(serviceProvider),

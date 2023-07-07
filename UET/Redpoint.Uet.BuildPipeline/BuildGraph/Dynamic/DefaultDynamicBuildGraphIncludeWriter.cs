@@ -13,6 +13,8 @@
 
     internal class DefaultDynamicBuildGraphIncludeWriter : IDynamicBuildGraphIncludeWriter
     {
+        private readonly IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>[] _pluginPrepare;
+        private readonly IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>[] _projectPrepare;
         private readonly IDynamicProvider<BuildConfigPluginDistribution, ITestProvider>[] _pluginTests;
         private readonly IDynamicProvider<BuildConfigProjectDistribution, ITestProvider>[] _projectTests;
         private readonly IDynamicProvider<BuildConfigPluginDistribution, IDeploymentProvider>[] _pluginDeployments;
@@ -21,6 +23,8 @@
 
         public DefaultDynamicBuildGraphIncludeWriter(IServiceProvider serviceProvider)
         {
+            _pluginPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>>().ToArray();
+            _projectPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>>().ToArray();
             _pluginTests = serviceProvider.GetServices<IDynamicProvider<BuildConfigPluginDistribution, ITestProvider>>().ToArray();
             _projectTests = serviceProvider.GetServices<IDynamicProvider<BuildConfigProjectDistribution, ITestProvider>>().ToArray();
             _pluginDeployments = serviceProvider.GetServices<IDynamicProvider<BuildConfigPluginDistribution, IDeploymentProvider>>().ToArray();
@@ -113,6 +117,16 @@
 
                 if (buildConfigDistribution is BuildConfigPluginDistribution pluginDistribution)
                 {
+                    if (pluginDistribution.Prepare != null)
+                    {
+                        await WriteBuildGraphNodesAsync(
+                            emitContext,
+                            writer,
+                            pluginDistribution,
+                            _pluginPrepare,
+                            pluginDistribution.Prepare);
+                    }
+
                     if (pluginDistribution.Tests != null && executeTests)
                     {
                         await WriteBuildGraphNodesAsync(
@@ -135,6 +149,16 @@
                 }
                 else if (buildConfigDistribution is BuildConfigProjectDistribution projectDistribution)
                 {
+                    if (projectDistribution.Prepare != null)
+                    {
+                        await WriteBuildGraphNodesAsync(
+                            emitContext,
+                            writer,
+                            projectDistribution,
+                            _projectPrepare,
+                            projectDistribution.Prepare);
+                    }
+
                     if (projectDistribution.Tests != null && executeTests)
                     {
                         await WriteBuildGraphNodesAsync(

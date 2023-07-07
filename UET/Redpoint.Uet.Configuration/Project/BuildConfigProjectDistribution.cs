@@ -27,7 +27,7 @@
         /// Specifies the preparation scripts to run before various steps. You can specify multiple preparation entries.
         /// </summary>
         [JsonPropertyName("Prepare"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public BuildConfigProjectPrepare[]? Prepare { get; set; }
+        public BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>[]? Prepare { get; set; }
 
         /// <summary>
         /// Specifies how to build, cook and stage the project.

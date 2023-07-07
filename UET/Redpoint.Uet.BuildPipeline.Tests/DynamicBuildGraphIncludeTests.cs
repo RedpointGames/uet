@@ -4,6 +4,7 @@
     using Redpoint.Uet.BuildPipeline.BuildGraph.Dynamic;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Plugin;
+    using Redpoint.Uet.BuildPipeline.Providers.Prepare;
     using Redpoint.Uet.BuildPipeline.Providers.Test;
     using Redpoint.Uet.BuildPipeline.Providers.Deployment;
     using System.Text;
@@ -24,6 +25,7 @@
             services.AddPathResolution();
             services.AddProcessExecution();
             services.AddUETBuildPipeline();
+            services.AddUetBuildPipelineProvidersPrepare();
             services.AddUETBuildPipelineProvidersTest();
             services.AddUETBuildPipelineProvidersDeployment();
             services.AddUETAutomation();
