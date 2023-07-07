@@ -9,10 +9,28 @@ namespace Redpoint.Uet.BuildPipeline.Tests
     using Redpoint.MSBuildResolution;
     using Redpoint.OpenGE.ProcessExecution;
     using Redpoint.OpenGE.Executor;
+    using Redpoint.Uet.Core;
+    using Redpoint.GrpcPipes;
 
     public class BuildGraphGeneratorTests
     {
-        [SkippableFact(Skip = "Environment dependent")]
+        private static IServiceProvider BuildServiceProvider()
+        {
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddPathResolution();
+            services.AddOpenGEExecutor();
+            services.AddOpenGEProcessExecution();
+            services.AddProcessExecution();
+            services.AddGrpcPipes();
+            services.AddUETCore();
+            services.AddUETUAT();
+            services.AddUETBuildPipeline();
+            services.AddMSBuildPathResolution();
+            return services.BuildServiceProvider();
+        }
+
+        [SkippableFact]
         public async void CanGenerateBuildGraphForProject()
         {
             var enginePath = Environment.GetEnvironmentVariable("UET_ENGINE_PATH") ?? @"E:\EpicGames\UE_5.2";
@@ -20,17 +38,8 @@ namespace Redpoint.Uet.BuildPipeline.Tests
             Skip.IfNot(Directory.Exists(enginePath), $"Engine must exist at {enginePath} for this test to run.");
             Skip.IfNot(Directory.Exists(projectPath), $"Project must exist at {projectPath} for this test to run.");
 
-            var services = new ServiceCollection();
-            services.AddLogging();
-            services.AddPathResolution();
-            services.AddOpenGEExecutor();
-            services.AddOpenGEProcessExecution();
-            services.AddProcessExecution();
-            services.AddUETUAT();
-            services.AddUETBuildPipeline();
-            services.AddMSBuildPathResolution();
+            var serviceProvider = BuildServiceProvider();
 
-            var serviceProvider = services.BuildServiceProvider();
             var generator = serviceProvider.GetRequiredService<IBuildGraphExecutor>();
 
             var buildGraph = await generator.GenerateGraphAsync(
@@ -77,7 +86,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
             Assert.Contains(buildGraph.Groups, x => x.Name == "Windows Tag");
         }
 
-        [SkippableFact(Skip = "Environment dependent")]
+        [SkippableFact]
         public async void CanGenerateBuildGraphForPlugin()
         {
             var enginePath = Environment.GetEnvironmentVariable("UET_ENGINE_PATH") ?? @"E:\EpicGames\UE_5.2";
@@ -85,17 +94,8 @@ namespace Redpoint.Uet.BuildPipeline.Tests
             Skip.IfNot(Directory.Exists(enginePath), $"Engine must exist at {enginePath} for this test to run.");
             Skip.IfNot(Directory.Exists(pluginPath), $"Plugin must exist at {pluginPath} for this test to run.");
 
-            var services = new ServiceCollection();
-            services.AddLogging();
-            services.AddPathResolution();
-            services.AddProcessExecution();
-            services.AddOpenGEExecutor();
-            services.AddOpenGEProcessExecution();
-            services.AddUETUAT();
-            services.AddUETBuildPipeline();
-            services.AddMSBuildPathResolution();
+            var serviceProvider = BuildServiceProvider();
 
-            var serviceProvider = services.BuildServiceProvider();
             var generator = serviceProvider.GetRequiredService<IBuildGraphExecutor>();
 
             var buildGraph = await generator.GenerateGraphAsync(

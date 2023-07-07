@@ -5,10 +5,12 @@ namespace Redpoint.Uet.Uat.Tests
     using Redpoint.ProcessExecution;
     using Redpoint.OpenGE.ProcessExecution;
     using Redpoint.OpenGE.Executor;
+    using Redpoint.Uet.Core;
+    using Redpoint.GrpcPipes;
 
     public class UATExecutionTests
     {
-        [SkippableFact(Skip = "Environment dependent")]
+        [SkippableFact()]
         public async Task TestUATExecutionOfBuildGraphHelpWorks()
         {
             var enginePath = Environment.GetEnvironmentVariable("UET_ENGINE_PATH") ?? @"E:\EpicGames\UE_5.2";
@@ -20,6 +22,8 @@ namespace Redpoint.Uet.Uat.Tests
             services.AddProcessExecution();
             services.AddOpenGEExecutor();
             services.AddOpenGEProcessExecution();
+            services.AddGrpcPipes();
+            services.AddUETCore();
             services.AddUETUAT();
 
             var serviceProvider = services.BuildServiceProvider();
