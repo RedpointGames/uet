@@ -32,6 +32,10 @@
             public Option<bool> Shipping;
             public Option<string[]> Platform;
 
+            public Option<string> PluginPackage;
+            public Option<string?> PluginVersionName;
+            public Option<long?> PluginVersionNumber;
+
             public Option<string> Executor;
             public Option<string> ExecutorOutputFile;
             public Option<string?> WindowsSharedStoragePath;
@@ -44,7 +48,10 @@
             {
                 const string buildConfigOptions = "Options when targeting a BuildConfig.json file:";
                 const string uprojectpluginOptions = "Options when targeting a .uplugin or .uproject file:";
+                const string pluginOptions = "Options when building a plugin:";
                 const string cicdOptions = "Options when building on CI/CD:";
+
+                // ==== General options
 
                 Path = new Option<PathSpec>(
                     "--path",
@@ -83,6 +90,8 @@
                     "--strict-includes",
                     description: "If set, disables unity and PCH builds. This forces all files to have the correct #include directives, at the cost of increased build time.");
 
+                // ==== .uproject / .uplugin options
+
                 Shipping = new Option<bool>(
                     "--shipping",
                     description: "If set, builds for Shipping instead of Development.");
@@ -115,6 +124,38 @@
                     "--platform",
                     description: "Add this platform to the build. You can pass this option multiple times to target many platforms. The host platform is always built.");
                 Platform.ArgumentGroupName = uprojectpluginOptions;
+
+                PluginPackage = new Option<string>(
+                    "--plugin-package",
+                    description: "When building a .uplugin file, specifies if and how the plugin should be packaged.");
+                PluginPackage.FromAmong("none", "redistributable", "marketplace");
+                PluginPackage.SetDefaultValue("none");
+                PluginPackage.ArgumentGroupName = uprojectpluginOptions;
+
+                // ==== Plugin options, regardless of build type
+
+                PluginVersionName = new Option<string?>(
+                    "--plugin-version-name",
+                    description:
+                        """
+                        Set the plugin package to use this version name instead of the auto-generated default.
+                        If this option is not provided, and you are not building on a CI server, the version will be set to 'Unversioned'.
+                        If this option is not provided, and you are building on a CI server, UET will use the format, generating versions such as '2023.12.30-5.2-1aeb4233'.
+                        If you are building on a CI server and only want to override the date component of the auto-generated version, you can set the 'OVERRIDE_DATE_VERSION' environment variable instead of using this option.
+                        """);
+                PluginVersionName.ArgumentGroupName = pluginOptions;
+
+                PluginVersionNumber = new Option<long?>(
+                    "--plugin-version-number",
+                    description:
+                        """
+                        Set the plugin package to use this version number instead of the auto-generated default.
+                        If this option is not provided, and you are not building on a CI server, the version number will be set to 10000.
+                        If this option is not provided, and you are building on a CI server, UET will compute a version number from the UNIX timestamp and engine version number.
+                        """);
+                PluginVersionNumber.ArgumentGroupName = pluginOptions;
+
+                // ==== CI/CD options
 
                 Executor = new Option<string>(
                     "--executor",
@@ -203,6 +244,9 @@
                 var deploy = context.ParseResult.GetValueForOption(_options.Deploy);
                 var strictIncludes = context.ParseResult.GetValueForOption(_options.StrictIncludes);
                 var platforms = context.ParseResult.GetValueForOption(_options.Platform);
+                var pluginPackage = context.ParseResult.GetValueForOption(_options.PluginPackage);
+                var pluginVersionName = context.ParseResult.GetValueForOption(_options.PluginVersionName);
+                var pluginVersionNumber = context.ParseResult.GetValueForOption(_options.PluginVersionNumber);
 
                 // @todo: Move this validation to the parsing APIs.
                 if (executorName == "local")
@@ -277,6 +321,10 @@
                 _logger.LogInformation($"--test:                        {(test ? "yes" : "no")}");
                 _logger.LogInformation($"--deploy:                      {(deploy ? "yes" : "no")}");
                 _logger.LogInformation($"--strict-includes:             {(strictIncludes ? "yes" : "no")}");
+                _logger.LogInformation($"--platforms:                   {string.Join(", ", platforms ?? Array.Empty<string>())}");
+                _logger.LogInformation($"--plugin-package:              {pluginPackage}");
+                _logger.LogInformation($"--plugin-version-name:         {pluginVersionName}");
+                _logger.LogInformation($"--plugin-version-number:       {pluginVersionNumber}");
 
                 BuildEngineSpecification engineSpec;
                 switch (engine.Type)
@@ -360,6 +408,11 @@
                                         localExecutor: executorName == "local");
                                     break;
                                 case BuildConfigPluginDistribution pluginDistribution:
+                                    if (pluginPackage != "none")
+                                    {
+                                        _logger.LogError("The --plugin-package option can not be used when building using a BuildConfig.json file, as the BuildConfig.json file controls how the plugin will be packaged instead.");
+                                        return 1;
+                                    }
                                     buildSpec = await _buildSpecificationGenerator.BuildConfigPluginToBuildSpecAsync(
                                         engineSpec,
                                         buildGraphEnvironment,
@@ -372,7 +425,9 @@
                                         executeDeployment: deploy,
                                         strictIncludes: strictIncludes,
                                         localExecutor: executorName == "local",
-                                        isPluginRooted: false);
+                                        isPluginRooted: false,
+                                        commandlinePluginVersionName: pluginVersionName,
+                                        commandlinePluginVersionNumber: pluginVersionNumber);
                                     break;
                                 case BuildConfigEngineDistribution engineDistribution:
                                     buildSpec = _buildSpecificationGenerator.BuildConfigEngineToBuildSpec(
@@ -399,7 +454,11 @@
                                 path,
                                 shipping,
                                 strictIncludes,
-                                platforms ?? new string[0]);
+                                platforms ?? new string[0],
+                                package: pluginPackage != "none",
+                                marketplace: pluginPackage == "marketplace",
+                                commandlinePluginVersionName: pluginVersionName,
+                                commandlinePluginVersionNumber: pluginVersionNumber);
                             break;
                         default:
                             throw new NotSupportedException();

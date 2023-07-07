@@ -13,6 +13,8 @@
     using System;
     using System.Diagnostics;
     using System.Linq;
+    using System.Text.Json;
+    using System.Text.Json.Serialization;
     using UET.Commands.EngineSpec;
     using UET.Services;
 
@@ -202,7 +204,9 @@
             bool executeDeployment,
             bool strictIncludes,
             bool localExecutor,
-            bool isPluginRooted)
+            bool isPluginRooted,
+            string? commandlinePluginVersionName,
+            long? commandlinePluginVersionNumber)
         {
             // Determine build matrix.
             var editorTargetPlatforms = FilterIncompatiblePlatforms((distribution.Build.Editor?.Platforms ?? new[] { BuildConfigPluginBuildEditorPlatform.Win64 }).Select(x =>
@@ -269,6 +273,14 @@
             var isForMarketplaceSubmission = distribution.Package != null &&
                 (distribution.Package.Marketplace ?? false);
             var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(engineSpec, true, CancellationToken.None);
+            if (!string.IsNullOrWhiteSpace(commandlinePluginVersionName))
+            {
+                versionInfo.versionName = commandlinePluginVersionName;
+            }
+            if (commandlinePluginVersionNumber.HasValue)
+            {
+                versionInfo.versionNumber = commandlinePluginVersionNumber.Value.ToString();
+            }
 
             // Validate packaging settings. If the plugin has custom configuration files
             // but does not specify a filter file, then it's almost certainly misconfigured
@@ -501,12 +513,43 @@
             PathSpec pathSpec,
             bool shipping,
             bool strictIncludes,
-            string[] extraPlatforms)
+            string[] extraPlatforms,
+            bool package,
+            bool marketplace,
+            string? commandlinePluginVersionName,
+            long? commandlinePluginVersionNumber)
         {
             var targetPlatform = OperatingSystem.IsWindows() ? "Win64" : "Mac";
             var gameConfigurations = shipping ? "Shipping" : "Development";
 
             var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(engineSpec, true, CancellationToken.None);
+            if (!string.IsNullOrWhiteSpace(commandlinePluginVersionName))
+            {
+                versionInfo.versionName = commandlinePluginVersionName;
+            }
+            if (commandlinePluginVersionNumber.HasValue)
+            {
+                versionInfo.versionNumber = commandlinePluginVersionNumber.Value.ToString();
+            }
+
+            // If building for the Marketplace, compute the copyright header
+            // automatically from the .uplugin CreatedBy field.
+            var copyrightHeader = string.Empty;
+            if (marketplace)
+            {
+                var pluginFile = JsonSerializer.Deserialize(
+                    await File.ReadAllTextAsync(pathSpec.UPluginPath!),
+                    ProjectPluginFileJsonSerializerContext.Default.UPluginFile);
+                if (string.IsNullOrWhiteSpace(pluginFile?.CreatedBy))
+                {
+                    _logger.LogWarning(".uplugin file is missing 'CreatedBy' field. Copyright headers set for Marketplace submission may not the Marketplace guildlines. Please set the 'CreatedBy' field or use a 'BuildConfig.json' to build this plugin.");
+                    copyrightHeader = $"Copyright %Y. All Rights Reserved.";
+                }
+                else
+                {
+                    copyrightHeader = $"Copyright {pluginFile?.CreatedBy} %Y. All Rights Reserved.";
+                }
+            }
 
             // Compute final settings for BuildGraph.
             return new BuildSpecification
@@ -524,7 +567,8 @@
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
                     { $"PluginDirectory", $"__REPOSITORY_ROOT__" },
                     { $"PluginName", Path.GetFileNameWithoutExtension(pathSpec.UPluginPath)! },
-                    { $"Distribution", "None" },
+                    // @note: This is only used for naming the package ZIPs now.
+                    { $"Distribution", marketplace ? "Marketplace" : "Redistributable" },
                     { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
@@ -552,14 +596,14 @@
                     { $"EnginePrefix", "Unreal" },
 
                     // Package options
-                    { $"ExecutePackage", "false" },
+                    { $"ExecutePackage", package ? "true" : "false" },
                     { "VersionNumber", versionInfo.versionNumber },
                     { "VersionName", versionInfo.versionName },
-                    { "PackageFolder", "Packaged" },
+                    { "PackageFolder", marketplace ? "Marketplace" : "Redistributable" },
                     { "PackageInclude", string.Empty },
                     { "PackageExclude", string.Empty },
-                    { "IsForMarketplaceSubmission", "false" },
-                    { "CopyrightHeader", string.Empty },
+                    { "IsForMarketplaceSubmission", marketplace ? "true" : "false" },
+                    { "CopyrightHeader", copyrightHeader },
                     { "CopyrightExcludes", string.Empty },
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
