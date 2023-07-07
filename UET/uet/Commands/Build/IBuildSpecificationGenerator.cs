@@ -55,6 +55,8 @@
             bool shipping,
             bool strictIncludes,
             string[] extraPlatforms,
+            bool package,
+            bool marketplace,
             string? commandlinePluginVersionName,
             long? commandlinePluginVersionNumber);
     }

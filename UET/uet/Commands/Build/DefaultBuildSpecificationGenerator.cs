@@ -13,6 +13,8 @@
     using System;
     using System.Diagnostics;
     using System.Linq;
+    using System.Text.Json;
+    using System.Text.Json.Serialization;
     using UET.Commands.EngineSpec;
     using UET.Services;
 
@@ -512,6 +514,8 @@
             bool shipping,
             bool strictIncludes,
             string[] extraPlatforms,
+            bool package,
+            bool marketplace,
             string? commandlinePluginVersionName,
             long? commandlinePluginVersionNumber)
         {
@@ -526,6 +530,25 @@
             if (commandlinePluginVersionNumber.HasValue)
             {
                 versionInfo.versionNumber = commandlinePluginVersionNumber.Value.ToString();
+            }
+
+            // If building for the Marketplace, compute the copyright header
+            // automatically from the .uplugin CreatedBy field.
+            var copyrightHeader = string.Empty;
+            if (marketplace)
+            {
+                var pluginFile = JsonSerializer.Deserialize(
+                    await File.ReadAllTextAsync(pathSpec.UPluginPath!),
+                    ProjectPluginFileJsonSerializerContext.Default.UPluginFile);
+                if (string.IsNullOrWhiteSpace(pluginFile?.CreatedBy))
+                {
+                    _logger.LogWarning(".uplugin file is missing 'CreatedBy' field. Copyright headers set for Marketplace submission may not the Marketplace guildlines. Please set the 'CreatedBy' field or use a 'BuildConfig.json' to build this plugin.");
+                    copyrightHeader = $"Copyright %Y. All Rights Reserved.";
+                }
+                else
+                {
+                    copyrightHeader = $"Copyright {pluginFile?.CreatedBy} %Y. All Rights Reserved.";
+                }
             }
 
             // Compute final settings for BuildGraph.
@@ -544,7 +567,8 @@
                     { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
                     { $"PluginDirectory", $"__REPOSITORY_ROOT__" },
                     { $"PluginName", Path.GetFileNameWithoutExtension(pathSpec.UPluginPath)! },
-                    { $"Distribution", "None" },
+                    // @note: This is only used for naming the package ZIPs now.
+                    { $"Distribution", marketplace ? "Marketplace" : "Redistributable" },
                     { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
@@ -572,14 +596,14 @@
                     { $"EnginePrefix", "Unreal" },
 
                     // Package options
-                    { $"ExecutePackage", "false" },
+                    { $"ExecutePackage", package ? "true" : "false" },
                     { "VersionNumber", versionInfo.versionNumber },
                     { "VersionName", versionInfo.versionName },
                     { "PackageFolder", "Packaged" },
                     { "PackageInclude", string.Empty },
                     { "PackageExclude", string.Empty },
-                    { "IsForMarketplaceSubmission", "false" },
-                    { "CopyrightHeader", string.Empty },
+                    { "IsForMarketplaceSubmission", marketplace ? "true" : "false" },
+                    { "CopyrightHeader", copyrightHeader },
                     { "CopyrightExcludes", string.Empty },
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
