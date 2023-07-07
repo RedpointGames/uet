@@ -202,7 +202,9 @@
             bool executeDeployment,
             bool strictIncludes,
             bool localExecutor,
-            bool isPluginRooted)
+            bool isPluginRooted,
+            string? commandlinePluginVersionName,
+            long? commandlinePluginVersionNumber)
         {
             // Determine build matrix.
             var editorTargetPlatforms = FilterIncompatiblePlatforms((distribution.Build.Editor?.Platforms ?? new[] { BuildConfigPluginBuildEditorPlatform.Win64 }).Select(x =>
@@ -269,6 +271,14 @@
             var isForMarketplaceSubmission = distribution.Package != null &&
                 (distribution.Package.Marketplace ?? false);
             var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(engineSpec, true, CancellationToken.None);
+            if (!string.IsNullOrWhiteSpace(commandlinePluginVersionName))
+            {
+                versionInfo.versionName = commandlinePluginVersionName;
+            }
+            if (commandlinePluginVersionNumber.HasValue)
+            {
+                versionInfo.versionNumber = commandlinePluginVersionNumber.Value.ToString();
+            }
 
             // Validate packaging settings. If the plugin has custom configuration files
             // but does not specify a filter file, then it's almost certainly misconfigured
@@ -501,12 +511,22 @@
             PathSpec pathSpec,
             bool shipping,
             bool strictIncludes,
-            string[] extraPlatforms)
+            string[] extraPlatforms,
+            string? commandlinePluginVersionName,
+            long? commandlinePluginVersionNumber)
         {
             var targetPlatform = OperatingSystem.IsWindows() ? "Win64" : "Mac";
             var gameConfigurations = shipping ? "Shipping" : "Development";
 
             var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(engineSpec, true, CancellationToken.None);
+            if (!string.IsNullOrWhiteSpace(commandlinePluginVersionName))
+            {
+                versionInfo.versionName = commandlinePluginVersionName;
+            }
+            if (commandlinePluginVersionNumber.HasValue)
+            {
+                versionInfo.versionNumber = commandlinePluginVersionNumber.Value.ToString();
+            }
 
             // Compute final settings for BuildGraph.
             return new BuildSpecification

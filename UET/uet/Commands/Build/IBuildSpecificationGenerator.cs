@@ -32,7 +32,9 @@
             bool executeDeployment,
             bool strictIncludes,
             bool localExecutor,
-            bool isPluginRooted);
+            bool isPluginRooted,
+            string? commandlinePluginVersionName,
+            long? commandlinePluginVersionNumber);
 
         BuildSpecification BuildConfigEngineToBuildSpec(
             BuildEngineSpecification engineSpec,
@@ -52,6 +54,8 @@
             PathSpec pathSpec,
             bool shipping,
             bool strictIncludes,
-            string[] extraPlatforms);
+            string[] extraPlatforms,
+            string? commandlinePluginVersionName,
+            long? commandlinePluginVersionNumber);
     }
 }

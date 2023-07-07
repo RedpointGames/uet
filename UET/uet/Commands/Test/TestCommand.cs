@@ -282,7 +282,9 @@
                                 executeDeployment: false,
                                 strictIncludes: false,
                                 localExecutor: true,
-                                isPluginRooted: true);
+                                isPluginRooted: true,
+                                commandlinePluginVersionName: null,
+                                commandlinePluginVersionNumber: null);
                             break;
                         default:
                             throw new NotSupportedException();
