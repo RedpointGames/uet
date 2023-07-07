@@ -63,7 +63,10 @@
                                 new MacroElementProperties
                                 {
                                     Name = $"CustomOnAssembleFinalize-{entry.name}",
-                                    Arguments = Array.Empty<string>(),
+                                    Arguments = new[]
+                                    {
+                                        "PackagePath",
+                                    },
                                 },
                                 async writer =>
                                 {
@@ -75,7 +78,9 @@
                                             {
                                                 "-ExecutionPolicy",
                                                 "Bypass",
-                                                $@"""$(ProjectRoot)/{entry.settings.ScriptPath}"""
+                                                $@"""$(ProjectRoot)/{entry.settings.ScriptPath}""",
+                                                "-PackagePath",
+                                                @"""$(PackagePath)""",
                                             }
                                         });
                                 });

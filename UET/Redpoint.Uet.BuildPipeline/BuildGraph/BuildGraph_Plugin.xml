@@ -330,7 +330,7 @@ $(PackageExclude);
         <Delete Files="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(CleanDirectory)" />
       </ForEach>
       <ForEach Name="MacroName" Values="$(DynamicBeforeAssembleFinalizeMacros)">
-        <Expand Name="$(MacroName)" />
+        <Expand Name="$(MacroName)" PackagePath="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)" />
       </ForEach>
       <Log 
         Message="Tagging all files under Source, Content, Resources and Source folders for the #HostProject because you have custom assembly finalize scripts specified."

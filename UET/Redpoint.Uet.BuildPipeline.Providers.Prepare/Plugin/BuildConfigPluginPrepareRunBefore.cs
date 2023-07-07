@@ -8,7 +8,7 @@
         BuildGraph,
 
         /// <summary>
-        /// Run this script after we've assembled the plugin folder, but before we've finalized tagging it's content. This can be used to add additional files to the plugin.
+        /// Run this script after we've assembled the plugin folder, but before we've finalized tagging it's content. This can be used to add additional files to the plugin. This script is passed "PackagePath".
         /// </summary>
         AssembleFinalize,
 
