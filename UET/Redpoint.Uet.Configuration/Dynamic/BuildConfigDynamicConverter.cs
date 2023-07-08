@@ -172,10 +172,6 @@
             {
                 writer.WriteBoolean("Manual", value.Manual.Value);
             }
-            else
-            {
-                writer.WriteNull("Manual");
-            }
 
             writer.WritePropertyName(value.Type);
 
