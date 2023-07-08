@@ -12,5 +12,8 @@
 
         [JsonPropertyName("Arguments")]
         public string[]? Arguments { get; set; }
+
+        [JsonPropertyName("OutputMustContain")]
+        public string? OutputMustContain { get; set; }
     }
 }

@@ -5,10 +5,10 @@
   <Target Name="PublishUetAndShim" BeforeTargets="BeforeBuild" Condition="'$(RuntimeIdentifier)' == ''">
     <ItemGroup>
       <RuntimeIdentifierForPublish Include="$(RuntimeIdentifiers)" />
-      <ProjectToPublish Include="..\uet\uet.csproj" Condition="!Exists('..\uet\bin\Debug\net7.0\win-x64\publish\uet.exe')">
+      <ProjectToPublish Include="..\uet\uet.csproj" Condition="!Exists('..\uet\bin\Debug\net7.0\win-x64\publish\uet.exe') or $(CI) == 'true'">
         <AdditionalProperties>RuntimeIdentifier=win-x64</AdditionalProperties>
       </ProjectToPublish>
-      <ProjectToPublish Include="..\uet.shim\uet.shim.csproj" Condition="!Exists('..\uet.shim\bin\Debug\net7.0\win-x64\publish\uet.exe')">
+      <ProjectToPublish Include="..\uet.shim\uet.shim.csproj" Condition="!Exists('..\uet.shim\bin\Debug\net7.0\win-x64\publish\uet.exe') or $(CI) == 'true'">
         <AdditionalProperties>RuntimeIdentifier=win-x64</AdditionalProperties>
       </ProjectToPublish>
     </ItemGroup>
@@ -33,6 +33,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+    <ProjectReference Include="..\Redpoint.Xunit.Parallel\Redpoint.Xunit.Parallel.csproj" />
   </ItemGroup>
 
 </Project>

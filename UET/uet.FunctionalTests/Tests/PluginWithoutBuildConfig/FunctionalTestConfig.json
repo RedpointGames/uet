@@ -5,7 +5,7 @@
         "Arguments": [
             "build",
             "-e",
-            "5.2"
+            "{ENGINE}"
         ]
     },
     {
@@ -14,7 +14,7 @@
         "Arguments": [
             "build",
             "-e",
-            "5.2",
+            "{ENGINE}",
             "--shipping"
         ]
     },
@@ -24,7 +24,7 @@
         "Arguments": [
             "build",
             "-e",
-            "5.2",
+            "{ENGINE}",
             "--strict-includes"
         ]
     },
@@ -34,7 +34,7 @@
         "Arguments": [
             "build",
             "-e",
-            "5.2",
+            "{ENGINE}",
             "--platform",
             "Android"
         ]
@@ -45,7 +45,7 @@
         "Arguments": [
             "build",
             "-e",
-            "5.2",
+            "{ENGINE}",
             "--plugin-package",
             "redistributable"
         ]
@@ -56,7 +56,7 @@
         "Arguments": [
             "build",
             "-e",
-            "5.2",
+            "{ENGINE}",
             "--plugin-package",
             "marketplace"
         ]

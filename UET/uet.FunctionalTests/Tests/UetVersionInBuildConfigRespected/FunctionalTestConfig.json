@@ -1,0 +1,10 @@
+[
+    {
+        "Name": "VersionIsCorrect",
+        "Type": "uet",
+        "Arguments": [
+            "--version"
+        ],
+        "OutputMustContain": "2023.1188.246"
+    }
+]

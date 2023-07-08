@@ -227,7 +227,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.RuntimeJson", "Red
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.RuntimeJson.SourceGenerator", "Redpoint.RuntimeJson.SourceGenerator\Redpoint.RuntimeJson.SourceGenerator.csproj", "{DD298D20-E38E-4376-8A48-CBC9BA54A34F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "uet.FunctionalTests", "uet.FunctionalTests\uet.FunctionalTests.csproj", "{923D02E8-538C-479F-8760-750B7B2EC1AD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "uet.FunctionalTests", "uet.FunctionalTests\uet.FunctionalTests.csproj", "{923D02E8-538C-479F-8760-750B7B2EC1AD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Xunit.Parallel", "Redpoint.Xunit.Parallel\Redpoint.Xunit.Parallel.csproj", "{FA17F7B1-6C05-4309-94E5-E1F4C685CC3E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -671,6 +673,10 @@ Global
 		{923D02E8-538C-479F-8760-750B7B2EC1AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{923D02E8-538C-479F-8760-750B7B2EC1AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{923D02E8-538C-479F-8760-750B7B2EC1AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FA17F7B1-6C05-4309-94E5-E1F4C685CC3E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA17F7B1-6C05-4309-94E5-E1F4C685CC3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA17F7B1-6C05-4309-94E5-E1F4C685CC3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA17F7B1-6C05-4309-94E5-E1F4C685CC3E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

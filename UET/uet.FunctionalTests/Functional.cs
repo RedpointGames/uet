@@ -4,9 +4,9 @@ namespace uet.FunctionalTests
     using Microsoft.Extensions.Logging;
     using System.Collections;
     using System.Reflection;
-    using System.Text.Json;
     using Xunit.Abstractions;
     using Redpoint.ProcessExecution;
+    using System.Text;
 
     public class Functional
     {
@@ -17,54 +17,9 @@ namespace uet.FunctionalTests
             _output = output;
         }
 
-        public class FunctionalTestEntry
-        {
-            public required FunctionalTestConfig Config { get; init; }
-
-            public required string Name { get; init; }
-
-            public required string Path { get; init; }
-
-            public override string ToString()
-            {
-                return Name;
-            }
-        }
-
-        public class FunctionalTestTheoryGenerator : IEnumerable<object[]>
-        {
-            public IEnumerator<object[]> GetEnumerator()
-            {
-                foreach (var dir in Directory.GetDirectories(Path.Combine(Assembly.GetExecutingAssembly().Location, "..", "..", "..", "..", "Tests")))
-                {
-                    var configPath = Path.Combine(dir, "FunctionalTestConfig.json");
-                    if (File.Exists(configPath))
-                    {
-                        var config = JsonSerializer.Deserialize<FunctionalTestConfig[]>(File.ReadAllText(configPath))!;
-                        foreach (var entry in config)
-                        {
-                            yield return new object[]
-                            {
-                                new FunctionalTestEntry
-                                {
-                                    Config = entry,
-                                    Name = Path.GetFileName(dir) + "." + entry.Name,
-                                    Path = dir,
-                                }
-                            };
-                        }
-                    }
-                }
-            }
-
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-        }
-
-        [SkippableTheory]
-        [ClassData(typeof(FunctionalTestTheoryGenerator))]
+        [Functional]
         public async Task Uet(FunctionalTestEntry test)
         {
-            Skip.If(Environment.GetEnvironmentVariable("CI") == "true", "Functional tests can not be run on a build server and are currently for interactive testing only");
             Skip.IfNot(OperatingSystem.IsWindows(), "Functional tests must be run from Windows");
 
             var path = test.Config!.Type switch
@@ -73,6 +28,8 @@ namespace uet.FunctionalTests
                 "shim" => Path.GetFullPath(Path.Combine(Assembly.GetExecutingAssembly().Location, "..", "uet.shim.exe")),
                 _ => throw new NotSupportedException()
             };
+
+            const string engine = "uefs:registry.redpoint.games/redpointgames/infrastructure/unreal-engine-epic:5.2";
 
             var services = new ServiceCollection();
             services.AddLogging(builder =>
@@ -84,21 +41,41 @@ namespace uet.FunctionalTests
             services.AddProcessExecution();
             var sp = services.BuildServiceProvider();
 
+            var output = new StringBuilder();
             var executor = sp.GetRequiredService<IProcessExecutor>();
             var exitCode = await executor.ExecuteAsync(
                 new ProcessSpecification
                 {
                     FilePath = path,
-                    Arguments = test.Config.Arguments ?? Array.Empty<string>(),
+                    Arguments = (test.Config.Arguments ?? Array.Empty<string>())
+                        .Select(x => x.Replace("{ENGINE}", engine))
+                        .ToArray(),
                     WorkingDirectory = test.Path,
                 },
                 CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                 {
-                    ReceiveStdout = (line) => { _output.WriteLine(line); return false; },
+                    ReceiveStdout = line =>
+                    {
+                        output.AppendLine(line);
+                        return false;
+                    },
                     ReceiveStderr = (line) => { _output.WriteLine(line); return false; },
                 }),
                 CancellationToken.None);
-            Assert.Equal(0, exitCode);
+            try
+            {
+                Assert.Equal(0, exitCode);
+                if (test.Config.OutputMustContain != null)
+                {
+                    Assert.Contains(test.Config.OutputMustContain, output.ToString());
+                }
+            }
+            catch
+            {
+                // Only emit test output on failure.
+                _output.WriteLine(output.ToString());
+                throw;
+            }
         }
     }
 }
