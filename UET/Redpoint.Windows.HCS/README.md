@@ -1,2 +1,0 @@
-The schema file is obtained from https://github.com/MicrosoftDocs/Virtualization-Documentation/tree/main/hyperv-samples/hcs-samples/JSON_files
-which contains the HCS schemas for all of the Windows SDK versions.

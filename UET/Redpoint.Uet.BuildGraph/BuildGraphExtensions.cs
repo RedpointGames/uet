@@ -245,6 +245,14 @@
                     var t when t == typeof(BuildConfigProjectDistribution) => "project",
                     _ => throw new InvalidOperationException("Unsupported distribution type"),
                 },
+                "--reentrant-executor-category",
+                instance switch
+                {
+                    IPrepareProvider => "prepare",
+                    ITestProvider => "test",
+                    IDeploymentProvider => "deployment",
+                    var x => throw new InvalidOperationException($"Unsupported executor type on {x.GetType().FullName}"),
+                },
                 "--reentrant-executor",
                 instance.Type,
                 "--task-json-path",
@@ -270,6 +278,22 @@
                     Exe = "$(UETPath)",
                     Arguments = args.ToArray()
                 });
+        }
+
+        public static async Task WriteMacroAsync(
+            this XmlWriter writer,
+            MacroElementProperties props,
+            Func<XmlWriter, Task> writeChildren)
+        {
+            await writer.WriteStartElementAsync(null, "Macro", null);
+            if (props.If != null)
+            {
+                await writer.WriteAttributeStringAsync(null, "If", null, props.If);
+            }
+            await writer.WriteAttributeStringAsync(null, "Name", null, props.Name);
+            await writer.WriteAttributeStringAsync(null, "Arguments", null, string.Join(";", props.Arguments));
+            await writeChildren(writer);
+            await writer.WriteEndElementAsync();
         }
     }
 
@@ -301,6 +325,13 @@
     public record class SpawnElementProperties : ElementProperties
     {
         public required string Exe { get; set; }
+
+        public required string[] Arguments { get; set; }
+    }
+
+    public record class MacroElementProperties : ElementProperties
+    {
+        public required string Name { get; set; }
 
         public required string[] Arguments { get; set; }
     }

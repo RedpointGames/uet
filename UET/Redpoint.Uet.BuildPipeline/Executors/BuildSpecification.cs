@@ -23,11 +23,6 @@
         public string DistributionName { get; init; } = string.Empty;
 
         /// <summary>
-        /// A list of custom preparation scripts to run on the build job before BuildGraph is invoked.
-        /// </summary>
-        public List<string> BuildGraphPreparationScripts { get; init; } = new List<string>();
-
-        /// <summary>
         /// Some executors will create a local workspace for this path and then use that workspace
         /// as __REPOSITORY_ROOT__. Others will use this path directly as __REPOSITORY_ROOT__.
         /// </summary>

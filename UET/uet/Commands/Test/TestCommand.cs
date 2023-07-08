@@ -301,6 +301,8 @@
                     var executionEvents = new LoggerBasedBuildExecutionEvents(_logger);
                     var buildResult = await executor.ExecuteBuildAsync(
                         buildSpec,
+                        null,
+                        null,
                         executionEvents,
                         CaptureSpecification.Passthrough,
                         context.GetCancellationToken());

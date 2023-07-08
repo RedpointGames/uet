@@ -4,6 +4,9 @@
     using System.Collections.Generic;
     using System.Text.Json.Serialization;
 
+    /// <summary>
+    /// Specifies how to build, package, test and deploy an Unreal Engine plugin.
+    /// </summary>
     public class BuildConfigPluginDistribution
     {
         /// <summary>
@@ -28,7 +31,7 @@
         /// Specifies the preparation scripts to run before various steps. You can specify multiple preparation entries.
         /// </summary>
         [JsonPropertyName("Prepare"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public BuildConfigPluginPrepare[]? Prepare { get; set; }
+        public BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>[]? Prepare { get; set; }
 
         /// <summary>
         /// Specifies how the plugin is built.

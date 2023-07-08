@@ -53,10 +53,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{39698A12-7C9
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.MSBuildResolution", "Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj", "{5227BBD5-4CE7-4CB8-A60E-897E70664886}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Windows.HCS", "Redpoint.Windows.HCS\Redpoint.Windows.HCS.csproj", "{3B8E64F7-9FD1-4997-BE4E-2AB5CB46E2C7}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Windows.HCS.Tests", "Redpoint.Windows.HCS.Tests\Redpoint.Windows.HCS.Tests.csproj", "{494B9D60-4C08-41FB-9CBD-2FA8FB8EBD6C}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Windows.VolumeManagement", "Redpoint.Windows.VolumeManagement\Redpoint.Windows.VolumeManagement.csproj", "{06472079-680E-42CF-B381-4BD0DB0F2176}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Windows.VolumeManagement.Tests", "Redpoint.Windows.VolumeManagement.Tests\Redpoint.Windows.VolumeManagement.Tests.csproj", "{43356EFA-3928-4DBD-B3C6-5FE559F98D59}"
@@ -221,9 +217,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Concurrency", "Red
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Concurrency.Tests", "Redpoint.Concurrency.Tests\Redpoint.Concurrency.Tests.csproj", "{486505E8-0113-4403-B197-66B347A820DE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "uet.shim", "uet.shim\uet.shim.csproj", "{92B55412-AF63-40DB-AE27-04E4F0CAB00D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "uet.shim", "uet.shim\uet.shim.csproj", "{92B55412-AF63-40DB-AE27-04E4F0CAB00D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console", "Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj", "{1F198D46-E3CA-4F0D-90F1-D0D5E4A654AF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.BuildPipeline.Providers.Prepare", "Redpoint.Uet.BuildPipeline.Providers.Prepare\Redpoint.Uet.BuildPipeline.Providers.Prepare.csproj", "{C556AE5A-5378-405F-988E-6B29D56FB2E1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -315,14 +313,6 @@ Global
 		{5227BBD5-4CE7-4CB8-A60E-897E70664886}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5227BBD5-4CE7-4CB8-A60E-897E70664886}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5227BBD5-4CE7-4CB8-A60E-897E70664886}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3B8E64F7-9FD1-4997-BE4E-2AB5CB46E2C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3B8E64F7-9FD1-4997-BE4E-2AB5CB46E2C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3B8E64F7-9FD1-4997-BE4E-2AB5CB46E2C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3B8E64F7-9FD1-4997-BE4E-2AB5CB46E2C7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{494B9D60-4C08-41FB-9CBD-2FA8FB8EBD6C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{494B9D60-4C08-41FB-9CBD-2FA8FB8EBD6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{494B9D60-4C08-41FB-9CBD-2FA8FB8EBD6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{494B9D60-4C08-41FB-9CBD-2FA8FB8EBD6C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{06472079-680E-42CF-B381-4BD0DB0F2176}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{06472079-680E-42CF-B381-4BD0DB0F2176}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{06472079-680E-42CF-B381-4BD0DB0F2176}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -659,6 +649,10 @@ Global
 		{1F198D46-E3CA-4F0D-90F1-D0D5E4A654AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1F198D46-E3CA-4F0D-90F1-D0D5E4A654AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1F198D46-E3CA-4F0D-90F1-D0D5E4A654AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C556AE5A-5378-405F-988E-6B29D56FB2E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C556AE5A-5378-405F-988E-6B29D56FB2E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C556AE5A-5378-405F-988E-6B29D56FB2E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C556AE5A-5378-405F-988E-6B29D56FB2E1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -4,6 +4,8 @@
 
     public interface IOpenGEDaemon : IApplicationLifecycle
     {
+        bool IsDaemonRunning { get; }
+
         string GetConnectionString();
     }
 }

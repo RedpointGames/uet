@@ -4,8 +4,11 @@
     using Redpoint.Uet.Workspace.Descriptors;
     using System.Threading.Tasks;
 
-    internal interface IPhysicalGitCheckout
+    public interface IPhysicalGitCheckout
     {
-        Task PrepareGitWorkspaceAsync(IReservation reservation, GitWorkspaceDescriptor descriptor, CancellationToken cancellationToken);
+        Task PrepareGitWorkspaceAsync(
+            string repositoryPath,
+            GitWorkspaceDescriptor descriptor,
+            CancellationToken cancellationToken);
     }
 }

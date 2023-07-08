@@ -1,5 +1,6 @@
 ﻿namespace UET.Commands.Internal.CIBuild
 {
+    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.BuildPipeline.Environment;
@@ -46,17 +47,20 @@
             private readonly Options _options;
             private readonly GitLabBuildExecutorFactory _gitLabBuildExecutorFactory;
             private readonly IWorldPermissionApplier _worldPermissionApplier;
+            private readonly BuildJobJsonSourceGenerationContext _buildJobJsonSourceGenerationContext;
 
             public CIBuildCommandInstance(
                 ILogger<CIBuildCommandInstance> logger,
                 Options options,
                 GitLabBuildExecutorFactory gitLabBuildExecutorFactory,
-                IWorldPermissionApplier worldPermissionApplier)
+                IWorldPermissionApplier worldPermissionApplier,
+                IServiceProvider serviceProvider)
             {
                 _logger = logger;
                 _options = options;
                 _gitLabBuildExecutorFactory = gitLabBuildExecutorFactory;
                 _worldPermissionApplier = worldPermissionApplier;
+                _buildJobJsonSourceGenerationContext = BuildJobJsonSourceGenerationContext.Create(serviceProvider);
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
@@ -70,7 +74,7 @@
                     return 1;
                 }
 
-                var buildJson = JsonSerializer.Deserialize(buildJsonRaw, BuildJobJsonSourceGenerationContext.Default.BuildJobJson);
+                var buildJson = JsonSerializer.Deserialize(buildJsonRaw, _buildJobJsonSourceGenerationContext.BuildJobJson);
                 if (buildJson == null)
                 {
                     _logger.LogError("The UET_BUILD_JSON environment variable does not contain a valid build job description.");
@@ -151,7 +155,6 @@
                     BuildGraphTarget = buildJson.BuildGraphTarget,
                     BuildGraphSettings = buildJson.Settings,
                     BuildGraphEnvironment = environment,
-                    BuildGraphPreparationScripts = buildJson.PreparationScripts.ToList(),
                     // @note: CI executors ignore this field and look at environment variables to figure out
                     // what commit they need to checkout via the workspace APIs.
                     BuildGraphRepositoryRoot = string.Empty,
@@ -167,6 +170,8 @@
                 {
                     var buildResult = await executor.ExecuteBuildNodeAsync(
                         buildSpecification,
+                        buildJson.PreparePlugin,
+                        buildJson.PrepareProject,
                         new LoggerBasedBuildExecutionEvents(_logger),
                         buildJson.NodeName,
                         context.GetCancellationToken());

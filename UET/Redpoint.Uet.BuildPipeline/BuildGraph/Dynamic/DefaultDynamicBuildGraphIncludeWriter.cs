@@ -13,6 +13,8 @@
 
     internal class DefaultDynamicBuildGraphIncludeWriter : IDynamicBuildGraphIncludeWriter
     {
+        private readonly IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>[] _pluginPrepare;
+        private readonly IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>[] _projectPrepare;
         private readonly IDynamicProvider<BuildConfigPluginDistribution, ITestProvider>[] _pluginTests;
         private readonly IDynamicProvider<BuildConfigProjectDistribution, ITestProvider>[] _projectTests;
         private readonly IDynamicProvider<BuildConfigPluginDistribution, IDeploymentProvider>[] _pluginDeployments;
@@ -21,6 +23,8 @@
 
         public DefaultDynamicBuildGraphIncludeWriter(IServiceProvider serviceProvider)
         {
+            _pluginPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>>().ToArray();
+            _projectPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>>().ToArray();
             _pluginTests = serviceProvider.GetServices<IDynamicProvider<BuildConfigPluginDistribution, ITestProvider>>().ToArray();
             _projectTests = serviceProvider.GetServices<IDynamicProvider<BuildConfigProjectDistribution, ITestProvider>>().ToArray();
             _pluginDeployments = serviceProvider.GetServices<IDynamicProvider<BuildConfigPluginDistribution, IDeploymentProvider>>().ToArray();
@@ -89,7 +93,7 @@
             }
         }
 
-        public async Task WriteBuildGraphInclude(
+        public async Task WriteBuildGraphNodeInclude(
             Stream stream,
             bool filterHostToCurrentPlatformOnly,
             object buildConfigDistribution,
@@ -153,6 +157,60 @@
                             projectDistribution,
                             _projectDeployments,
                             projectDistribution.Deployments);
+                    }
+                }
+                else
+                {
+                    throw new NotSupportedException();
+                }
+
+                await writer.WriteEndElementAsync();
+                await writer.WriteEndDocumentAsync();
+            }
+        }
+
+        public async Task WriteBuildGraphMacroInclude(
+            Stream stream,
+            bool filterHostToCurrentPlatformOnly,
+            object buildConfigDistribution)
+        {
+            var emitContext = new BuildGraphEmitContext(
+                _serviceProvider,
+                filterHostToCurrentPlatformOnly);
+
+            using (var writer = XmlWriter.Create(stream, new XmlWriterSettings
+            {
+                Encoding = Encoding.UTF8,
+                Indent = true,
+                IndentChars = "  ",
+                Async = true,
+            }))
+            {
+                await writer.WriteStartDocumentAsync();
+                await writer.WriteStartElementAsync(null, "BuildGraph", "http://www.epicgames.com/BuildGraph");
+
+                if (buildConfigDistribution is BuildConfigPluginDistribution pluginDistribution)
+                {
+                    if (pluginDistribution.Prepare != null)
+                    {
+                        await WriteBuildGraphNodesAsync(
+                            emitContext,
+                            writer,
+                            pluginDistribution,
+                            _pluginPrepare,
+                            pluginDistribution.Prepare);
+                    }
+                }
+                else if (buildConfigDistribution is BuildConfigProjectDistribution projectDistribution)
+                {
+                    if (projectDistribution.Prepare != null)
+                    {
+                        await WriteBuildGraphNodesAsync(
+                            emitContext,
+                            writer,
+                            projectDistribution,
+                            _projectPrepare,
+                            projectDistribution.Prepare);
                     }
                 }
                 else

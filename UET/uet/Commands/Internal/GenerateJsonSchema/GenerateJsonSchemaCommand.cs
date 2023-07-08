@@ -4,13 +4,14 @@
     using Microsoft.Extensions.Logging;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.Text;
     using System.Threading.Tasks;
 
     internal class GenerateJsonSchemaCommand
     {
         public class Options
         {
-            public Option<FileInfo> OutputPath = new Option<FileInfo>("--output-path") { IsRequired = true };
+            public Option<FileInfo?> OutputPath = new Option<FileInfo?>("--output-path");
         }
 
         public static Command CreateGenerateJsonSchemaCommand()
@@ -44,17 +45,31 @@
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
                 var outputPath = context.ParseResult.GetValueForOption(_options.OutputPath)!;
-                if (outputPath.DirectoryName != null)
+                if (outputPath?.DirectoryName != null)
                 {
                     Directory.CreateDirectory(outputPath.DirectoryName);
                 }
 
-                using (var stream = new FileStream(outputPath.FullName, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+                if (outputPath != null)
                 {
-                    await _jsonSchemaGenerator.GenerateAsync(stream);
+                    using (var stream = new FileStream(outputPath.FullName, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+                    {
+                        await _jsonSchemaGenerator.GenerateAsync(stream);
+                    }
+                    _logger.LogInformation($"Successfully emitted JSON schema for BuildConfig.json to: {outputPath.FullName}");
+                }
+                else
+                {
+                    using (var stream = new MemoryStream())
+                    {
+                        await _jsonSchemaGenerator.GenerateAsync(stream);
+                        var bytes = new byte[stream.Position];
+                        stream.Seek(0, SeekOrigin.Begin);
+                        stream.Read(bytes);
+                        Console.WriteLine(Encoding.UTF8.GetString(bytes));
+                    }
                 }
 
-                _logger.LogInformation($"Successfully emitted JSON schema for BuildConfig.json to: {outputPath.FullName}");
                 return 0;
             }
         }

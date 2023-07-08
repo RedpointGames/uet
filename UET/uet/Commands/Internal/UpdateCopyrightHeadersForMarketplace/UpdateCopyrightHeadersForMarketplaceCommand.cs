@@ -87,7 +87,7 @@
                             IsFileExcluded(x.FullName)
                         )))
                 {
-                    _logger.LogInformation($"Updating {file.Name}...");
+                    _logger.LogInformation($"Updating {Path.GetRelativePath(path, file.FullName)}...");
 
                     var content = (await File.ReadAllLinesAsync(file.FullName)).ToList();
                     while (content.Count > 0 &&

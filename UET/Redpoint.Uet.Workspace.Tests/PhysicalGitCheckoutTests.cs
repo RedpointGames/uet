@@ -55,7 +55,7 @@
             Directory.CreateDirectory(reservation.ReservedPath);
 
             await physicalGit.PrepareGitWorkspaceAsync(
-                reservation,
+                reservation.ReservedPath,
                 new Descriptors.GitWorkspaceDescriptor
                 {
                     RepositoryUrl = "https://src.redpoint.games/redpointgames/examples",
@@ -106,7 +106,7 @@
             Directory.CreateDirectory(reservation.ReservedPath);
 
             await physicalGit.PrepareGitWorkspaceAsync(
-                reservation,
+                reservation.ReservedPath,
                 new Descriptors.GitWorkspaceDescriptor
                 {
                     RepositoryUrl = "https://src.redpoint.games/redpointgames/examples",
@@ -125,7 +125,7 @@
             File.Delete(Path.Combine(reservation.ReservedPath, "README.md"));
 
             await physicalGit.PrepareGitWorkspaceAsync(
-                reservation,
+                reservation.ReservedPath,
                 new Descriptors.GitWorkspaceDescriptor
                 {
                     RepositoryUrl = "https://src.redpoint.games/redpointgames/examples",

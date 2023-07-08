@@ -167,10 +167,10 @@
         }
 
         private async IAsyncEnumerable<(DirectoryInfo contentDirectory, SubmoduleDescription submodule, DirectoryInfo submoduleGitDirectory)> IterateContentBasedSubmodulesAsync(
-            IReservation reservation,
+            string repositoryPath,
             GitWorkspaceDescriptor descriptor)
         {
-            foreach (var topLevelSubmodule in await ParseSubmodulesAsync(reservation.ReservedPath))
+            foreach (var topLevelSubmodule in await ParseSubmodulesAsync(repositoryPath))
             {
                 if (topLevelSubmodule.ExcludeOnMac && OperatingSystem.IsMacOS())
                 {
@@ -180,21 +180,21 @@
                 if (topLevelSubmodule.Path.Contains("/Source/") || (descriptor.ProjectFolderName != null && topLevelSubmodule.Path.StartsWith($"{descriptor.ProjectFolderName}/Plugins/")))
                 {
                     yield return (
-                        new DirectoryInfo(reservation.ReservedPath),
+                        new DirectoryInfo(repositoryPath),
                         topLevelSubmodule,
-                        new DirectoryInfo($"{reservation.ReservedPath}/.git/modules/{topLevelSubmodule.Id}"));
+                        new DirectoryInfo($"{repositoryPath}/.git/modules/{topLevelSubmodule.Id}"));
                     if (descriptor.ProjectFolderName != null && topLevelSubmodule.Path.StartsWith($"{descriptor.ProjectFolderName}/Plugins/"))
                     {
-                        foreach (var childSubmodule in await ParseSubmodulesAsync($"{reservation.ReservedPath}/{topLevelSubmodule.Path}"))
+                        foreach (var childSubmodule in await ParseSubmodulesAsync($"{repositoryPath}/{topLevelSubmodule.Path}"))
                         {
                             if (childSubmodule.ExcludeOnMac && OperatingSystem.IsMacOS())
                             {
                                 continue;
                             }
                             yield return (
-                                new DirectoryInfo($"{reservation.ReservedPath}/{topLevelSubmodule.Path}"),
+                                new DirectoryInfo($"{repositoryPath}/{topLevelSubmodule.Path}"),
                                 childSubmodule,
-                                new DirectoryInfo($"{reservation.ReservedPath}/.git/modules/${topLevelSubmodule.Id}/modules/{childSubmodule.Id}"));
+                                new DirectoryInfo($"{repositoryPath}/.git/modules/${topLevelSubmodule.Id}/modules/{childSubmodule.Id}"));
                         }
                     }
                 }
@@ -475,7 +475,7 @@
         }
 
         public async Task PrepareGitWorkspaceAsync(
-            IReservation reservation,
+            string repositoryPath,
             GitWorkspaceDescriptor descriptor,
             CancellationToken cancellationToken)
         {
@@ -487,7 +487,7 @@
             var exitCode = 0;
 
             // Initialize the Git repository if needed.
-            if (!Directory.Exists(Path.Combine(reservation.ReservedPath, ".git")))
+            if (!Directory.Exists(Path.Combine(repositoryPath, ".git")))
             {
                 _logger.LogInformation("Initializing Git repository because it doesn't already exist...");
                 exitCode = await _processExecutor.ExecuteAsync(
@@ -497,9 +497,9 @@
                         Arguments = new[]
                         {
                             "init",
-                            reservation.ReservedPath
+                            repositoryPath
                         },
-                        WorkingDirectory = reservation.ReservedPath,
+                        WorkingDirectory = repositoryPath,
                         EnvironmentVariables = gitEnvs,
                     },
                     CaptureSpecification.Sanitized,
@@ -516,12 +516,12 @@
                         Arguments = new[]
                         {
                             "-C",
-                            reservation.ReservedPath,
+                            repositoryPath,
                             "config",
                             "core.symlinks",
                             "true"
                         },
-                        WorkingDirectory = reservation.ReservedPath,
+                        WorkingDirectory = repositoryPath,
                         EnvironmentVariables = gitEnvs,
                     },
                     CaptureSpecification.Sanitized,
@@ -550,7 +550,7 @@
                             descriptor.RepositoryUrl,
                             targetCommit,
                         },
-                        WorkingDirectory = reservation.ReservedPath,
+                        WorkingDirectory = repositoryPath,
                         EnvironmentVariables = gitEnvs,
                     },
                     CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(resolvedRefStringBuilder),
@@ -594,11 +594,11 @@
                     Arguments = new[]
                     {
                         "-C",
-                        reservation.ReservedPath,
+                        repositoryPath,
                         "rev-parse",
                         "HEAD"
                     },
-                    WorkingDirectory = reservation.ReservedPath,
+                    WorkingDirectory = repositoryPath,
                     EnvironmentVariables = gitEnvs,
                 },
                 CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(currentHead),
@@ -606,13 +606,13 @@
             if (currentHead.ToString().Trim() == targetCommit)
             {
                 // We have our own .gitcheckout file which we write after we finish all submodule work. That way, we know the previous checkout completed successfully even if it failed during submodule work.
-                if (File.Exists(Path.Combine(reservation.ReservedPath, ".gitcheckout")))
+                if (File.Exists(Path.Combine(repositoryPath, ".gitcheckout")))
                 {
                     // Just really quickly check to make sure the .git file exists in each submodule we care about. If it doesn't,
                     // then the .gitcheckout file is stale and needs to be removed.
                     var validSubmoduleLayout = true;
                     _logger.LogInformation("Quickly checking submodules...");
-                    await foreach (var iter in IterateContentBasedSubmodulesAsync(reservation, descriptor))
+                    await foreach (var iter in IterateContentBasedSubmodulesAsync(repositoryPath, descriptor))
                     {
                         var dotGitPath = Path.Combine(iter.contentDirectory.FullName, ".git");
                         if (!Path.Exists(dotGitPath))
@@ -629,7 +629,7 @@
                     }
                     else
                     {
-                        File.Delete(Path.Combine(reservation.ReservedPath, ".gitcheckout"));
+                        File.Delete(Path.Combine(repositoryPath, ".gitcheckout"));
                         // Continue with full process...
                     }
                 }
@@ -647,12 +647,12 @@
                     Arguments = new[]
                     {
                         "-C",
-                        reservation.ReservedPath,
+                        repositoryPath,
                         "cat-file",
                         "-t",
                         targetCommit,
                     },
-                    WorkingDirectory = reservation.ReservedPath,
+                    WorkingDirectory = repositoryPath,
                     EnvironmentVariables = gitEnvs,
                 },
                 CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitTypeBuilder),
@@ -670,13 +670,13 @@
                         Arguments = new[]
                         {
                             "-C",
-                            reservation.ReservedPath,
+                            repositoryPath,
                             "rev-list",
                             "-n",
                             "1",
                             targetCommit,
                         },
-                        WorkingDirectory = reservation.ReservedPath,
+                        WorkingDirectory = repositoryPath,
                         EnvironmentVariables = gitEnvs,
                     },
                     CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(targetCommitBuilder),
@@ -692,12 +692,12 @@
                             Arguments = new[]
                             {
                                 "-C",
-                                reservation.ReservedPath,
+                                repositoryPath,
                                 "cat-file",
                                 "-t",
                                 targetCommit,
                             },
-                            WorkingDirectory = reservation.ReservedPath,
+                            WorkingDirectory = repositoryPath,
                             EnvironmentVariables = gitEnvs,
                         },
                         CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitTypeBuilder),
@@ -723,7 +723,7 @@
                                 Arguments = new[]
                                 {
                                     "-C",
-                                    reservation.ReservedPath,
+                                    repositoryPath,
                                     "fetch",
                                     "-f",
                                     "--recurse-submodules=no",
@@ -731,7 +731,7 @@
                                     uri.ToString(),
                                     targetCommit
                                 },
-                                WorkingDirectory = reservation.ReservedPath,
+                                WorkingDirectory = repositoryPath,
                                 EnvironmentVariables = gitEnvs,
                             },
                             CaptureSpecification.Sanitized,
@@ -745,12 +745,12 @@
                                 Arguments = new[]
                                 {
                                     "-C",
-                                    reservation.ReservedPath,
+                                    repositoryPath,
                                     "cat-file",
                                     "-t",
                                     targetCommit,
                                 },
-                                WorkingDirectory = reservation.ReservedPath,
+                                WorkingDirectory = repositoryPath,
                                 EnvironmentVariables = gitEnvs,
                             },
                             CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitTypeBuilder),
@@ -766,13 +766,13 @@
                                     Arguments = new[]
                                     {
                                         "-C",
-                                        reservation.ReservedPath,
+                                        repositoryPath,
                                         "rev-list",
                                         "-n",
                                         "1",
                                         targetCommit,
                                     },
-                                    WorkingDirectory = reservation.ReservedPath,
+                                    WorkingDirectory = repositoryPath,
                                     EnvironmentVariables = gitEnvs,
                                 },
                                 CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(targetCommitBuilder),
@@ -789,7 +789,7 @@
                                 Arguments = new[]
                                 {
                                     "-C",
-                                    reservation.ReservedPath,
+                                    repositoryPath,
                                     "fetch",
                                     "-f",
                                     "--recurse-submodules=no",
@@ -797,7 +797,7 @@
                                     uri.ToString(),
                                     $"{targetCommit}:FETCH_HEAD"
                                 },
-                                WorkingDirectory = reservation.ReservedPath,
+                                WorkingDirectory = repositoryPath,
                                 EnvironmentVariables = gitEnvs,
                             },
                             CaptureSpecification.Sanitized,
@@ -824,13 +824,13 @@
                         Arguments = new[]
                         {
                             "-C",
-                            reservation.ReservedPath,
+                            repositoryPath,
                             "lfs",
                             "fetch",
                             uri.ToString(),
                             targetCommit,
                         },
-                        WorkingDirectory = reservation.ReservedPath,
+                        WorkingDirectory = repositoryPath,
                         EnvironmentVariables = gitEnvs,
                     },
                     CaptureSpecification.Sanitized,
@@ -850,14 +850,14 @@
                     Arguments = new[]
                     {
                         "-C",
-                        reservation.ReservedPath,
+                        repositoryPath,
                         "-c",
                         "advice.detachedHead=false",
                         "checkout",
                         "-f",
                         targetCommit,
                     },
-                    WorkingDirectory = reservation.ReservedPath,
+                    WorkingDirectory = repositoryPath,
                     EnvironmentVariables = gitEnvs,
                 },
                 CaptureSpecification.Sanitized,
@@ -873,13 +873,13 @@
                         Arguments = new[]
                         {
                             "-C",
-                            reservation.ReservedPath,
+                            repositoryPath,
                             "lfs",
                             "fetch",
                             uri.ToString(),
                             targetCommit,
                         },
-                        WorkingDirectory = reservation.ReservedPath,
+                        WorkingDirectory = repositoryPath,
                         EnvironmentVariables = gitEnvs,
                     },
                     CaptureSpecification.Sanitized,
@@ -898,14 +898,14 @@
                         Arguments = new[]
                         {
                             "-C",
-                            reservation.ReservedPath,
+                            repositoryPath,
                             "-c",
                             "advice.detachedHead=false",
                             "checkout",
                             "-f",
                             targetCommit,
                         },
-                        WorkingDirectory = reservation.ReservedPath,
+                        WorkingDirectory = repositoryPath,
                         EnvironmentVariables = gitEnvs,
                     },
                     CaptureSpecification.Sanitized,
@@ -921,11 +921,11 @@
             if (!descriptor.IsEngineBuild)
             {
                 var sensitiveDirectories = new string[] { "Source", "Config", "Resources", "Content" };
-                foreach (var cleanFile in GetPluginAndProjectFiles(new DirectoryInfo(reservation.ReservedPath)))
+                foreach (var cleanFile in GetPluginAndProjectFiles(new DirectoryInfo(repositoryPath)))
                 {
                     var baseDirectory = GetGitBaseDirectoryForPath(cleanFile);
                     var relativeBasePathToCleanDir = Path.GetRelativePath(baseDirectory.FullName, cleanFile.DirectoryName!).Replace("\\", "/").Trim('/');
-                    var relativeReservedPathToBase = Path.GetRelativePath(reservation.ReservedPath, baseDirectory.FullName).Replace("\\", "/").Trim('/');
+                    var relativeReservedPathToBase = Path.GetRelativePath(repositoryPath, baseDirectory.FullName).Replace("\\", "/").Trim('/');
                     exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
@@ -938,7 +938,7 @@
                                 "--error-unmatch",
                                 $"{relativeBasePathToCleanDir}/{cleanFile.Name}",
                             },
-                            WorkingDirectory = reservation.ReservedPath,
+                            WorkingDirectory = repositoryPath,
                             EnvironmentVariables = gitEnvs,
                         },
                         CaptureSpecification.Silence,
@@ -990,7 +990,7 @@
 
             // Process the submodules, only checking out submodules that sit underneath the target directory for compilation.
             _logger.LogInformation("Updating submodules...");
-            await foreach (var iter in IterateContentBasedSubmodulesAsync(reservation, descriptor))
+            await foreach (var iter in IterateContentBasedSubmodulesAsync(repositoryPath, descriptor))
             {
                 await CheckoutSubmoduleAsync(
                     git,
@@ -1004,7 +1004,7 @@
 
             // Write our .gitcheckout file which tells subsequent calls that we're up-to-date.
             await File.WriteAllTextAsync(
-                Path.Combine(reservation.ReservedPath, ".gitcheckout"),
+                Path.Combine(repositoryPath, ".gitcheckout"),
                 targetCommit);
         }
     }

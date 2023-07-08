@@ -19,6 +19,7 @@
         internal class Options
         {
             public Option<string> DistributionType;
+            public Option<string> ReentrantExecutorCategory;
             public Option<string> ReentrantExecutor;
             public Option<FileInfo> TaskJsonPath;
             public Option<string[]> RuntimeSettings;
@@ -26,6 +27,8 @@
             public Options()
             {
                 DistributionType = new Option<string>("--distribution-type") { IsRequired = true };
+                ReentrantExecutorCategory = new Option<string>("--reentrant-executor-category") { IsRequired = true };
+                ReentrantExecutorCategory.FromAmong("prepare", "test", "deployment");
                 ReentrantExecutor = new Option<string>("--reentrant-executor") { IsRequired = true };
                 TaskJsonPath = new Option<FileInfo>("--task-json-path") { IsRequired = true };
                 RuntimeSettings = new Option<string[]>("--runtime-setting");
@@ -60,6 +63,7 @@
             public Task<int> ExecuteAsync(InvocationContext context)
             {
                 var distributionType = context.ParseResult.GetValueForOption(_options.DistributionType)!;
+                var reentrantExecutorCategory = context.ParseResult.GetValueForOption(_options.ReentrantExecutorCategory)!;
                 var reentrantExecutorName = context.ParseResult.GetValueForOption(_options.ReentrantExecutor)!;
                 var taskJsonPath = context.ParseResult.GetValueForOption(_options.TaskJsonPath)!;
                 var runtimeSettings = context.ParseResult.GetValueForOption(_options.RuntimeSettings) ?? Array.Empty<string>();
@@ -67,6 +71,7 @@
                 if (distributionType == "plugin")
                 {
                     return ExecuteAsync<BuildConfigPluginDistribution>(
+                        reentrantExecutorCategory,
                         reentrantExecutorName,
                         taskJsonPath,
                         runtimeSettings,
@@ -75,6 +80,7 @@
                 else if (distributionType == "project")
                 {
                     return ExecuteAsync<BuildConfigProjectDistribution>(
+                        reentrantExecutorCategory,
                         reentrantExecutorName,
                         taskJsonPath,
                         runtimeSettings,
@@ -99,6 +105,7 @@
             }
 
             private async Task<int> ExecuteAsync<T>(
+                string reentrantExecutorCategory,
                 string reentrantExecutorName,
                 FileInfo taskJsonPath,
                 string[] runtimeSettings,
@@ -107,6 +114,13 @@
                 var reentrantExecutors =
                     _serviceProvider.GetServices<IDynamicReentrantExecutor<T>>()
                     .Where(x => x.Type == reentrantExecutorName)
+                    .Where(x => x switch
+                    {
+                        IPrepareProvider => reentrantExecutorCategory == "prepare",
+                        ITestProvider => reentrantExecutorCategory == "test",
+                        IDeploymentProvider => reentrantExecutorCategory == "deployment",
+                        _ => throw new InvalidOperationException($"Unsupported executor type on {x.GetType().FullName}"),
+                    })
                     .ToArray();
                 if (reentrantExecutors.Length == 0)
                 {

@@ -2,6 +2,11 @@
 {
     using System.Text.Json.Serialization;
 
+    /// <summary>
+    /// A dynamically driven preparation, test or deployment step.
+    /// </summary>
+    /// <typeparam name="TDistribution">The distribution type, which specifies whether this is for projects or plugins.</typeparam>
+    /// <typeparam name="TBaseClass">The base class for configuration, which specifies whether this is for preparation, tests or deployment.</typeparam>
     public class BuildConfigDynamic<TDistribution, TBaseClass>
     {
         /// <summary>

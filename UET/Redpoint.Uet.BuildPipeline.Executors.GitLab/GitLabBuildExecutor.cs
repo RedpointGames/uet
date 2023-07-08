@@ -16,20 +16,10 @@
         private readonly ILogger<GitLabBuildExecutor> _logger;
 
         public GitLabBuildExecutor(
+            IServiceProvider serviceProvider,
             ILogger<GitLabBuildExecutor> logger,
-            ILogger<BuildServerBuildExecutor> baseLogger,
-            IBuildGraphExecutor buildGraphExecutor,
-            IEngineWorkspaceProvider engineWorkspaceProvider,
-            IDynamicWorkspaceProvider workspaceProvider,
-            IWorldPermissionApplier worldPermissionApplier,
-            IGlobalArgsProvider? globalArgsProvider,
             string buildServerOutputFilePath) : base(
-                baseLogger,
-                buildGraphExecutor,
-                engineWorkspaceProvider,
-                workspaceProvider,
-                worldPermissionApplier,
-                globalArgsProvider,
+                serviceProvider,
                 buildServerOutputFilePath)
         {
             _logger = logger;

@@ -16,6 +16,7 @@
     using Redpoint.Uet.BuildPipeline.Executors.GitLab;
     using Redpoint.Uet.Core;
     using static Crayon.Output;
+    using Redpoint.Uet.Configuration.Dynamic;
 
     internal class BuildCommand
     {
@@ -388,6 +389,8 @@
                 };
 
                 BuildSpecification buildSpec;
+                BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>[]? preparePlugin = null;
+                BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>[]? prepareProject = null;
                 try
                 {
                     switch (path!.Type)
@@ -406,6 +409,7 @@
                                         executeDeployment: deploy,
                                         strictIncludes: strictIncludes,
                                         localExecutor: executorName == "local");
+                                    prepareProject = projectDistribution.Prepare;
                                     break;
                                 case BuildConfigPluginDistribution pluginDistribution:
                                     if (pluginPackage != "none")
@@ -428,6 +432,7 @@
                                         isPluginRooted: false,
                                         commandlinePluginVersionName: pluginVersionName,
                                         commandlinePluginVersionNumber: pluginVersionNumber);
+                                    preparePlugin = pluginDistribution.Prepare;
                                     break;
                                 case BuildConfigEngineDistribution engineDistribution:
                                     buildSpec = _buildSpecificationGenerator.BuildConfigEngineToBuildSpec(
@@ -475,6 +480,8 @@
                     var executionEvents = new LoggerBasedBuildExecutionEvents(_logger);
                     var buildResult = await executor.ExecuteBuildAsync(
                         buildSpec,
+                        preparePlugin,
+                        prepareProject,
                         executionEvents,
                         CaptureSpecification.Passthrough,
                         context.GetCancellationToken());

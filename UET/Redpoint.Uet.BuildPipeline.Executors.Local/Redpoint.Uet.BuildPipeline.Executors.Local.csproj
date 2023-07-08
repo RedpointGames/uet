@@ -3,6 +3,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Prepare\Redpoint.Uet.BuildPipeline.Providers.Prepare.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.BuildPipeline\Redpoint.Uet.BuildPipeline.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.SdkManagement\Redpoint.Uet.SdkManagement.csproj" />
   </ItemGroup>

@@ -1,6 +1,7 @@
 namespace Redpoint.Uet.Configuration.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.Uet.BuildPipeline.Providers.Prepare;
     using Redpoint.Uet.BuildPipeline.Providers.Test;
     using Redpoint.Uet.BuildPipeline.Providers.Deployment;
     using Redpoint.Uet.Configuration.Plugin;
@@ -11,6 +12,7 @@ namespace Redpoint.Uet.Configuration.Tests
     using Redpoint.ProcessExecution;
     using Redpoint.PathResolution;
     using Redpoint.Reservation;
+    using Redpoint.Uet.Workspace;
 
     public class BuildConfigTests
     {
@@ -20,9 +22,11 @@ namespace Redpoint.Uet.Configuration.Tests
             services.AddLogging();
             services.AddPathResolution();
             services.AddProcessExecution();
+            services.AddUetBuildPipelineProvidersPrepare();
             services.AddUETBuildPipelineProvidersTest();
             services.AddUETBuildPipelineProvidersDeployment();
             services.AddUETAutomation();
+            services.AddUETWorkspace();
             services.AddReservation();
             return services;
         }

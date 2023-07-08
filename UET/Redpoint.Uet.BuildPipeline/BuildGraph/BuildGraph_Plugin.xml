@@ -18,11 +18,6 @@
   <!-- Clean options -->
   <Option Name="CleanDirectories" DefaultValue="" Description="Semicolon separated list of folders and files to delete after copying the plugin into the host project" />
 
-  <!-- Prepare options -->
-  <Option Name="PrepareCustomAssembleFinalizeScripts" DefaultValue="" Description="Semicolon separated list of custom prepare scripts to run after the host project is assembled" />
-  <Option Name="PrepareCustomCompileScripts" DefaultValue="" Description="Semicolon separated list of custom prepare scripts to run before compile" />
-  <Option Name="PrepareCustomTestScripts" DefaultValue="" Description="Semicolon separated list of custom prepare scripts to run before test" />
-
   <!-- Build options -->
   <Option Name="EditorTargetPlatforms" Restrict="[^ ]*" DefaultValue="" Description="List of the editor target platforms to build for, separated by semicolons, eg. Win64;Mac"/>
   <Option Name="GameTargetPlatforms" Restrict="[^ ]*" DefaultValue="" Description="List of the game target platforms to build for, separated by semicolons, eg. Win64;Win32;Android"/>
@@ -55,7 +50,8 @@
   <Option Name="HostProjectName" DefaultValue="H" Description="Name for the host project folder and .uproject file" />
 
   <!-- Dynamic scripts to include, used by UET to dynamically generate test and deployment nodes -->
-  <Option Name="ScriptIncludes" DefaultValue="" Description="Additional script includes paths" />
+  <Option Name="ScriptNodeIncludes" DefaultValue="" Description="Additional script includes paths for nodes" />
+  <Option Name="ScriptMacroIncludes" DefaultValue="" Description="Additional script includes paths for macros" />
   
   <Property Name="2017Flag" Value="-2017" />
   <Property Name="2017Flag" Value="" If="'$(Allow2019)' == 'true'" />
@@ -75,6 +71,14 @@
   <Property Name="DynamicNodes" Value="" />
   <Property Name="DynamicOutputFiles" Value="" />
   <Property Name="DynamicPreDeploymentNodes" Value="" />
+  <Property Name="DynamicBeforeAssembleFinalizeMacros" Value="" />
+  <Property Name="DynamicBeforeCompileMacros" Value="" />
+
+  <!-- 
+    Include all the macros dynamically defined by UET.
+  -->
+
+  <Include Script="$(ScriptMacroIncludes)" />
 
   <!--
     Define the macro for creating packages. This macro emits a node (so you don't need a <Node /> around it),
@@ -325,12 +329,12 @@ $(PackageExclude);
         <Log Message="Cleaning filespec: $(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(CleanDirectory)" />
         <Delete Files="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(CleanDirectory)" />
       </ForEach>
-      <ForEach Name="PrepareCustomAssembleFinalizeScript" Values="$(PrepareCustomAssembleFinalizeScripts)">
-        <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass &quot;$(ProjectRoot)/$(PrepareCustomAssembleFinalizeScript)&quot;" />
+      <ForEach Name="MacroName" Values="$(DynamicBeforeAssembleFinalizeMacros)">
+        <Expand Name="$(MacroName)" PackagePath="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)" />
       </ForEach>
       <Log 
         Message="Tagging all files under Source, Content, Resources and Source folders for the #HostProject because you have custom assembly finalize scripts specified."
-        If="'$(PrepareCustomAssembleFinalizeScripts)' != ''"
+        If="'$(DynamicBeforeAssembleFinalizeMacros)' != ''"
       />
       <Tag
         BaseDir="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
@@ -347,7 +351,7 @@ $(PackageExclude);
 .../.git/...
 "
         With="#HostProject"
-        If="'$(PrepareCustomAssembleFinalizeScripts)' != ''"
+        If="'$(DynamicBeforeAssembleFinalizeMacros)' != ''"
       />
     </Node>
 
@@ -362,8 +366,8 @@ $(PackageExclude);
   <Agent Name="Mac Build Editor" Type="Mac" If="'$(IsBuildMachine)' == 'true'">
 
     <Node Name="Compile $(EnginePrefix)Editor Mac" Requires="#HostProject" Produces="#EditorBinaries_Mac" If="'$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorMac)' == 'true'">
-      <ForEach Name="PrepareCustomCompileScript" Values="$(PrepareCustomCompileScripts)">
-        <Spawn Exe="pwsh" Arguments="-ExecutionPolicy Bypass -File '$(ProjectRoot)\$(PrepareCustomCompileScript)'" />
+      <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+        <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Mac" TargetConfiguration="Development" HostPlatform="Mac" />
       </ForEach>
       <Compile Target="$(EnginePrefix)Editor" Platform="Mac" Configuration="Development" Tag="#EditorBinaries_Mac" Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; -NoPDB -NoDebugInfo $(AdditionalArguments)"/>
     </Node>
@@ -375,8 +379,8 @@ $(PackageExclude);
   <Agent Name="Windows Build Editor" Type="Win64">
 
     <Node Name="Compile $(EnginePrefix)Editor Win64" Requires="#HostProject" Produces="#EditorBinaries_Win64" If="'$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorWin64)' == 'true'">
-      <ForEach Name="PrepareCustomCompileScript" Values="$(PrepareCustomCompileScripts)">
-        <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass &quot;$(ProjectRoot)\$(PrepareCustomCompileScript)&quot;" />
+      <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+        <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Win64" TargetConfiguration="Development" HostPlatform="Win64" />
       </ForEach>
       <Compile Target="$(EnginePrefix)Editor" Platform="Win64" Configuration="Development" Tag="#EditorBinaries_Win64" Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(2017Flag) $(AdditionalArguments)"/>
     </Node>
@@ -420,8 +424,8 @@ $(PackageExclude);
       <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
           <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'">
-            <ForEach Name="PrepareCustomCompileScript" Values="$(PrepareCustomCompileScripts)">
-              <Spawn Exe="pwsh" Arguments="-ExecutionPolicy Bypass '$(ProjectRoot)/$(PrepareCustomCompileScript)'" />
+            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+              <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
             </ForEach>
             <Compile
               Target="$(TargetName)"
@@ -465,8 +469,8 @@ $(PackageExclude);
       <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
           <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'">
-            <ForEach Name="PrepareCustomCompileScript" Values="$(PrepareCustomCompileScripts)">
-              <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass &quot;$(ProjectRoot)\$(PrepareCustomCompileScript)&quot;" />
+            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+              <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
             <Compile 
               Target="$(TargetName)" 
@@ -517,8 +521,8 @@ $(PackageExclude);
               File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)/$(HostProjectName)Module.cpp" 
               Text="#include &quot;Modules/ModuleManager.h&quot;&#10;IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, $(HostProjectName), &quot;$(HostProjectName)&quot;);"
             />
-            <ForEach Name="PrepareCustomCompileScript" Values="$(PrepareCustomCompileScripts)">
-              <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass &quot;$(ProjectRoot)\$(PrepareCustomCompileScript)&quot;" />
+            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+              <Expand Name="$(MacroName)" TargetType="Client" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
             <Compile 
               Target="$(TargetName)" 
@@ -552,8 +556,8 @@ $(PackageExclude);
               File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)/$(HostProjectName)Module.cpp" 
               Text="#include &quot;Modules/ModuleManager.h&quot;&#10;IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, $(HostProjectName), &quot;$(HostProjectName)&quot;);"
             />
-            <ForEach Name="PrepareCustomCompileScript" Values="$(PrepareCustomCompileScripts)">
-              <Spawn Exe="powershell.exe" Arguments="-ExecutionPolicy Bypass &quot;$(ProjectRoot)\$(PrepareCustomCompileScript)&quot;" />
+            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+              <Expand Name="$(MacroName)" TargetType="Server" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
             <Compile 
               Target="$(TargetName)" 
@@ -604,7 +608,7 @@ $(PackageExclude);
     Run all of the tests and deployments (which are dynamically defined by UET).
   -->
   
-  <Include Script="$(ScriptIncludes)" />
+  <Include Script="$(ScriptNodeIncludes)" />
   
   <Agent Name="Windows End" Type="Win64">
 

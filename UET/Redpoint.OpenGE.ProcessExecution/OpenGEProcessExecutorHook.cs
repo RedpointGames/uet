@@ -32,6 +32,11 @@
                 return;
             }
 
+            if (!_daemon.IsDaemonRunning)
+            {
+                return;
+            }
+
             var openGEProcessSpecification = (OpenGEProcessSpecification)processSpecification;
             if (!openGEProcessSpecification.DisableOpenGE)
             {

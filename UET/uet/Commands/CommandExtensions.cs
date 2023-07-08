@@ -17,6 +17,7 @@
     using Redpoint.Uet.SdkManagement;
     using Redpoint.Uet.Uat;
     using Redpoint.Uet.Workspace;
+    using Redpoint.Uet.BuildPipeline.Providers.Prepare;
     using Redpoint.Uet.BuildPipeline.Providers.Test;
     using Redpoint.Uet.BuildPipeline.Providers.Deployment;
     using System.CommandLine;
@@ -60,6 +61,7 @@
             services.AddUETBuildPipeline();
             services.AddUETBuildPipelineExecutorsLocal();
             services.AddUETBuildPipelineExecutorsGitLab();
+            services.AddUetBuildPipelineProvidersPrepare();
             services.AddUETBuildPipelineProvidersTest();
             services.AddUETBuildPipelineProvidersDeployment();
             services.AddUETWorkspace();

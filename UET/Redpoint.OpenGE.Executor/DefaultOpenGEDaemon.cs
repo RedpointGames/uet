@@ -61,6 +61,8 @@
             }
         }
 
+        public bool IsDaemonRunning => _hasStarted;
+
         public string GetConnectionString()
         {
             if (!_hasStarted)

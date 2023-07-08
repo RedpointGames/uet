@@ -43,6 +43,7 @@
     <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.GitLab\Redpoint.Uet.BuildPipeline.Executors.GitLab.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.Local\Redpoint.Uet.BuildPipeline.Executors.Local.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Deployment\Redpoint.Uet.BuildPipeline.Providers.Deployment.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Prepare\Redpoint.Uet.BuildPipeline.Providers.Prepare.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Test\Redpoint.Uet.BuildPipeline.Providers.Test.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.BuildPipeline\Redpoint.Uet.BuildPipeline.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.Configuration\Redpoint.Uet.Configuration.csproj" />
@@ -72,6 +73,7 @@
     <EmbeddedResource Include="..\Redpoint.Uet.Configuration\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.Configuration.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.Configuration.xml" />
     <EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Deployment\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Deployment.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Deployment.xml" />
     <EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Test\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Test.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Test.xml" />
+    <EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Prepare\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Prepare.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Prepare.xml" />
   </ItemGroup>
 
   <ItemGroup>

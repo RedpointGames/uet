@@ -167,7 +167,7 @@
             }
         }
 
-        private async Task<string> WriteDynamicBuildGraphIncludeAsync(
+        private async Task<(string nodeInclude, string macroInclude)> WriteDynamicBuildGraphIncludeAsync(
             BuildGraphEnvironment env,
             bool localExecutor,
             object distribution,
@@ -178,18 +178,31 @@
                 env.Windows.SharedStorageAbsolutePath :
                 env.Mac!.SharedStorageAbsolutePath;
             Directory.CreateDirectory(sharedStorageAbsolutePath);
-            var filename = $"DynamicBuildGraph-{Process.GetCurrentProcess().Id}.xml";
-            using (var stream = new FileStream(Path.Combine(sharedStorageAbsolutePath, filename), FileMode.Create, FileAccess.Write, FileShare.None))
+
+            var nodeFilename = $"DynamicBuildGraph-{Process.GetCurrentProcess().Id}.Nodes.xml";
+            var macroFilename = $"DynamicBuildGraph-{Process.GetCurrentProcess().Id}.Macros.xml";
+
+            using (var stream = new FileStream(Path.Combine(sharedStorageAbsolutePath, nodeFilename), FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                await _dynamicBuildGraphIncludeWriter.WriteBuildGraphInclude(
+                await _dynamicBuildGraphIncludeWriter.WriteBuildGraphNodeInclude(
                     stream,
                     localExecutor,
                     distribution,
                     executeTests,
                     executeDeployment);
             }
-            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(sharedStorageAbsolutePath, filename), CancellationToken.None);
-            return $"__SHARED_STORAGE_PATH__/{filename}";
+            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(sharedStorageAbsolutePath, nodeFilename), CancellationToken.None);
+
+            using (var stream = new FileStream(Path.Combine(sharedStorageAbsolutePath, macroFilename), FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                await _dynamicBuildGraphIncludeWriter.WriteBuildGraphMacroInclude(
+                    stream,
+                    localExecutor,
+                    distribution);
+            }
+            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(sharedStorageAbsolutePath, macroFilename), CancellationToken.None);
+
+            return ($"__SHARED_STORAGE_PATH__/{nodeFilename}", $"__SHARED_STORAGE_PATH__/{macroFilename}");
         }
 
         public async Task<BuildSpecification> BuildConfigPluginToBuildSpecAsync(
@@ -232,39 +245,6 @@
                 cleanDirectories.Add(filespec);
             }
 
-            // Compute prepare scripts.
-            var prepareCustomAssembleFinalizeScripts = new List<string>();
-            var prepareCustomCompileScripts = new List<string>();
-            var prepareCustomTestScripts = new List<string>();
-            var prepareCustomBuildGraphScripts = new List<string>();
-            if (distribution.Prepare != null)
-            {
-                foreach (var prepare in distribution.Prepare)
-                {
-                    if (prepare.Type == BuildConfigPluginPrepareType.Custom &&
-                        prepare.Custom != null &&
-                        !string.IsNullOrWhiteSpace(prepare.Custom.ScriptPath))
-                    {
-                        if (prepare.RunBefore.Contains(BuildConfigPluginPrepareRunBefore.AssembleFinalize))
-                        {
-                            prepareCustomAssembleFinalizeScripts.Add(prepare.Custom.ScriptPath);
-                        }
-                        if (prepare.RunBefore.Contains(BuildConfigPluginPrepareRunBefore.Compile))
-                        {
-                            prepareCustomCompileScripts.Add(prepare.Custom.ScriptPath);
-                        }
-                        if (prepare.RunBefore.Contains(BuildConfigPluginPrepareRunBefore.Test))
-                        {
-                            prepareCustomTestScripts.Add(prepare.Custom.ScriptPath);
-                        }
-                        if (prepare.RunBefore.Contains(BuildConfigPluginPrepareRunBefore.BuildGraph))
-                        {
-                            prepareCustomBuildGraphScripts.Add(prepare.Custom.ScriptPath);
-                        }
-                    }
-                }
-            }
-
             // If strict includes is turned on at the distribution level, enable it
             // regardless of the --strict-includes setting.
             var strictIncludesAtPluginLevel = distribution.Build?.StrictIncludes ?? false;
@@ -294,7 +274,7 @@
             }
 
             // Write dynamic build includes for tests and deployments.
-            var scriptIncludes = await WriteDynamicBuildGraphIncludeAsync(
+            var (scriptNodeIncludes, scriptMacroIncludes) = await WriteDynamicBuildGraphIncludeAsync(
                 buildGraphEnvironment,
                 localExecutor,
                 distribution,
@@ -338,6 +318,19 @@
                 }
             }
 
+            // Compute global environment variables.
+            var globalEnvironmentVariables = new Dictionary<string, string>
+            {
+                { "BUILDING_FOR_REDISTRIBUTION", "true" },
+            };
+            if (distribution.EnvironmentVariables != null)
+            {
+                foreach (var kv in distribution.EnvironmentVariables)
+                {
+                    globalEnvironmentVariables[kv.Key] = kv.Value;
+                }
+            }
+
             // Compute final settings for BuildGraph.
             return new BuildSpecification
             {
@@ -358,18 +351,14 @@
                     { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
-                    { "ScriptIncludes", scriptIncludes },
+                    { "ScriptNodeIncludes", scriptNodeIncludes },
+                    { "ScriptMacroIncludes", scriptMacroIncludes },
 
                     // General options
                     { "IsUnrealEngine5", "true" },
 
                     // Clean options
                     { $"CleanDirectories", string.Join(";", cleanDirectories) },
-
-                    // Prepare options
-                    { $"PrepareCustomAssembleFinalizeScripts", string.Join(";", prepareCustomAssembleFinalizeScripts) },
-                    { $"PrepareCustomCompileScripts", string.Join(";", prepareCustomCompileScripts) },
-                    { $"PrepareCustomTestScripts", string.Join(";", prepareCustomTestScripts) },
 
                     // Build options
                     { $"ExecuteBuild", executeBuild ? "true" : "false" },
@@ -394,12 +383,8 @@
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = repositoryRoot,
-                BuildGraphPreparationScripts = prepareCustomBuildGraphScripts,
                 UETPath = _selfLocation.GetUETLocalLocation(),
-                GlobalEnvironmentVariables = new Dictionary<string, string>
-                {
-                    { "BUILDING_FOR_REDISTRIBUTION", "true" },
-                },
+                GlobalEnvironmentVariables = globalEnvironmentVariables,
                 ProjectFolderName = null,
                 ArtifactExportPath = Environment.CurrentDirectory,
             };
@@ -422,31 +407,8 @@
             var clientConfig = ComputeTargetConfig("Client", distribution.Build.Client, localExecutor);
             var serverConfig = ComputeTargetConfig("Server", distribution.Build.Server, localExecutor);
 
-            // Compute prepare scripts.
-            var prepareCustomCompileScripts = new List<string>();
-            var prepareCustomBuildGraphScripts = new List<string>();
-            if (distribution.Prepare != null)
-            {
-                foreach (var prepare in distribution.Prepare)
-                {
-                    if (prepare.Type == BuildConfigProjectPrepareType.Custom &&
-                        prepare.Custom != null &&
-                        !string.IsNullOrWhiteSpace(prepare.Custom.ScriptPath))
-                    {
-                        if (prepare.RunBefore.Contains(BuildConfigProjectPrepareRunBefore.Compile))
-                        {
-                            prepareCustomCompileScripts.Add(prepare.Custom.ScriptPath);
-                        }
-                        if (prepare.RunBefore.Contains(BuildConfigProjectPrepareRunBefore.BuildGraph))
-                        {
-                            prepareCustomBuildGraphScripts.Add(prepare.Custom.ScriptPath);
-                        }
-                    }
-                }
-            }
-
             // Write dynamic build includes for tests and deployments.
-            var scriptIncludes = await WriteDynamicBuildGraphIncludeAsync(
+            var (scriptNodeIncludes, scriptMacroIncludes) = await WriteDynamicBuildGraphIncludeAsync(
                 buildGraphEnvironment,
                 localExecutor,
                 distribution,
@@ -470,15 +432,13 @@
                     { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
-                    { "ScriptIncludes", scriptIncludes },
+                    { "ScriptNodeIncludes", scriptNodeIncludes },
+                    { "ScriptMacroIncludes", scriptMacroIncludes },
 
                     // General options
                     { $"UProjectPath", $"__REPOSITORY_ROOT__/{distribution.FolderName}/{distribution.ProjectName}.uproject" },
                     { $"Distribution", distribution.Name },
                     { "IsUnrealEngine5", "true" },
-
-                    // Prepare options
-                    { $"PrepareCustomCompileScripts", string.Join(";", prepareCustomCompileScripts) },
 
                     // Build options
                     { $"ExecuteBuild", executeBuild ? "true" : "false" },
@@ -500,7 +460,6 @@
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = repositoryRoot,
-                BuildGraphPreparationScripts = prepareCustomBuildGraphScripts,
                 UETPath = _selfLocation.GetUETLocalLocation(),
                 ProjectFolderName = distribution.FolderName,
                 ArtifactExportPath = Environment.CurrentDirectory,
@@ -579,11 +538,6 @@
 
                     // Clean options
                     { $"CleanDirectories", string.Empty },
-
-                    // Prepare options
-                    { $"PrepareCustomAssembleFinalizeScripts", string.Empty },
-                    { $"PrepareCustomCompileScripts", string.Empty },
-                    { $"PrepareCustomTestScripts", string.Empty },
 
                     // Build options
                     { $"ExecuteBuild", "true" },
@@ -668,9 +622,6 @@
                     { $"UProjectPath", $"__REPOSITORY_ROOT__/{Path.GetFileName(pathSpec.UProjectPath)}" },
                     { $"Distribution", "None" },
                     { "IsUnrealEngine5", "true" },
-
-                    // Prepare options
-                    { $"PrepareCustomCompileScripts", string.Empty },
 
                     // Build options
                     { $"ExecuteBuild", "true" },

@@ -3,6 +3,9 @@
     using Redpoint.Uet.Configuration.Dynamic;
     using System.Text.Json.Serialization;
 
+    /// <summary>
+    /// Specifies how to build, cook, test and deploy an Unreal Engine project.
+    /// </summary>
     public class BuildConfigProjectDistribution
     {
         /// <summary>
@@ -27,7 +30,7 @@
         /// Specifies the preparation scripts to run before various steps. You can specify multiple preparation entries.
         /// </summary>
         [JsonPropertyName("Prepare"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public BuildConfigProjectPrepare[]? Prepare { get; set; }
+        public BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>[]? Prepare { get; set; }
 
         /// <summary>
         /// Specifies how to build, cook and stage the project.
