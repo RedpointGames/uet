@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Steam
 {
+    using Redpoint.RuntimeJson;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Project;
     using System;
@@ -14,14 +15,7 @@
     {
         public string Type => "Steam";
 
-        public JsonTypeInfo DynamicSettingsJsonTypeInfo => DeploymentProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectDeploymentSteam;
-
-        public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => DeploymentProviderSourceGenerationContext.WithStringEnum;
-
-        public object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options)
-        {
-            return JsonSerializer.Deserialize(ref reader, DeploymentProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectDeploymentSteam)!;
-        }
+        public IRuntimeJson DynamicSettings { get; } = new DeploymentProviderRuntimeJson(DeploymentProviderSourceGenerationContext.WithStringEnum).BuildConfigProjectDeploymentSteam;
 
         public Task WriteBuildGraphNodesAsync(IBuildGraphEmitContext context, XmlWriter writer, BuildConfigProjectDistribution buildConfigDistribution, IEnumerable<BuildConfigDynamic<BuildConfigProjectDistribution, IDeploymentProvider>> elements)
         {

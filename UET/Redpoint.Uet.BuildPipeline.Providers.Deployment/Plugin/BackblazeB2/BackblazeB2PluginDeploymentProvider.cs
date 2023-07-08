@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Deployment.Plugin.BackblazeB2
 {
+    using Redpoint.RuntimeJson;
     using Redpoint.Uet.BuildGraph;
     using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Configuration.Dynamic;
@@ -23,14 +24,7 @@
 
         public string Type => "BackblazeB2";
 
-        public JsonTypeInfo DynamicSettingsJsonTypeInfo => DeploymentProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginDeploymentBackblazeB2;
-
-        public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => DeploymentProviderSourceGenerationContext.WithStringEnum;
-
-        public object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options)
-        {
-            return JsonSerializer.Deserialize(ref reader, DeploymentProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginDeploymentBackblazeB2)!;
-        }
+        public IRuntimeJson DynamicSettings { get; } = new DeploymentProviderRuntimeJson(DeploymentProviderSourceGenerationContext.WithStringEnum).BuildConfigPluginDeploymentBackblazeB2;
 
         public async Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,

@@ -3,6 +3,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using System.Text.Json.Serialization;
     using System.Text.Json;
+    using System.Reflection.PortableExecutable;
 
     public abstract class BuildConfigDynamicConverter<TDistribution, TBaseClass> : JsonConverter<BuildConfigDynamic<TDistribution, TBaseClass>>
     {
@@ -127,7 +128,7 @@
                         default:
                             if (propertyName == provider.Type)
                             {
-                                result.DynamicSettings = provider.DeserializeDynamicSettings(ref reader, options);
+                                result.DynamicSettings = provider.DynamicSettings.Deserialize(ref reader);
                                 gotDynamicSettings = true;
                             }
                             else
@@ -161,7 +162,26 @@
             BuildConfigDynamic<TDistribution, TBaseClass> value,
             JsonSerializerOptions options)
         {
-            throw new NotSupportedException();
+            var provider = _providers.First(x => x.Type == value.Type);
+
+            writer.WriteStartObject();
+
+            writer.WriteString("Name", value.Name);
+            writer.WriteString("Type", value.Type);
+            if (value.Manual.HasValue)
+            {
+                writer.WriteBoolean("Manual", value.Manual.Value);
+            }
+            else
+            {
+                writer.WriteNull("Manual");
+            }
+
+            writer.WritePropertyName(value.Type);
+
+            provider.DynamicSettings.Serialize(writer, value.DynamicSettings);
+
+            writer.WriteEndObject();
         }
     }
 }

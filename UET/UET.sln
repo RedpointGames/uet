@@ -223,6 +223,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ThirdParty.Microso
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.BuildPipeline.Providers.Prepare", "Redpoint.Uet.BuildPipeline.Providers.Prepare\Redpoint.Uet.BuildPipeline.Providers.Prepare.csproj", "{C556AE5A-5378-405F-988E-6B29D56FB2E1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.RuntimeJson", "Redpoint.RuntimeJson\Redpoint.RuntimeJson.csproj", "{456471ED-B935-432E-829B-9F384039D46C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.RuntimeJson.SourceGenerator", "Redpoint.RuntimeJson.SourceGenerator\Redpoint.RuntimeJson.SourceGenerator.csproj", "{DD298D20-E38E-4376-8A48-CBC9BA54A34F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -653,6 +657,14 @@ Global
 		{C556AE5A-5378-405F-988E-6B29D56FB2E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C556AE5A-5378-405F-988E-6B29D56FB2E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C556AE5A-5378-405F-988E-6B29D56FB2E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{456471ED-B935-432E-829B-9F384039D46C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{456471ED-B935-432E-829B-9F384039D46C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{456471ED-B935-432E-829B-9F384039D46C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{456471ED-B935-432E-829B-9F384039D46C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD298D20-E38E-4376-8A48-CBC9BA54A34F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD298D20-E38E-4376-8A48-CBC9BA54A34F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD298D20-E38E-4376-8A48-CBC9BA54A34F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD298D20-E38E-4376-8A48-CBC9BA54A34F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

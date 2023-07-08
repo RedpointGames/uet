@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Downstream
 {
+    using Redpoint.RuntimeJson;
     using Redpoint.Uet.BuildGraph;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Custom;
     using Redpoint.Uet.Configuration;
@@ -24,14 +25,7 @@
 
         public string Type => "Downstream";
 
-        public JsonTypeInfo DynamicSettingsJsonTypeInfo => TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestDownstream;
-
-        public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => TestProviderSourceGenerationContext.WithStringEnum;
-
-        public object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options)
-        {
-            return JsonSerializer.Deserialize(ref reader, TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestDownstream)!;
-        }
+        public IRuntimeJson DynamicSettings { get; } = new TestProviderRuntimeJson(TestProviderSourceGenerationContext.WithStringEnum).BuildConfigPluginTestDownstream;
 
         public async Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,

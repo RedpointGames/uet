@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
@@ -14,6 +14,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+    <ProjectReference Include="..\Redpoint.RuntimeJson.SourceGenerator\Redpoint.RuntimeJson.SourceGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\Redpoint.Uet.BuildGraph\Redpoint.Uet.BuildGraph.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.Configuration\Redpoint.Uet.Configuration.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.Workspace\Redpoint.Uet.Workspace.csproj" />

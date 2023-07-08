@@ -288,15 +288,15 @@
                     writer.WriteStartObject();
                     GeneratePropertiesForObject(
                         writer,
-                        type.DynamicSettingsJsonTypeInfo,
-                        type.DynamicSettingsJsonTypeInfoResolver,
-                        type.DynamicSettingsJsonTypeInfo.Properties);
+                        type.DynamicSettings.JsonTypeInfo,
+                        type.DynamicSettings.JsonSerializerContext,
+                        type.DynamicSettings.JsonTypeInfo.Properties);
                     writer.WriteEndObject();
-                    if (type.DynamicSettingsJsonTypeInfo.Properties.Any(x => x.IsRequired))
+                    if (type.DynamicSettings.JsonTypeInfo.Properties.Any(x => x.IsRequired))
                     {
                         writer.WritePropertyName("required");
                         writer.WriteStartArray();
-                        foreach (var property in type.DynamicSettingsJsonTypeInfo.Properties.Where(x => x.IsRequired))
+                        foreach (var property in type.DynamicSettings.JsonTypeInfo.Properties.Where(x => x.IsRequired))
                         {
                             writer.WriteStringValue(property.Name);
                         }
