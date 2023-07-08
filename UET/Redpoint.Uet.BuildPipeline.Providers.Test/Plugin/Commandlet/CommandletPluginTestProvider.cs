@@ -196,49 +196,67 @@
                             commandletCts.Cancel();
                         }, timerCts.Token);
                     }
-                    exitCode = await _processExecutor.ExecuteAsync(
-                        new ProcessSpecification
-                        {
-                            FilePath = OperatingSystem.IsWindows()
-                                ? Path.Combine(runtimeValues["EnginePath"], "Engine", "Binaries", "Win64", "UnrealEditor-Cmd.exe")
-                                : Path.Combine(runtimeValues["EnginePath"], "Engine", "Binaries", "Mac", "UnrealEditor-Cmd"),
-                            Arguments = new[]
+                    try
+                    {
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
                             {
-                                runtimeValues["TestProjectPath"],
-                                $"-run={config.Name}",
-                                "-NullRHI",
-                                "-log",
-                                "-stdout",
-                                "-FullStdOutLogOutput",
-                            }.Concat(config.AdditionalArguments ?? Array.Empty<string>()).ToArray(),
-                        },
-                        CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
-                        {
-                            ReceiveStdout = (line) =>
-                            {
-                                if (!string.IsNullOrWhiteSpace(config.LogStartSignal))
+                                FilePath = OperatingSystem.IsWindows()
+                                    ? Path.Combine(runtimeValues["EnginePath"], "Engine", "Binaries", "Win64", "UnrealEditor-Cmd.exe")
+                                    : Path.Combine(runtimeValues["EnginePath"], "Engine", "Binaries", "Mac", "UnrealEditor-Cmd"),
+                                Arguments = new[]
                                 {
-                                    if (line.Contains(config.LogStartSignal))
-                                    {
-                                        // The commandlet is running because we got the signal.
-                                        _logger.LogInformation("Detected that the commandlet has started based on LogStartSignal!");
-                                        timerCts.Cancel();
-                                    }
-                                }
-                                return true;
+                                    runtimeValues["TestProjectPath"],
+                                    $"-run={config.Name}",
+                                    "-NullRHI",
+                                    "-log",
+                                    "-stdout",
+                                    "-FullStdOutLogOutput",
+                                }.Concat(config.AdditionalArguments ?? Array.Empty<string>()).ToArray(),
                             },
-                        }),
-                        commandletCts.Token);
-                    if (exitCode != 0)
+                            CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
+                            {
+                                ReceiveStdout = (line) =>
+                                {
+                                    if (!string.IsNullOrWhiteSpace(config.LogStartSignal))
+                                    {
+                                        if (line.Contains(config.LogStartSignal))
+                                        {
+                                            // The commandlet is running because we got the signal.
+                                            _logger.LogInformation("Detected that the commandlet has started based on LogStartSignal!");
+                                            timerCts.Cancel();
+                                        }
+                                    }
+                                    return true;
+                                },
+                            }),
+                            commandletCts.Token);
+                        if (exitCode != 0)
+                        {
+                            if (lastAttempt)
+                            {
+                                _logger.LogError($"Commandlet exited with non-zero exit code {exitCode}.");
+                                return exitCode;
+                            }
+                            else
+                            {
+                                _logger.LogWarning($"Commandlet exited with non-zero exit code {exitCode}, retrying test...");
+                                continue;
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException) when (
+                        commandletCts.IsCancellationRequested &&
+                        !cancellationToken.IsCancellationRequested)
                     {
                         if (lastAttempt)
                         {
-                            _logger.LogError($"Commandlet exited with non-zero exit code {exitCode}.");
-                            return exitCode;
+                            _logger.LogError($"Commandlet timed out on last attempt.");
+                            return 1;
                         }
                         else
                         {
-                            _logger.LogWarning($"Commandlet exited with non-zero exit code {exitCode}, retrying test...");
+                            _logger.LogWarning($"Commandlet timed out, retrying test...");
                             continue;
                         }
                     }
