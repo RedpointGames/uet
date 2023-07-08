@@ -79,6 +79,13 @@
   -->
 
   <Include Script="$(ScriptMacroIncludes)" />
+  
+  <!--
+    Workaround an issue where PCH files are incorrectly re-used even when the engine version changes.
+  -->
+  <Macro Name="RemoveStalePrecompiledHeaders" Arguments="ProjectPath;TargetName;TargetPlatform;TargetConfiguration">
+    <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal remove-stale-precompiled-headers --engine-path &quot;$(EnginePath)&quot; --project-path &quot;$(ProjectPath)&quot; --target-name &quot;$(TargetName)&quot; --target-platform &quot;$(TargetPlatform)&quot; --target-configuration &quot;$(TargetConfiguration)&quot;" />
+  </Macro>
 
   <!--
     Define the macro for creating packages. This macro emits a node (so you don't need a <Node /> around it),
@@ -369,6 +376,7 @@ $(PackageExclude);
       <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
         <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Mac" TargetConfiguration="Development" HostPlatform="Mac" />
       </ForEach>
+      <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(TempPath)/$(HostProjectName)" TargetName="$(EnginePrefix)Editor" TargetPlatform="Mac" TargetConfiguration="Development" />
       <Compile Target="$(EnginePrefix)Editor" Platform="Mac" Configuration="Development" Tag="#EditorBinaries_Mac" Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; -NoPDB -NoDebugInfo $(AdditionalArguments)"/>
     </Node>
     <Property Name="EditorBinaries" Value="$(EditorBinaries)#EditorBinaries_Mac;" If="'$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorMac)' == 'true'" />
@@ -382,6 +390,7 @@ $(PackageExclude);
       <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
         <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Win64" TargetConfiguration="Development" HostPlatform="Win64" />
       </ForEach>
+      <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(TempPath)/$(HostProjectName)" TargetName="$(EnginePrefix)Editor" TargetPlatform="Win64" TargetConfiguration="Development" />
       <Compile Target="$(EnginePrefix)Editor" Platform="Win64" Configuration="Development" Tag="#EditorBinaries_Win64" Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(2017Flag) $(AdditionalArguments)"/>
     </Node>
     <Property Name="EditorBinaries" Value="$(EditorBinaries)#EditorBinaries_Win64;" If="'$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorWin64)' == 'true'" />
@@ -427,6 +436,12 @@ $(PackageExclude);
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
               <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
             </ForEach>
+            <Expand 
+              Name="RemoveStalePrecompiledHeaders" 
+              ProjectPath="$(TempPath)/$(HostProjectName)" 
+              TargetName="$(TargetName)" 
+              TargetPlatform="$(TargetPlatform)" 
+              TargetConfiguration="$(TargetConfiguration)" />
             <Compile
               Target="$(TargetName)"
               Platform="$(TargetPlatform)"
@@ -472,6 +487,12 @@ $(PackageExclude);
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
               <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
+            <Expand
+              Name="RemoveStalePrecompiledHeaders"
+              ProjectPath="$(TempPath)/$(HostProjectName)"
+              TargetName="$(TargetName)"
+              TargetPlatform="$(TargetPlatform)"
+              TargetConfiguration="$(TargetConfiguration)" />
             <Compile 
               Target="$(TargetName)" 
               Platform="$(TargetPlatform)" 
@@ -524,6 +545,12 @@ $(PackageExclude);
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
               <Expand Name="$(MacroName)" TargetType="Client" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
+            <Expand
+              Name="RemoveStalePrecompiledHeaders"
+              ProjectPath="$(TempPath)/$(HostProjectName)"
+              TargetName="$(TargetName)"
+              TargetPlatform="$(TargetPlatform)"
+              TargetConfiguration="$(TargetConfiguration)" />
             <Compile 
               Target="$(TargetName)" 
               Platform="$(TargetPlatform)" 
@@ -559,6 +586,12 @@ $(PackageExclude);
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
               <Expand Name="$(MacroName)" TargetType="Server" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
+            <Expand
+              Name="RemoveStalePrecompiledHeaders"
+              ProjectPath="$(TempPath)/$(HostProjectName)"
+              TargetName="$(TargetName)"
+              TargetPlatform="$(TargetPlatform)"
+              TargetConfiguration="$(TargetConfiguration)" />
             <Compile 
               Target="$(TargetName)" 
               Platform="$(TargetPlatform)" 

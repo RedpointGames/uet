@@ -60,7 +60,14 @@
   -->
 
   <Include Script="$(ScriptMacroIncludes)" />
-
+  
+  <!--
+    Workaround an issue where PCH files are incorrectly re-used even when the engine version changes.
+  -->
+  <Macro Name="RemoveStalePrecompiledHeaders" Arguments="ProjectPath;TargetName;TargetPlatform;TargetConfiguration">
+    <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal remove-stale-precompiled-headers --engine-path &quot;$(EnginePath)&quot; --project-path &quot;$(ProjectPath)&quot; --target-name &quot;$(TargetName)&quot; --target-platform &quot;$(TargetPlatform)&quot; --target-configuration &quot;$(TargetConfiguration)&quot;" />
+  </Macro>
+  
   <!-- Targets that we will execute on a Windows machine. -->
   <Agent Name="Windows Build" Type="Win64" If="'$(ExecuteBuild)' == 'true'">
 
@@ -69,6 +76,7 @@
       <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
         <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EditorTarget)" TargetPlatform="Win64" TargetConfiguration="Development" HostPlatform="Win64" />
       </ForEach>
+      <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(EditorTarget)" TargetPlatform="Win64" TargetConfiguration="Development" />
       <Compile Target="$(EditorTarget)" Platform="Win64" Configuration="Development" Tag="#EditorBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" />
     </Node>
 
@@ -80,6 +88,7 @@
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
               <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
+            <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
             <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
             <Tag Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
 			      <SanitizeReceipt Files="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
@@ -97,6 +106,7 @@
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
               <Expand Name="$(MacroName)" TargetType="Client" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
+            <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
             <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
             <Tag Files="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
 			      <SanitizeReceipt Files="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
@@ -114,6 +124,7 @@
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
               <Expand Name="$(MacroName)" TargetType="Server" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
+            <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
             <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
             <Tag Files="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
 			      <SanitizeReceipt Files="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
@@ -136,6 +147,7 @@
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
               <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
             </ForEach>
+            <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
             <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
             <Tag Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
 			      <SanitizeReceipt Files="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
@@ -153,6 +165,7 @@
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
               <Expand Name="$(MacroName)" TargetType="Client" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
             </ForEach>
+            <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
             <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
             <Tag Files="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
 			      <SanitizeReceipt Files="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
@@ -170,6 +183,7 @@
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
               <Expand Name="$(MacroName)" TargetType="Server" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
             </ForEach>
+            <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
             <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
             <Tag Files="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
 			      <SanitizeReceipt Files="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />

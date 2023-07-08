@@ -144,6 +144,18 @@
                                 },
                                 async writer =>
                                 {
+                                    await writer.WriteExpandAsync(
+                                        new ExpandElementProperties
+                                        {
+                                            Name = "RemoveStalePrecompiledHeaders",
+                                            Attributes =
+                                            {
+                                                { "ProjectPath", GetTestProjectUProjectFilePath(platform) },
+                                                { "TargetName", $"$(EnginePrefix)Editor" },
+                                                { "TargetPlatform", platform.ToString() },
+                                                { "TargetConfiguration", "Development" },
+                                            }
+                                        });
                                     await writer.WriteCompileAsync(
                                         new CompileElementProperties
                                         {
