@@ -1,0 +1,64 @@
+[
+    {
+        "Name": "Build",
+        "Type": "uet",
+        "Arguments": [
+            "build",
+            "-e",
+            "5.2"
+        ]
+    },
+    {
+        "Name": "BuildShipping",
+        "Type": "uet",
+        "Arguments": [
+            "build",
+            "-e",
+            "5.2",
+            "--shipping"
+        ]
+    },
+    {
+        "Name": "BuildIWYU",
+        "Type": "uet",
+        "Arguments": [
+            "build",
+            "-e",
+            "5.2",
+            "--strict-includes"
+        ]
+    },
+    {
+        "Name": "BuildAndroid",
+        "Type": "uet",
+        "Arguments": [
+            "build",
+            "-e",
+            "5.2",
+            "--platform",
+            "Android"
+        ]
+    },
+    {
+        "Name": "PackageRedist",
+        "Type": "uet",
+        "Arguments": [
+            "build",
+            "-e",
+            "5.2",
+            "--plugin-package",
+            "redistributable"
+        ]
+    },
+    {
+        "Name": "PackageMarketplace",
+        "Type": "uet",
+        "Arguments": [
+            "build",
+            "-e",
+            "5.2",
+            "--plugin-package",
+            "marketplace"
+        ]
+    }
+]

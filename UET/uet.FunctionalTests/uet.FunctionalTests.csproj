@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
+
+  <Target Name="PublishUetAndShim" BeforeTargets="BeforeBuild" Condition="'$(RuntimeIdentifier)' == ''">
+    <ItemGroup>
+      <RuntimeIdentifierForPublish Include="$(RuntimeIdentifiers)" />
+      <ProjectToPublish Include="..\uet\uet.csproj" Condition="!Exists('..\uet\bin\Debug\net7.0\win-x64\publish\uet.exe')">
+        <AdditionalProperties>RuntimeIdentifier=win-x64</AdditionalProperties>
+      </ProjectToPublish>
+      <ProjectToPublish Include="..\uet.shim\uet.shim.csproj" Condition="!Exists('..\uet.shim\bin\Debug\net7.0\win-x64\publish\uet.exe')">
+        <AdditionalProperties>RuntimeIdentifier=win-x64</AdditionalProperties>
+      </ProjectToPublish>
+    </ItemGroup>
+    <MSBuild Projects="@(ProjectToPublish)" Targets="Publish" BuildInParallel="true" />
+  </Target>
+
+  <ItemGroup>
+    <Content Include="..\uet\bin\Debug\net7.0\win-x64\publish\uet.exe" Link="uet.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\uet.shim\bin\Debug\net7.0\win-x64\publish\uet.exe" Link="uet.shim.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Tests\**" />
+    <Content Remove="Tests\**" />
+    <EmbeddedResource Remove="Tests\**" />
+    <None Include="Tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,21 @@
+{
+    "FileVersion": 3,
+    "Version": 10000,
+    "VersionName": "Unversioned",
+    "FriendlyName": "UET Test Plugin",
+    "Description": "Plugin for testing UET behaviour.",
+    "Category": "Other",
+    "CreatedBy": "Test Author",
+    "CanContainContent": true,
+    "IsBetaVersion": false,
+    "IsExperimentalVersion": false,
+    "Installed": false,
+    "Modules": [
+      {
+        "Name": "UETTestModule",
+        "Type": "Runtime",
+        "LoadingPhase": "Default"
+      }
+    ]
+  }
+  

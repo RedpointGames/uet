@@ -2,3 +2,6 @@
 *.csproj.user
 TestResults/
 UET/Redpoint.OpenGE.ProcessExecution/shim-bin/
+UET/uet.FunctionalTests/Tests/**/.uet
+UET/uet.FunctionalTests/Tests/**/Engine
+UET/uet.FunctionalTests/Tests/**/*.zip
