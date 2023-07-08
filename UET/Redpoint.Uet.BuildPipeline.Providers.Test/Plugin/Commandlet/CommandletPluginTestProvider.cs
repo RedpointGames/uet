@@ -3,6 +3,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
+    using Redpoint.RuntimeJson;
     using Redpoint.Uet.BuildGraph;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Plugin;
@@ -38,24 +39,7 @@
 
         public string Type => "Commandlet";
 
-        public JsonTypeInfo DynamicSettingsJsonTypeInfo => TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestCommandlet;
-
-        public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => TestProviderSourceGenerationContext.WithStringEnum;
-
-        public object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options)
-        {
-            return JsonSerializer.Deserialize(
-                ref reader,
-                TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestCommandlet)!;
-        }
-
-        public void SerializeDynamicSettings(Utf8JsonWriter writer, BuildConfigPluginTestCommandlet value, JsonSerializerOptions options)
-        {
-            JsonSerializer.Serialize(
-                writer,
-                value,
-                TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestCommandlet);
-        }
+        public IRuntimeJson DynamicSettings { get; } = new TestProviderRuntimeJson(TestProviderSourceGenerationContext.WithStringEnum).BuildConfigPluginTestCommandlet;
 
         public async Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,

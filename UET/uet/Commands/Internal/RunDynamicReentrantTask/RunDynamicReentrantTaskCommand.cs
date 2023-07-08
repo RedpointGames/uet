@@ -95,13 +95,7 @@
             private object DeserializeDynamicSettings<T>(IDynamicReentrantExecutor<T> reentrantExecutor, byte[] jsonBytes)
             {
                 var reader = new Utf8JsonReader(jsonBytes);
-                return reentrantExecutor.DeserializeDynamicSettings(ref reader, new JsonSerializerOptions
-                {
-                    Converters =
-                    {
-                        new JsonStringEnumConverter(),
-                    }
-                });
+                return reentrantExecutor.DynamicSettings.Deserialize(ref reader);
             }
 
             private async Task<int> ExecuteAsync<T>(

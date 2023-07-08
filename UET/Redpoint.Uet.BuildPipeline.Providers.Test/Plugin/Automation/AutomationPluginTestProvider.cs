@@ -15,6 +15,7 @@
     using Redpoint.Uet.Automation.Model;
     using System.Text.Json.Serialization.Metadata;
     using System.Text.Json.Serialization;
+    using Redpoint.RuntimeJson;
 
     internal class AutomationPluginTestProvider : IPluginTestProvider, IDynamicReentrantExecutor<BuildConfigPluginDistribution, BuildConfigPluginTestAutomation>
     {
@@ -40,19 +41,7 @@
 
         public string Type => "Automation";
 
-        public JsonTypeInfo DynamicSettingsJsonTypeInfo => TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestAutomation;
-
-        public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => TestProviderSourceGenerationContext.WithStringEnum;
-
-        public object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options)
-        {
-            return JsonSerializer.Deserialize(ref reader, TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestAutomation)!;
-        }
-
-        public void SerializeDynamicSettings(Utf8JsonWriter writer, BuildConfigPluginTestAutomation value, JsonSerializerOptions options)
-        {
-            JsonSerializer.Serialize(writer, value, TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestAutomation);
-        }
+        public IRuntimeJson DynamicSettings { get; } = new TestProviderRuntimeJson(TestProviderSourceGenerationContext.WithStringEnum).BuildConfigPluginTestAutomation;
 
         public async Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,

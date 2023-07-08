@@ -9,6 +9,7 @@
     using Redpoint.Uet.Configuration;
     using System.Text.Json.Serialization.Metadata;
     using System.Text.Json.Serialization;
+    using Redpoint.RuntimeJson;
 
     internal class CustomPluginTestProvider : IPluginTestProvider
     {
@@ -22,14 +23,7 @@
 
         public string Type => "Custom";
 
-        public JsonTypeInfo DynamicSettingsJsonTypeInfo => TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestCustom;
-
-        public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => TestProviderSourceGenerationContext.WithStringEnum;
-
-        public object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options)
-        {
-            return JsonSerializer.Deserialize(ref reader, TestProviderSourceGenerationContext.WithStringEnum.BuildConfigPluginTestCustom)!;
-        }
+        public IRuntimeJson DynamicSettings { get; } = new TestProviderRuntimeJson(TestProviderSourceGenerationContext.WithStringEnum).BuildConfigPluginTestCustom;
 
         public async Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,

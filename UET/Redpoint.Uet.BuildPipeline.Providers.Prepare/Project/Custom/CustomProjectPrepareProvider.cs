@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
+    using Redpoint.RuntimeJson;
     using Redpoint.Uet.BuildGraph;
     using Redpoint.Uet.BuildPipeline.Providers.Prepare.Plugin.Custom;
     using Redpoint.Uet.Configuration.Dynamic;
@@ -30,16 +31,7 @@
 
         public string Type => "Custom";
 
-        public JsonTypeInfo DynamicSettingsJsonTypeInfo => PrepareProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectPrepareCustom;
-
-        public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => PrepareProviderSourceGenerationContext.WithStringEnum;
-
-        public object DeserializeDynamicSettings(
-            ref Utf8JsonReader reader,
-            JsonSerializerOptions options)
-        {
-            return JsonSerializer.Deserialize(ref reader, PrepareProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectPrepareCustom)!;
-        }
+        public IRuntimeJson DynamicSettings { get; } = new PrepareProviderRuntimeJson(PrepareProviderSourceGenerationContext.WithStringEnum).BuildConfigProjectPrepareCustom;
 
         public async Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,
@@ -125,7 +117,7 @@
                             // We don't emit anything in the graph for these.
                             break;
                         default:
-                            throw new NotSupportedException();
+                            throw new NotSupportedException($"The RunBefore type of '{runBefore}' is not supported for CustomProjectPrepareProvider.");
                     }
                 }
             }

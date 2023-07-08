@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.Configuration.Dynamic
 {
+    using Redpoint.RuntimeJson;
     using System.Text.Json;
     using System.Text.Json.Serialization;
     using System.Text.Json.Serialization.Metadata;
@@ -8,11 +9,7 @@
 
     public interface IDynamicProvider
     {
-        JsonTypeInfo DynamicSettingsJsonTypeInfo { get; }
-
-        JsonSerializerContext DynamicSettingsJsonTypeInfoResolver { get; }
-
-        object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options);
+        IRuntimeJson DynamicSettings { get; }
     }
 
     public interface IDynamicProvider<TDistribution, TBaseClass> : IDynamicProviderRegistration, IDynamicProvider

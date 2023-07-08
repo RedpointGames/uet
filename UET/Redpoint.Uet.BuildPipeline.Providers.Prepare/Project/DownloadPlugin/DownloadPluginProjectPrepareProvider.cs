@@ -2,6 +2,7 @@
 {
     using Microsoft.AspNetCore.Connections.Features;
     using Microsoft.Extensions.Logging;
+    using Redpoint.RuntimeJson;
     using Redpoint.Uet.BuildGraph;
     using Redpoint.Uet.BuildPipeline.Providers.Prepare.Project.Custom;
     using Redpoint.Uet.Configuration.Dynamic;
@@ -34,19 +35,7 @@
 
         public string Type => "DownloadPlugin";
 
-        public JsonTypeInfo DynamicSettingsJsonTypeInfo => PrepareProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectPrepareDownloadPlugin;
-
-        public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => PrepareProviderSourceGenerationContext.WithStringEnum;
-
-        public object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options)
-        {
-            return JsonSerializer.Deserialize(ref reader, PrepareProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectPrepareDownloadPlugin)!;
-        }
-
-        public void SerializeDynamicSettings(Utf8JsonWriter writer, BuildConfigProjectPrepareDownloadPlugin value, JsonSerializerOptions options)
-        {
-            JsonSerializer.Serialize(writer, value, PrepareProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectPrepareDownloadPlugin);
-        }
+        public IRuntimeJson DynamicSettings { get; } = new PrepareProviderRuntimeJson(PrepareProviderSourceGenerationContext.WithStringEnum).BuildConfigProjectPrepareDownloadPlugin;
 
         public async Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,

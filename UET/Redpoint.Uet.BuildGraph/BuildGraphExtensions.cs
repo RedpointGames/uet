@@ -215,14 +215,7 @@
             {
                 await using (var jsonWriter = new Utf8JsonWriter(stream))
                 {
-                    instance.SerializeDynamicSettings(jsonWriter, config, new JsonSerializerOptions
-                    {
-                        WriteIndented = false,
-                        Converters =
-                        {
-                            new JsonStringEnumConverter(),
-                        }
-                    });
+                    instance.DynamicSettings.Serialize(jsonWriter, config!);
                 }
                 var buffer = new byte[stream.Position];
                 stream.Seek(0, SeekOrigin.Begin);

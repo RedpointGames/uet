@@ -13,6 +13,5 @@
 
     public interface IDynamicReentrantExecutor<TDistribution, TConfigClass> : IDynamicReentrantExecutor<TDistribution>
     {
-        void SerializeDynamicSettings(Utf8JsonWriter writer, TConfigClass @value, JsonSerializerOptions options);
     }
 }

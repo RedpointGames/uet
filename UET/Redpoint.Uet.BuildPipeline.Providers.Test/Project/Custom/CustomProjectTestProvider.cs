@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Project.Custom
 {
+    using Redpoint.RuntimeJson;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Project;
     using System;
@@ -18,14 +19,7 @@
 
         public string Type => "Custom";
 
-        public JsonTypeInfo DynamicSettingsJsonTypeInfo => TestProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectTestCustom;
-
-        public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => TestProviderSourceGenerationContext.WithStringEnum;
-
-        public object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options)
-        {
-            return JsonSerializer.Deserialize(ref reader, TestProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectTestCustom)!;
-        }
+        public IRuntimeJson DynamicSettings { get; } = new TestProviderRuntimeJson(TestProviderSourceGenerationContext.WithStringEnum).BuildConfigProjectTestCustom;
 
         public Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,

@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Custom
 {
+    using Redpoint.RuntimeJson;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Project;
     using System;
@@ -14,14 +15,7 @@
     {
         public string Type => "Custom";
 
-        public JsonTypeInfo DynamicSettingsJsonTypeInfo => DeploymentProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectDeploymentCustom;
-
-        public JsonSerializerContext DynamicSettingsJsonTypeInfoResolver => DeploymentProviderSourceGenerationContext.WithStringEnum;
-
-        public object DeserializeDynamicSettings(ref Utf8JsonReader reader, JsonSerializerOptions options)
-        {
-            return JsonSerializer.Deserialize(ref reader, DeploymentProviderSourceGenerationContext.WithStringEnum.BuildConfigProjectDeploymentCustom)!;
-        }
+        public IRuntimeJson DynamicSettings { get; } = new DeploymentProviderRuntimeJson(DeploymentProviderSourceGenerationContext.WithStringEnum).BuildConfigProjectDeploymentCustom;
 
         public Task WriteBuildGraphNodesAsync(IBuildGraphEmitContext context, XmlWriter writer, BuildConfigProjectDistribution buildConfigDistribution, IEnumerable<BuildConfigDynamic<BuildConfigProjectDistribution, IDeploymentProvider>> elements)
         {
