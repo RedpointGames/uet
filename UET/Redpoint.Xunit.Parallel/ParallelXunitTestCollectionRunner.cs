@@ -8,7 +8,10 @@
 
     public class ParallelXunitTestCollectionRunner : XunitTestCollectionRunner
     {
+        private readonly SemaphoreSlim _semaphore;
+
         public ParallelXunitTestCollectionRunner(
+            SemaphoreSlim semaphore,
             ITestCollection testCollection,
             IEnumerable<IXunitTestCase> testCases,
             IMessageSink diagnosticMessageSink,
@@ -24,6 +27,23 @@
                 aggregator,
                 cancellationTokenSource)
         {
+            _semaphore = semaphore;
+        }
+
+        protected override async Task<RunSummary> RunTestClassesAsync()
+        {
+            var summary = new RunSummary();
+
+            await Parallel.ForEachAsync(
+                TestCases.GroupBy(tc => tc.TestMethod.TestClass, TestClassComparer.Instance),
+                CancellationTokenSource.Token,
+                async (testCasesByClass, ct) =>
+                {
+                    var result = await RunTestClassAsync(testCasesByClass.Key, (IReflectionTypeInfo)testCasesByClass.Key.Class, testCasesByClass);
+                    summary.Aggregate(result);
+                });
+
+            return summary;
         }
 
         protected override Task<RunSummary> RunTestClassAsync(
@@ -32,6 +52,7 @@
             IEnumerable<IXunitTestCase> testCases)
         {
             return new ParallelXunitTestClassRunner(
+                _semaphore,
                 testClass,
                 @class,
                 testCases,

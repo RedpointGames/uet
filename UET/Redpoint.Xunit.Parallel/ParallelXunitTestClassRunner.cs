@@ -10,7 +10,10 @@
 
     public class ParallelXunitTestClassRunner : XunitTestClassRunner
     {
+        private readonly SemaphoreSlim _semaphore;
+
         public ParallelXunitTestClassRunner(
+            SemaphoreSlim semaphore,
             ITestClass testClass,
             IReflectionTypeInfo @class,
             IEnumerable<IXunitTestCase> testCases,
@@ -30,6 +33,7 @@
                 cancellationTokenSource,
                 collectionFixtureMappings)
         {
+            _semaphore = semaphore;
         }
 
         static Exception Unwrap(Exception ex)
@@ -75,6 +79,25 @@
                 });
 
             return summary;
+        }
+
+        protected override Task<RunSummary> RunTestMethodAsync(
+            ITestMethod testMethod,
+            IReflectionMethodInfo method,
+            IEnumerable<IXunitTestCase> testCases,
+            object[] constructorArguments)
+        {
+            return new ParallelXunitTestMethodRunner(
+                _semaphore,
+                testMethod,
+                Class,
+                method,
+                testCases,
+                DiagnosticMessageSink,
+                MessageBus,
+                new ExceptionAggregator(Aggregator),
+                CancellationTokenSource,
+                constructorArguments).RunAsync();
         }
     }
 }

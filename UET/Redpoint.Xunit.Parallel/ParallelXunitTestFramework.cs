@@ -3,6 +3,7 @@
     using global::Xunit.Sdk;
     using global::Xunit.Abstractions;
     using System.Reflection;
+    using System.Diagnostics;
 
     public class ParallelXunitTestFramework : XunitTestFramework
     {

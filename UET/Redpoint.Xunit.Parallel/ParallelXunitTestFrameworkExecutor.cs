@@ -17,7 +17,10 @@
         {
         }
 
-        protected override async void RunTestCases(IEnumerable<IXunitTestCase> testCases, IMessageSink executionMessageSink, ITestFrameworkExecutionOptions executionOptions)
+        protected override async void RunTestCases(
+            IEnumerable<IXunitTestCase> testCases,
+            IMessageSink executionMessageSink,
+            ITestFrameworkExecutionOptions executionOptions)
         {
             using (var assemblyRunner = new ParallelXunitTestAssemblyRunner(
                 TestAssembly,

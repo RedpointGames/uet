@@ -7,6 +7,7 @@ namespace uet.FunctionalTests
     using Xunit.Abstractions;
     using Redpoint.ProcessExecution;
     using System.Text;
+    using Redpoint.Uet.Core;
 
     public class Functional
     {
@@ -41,6 +42,9 @@ namespace uet.FunctionalTests
             services.AddProcessExecution();
             var sp = services.BuildServiceProvider();
 
+            var targetPath = Path.Combine(Assembly.GetExecutingAssembly().Location, "..", test.Name);
+            await DirectoryAsync.CopyAsync(test.Path, targetPath, true);
+
             var output = new StringBuilder();
             var executor = sp.GetRequiredService<IProcessExecutor>();
             var exitCode = await executor.ExecuteAsync(
@@ -50,31 +54,22 @@ namespace uet.FunctionalTests
                     Arguments = (test.Config.Arguments ?? Array.Empty<string>())
                         .Select(x => x.Replace("{ENGINE}", engine))
                         .ToArray(),
-                    WorkingDirectory = test.Path,
+                    WorkingDirectory = targetPath,
                 },
                 CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                 {
                     ReceiveStdout = line =>
                     {
-                        output.AppendLine(line);
+                        _output.WriteLine(line);
                         return false;
                     },
                     ReceiveStderr = (line) => { _output.WriteLine(line); return false; },
                 }),
                 CancellationToken.None);
-            try
+            Assert.Equal(0, exitCode);
+            if (test.Config.OutputMustContain != null)
             {
-                Assert.Equal(0, exitCode);
-                if (test.Config.OutputMustContain != null)
-                {
-                    Assert.Contains(test.Config.OutputMustContain, output.ToString());
-                }
-            }
-            catch
-            {
-                // Only emit test output on failure.
-                _output.WriteLine(output.ToString());
-                throw;
+                Assert.Contains(test.Config.OutputMustContain, output.ToString());
             }
         }
     }

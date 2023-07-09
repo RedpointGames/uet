@@ -33,6 +33,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.Core\Redpoint.Uet.Core.csproj" />
     <ProjectReference Include="..\Redpoint.Xunit.Parallel\Redpoint.Xunit.Parallel.csproj" />
   </ItemGroup>
 

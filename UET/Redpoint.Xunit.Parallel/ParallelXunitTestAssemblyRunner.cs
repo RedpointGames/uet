@@ -3,11 +3,14 @@
     using global::Xunit.Abstractions;
     using global::Xunit.Sdk;
     using System.Collections.Generic;
+    using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
 
     public class ParallelXunitTestAssemblyRunner : XunitTestAssemblyRunner
     {
+        private readonly SemaphoreSlim _semaphore;
+
         public ParallelXunitTestAssemblyRunner(
             ITestAssembly testAssembly,
             IEnumerable<IXunitTestCase> testCases,
@@ -20,6 +23,12 @@
                 executionMessageSink,
                 executionOptions)
         {
+            var assembly = AppDomain.CurrentDomain.GetAssemblies()
+                .First(x => x.GetName().ToString() == TestAssembly.Assembly.Name);
+            var desiredParallelism = assembly
+                .GetCustomAttribute<UseParallelXunitTestFrameworkAttribute>()!
+                .GetParallelismCount();
+            _semaphore = new SemaphoreSlim(desiredParallelism);
         }
 
         protected override Task<RunSummary> RunTestCollectionAsync(
@@ -29,6 +38,7 @@
             CancellationTokenSource cancellationTokenSource)
         {
             return new ParallelXunitTestCollectionRunner(
+                _semaphore,
                 testCollection,
                 testCases,
                 DiagnosticMessageSink,

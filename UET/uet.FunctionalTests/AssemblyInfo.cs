@@ -1,3 +1,3 @@
 ﻿using Redpoint.Xunit.Parallel;
 
-[assembly: UseParallelXunitTestFramework]
+[assembly: UseParallelXunitTestFramework(0.25, true, 2)]
