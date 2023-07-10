@@ -19,6 +19,7 @@
             ITestMethod testMethod,
             IAttributeInfo factAttribute)
         {
+            string[] skippingExceptionNames = SkippableFactDiscoverer.GetSkippableExceptionNames(factAttribute);
             foreach (var dir in Directory.GetDirectories(Path.Combine(Assembly.GetExecutingAssembly().Location, "..", "..", "..", "..", "Tests")))
             {
                 var configPath = Path.Combine(dir, "FunctionalTestConfig.json");
@@ -28,7 +29,7 @@
                     foreach (var entry in config)
                     {
                         yield return new SkippableFactTestCase(
-                            new string[] { typeof(SkipException).FullName! },
+                            skippingExceptionNames,
                             _messageSink,
                             discoveryOptions.MethodDisplayOrDefault(),
                             discoveryOptions.MethodDisplayOptionsOrDefault(),

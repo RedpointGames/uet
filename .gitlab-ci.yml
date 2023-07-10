@@ -216,7 +216,7 @@ stages:
       Write-Host "dotnet build (UET.sln) failed with exit code $LastExitCode"
       exit $LastExitCode 
     }
-    dotnet test --filter "FullyQualifiedName!~Functional.Uet" --no-build --logger:"console" --logger:"junit;LogFilePath=$((Get-Location).Path)\TestResults\{assembly}.test-result.xml" -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
+    dotnet test --no-build --logger:"console" --logger:"junit;LogFilePath=$((Get-Location).Path)\TestResults\{assembly}.test-result.xml" -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
     if ($LastExitCode -ne 0) {
       Write-Host "dotnet test (UET.sln) failed with exit code $LastExitCode"
       exit $LastExitCode 
@@ -240,7 +240,7 @@ stages:
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
     echo "Package version: $PACKAGE_VERSION"
     dotnet build -c Release /p:PackageVersion=$PACKAGE_VERSION /p:OpenGEShimIsAlreadyBuilt=true UET/UET.sln
-    dotnet test --filter 'FullyQualifiedName!~Functional.Uet' --no-build --logger:"console" --logger:"junit;LogFilePath=$(pwd)/TestResults/{assembly}.test-result.xml" -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
+    dotnet test --no-build --logger:"console" --logger:"junit;LogFilePath=$(pwd)/TestResults/{assembly}.test-result.xml" -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
   artifacts:
     reports:
       junit: TestResults/*.test-result.xml

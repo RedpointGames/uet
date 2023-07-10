@@ -22,6 +22,7 @@ namespace uet.FunctionalTests
         public async Task Uet(FunctionalTestEntry test)
         {
             Skip.IfNot(OperatingSystem.IsWindows(), "Functional tests must be run from Windows");
+            Skip.If(Environment.GetEnvironmentVariable("CI") == "true", "Functional tests don't yet run on the CI server");
 
             var path = test.Config!.Type switch
             {
