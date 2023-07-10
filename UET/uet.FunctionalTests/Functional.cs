@@ -55,11 +55,16 @@ namespace uet.FunctionalTests
                         .Select(x => x.Replace("{ENGINE}", engine))
                         .ToArray(),
                     WorkingDirectory = targetPath,
+                    EnvironmentVariables = new Dictionary<string, string>
+                    {
+                        { "UET_RUNNING_UNDER_FUNCTIONAL_TEST", "true" },
+                    },
                 },
                 CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                 {
                     ReceiveStdout = line =>
                     {
+                        output.AppendLine(line);
                         _output.WriteLine(line);
                         return false;
                     },
