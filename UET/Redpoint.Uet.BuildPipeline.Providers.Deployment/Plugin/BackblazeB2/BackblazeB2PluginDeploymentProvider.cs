@@ -33,7 +33,7 @@
             IEnumerable<BuildConfigDynamic<BuildConfigPluginDistribution, IDeploymentProvider>> dynamicSettings)
         {
             var castedSettings = dynamicSettings
-                .Select(x => (name: x.Name, settings: (BuildConfigPluginDeploymentBackblazeB2)x.DynamicSettings))
+                .Select(x => (name: x.Name, manual: x.Manual ?? false, settings: (BuildConfigPluginDeploymentBackblazeB2)x.DynamicSettings))
                 .ToList();
 
             // Emit the nodes to run each deployment.
@@ -43,7 +43,7 @@
                     new AgentElementProperties
                     {
                         Name = $"Deployment {deployment.name}",
-                        Type = "Win64",
+                        Type = deployment.manual ? "Win64_Manual" : "Win64",
                     },
                     async writer =>
                     {
