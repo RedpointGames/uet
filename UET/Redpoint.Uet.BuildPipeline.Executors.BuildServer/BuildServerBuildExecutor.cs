@@ -365,9 +365,11 @@
             {
                 { "Win64", BuildServerJobPlatform.Windows },
                 { "Win64_Licensee", BuildServerJobPlatform.Windows },
+                { "Win64_Manual", BuildServerJobPlatform.Windows },
                 { "HoloLens", BuildServerJobPlatform.Windows },
                 { "Mac", BuildServerJobPlatform.Mac },
                 { "Mac_Licensee", BuildServerJobPlatform.Mac },
+                { "Mac_Manual", BuildServerJobPlatform.Mac },
                 { "Meta", BuildServerJobPlatform.Meta },
             };
 
@@ -438,7 +440,7 @@
                         Stage = group.Name,
                         Needs = needs.ToArray(),
                         Platform = agentTypeMapping[group.AgentTypes[0]],
-                        IsManual = node.Name.StartsWith("Deploy Manual "),
+                        IsManual = group.AgentTypes[0].EndsWith("_Manual"),
                     };
 
                     if (node.Name.StartsWith("Automation "))
