@@ -1,15 +1,18 @@
 ﻿namespace UET.Commands.Build
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Dynamic;
     using Redpoint.Uet.BuildPipeline.Environment;
     using Redpoint.Uet.BuildPipeline.Executors;
+    using Redpoint.Uet.BuildPipeline.Executors.Engine;
     using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Configuration.Engine;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
     using Redpoint.Uet.Core.Permissions;
+    using Redpoint.Uet.Uat;
     using System;
     using System.Diagnostics;
     using System.Linq;
@@ -25,6 +28,8 @@
         private readonly IPluginVersioning _versioning;
         private readonly IDynamicBuildGraphIncludeWriter _dynamicBuildGraphIncludeWriter;
         private readonly IWorldPermissionApplier _worldPermissionApplier;
+        private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
+        private readonly IBuildGraphExecutor _buildGraphExecutor;
         private readonly IGlobalArgsProvider? _globalArgsProvider;
 
         public DefaultBuildSpecificationGenerator(
@@ -33,6 +38,8 @@
             IPluginVersioning versioning,
             IDynamicBuildGraphIncludeWriter dynamicBuildGraphIncludeWriter,
             IWorldPermissionApplier worldPermissionApplier,
+            IEngineWorkspaceProvider engineWorkspaceProvider,
+            IBuildGraphExecutor buildGraphExecutor,
             IGlobalArgsProvider? globalArgsProvider = null)
         {
             _logger = logger;
@@ -40,6 +47,8 @@
             _versioning = versioning;
             _dynamicBuildGraphIncludeWriter = dynamicBuildGraphIncludeWriter;
             _worldPermissionApplier = worldPermissionApplier;
+            _engineWorkspaceProvider = engineWorkspaceProvider;
+            _buildGraphExecutor = buildGraphExecutor;
             _globalArgsProvider = globalArgsProvider;
         }
 
@@ -146,9 +155,81 @@
             return string.Join(";", filterRules);
         }
 
-        public BuildSpecification BuildConfigEngineToBuildSpec(BuildEngineSpecification engineSpec, BuildConfigEngineDistribution distribution)
+        public async Task<BuildSpecification> BuildConfigEngineToBuildSpecAsync(
+            BuildEngineSpecification engineSpec,
+            BuildGraphEnvironment buildGraphEnvironment,
+            BuildConfigEngineDistribution distribution,
+            CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var availablePlatforms = new HashSet<string>();
+            var availablePlatformsMac = new HashSet<string>();
+            await using (var engine = await _engineWorkspaceProvider.GetEngineWorkspace(
+                engineSpec,
+                "EngineBuildOptionAnalysis",
+                cancellationToken))
+            {
+                var installedEngineBuildPath = Path.Combine(
+                    engine.Path,
+                    "Engine",
+                    "Build",
+                    "InstalledEngineBuild.xml");
+                var installedEngineBuild = await File.ReadAllTextAsync(installedEngineBuildPath);
+                await _buildGraphExecutor.ListGraphAsync(
+                    engine.Path,
+                    BuildGraphScriptSpecification.ForEngine(),
+                    CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
+                    {
+                        ReceiveStdout = (line) =>
+                        {
+                            line = line.Trim();
+                            if (line.StartsWith("-set:With") &&
+                                !line.StartsWith("-set:WithDDC") &&
+                                !line.StartsWith("-set:WithClient") &&
+                                !line.StartsWith("-set:WithServer") &&
+                                !line.StartsWith("-set:WithFullDebugInfo"))
+                            {
+                                line = line.Substring("-set:With".Length);
+                                line = line.Split('=')[0];
+                                availablePlatforms.Add(line);
+                                if (installedEngineBuild.Contains($@"<Option Name=""With{line}"""))
+                                {
+                                    // macOS only knows about public (non-console) platforms.
+                                    availablePlatformsMac.Add(line);
+                                }
+                            }
+                            return false;
+                        }
+                    }),
+                    cancellationToken);
+            }
+
+            var settings = new Dictionary<string, string>
+            {
+                // Target types
+                { "WithClient", distribution.Build.TargetTypes.Contains("Client") ? "true" : "false" },
+                { "WithServer", distribution.Build.TargetTypes.Contains("Server") ? "true" : "false" },
+
+                // Cook options
+                { "WithDDC", distribution.Cook.GenerateDDC ? "true" : "false" },
+            };
+            foreach (var platform in availablePlatforms)
+            {
+                settings[$"With{platform}"] = distribution.Build.Platforms.Contains(platform) ? "true" : "false";
+            }
+
+            return new BuildSpecification
+            {
+                Engine = engineSpec,
+                BuildGraphScript = BuildGraphScriptSpecification.ForEngine(),
+                BuildGraphTarget = "Make Installed Build Win64",
+                BuildGraphSettings = settings,
+                BuildGraphEnvironment = buildGraphEnvironment,
+                BuildGraphRepositoryRoot = string.Empty,
+                UETPath = _selfLocation.GetUETLocalLocation(),
+                GlobalEnvironmentVariables = new Dictionary<string, string>(),
+                ProjectFolderName = null,
+                ArtifactExportPath = Environment.CurrentDirectory,
+            };
         }
 
         private string[] FilterIncompatiblePlatforms(string[] platforms, bool localExecutor)

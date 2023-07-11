@@ -1,16 +1,23 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Executors.Engine
 {
+    using Microsoft.AspNetCore.Mvc.Formatters;
+    using Redpoint.Reservation;
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.Workspace.Descriptors;
+    using Redpoint.Uet.Workspace.Reservation;
     using System.Threading.Tasks;
 
     internal class DefaultEngineWorkspaceProvider : IEngineWorkspaceProvider
     {
         private readonly IDynamicWorkspaceProvider _workspaceProvider;
+        private readonly IReservationManagerForUet _reservationManagerForUet;
 
-        public DefaultEngineWorkspaceProvider(IDynamicWorkspaceProvider workspaceProvider)
+        public DefaultEngineWorkspaceProvider(
+            IDynamicWorkspaceProvider workspaceProvider,
+            IReservationManagerForUet reservationManagerForUet)
         {
             _workspaceProvider = workspaceProvider;
+            _reservationManagerForUet = reservationManagerForUet;
         }
 
         public async Task<IWorkspace> GetEngineWorkspace(
@@ -50,16 +57,18 @@
                     },
                     cancellationToken);
             }
-            else if (buildEngineSpecification._uefsGitCommit != null)
+            else if (buildEngineSpecification._gitCommit != null)
             {
                 return await _workspaceProvider.GetWorkspaceAsync(
                     new GitWorkspaceDescriptor
                     {
-                        RepositoryUrl = buildEngineSpecification._uefsGitUrl!,
-                        RepositoryCommitOrRef = buildEngineSpecification._uefsGitCommit,
-                        AdditionalFolderLayers = buildEngineSpecification._uefsGitFolders!,
+                        RepositoryUrl = buildEngineSpecification._gitUrl!,
+                        RepositoryCommitOrRef = buildEngineSpecification._gitCommit,
+                        AdditionalFolderLayers = Array.Empty<string>(),
+                        AdditionalFolderZips = buildEngineSpecification._gitConsoleZips!,
                         WorkspaceDisambiguators = new[] { workspaceSuffix },
                         ProjectFolderName = null,
+                        IsEngineBuild = buildEngineSpecification._isEngineBuild,
                     },
                     cancellationToken);
             }

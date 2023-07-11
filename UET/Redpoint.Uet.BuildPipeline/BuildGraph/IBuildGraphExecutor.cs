@@ -7,6 +7,12 @@
 
     public interface IBuildGraphExecutor
     {
+        Task ListGraphAsync(
+            string enginePath,
+            BuildGraphScriptSpecification buildGraphScript,
+            ICaptureSpecification captureSpecification,
+            CancellationToken cancellationToken);
+
         Task<int> ExecuteGraphNodeAsync(
             string enginePath,
             string buildGraphRepositoryRootPath,

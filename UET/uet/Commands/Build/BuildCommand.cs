@@ -339,6 +339,14 @@
                     case EngineSpecType.Path:
                         engineSpec = BuildEngineSpecification.ForAbsolutePath(engine.Path!);
                         break;
+                    case EngineSpecType.SelfEngine:
+                        var engineDistribution = distribution!.Distribution as BuildConfigEngineDistribution;
+                        engineSpec = BuildEngineSpecification.ForGitCommitWithZips(
+                            engineDistribution!.Source.Repository,
+                            engineDistribution.Source.Ref,
+                            engineDistribution.Source.ConsoleZips,
+                            isEngineBuild: true);
+                        break;
                     default:
                         throw new NotSupportedException();
                 }
@@ -435,9 +443,11 @@
                                     preparePlugin = pluginDistribution.Prepare;
                                     break;
                                 case BuildConfigEngineDistribution engineDistribution:
-                                    buildSpec = _buildSpecificationGenerator.BuildConfigEngineToBuildSpec(
+                                    buildSpec = await _buildSpecificationGenerator.BuildConfigEngineToBuildSpecAsync(
                                         engineSpec,
-                                        engineDistribution);
+                                        buildGraphEnvironment,
+                                        engineDistribution,
+                                        context.GetCancellationToken());
                                     break;
                                 default:
                                     throw new NotSupportedException();

@@ -36,9 +36,11 @@
             string? commandlinePluginVersionName,
             long? commandlinePluginVersionNumber);
 
-        BuildSpecification BuildConfigEngineToBuildSpec(
+        Task<BuildSpecification> BuildConfigEngineToBuildSpecAsync(
             BuildEngineSpecification engineSpec,
-            BuildConfigEngineDistribution distribution);
+            BuildGraphEnvironment buildGraphEnvironment,
+            BuildConfigEngineDistribution distribution,
+            CancellationToken cancellationToken);
 
         BuildSpecification ProjectPathSpecToBuildSpec(
             BuildEngineSpecification engineSpec,

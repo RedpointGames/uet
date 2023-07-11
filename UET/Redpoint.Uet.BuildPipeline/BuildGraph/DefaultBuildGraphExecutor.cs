@@ -29,6 +29,36 @@
             _buildGraphPatcher = buildGraphPatcher;
         }
 
+        public async Task ListGraphAsync(
+            string enginePath,
+            BuildGraphScriptSpecification buildGraphScript,
+            ICaptureSpecification captureSpecification,
+            CancellationToken cancellationToken)
+        {
+            var exitCode = await InternalRunAsync(
+                enginePath,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                buildGraphScript,
+                string.Empty,
+                string.Empty,
+                new[] { $"-ListOnly" },
+                new Dictionary<string, string>(),
+                new Dictionary<string, string>(),
+                new Dictionary<string, string>
+                {
+                    { "IsBuildMachine", "1" },
+                    { "uebp_LOCAL_ROOT", enginePath },
+                },
+                captureSpecification,
+                cancellationToken);
+            if (exitCode != 0)
+            {
+                throw new BuildGraphExecutionFailure($"Failed to list options from build graph; UAT exited with non-zero exit code {exitCode}.");
+            }
+        }
+
         public async Task<int> ExecuteGraphNodeAsync(
             string enginePath,
             string buildGraphRepositoryRootPath,
@@ -166,9 +196,13 @@
         {
             string buildGraphScriptPath;
             var deleteBuildGraphScriptPath = false;
-            if (buildGraphScript._path != null)
+            if (buildGraphScript._forEngine)
             {
-                buildGraphScriptPath = buildGraphScript._path;
+                buildGraphScriptPath = Path.Combine(
+                    enginePath,
+                    "Engine",
+                    "Build",
+                    "InstalledEngineBuild.xml");
             }
             else if (buildGraphScript._forPlugin)
             {
@@ -221,12 +255,13 @@
                     new UATSpecification
                     {
                         Command = "BuildGraph",
-                        Arguments = new[]
-                        {
-                            $"-Target={buildGraphTarget}",
-                            "-noP4",
-                            $"-Script={buildGraphScriptPath}",
-                        }
+                        Arguments = Array.Empty<string>()
+                            .Concat(string.IsNullOrWhiteSpace(buildGraphTarget) ? Array.Empty<string>() : new[] { $"-Target={buildGraphTarget}" })
+                            .Concat(new[]
+                            {
+                                "-noP4",
+                            })
+                            .Concat(string.IsNullOrWhiteSpace(buildGraphScriptPath) ? Array.Empty<string>() : new[] { $"-Script={buildGraphScriptPath}" })
                             .Concat(internalArguments)
                             .Concat(_buildGraphArgumentGenerator.GenerateBuildGraphArguments(
                                 buildGraphArguments,

@@ -16,6 +16,9 @@
     using static Redpoint.Uefs.Protocol.Uefs;
     using Redpoint.Uefs.Protocol;
     using Redpoint.GrpcPipes;
+    using Redpoint.Reservation;
+    using System.IO.Compression;
+    using System.IO;
 
     internal class VirtualWorkspaceProvider : IVirtualWorkspaceProvider
     {
@@ -257,10 +260,33 @@
                     }
                     else
                     {
-                        _logger.LogInformation($"Creating virtual Git workspace using UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommitOrRef}): {mountReservation.ReservedPath}");
-                        var mountId = await MountAsync(
-                            _uefsClient.MountGitCommit,
-                            new MountGitCommitRequest()
+                        var list = new List<IReservation>();
+                        var unwind = true;
+                        try
+                        {
+                            foreach (var consoleZip in descriptor.AdditionalFolderZips)
+                            {
+                                var reservation = await _reservationManager.ReserveAsync(
+                                    "ConsoleZip",
+                                    consoleZip);
+                                list.Add(reservation);
+
+                                var extractPath = Path.Combine(reservation.ReservedPath, "extracted");
+                                Directory.CreateDirectory(extractPath);
+                                if (!File.Exists(Path.Combine(reservation.ReservedPath, ".console-zip-extracted")))
+                                {
+                                    _logger.LogInformation($"Extracting '{consoleZip}' to '{extractPath}'...");
+                                    using (var stream = new FileStream(consoleZip, FileMode.Open, FileAccess.Read, FileShare.Read))
+                                    {
+                                        var archive = new ZipArchive(stream);
+                                        archive.ExtractToDirectory(extractPath);
+                                    }
+                                    File.WriteAllText(Path.Combine(reservation.ReservedPath, ".console-zip-extracted"), "done");
+                                }
+                            }
+
+                            _logger.LogInformation($"Creating virtual Git workspace using UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommitOrRef}): {mountReservation.ReservedPath}");
+                            var mountRequest = new MountGitCommitRequest()
                             {
                                 MountRequest = new MountRequest
                                 {
@@ -273,17 +299,34 @@
                                 Url = descriptor.RepositoryUrl,
                                 Commit = descriptor.RepositoryCommitOrRef,
                                 Credential = _credentialManager.GetGitCredentialForRepositoryUrl(descriptor.RepositoryUrl),
-                            },
-                            cancellationToken);
-                        usingMountReservation = true;
-                        usingScratchReservation = true;
-                        return new UefsWorkspace(
-                            _uefsClient,
-                            mountId,
-                            mountReservation.ReservedPath,
-                            new[] { mountReservation, scratchReservation },
-                            _logger,
-                            $"Releasing virtual Git workspace from UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommitOrRef}): {mountReservation.ReservedPath}");
+                            };
+                            mountRequest.FolderLayers.AddRange(list.Select(x => x.ReservedPath));
+                            var mountId = await MountAsync(
+                                _uefsClient.MountGitCommit,
+                                mountRequest,
+                                cancellationToken);
+                            usingMountReservation = true;
+                            usingScratchReservation = true;
+                            var workspace = new UefsWorkspace(
+                                _uefsClient,
+                                mountId,
+                                mountReservation.ReservedPath,
+                                new[] { mountReservation, scratchReservation }.Concat(list).ToArray(),
+                                _logger,
+                                $"Releasing virtual Git workspace from UEFS ({normalizedRepositoryUrl}, {descriptor.RepositoryCommitOrRef}): {mountReservation.ReservedPath}");
+                            unwind = false;
+                            return workspace;
+                        }
+                        finally
+                        {
+                            if (unwind)
+                            {
+                                foreach (var l in list)
+                                {
+                                    await l.DisposeAsync();
+                                }
+                            }
+                        }
                     }
                 }
                 finally

@@ -47,7 +47,23 @@
                 case TemporaryWorkspaceDescriptor descriptor:
                     return await AllocateTemporaryAsync(descriptor, cancellationToken);
                 case GitWorkspaceDescriptor descriptor:
-                    return await AllocateGitAsync(descriptor, cancellationToken);
+                    if (descriptor.AdditionalFolderZips.Length > 0 ||
+                        descriptor.AdditionalFolderLayers.Length > 0 ||
+                        descriptor.IsEngineBuild)
+                    {
+                        if (OperatingSystem.IsWindows())
+                        {
+                            return await _virtualWorkspaceProvider.GetWorkspaceAsync(descriptor, cancellationToken);
+                        }
+                        else
+                        {
+                            return await AllocateGitEngineAsync(descriptor, cancellationToken);
+                        }
+                    }
+                    else
+                    {
+                        return await AllocateGitAsync(descriptor, cancellationToken);
+                    }
                 case UefsPackageWorkspaceDescriptor descriptor:
                     return await _virtualWorkspaceProvider.GetWorkspaceAsync(descriptor, cancellationToken);
                 default:
@@ -130,6 +146,11 @@
                     await reservation.DisposeAsync();
                 }
             }
+        }
+
+        private Task<IWorkspace> AllocateGitEngineAsync(GitWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
         }
     }
 }

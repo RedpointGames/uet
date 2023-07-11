@@ -2,7 +2,7 @@
 {
     using Redpoint.Reservation;
 
-    internal interface IReservationManagerForUet : IReservationManager
+    public interface IReservationManagerForUet : IReservationManager
     {
     }
 }

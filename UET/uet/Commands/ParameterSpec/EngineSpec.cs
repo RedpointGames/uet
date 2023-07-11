@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.EngineSpec
 {
     using Redpoint.Registry;
+    using Redpoint.Uet.Configuration.Engine;
     using Redpoint.Uet.Configuration.Project;
     using System;
     using System.CommandLine;
@@ -83,16 +84,27 @@
                         result.ErrorMessage = $"The engine version can not be inferred automatically for plugins; use --{result.Argument.Name} to specify the engine instead.";
                         return null!;
                     case PathSpecType.BuildConfig:
+                        // If this build configuration is for an engine, then return SelfEngine.
+                        var selectedEngineDistribution = distribution?.Distribution as BuildConfigEngineDistribution;
+                        if (selectedEngineDistribution != null)
+                        {
+                            return new EngineSpec
+                            {
+                                OriginalSpec = string.Empty,
+                                Type = EngineSpecType.SelfEngine,
+                            };
+                        }
+
                         // If this build configuration is for a project, determine which project file based on
                         // the distribution and then read the engine association from that project file.
-                        var selectedDistribution = distribution?.Distribution as BuildConfigProjectDistribution;
-                        if (selectedDistribution == null || distributionOpt == null)
+                        var selectedProjectDistribution = distribution?.Distribution as BuildConfigProjectDistribution;
+                        if (selectedProjectDistribution == null || distributionOpt == null)
                         {
                             result.ErrorMessage = $"The engine version can not be inferred automatically for plugins; use --{result.Argument.Name} to specify the engine instead.";
                             return null!;
                         }
 
-                        var uprojectPath = System.IO.Path.Combine(path.DirectoryPath, selectedDistribution.FolderName, $"{selectedDistribution.ProjectName}.uproject");
+                        var uprojectPath = System.IO.Path.Combine(path.DirectoryPath, selectedProjectDistribution.FolderName, $"{selectedProjectDistribution.ProjectName}.uproject");
                         if (!File.Exists(uprojectPath))
                         {
                             result.ErrorMessage = $"The distribution '{distribution}' specified by --{distributionOpt.Name} refers to the project file '{uprojectPath}', but this project file does not exist on disk, so the engine version can not be inferred.";
@@ -134,6 +146,7 @@
             WindowsFolder = 1 << 2,
             MacFolder = 1 << 3,
             AbsolutePath = 1 << 4,
+            Git = 1 << 5,
 
             All = 0xFF,
         }
@@ -155,6 +168,43 @@
                         Type = EngineSpecType.UEFSPackageTag,
                         OriginalSpec = engine,
                         UEFSPackageTag = engine.Substring("uefs:".Length),
+                    };
+                }
+            }
+
+            if ((flags & EngineParseFlags.Git) != 0)
+            {
+                // Detect commits.
+                if (engine.StartsWith("git:"))
+                {
+                    // <commit>@<url>,f:<folder>,z:<zip>,...
+                    var value = engine.Substring("git:".Length);
+                    var firstAt = value.IndexOf('@');
+                    var commit = value.Substring(0, firstAt);
+                    value = value.Substring(firstAt + 1);
+                    var firstComma = value.IndexOf(",");
+                    var url = firstComma == -1 ? value : value.Substring(0, firstComma);
+                    string[] layers;
+                    if (firstComma != -1)
+                    {
+                        layers = value.Substring(firstComma + 1).Split(',');
+                    }
+                    else
+                    {
+                        layers = Array.Empty<string>();
+                    }
+                    // @note: Folders aren't used yet.
+                    var folders = layers.Where(x => x.StartsWith("f:")).Select(x => x.Substring(2)).ToArray();
+                    var zips = layers.Where(x => x.StartsWith("z:")).Select(x => x.Substring(2)).ToArray();
+
+                    return new EngineSpec
+                    {
+                        Type = EngineSpecType.GitCommit,
+                        OriginalSpec = engine,
+                        GitUrl = url,
+                        GitCommit = commit,
+                        FolderLayers = folders,
+                        ZipLayers = zips,
                     };
                 }
             }
@@ -276,6 +326,14 @@
         public string? Path { get; private init; }
 
         public string? UEFSPackageTag { get; private init; }
+
+        public string? GitUrl { get; private init; }
+
+        public string? GitCommit { get; private init; }
+
+        public string[]? FolderLayers { get; private init; }
+
+        public string[]? ZipLayers { get; private init; }
 
         public override string ToString()
         {

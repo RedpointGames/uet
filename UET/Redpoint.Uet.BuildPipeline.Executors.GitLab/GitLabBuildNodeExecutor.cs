@@ -79,7 +79,8 @@
                         {
                             RepositoryUrl = repository,
                             RepositoryCommitOrRef = commit,
-                            AdditionalFolderLayers = new string[0],
+                            AdditionalFolderLayers = Array.Empty<string>(),
+                            AdditionalFolderZips = Array.Empty<string>(),
                             WorkspaceDisambiguators = new[] { nodeName },
                             ProjectFolderName = buildSpecification.ProjectFolderName,
                             IsEngineBuild = false,

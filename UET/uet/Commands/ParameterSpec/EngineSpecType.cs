@@ -7,5 +7,12 @@
         Version,
 
         UEFSPackageTag,
+
+        GitCommit,
+
+        /// <summary>
+        /// The engine itself is being built.
+        /// </summary>
+        SelfEngine,
     }
 }
