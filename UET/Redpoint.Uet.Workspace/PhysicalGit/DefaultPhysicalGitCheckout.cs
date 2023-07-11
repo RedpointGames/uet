@@ -6,8 +6,12 @@
     using Redpoint.Reservation;
     using Redpoint.Uet.Core;
     using Redpoint.Uet.Workspace.Descriptors;
+    using Redpoint.Uet.Workspace.Reservation;
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.IO.Compression;
+    using System.Security.Policy;
     using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading;
@@ -18,15 +22,18 @@
         private readonly ILogger<DefaultPhysicalGitCheckout> _logger;
         private readonly IPathResolver _pathResolver;
         private readonly IProcessExecutor _processExecutor;
+        private readonly IReservationManagerForUet _reservationManagerForUet;
 
         public DefaultPhysicalGitCheckout(
             ILogger<DefaultPhysicalGitCheckout> logger,
             IPathResolver pathResolver,
-            IProcessExecutor processExecutor)
+            IProcessExecutor processExecutor,
+            IReservationManagerForUet reservationManagerForUet)
         {
             _logger = logger;
             _pathResolver = pathResolver;
             _processExecutor = processExecutor;
+            _reservationManagerForUet = reservationManagerForUet;
         }
 
         private class SubmoduleDescription
@@ -474,7 +481,7 @@
             await File.WriteAllTextAsync(submoduleGitCheckoutPath, submoduleCommit);
         }
 
-        public async Task PrepareGitWorkspaceAsync(
+        private async Task PrepareNonEngineGitWorkspaceAsync(
             string repositoryPath,
             GitWorkspaceDescriptor descriptor,
             CancellationToken cancellationToken)
@@ -633,6 +640,11 @@
                         // Continue with full process...
                     }
                 }
+            }
+            else if (File.Exists(Path.Combine(repositoryPath, ".gitcheckout")))
+            {
+                File.Delete(Path.Combine(repositoryPath, ".gitcheckout"));
+                // Continue with full process...
             }
 
             // Parse the repository URL.
@@ -1006,6 +1018,546 @@
             await File.WriteAllTextAsync(
                 Path.Combine(repositoryPath, ".gitcheckout"),
                 targetCommit);
+        }
+
+        private async Task PrepareEngineGitWorkspaceAsync(
+            string repositoryPath,
+            GitWorkspaceDescriptor descriptor,
+            CancellationToken cancellationToken)
+        {
+            var git = await _pathResolver.ResolveBinaryPath("git");
+            var gitEnvs = new Dictionary<string, string>
+            {
+                { "GIT_ASK_YESNO", "false" },
+            };
+            var exitCode = 0;
+
+            // Initialize the Git repository if needed.
+            if (!Directory.Exists(Path.Combine(repositoryPath, ".git")))
+            {
+                _logger.LogInformation("Initializing Git repository because it doesn't already exist...");
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = git,
+                        Arguments = new[]
+                        {
+                            "init",
+                            repositoryPath
+                        },
+                        WorkingDirectory = repositoryPath,
+                        EnvironmentVariables = gitEnvs,
+                    },
+                    CaptureSpecification.Sanitized,
+                    cancellationToken);
+                if (exitCode != 0)
+                {
+                    throw new InvalidOperationException($"'git init' exited with non-zero exit code {exitCode}");
+                }
+
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = git,
+                        Arguments = new[]
+                        {
+                            "-C",
+                            repositoryPath,
+                            "config",
+                            "core.symlinks",
+                            "true"
+                        },
+                        WorkingDirectory = repositoryPath,
+                        EnvironmentVariables = gitEnvs,
+                    },
+                    CaptureSpecification.Sanitized,
+                    cancellationToken);
+                if (exitCode != 0)
+                {
+                    throw new InvalidOperationException($"'git -C ... config core.symlinks true' exited with non-zero exit code {exitCode}");
+                }
+            }
+
+            // Resolve tags and refs if needed.
+            var targetCommit = descriptor.RepositoryCommitOrRef;
+            var targetIsPotentialAnnotatedTag = false;
+            if (!new Regex("^[a-f0-9]{40}$").IsMatch(targetCommit))
+            {
+                _logger.LogInformation($"Resolving ref '{targetCommit}' to commit on remote Git server...");
+                var resolvedRefStringBuilder = new StringBuilder();
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = git,
+                        Arguments = new[]
+                        {
+                            "ls-remote",
+                            "--exit-code",
+                            descriptor.RepositoryUrl,
+                            targetCommit,
+                        },
+                        WorkingDirectory = repositoryPath,
+                        EnvironmentVariables = gitEnvs,
+                    },
+                    CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(resolvedRefStringBuilder),
+                    cancellationToken);
+                if (exitCode != 0)
+                {
+                    throw new InvalidOperationException($"'git ls-remote --exit-code ...' exited with non-zero exit code {exitCode}");
+                }
+                if (string.IsNullOrWhiteSpace(resolvedRefStringBuilder.ToString()))
+                {
+                    throw new InvalidOperationException($"'git ls-remote --exit-code ...' did not return any match refs for '{targetCommit}'");
+                }
+                string? resolvedRef = null;
+                foreach (var line in resolvedRefStringBuilder.ToString().Replace("\r\n", "\n").Split('\n'))
+                {
+                    var component = line.Replace("\t", " ").Split(" ")[0];
+                    if (line.Contains("refs/tags/"))
+                    {
+                        targetIsPotentialAnnotatedTag = true;
+                    }
+                    resolvedRef = component.Trim();
+                    break;
+                }
+                if (resolvedRef == null)
+                {
+                    throw new InvalidOperationException($"'git ls-remote --exit-code ...' did not return any match refs for '{targetCommit}'");
+                }
+                if (!new Regex("^[a-f0-9]{40}$").IsMatch(resolvedRef))
+                {
+                    throw new InvalidOperationException($"'git ls-remote --exit-code ...' returned non-SHA '{resolvedRef}' for ref '{targetCommit}'");
+                }
+                targetCommit = resolvedRef;
+            }
+
+            var currentHead = new StringBuilder();
+            _ = await _processExecutor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = git,
+                    Arguments = new[]
+                    {
+                        "-C",
+                        repositoryPath,
+                        "rev-parse",
+                        "HEAD"
+                    },
+                    WorkingDirectory = repositoryPath,
+                    EnvironmentVariables = gitEnvs,
+                },
+                CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(currentHead),
+                cancellationToken);
+            if (currentHead.ToString().Trim() == targetCommit)
+            {
+                // We have our own .gitcheckout file which we write after we finish all work. That way, we know the previous checkout completed successfully even if it failed after doing 'git checkout'.
+                if (File.Exists(Path.Combine(repositoryPath, ".gitcheckout")))
+                {
+                    _logger.LogInformation("Git repository already up-to-date.");
+                    return;
+                }
+            }
+            else if (File.Exists(Path.Combine(repositoryPath, ".gitcheckout")))
+            {
+                File.Delete(Path.Combine(repositoryPath, ".gitcheckout"));
+                // Continue with full process...
+            }
+
+            // Because engines are very large, we want to clone/fetch into a single reservation for the
+            // engine and then checkout the branch we need.
+            string sharedBareRepoPath;
+            await using (var sharedBareRepo = await _reservationManagerForUet.ReserveExactAsync($"UnrealEngineGit", cancellationToken))
+            {
+                sharedBareRepoPath = sharedBareRepo.ReservedPath;
+
+                // Initialize the Git repository if needed.
+                if (!Directory.Exists(Path.Combine(sharedBareRepo.ReservedPath, "objects")))
+                {
+                    _logger.LogInformation("Initializing shared Git repository because it doesn't already exist...");
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = git,
+                            Arguments = new[]
+                            {
+                                "init",
+                                "--bare",
+                                sharedBareRepo.ReservedPath
+                            },
+                            WorkingDirectory = sharedBareRepo.ReservedPath,
+                            EnvironmentVariables = gitEnvs,
+                        },
+                        CaptureSpecification.Sanitized,
+                        cancellationToken);
+                    if (exitCode != 0)
+                    {
+                        throw new InvalidOperationException($"'git init' exited with non-zero exit code {exitCode}");
+                    }
+
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = git,
+                            Arguments = new[]
+                            {
+                                "-C",
+                                sharedBareRepo.ReservedPath,
+                                "config",
+                                "core.symlinks",
+                                "true"
+                            },
+                            WorkingDirectory = sharedBareRepo.ReservedPath,
+                            EnvironmentVariables = gitEnvs,
+                        },
+                        CaptureSpecification.Sanitized,
+                        cancellationToken);
+                    if (exitCode != 0)
+                    {
+                        throw new InvalidOperationException($"'git -C ... config core.symlinks true' exited with non-zero exit code {exitCode}");
+                    }
+                }
+
+                // Parse the repository URL.
+                var uri = new Uri(descriptor.RepositoryUrl);
+
+                // Check if we already have the target commit in history. If we do, skip fetch.
+                var gitTypeBuilder = new StringBuilder();
+                _ = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = git,
+                        Arguments = new[]
+                        {
+                            "-C",
+                            sharedBareRepo.ReservedPath,
+                            "cat-file",
+                            "-t",
+                            targetCommit,
+                        },
+                        WorkingDirectory = sharedBareRepo.ReservedPath,
+                        EnvironmentVariables = gitEnvs,
+                    },
+                    CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitTypeBuilder),
+                    cancellationToken);
+                var gitType = gitTypeBuilder.ToString().Trim();
+
+                // If we know this is an annotated commit, resolve which commit it points to.
+                if (gitType == "tag")
+                {
+                    var targetCommitBuilder = new StringBuilder();
+                    _ = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = git,
+                            Arguments = new[]
+                            {
+                                "-C",
+                                sharedBareRepo.ReservedPath,
+                                "rev-list",
+                                "-n",
+                                "1",
+                                targetCommit,
+                            },
+                            WorkingDirectory = sharedBareRepo.ReservedPath,
+                            EnvironmentVariables = gitEnvs,
+                        },
+                        CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(targetCommitBuilder),
+                        cancellationToken);
+                    if (!string.IsNullOrWhiteSpace(targetCommitBuilder.ToString()))
+                    {
+                        targetCommit = targetCommitBuilder.ToString().Trim();
+                        gitTypeBuilder = new StringBuilder();
+                        _ = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = git,
+                                Arguments = new[]
+                                {
+                                    "-C",
+                                    sharedBareRepo.ReservedPath,
+                                    "cat-file",
+                                    "-t",
+                                    targetCommit,
+                                },
+                                WorkingDirectory = sharedBareRepo.ReservedPath,
+                                EnvironmentVariables = gitEnvs,
+                            },
+                            CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitTypeBuilder),
+                            cancellationToken);
+                        gitType = gitTypeBuilder.ToString().Trim();
+                    }
+                }
+
+                // If we couldn't resolve the reference, we don't have the commit.
+                if (gitType != "commit")
+                {
+                    _logger.LogInformation("Fetching repository from remote server...");
+                    // Fetch the commit that we need.
+                    while (true)
+                    {
+                        var fetchStringBuilder = new StringBuilder();
+                        if (targetIsPotentialAnnotatedTag)
+                        {
+                            exitCode = await FaultTolerantFetchAsync(
+                                new ProcessSpecification
+                                {
+                                    FilePath = git,
+                                    Arguments = new[]
+                                    {
+                                        "-C",
+                                        sharedBareRepo.ReservedPath,
+                                        "fetch",
+                                        "-f",
+                                        "--recurse-submodules=no",
+                                        "--progress",
+                                        uri.ToString(),
+                                        targetCommit
+                                    },
+                                    WorkingDirectory = sharedBareRepo.ReservedPath,
+                                    EnvironmentVariables = gitEnvs,
+                                },
+                                CaptureSpecification.Sanitized,
+                                cancellationToken);
+                            // Now that we've fetched the potential tag, check if it really is a tag. If it is, resolve it to the commit hash instead.
+                            gitTypeBuilder = new StringBuilder();
+                            _ = await _processExecutor.ExecuteAsync(
+                                new ProcessSpecification
+                                {
+                                    FilePath = git,
+                                    Arguments = new[]
+                                    {
+                                        "-C",
+                                        sharedBareRepo.ReservedPath,
+                                        "cat-file",
+                                        "-t",
+                                        targetCommit,
+                                    },
+                                    WorkingDirectory = sharedBareRepo.ReservedPath,
+                                    EnvironmentVariables = gitEnvs,
+                                },
+                                CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitTypeBuilder),
+                                cancellationToken);
+                            gitType = gitTypeBuilder.ToString().Trim();
+                            if (gitType == "tag")
+                            {
+                                var targetCommitBuilder = new StringBuilder();
+                                _ = await _processExecutor.ExecuteAsync(
+                                    new ProcessSpecification
+                                    {
+                                        FilePath = git,
+                                        Arguments = new[]
+                                        {
+                                            "-C",
+                                            sharedBareRepo.ReservedPath,
+                                            "rev-list",
+                                            "-n",
+                                            "1",
+                                            targetCommit,
+                                        },
+                                        WorkingDirectory = sharedBareRepo.ReservedPath,
+                                        EnvironmentVariables = gitEnvs,
+                                    },
+                                    CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(targetCommitBuilder),
+                                    cancellationToken);
+                                targetCommit = targetCommitBuilder.ToString().Trim();
+                            }
+                        }
+                        else
+                        {
+                            exitCode = await FaultTolerantFetchAsync(
+                                new ProcessSpecification
+                                {
+                                    FilePath = git,
+                                    Arguments = new[]
+                                    {
+                                        "-C",
+                                        sharedBareRepo.ReservedPath,
+                                        "fetch",
+                                        "-f",
+                                        "--recurse-submodules=no",
+                                        "--progress",
+                                        uri.ToString(),
+                                        $"{targetCommit}:FETCH_HEAD"
+                                    },
+                                    WorkingDirectory = sharedBareRepo.ReservedPath,
+                                    EnvironmentVariables = gitEnvs,
+                                },
+                                CaptureSpecification.Sanitized,
+                                cancellationToken);
+                        }
+                        if (fetchStringBuilder.ToString().Contains("fatal: early EOF"))
+                        {
+                            // Temporary connection issue with Git server. Retry.
+                            continue;
+                        }
+                        if (exitCode != 0)
+                        {
+                            throw new InvalidOperationException($"'git -C ... fetch -f --recurse-submodules=no --progress ...' exited with non-zero exit code {exitCode}");
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Fetch the desired commit from our shared bare repo.
+            exitCode = await FaultTolerantFetchAsync(
+                new ProcessSpecification
+                {
+                    FilePath = git,
+                    Arguments = new[]
+                    {
+                        "-C",
+                        repositoryPath,
+                        "fetch",
+                        "-f",
+                        "--recurse-submodules=no",
+                        "--progress",
+                        sharedBareRepoPath,
+                        $"{targetCommit}:FETCH_HEAD"
+                    },
+                    WorkingDirectory = repositoryPath,
+                    EnvironmentVariables = gitEnvs,
+                },
+                CaptureSpecification.Sanitized,
+                cancellationToken);
+            if (exitCode != 0)
+            {
+                throw new InvalidOperationException($"'git -C ... fetch -f --recurse-submodules=no --progress ...' exited with non-zero exit code {exitCode}");
+            }
+
+            // Checkout the target commit.
+            _logger.LogInformation($"Checking out target commit {targetCommit}...");
+            exitCode = await _processExecutor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = git,
+                    Arguments = new[]
+                    {
+                        "-C",
+                        repositoryPath,
+                        "-c",
+                        "advice.detachedHead=false",
+                        "checkout",
+                        "-f",
+                        targetCommit,
+                    },
+                    WorkingDirectory = repositoryPath,
+                    EnvironmentVariables = gitEnvs,
+                },
+                CaptureSpecification.Sanitized,
+                cancellationToken);
+            if (exitCode != 0)
+            {
+                throw new InvalidOperationException($"'git checkout ...' exited with non-zero exit code {exitCode}");
+            }
+
+            // Copy our additional folder layers on top.
+            if (OperatingSystem.IsWindows())
+            {
+                var foldersToLayer = new List<string>(descriptor.AdditionalFolderLayers);
+                foreach (var consoleZip in descriptor.AdditionalFolderZips)
+                {
+                    await using (var reservation = await _reservationManagerForUet.ReserveAsync(
+                        "ConsoleZip",
+                        consoleZip))
+                    {
+                        var extractPath = Path.Combine(reservation.ReservedPath, "extracted");
+                        Directory.CreateDirectory(extractPath);
+                        if (!File.Exists(Path.Combine(reservation.ReservedPath, ".console-zip-extracted")))
+                        {
+                            _logger.LogInformation($"Extracting '{consoleZip}' to '{extractPath}'...");
+                            using (var stream = new FileStream(consoleZip, FileMode.Open, FileAccess.Read, FileShare.Read))
+                            {
+                                var archive = new ZipArchive(stream);
+                                archive.ExtractToDirectory(extractPath);
+                            }
+                            File.WriteAllText(Path.Combine(reservation.ReservedPath, ".console-zip-extracted"), "done");
+                        }
+                        foldersToLayer.Add(extractPath);
+                    }
+                }
+                await Parallel.ForEachAsync(
+                    foldersToLayer.ToAsyncEnumerable(),
+                    cancellationToken,
+                    async (folder, ct) =>
+                    {
+                        var maxAttempts = 5;
+                        for (var attempt = 0; attempt < maxAttempts; attempt++)
+                        {
+                            _logger.LogInformation($"Robocopy '{folder}' -> '{repositoryPath}': Started...");
+                            var stopwatch = Stopwatch.StartNew();
+                            var robocopy = await _pathResolver.ResolveBinaryPath("robocopy");
+                            var exitCode = await _processExecutor.ExecuteAsync(
+                                new ProcessSpecification
+                                {
+                                    FilePath = robocopy,
+                                    Arguments = new[]
+                                    {
+                                        folder,
+                                        repositoryPath,
+                                        "/E",
+                                        "/NS",
+                                        "/NC",
+                                        "/NFL",
+                                        "/NDL",
+                                        "/NP",
+                                        "/NJH",
+                                        "/NJS"
+                                    },
+                                    WorkingDirectory = repositoryPath,
+                                },
+                                CaptureSpecification.Silence,
+                                ct);
+                            stopwatch.Stop();
+                            if (exitCode > 8)
+                            {
+                                if (attempt == maxAttempts - 1)
+                                {
+                                    _logger.LogError($"Robocopy '{folder}' -> '{repositoryPath}': Failed in {stopwatch.Elapsed.TotalSeconds,0} secs with exit code {exitCode}.");
+                                    throw new InvalidOperationException("Failed to copy folders via robocopy!");
+                                }
+                                else
+                                {
+                                    var delay = (attempt * 10);
+                                    _logger.LogWarning($"Robocopy '{folder}' -> '{repositoryPath}': Failed in {stopwatch.Elapsed.TotalSeconds,0} secs with exit code {exitCode}, retrying in {delay} seconds...");
+                                    await Task.Delay(delay * 1000);
+                                    continue;
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogInformation($"Robocopy '{folder}' -> '{repositoryPath}': Success in {stopwatch.Elapsed.TotalSeconds,0} secs with exit code {exitCode}.");
+                                break;
+                            }
+                        }
+                    });
+            }
+
+            // Write our .gitcheckout file which tells subsequent calls that we're up-to-date.
+            await File.WriteAllTextAsync(
+                Path.Combine(repositoryPath, ".gitcheckout"),
+                targetCommit);
+        }
+
+        public Task PrepareGitWorkspaceAsync(
+            string repositoryPath,
+            GitWorkspaceDescriptor descriptor,
+            CancellationToken cancellationToken)
+        {
+            if (!descriptor.IsEngineBuild)
+            {
+                return PrepareNonEngineGitWorkspaceAsync(
+                    repositoryPath,
+                    descriptor,
+                    cancellationToken);
+            }
+            else
+            {
+                return PrepareEngineGitWorkspaceAsync(
+                    repositoryPath,
+                    descriptor,
+                    cancellationToken);
+            }
         }
     }
 }
