@@ -24,7 +24,7 @@
     using Redpoint.Uefs.Package.Vhd;
     using Redpoint.Uefs.Package.SparseImage;
     using Redpoint.Logging.Mac;
-    using Grpc.Net.Client;
+    using Redpoint.Vfs.LocalIo;
 
     public static class Program
     {
@@ -105,6 +105,7 @@
             services.AddFolderLayerFactory();
             services.AddScratchLayerFactory();
             services.AddGrpcPipes();
+            services.AddLocalIoFileFactory();
             services.AddUefsPackage();
             services.AddUefsPackageVhd();
             services.AddUefsPackageSparseImage();

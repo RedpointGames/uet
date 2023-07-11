@@ -1012,13 +1012,39 @@
                 }
 
                 // Set the file size on the projected file.
-                var result = fspFileNode.ProjectedFileHandle.VfsFile.SetEndOfFile((long)newSize);
-                if (result == 0x0)
+                int result = 0;
+                if (setAllocationSize)
                 {
-                    // File resized, update the file length and return the latest file info.
-                    fspFileNode.FileInfo.FileSize = setAllocationSize ? GetAllocationSize(newSize) : newSize;
-                    fspFileNode.FileInfo.AllocationSize = GetAllocationSize(newSize);
+                    // If we're setting the allocation size, we only do anything if the allocation
+                    // size is smaller, in which case we truncate.
+                    if ((ulong)fspFileNode.ProjectedFileHandle.VfsFile.Length > newSize)
+                    {
+                        result = fspFileNode.ProjectedFileHandle.VfsFile.SetEndOfFile((long)newSize);
+                        if (result == 0x0)
+                        {
+                            fspFileNode.FileInfo.FileSize = newSize;
+                            fspFileNode.FileInfo.AllocationSize = newSize;
+                        }
+                    }
                 }
+                else
+                {
+                    // When setting the file size, we always truncate or expand with null bytes to
+                    // match the new size.
+                    if ((ulong)fspFileNode.ProjectedFileHandle.VfsFile.Length != newSize)
+                    {
+                        result = fspFileNode.ProjectedFileHandle.VfsFile.SetEndOfFile((long)newSize);
+                        if (result == 0x0)
+                        {
+                            fspFileNode.FileInfo.FileSize = newSize;
+                            if (fspFileNode.FileInfo.AllocationSize < newSize)
+                            {
+                                fspFileNode.FileInfo.AllocationSize = newSize;
+                            }
+                        }
+                    }
+                }
+
                 fileInfo = fspFileNode.FileInfo;
                 return Trace(fspFileNode.Path, result);
             }

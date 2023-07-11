@@ -41,6 +41,7 @@
     <ProjectReference Include="..\Redpoint.Uefs.Daemon.RemoteStorage\Redpoint.Uefs.Daemon.RemoteStorage.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Daemon.Service\Redpoint.Uefs.Daemon.Service.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Daemon.Transactional\Redpoint.Uefs.Daemon.Transactional.csproj" />
+    <ProjectReference Include="..\Redpoint.Vfs.LocalIo\Redpoint.Vfs.LocalIo.csproj" />
   </ItemGroup>
 
 </Project>
