@@ -16,10 +16,6 @@
             {
                 services.AddSingleton<ILocalIoVfsFileFactory, WindowsLocalIoVfsFileFactory>();
             }
-            else
-            {
-                throw new PlatformNotSupportedException();
-            }
         }
     }
 }
