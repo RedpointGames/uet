@@ -12,8 +12,5 @@
 
         [JsonPropertyName("Platforms")]
         public string[] Platforms { get; set; } = new string[0];
-
-        [JsonPropertyName("ConsoleDirectories")]
-        public string[] ConsoleDirectories { get; set; } = new string[0];
     }
 }

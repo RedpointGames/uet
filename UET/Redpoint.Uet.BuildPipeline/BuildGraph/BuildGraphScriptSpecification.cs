@@ -2,9 +2,9 @@
 {
     public class BuildGraphScriptSpecification
     {
-        internal string? _path { get; private set; }
         internal bool _forPlugin { get; private set; }
         internal bool _forProject { get; private set; }
+        internal bool _forEngine { get; private set; }
 
         private BuildGraphScriptSpecification()
         {
@@ -20,9 +20,9 @@
             return new BuildGraphScriptSpecification { _forProject = true };
         }
 
-        public static BuildGraphScriptSpecification ForPath(string buildGraphScriptPath)
+        public static BuildGraphScriptSpecification ForEngine()
         {
-            return new BuildGraphScriptSpecification { _path = buildGraphScriptPath };
+            return new BuildGraphScriptSpecification { _forEngine = true };
         }
 
         public string ToReparsableString()
@@ -37,7 +37,7 @@
             }
             else
             {
-                return $"path:{_path}";
+                return $"engine";
             }
         }
 
@@ -51,9 +51,9 @@
             {
                 return ForProject();
             }
-            else if (input.StartsWith("path:"))
+            else if (input.StartsWith("engine"))
             {
-                return ForPath(input.Substring("path:".Length));
+                return ForEngine();
             }
             else
             {

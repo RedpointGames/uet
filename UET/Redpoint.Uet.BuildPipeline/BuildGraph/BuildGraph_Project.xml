@@ -3,6 +3,7 @@
 
   <!-- Environment options -->
   <Option Name="UETPath" DefaultValue="" Description="Path to the UET binary" />
+  <Option Name="UETGlobalArgs" DefaultValue="" Description="Global arguments to pass to the UET binary" />
   <Option Name="EnginePath" Restrict=".*" DefaultValue="" Description="Path to the engine" />
   <Option Name="TempPath" Restrict=".*" DefaultValue="" Description="Path to the temporary directory (must not contain spaces)" />
   <Option Name="ProjectRoot" Restrict=".*" DefaultValue="" Description="Path to the directory that contains the .uproject" />

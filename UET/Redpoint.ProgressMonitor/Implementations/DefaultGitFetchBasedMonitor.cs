@@ -65,6 +65,10 @@
                 var currentTime = DateTimeOffset.UtcNow;
                 var remainingTime = _utilities.ComputeRemainingTime(startTime, currentTime, computedProgress);
 
+                long remainingSeconds = (long)remainingTime.TotalSeconds;
+                long remainingMinutes = remainingSeconds / 60;
+                remainingSeconds = remainingSeconds % 60;
+
                 var bytesFetched = progress.ReceivedBytes ?? 0;
                 var bytesFetchedInfo = string.Empty;
                 if (bytesFetched > 0)
@@ -72,7 +76,7 @@
                     bytesFetchedInfo = $", {_utilities.FormatDataAmount(bytesFetched)}";
                 }
 
-                return $"{status}...{progress.FetchContext} {computedProgress,9:#####0.00} % ({units,7:######0} / {totalObjects,7:######0}) objects{bytesFetchedInfo}, {remainingTime} to go";
+                return $"{status}...{progress.FetchContext} {computedProgress,9:#####0.00} % ({units,7:######0} / {totalObjects,7:######0}) objects{bytesFetchedInfo}, {remainingMinutes}:{remainingSeconds:00} to go";
             }
             else if (!string.IsNullOrWhiteSpace(progress.ServerProgressMessage))
             {

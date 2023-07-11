@@ -8,6 +8,8 @@
 
         public required string[] AdditionalFolderLayers { get; set; }
 
+        public required string[] AdditionalFolderZips { get; set; }
+
         public required string[] WorkspaceDisambiguators { get; set; }
 
         /// <summary>

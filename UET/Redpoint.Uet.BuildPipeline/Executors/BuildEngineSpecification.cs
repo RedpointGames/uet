@@ -5,9 +5,10 @@
         internal string? _engineVersion { get; private set; }
         internal string? _enginePath { get; private set; }
         internal string? _uefsPackageTag { get; private set; }
-        internal string? _uefsGitUrl { get; private set; }
-        internal string? _uefsGitCommit { get; private set; }
-        internal string[]? _uefsGitFolders { get; private set; }
+        internal string? _gitUrl { get; private set; }
+        internal string? _gitCommit { get; private set; }
+        internal string[]? _gitConsoleZips { get; private set; }
+        internal bool _isEngineBuild { get; private set; }
         public bool PermitConcurrentBuilds { get; private set; } = false;
 
         public static BuildEngineSpecification ForVersionWithPath(string version, string localPath)
@@ -38,17 +39,21 @@
             };
         }
 
-        public static BuildEngineSpecification ForUEFSGitCommit(string uefsGitUrl, string uefsGitCommit, string[]? uefsGitAdditionalFolders = null)
+        public static BuildEngineSpecification ForGitCommitWithZips(string uefsGitUrl, string uefsGitCommit, string[]? uefsGitConsoleZips = null, bool isEngineBuild = false)
         {
             return new BuildEngineSpecification
             {
-                _uefsGitUrl = uefsGitUrl,
-                _uefsGitCommit = uefsGitCommit,
-                _uefsGitFolders = uefsGitAdditionalFolders ?? new string[0],
+                _gitUrl = uefsGitUrl,
+                _gitCommit = uefsGitCommit,
+                _gitConsoleZips = uefsGitConsoleZips ?? new string[0],
+                _isEngineBuild = isEngineBuild,
                 PermitConcurrentBuilds = true,
             };
         }
 
+        /// <remarks>
+        /// These values are parsed in <see cref="UET.Commands.EngineSpec.EngineSpec.TryParseEngine"/>.
+        /// </remarks>
         public string ToReparsableString()
         {
             if (!string.IsNullOrWhiteSpace(_uefsPackageTag))
@@ -62,6 +67,10 @@
             else if (!string.IsNullOrWhiteSpace(_enginePath))
             {
                 return _enginePath;
+            }
+            else if (!string.IsNullOrWhiteSpace(_gitUrl))
+            {
+                return $"git:{_gitCommit}@{_gitUrl}{string.Join("", (_gitConsoleZips ?? Array.Empty<string>()).Select(x => $",z:{x}"))}";
             }
             else
             {

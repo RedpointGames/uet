@@ -4,13 +4,16 @@
 
     public class BuildConfigEngineSource
     {
-        [JsonPropertyName("Type")]
+        [JsonPropertyName("Type"), JsonRequired]
         public string Type { get; set; } = "git";
 
-        [JsonPropertyName("Repository")]
+        [JsonPropertyName("Repository"), JsonRequired]
         public string Repository { get; set; } = "git@github.com:EpicGames/UnrealEngine";
 
-        [JsonPropertyName("Commit")]
-        public string Commit { get; set; } = "release";
+        [JsonPropertyName("Ref"), JsonRequired]
+        public string Ref { get; set; } = "release";
+
+        [JsonPropertyName("ConsoleZips")]
+        public string[]? ConsoleZips { get; set; }
     }
 }
