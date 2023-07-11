@@ -1032,52 +1032,6 @@
             };
             var exitCode = 0;
 
-            // Initialize the Git repository if needed.
-            if (!Directory.Exists(Path.Combine(repositoryPath, ".git")))
-            {
-                _logger.LogInformation("Initializing Git repository because it doesn't already exist...");
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = git,
-                        Arguments = new[]
-                        {
-                            "init",
-                            repositoryPath
-                        },
-                        WorkingDirectory = repositoryPath,
-                        EnvironmentVariables = gitEnvs,
-                    },
-                    CaptureSpecification.Sanitized,
-                    cancellationToken);
-                if (exitCode != 0)
-                {
-                    throw new InvalidOperationException($"'git init' exited with non-zero exit code {exitCode}");
-                }
-
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = git,
-                        Arguments = new[]
-                        {
-                            "-C",
-                            repositoryPath,
-                            "config",
-                            "core.symlinks",
-                            "true"
-                        },
-                        WorkingDirectory = repositoryPath,
-                        EnvironmentVariables = gitEnvs,
-                    },
-                    CaptureSpecification.Sanitized,
-                    cancellationToken);
-                if (exitCode != 0)
-                {
-                    throw new InvalidOperationException($"'git -C ... config core.symlinks true' exited with non-zero exit code {exitCode}");
-                }
-            }
-
             // Resolve tags and refs if needed.
             var targetCommit = descriptor.RepositoryCommitOrRef;
             var targetIsPotentialAnnotatedTag = false;
@@ -1131,37 +1085,18 @@
                 targetCommit = resolvedRef;
             }
 
-            var currentHead = new StringBuilder();
-            _ = await _processExecutor.ExecuteAsync(
-                new ProcessSpecification
-                {
-                    FilePath = git,
-                    Arguments = new[]
-                    {
-                        "-C",
-                        repositoryPath,
-                        "rev-parse",
-                        "HEAD"
-                    },
-                    WorkingDirectory = repositoryPath,
-                    EnvironmentVariables = gitEnvs,
-                },
-                CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(currentHead),
-                cancellationToken);
-            if (currentHead.ToString().Trim() == targetCommit)
+            // We have our own .gitcheckout file which we write after we finish all work. That way, we know the previous checkout completed successfully even if it failed after doing 'git checkout'.
+            if (File.Exists(Path.Combine(repositoryPath, ".gitcheckout")) && File.ReadAllText(Path.Combine(repositoryPath, ".gitcheckout")).Trim() == targetCommit)
             {
-                // We have our own .gitcheckout file which we write after we finish all work. That way, we know the previous checkout completed successfully even if it failed after doing 'git checkout'.
-                if (File.Exists(Path.Combine(repositoryPath, ".gitcheckout")))
-                {
-                    _logger.LogInformation("Git repository already up-to-date.");
-                    return;
-                }
+                _logger.LogInformation("Git repository already up-to-date.");
+                return;
             }
             else if (File.Exists(Path.Combine(repositoryPath, ".gitcheckout")))
             {
                 File.Delete(Path.Combine(repositoryPath, ".gitcheckout"));
                 // Continue with full process...
             }
+            var targetCommitForCommitStamp = targetCommit;
 
             // Because engines are very large, we want to clone/fetch into a single reservation for the
             // engine and then checkout the branch we need.
@@ -1399,32 +1334,6 @@
                 }
             }
 
-            // Fetch the desired commit from our shared bare repo.
-            exitCode = await FaultTolerantFetchAsync(
-                new ProcessSpecification
-                {
-                    FilePath = git,
-                    Arguments = new[]
-                    {
-                        "-C",
-                        repositoryPath,
-                        "fetch",
-                        "-f",
-                        "--recurse-submodules=no",
-                        "--progress",
-                        sharedBareRepoPath,
-                        $"{targetCommit}:FETCH_HEAD"
-                    },
-                    WorkingDirectory = repositoryPath,
-                    EnvironmentVariables = gitEnvs,
-                },
-                CaptureSpecification.Sanitized,
-                cancellationToken);
-            if (exitCode != 0)
-            {
-                throw new InvalidOperationException($"'git -C ... fetch -f --recurse-submodules=no --progress ...' exited with non-zero exit code {exitCode}");
-            }
-
             // Checkout the target commit.
             _logger.LogInformation($"Checking out target commit {targetCommit}...");
             exitCode = await _processExecutor.ExecuteAsync(
@@ -1433,11 +1342,12 @@
                     FilePath = git,
                     Arguments = new[]
                     {
-                        "-C",
-                        repositoryPath,
+                        $"--git-dir={sharedBareRepoPath}",
+                        $"--work-tree={repositoryPath}",
                         "-c",
                         "advice.detachedHead=false",
                         "checkout",
+                        "--progress",
                         "-f",
                         targetCommit,
                     },
@@ -1533,10 +1443,34 @@
                     });
             }
 
+            // First run GitDependencies.exe to fetch all our binary dependencies into a shared cache.
+            await using (var gitDepsCache = await _reservationManagerForUet.ReserveExactAsync("UnrealEngineGitDeps", cancellationToken))
+            {
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = OperatingSystem.IsWindows()
+                            ? Path.Combine(repositoryPath, "Engine", "Binaries", "DotNET", "GitDependencies", "win-x64", "GitDependencies.exe")
+                            : Path.Combine(repositoryPath, "Engine", "Binaries", "DotNET", "osx-x64", "GitDependencies"),
+                        Arguments = Array.Empty<string>(),
+                        WorkingDirectory = repositoryPath,
+                        EnvironmentVariables = new Dictionary<string, string>
+                        {
+                            { "UE_GITDEPS_ARGS", $"--all --force --cache={gitDepsCache.ReservedPath}" },
+                        }
+                    },
+                    CaptureSpecification.Passthrough,
+                    cancellationToken);
+                if (exitCode != 0)
+                {
+                    throw new InvalidOperationException($"'GitDependencies --all --force ...' exited with non-zero exit code {exitCode}");
+                }
+            }
+
             // Write our .gitcheckout file which tells subsequent calls that we're up-to-date.
             await File.WriteAllTextAsync(
                 Path.Combine(repositoryPath, ".gitcheckout"),
-                targetCommit);
+                targetCommitForCommitStamp);
         }
 
         public Task PrepareGitWorkspaceAsync(
