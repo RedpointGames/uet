@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CredentialDiscovery;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
@@ -45,6 +46,7 @@
             services.AddUefs();
             services.AddUETWorkspace();
             services.AddReservation();
+            services.AddCredentialDiscovery();
 
             var sp = services.BuildServiceProvider();
             var reservationManager = sp.GetRequiredService<IReservationManagerFactory>().CreateReservationManager(tempPath);
@@ -97,6 +99,7 @@
             services.AddUefs();
             services.AddUETWorkspace();
             services.AddReservation();
+            services.AddCredentialDiscovery();
 
             var sp = services.BuildServiceProvider();
             var reservationManager = sp.GetRequiredService<IReservationManagerFactory>().CreateReservationManager(tempPath);

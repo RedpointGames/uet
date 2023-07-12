@@ -16,6 +16,7 @@
     using Redpoint.PathResolution;
     using Redpoint.Reservation;
     using Redpoint.Uet.Workspace;
+    using Redpoint.CredentialDiscovery;
 
     public class DynamicBuildGraphIncludeTests
     {
@@ -32,6 +33,7 @@
             services.AddUETAutomation();
             services.AddUETWorkspace();
             services.AddReservation();
+            services.AddCredentialDiscovery();
             return services;
         }
 

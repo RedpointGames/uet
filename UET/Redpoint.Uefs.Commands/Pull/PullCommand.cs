@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uefs.Commands.Pull
 {
     using Grpc.Core;
+    using Redpoint.CredentialDiscovery;
     using Redpoint.GrpcPipes;
     using Redpoint.ProgressMonitor;
     using Redpoint.Uefs.Commands.Mount;

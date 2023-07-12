@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.Workspace.PhysicalGit
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CredentialDiscovery;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
@@ -23,17 +24,20 @@
         private readonly IPathResolver _pathResolver;
         private readonly IProcessExecutor _processExecutor;
         private readonly IReservationManagerForUet _reservationManagerForUet;
+        private readonly ICredentialDiscovery _credentialDiscovery;
 
         public DefaultPhysicalGitCheckout(
             ILogger<DefaultPhysicalGitCheckout> logger,
             IPathResolver pathResolver,
             IProcessExecutor processExecutor,
-            IReservationManagerForUet reservationManagerForUet)
+            IReservationManagerForUet reservationManagerForUet,
+            ICredentialDiscovery credentialDiscovery)
         {
             _logger = logger;
             _pathResolver = pathResolver;
             _processExecutor = processExecutor;
             _reservationManagerForUet = reservationManagerForUet;
+            _credentialDiscovery = credentialDiscovery;
         }
 
         private class SubmoduleDescription
@@ -428,23 +432,27 @@
             {
                 // Fetch the commit that we need.
                 _logger.LogInformation($"Fetching submodule {submodule.Path} from remote server...");
-                exitCode = await FaultTolerantFetchAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = git,
-                        Arguments = new[]
+                var (uri, fetchEnvironmentVariablesFactory) = ComputeRepositoryUriAndCredentials(submoduleUrl);
+                using (var fetchEnvVars = fetchEnvironmentVariablesFactory())
+                {
+                    exitCode = await FaultTolerantFetchAsync(
+                        new ProcessSpecification
                         {
-                            "fetch",
-                            "-f",
-                            "--recurse-submodules=no",
-                            submoduleUrl,
-                            $"{submoduleCommit}:FETCH_HEAD",
+                            FilePath = git,
+                            Arguments = new[]
+                            {
+                                "fetch",
+                                "-f",
+                                "--recurse-submodules=no",
+                                uri.ToString(),
+                                $"{submoduleCommit}:FETCH_HEAD",
+                            },
+                            WorkingDirectory = submoduleContentPath,
+                            EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
-                        WorkingDirectory = submoduleContentPath,
-                        EnvironmentVariables = gitEnvs,
-                    },
-                    CaptureSpecification.Sanitized,
-                    cancellationToken);
+                        CaptureSpecification.Sanitized,
+                        cancellationToken);
+                }
                 if (exitCode != 0)
                 {
                     throw new InvalidOperationException($"'git fetch' for {submodule.Path} exited with non-zero exit code {exitCode}");
@@ -492,6 +500,8 @@
                 { "GIT_ASK_YESNO", "false" },
             };
             var exitCode = 0;
+
+            var (uri, fetchEnvironmentVariablesFactory) = ComputeRepositoryUriAndCredentials(descriptor.RepositoryUrl);
 
             // Initialize the Git repository if needed.
             if (!Directory.Exists(Path.Combine(repositoryPath, ".git")))
@@ -546,22 +556,25 @@
             {
                 _logger.LogInformation($"Resolving ref '{targetCommit}' to commit on remote Git server...");
                 var resolvedRefStringBuilder = new StringBuilder();
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = git,
-                        Arguments = new[]
+                using (var fetchEnvVars = fetchEnvironmentVariablesFactory())
+                {
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
                         {
-                            "ls-remote",
-                            "--exit-code",
-                            descriptor.RepositoryUrl,
-                            targetCommit,
+                            FilePath = git,
+                            Arguments = new[]
+                            {
+                                "ls-remote",
+                                "--exit-code",
+                                descriptor.RepositoryUrl,
+                                targetCommit,
+                            },
+                            WorkingDirectory = repositoryPath,
+                            EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
-                        WorkingDirectory = repositoryPath,
-                        EnvironmentVariables = gitEnvs,
-                    },
-                    CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(resolvedRefStringBuilder),
-                    cancellationToken);
+                        CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(resolvedRefStringBuilder),
+                        cancellationToken);
+                }
                 if (exitCode != 0)
                 {
                     throw new InvalidOperationException($"'git ls-remote --exit-code ...' exited with non-zero exit code {exitCode}");
@@ -647,9 +660,6 @@
                 // Continue with full process...
             }
 
-            // Parse the repository URL.
-            var uri = new Uri(descriptor.RepositoryUrl);
-
             // Check if we already have the target commit in history. If we do, skip fetch.
             var gitTypeBuilder = new StringBuilder();
             _ = await _processExecutor.ExecuteAsync(
@@ -728,26 +738,29 @@
                     var fetchStringBuilder = new StringBuilder();
                     if (targetIsPotentialAnnotatedTag)
                     {
-                        exitCode = await FaultTolerantFetchAsync(
-                            new ProcessSpecification
-                            {
-                                FilePath = git,
-                                Arguments = new[]
+                        using (var fetchEnvVars = fetchEnvironmentVariablesFactory())
+                        {
+                            exitCode = await FaultTolerantFetchAsync(
+                                new ProcessSpecification
                                 {
-                                    "-C",
-                                    repositoryPath,
-                                    "fetch",
-                                    "-f",
-                                    "--recurse-submodules=no",
-                                    "--progress",
-                                    uri.ToString(),
-                                    targetCommit
+                                    FilePath = git,
+                                    Arguments = new[]
+                                    {
+                                        "-C",
+                                        repositoryPath,
+                                        "fetch",
+                                        "-f",
+                                        "--recurse-submodules=no",
+                                        "--progress",
+                                        uri.ToString(),
+                                        targetCommit
+                                    },
+                                    WorkingDirectory = repositoryPath,
+                                    EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                                 },
-                                WorkingDirectory = repositoryPath,
-                                EnvironmentVariables = gitEnvs,
-                            },
-                            CaptureSpecification.Sanitized,
-                            cancellationToken);
+                                CaptureSpecification.Sanitized,
+                                cancellationToken);
+                        }
                         // Now that we've fetched the potential tag, check if it really is a tag. If it is, resolve it to the commit hash instead.
                         gitTypeBuilder = new StringBuilder();
                         _ = await _processExecutor.ExecuteAsync(
@@ -794,26 +807,29 @@
                     }
                     else
                     {
-                        exitCode = await FaultTolerantFetchAsync(
-                            new ProcessSpecification
-                            {
-                                FilePath = git,
-                                Arguments = new[]
+                        using (var fetchEnvVars = fetchEnvironmentVariablesFactory())
+                        {
+                            exitCode = await FaultTolerantFetchAsync(
+                                new ProcessSpecification
                                 {
-                                    "-C",
-                                    repositoryPath,
-                                    "fetch",
-                                    "-f",
-                                    "--recurse-submodules=no",
-                                    "--progress",
-                                    uri.ToString(),
-                                    $"{targetCommit}:FETCH_HEAD"
+                                    FilePath = git,
+                                    Arguments = new[]
+                                    {
+                                        "-C",
+                                        repositoryPath,
+                                        "fetch",
+                                        "-f",
+                                        "--recurse-submodules=no",
+                                        "--progress",
+                                        uri.ToString(),
+                                        $"{targetCommit}:FETCH_HEAD"
+                                    },
+                                    WorkingDirectory = repositoryPath,
+                                    EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                                 },
-                                WorkingDirectory = repositoryPath,
-                                EnvironmentVariables = gitEnvs,
-                            },
-                            CaptureSpecification.Sanitized,
-                            cancellationToken);
+                                CaptureSpecification.Sanitized,
+                                cancellationToken);
+                        }
                     }
                     if (fetchStringBuilder.ToString().Contains("fatal: early EOF"))
                     {
@@ -829,24 +845,27 @@
 
                 // Fetch the LFS as well.
                 _logger.LogInformation("Fetching LFS files from remote server...");
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = git,
-                        Arguments = new[]
+                using (var fetchEnvVars = fetchEnvironmentVariablesFactory())
+                {
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
                         {
-                            "-C",
-                            repositoryPath,
-                            "lfs",
-                            "fetch",
-                            uri.ToString(),
-                            targetCommit,
+                            FilePath = git,
+                            Arguments = new[]
+                            {
+                                "-C",
+                                repositoryPath,
+                                "lfs",
+                                "fetch",
+                                uri.ToString(),
+                                targetCommit,
+                            },
+                            WorkingDirectory = repositoryPath,
+                            EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
-                        WorkingDirectory = repositoryPath,
-                        EnvironmentVariables = gitEnvs,
-                    },
-                    CaptureSpecification.Sanitized,
-                    cancellationToken);
+                        CaptureSpecification.Sanitized,
+                        cancellationToken);
+                }
                 if (exitCode != 0)
                 {
                     throw new InvalidOperationException($"'git -C ... lfs fetch ...' exited with non-zero exit code {exitCode}");
@@ -878,24 +897,27 @@
             {
                 // Attempt to re-fetch LFS files, in case that was the error.
                 _logger.LogInformation("Fetching LFS files from remote server...");
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = git,
-                        Arguments = new[]
+                using (var fetchEnvVars = fetchEnvironmentVariablesFactory())
+                {
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
                         {
-                            "-C",
-                            repositoryPath,
-                            "lfs",
-                            "fetch",
-                            uri.ToString(),
-                            targetCommit,
+                            FilePath = git,
+                            Arguments = new[]
+                            {
+                                "-C",
+                                repositoryPath,
+                                "lfs",
+                                "fetch",
+                                uri.ToString(),
+                                targetCommit,
+                            },
+                            WorkingDirectory = repositoryPath,
+                            EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
-                        WorkingDirectory = repositoryPath,
-                        EnvironmentVariables = gitEnvs,
-                    },
-                    CaptureSpecification.Sanitized,
-                    cancellationToken);
+                        CaptureSpecification.Sanitized,
+                        cancellationToken);
+                }
                 if (exitCode != 0)
                 {
                     throw new InvalidOperationException($"'git -C ... lfs fetch ...' exited with non-zero exit code {exitCode}");
@@ -1032,6 +1054,8 @@
             };
             var exitCode = 0;
 
+            var (uri, fetchEnvironmentVariablesFactory) = ComputeRepositoryUriAndCredentials(descriptor.RepositoryUrl);
+
             // Resolve tags and refs if needed.
             var targetCommit = descriptor.RepositoryCommitOrRef;
             var targetIsPotentialAnnotatedTag = false;
@@ -1039,22 +1063,25 @@
             {
                 _logger.LogInformation($"Resolving ref '{targetCommit}' to commit on remote Git server...");
                 var resolvedRefStringBuilder = new StringBuilder();
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = git,
-                        Arguments = new[]
+                using (var fetchEnvVars = fetchEnvironmentVariablesFactory())
+                {
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
                         {
-                            "ls-remote",
-                            "--exit-code",
-                            descriptor.RepositoryUrl,
-                            targetCommit,
+                            FilePath = git,
+                            Arguments = new[]
+                            {
+                                "ls-remote",
+                                "--exit-code",
+                                descriptor.RepositoryUrl,
+                                targetCommit,
+                            },
+                            WorkingDirectory = repositoryPath,
+                            EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
-                        WorkingDirectory = repositoryPath,
-                        EnvironmentVariables = gitEnvs,
-                    },
-                    CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(resolvedRefStringBuilder),
-                    cancellationToken);
+                        CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(resolvedRefStringBuilder),
+                        cancellationToken);
+                }
                 if (exitCode != 0)
                 {
                     throw new InvalidOperationException($"'git ls-remote --exit-code ...' exited with non-zero exit code {exitCode}");
@@ -1152,9 +1179,6 @@
                     }
                 }
 
-                // Parse the repository URL.
-                var uri = new Uri(descriptor.RepositoryUrl);
-
                 // Check if we already have the target commit in history. If we do, skip fetch.
                 var gitTypeBuilder = new StringBuilder();
                 _ = await _processExecutor.ExecuteAsync(
@@ -1233,26 +1257,29 @@
                         var fetchStringBuilder = new StringBuilder();
                         if (targetIsPotentialAnnotatedTag)
                         {
-                            exitCode = await FaultTolerantFetchAsync(
-                                new ProcessSpecification
-                                {
-                                    FilePath = git,
-                                    Arguments = new[]
+                            using (var fetchEnvVars = fetchEnvironmentVariablesFactory())
+                            {
+                                exitCode = await FaultTolerantFetchAsync(
+                                    new ProcessSpecification
                                     {
-                                        "-C",
-                                        sharedBareRepo.ReservedPath,
-                                        "fetch",
-                                        "-f",
-                                        "--recurse-submodules=no",
-                                        "--progress",
-                                        uri.ToString(),
-                                        targetCommit
+                                        FilePath = git,
+                                        Arguments = new[]
+                                        {
+                                            "-C",
+                                            sharedBareRepo.ReservedPath,
+                                            "fetch",
+                                            "-f",
+                                            "--recurse-submodules=no",
+                                            "--progress",
+                                            uri.ToString(),
+                                            targetCommit
+                                        },
+                                        WorkingDirectory = sharedBareRepo.ReservedPath,
+                                        EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                                     },
-                                    WorkingDirectory = sharedBareRepo.ReservedPath,
-                                    EnvironmentVariables = gitEnvs,
-                                },
-                                CaptureSpecification.Sanitized,
-                                cancellationToken);
+                                    CaptureSpecification.Sanitized,
+                                    cancellationToken);
+                            }
                             // Now that we've fetched the potential tag, check if it really is a tag. If it is, resolve it to the commit hash instead.
                             gitTypeBuilder = new StringBuilder();
                             _ = await _processExecutor.ExecuteAsync(
@@ -1299,26 +1326,29 @@
                         }
                         else
                         {
-                            exitCode = await FaultTolerantFetchAsync(
-                                new ProcessSpecification
-                                {
-                                    FilePath = git,
-                                    Arguments = new[]
+                            using (var fetchEnvVars = fetchEnvironmentVariablesFactory())
+                            {
+                                exitCode = await FaultTolerantFetchAsync(
+                                    new ProcessSpecification
                                     {
-                                        "-C",
-                                        sharedBareRepo.ReservedPath,
-                                        "fetch",
-                                        "-f",
-                                        "--recurse-submodules=no",
-                                        "--progress",
-                                        uri.ToString(),
-                                        $"{targetCommit}:FETCH_HEAD"
+                                        FilePath = git,
+                                        Arguments = new[]
+                                        {
+                                            "-C",
+                                            sharedBareRepo.ReservedPath,
+                                            "fetch",
+                                            "-f",
+                                            "--recurse-submodules=no",
+                                            "--progress",
+                                            uri.ToString(),
+                                            $"{targetCommit}:FETCH_HEAD"
+                                        },
+                                        WorkingDirectory = sharedBareRepo.ReservedPath,
+                                        EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                                     },
-                                    WorkingDirectory = sharedBareRepo.ReservedPath,
-                                    EnvironmentVariables = gitEnvs,
-                                },
-                                CaptureSpecification.Sanitized,
-                                cancellationToken);
+                                    CaptureSpecification.Sanitized,
+                                    cancellationToken);
+                            }
                         }
                         if (fetchStringBuilder.ToString().Contains("fatal: early EOF"))
                         {
@@ -1471,6 +1501,78 @@
             await File.WriteAllTextAsync(
                 Path.Combine(repositoryPath, ".gitcheckout"),
                 targetCommitForCommitStamp);
+        }
+
+        private class TemporaryEnvVarsForFetch : IDisposable
+        {
+            private readonly string? _path;
+            private readonly Dictionary<string, string>? _envVars;
+
+            public TemporaryEnvVarsForFetch()
+            {
+                _path = null;
+                _envVars = new Dictionary<string, string>
+                {
+                    { "GIT_ASK_YESNO", "false" },
+                };
+            }
+
+            public TemporaryEnvVarsForFetch(string privateKey)
+            {
+                _path = Path.GetTempFileName();
+                File.WriteAllText(_path, privateKey);
+                _envVars = new Dictionary<string, string>
+                {
+                    { "GIT_SSH_COMMAND", $@"ssh -i ""{_path}""" },
+                    { "GIT_ASK_YESNO", "false" },
+                };
+            }
+
+            public Dictionary<string, string>? EnvironmentVariables => _envVars;
+
+            public void Dispose()
+            {
+                if (_path != null)
+                {
+                    File.Delete(_path);
+                }
+            }
+        }
+
+        private (Uri uri, Func<TemporaryEnvVarsForFetch> fetchEnvironmentVariables) ComputeRepositoryUriAndCredentials(string repositoryUrl)
+        {
+            // Parse the repository URL.
+            var uri = new Uri(repositoryUrl);
+            try
+            {
+                var uriCredential = _credentialDiscovery.GetGitCredential(repositoryUrl);
+                if (uri.Scheme.Equals("ssh", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    if (!string.IsNullOrWhiteSpace(uriCredential.SshPrivateKeyAsPem))
+                    {
+                        return (uri, () => new TemporaryEnvVarsForFetch(uriCredential.SshPrivateKeyAsPem));
+                    }
+
+                    return (uri, () => new TemporaryEnvVarsForFetch());
+                }
+                else
+                {
+                    if (!string.IsNullOrWhiteSpace(uriCredential.Password))
+                    {
+                        var builder = new UriBuilder(uri);
+                        builder.UserName = uriCredential.Username;
+                        builder.Password = uriCredential.Password;
+                        uri = builder.Uri;
+                    }
+
+                    return (uri, () => new TemporaryEnvVarsForFetch());
+                }
+            }
+            catch (UnableToDiscoverCredentialException ex)
+            {
+                _logger.LogWarning($"Unable to infer credential for Git URL. Assuming the environment is correctly set up to fetch commits from this URL. The original error was: {ex.Message}");
+                return (uri, () => new TemporaryEnvVarsForFetch());
+            }
         }
 
         public Task PrepareGitWorkspaceAsync(

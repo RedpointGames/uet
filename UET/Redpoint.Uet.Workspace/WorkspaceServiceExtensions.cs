@@ -2,7 +2,6 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.Reservation;
-    using Redpoint.Uet.Workspace.Credential;
     using Redpoint.Uet.Workspace.ParallelCopy;
     using Redpoint.Uet.Workspace.PhysicalGit;
     using Redpoint.Uet.Workspace.Reservation;
@@ -13,7 +12,6 @@
         {
             services.AddSingleton<IPhysicalGitCheckout, DefaultPhysicalGitCheckout>();
             services.AddSingleton<IParallelCopy, DefaultParallelCopy>();
-            services.AddSingleton<ICredentialManager, DefaultCredentialManager>();
             services.AddSingleton<IPhysicalWorkspaceProvider, PhysicalWorkspaceProvider>();
             services.AddSingleton<IVirtualWorkspaceProvider, VirtualWorkspaceProvider>();
             services.AddSingleton<IDynamicWorkspaceProvider, DynamicWorkspaceProvider>();

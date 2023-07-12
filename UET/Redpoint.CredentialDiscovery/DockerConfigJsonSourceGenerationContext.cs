@@ -1,4 +1,4 @@
-﻿namespace Redpoint.Uet.Workspace.Credential
+﻿namespace Redpoint.CredentialDiscovery
 {
     using System.Text.Json.Serialization;
 

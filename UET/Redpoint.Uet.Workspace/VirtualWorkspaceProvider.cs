@@ -7,7 +7,6 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
-    using Redpoint.Uet.Workspace.Credential;
     using Redpoint.Uet.Workspace.Reservation;
     using System.Linq;
     using Grpc.Core;
@@ -19,13 +18,14 @@
     using Redpoint.Reservation;
     using System.IO.Compression;
     using System.IO;
+    using Redpoint.CredentialDiscovery;
 
     internal class VirtualWorkspaceProvider : IVirtualWorkspaceProvider
     {
         private readonly ILogger<VirtualWorkspaceProvider> _logger;
         private readonly IReservationManagerForUet _reservationManager;
         private readonly UefsClient _uefsClient;
-        private readonly ICredentialManager _credentialManager;
+        private readonly ICredentialDiscovery _credentialDiscovery;
         private readonly IRetryableGrpc _retryableGrpc;
         private readonly IMonitorFactory _monitorFactory;
 
@@ -33,14 +33,14 @@
             ILogger<VirtualWorkspaceProvider> logger,
             IReservationManagerForUet reservationManager,
             UefsClient uefsClient,
-            ICredentialManager credentialManager,
+            ICredentialDiscovery credentialDiscovery,
             IRetryableGrpc retryableGrpc,
             IMonitorFactory monitorFactory)
         {
             _logger = logger;
             _reservationManager = reservationManager;
             _uefsClient = uefsClient;
-            _credentialManager = credentialManager;
+            _credentialDiscovery = credentialDiscovery;
             _retryableGrpc = retryableGrpc;
             _monitorFactory = monitorFactory;
         }
@@ -298,7 +298,7 @@
                                 },
                                 Url = descriptor.RepositoryUrl,
                                 Commit = descriptor.RepositoryCommitOrRef,
-                                Credential = _credentialManager.GetGitCredentialForRepositoryUrl(descriptor.RepositoryUrl),
+                                Credential = _credentialDiscovery.GetGitCredential(descriptor.RepositoryUrl),
                             };
                             mountRequest.FolderLayers.AddRange(list.Select(x => x.ReservedPath));
                             var mountId = await MountAsync(
@@ -388,7 +388,7 @@
                                     TrackPid = Process.GetCurrentProcess().Id,
                                 },
                                 Tag = descriptor.PackageTag,
-                                Credential = _credentialManager.GetRegistryCredentialForTag(descriptor.PackageTag),
+                                Credential = _credentialDiscovery.GetRegistryCredential(descriptor.PackageTag),
                             },
                             cancellationToken);
                         usingMountReservation = true;

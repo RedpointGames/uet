@@ -30,6 +30,7 @@
     using Redpoint.Uet.Automation.TestLogger;
     using Redpoint.GrpcPipes;
     using Redpoint.ServiceControl;
+    using Redpoint.CredentialDiscovery;
 
     internal static class CommandExtensions
     {
@@ -66,6 +67,7 @@
             services.AddUETBuildPipelineProvidersDeployment();
             services.AddUETWorkspace();
             services.AddUETCore(minimumLogLevel: minimumLogLevel);
+            services.AddCredentialDiscovery();
             services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
             services.AddSingleton<IPluginVersioning, DefaultPluginVersioning>();
         }
