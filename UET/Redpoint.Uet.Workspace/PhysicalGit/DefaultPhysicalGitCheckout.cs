@@ -1520,7 +1520,7 @@
             public TemporaryEnvVarsForFetch(string privateKey)
             {
                 _path = Path.GetTempFileName();
-                using (var stream = new StreamWriter(new FileStream(_path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)))
+                using (var stream = new StreamWriter(new FileStream(_path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)))
                 {
                     stream.Write(privateKey.Replace("\r\n", "\n"));
                 }
