@@ -147,6 +147,8 @@
             MacFolder = 1 << 3,
             AbsolutePath = 1 << 4,
             Git = 1 << 5,
+            LauncherInstalled = 1 << 6,
+            WindowsUserRegistry = 1 << 7,
 
             All = 0xFF,
         }
@@ -209,11 +211,99 @@
                 }
             }
 
+            if ((flags & EngineParseFlags.LauncherInstalled) != 0)
+            {
+                // This matches the path behaviour specified by the engine in:
+                //
+                // - Engine/Source/Developer/DesktopPlatform/Private/DesktopPlatformBase.cpp (FDesktopPlatformBase::ReadLauncherInstallationList)
+                // - Engine/Source/Runtime/Core/Private/Windows/WindowsPlatformProcess.cpp (FWindowsPlatformProcess::ApplicationSettingsDir)
+                // - Engine/Source/Runtime/Core/Private/Mac/MacPlatformProcess.cpp (FMacPlatformProcess::ApplicationSettingsDir)
+                //
+                var launcherInstalled = true switch
+                {
+                    var b when b == OperatingSystem.IsWindows() => System.IO.Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                        "Epic",
+                        "UnrealEngineLauncher",
+                        "LauncherInstalled.dat"),
+                    var b when b == OperatingSystem.IsMacOS() => System.IO.Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                        "Library",
+                        "Application Support",
+                        "Epic",
+                        "UnrealEngineLauncher",
+                        "LauncherInstalled.dat"),
+                    _ => string.Empty,
+                };
+                if (!string.IsNullOrWhiteSpace(launcherInstalled) &&
+                    File.Exists(launcherInstalled))
+                {
+                    try
+                    {
+                        var installed = JsonSerializer.Deserialize(File.ReadAllText(launcherInstalled), SourceGenerationContext.Default.LauncherInstalled);
+                        if (installed?.InstallationList != null)
+                        {
+                            foreach (var installation in installed.InstallationList)
+                            {
+                                if (installation.AppName?.StartsWith($"UE_{engine}") ?? false &&
+                                    installation.InstallLocation != null &&
+                                    Directory.Exists(installation.InstallLocation))
+                                {
+                                    // We've found the engine via LauncherInstalled.dat.
+                                    return new EngineSpec
+                                    {
+                                        Type = EngineSpecType.Version,
+                                        Version = engine,
+                                        OriginalSpec = engine,
+                                        Path = installation.InstallLocation,
+                                    };
+                                }
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // LauncherInstalled.dat is somehow invalid. Ignore it.
+                    }
+                }
+            }
+
             if (OperatingSystem.IsWindows())
             {
+                if ((flags & EngineParseFlags.WindowsUserRegistry) != 0)
+                {
+                    // This matches the registry behaviour specified by the engine in:
+                    //
+                    // - Engine/Source/Developer/DesktopPlatform/Private/Windows/DesktopPlatformWindows.cpp (FDesktopPlatformWindows::EnumerateEngineInstallations)
+                    //
+                    using (var stack = RegistryStack.OpenPath($@"HKCU:\SOFTWARE\Epic Games\Unreal Engine\Builds"))
+                    {
+                        if (stack.Exists)
+                        {
+                            foreach (var engineName in stack.Key.GetValueNames())
+                            {
+                                if (engine.Equals(engineName, StringComparison.InvariantCultureIgnoreCase))
+                                {
+                                    var registryBasedPath = stack.Key.GetValue(engineName) as string;
+                                    if (registryBasedPath != null && Directory.Exists(registryBasedPath))
+                                    {
+                                        return new EngineSpec
+                                        {
+                                            Type = EngineSpecType.Version,
+                                            Version = engine,
+                                            OriginalSpec = engine,
+                                            Path = registryBasedPath,
+                                        };
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if ((flags & EngineParseFlags.WindowsRegistry) != 0)
                 {
-                    // Try to get the engine from the registry.
+                    // @note: This registry key isn't accessed by the engine itself, but seems to be set by the launcher.
                     using (var stack = RegistryStack.OpenPath($@"HKLM:\SOFTWARE\EpicGames\Unreal Engine\{engine}"))
                     {
                         if (stack.Exists)
