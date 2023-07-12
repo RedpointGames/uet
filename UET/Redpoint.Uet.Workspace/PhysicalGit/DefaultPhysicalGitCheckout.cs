@@ -1522,7 +1522,7 @@
                 _path = Path.GetTempFileName();
                 using (var stream = new StreamWriter(new FileStream(_path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)))
                 {
-                    stream.Write(privateKey);
+                    stream.Write(privateKey.Replace("\r\n", "\n"));
                 }
                 _envVars = new Dictionary<string, string>
                 {
