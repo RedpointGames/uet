@@ -1520,7 +1520,10 @@
             public TemporaryEnvVarsForFetch(string privateKey)
             {
                 _path = Path.GetTempFileName();
-                File.WriteAllText(_path, privateKey);
+                using (var stream = new StreamWriter(new FileStream(_path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)))
+                {
+                    stream.Write(privateKey);
+                }
                 _envVars = new Dictionary<string, string>
                 {
                     { "GIT_SSH_COMMAND", $@"ssh -i ""{_path}""" },
