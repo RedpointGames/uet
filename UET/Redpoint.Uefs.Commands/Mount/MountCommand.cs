@@ -10,6 +10,7 @@
     using Redpoint.ProcessTree;
     using static Redpoint.Uefs.Protocol.Uefs;
     using System.Diagnostics;
+    using Redpoint.CredentialDiscovery;
 
     public static class MountCommand
     {

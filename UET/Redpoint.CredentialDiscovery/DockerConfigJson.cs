@@ -1,6 +1,5 @@
-﻿namespace Redpoint.Uet.Workspace.Credential
+﻿namespace Redpoint.CredentialDiscovery
 {
-    using System.Collections.Generic;
     using System.Text.Json.Serialization;
 
     internal class DockerConfigJson

@@ -17,6 +17,7 @@
     using Redpoint.Uet.Core;
     using static Crayon.Output;
     using Redpoint.Uet.Configuration.Dynamic;
+    using System.Text.RegularExpressions;
 
     internal class BuildCommand
     {
@@ -341,8 +342,18 @@
                         break;
                     case EngineSpecType.SelfEngine:
                         var engineDistribution = distribution!.Distribution as BuildConfigEngineDistribution;
+                        var repositoryUrl = engineDistribution!.Source.Repository;
+                        if (!repositoryUrl.Contains("://"))
+                        {
+                            var shortSshUrlRegex = new Regex("^(.+@)*([\\w\\d\\.]+):(.*)$");
+                            var shortSshUrlMatch = shortSshUrlRegex.Match(repositoryUrl);
+                            if (shortSshUrlMatch.Success)
+                            {
+                                repositoryUrl = $"ssh://{shortSshUrlMatch.Groups[1].Value}{shortSshUrlMatch.Groups[2].Value}/{shortSshUrlMatch.Groups[3].Value}";
+                            }
+                        }
                         engineSpec = BuildEngineSpecification.ForGitCommitWithZips(
-                            engineDistribution!.Source.Repository,
+                            repositoryUrl,
                             engineDistribution.Source.Ref,
                             engineDistribution.Source.ConsoleZips,
                             isEngineBuild: true);

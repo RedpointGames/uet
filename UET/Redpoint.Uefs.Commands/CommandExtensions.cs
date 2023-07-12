@@ -17,6 +17,7 @@
     using System.Linq;
     using System.Reflection;
     using Redpoint.ProcessTree;
+    using Redpoint.CredentialDiscovery;
 
     internal static class CommandExtensions
     {
@@ -62,8 +63,8 @@
                 services.AddUefsPackage();
                 services.AddUefsPackageVhd();
                 services.AddUefsPackageSparseImage();
+                services.AddCredentialDiscovery();
                 services.AddSingleton<IFileHasher, DefaultFileHasher>();
-                services.AddSingleton<ICredentialDiscovery, DefaultCredentialDiscovery>();
 
                 var sp = services.BuildServiceProvider();
                 var instance = sp.GetRequiredService<TCommand>();
