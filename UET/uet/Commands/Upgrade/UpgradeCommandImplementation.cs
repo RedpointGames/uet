@@ -204,6 +204,19 @@
 
             if (OperatingSystem.IsWindows())
             {
+                foreach (var existingPath in (Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User) ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+                    .Concat((Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Machine) ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)))
+                {
+                    if (!existingPath.StartsWith(baseFolder, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        var uetPath = Path.Combine(existingPath, "uet.exe");
+                        if (File.Exists(uetPath))
+                        {
+                            logger.LogError($"An unmanaged version of UET was found on your PATH at '{uetPath}'. Remove the unmanaged UET from this directory, or remove the directory from your PATH. Leaving an unmanaged version of UET on the PATH may result in unintended behaviour.");
+                        }
+                    }
+                }
+
                 var path = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User)!.Split(Path.PathSeparator).ToList();
                 var hasPath = false;
                 var didRemove = false;
@@ -235,6 +248,18 @@
             }
             else
             {
+                foreach (var existingPath in (Environment.GetEnvironmentVariable("PATH") ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (!existingPath.StartsWith(baseFolder, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        var uetPath = Path.Combine(existingPath, "uet");
+                        if (File.Exists(uetPath))
+                        {
+                            logger.LogError($"An unmanaged version of UET was found on your PATH at '{uetPath}'. Remove the unmanaged UET from this directory, or remove the directory from your PATH. Leaving an unmanaged version of UET on the PATH may result in unintended behaviour.");
+                        }
+                    }
+                }
+
                 var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                 var pathLine = $@"PATH=""{Path.Combine(baseFolder, "Current")}:$PATH""";
                 var updated = false;
