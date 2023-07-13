@@ -1526,7 +1526,12 @@
                 }
                 _envVars = new Dictionary<string, string>
                 {
-                    { "GIT_SSH_COMMAND", $@"ssh -i ""{_path}""" },
+                    // @note: The identity file path is extremely jank, and won't accept either double or single quotes. It will accept
+                    // a backslash to escape a space, but is also totally fine with Windows backslashes all over the place. You
+                    // can't use UNIX directory separators in the path on Windows. I have no idea how you're supposed to properly
+                    // escape identity paths on Windows under all circumstances, but this works at least for the user temporary
+                    // directory and a custom path with spaces on my machine, and that's probably good enough for now.
+                    { "GIT_SSH_COMMAND", $@"ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -i {_path.Replace(" ", "\\ ")}" },
                     { "GIT_ASK_YESNO", "false" },
                 };
             }

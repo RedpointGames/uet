@@ -27,7 +27,7 @@
         {
             Skip.IfNot(OperatingSystem.IsWindows());
             Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
-            var tempPath = Path.Combine(Path.GetTempPath(), "UETTests-CanCheckoutProject");
+            var tempPath = Path.Combine(Path.GetTempPath(), "UETTests-" + nameof(PhysicalGitCheckoutTests));
             Directory.CreateDirectory(tempPath);
 
             var services = new ServiceCollection();
@@ -52,7 +52,7 @@
             var reservationManager = sp.GetRequiredService<IReservationManagerFactory>().CreateReservationManager(tempPath);
             var physicalGit = sp.GetRequiredService<IPhysicalGitCheckout>();
 
-            var reservation = await reservationManager.ReserveAsync("CanCheckoutProject");
+            var reservation = await reservationManager.ReserveAsync(nameof(CanCheckoutFresh));
             await DirectoryAsync.DeleteAsync(reservation.ReservedPath, true);
             Directory.CreateDirectory(reservation.ReservedPath);
 
@@ -80,7 +80,7 @@
         {
             Skip.IfNot(OperatingSystem.IsWindows());
             Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
-            var tempPath = Path.Combine(Path.GetTempPath(), "UETTests-CanCheckoutProject");
+            var tempPath = Path.Combine(Path.GetTempPath(), "UETTests-" + nameof(PhysicalGitCheckoutTests));
             Directory.CreateDirectory(tempPath);
 
             var services = new ServiceCollection();
@@ -105,7 +105,7 @@
             var reservationManager = sp.GetRequiredService<IReservationManagerFactory>().CreateReservationManager(tempPath);
             var physicalGit = sp.GetRequiredService<IPhysicalGitCheckout>();
 
-            var reservation = await reservationManager.ReserveAsync("CanCheckoutProject");
+            var reservation = await reservationManager.ReserveAsync(nameof(CanCheckoutWithGitCheckoutMissing));
             await DirectoryAsync.DeleteAsync(reservation.ReservedPath, true);
             Directory.CreateDirectory(reservation.ReservedPath);
 
@@ -147,6 +147,69 @@
             Assert.True(Directory.Exists(Path.Combine(reservation.ReservedPath, "GMF")), $"Expected directory {Path.Combine(reservation.ReservedPath, "GMF")} to exist.");
             Assert.False(Path.Exists(Path.Combine(reservation.ReservedPath, "BuildScripts", ".git")), $"Expected path {Path.Combine(reservation.ReservedPath, "BuildScripts", ".git")} to not exist.");
             Assert.True(File.Exists(Path.Combine(reservation.ReservedPath, "README.MD")), $"Expected file {Path.Combine(reservation.ReservedPath, "README.md")} to exist.");
+        }
+
+        [SkippableFact]
+        public async Task CanCheckoutOverSsh()
+        {
+            // @note: This should be a read-only GitHub deploy key to the UET repository.
+            var sshTestPrivateKeyPath = Environment.GetEnvironmentVariable("SSH_TEST_REDPOINT_CREDENTIAL_DISCOVERY_SSH_PRIVATE_KEY_PATH_github_com");
+            var sshTestPublicKeyPath = Environment.GetEnvironmentVariable("SSH_TEST_REDPOINT_CREDENTIAL_DISCOVERY_SSH_PUBLIC_KEY_PATH_github_com");
+            Skip.If(
+                string.IsNullOrWhiteSpace(sshTestPrivateKeyPath) || string.IsNullOrWhiteSpace(sshTestPublicKeyPath),
+                "Need to have the private and public keys set via environment variables to run this test.");
+
+            var tempPath = Path.Combine(Path.GetTempPath(), "UETTests-" + nameof(PhysicalGitCheckoutTests));
+            Directory.CreateDirectory(tempPath);
+
+            var services = new ServiceCollection();
+            services.AddLogging(builder =>
+            {
+                builder.ClearProviders();
+                builder.SetMinimumLevel(LogLevel.Trace);
+                builder.AddXUnit(
+                    _output,
+                    configure =>
+                    {
+                    });
+            });
+            services.AddPathResolution();
+            services.AddProcessExecution();
+            services.AddUefs();
+            services.AddUETWorkspace();
+            services.AddReservation();
+            services.AddCredentialDiscovery();
+
+            var sp = services.BuildServiceProvider();
+            var reservationManager = sp.GetRequiredService<IReservationManagerFactory>().CreateReservationManager(tempPath);
+            var physicalGit = sp.GetRequiredService<IPhysicalGitCheckout>();
+
+            var reservation = await reservationManager.ReserveAsync(nameof(CanCheckoutOverSsh));
+            await DirectoryAsync.DeleteAsync(reservation.ReservedPath, true);
+            Directory.CreateDirectory(reservation.ReservedPath);
+
+            Environment.SetEnvironmentVariable(
+                "REDPOINT_CREDENTIAL_DISCOVERY_SSH_PRIVATE_KEY_PATH_github_com",
+                sshTestPrivateKeyPath);
+            Environment.SetEnvironmentVariable(
+                "REDPOINT_CREDENTIAL_DISCOVERY_SSH_PUBLIC_KEY_PATH_github_com",
+                sshTestPublicKeyPath);
+
+            await physicalGit.PrepareGitWorkspaceAsync(
+                reservation.ReservedPath,
+                new Descriptors.GitWorkspaceDescriptor
+                {
+                    RepositoryUrl = "ssh://git@github.com/RedpointGames/uet",
+                    RepositoryCommitOrRef = "main",
+                    WorkspaceDisambiguators = Array.Empty<string>(),
+                    AdditionalFolderLayers = Array.Empty<string>(),
+                    AdditionalFolderZips = Array.Empty<string>(),
+                    ProjectFolderName = "UET",
+                    IsEngineBuild = false,
+                },
+                CancellationToken.None);
+
+            Assert.True(Directory.Exists(Path.Combine(reservation.ReservedPath, ".git")), $"Expected directory {Path.Combine(reservation.ReservedPath, ".git")} to exist.");
         }
     }
 }
