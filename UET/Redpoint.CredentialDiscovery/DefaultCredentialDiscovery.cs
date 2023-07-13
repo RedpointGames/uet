@@ -68,8 +68,8 @@
                     {
                         return new GitCredential
                         {
-                            SshPublicKeyAsPem = File.ReadAllText(envPrivateKeyPath).Trim(),
-                            SshPrivateKeyAsPem = File.ReadAllText(envPublicKeyPath).Trim(),
+                            SshPrivateKeyAsPem = File.ReadAllText(envPrivateKeyPath).Trim(),
+                            SshPublicKeyAsPem = File.ReadAllText(envPublicKeyPath).Trim(),
                         };
                     }
                     else
@@ -81,8 +81,8 @@
                 {
                     return new GitCredential
                     {
-                        SshPublicKeyAsPem = envPrivateKey.Trim(),
-                        SshPrivateKeyAsPem = envPublicKey.Trim(),
+                        SshPrivateKeyAsPem = envPrivateKey.Trim(),
+                        SshPublicKeyAsPem = envPublicKey.Trim(),
                     };
                 }
 
