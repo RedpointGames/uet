@@ -14,6 +14,7 @@ namespace Redpoint.Uet.Configuration.Tests
     using Redpoint.Reservation;
     using Redpoint.Uet.Workspace;
     using Redpoint.CredentialDiscovery;
+    using Redpoint.Uet.Core;
 
     public class BuildConfigTests
     {
@@ -28,6 +29,7 @@ namespace Redpoint.Uet.Configuration.Tests
             services.AddUETBuildPipelineProvidersDeployment();
             services.AddUETAutomation();
             services.AddUETWorkspace();
+            services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
             return services;

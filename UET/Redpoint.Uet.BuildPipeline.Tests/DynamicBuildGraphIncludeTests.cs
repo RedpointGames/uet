@@ -17,6 +17,7 @@
     using Redpoint.Reservation;
     using Redpoint.Uet.Workspace;
     using Redpoint.CredentialDiscovery;
+    using Redpoint.Uet.Core;
 
     public class DynamicBuildGraphIncludeTests
     {
@@ -34,6 +35,7 @@
             services.AddUETWorkspace();
             services.AddReservation();
             services.AddCredentialDiscovery();
+            services.AddUETCore(skipLoggingRegistration: true);
             return services;
         }
 
