@@ -45,6 +45,7 @@
             services.AddProcessExecution();
             services.AddUefs();
             services.AddUETWorkspace();
+            services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
 
@@ -100,6 +101,7 @@
             services.AddProcessExecution();
             services.AddUefs();
             services.AddUETWorkspace();
+            services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
 
@@ -183,6 +185,7 @@
             services.AddProcessExecution();
             services.AddUefs();
             services.AddUETWorkspace();
+            services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
 
@@ -218,6 +221,60 @@
                 CancellationToken.None);
 
             Assert.True(Directory.Exists(Path.Combine(reservation.ReservedPath, ".git")), $"Expected directory {Path.Combine(reservation.ReservedPath, ".git")} to exist.");
+        }
+
+        [SkippableFact]
+        public async Task CanCheckoutEngineFresh()
+        {
+            var tempPath = Path.Combine(Path.GetTempPath(), "UETTests-" + nameof(PhysicalGitCheckoutTests));
+            Directory.CreateDirectory(tempPath);
+
+            var services = new ServiceCollection();
+            services.AddLogging(builder =>
+            {
+                builder.ClearProviders();
+                builder.SetMinimumLevel(LogLevel.Trace);
+                builder.AddXUnit(
+                    _output,
+                    configure =>
+                    {
+                    });
+            });
+            services.AddPathResolution();
+            services.AddProcessExecution();
+            services.AddUefs();
+            services.AddUETWorkspace();
+            services.AddUETCore(skipLoggingRegistration: true);
+            services.AddReservation();
+            services.AddCredentialDiscovery();
+
+            var sp = services.BuildServiceProvider();
+            var reservationManager = sp.GetRequiredService<IReservationManagerFactory>().CreateReservationManager(tempPath);
+            var physicalGit = sp.GetRequiredService<IPhysicalGitCheckout>();
+
+            await using var reservation = await reservationManager.ReserveAsync(nameof(CanCheckoutEngineFresh));
+            await using var sharedReservation = await reservationManager.ReserveAsync(nameof(CanCheckoutEngineFresh) + "Shared");
+            await DirectoryAsync.DeleteAsync(reservation.ReservedPath, true);
+            Directory.CreateDirectory(reservation.ReservedPath);
+
+            await physicalGit.PrepareGitWorkspaceAsync(
+                reservation.ReservedPath,
+                new Descriptors.GitWorkspaceDescriptor
+                {
+                    RepositoryUrl = "https://src.redpoint.games/redpointgames/uet",
+                    RepositoryCommitOrRef = "main",
+                    WorkspaceDisambiguators = Array.Empty<string>(),
+                    AdditionalFolderLayers = Array.Empty<string>(),
+                    AdditionalFolderZips = Array.Empty<string>(),
+                    ProjectFolderName = null,
+                    IsEngineBuild = true,
+                    WindowsSharedGitCachePath = sharedReservation.ReservedPath,
+                    MacSharedGitCachePath = sharedReservation.ReservedPath,
+                },
+                CancellationToken.None);
+
+            Assert.True(Directory.Exists(Path.Combine(sharedReservation.ReservedPath, "Git", "objects")), $"Expected directory {Path.Combine(sharedReservation.ReservedPath, "Git", "objects")} to exist.");
+            Assert.True(File.Exists(Path.Combine(reservation.ReservedPath, "README.md")), $"Expected file {Path.Combine(reservation.ReservedPath, "README.md")} to exist.");
         }
     }
 }

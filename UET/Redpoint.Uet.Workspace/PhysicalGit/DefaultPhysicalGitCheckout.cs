@@ -6,6 +6,7 @@
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
     using Redpoint.Uet.Core;
+    using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.Workspace.Descriptors;
     using Redpoint.Uet.Workspace.Reservation;
     using System;
@@ -27,6 +28,7 @@
         private readonly IReservationManagerForUet _reservationManagerForUet;
         private readonly ICredentialDiscovery _credentialDiscovery;
         private readonly IReservationManagerFactory _reservationManagerFactory;
+        private readonly IWorldPermissionApplier _worldPermissionApplier;
         private readonly ConcurrentDictionary<string, IReservationManager> _sharedReservationManagers;
 
         public DefaultPhysicalGitCheckout(
@@ -35,7 +37,8 @@
             IProcessExecutor processExecutor,
             IReservationManagerForUet reservationManagerForUet,
             ICredentialDiscovery credentialDiscovery,
-            IReservationManagerFactory reservationManagerFactory)
+            IReservationManagerFactory reservationManagerFactory,
+            IWorldPermissionApplier worldPermissionApplier)
         {
             _logger = logger;
             _pathResolver = pathResolver;
@@ -43,6 +46,7 @@
             _reservationManagerForUet = reservationManagerForUet;
             _credentialDiscovery = credentialDiscovery;
             _reservationManagerFactory = reservationManagerFactory;
+            _worldPermissionApplier = worldPermissionApplier;
             _sharedReservationManagers = new ConcurrentDictionary<string, IReservationManager>();
         }
 
@@ -1397,25 +1401,65 @@
                         }
                         break;
                     }
+
+                    // Fetch the LFS as well.
+                    _logger.LogInformation("Fetching LFS files from remote server...");
+                    using (var fetchEnvVars = fetchEnvironmentVariablesFactory())
+                    {
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = git,
+                                Arguments = new[]
+                                {
+                                    $"--git-dir={sharedBareRepo.ReservedPath}",
+                                    "-c",
+                                    "advice.detachedHead=false",
+                                    "lfs",
+                                    "fetch",
+                                    uri.ToString(),
+                                    targetCommit,
+                                },
+                                WorkingDirectory = sharedBareRepo.ReservedPath,
+                                EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
+                            },
+                            CaptureSpecification.Sanitized,
+                            cancellationToken);
+                    }
+                    if (exitCode != 0)
+                    {
+                        throw new InvalidOperationException($"'git -C ... lfs fetch ...' exited with non-zero exit code {exitCode}");
+                    }
+                }
+
+                try
+                {
+                    _logger.LogInformation("Granting everyone access to the shared Git repository...");
+                    await _worldPermissionApplier.GrantEveryonePermissionAsync(sharedBareRepo.ReservedPath, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Unable to grant everyone access to shared Git repository: {ex}");
                 }
             }
 
-            // Checkout the target commit.
-            _logger.LogInformation($"Checking out target commit {targetCommit}...");
+            // Restore the target commit.
+            _logger.LogInformation($"Restoring target commit {targetCommit}...");
             exitCode = await _processExecutor.ExecuteAsync(
                 new ProcessSpecification
                 {
                     FilePath = git,
                     Arguments = new[]
                     {
-                        $"--git-dir={sharedBareRepoPath}",
                         $"--work-tree={repositoryPath}",
+                        $"--git-dir={sharedBareRepoPath}",
                         "-c",
                         "advice.detachedHead=false",
-                        "checkout",
+                        "restore",
+                        $"--source={targetCommit}",
+                        "--worktree",
+                        repositoryPath,
                         "--progress",
-                        "-f",
-                        targetCommit,
                     },
                     WorkingDirectory = repositoryPath,
                     EnvironmentVariables = gitEnvs,
@@ -1424,7 +1468,7 @@
                 cancellationToken);
             if (exitCode != 0)
             {
-                throw new InvalidOperationException($"'git checkout ...' exited with non-zero exit code {exitCode}");
+                throw new InvalidOperationException($"'git restore ...' exited with non-zero exit code {exitCode}");
             }
 
             // Copy our additional folder layers on top.
@@ -1512,24 +1556,28 @@
             // First run GitDependencies.exe to fetch all our binary dependencies into a shared cache.
             await using (var gitDepsCache = await GetSharedGitDependenciesPath(descriptor, cancellationToken))
             {
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = OperatingSystem.IsWindows()
-                            ? Path.Combine(repositoryPath, "Engine", "Binaries", "DotNET", "GitDependencies", "win-x64", "GitDependencies.exe")
-                            : Path.Combine(repositoryPath, "Engine", "Binaries", "DotNET", "osx-x64", "GitDependencies"),
-                        Arguments = Array.Empty<string>(),
-                        WorkingDirectory = repositoryPath,
-                        EnvironmentVariables = new Dictionary<string, string>
-                        {
-                            { "UE_GITDEPS_ARGS", $"--all --force --cache={gitDepsCache.ReservedPath}" },
-                        }
-                    },
-                    CaptureSpecification.Passthrough,
-                    cancellationToken);
-                if (exitCode != 0)
+                var gitDependenciesPath = OperatingSystem.IsWindows()
+                    ? Path.Combine(repositoryPath, "Engine", "Binaries", "DotNET", "GitDependencies", "win-x64", "GitDependencies.exe")
+                    : Path.Combine(repositoryPath, "Engine", "Binaries", "DotNET", "osx-x64", "GitDependencies");
+                if (File.Exists(gitDependenciesPath))
                 {
-                    throw new InvalidOperationException($"'GitDependencies --all --force ...' exited with non-zero exit code {exitCode}");
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = gitDependenciesPath,
+                            Arguments = Array.Empty<string>(),
+                            WorkingDirectory = repositoryPath,
+                            EnvironmentVariables = new Dictionary<string, string>
+                            {
+                                { "UE_GITDEPS_ARGS", $"--all --force --cache={gitDepsCache.ReservedPath}" },
+                            }
+                        },
+                        CaptureSpecification.Passthrough,
+                        cancellationToken);
+                    if (exitCode != 0)
+                    {
+                        throw new InvalidOperationException($"'GitDependencies --all --force ...' exited with non-zero exit code {exitCode}");
+                    }
                 }
             }
 
