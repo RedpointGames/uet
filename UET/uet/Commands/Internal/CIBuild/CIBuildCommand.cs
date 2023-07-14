@@ -105,7 +105,9 @@
                             engine.GitUrl!,
                             engine.GitCommit!,
                             engine.ZipLayers,
-                            isEngineBuild: buildJson.IsEngineBuild);
+                            isEngineBuild: buildJson.IsEngineBuild,
+                            windowsSharedGitCachePath: engine.WindowsSharedGitCachePath,
+                            macSharedGitCachePath: engine.MacSharedGitCachePath);
                         break;
                     case EngineSpecType.SelfEngineByBuildConfig:
                         throw new InvalidOperationException("EngineSpec.TryParseEngineSpecExact should not be able to return EngineSpecType.SelfEngineByBuildConfig");
