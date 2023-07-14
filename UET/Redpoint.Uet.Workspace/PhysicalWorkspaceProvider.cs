@@ -131,10 +131,5 @@
                 }
             }
         }
-
-        private Task<IWorkspace> AllocateGitEngineAsync(GitWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
-        {
-            throw new NotSupportedException();
-        }
     }
 }

@@ -84,6 +84,8 @@
                             WorkspaceDisambiguators = new[] { nodeName },
                             ProjectFolderName = buildSpecification.ProjectFolderName,
                             IsEngineBuild = false,
+                            WindowsSharedGitCachePath = null,
+                            MacSharedGitCachePath = null,
                         },
                         cancellationToken))
                     {

@@ -9,6 +9,7 @@
     using Redpoint.Uet.Workspace.Descriptors;
     using Redpoint.Uet.Workspace.Reservation;
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO.Compression;
@@ -25,19 +26,24 @@
         private readonly IProcessExecutor _processExecutor;
         private readonly IReservationManagerForUet _reservationManagerForUet;
         private readonly ICredentialDiscovery _credentialDiscovery;
+        private readonly IReservationManagerFactory _reservationManagerFactory;
+        private readonly ConcurrentDictionary<string, IReservationManager> _sharedReservationManagers;
 
         public DefaultPhysicalGitCheckout(
             ILogger<DefaultPhysicalGitCheckout> logger,
             IPathResolver pathResolver,
             IProcessExecutor processExecutor,
             IReservationManagerForUet reservationManagerForUet,
-            ICredentialDiscovery credentialDiscovery)
+            ICredentialDiscovery credentialDiscovery,
+            IReservationManagerFactory reservationManagerFactory)
         {
             _logger = logger;
             _pathResolver = pathResolver;
             _processExecutor = processExecutor;
             _reservationManagerForUet = reservationManagerForUet;
             _credentialDiscovery = credentialDiscovery;
+            _reservationManagerFactory = reservationManagerFactory;
+            _sharedReservationManagers = new ConcurrentDictionary<string, IReservationManager>();
         }
 
         private class SubmoduleDescription
@@ -1128,7 +1134,7 @@
             // Because engines are very large, we want to clone/fetch into a single reservation for the
             // engine and then checkout the branch we need.
             string sharedBareRepoPath;
-            await using (var sharedBareRepo = await _reservationManagerForUet.ReserveExactAsync($"UnrealEngineGit", cancellationToken))
+            await using (var sharedBareRepo = await GetSharedGitRepoPath(descriptor, cancellationToken))
             {
                 sharedBareRepoPath = sharedBareRepo.ReservedPath;
 
@@ -1474,7 +1480,7 @@
             }
 
             // First run GitDependencies.exe to fetch all our binary dependencies into a shared cache.
-            await using (var gitDepsCache = await _reservationManagerForUet.ReserveExactAsync("UnrealEngineGitDeps", cancellationToken))
+            await using (var gitDepsCache = await GetSharedGitDependenciesPath(descriptor, cancellationToken))
             {
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
@@ -1501,6 +1507,47 @@
             await File.WriteAllTextAsync(
                 Path.Combine(repositoryPath, ".gitcheckout"),
                 targetCommitForCommitStamp);
+        }
+
+        private IReservationManager GetSharedReservationManagerForPath(string sharedGitCachePath)
+        {
+            return _sharedReservationManagers.GetOrAdd(sharedGitCachePath, x => _reservationManagerFactory.CreateReservationManager(x));
+        }
+
+        private async Task<IReservation> GetSharedGitRepoPath(GitWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
+        {
+            if (OperatingSystem.IsWindows() && descriptor.WindowsSharedGitCachePath != null)
+            {
+                var reservationManager = GetSharedReservationManagerForPath(descriptor.WindowsSharedGitCachePath);
+                return await reservationManager.ReserveExactAsync("Git", cancellationToken);
+            }
+            else if (OperatingSystem.IsMacOS() && descriptor.MacSharedGitCachePath != null)
+            {
+                var reservationManager = GetSharedReservationManagerForPath(descriptor.MacSharedGitCachePath);
+                return await reservationManager.ReserveExactAsync("Git", cancellationToken);
+            }
+            else
+            {
+                return await _reservationManagerForUet.ReserveExactAsync($"UnrealEngineGit", cancellationToken);
+            }
+        }
+
+        private async Task<IReservation> GetSharedGitDependenciesPath(GitWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
+        {
+            if (OperatingSystem.IsWindows() && descriptor.WindowsSharedGitCachePath != null)
+            {
+                var reservationManager = GetSharedReservationManagerForPath(descriptor.WindowsSharedGitCachePath);
+                return await reservationManager.ReserveExactAsync("GitDeps", cancellationToken);
+            }
+            else if (OperatingSystem.IsMacOS() && descriptor.MacSharedGitCachePath != null)
+            {
+                var reservationManager = GetSharedReservationManagerForPath(descriptor.MacSharedGitCachePath);
+                return await reservationManager.ReserveExactAsync("GitDeps", cancellationToken);
+            }
+            else
+            {
+                return await _reservationManagerForUet.ReserveExactAsync($"UnrealEngineGitDeps", cancellationToken);
+            }
         }
 
         private class TemporaryEnvVarsForFetch : IDisposable

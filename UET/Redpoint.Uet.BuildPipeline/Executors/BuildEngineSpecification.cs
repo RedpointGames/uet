@@ -8,6 +8,8 @@
         internal string? _gitUrl { get; private set; }
         internal string? _gitCommit { get; private set; }
         internal string[]? _gitConsoleZips { get; private set; }
+        internal string? _gitSharedWindowsCachePath { get; private set; }
+        internal string? _gitSharedMacCachePath { get; private set; }
         public bool IsEngineBuild { get; private set; } = false;
         public bool PermitConcurrentBuilds { get; private set; } = false;
 
@@ -39,13 +41,21 @@
             };
         }
 
-        public static BuildEngineSpecification ForGitCommitWithZips(string uefsGitUrl, string uefsGitCommit, string[]? uefsGitConsoleZips = null, bool isEngineBuild = false)
+        public static BuildEngineSpecification ForGitCommitWithZips(
+            string uefsGitUrl,
+            string uefsGitCommit,
+            string[]? uefsGitConsoleZips = null,
+            bool isEngineBuild = false,
+            string? windowsSharedGitCachePath = null,
+            string? macSharedGitCachePath = null)
         {
             return new BuildEngineSpecification
             {
                 _gitUrl = uefsGitUrl,
                 _gitCommit = uefsGitCommit,
                 _gitConsoleZips = uefsGitConsoleZips ?? new string[0],
+                _gitSharedWindowsCachePath = windowsSharedGitCachePath,
+                _gitSharedMacCachePath = macSharedGitCachePath,
                 IsEngineBuild = isEngineBuild,
                 PermitConcurrentBuilds = true,
             };
@@ -70,7 +80,20 @@
             }
             else if (!string.IsNullOrWhiteSpace(_gitUrl))
             {
-                return $"git:{_gitCommit}@{_gitUrl}{string.Join("", (_gitConsoleZips ?? Array.Empty<string>()).Select(x => $",z:{x}"))}";
+                var options = new List<string>();
+                foreach (var z in _gitConsoleZips ?? Array.Empty<string>())
+                {
+                    options.Add($",z:{z}");
+                }
+                if (_gitSharedWindowsCachePath != null)
+                {
+                    options.Add($",wc:{_gitSharedWindowsCachePath}");
+                }
+                if (_gitSharedMacCachePath != null)
+                {
+                    options.Add($",mc:{_gitSharedMacCachePath}");
+                }
+                return $"git:{_gitCommit}@{_gitUrl}{string.Join("", options)}";
             }
             else
             {

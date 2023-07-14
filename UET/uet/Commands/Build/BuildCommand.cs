@@ -41,8 +41,10 @@
             public Option<string> Executor;
             public Option<string> ExecutorOutputFile;
             public Option<string?> WindowsSharedStoragePath;
+            public Option<string?> WindowsSharedGitCachePath;
             public Option<string?> WindowsSdksPath;
             public Option<string?> MacSharedStoragePath;
+            public Option<string?> MacSharedGitCachePath;
             public Option<string?> MacSdksPath;
 
             public Options(
@@ -52,6 +54,7 @@
                 const string uprojectpluginOptions = "Options when targeting a .uplugin or .uproject file:";
                 const string pluginOptions = "Options when building a plugin:";
                 const string cicdOptions = "Options when building on CI/CD:";
+                const string cicdEngineOptions = "Options when building the engine on CI/CD:";
 
                 // ==== General options
 
@@ -191,6 +194,16 @@
                     "--mac-sdks-path",
                     description: "The path that UET will automatically manage and install platform SDKs, and store them in the provided path on macOS machines. This should be a local path; the SDKs will be installed on each machine as they're needed.");
                 MacSdksPath.ArgumentGroupName = cicdOptions;
+
+                WindowsSharedGitCachePath = new Option<string?>(
+                    "--windows-shared-git-cache-path",
+                    description: "If the build is running across multiple machines (depending on the executor), this is the network share where Git commits and Git dependencies are cached, so that they don't need to be re-downloaded on each machine. If not specified, each machine will download their own copy of the commits and Git dependencies.");
+                WindowsSharedGitCachePath.ArgumentGroupName = cicdEngineOptions;
+
+                MacSharedGitCachePath = new Option<string?>(
+                    "--mac-shared-git-cache-path",
+                    description: "If the build is running across multiple machines (depending on the executor), this is the local path on macOS pre-mounted to the network share where Git commits and Git dependencies are cached, so that they don't need to be re-downloaded on each machine. If not specified, each machine will download their own copy of the commits and Git dependencies.");
+                MacSharedGitCachePath.ArgumentGroupName = cicdEngineOptions;
             }
         }
 
@@ -239,8 +252,10 @@
                 var executorName = context.ParseResult.GetValueForOption(_options.Executor);
                 var executorOutputFile = context.ParseResult.GetValueForOption(_options.ExecutorOutputFile);
                 var windowsSharedStoragePath = context.ParseResult.GetValueForOption(_options.WindowsSharedStoragePath);
+                var windowsSharedGitCachePath = context.ParseResult.GetValueForOption(_options.WindowsSharedGitCachePath);
                 var windowsSdksPath = context.ParseResult.GetValueForOption(_options.WindowsSdksPath);
                 var macSharedStoragePath = context.ParseResult.GetValueForOption(_options.MacSharedStoragePath);
+                var macSharedGitCachePath = context.ParseResult.GetValueForOption(_options.MacSharedGitCachePath);
                 var macSdksPath = context.ParseResult.GetValueForOption(_options.MacSdksPath);
                 var test = context.ParseResult.GetValueForOption(_options.Test);
                 var deploy = context.ParseResult.GetValueForOption(_options.Deploy);
@@ -310,23 +325,25 @@
                     }
                 }
 
-                _logger.LogInformation($"--engine:                      {engine}");
-                _logger.LogInformation($"--path:                        {path}");
-                _logger.LogInformation($"--distribution:                {(distribution == null ? "(not set)" : distribution)}");
-                _logger.LogInformation($"--shipping:                    {(distribution != null ? "n/a" : (shipping ? "yes" : "no"))}");
-                _logger.LogInformation($"--executor:                    {executorName}");
-                _logger.LogInformation($"--executor-output-file:        {executorOutputFile}");
-                _logger.LogInformation($"--windows-shared-storage-path: {windowsSharedStoragePath}");
-                _logger.LogInformation($"--windows-sdks-path:           {windowsSdksPath}");
-                _logger.LogInformation($"--mac-shared-storage-path:     {macSharedStoragePath}");
-                _logger.LogInformation($"--mac-sdks-path:               {macSdksPath}");
-                _logger.LogInformation($"--test:                        {(test ? "yes" : "no")}");
-                _logger.LogInformation($"--deploy:                      {(deploy ? "yes" : "no")}");
-                _logger.LogInformation($"--strict-includes:             {(strictIncludes ? "yes" : "no")}");
-                _logger.LogInformation($"--platforms:                   {string.Join(", ", platforms ?? Array.Empty<string>())}");
-                _logger.LogInformation($"--plugin-package:              {pluginPackage}");
-                _logger.LogInformation($"--plugin-version-name:         {pluginVersionName}");
-                _logger.LogInformation($"--plugin-version-number:       {pluginVersionNumber}");
+                _logger.LogInformation($"--engine:                        {engine}");
+                _logger.LogInformation($"--path:                          {path}");
+                _logger.LogInformation($"--distribution:                  {(distribution == null ? "(not set)" : distribution)}");
+                _logger.LogInformation($"--shipping:                      {(distribution != null ? "n/a" : (shipping ? "yes" : "no"))}");
+                _logger.LogInformation($"--executor:                      {executorName}");
+                _logger.LogInformation($"--executor-output-file:          {executorOutputFile}");
+                _logger.LogInformation($"--windows-shared-storage-path:   {windowsSharedStoragePath}");
+                _logger.LogInformation($"--windows-shared-git-cache-path: {windowsSharedGitCachePath}");
+                _logger.LogInformation($"--windows-sdks-path:             {windowsSdksPath}");
+                _logger.LogInformation($"--mac-shared-storage-path:       {macSharedStoragePath}");
+                _logger.LogInformation($"--mac-shared-git-cache-path:     {macSharedGitCachePath}");
+                _logger.LogInformation($"--mac-sdks-path:                 {macSdksPath}");
+                _logger.LogInformation($"--test:                          {(test ? "yes" : "no")}");
+                _logger.LogInformation($"--deploy:                        {(deploy ? "yes" : "no")}");
+                _logger.LogInformation($"--strict-includes:               {(strictIncludes ? "yes" : "no")}");
+                _logger.LogInformation($"--platforms:                     {string.Join(", ", platforms ?? Array.Empty<string>())}");
+                _logger.LogInformation($"--plugin-package:                {pluginPackage}");
+                _logger.LogInformation($"--plugin-version-name:           {pluginVersionName}");
+                _logger.LogInformation($"--plugin-version-number:         {pluginVersionNumber}");
 
                 BuildEngineSpecification engineSpec;
                 switch (engine.Type)
@@ -364,7 +381,9 @@
                             repositoryUrl,
                             engineDistribution.Source.Ref,
                             engineDistribution.Source.ConsoleZips,
-                            isEngineBuild: true);
+                            isEngineBuild: true,
+                            windowsSharedGitCachePath: windowsSharedGitCachePath,
+                            macSharedGitCachePath: macSharedGitCachePath);
                         break;
                     default:
                         throw new NotSupportedException($"The EngineSpecType {engine.Type} is not supported by the 'build' command.");

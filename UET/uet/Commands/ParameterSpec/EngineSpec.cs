@@ -186,18 +186,24 @@
                     value = value.Substring(firstAt + 1);
                     var firstComma = value.IndexOf(",");
                     var url = firstComma == -1 ? value : value.Substring(0, firstComma);
-                    string[] layers;
+                    (string type, string value)[] layers;
                     if (firstComma != -1)
                     {
-                        layers = value.Substring(firstComma + 1).Split(',');
+                        layers = value.Substring(firstComma + 1).Split(',').Select(x =>
+                        {
+                            var s = x.Split(':', 2);
+                            return (s[0], s[1]);
+                        }).ToArray();
                     }
                     else
                     {
-                        layers = Array.Empty<string>();
+                        layers = Array.Empty<(string type, string value)>();
                     }
                     // @note: Folders aren't used yet.
-                    var folders = layers.Where(x => x.StartsWith("f:")).Select(x => x.Substring(2)).ToArray();
-                    var zips = layers.Where(x => x.StartsWith("z:")).Select(x => x.Substring(2)).ToArray();
+                    var folders = layers.Where(x => x.type == "f").Select(x => x.value).ToArray();
+                    var zips = layers.Where(x => x.type == "z").Select(x => x.value).ToArray();
+                    var windowsSharedGitCachePath = layers.Where(x => x.type == "wc").Select(x => x.value).FirstOrDefault();
+                    var macSharedGitCachePath = layers.Where(x => x.type == "mc").Select(x => x.value).FirstOrDefault();
 
                     return new EngineSpec
                     {
@@ -207,6 +213,8 @@
                         GitCommit = commit,
                         FolderLayers = folders,
                         ZipLayers = zips,
+                        WindowsSharedGitCachePath = windowsSharedGitCachePath,
+                        MacSharedGitCachePath = macSharedGitCachePath,
                     };
                 }
             }
@@ -424,6 +432,10 @@
         public string[]? FolderLayers { get; private init; }
 
         public string[]? ZipLayers { get; private init; }
+
+        public string? WindowsSharedGitCachePath { get; private init; }
+
+        public string? MacSharedGitCachePath { get; private init; }
 
         public override string ToString()
         {
