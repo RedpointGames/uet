@@ -166,6 +166,10 @@
                 var options = grpcChannelOptions ?? new GrpcChannelOptions();
                 options.HttpHandler = socketsHandler;
 
+                // Allow unlimited message sizes.
+                options.MaxReceiveMessageSize = null;
+                options.MaxSendMessageSize = null;
+
                 return constructor(GrpcChannel.ForAddress("http://localhost", options));
             }
 
@@ -193,6 +197,10 @@
 
                 var options = grpcChannelOptions ?? new GrpcChannelOptions();
                 options.HttpHandler = socketsHandler;
+
+                // Allow unlimited message sizes.
+                options.MaxReceiveMessageSize = null;
+                options.MaxSendMessageSize = null;
 
                 channel = GrpcChannel.ForAddress("http://localhost", options);
             }
@@ -222,6 +230,10 @@
 
                 var options = grpcChannelOptions ?? new GrpcChannelOptions();
                 options.Credentials = ChannelCredentials.Insecure;
+
+                // Allow unlimited message sizes.
+                options.MaxReceiveMessageSize = null;
+                options.MaxSendMessageSize = null;
 
                 channel = GrpcChannel.ForAddress(pointer, options);
             }

@@ -96,7 +96,12 @@
                     var builder = WebApplication.CreateBuilder();
                     builder.Logging.ClearProviders();
                     builder.Logging.AddProvider(new ForwardingLoggerProvider(_logger));
-                    builder.Services.AddGrpc();
+                    builder.Services.AddGrpc(options =>
+                    {
+                        // Allow unlimited message sizes.
+                        options.MaxReceiveMessageSize = null;
+                        options.MaxSendMessageSize = null;
+                    });
                     builder.Services.Add(new ServiceDescriptor(
                         typeof(T),
                         _instance));
