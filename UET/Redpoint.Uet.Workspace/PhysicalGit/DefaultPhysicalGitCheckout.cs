@@ -1185,6 +1185,30 @@
                     }
                 }
 
+                // Make sure that we can use the shared Git repository if it's on a network share.
+                _logger.LogInformation("Marking the shared Git repository as safe...");
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = git,
+                        Arguments = new[]
+                        {
+                            "config",
+                            "--global",
+                            "--add",
+                            "safe.directory",
+                            sharedBareRepo.ReservedPath
+                        },
+                        WorkingDirectory = repositoryPath,
+                        EnvironmentVariables = gitEnvs,
+                    },
+                    CaptureSpecification.Sanitized,
+                    cancellationToken);
+                if (exitCode != 0)
+                {
+                    throw new InvalidOperationException($"'git config --global --add safe.directory ...' exited with non-zero exit code {exitCode}");
+                }
+
                 // Check if we already have the target commit in history. If we do, skip fetch.
                 var gitTypeBuilder = new StringBuilder();
                 _ = await _processExecutor.ExecuteAsync(
