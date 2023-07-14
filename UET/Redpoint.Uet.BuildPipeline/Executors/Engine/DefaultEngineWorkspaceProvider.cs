@@ -68,7 +68,7 @@
                         AdditionalFolderZips = buildEngineSpecification._gitConsoleZips!,
                         WorkspaceDisambiguators = new[] { workspaceSuffix },
                         ProjectFolderName = null,
-                        IsEngineBuild = buildEngineSpecification._isEngineBuild,
+                        IsEngineBuild = buildEngineSpecification.IsEngineBuild,
                     },
                     cancellationToken);
             }

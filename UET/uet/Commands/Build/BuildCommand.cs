@@ -340,7 +340,14 @@
                     case EngineSpecType.Path:
                         engineSpec = BuildEngineSpecification.ForAbsolutePath(engine.Path!);
                         break;
-                    case EngineSpecType.SelfEngine:
+                    case EngineSpecType.GitCommit:
+                        engineSpec = BuildEngineSpecification.ForGitCommitWithZips(
+                            engine.GitUrl!,
+                            engine.GitCommit!,
+                            engine.ZipLayers,
+                            isEngineBuild: false);
+                        break;
+                    case EngineSpecType.SelfEngineByBuildConfig:
                         var engineDistribution = distribution!.Distribution as BuildConfigEngineDistribution;
                         var repositoryUrl = engineDistribution!.Source.Repository;
                         if (!repositoryUrl.Contains("://"))
@@ -352,6 +359,7 @@
                                 repositoryUrl = $"ssh://{shortSshUrlMatch.Groups[1].Value}{shortSshUrlMatch.Groups[2].Value}/{shortSshUrlMatch.Groups[3].Value}";
                             }
                         }
+                        // @note: This will round trip to ci-build as EngineSpecType.GitCommit
                         engineSpec = BuildEngineSpecification.ForGitCommitWithZips(
                             repositoryUrl,
                             engineDistribution.Source.Ref,
@@ -359,7 +367,7 @@
                             isEngineBuild: true);
                         break;
                     default:
-                        throw new NotSupportedException();
+                        throw new NotSupportedException($"The EngineSpecType {engine.Type} is not supported by the 'build' command.");
                 }
 
                 // @note: We need the build executor to get the pipeline ID, which is also used as an input to compute the derived storage path that's specific for this build.

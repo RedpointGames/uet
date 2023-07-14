@@ -8,7 +8,7 @@
         internal string? _gitUrl { get; private set; }
         internal string? _gitCommit { get; private set; }
         internal string[]? _gitConsoleZips { get; private set; }
-        internal bool _isEngineBuild { get; private set; }
+        public bool IsEngineBuild { get; private set; } = false;
         public bool PermitConcurrentBuilds { get; private set; } = false;
 
         public static BuildEngineSpecification ForVersionWithPath(string version, string localPath)
@@ -46,7 +46,7 @@
                 _gitUrl = uefsGitUrl,
                 _gitCommit = uefsGitCommit,
                 _gitConsoleZips = uefsGitConsoleZips ?? new string[0],
-                _isEngineBuild = isEngineBuild,
+                IsEngineBuild = isEngineBuild,
                 PermitConcurrentBuilds = true,
             };
         }

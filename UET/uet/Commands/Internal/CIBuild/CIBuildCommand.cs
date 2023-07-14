@@ -100,8 +100,17 @@
                     case EngineSpecType.Path:
                         engineSpec = BuildEngineSpecification.ForAbsolutePath(engine.Path!);
                         break;
+                    case EngineSpecType.GitCommit:
+                        engineSpec = BuildEngineSpecification.ForGitCommitWithZips(
+                            engine.GitUrl!,
+                            engine.GitCommit!,
+                            engine.ZipLayers,
+                            isEngineBuild: buildJson.IsEngineBuild);
+                        break;
+                    case EngineSpecType.SelfEngineByBuildConfig:
+                        throw new InvalidOperationException("EngineSpec.TryParseEngineSpecExact should not be able to return EngineSpecType.SelfEngineByBuildConfig");
                     default:
-                        throw new NotSupportedException();
+                        throw new NotSupportedException($"The EngineSpecType {engine.Type} is not supported by the 'ci-build' command.");
                 }
 
                 IBuildNodeExecutor executor;

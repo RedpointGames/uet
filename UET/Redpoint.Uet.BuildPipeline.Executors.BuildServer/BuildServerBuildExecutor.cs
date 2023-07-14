@@ -462,6 +462,7 @@
                                 var buildJobJson = new BuildJobJson
                                 {
                                     Engine = buildSpecification.Engine.ToReparsableString(),
+                                    IsEngineBuild = buildSpecification.Engine.IsEngineBuild,
                                     SharedStoragePath = buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath,
                                     SdksPath = buildSpecification.BuildGraphEnvironment.Windows.SdksPath,
                                     BuildGraphTarget = buildSpecification.BuildGraphTarget,
@@ -486,6 +487,7 @@
                                 var buildJobJson = new BuildJobJson
                                 {
                                     Engine = buildSpecification.Engine.ToReparsableString(),
+                                    IsEngineBuild = buildSpecification.Engine.IsEngineBuild,
                                     SharedStoragePath = buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                                     SdksPath = buildSpecification.BuildGraphEnvironment.Mac.SdksPath,
                                     BuildGraphTarget = buildSpecification.BuildGraphTarget,

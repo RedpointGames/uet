@@ -91,7 +91,7 @@
                             return new EngineSpec
                             {
                                 OriginalSpec = string.Empty,
-                                Type = EngineSpecType.SelfEngine,
+                                Type = EngineSpecType.SelfEngineByBuildConfig,
                             };
                         }
 
