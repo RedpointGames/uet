@@ -162,6 +162,8 @@
                     WorkspaceDisambiguators = Array.Empty<string>(),
                     AdditionalFolderLayers = Array.Empty<string>(),
                     AdditionalFolderZips = Array.Empty<string>(),
+                    WindowsSharedGitCachePath = null,
+                    MacSharedGitCachePath = null,
                 },
                 cancellationToken);
 

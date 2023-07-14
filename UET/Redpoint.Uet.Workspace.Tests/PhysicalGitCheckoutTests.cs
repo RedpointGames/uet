@@ -67,6 +67,8 @@
                     AdditionalFolderZips = Array.Empty<string>(),
                     ProjectFolderName = "GMF",
                     IsEngineBuild = false,
+                    WindowsSharedGitCachePath = null,
+                    MacSharedGitCachePath = null,
                 },
                 CancellationToken.None);
 
@@ -120,6 +122,8 @@
                     AdditionalFolderZips = Array.Empty<string>(),
                     ProjectFolderName = "GMF",
                     IsEngineBuild = false,
+                    WindowsSharedGitCachePath = null,
+                    MacSharedGitCachePath = null,
                 },
                 CancellationToken.None);
 
@@ -140,6 +144,8 @@
                     AdditionalFolderZips = Array.Empty<string>(),
                     ProjectFolderName = "GMF",
                     IsEngineBuild = false,
+                    WindowsSharedGitCachePath = null,
+                    MacSharedGitCachePath = null,
                 },
                 CancellationToken.None);
 
@@ -206,6 +212,8 @@
                     AdditionalFolderZips = Array.Empty<string>(),
                     ProjectFolderName = "UET",
                     IsEngineBuild = false,
+                    WindowsSharedGitCachePath = null,
+                    MacSharedGitCachePath = null,
                 },
                 CancellationToken.None);
 

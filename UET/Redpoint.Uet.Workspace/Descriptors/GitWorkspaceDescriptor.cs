@@ -12,6 +12,10 @@
 
         public required string[] WorkspaceDisambiguators { get; set; }
 
+        public required string? WindowsSharedGitCachePath { get; set; }
+
+        public required string? MacSharedGitCachePath { get; set; }
+
         /// <summary>
         /// If this is for an Unreal Engine project, specifies the project folder name.
         /// </summary>

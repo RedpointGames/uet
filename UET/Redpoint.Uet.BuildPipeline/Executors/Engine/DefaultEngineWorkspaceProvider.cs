@@ -69,6 +69,8 @@
                         WorkspaceDisambiguators = new[] { workspaceSuffix },
                         ProjectFolderName = null,
                         IsEngineBuild = buildEngineSpecification.IsEngineBuild,
+                        WindowsSharedGitCachePath = buildEngineSpecification._gitSharedWindowsCachePath,
+                        MacSharedGitCachePath = buildEngineSpecification._gitSharedMacCachePath,
                     },
                     cancellationToken);
             }
