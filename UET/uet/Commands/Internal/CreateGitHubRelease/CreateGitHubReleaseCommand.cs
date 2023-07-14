@@ -112,6 +112,8 @@
 
                 using (var client = new HttpClient())
                 {
+                    client.Timeout = Timeout.InfiniteTimeSpan;
+
                     client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UET", null));
                     client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
                     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", pat);
