@@ -1187,6 +1187,12 @@
 
                 // Make sure that we can use the shared Git repository if it's on a network share.
                 _logger.LogInformation("Marking the shared Git repository as safe...");
+                var gitSafeDirectoryPath = sharedBareRepo.ReservedPath;
+                if (OperatingSystem.IsWindows() && gitSafeDirectoryPath.StartsWith(@"\\"))
+                {
+                    // Git has a very weird way of specifying safe directories for UNC paths.
+                    gitSafeDirectoryPath = $"%(prefix)/{gitSafeDirectoryPath.Replace(@"\", "/")}";
+                }
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
@@ -1197,7 +1203,7 @@
                             "--global",
                             "--add",
                             "safe.directory",
-                            sharedBareRepo.ReservedPath
+                            gitSafeDirectoryPath
                         },
                         WorkingDirectory = repositoryPath,
                         EnvironmentVariables = gitEnvs,
