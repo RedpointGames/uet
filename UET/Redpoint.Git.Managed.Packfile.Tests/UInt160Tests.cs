@@ -7,6 +7,15 @@
     public class UInt160Tests
     {
         [Fact]
+        public void MostSignificantByte()
+        {
+            var hash = UInt160.CreateFromString("d6340facfbb763c6d516e7599eac94245fce52ec");
+            Assert.Equal(
+                0xd6,
+                hash.MostSignificantByte);
+        }
+
+        [Fact]
         public void RoundTrip()
         {
             var hash = UInt160.CreateFromString("d6340facfbb763c6d516e7599eac94245fce52ec");

@@ -43,6 +43,14 @@
         private uint _4;
 
         /// <summary>
+        /// Returns the most significant byte; that is, the byte that
+        /// would appear first in a string representation of the
+        /// SHA1 hash.
+        /// </summary>
+        public readonly byte MostSignificantByte =>
+            BitConverter.IsLittleEndian ? _bytes[0] : _bytes[19];
+
+        /// <summary>
         /// Create an unsigned 160-bit integer where from 20 bytes of unsafe memory, where
         /// the most significant byte is the last byte.
         /// </summary>
