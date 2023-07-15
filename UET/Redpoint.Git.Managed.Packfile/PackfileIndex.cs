@@ -16,7 +16,7 @@
         private bool _disposed = false;
 
         /// <summary>
-        /// Construct a new Git packfile index by memory mapping the file at the specified path.
+        /// Construct a new <see cref="PackfileIndex"/> by memory mapping the file at the specified path.
         /// </summary>
         /// <exception cref="ArgumentException">Thrown if the specified file is not a packfile index.</exception>
         public PackfileIndex(string path)
@@ -366,7 +366,7 @@
             }
 
             var fanoutValueOffset = _header.Length + @byte * sizeof(int);
-            var cumulativeNumberOfObjects = ConvertFromNetworkByteOrder(_viewAccessor.ReadUInt32(fanoutValueOffset));
+            var cumulativeNumberOfObjects = EndiannessHelpers.ConvertFromNetworkByteOrder(_viewAccessor.ReadUInt32(fanoutValueOffset));
             return cumulativeNumberOfObjects;
         }
 
@@ -437,7 +437,7 @@
             }
 
             var offset = _header.Length + 256 * sizeof(int) + _objectCount * 20 + _objectCount * sizeof(uint) + index * sizeof(uint);
-            var offsetInPackfile = ConvertFromNetworkByteOrder(_viewAccessor.ReadUInt32(offset));
+            var offsetInPackfile = EndiannessHelpers.ConvertFromNetworkByteOrder(_viewAccessor.ReadUInt32(offset));
 
             if ((offsetInPackfile & 1u << 31) != 0)
             {
@@ -445,30 +445,12 @@
                 var offsetInLargeIndex = offsetInPackfile & ~(1u << 31);
                 var largeIndexOffsetInIndex = _header.Length + 256 * sizeof(int) + _objectCount * 20 + _objectCount * sizeof(uint) + _objectCount * sizeof(uint) + offsetInLargeIndex * sizeof(ulong);
                 var v = _viewAccessor.ReadUInt64(largeIndexOffsetInIndex);
-                return ConvertFromNetworkByteOrder(v);
+                return EndiannessHelpers.ConvertFromNetworkByteOrder(v);
             }
             else
             {
                 return offsetInPackfile;
             }
-        }
-
-        private uint ConvertFromNetworkByteOrder(uint v)
-        {
-            if (BitConverter.IsLittleEndian)
-            {
-                return BinaryPrimitives.ReverseEndianness(v);
-            }
-            return v;
-        }
-
-        private ulong ConvertFromNetworkByteOrder(ulong v)
-        {
-            if (BitConverter.IsLittleEndian)
-            {
-                return BinaryPrimitives.ReverseEndianness(v);
-            }
-            return v;
         }
 
         /// <inheritdoc/>
