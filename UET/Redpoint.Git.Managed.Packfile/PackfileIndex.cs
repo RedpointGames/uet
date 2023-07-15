@@ -1,4 +1,4 @@
-﻿namespace Redpoint.Git.Packfile
+﻿namespace Redpoint.Git.Managed.Packfile
 {
     using System.Buffers.Binary;
     using System.IO.MemoryMappedFiles;
@@ -66,7 +66,7 @@
         /// <returns>The SHA1 value.</returns>
         /// <exception cref="ArgumentException">Thrown if <paramref name="index"/> is greater than or equal to <see cref="ObjectCount"/>.</exception>
         /// <exception cref="ObjectDisposedException">Thrown if the instance has already been disposed.</exception>
-        public PackfileIndexShaEntry LowLevelGetShaAtObjectIndex(uint index)
+        public UInt160 LowLevelGetShaAtObjectIndex(uint index)
         {
             if (_disposed)
             {
@@ -78,8 +78,8 @@
                 throw new ArgumentException("Index must be less than the object count.", nameof(index));
             }
 
-            var offset = _header.Length + (256 * sizeof(int)) + index * 20;
-            _viewAccessor.Read<PackfileIndexShaEntry>(offset, out var entry);
+            var offset = _header.Length + 256 * sizeof(int) + index * 20;
+            _viewAccessor.Read<UInt160>(offset, out var entry);
             return entry;
         }
 
@@ -102,7 +102,7 @@
                 throw new ArgumentException("Index must be less than the object count.", nameof(index));
             }
 
-            var offset = _header.Length + (256 * sizeof(int)) + _objectCount * 20 + index * sizeof(uint);
+            var offset = _header.Length + 256 * sizeof(int) + _objectCount * 20 + index * sizeof(uint);
             return _viewAccessor.ReadUInt32(offset);
         }
 
@@ -125,14 +125,14 @@
                 throw new ArgumentException("Index must be less than the object count.", nameof(index));
             }
 
-            var offset = _header.Length + (256 * sizeof(int)) + _objectCount * 20 + _objectCount * sizeof(uint) + index * sizeof(uint);
+            var offset = _header.Length + 256 * sizeof(int) + _objectCount * 20 + _objectCount * sizeof(uint) + index * sizeof(uint);
             var offsetInPackfile = ConvertFromNetworkByteOrder(_viewAccessor.ReadUInt32(offset));
 
-            if ((offsetInPackfile & (1u << 31)) != 0)
+            if ((offsetInPackfile & 1u << 31) != 0)
             {
                 // This refers to an index in the 64-byte offset table.
                 var offsetInLargeIndex = offsetInPackfile & ~(1u << 31);
-                var largeIndexOffsetInIndex = _header.Length + (256 * sizeof(int)) + _objectCount * 20 + _objectCount * sizeof(uint) + _objectCount * sizeof(uint) + offsetInLargeIndex * sizeof(ulong);
+                var largeIndexOffsetInIndex = _header.Length + 256 * sizeof(int) + _objectCount * 20 + _objectCount * sizeof(uint) + _objectCount * sizeof(uint) + offsetInLargeIndex * sizeof(ulong);
                 var v = _viewAccessor.ReadUInt64(largeIndexOffsetInIndex);
                 return ConvertFromNetworkByteOrder(v);
             }
