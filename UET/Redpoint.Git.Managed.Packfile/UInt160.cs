@@ -131,35 +131,38 @@
         /// <inheritdoc />
         public unsafe int CompareTo(UInt160 right)
         {
-            fixed (byte* left = _bytes)
+            if (_upper < right._upper)
             {
-                var ah = *(Vector128<byte>*)left;
-                var bh = *(Vector128<byte>*)right._bytes;
-                var al = *(uint*)(left + 16);
-                var bl = *(uint*)(right._bytes + 16);
-
-                if (ah == bh)
-                {
-                    if (al == bl)
-                    {
-                        return 0;
-                    }
-                    else if (al < bl)
-                    {
-                        return -1;
-                    }
-                    else
-                    {
-                        return 1;
-                    }
-                }
-                else if (Vector128.LessThanAll(ah, bh))
+                return -1;
+            }
+            else if (_upper > right._upper)
+            {
+                return 1;
+            }
+            else
+            {
+                if (_lowerHigh < right._lowerHigh)
                 {
                     return -1;
                 }
-                else
+                else if (_lowerHigh > right._lowerHigh)
                 {
                     return 1;
+                }
+                else
+                {
+                    if (_lowerLow < right._lowerLow)
+                    {
+                        return -1;
+                    }
+                    else if (_lowerLow > right._lowerLow)
+                    {
+                        return 1;
+                    }
+                    else
+                    {
+                        return 0;
+                    }
                 }
             }
         }
