@@ -233,6 +233,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Git.Managed.Packfi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Git.Managed.Packfile.Tests", "Redpoint.Git.Managed.Packfile.Tests\Redpoint.Git.Managed.Packfile.Tests.csproj", "{8227A622-25F1-44D6-AC4B-E07EA56A24E3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Numerics", "Redpoint.Numerics\Redpoint.Numerics.csproj", "{005DEEF4-D262-4D69-920E-386308CC46FF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Numerics.Tests", "Redpoint.Numerics.Tests\Redpoint.Numerics.Tests.csproj", "{45E16317-E87A-428E-B5ED-1885DA1BCFAC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -683,6 +687,14 @@ Global
 		{8227A622-25F1-44D6-AC4B-E07EA56A24E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8227A622-25F1-44D6-AC4B-E07EA56A24E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8227A622-25F1-44D6-AC4B-E07EA56A24E3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{005DEEF4-D262-4D69-920E-386308CC46FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{005DEEF4-D262-4D69-920E-386308CC46FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{005DEEF4-D262-4D69-920E-386308CC46FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{005DEEF4-D262-4D69-920E-386308CC46FF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45E16317-E87A-428E-B5ED-1885DA1BCFAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45E16317-E87A-428E-B5ED-1885DA1BCFAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45E16317-E87A-428E-B5ED-1885DA1BCFAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45E16317-E87A-428E-B5ED-1885DA1BCFAC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

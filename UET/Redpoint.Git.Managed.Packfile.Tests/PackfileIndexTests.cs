@@ -1,5 +1,7 @@
 ﻿namespace Redpoint.Git.Managed.Packfile.Tests
 {
+    using Redpoint.Numerics;
+
     public class PackfileIndexTests
     {
         [Fact]

@@ -1,4 +1,4 @@
-﻿namespace Redpoint.Git.Managed.Packfile.Tests
+﻿namespace Redpoint.Numerics.Tests
 {
     using System.Runtime.Intrinsics;
 

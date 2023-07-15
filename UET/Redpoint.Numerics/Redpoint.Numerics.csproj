@@ -4,12 +4,14 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
   <PropertyGroup>
-    <Description>A parser for the Git packfile format.</Description>
-    <PackageTags>git, packfile</PackageTags>
+    <Description>Provides additional numeric types.</Description>
+    <PackageTags>numerics</PackageTags>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Redpoint.Numerics\Redpoint.Numerics.csproj" />
+    <None Update="README.md">
+      <Pack>True</Pack>
+    </None>
   </ItemGroup>
 
 </Project>

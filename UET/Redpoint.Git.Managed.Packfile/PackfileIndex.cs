@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Git.Managed.Packfile
 {
+    using Redpoint.Numerics;
     using System.Buffers.Binary;
     using System.IO.MemoryMappedFiles;
 
