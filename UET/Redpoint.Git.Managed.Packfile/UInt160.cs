@@ -51,6 +51,16 @@
             BitConverter.IsLittleEndian ? _bytes[0] : _bytes[19];
 
         /// <summary>
+        /// Returns the byte of the unsigned 160-bit integer as if the
+        /// integer is stored in little endian format (regardless of the
+        /// current CPU architecture. Therefore <c>[0]</c> is always the
+        /// most significant byte.
+        /// </summary>
+        /// <param name="index">The index from 0 to 19 inclusive.</param>
+        /// <returns>The byte of the unsigned 160-bit integer.</returns>
+        public readonly byte this[byte index] => BitConverter.IsLittleEndian ? _bytes[index] : _bytes[19 - index];
+
+        /// <summary>
         /// Create an unsigned 160-bit integer where from 20 bytes of unsafe memory, where
         /// the most significant byte is the last byte.
         /// </summary>
