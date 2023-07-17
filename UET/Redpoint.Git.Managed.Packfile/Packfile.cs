@@ -67,14 +67,14 @@
         public bool GetRawPackfileEntry(
             PackfileIndex index,
             UInt160 sha,
-            out PackfileEntryObjectType type,
+            out GitObjectType type,
             out ulong size,
             out Stream? data)
         {
             // Locate the object index in the index file based on the SHA-1 hash.
             if (!index.GetObjectIndexForObjectSha(sha, out var objectIndex))
             {
-                type = PackfileEntryObjectType.Undefined;
+                type = GitObjectType.Undefined;
                 size = 0;
                 data = null;
                 return false;
@@ -85,7 +85,7 @@
             var headerOffset = offset;
             var headerByte = _viewAccessor.ReadByte(headerOffset);
             var hasMoreBits = ((0b10000000u & headerByte) >> 7) == 0b1u;
-            type = (PackfileEntryObjectType)((0b01110000u & headerByte) >> 4);
+            type = (GitObjectType)((0b01110000u & headerByte) >> 4);
             size = (0b00001111u) & headerByte;
             while (hasMoreBits)
             {
@@ -98,9 +98,9 @@
             // Return a stream that wraps decompressing data.
             switch (type)
             {
-                case PackfileEntryObjectType.OfsDelta:
+                case GitObjectType.OfsDelta:
                     throw new NotImplementedException();
-                case PackfileEntryObjectType.RefDelta:
+                case GitObjectType.RefDelta:
                     throw new NotImplementedException();
                 default:
                     // This is zlib compressed data, but we don't know

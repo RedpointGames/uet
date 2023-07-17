@@ -24,7 +24,7 @@
             {
                 const ulong sizeWhenDecompressed = 12;
 
-                Assert.Equal(PackfileEntryObjectType.Blob, type);
+                Assert.Equal(GitObjectType.Blob, type);
                 Assert.Equal(sizeWhenDecompressed, size);
 
                 var decompressionBuffer = new byte[sizeWhenDecompressed];

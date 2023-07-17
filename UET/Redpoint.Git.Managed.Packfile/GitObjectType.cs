@@ -9,7 +9,7 @@
     /// <summary>
     /// Represents the type of packfile entry.
     /// </summary>
-    public enum PackfileEntryObjectType
+    public enum GitObjectType
     {
         /// <summary>
         /// This object is undefined.
