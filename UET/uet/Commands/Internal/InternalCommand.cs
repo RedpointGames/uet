@@ -6,6 +6,7 @@
     using UET.Commands.Internal.CreateGitHubRelease;
     using UET.Commands.Internal.DynamicReentrantTask;
     using UET.Commands.Internal.GenerateJsonSchema;
+    using UET.Commands.Internal.InstallPlatformSdk;
     using UET.Commands.Internal.RemoveStalePrecompiledHeaders;
     using UET.Commands.Internal.RunDownstreamTest;
     using UET.Commands.Internal.RunGauntletTestFromBuildGraph;
@@ -36,6 +37,7 @@
                 RunDynamicReentrantTaskCommand.CreateRunDynamicReentrantTaskCommand(),
                 GenerateJsonSchemaCommand.CreateGenerateJsonSchemaCommand(),
                 RemoveStalePrecompiledHeadersCommand.CreateRemoveStalePrecompiledHeadersCommand(),
+                InstallPlatformSdkCommand.CreateInstallPlatformSdkCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");

@@ -5,7 +5,7 @@
 
     public interface ILocalSdkManager
     {
-        string[] GetRecognisedPlatforms();
+        IEnumerable<string> GetRecognisedPlatforms();
 
         Task<Dictionary<string, string>> EnsureSdkForPlatformAsync(
             string enginePath,

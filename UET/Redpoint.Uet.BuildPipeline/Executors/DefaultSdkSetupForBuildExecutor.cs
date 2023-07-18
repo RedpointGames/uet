@@ -57,7 +57,7 @@
                 }
                 else
                 {
-                    _logger.LogInformation($"The platform {sdkPlatform} is not recognised as a platform for automatic setup.");
+                    _logger.LogInformation($"The node name '{nodeName}' does not have a recognised platform name for automatic setup.");
                 }
             }
             else
