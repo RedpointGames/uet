@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
+    <ProjectReference Include="..\Redpoint.Registry\Redpoint.Registry.csproj" />
     <ProjectReference Include="..\Redpoint.Reservation\Redpoint.Reservation.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.Core\Redpoint.Uet.Core.csproj" />
   </ItemGroup>

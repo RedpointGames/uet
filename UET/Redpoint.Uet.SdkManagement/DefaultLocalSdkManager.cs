@@ -2,12 +2,14 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
     using Redpoint.Uet.Core;
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Text.Json;
     using System.Threading.Tasks;
 
     internal class DefaultLocalSdkManager : ILocalSdkManager
@@ -28,9 +30,28 @@
             _logger = logger;
         }
 
-        public string[] GetRecognisedPlatforms()
+        public IEnumerable<string> GetRecognisedPlatforms()
         {
-            return new[] { "Windows", "Win64", "Mac", "Android", "Linux" };
+            yield return "Windows";
+            yield return "Win64";
+            yield return "Mac";
+            yield return "Android";
+            yield return "Linux";
+
+            // Allow non-portable platform support to be added via environment
+            // variables.
+            if (OperatingSystem.IsWindows())
+            {
+                foreach (var envvar in Environment.GetEnvironmentVariables()
+                    .Keys
+                    .OfType<string>())
+                {
+                    if (envvar.StartsWith("UET_PLATFORM_SDK_CONFIG_PATH_"))
+                    {
+                        yield return envvar.Substring("UET_PLATFORM_SDK_CONFIG_PATH_".Length);
+                    }
+                }
+            }
         }
 
         public async Task<Dictionary<string, string>> EnsureSdkForPlatformAsync(
@@ -76,6 +97,24 @@
                     {
                         _logger.LogInformation("Using Linux SDK setup provider.");
                         setup = _serviceProvider.GetRequiredService<LinuxSdkSetup>();
+                    }
+                    break;
+                default:
+                    if (OperatingSystem.IsWindows())
+                    {
+                        var configPath = Environment.GetEnvironmentVariable($"UET_PLATFORM_SDK_CONFIG_PATH_{platform}");
+                        if (configPath != null)
+                        {
+                            _logger.LogInformation($"Using {platform} confidential SDK setup provider from: {configPath}");
+                            var config = JsonSerializer.Deserialize(
+                                File.ReadAllText(configPath),
+                                ConfidentialPlatformJsonSerializerContext.Default.ConfidentialPlatformConfig);
+                            setup = new ConfidentialSdkSetup(
+                                platform,
+                                config!,
+                                _serviceProvider.GetRequiredService<IProcessExecutor>(),
+                                _serviceProvider.GetRequiredService<ILogger<ConfidentialSdkSetup>>());
+                        }
                     }
                     break;
             }
