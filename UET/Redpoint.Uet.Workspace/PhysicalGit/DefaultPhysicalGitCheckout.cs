@@ -1441,34 +1441,34 @@
                 {
                     _logger.LogWarning($"Unable to grant everyone access to shared Git repository: {ex}");
                 }
-            }
 
-            // Restore the target commit.
-            _logger.LogInformation($"Restoring target commit {targetCommit}...");
-            exitCode = await _processExecutor.ExecuteAsync(
-                new ProcessSpecification
-                {
-                    FilePath = git,
-                    Arguments = new[]
+                // Restore the target commit.
+                _logger.LogInformation($"Restoring target commit {targetCommit}...");
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
                     {
-                        $"--work-tree={repositoryPath}",
-                        $"--git-dir={sharedBareRepoPath}",
-                        "-c",
-                        "advice.detachedHead=false",
-                        "restore",
-                        $"--source={targetCommit}",
-                        "--worktree",
-                        repositoryPath,
-                        "--progress",
+                        FilePath = git,
+                        Arguments = new[]
+                        {
+                            $"--work-tree={repositoryPath}",
+                            $"--git-dir={sharedBareRepoPath}",
+                            "-c",
+                            "advice.detachedHead=false",
+                            "restore",
+                            $"--source={targetCommit}",
+                            "--worktree",
+                            repositoryPath,
+                            "--progress",
+                        },
+                        WorkingDirectory = repositoryPath,
+                        EnvironmentVariables = gitEnvs,
                     },
-                    WorkingDirectory = repositoryPath,
-                    EnvironmentVariables = gitEnvs,
-                },
-                CaptureSpecification.Sanitized,
-                cancellationToken);
-            if (exitCode != 0)
-            {
-                throw new InvalidOperationException($"'git restore ...' exited with non-zero exit code {exitCode}");
+                    CaptureSpecification.Sanitized,
+                    cancellationToken);
+                if (exitCode != 0)
+                {
+                    throw new InvalidOperationException($"'git restore ...' exited with non-zero exit code {exitCode}");
+                }
             }
 
             // Copy our additional folder layers on top.
