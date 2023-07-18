@@ -48,6 +48,16 @@
                 throw new RpcException(new Status(StatusCode.Unavailable, "Folder snapshots can not be mounted on this system."));
             }
 
+            if (string.IsNullOrWhiteSpace(request.SourcePath))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "The SourcePath must not be an empty string."));
+            }
+
+            if (!Directory.Exists(request.SourcePath))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "The SourcePath must be an existing directory."));
+            }
+
             // Run the mount transaction.
             await using (var transaction = await daemon.TransactionalDatabase.BeginTransactionAsync(
                 new AddMountTransactionRequest
