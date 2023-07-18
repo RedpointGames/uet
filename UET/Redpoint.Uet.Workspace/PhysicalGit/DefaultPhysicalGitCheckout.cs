@@ -1442,6 +1442,22 @@
                     _logger.LogWarning($"Unable to grant everyone access to shared Git repository: {ex}");
                 }
 
+                // Ensure index.lock is not present.
+                while (File.Exists(Path.Combine(sharedBareRepoPath, "index.lock")))
+                {
+                    try
+                    {
+                        File.Delete(Path.Combine(sharedBareRepoPath, "index.lock"));
+                        break;
+                    }
+                    catch
+                    {
+                        _logger.LogWarning("Unable to remove index.lock (another process may be using it, even though we have the reservation). Retrying in 10 seconds...");
+                        await Task.Delay(10000);
+                        continue;
+                    }
+                }
+
                 // Restore the target commit.
                 _logger.LogInformation($"Restoring target commit {targetCommit}...");
                 exitCode = await _processExecutor.ExecuteAsync(
