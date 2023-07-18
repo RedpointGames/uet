@@ -5,7 +5,7 @@ namespace Tenray.ZoneTree.Core;
 
 public static class ZoneTreeInfo
 {
-    static Version Version = new Version(1, 0, 0);
+    static Version Version = new Version(1, 6, 2);
 
     /// <summary>
     /// Gets ZoneTree Product Version
