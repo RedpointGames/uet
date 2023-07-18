@@ -4,6 +4,7 @@
     using Microsoft.Win32;
     using Redpoint.ProcessExecution;
     using Redpoint.Registry;
+    using Redpoint.Uet.Core;
     using System;
     using System.Runtime.Versioning;
     using System.Text;
@@ -17,17 +18,20 @@
         private readonly ConfidentialPlatformConfig _config;
         private readonly IProcessExecutor _processExecutor;
         private readonly ILogger<ConfidentialSdkSetup> _logger;
+        private readonly IStringUtilities _stringUtilities;
 
         public ConfidentialSdkSetup(
             string platformName,
             ConfidentialPlatformConfig config,
             IProcessExecutor processExecutor,
-            ILogger<ConfidentialSdkSetup> logger)
+            ILogger<ConfidentialSdkSetup> logger,
+            IStringUtilities stringUtilities)
         {
             PlatformName = platformName;
             _config = config;
             _processExecutor = processExecutor;
             _logger = logger;
+            _stringUtilities = stringUtilities;
         }
 
         public string PlatformName { get; }
@@ -39,119 +43,122 @@
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
         {
-            if (_config.BeforeInstallSetRegistryValue != null)
+            foreach (var installer in _config.Installers ?? Array.Empty<ConfidentialPlatformConfigInstaller>())
             {
-                ProcessRegistryKeys(_config.BeforeInstallSetRegistryValue);
-            }
-
-            try
-            {
-                var logPath = Path.Combine(sdkPackagePath, "InstallLogs");
-                Directory.CreateDirectory(logPath);
-
-                var interestedLogDirectories = new List<string>
+                if (installer.BeforeInstallSetRegistryValue != null)
                 {
-                    logPath,
-                };
-                if (_config.InstallerAdditionalLogFileDirectories != null)
-                {
-                    foreach (var directory in _config.InstallerAdditionalLogFileDirectories)
-                    {
-                        interestedLogDirectories.Add(directory);
-                        foreach (var existingTxt in Directory.GetFiles(directory, "*.txt"))
-                        {
-                            File.Delete(existingTxt);
-                        }
-                        foreach (var existingLog in Directory.GetFiles(directory, "*.log"))
-                        {
-                            File.Delete(existingLog);
-                        }
-                    }
+                    ProcessRegistryKeys(installer.BeforeInstallSetRegistryValue);
                 }
 
-                var monitoringCts = new CancellationTokenSource();
-                var monitoringProcess = Task.Run(async () =>
+                try
                 {
-                    var logFiles = new Dictionary<string, long>();
-                    while (!monitoringCts.IsCancellationRequested)
+                    var logPath = Path.Combine(sdkPackagePath, _stringUtilities.GetStabilityHash(installer.InstallerPath!, null), "InstallLogs");
+                    Directory.CreateDirectory(logPath);
+
+                    var interestedLogDirectories = new List<string>
                     {
-                        await Task.Delay(100);
-
-                        foreach (var file in interestedLogDirectories.SelectMany(x => Directory.GetFiles(x, "*.txt").Concat(Directory.GetFiles(x, "*.log"))))
+                        logPath,
+                    };
+                    if (installer.InstallerAdditionalLogFileDirectories != null)
+                    {
+                        foreach (var directory in installer.InstallerAdditionalLogFileDirectories)
                         {
-                            if (!logFiles.ContainsKey(file))
+                            interestedLogDirectories.Add(directory);
+                            foreach (var existingTxt in Directory.GetFiles(directory, "*.txt"))
                             {
-                                logFiles[file] = 0;
+                                File.Delete(existingTxt);
                             }
-
-                            using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                            foreach (var existingLog in Directory.GetFiles(directory, "*.log"))
                             {
-                                stream.Seek(logFiles[file], SeekOrigin.Begin);
-                                var content = new byte[stream.Length - logFiles[file]];
-                                stream.Read(content);
-                                var contentString = Encoding.UTF8.GetString(content);
-                                var lastNewline = contentString.LastIndexOf('\n');
-                                if (lastNewline > 0)
+                                File.Delete(existingLog);
+                            }
+                        }
+                    }
+
+                    var monitoringCts = new CancellationTokenSource();
+                    var monitoringProcess = Task.Run(async () =>
+                    {
+                        var logFiles = new Dictionary<string, long>();
+                        while (!monitoringCts.IsCancellationRequested)
+                        {
+                            await Task.Delay(100);
+
+                            foreach (var file in interestedLogDirectories.SelectMany(x => Directory.GetFiles(x, "*.txt").Concat(Directory.GetFiles(x, "*.log"))))
+                            {
+                                if (!logFiles.ContainsKey(file))
                                 {
-                                    var targetContentString = lastNewline == contentString.Length - 1 ? contentString : contentString.Substring(0, lastNewline + 1);
-                                    var byteCount = Encoding.UTF8.GetBytes(targetContentString).Length;
-                                    logFiles[file] += byteCount;
-                                    foreach (var line in targetContentString.Split('\n'))
+                                    logFiles[file] = 0;
+                                }
+
+                                using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                                {
+                                    stream.Seek(logFiles[file], SeekOrigin.Begin);
+                                    var content = new byte[stream.Length - logFiles[file]];
+                                    stream.Read(content);
+                                    var contentString = Encoding.UTF8.GetString(content);
+                                    var lastNewline = contentString.LastIndexOf('\n');
+                                    if (lastNewline > 0)
                                     {
-                                        var trimmedLine = line.TrimEnd();
-                                        if (!string.IsNullOrWhiteSpace(trimmedLine))
+                                        var targetContentString = lastNewline == contentString.Length - 1 ? contentString : contentString.Substring(0, lastNewline + 1);
+                                        var byteCount = Encoding.UTF8.GetBytes(targetContentString).Length;
+                                        logFiles[file] += byteCount;
+                                        foreach (var line in targetContentString.Split('\n'))
                                         {
-                                            Console.WriteLine(trimmedLine);
+                                            var trimmedLine = line.TrimEnd();
+                                            if (!string.IsNullOrWhiteSpace(trimmedLine))
+                                            {
+                                                Console.WriteLine(trimmedLine);
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-                });
+                    });
 
-                var exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = _config.InstallerPath!,
-                        Arguments = _config.InstallerArguments!
-                            .Select(x => x.Replace("%LOG_PATH%", logPath))
-                            .ToArray(),
-                        WorkingDirectory = Path.GetDirectoryName(_config.InstallerPath!)
-                    },
-                    CaptureSpecification.Passthrough,
-                    cancellationToken);
-
-                monitoringCts.Cancel();
-                try
-                {
-                    await monitoringProcess;
-                }
-                catch (OperationCanceledException) when (monitoringCts.IsCancellationRequested)
-                {
-                }
-
-                if (_config.MustExistAfterInstall != null)
-                {
-                    foreach (var e in _config.MustExistAfterInstall)
-                    {
-                        if (!Path.Exists(e))
+                    var exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
                         {
-                            throw new SdkSetupPackageGenerationFailedException($"Expected the path '{e}' to exist after installation, but it did not.");
+                            FilePath = installer.InstallerPath!,
+                            Arguments = installer.InstallerArguments!
+                                .Select(x => x.Replace("%LOG_PATH%", logPath))
+                                .ToArray(),
+                            WorkingDirectory = Path.GetDirectoryName(installer.InstallerPath!)
+                        },
+                        CaptureSpecification.Passthrough,
+                        cancellationToken);
+
+                    monitoringCts.Cancel();
+                    try
+                    {
+                        await monitoringProcess;
+                    }
+                    catch (OperationCanceledException) when (monitoringCts.IsCancellationRequested)
+                    {
+                    }
+
+                    if (installer.MustExistAfterInstall != null)
+                    {
+                        foreach (var e in installer.MustExistAfterInstall)
+                        {
+                            if (!Path.Exists(e))
+                            {
+                                throw new SdkSetupPackageGenerationFailedException($"Expected the path '{e}' to exist after installation, but it did not.");
+                            }
                         }
                     }
-                }
 
-                if (exitCode != 0 && !_config.PermitNonZeroExitCode)
-                {
-                    throw new SdkSetupPackageGenerationFailedException($"Confidential platform process exited with non-zero exit code: {exitCode}");
+                    if (exitCode != 0 && !installer.PermitNonZeroExitCode)
+                    {
+                        throw new SdkSetupPackageGenerationFailedException($"Confidential platform process exited with non-zero exit code: {exitCode}");
+                    }
                 }
-            }
-            finally
-            {
-                if (_config.AfterInstallSetRegistryValue != null)
+                finally
                 {
-                    ProcessRegistryKeys(_config.AfterInstallSetRegistryValue);
+                    if (installer.AfterInstallSetRegistryValue != null)
+                    {
+                        ProcessRegistryKeys(installer.AfterInstallSetRegistryValue);
+                    }
                 }
             }
         }

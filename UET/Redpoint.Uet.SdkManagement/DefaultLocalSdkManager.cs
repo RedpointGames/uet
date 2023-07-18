@@ -113,7 +113,8 @@
                                 platform,
                                 config!,
                                 _serviceProvider.GetRequiredService<IProcessExecutor>(),
-                                _serviceProvider.GetRequiredService<ILogger<ConfidentialSdkSetup>>());
+                                _serviceProvider.GetRequiredService<ILogger<ConfidentialSdkSetup>>(),
+                                _serviceProvider.GetRequiredService<IStringUtilities>());
                         }
                     }
                     break;
