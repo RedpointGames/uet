@@ -207,7 +207,9 @@
         private async Task<IWorkspace> AllocateTemporaryAsync(TemporaryWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
         {
             var usingReservation = false;
-            var reservation = await _reservationManager.ReserveAsync("VirtualTemp", descriptor.Name);
+            // @note: We use the same "PhysicalTemp" name here because there's no issue sharing
+            // temporary workspaces with the physical provider.
+            var reservation = await _reservationManager.ReserveAsync("PhysicalTemp", descriptor.Name);
             try
             {
                 _logger.LogInformation($"Creating temporary workspace: {reservation.ReservedPath}");
