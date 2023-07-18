@@ -11,7 +11,6 @@
         internal string? _gitSharedWindowsCachePath { get; private set; }
         internal string? _gitSharedMacCachePath { get; private set; }
         public bool IsEngineBuild { get; private set; } = false;
-        public bool PermitConcurrentBuilds { get; private set; } = false;
 
         public static BuildEngineSpecification ForVersionWithPath(string version, string localPath)
         {
@@ -19,7 +18,6 @@
             {
                 _engineVersion = version,
                 _enginePath = localPath,
-                PermitConcurrentBuilds = false,
             };
         }
 
@@ -28,7 +26,6 @@
             return new BuildEngineSpecification
             {
                 _enginePath = path,
-                PermitConcurrentBuilds = false,
             };
         }
 
@@ -37,7 +34,6 @@
             return new BuildEngineSpecification
             {
                 _uefsPackageTag = uefsPackageTag,
-                PermitConcurrentBuilds = true,
             };
         }
 
@@ -57,7 +53,6 @@
                 _gitSharedWindowsCachePath = windowsSharedGitCachePath,
                 _gitSharedMacCachePath = macSharedGitCachePath,
                 IsEngineBuild = isEngineBuild,
-                PermitConcurrentBuilds = true,
             };
         }
 

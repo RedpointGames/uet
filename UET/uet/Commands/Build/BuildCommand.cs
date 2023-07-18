@@ -18,6 +18,7 @@
     using static Crayon.Output;
     using Redpoint.Uet.Configuration.Dynamic;
     using System.Text.RegularExpressions;
+    using Redpoint.Uet.Workspace;
 
     internal class BuildCommand
     {
@@ -233,6 +234,7 @@
             private readonly LocalBuildExecutorFactory _localBuildExecutorFactory;
             private readonly GitLabBuildExecutorFactory _gitLabBuildExecutorFactory;
             private readonly IStringUtilities _stringUtilities;
+            private readonly IDynamicWorkspaceProvider _dynamicWorkspaceProvider;
 
             public BuildCommandInstance(
                 ILogger<BuildCommandInstance> logger,
@@ -240,7 +242,8 @@
                 IBuildSpecificationGenerator buildSpecificationGenerator,
                 LocalBuildExecutorFactory localBuildExecutorFactory,
                 GitLabBuildExecutorFactory gitLabBuildExecutorFactory,
-                IStringUtilities stringUtilities)
+                IStringUtilities stringUtilities,
+                IDynamicWorkspaceProvider dynamicWorkspaceProvider)
             {
                 _logger = logger;
                 _options = options;
@@ -248,6 +251,7 @@
                 _localBuildExecutorFactory = localBuildExecutorFactory;
                 _gitLabBuildExecutorFactory = gitLabBuildExecutorFactory;
                 _stringUtilities = stringUtilities;
+                _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
@@ -272,6 +276,10 @@
                 var pluginPackage = context.ParseResult.GetValueForOption(_options.PluginPackage);
                 var pluginVersionName = context.ParseResult.GetValueForOption(_options.PluginVersionName);
                 var pluginVersionNumber = context.ParseResult.GetValueForOption(_options.PluginVersionNumber);
+
+                // Configure the dynamic workspace provider to use workspace virtualisation
+                // if appropriate.
+                _dynamicWorkspaceProvider.UseWorkspaceVirtualisation = storageVirtualisation;
 
                 // @todo: Move this validation to the parsing APIs.
                 if (executorName == "local")
