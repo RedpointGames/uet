@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Common.Build.props" />
+
+  <PropertyGroup>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <TargetFramework>net7.0</TargetFramework>
+    <RepositoryUrl>https://github.com/koculu/ZoneTree</RepositoryUrl>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <Nullable>disable</Nullable>
+    <PackageId>Redpoint.ThirdParty.ZoneTree</PackageId>
+    <RepositoryType>git</RepositoryType>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <RootNamespace>Tenray.ZoneTree</RootNamespace>
+    <Configurations>Debug;Release;ReleaseWithDoc</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Copyright>Ahmed Yasin Koculu</Copyright>
+    <Authors>Ahmed Yasin Koculu</Authors>
+    <PackageId>ZoneTree</PackageId>
+    <Title>ZoneTree</Title>
+    <ProductVersion>1.6.2.0</ProductVersion>
+    <Version>1.6.2.0</Version>
+    <Authors>Ahmed Yasin Koculu</Authors>
+    <AssemblyTitle>ZoneTree</AssemblyTitle>
+    <Description>ZoneTree is a persistent, high-performance, transactional, ACID-compliant ordered key-value database for NET. It can operate in memory or on local/cloud storage.</Description>
+    <Summmary>
+      ZoneTree is a persistent, high-performance, transactional, ACID-compliant ordered key-value database for NET. It can operate in memory or on local/cloud storage.
+    </Summmary>
+    <PackageTags>high-performance, database, consistency, persistence, iterator, binary-tree, durability, isolation, key-value-database, atomicity, lsm-tree, key-value-store</PackageTags>
+    <ReleaseNotes></ReleaseNotes>
+    <Company>koculu</Company>
+
+    <PackageProjectUrl>https://tenray.io</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <DebugType>portable</DebugType>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'ReleaseWithDoc'">
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <LogFile>bin\docfx.log.txt</LogFile>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'ReleaseWithDoc'">
+    <PackageReference Include="docfx.console" Version="2.59.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="K4os.Compression.LZ4" Version="1.2.16" />
+    <PackageReference Include="ZstdNet" Version="1.4.5" />
+  </ItemGroup>
+</Project>

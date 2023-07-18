@@ -13,10 +13,10 @@
     <PackageReference Include="KeyedSemaphores" Version="4.1.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
-    <PackageReference Include="ZoneTree" Version="1.6.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.ZoneTree\Redpoint.ThirdParty.ZoneTree.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Abstractions\Redpoint.Vfs.Abstractions.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.LocalIo\Redpoint.Vfs.LocalIo.csproj" />
   </ItemGroup>
