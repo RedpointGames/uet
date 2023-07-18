@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Git.Managed.Packfile\Redpoint.Git.Managed.Packfile.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="pack-a3937f64bd05eea333e59ce57f47f3cdd76664b1.idx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="pack-a3937f64bd05eea333e59ce57f47f3cdd76664b1.pack">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

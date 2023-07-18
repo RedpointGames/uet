@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <ItemGroup>
+    <PackageReference Include="BitFaster.Caching" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
+    <ProjectReference Include="..\Redpoint.Git.Managed.Packfile\Redpoint.Git.Managed.Packfile.csproj" />
+    <ProjectReference Include="..\Redpoint.Numerics\Redpoint.Numerics.csproj" />
+  </ItemGroup>
+
+</Project>

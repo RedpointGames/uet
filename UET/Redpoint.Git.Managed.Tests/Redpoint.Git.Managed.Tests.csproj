@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Git.Managed\Redpoint.Git.Managed.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="git/**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

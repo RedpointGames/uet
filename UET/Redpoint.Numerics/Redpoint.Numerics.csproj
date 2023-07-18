@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>Provides additional numeric types.</Description>
+    <PackageTags>numerics</PackageTags>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+    </None>
+  </ItemGroup>
+
+</Project>
