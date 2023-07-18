@@ -28,6 +28,7 @@
             public Option<bool> Test;
             public Option<bool> Deploy;
             public Option<bool> StrictIncludes;
+            public Option<bool> StorageVirtualisation;
 
             public Option<DistributionSpec?> Distribution;
 
@@ -94,6 +95,12 @@
                 StrictIncludes = new Option<bool>(
                     "--strict-includes",
                     description: "If set, disables unity and PCH builds. This forces all files to have the correct #include directives, at the cost of increased build time.");
+
+                StorageVirtualisation = new Option<bool>(
+                    "--storage-virtualisation",
+                    getDefaultValue: () => Environment.GetEnvironmentVariable("UET_USE_STORAGE_VIRTUALIZATION") == "true",
+                    description: "If set, enables storage virtualisation via UEFS.");
+                StorageVirtualisation.AddAlias("-u");
 
                 // ==== .uproject / .uplugin options
 
@@ -260,6 +267,7 @@
                 var test = context.ParseResult.GetValueForOption(_options.Test);
                 var deploy = context.ParseResult.GetValueForOption(_options.Deploy);
                 var strictIncludes = context.ParseResult.GetValueForOption(_options.StrictIncludes);
+                var storageVirtualisation = context.ParseResult.GetValueForOption(_options.StorageVirtualisation);
                 var platforms = context.ParseResult.GetValueForOption(_options.Platform);
                 var pluginPackage = context.ParseResult.GetValueForOption(_options.PluginPackage);
                 var pluginVersionName = context.ParseResult.GetValueForOption(_options.PluginVersionName);
@@ -340,6 +348,7 @@
                 _logger.LogInformation($"--test:                          {(test ? "yes" : "no")}");
                 _logger.LogInformation($"--deploy:                        {(deploy ? "yes" : "no")}");
                 _logger.LogInformation($"--strict-includes:               {(strictIncludes ? "yes" : "no")}");
+                _logger.LogInformation($"--storage-virtualisation:        {(storageVirtualisation ? "yes" : "no")}");
                 _logger.LogInformation($"--platforms:                     {string.Join(", ", platforms ?? Array.Empty<string>())}");
                 _logger.LogInformation($"--plugin-package:                {pluginPackage}");
                 _logger.LogInformation($"--plugin-version-name:           {pluginVersionName}");
@@ -430,8 +439,7 @@
                         SharedStorageAbsolutePath = macSharedStoragePath,
                         SdksPath = macSdksPath?.TrimEnd('/'),
                     },
-                    // @note: Turned off until we can fix folder snapshotting in UEFS.
-                    UseStorageVirtualisation = false,
+                    UseStorageVirtualisation = storageVirtualisation,
                 };
 
                 BuildSpecification buildSpec;

@@ -474,6 +474,7 @@
                                     GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
                                     Settings = buildSpecification.BuildGraphSettings,
                                     ProjectFolderName = buildSpecification.ProjectFolderName,
+                                    UseStorageVirtualisation = buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
                                 };
                                 job.EnvironmentVariables = new Dictionary<string, string>
                                 {
@@ -499,6 +500,7 @@
                                     GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
                                     Settings = buildSpecification.BuildGraphSettings,
                                     ProjectFolderName = buildSpecification.ProjectFolderName,
+                                    UseStorageVirtualisation = buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
                                 };
                                 job.EnvironmentVariables = new Dictionary<string, string>
                                 {

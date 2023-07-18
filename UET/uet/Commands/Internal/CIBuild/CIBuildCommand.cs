@@ -137,7 +137,7 @@
                             SdksPath = buildJson.SdksPath,
                         },
                         Mac = null!,
-                        UseStorageVirtualisation = Environment.GetEnvironmentVariable("UET_USE_STORAGE_VIRTUALIZATION") != "false",
+                        UseStorageVirtualisation = buildJson.UseStorageVirtualisation,
                     };
                 }
                 else if (OperatingSystem.IsMacOS())
@@ -151,7 +151,7 @@
                             SharedStorageAbsolutePath = buildJson.SharedStoragePath,
                             SdksPath = buildJson.SdksPath,
                         },
-                        UseStorageVirtualisation = Environment.GetEnvironmentVariable("UET_USE_STORAGE_VIRTUALIZATION") != "false",
+                        UseStorageVirtualisation = buildJson.UseStorageVirtualisation,
                     };
                 }
                 else
