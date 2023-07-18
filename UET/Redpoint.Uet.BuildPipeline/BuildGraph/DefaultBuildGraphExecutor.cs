@@ -185,6 +185,7 @@
                     }
                     catch (JsonException ex)
                     {
+                        deleteBuildGraphOutput = false;
                         throw new BuildGraphExecutionFailure($"Failed to generate build graph; UAT did not produce a valid BuildGraph JSON file. Output file is stored at: '{buildGraphOutput}'. Original exception was: {ex}");
                     }
                 }

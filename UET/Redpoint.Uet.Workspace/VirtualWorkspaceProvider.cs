@@ -293,7 +293,7 @@
                                 MountRequest = new MountRequest
                                 {
                                     MountPath = mountReservation.ReservedPath,
-                                    TrackPid = Process.GetCurrentProcess().Id,
+                                    TrackPid = GetTrackedPid(),
                                     WriteScratchPath = scratchReservation.ReservedPath,
                                     WriteScratchPersistence = WriteScratchPersistence.Keep,
                                     StartupBehaviour = StartupBehaviour.None,
@@ -387,7 +387,7 @@
                                     WriteScratchPath = scratchReservation.ReservedPath,
                                     WriteScratchPersistence = WriteScratchPersistence.Keep,
                                     StartupBehaviour = StartupBehaviour.None,
-                                    TrackPid = Process.GetCurrentProcess().Id,
+                                    TrackPid = GetTrackedPid(),
                                 },
                                 Tag = descriptor.PackageTag,
                                 Credential = _credentialDiscovery.GetRegistryCredential(descriptor.PackageTag),

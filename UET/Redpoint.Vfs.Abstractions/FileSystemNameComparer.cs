@@ -57,10 +57,20 @@
                     return 1;
                 }
 
-                return _compareInfo.Compare(
-                    Path.GetFileNameWithoutExtension(sa),
-                    Path.GetFileNameWithoutExtension(sb),
-                    CompareOptions.IgnoreCase);
+                if (Path.GetExtension(sa).Equals(Path.GetExtension(sb), StringComparison.InvariantCultureIgnoreCase))
+                {
+                    return _compareInfo.Compare(
+                        Path.GetFileNameWithoutExtension(sa),
+                        Path.GetFileNameWithoutExtension(sb),
+                        CompareOptions.IgnoreCase);
+                }
+                else
+                {
+                    return _compareInfo.Compare(
+                        sa,
+                        sb,
+                        CompareOptions.IgnoreCase);
+                }
             }
             else
             {
