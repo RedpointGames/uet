@@ -57,7 +57,10 @@
                     return 1;
                 }
 
-                return _compareInfo.Compare(sa, sb, CompareOptions.IgnoreCase);
+                return _compareInfo.Compare(
+                    Path.GetFileNameWithoutExtension(sa),
+                    Path.GetFileNameWithoutExtension(sb),
+                    CompareOptions.IgnoreCase);
             }
             else
             {

@@ -40,13 +40,21 @@
 
                     if (enableCorrectnessChecks)
                     {
-                        if (previousUpstreamName != null && _comparer.Compare(upstreamItem.Name, previousUpstreamName) < 0)
+                        if (previousUpstreamName != null)
                         {
-                            throw new CorrectnessCheckFailureException("Input upstream enumerable is not sorted correctly!");
+                            var upstreamCompare = _comparer.Compare(upstreamItem.Name, previousUpstreamName);
+                            if (upstreamCompare < 0)
+                            {
+                                throw new CorrectnessCheckFailureException($"Input upstream enumerable is not sorted correctly: '{previousUpstreamName}' was emitted before '{upstreamItem.Name}', but should be emitted after it (compare: {upstreamCompare}).");
+                            }
                         }
-                        if (previousLocalName != null && _comparer.Compare(localItem.Name, previousLocalName) < 0)
+                        if (previousLocalName != null)
                         {
-                            throw new CorrectnessCheckFailureException("Input local enumerable is not sorted correctly!");
+                            var localCompare = _comparer.Compare(localItem.Name, previousLocalName);
+                            if (localCompare < 0)
+                            {
+                                throw new CorrectnessCheckFailureException($"Input local enumerable is not sorted correctly: '{previousLocalName}' was emitted before '{localItem.Name}', but should be emitted after it (compare: {localCompare}).");
+                            }
                         }
                     }
 
@@ -84,9 +92,13 @@
 
                     if (enableCorrectnessChecks)
                     {
-                        if (previousUpstreamName != null && _comparer.Compare(upstreamItem.Name, previousUpstreamName) < 0)
+                        if (previousUpstreamName != null)
                         {
-                            throw new CorrectnessCheckFailureException("Input upstream enumerable is not sorted correctly!");
+                            var upstreamCompare = _comparer.Compare(upstreamItem.Name, previousUpstreamName);
+                            if (upstreamCompare < 0)
+                            {
+                                throw new CorrectnessCheckFailureException($"Input upstream enumerable is not sorted correctly: '{previousUpstreamName}' was emitted before '{upstreamItem.Name}', but should be emitted after it (compare: {upstreamCompare}).");
+                            }
                         }
                     }
 
@@ -100,9 +112,13 @@
 
                     if (enableCorrectnessChecks)
                     {
-                        if (previousLocalName != null && _comparer.Compare(localItem.Name, previousLocalName) < 0)
+                        if (previousLocalName != null)
                         {
-                            throw new CorrectnessCheckFailureException("Input local enumerable is not sorted correctly!");
+                            var localCompare = _comparer.Compare(localItem.Name, previousLocalName);
+                            if (localCompare < 0)
+                            {
+                                throw new CorrectnessCheckFailureException($"Input local enumerable is not sorted correctly: '{previousLocalName}' was emitted before '{localItem.Name}', but should be emitted after it (compare: {localCompare}).");
+                            }
                         }
                     }
 
