@@ -318,33 +318,58 @@
                         do
                         {
                             needsRetry = false;
-                            exitCode = await _processExecutor.ExecuteAsync(
-                                new ProcessSpecification
+                            if (Path.GetFileName(tool.Path).Equals("cmd.exe", StringComparison.InvariantCultureIgnoreCase) &&
+                                arguments.Length == 4 &&
+                                arguments[0] == "/c" &&
+                                arguments[1] == "copy")
+                            {
+                                // @note: Use a workaround for copying files because re-invoking cmd.exe for the copies
+                                // seems a little jank (at least for one confidential platform). Detect file copying tasks
+                                // and just do it from C# instead.
+                                var from = arguments[2].Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+                                var to = arguments[3].Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+                                try
                                 {
-                                    FilePath = tool.Path,
-                                    Arguments = arguments,
-                                    EnvironmentVariables = env.Variables,
-                                    WorkingDirectory = task.BuildSetTask.WorkingDir,
-                                },
-                                CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
+                                    _logger.LogInformation($"{GetBuildStatusLogPrefix(0)} Copying '{from}' to '{to}' via OpenGE...");
+                                    File.Copy(from, to);
+                                    exitCode = 0;
+                                }
+                                catch (Exception ex)
                                 {
-                                    ReceiveStdout = (line) =>
+                                    _logger.LogError($"{GetBuildStatusLogPrefix(0)} Failed to copy '{from}' to '{to}' via OpenGE: {ex.Message}");
+                                    exitCode = 1;
+                                }
+                            }
+                            else
+                            {
+                                exitCode = await _processExecutor.ExecuteAsync(
+                                    new ProcessSpecification
                                     {
-                                        CheckForRetry(line.Trim());
-                                        if (line.Trim() != task.BuildSetTask.Caption)
-                                        {
-                                            _logger.LogInformation($"{GetBuildStatusLogPrefix(0)} {line}");
-                                        }
-                                        return false;
+                                        FilePath = tool.Path,
+                                        Arguments = arguments,
+                                        EnvironmentVariables = env.Variables,
+                                        WorkingDirectory = task.BuildSetTask.WorkingDir,
                                     },
-                                    ReceiveStderr = (line) =>
+                                    CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                                     {
-                                        _logger.LogError($"{GetBuildStatusLogPrefix(0)} {line}");
-                                        CheckForRetry(line.Trim());
-                                        return false;
-                                    }
-                                }),
-                                cancellationToken);
+                                        ReceiveStdout = (line) =>
+                                        {
+                                            CheckForRetry(line.Trim());
+                                            if (line.Trim() != task.BuildSetTask.Caption)
+                                            {
+                                                _logger.LogInformation($"{GetBuildStatusLogPrefix(0)} {line}");
+                                            }
+                                            return false;
+                                        },
+                                        ReceiveStderr = (line) =>
+                                        {
+                                            _logger.LogError($"{GetBuildStatusLogPrefix(0)} {line}");
+                                            CheckForRetry(line.Trim());
+                                            return false;
+                                        }
+                                    }),
+                                    cancellationToken);
+                            }
                             if (exitCode == 0)
                             {
                                 break;
