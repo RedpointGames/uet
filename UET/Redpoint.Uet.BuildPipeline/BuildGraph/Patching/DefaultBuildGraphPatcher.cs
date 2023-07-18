@@ -4,6 +4,8 @@
     using Redpoint.MSBuildResolution;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
+    using Redpoint.Uet.Workspace;
+    using Redpoint.Uet.Workspace.Descriptors;
     using System.Reflection;
     using System.Security.Cryptography;
     using System.Text;
@@ -16,6 +18,7 @@
         private readonly IMSBuildPathResolver _msBuildPathResolver;
         private readonly IPathResolver _pathResolver;
         private readonly IProcessExecutor _processExecutor;
+        private readonly IDynamicWorkspaceProvider _dynamicWorkspaceProvider;
         private readonly BuildGraphPatchSet[] _patches;
         private readonly string _patchHash;
 
@@ -23,12 +26,14 @@
             ILogger<DefaultBuildGraphPatcher> logger,
             IMSBuildPathResolver msBuildPathResolver,
             IPathResolver pathResolver,
-            IProcessExecutor processExecutor)
+            IProcessExecutor processExecutor,
+            IDynamicWorkspaceProvider dynamicWorkspaceProvider)
         {
             _logger = logger;
             _msBuildPathResolver = msBuildPathResolver;
             _pathResolver = pathResolver;
             _processExecutor = processExecutor;
+            _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Redpoint.Uet.BuildPipeline.BuildGraph.Patching.BuildGraphPatches.json"))
             {
                 _patches = JsonSerializer.Deserialize<BuildGraphPatchSet[]>(stream!, BuildGraphSourceGenerationContext.Default.BuildGraphPatchSetArray)!;
@@ -264,77 +269,80 @@
                     CancellationToken.None);
             }
 
-            var nugetStoragePath = Path.Combine(enginePath, "Engine", "Source", "Programs", ".nuget");
-            Directory.CreateDirectory(nugetStoragePath);
-
-            var projects = new[]
+            await using (var nugetStoragePath = await _dynamicWorkspaceProvider.GetWorkspaceAsync(new TemporaryWorkspaceDescriptor
             {
-                (name: "EpicGames.Build", path: epicGamesBuildProject),
-                (name: "EpicGames.Core", path: epicGamesCoreProject),
-                (name: "UnrealBuildTool", path: unrealBuildToolProject),
-                (name: "BuildGraph.Automation", path: automationToolBuildGraphProject),
-                (name: "AutomationTool", path: automationToolProject),
-            };
-            foreach (var project in projects)
+                Name = "NuGetPackages"
+            }, CancellationToken.None))
             {
-                _logger.LogInformation($"Restoring packages for: {project.name}");
-                var exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
+                var projects = new[]
+                {
+                    (name: "EpicGames.Build", path: epicGamesBuildProject),
+                    (name: "EpicGames.Core", path: epicGamesCoreProject),
+                    (name: "UnrealBuildTool", path: unrealBuildToolProject),
+                    (name: "BuildGraph.Automation", path: automationToolBuildGraphProject),
+                    (name: "AutomationTool", path: automationToolProject),
+                };
+                foreach (var project in projects)
+                {
+                    _logger.LogInformation($"Restoring packages for: {project.name}");
+                    var exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = msBuildPath,
+                            Arguments = msBuildExtraArgs.Concat(new[]
+                            {
+                                "/nologo",
+                                "/verbosity:quiet",
+                                project.path,
+                                "/property:Configuration=Development",
+                                "/property:Platform=AnyCPU",
+                                "/p:WarningLevel=0",
+                                "/target:Restore"
+                            }),
+                            EnvironmentVariables = new Dictionary<string, string>
+                            {
+                                { "NUGET_PACKAGES", nugetStoragePath.Path }
+                            }
+                        },
+                        CaptureSpecification.Passthrough,
+                        CancellationToken.None);
+                    if (exitCode != 0)
                     {
-                        FilePath = msBuildPath,
-                        Arguments = msBuildExtraArgs.Concat(new[]
-                        {
-                            "/nologo",
-                            "/verbosity:quiet",
-                            project.path,
-                            "/property:Configuration=Development",
-                            "/property:Platform=AnyCPU",
-                            "/p:WarningLevel=0",
-                            "/target:Restore"
-                        }),
-                        EnvironmentVariables = new Dictionary<string, string>
-                        {
-                            { "NUGET_PACKAGES", nugetStoragePath }
-                        }
-                    },
-                    CaptureSpecification.Passthrough,
-                    CancellationToken.None);
-                if (exitCode != 0)
-                {
-                    throw new InvalidOperationException($"Failed to rebuild BuildGraph (msbuild restore exited with exit code {exitCode})");
+                        throw new InvalidOperationException($"Failed to rebuild BuildGraph (msbuild restore exited with exit code {exitCode})");
+                    }
                 }
-            }
-            foreach (var project in projects)
-            {
-                if (project.name == "EpicGames.Core")
+                foreach (var project in projects)
                 {
-                    continue;
-                }
-
-                _logger.LogInformation($"Building: {project.name}");
-                var exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
+                    if (project.name == "EpicGames.Core")
                     {
-                        FilePath = msBuildPath,
-                        Arguments = msBuildExtraArgs.Concat(new[]
+                        continue;
+                    }
+
+                    _logger.LogInformation($"Building: {project.name}");
+                    var exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
                         {
-                            "/nologo",
-                            "/verbosity:quiet",
-                            project.path,
-                            "/property:Configuration=Development",
-                            "/property:Platform=AnyCPU",
-                            "/p:WarningLevel=0"
-                        }),
-                        EnvironmentVariables = new Dictionary<string, string>
-                        {
-                            { "NUGET_PACKAGES", nugetStoragePath }
-                        }
-                    },
-                    CaptureSpecification.Passthrough,
-                    CancellationToken.None);
-                if (exitCode != 0)
-                {
-                    throw new InvalidOperationException($"Failed to rebuild BuildGraph (msbuild compile exited with exit code {exitCode})");
+                            FilePath = msBuildPath,
+                            Arguments = msBuildExtraArgs.Concat(new[]
+                            {
+                                "/nologo",
+                                "/verbosity:quiet",
+                                project.path,
+                                "/property:Configuration=Development",
+                                "/property:Platform=AnyCPU",
+                                "/p:WarningLevel=0"
+                            }),
+                            EnvironmentVariables = new Dictionary<string, string>
+                            {
+                                { "NUGET_PACKAGES", nugetStoragePath.Path }
+                            }
+                        },
+                        CaptureSpecification.Passthrough,
+                        CancellationToken.None);
+                    if (exitCode != 0)
+                    {
+                        throw new InvalidOperationException($"Failed to rebuild BuildGraph (msbuild compile exited with exit code {exitCode})");
+                    }
                 }
             }
 
