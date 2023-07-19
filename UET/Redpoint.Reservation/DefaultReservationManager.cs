@@ -5,6 +5,7 @@
     using System;
     using System.Collections.Concurrent;
     using System.Numerics;
+    using System.Reflection.Metadata;
     using System.Security.Cryptography;
     using System.Text;
     using System.Threading;
@@ -15,6 +16,7 @@
         private readonly string _rootPath;
         private readonly string _lockPath;
         private readonly ILogger<DefaultReservationManager> _logger;
+        private readonly string _metaPath;
         private static ConcurrentDictionary<string, bool> _localReservations = new ConcurrentDictionary<string, bool>();
 
         private string GetStabilityHash(string inputString, int? length)
@@ -66,12 +68,15 @@
             CreateDirectory(_rootPath);
             _lockPath = Path.Combine(_rootPath, ".lock");
             CreateDirectory(_lockPath);
+            _metaPath = Path.Combine(_rootPath, ".meta");
+            CreateDirectory(_metaPath);
             _logger = logger;
         }
 
         private class Reservation : IReservation
         {
             private readonly SafeFileHandle _handle;
+            private readonly string _metaPath;
             private readonly Action _localReservationRelease;
 
             public string ReservedPath { get; }
@@ -79,15 +84,18 @@
             public Reservation(
                 SafeFileHandle handle,
                 string reservedPath,
+                string metaPath,
                 Action localReservationRelease)
             {
                 _handle = handle;
                 ReservedPath = reservedPath;
+                _metaPath = metaPath;
                 _localReservationRelease = localReservationRelease;
             }
 
             public ValueTask DisposeAsync()
             {
+                File.WriteAllText(_metaPath, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
                 _localReservationRelease();
                 _handle.Close();
                 return ValueTask.CompletedTask;
@@ -113,9 +121,12 @@
                         var reservedPath = Path.Combine(_rootPath, targetName);
                         Directory.CreateDirectory(reservedPath);
                         _logger.LogInformation($"Reservation target '{targetName}' has been acquired in this process.");
+                        File.WriteAllLines(Path.Combine(_metaPath, "desc." + targetName), new[] { @namespace }.Concat(parameters));
+                        File.WriteAllText(Path.Combine(_metaPath, "date." + targetName), DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
                         return Task.FromResult<IReservation>(new Reservation(
                             handle,
                             reservedPath,
+                            Path.Combine(_metaPath, "date." + targetName),
                             () =>
                             {
                                 _logger.LogInformation($"Reservation target '{targetName}' has been released in this process.");
@@ -172,9 +183,12 @@
                         var reservedPath = Path.Combine(_rootPath, targetName);
                         Directory.CreateDirectory(reservedPath);
                         _logger.LogInformation($"Reservation target '{targetName}' has been acquired in this process.");
+                        File.WriteAllLines(Path.Combine(_metaPath, "desc." + targetName), new[] { targetName });
+                        File.WriteAllText(Path.Combine(_metaPath, "date." + targetName), DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
                         return new Reservation(
                             handle,
                             reservedPath,
+                            Path.Combine(_metaPath, "date." + targetName),
                             () =>
                             {
                                 _logger.LogInformation($"Reservation target '{targetName}' has been released in this process.");
