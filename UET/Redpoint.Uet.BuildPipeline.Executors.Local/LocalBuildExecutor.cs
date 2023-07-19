@@ -69,7 +69,7 @@
             string buildGraphRepositoryRoot,
             string nodeName)
         {
-            if (_workspaceProvider.ProvidesFastCopyOnWrite)
+            if (_workspaceProvider.ProvidesFastCopyOnWrite && !string.IsNullOrWhiteSpace(buildGraphRepositoryRoot))
             {
                 return await _workspaceProvider.GetWorkspaceAsync(
                     new FolderSnapshotWorkspaceDescriptor
