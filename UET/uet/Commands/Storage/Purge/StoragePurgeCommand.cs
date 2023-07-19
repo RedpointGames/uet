@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Storage.Purge
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Uet.Core;
     using Redpoint.Uet.Workspace.Reservation;
     using System;
     using System.Collections.Concurrent;
@@ -114,7 +115,7 @@
                                     try
                                     {
                                         _logger.LogInformation($"Removing directory '{directory.FullName}'...");
-                                        directory.Delete(true);
+                                        await DirectoryAsync.DeleteAsync(directory.FullName, true);
                                     }
                                     catch (Exception ex)
                                     {
