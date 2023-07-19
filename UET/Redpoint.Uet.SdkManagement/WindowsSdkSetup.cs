@@ -472,6 +472,13 @@
             }
             batchLines.Add("cmd");
             File.WriteAllText(Path.Combine(sdkPackagePath, "StartShell.bat"), string.Join("\r\n", batchLines));
+
+            // For all the directories underneath VS2022/VC/Tools/MSVC, link them to the root, which
+            // makes this work with AutoSDK.
+            foreach (var directory in new DirectoryInfo(Path.Combine(sdkPackagePath, "VS2022", "VC", "Tools", "MSVC")).GetDirectories())
+            {
+                Directory.CreateSymbolicLink(Path.Combine(sdkPackagePath, "VS2022", directory.Name), directory.FullName);
+            }
         }
 
         private async Task ExtractVsixComponent(VisualStudioManifestChannelItem component, string sdkPackagePath, CancellationToken cancellationToken)
@@ -714,97 +721,21 @@
                 newEnvs.Add(kv.Key, kv.Value.Replace("<root>", sdkPackagePath));
             }
 
-            var sdkPackageId = rawEnvs["UES_VS_INSTANCE_ID"];
-
-            var visualStudioInstanceState = $@"
-{{
-    ""installationName"": ""VisualStudio/UES-{sdkPackageId}"",
-    ""installationPath"": ""{sdkPackagePath.Replace("\\", "\\\\")}"",
-    ""launchParams"": {{
-        ""fileName"": ""Common7\\IDE\\devenv.exe""
-    }},
-    ""installationVersion"": ""17.9999.0.0"",
-    ""channelId"": ""VisualStudio.17.Release"",
-    ""installedChannelId"": ""VisualStudio.17.Release"",
-    ""channelUri"": ""https://aka.ms/vs/17/release/channel"",
-    ""installedChannelUri"": ""https://aka.ms/vs/17/release/channel"",
-    ""catalogInfo"": {{
-        ""id"": ""VisualStudio/17.5.5+33627.172"",
-        ""buildBranch"": ""d17.5"",
-        ""buildVersion"": ""17.5.33627.172"",
-        ""localBuild"": ""build-lab"",
-        ""manifestName"": ""VisualStudio"",
-        ""manifestType"": ""installer"",
-        ""productDisplayVersion"": ""17.5.5"",
-        ""productLine"": ""Dev17"",
-        ""productLineVersion"": ""2022"",
-        ""productMilestone"": ""RTW"",
-        ""productMilestoneIsPreRelease"": ""False"",
-        ""productName"": ""Visual Studio"",
-        ""productPatchVersion"": ""5"",
-        ""productPreReleaseMilestoneSuffix"": ""1.0"",
-        ""productSemanticVersion"": ""17.5.5+33627.172"",
-        ""requiredEngineVersion"": ""3.5.2150.18781""
-    }},
-    ""seed"": {{
-        ""languages"": [
-            ""en-US""
-        ]
-    }},
-    ""localizedResources"": [
-        {{
-            ""language"": ""en-us"",
-            ""title"": ""Visual Studio Build Tools 2022"",
-            ""description"": ""The Visual Studio Build Tools allows you to build native and managed MSBuild-based applications without requiring the Visual Studio IDE. There are options to install the Visual C++ compilers and libraries, MFC, ATL, and C++/CLI support."",
-            ""license"": ""https://go.microsoft.com/fwlink/?LinkId=2179911""
-        }}
-    ],
-    ""channelResources"": [],
-    ""product"": {{
-        ""id"": ""Microsoft.VisualStudio.Product.BuildTools"",
-        ""version"": ""17.9999.0.0"",
-        ""chip"": ""x64"",
-        ""type"": ""Product"",
-        ""productArch"": ""x64"",
-        ""installed"": true,
-        ""supportsExtensions"": true
-    }},
-    ""selectedPackages"": []
-}}
-";
-
-            // @note
-            // For UE's build tooling to find Visual Studio, it uses the ISetupConfiguration2 COM
-            // component which is registered to HKCR:\WOW6432Node\CLSID\{177F0C4A-1CD3-4DE7-A32C-71DBBB9FA36D}\InprocServer32
-            // and points to C:\ProgramData\Microsoft\VisualStudio\Setup\x86\Microsoft.VisualStudio.Setup.Configuration.Native.dll.
-            // OleView can be used to inspect some of these interfaces, but you can also use ILSpy on
-            // Microsoft.VisualStudio.Setup.Configuration.Interop.dll to see the layout of interfaces expected.
-            // There are broadly two ways we could intercept this stuff to be per-process:
-            // - Use Detours to intercept the read of HKLM\SOFTWARE\Microsoft\VisualStudio\Setup\CachePath, which is the
-            //   registry key that contains the PATH "C:\ProgramData\Microsoft\VisualStudio\Packages". We'd still need to ship
-            //   and register the original COM component inside containers (though maybe this EnsureSdkPackage could register
-            //   it on-demand if needed).
-            // - Implement our own version of the interfaces i.e. ISetupConfiguration2 and replace the COM component. This doesn't
-            //   really work as a strategy for developer machines though, because we wouldn't want to modify the native
-            //   component there.
-            // I suspect the Detours method is the most viable, and rather trivial. We'd make a Detours DLL that just:
-            // - Ensures that child processes get the Detours DLL loaded into them, and
-            // - Whenever RegOpenKey and RegQueryValue happen, it checks the local environment variables for something like
-            //   DetoursOverride_HKLM_SOFTWARE_Microsoft_Setup_CachePath="..." based on the key being read and returns that
-            //   value instead of the original registry value.
-            // If we do that, then overriding the instances cache is as simple as setting an environment variable.
-
-            // @note: The portable SDK contains the Microsoft.VisualStudio.Setup.Configuration.dll COM component at
-            // <root>\ProgramData\Microsoft\VisualStudio\Setup\x86\Microsoft.VisualStudio.Setup.Configuration.Native.dll
-
-            // @note: It looks like UE can also find MSVC and Windows Kits via UE_SDKS_ROOT, which requires the portable
-            // SDK to be mounted as "Win64" underneath a folder, with that parent folder path set in UE_SDKS_ROOT. UBT will
-            // still prefer the system-installed toolchains over AutoSDK though, which is less than ideal.
-
-            // @note: This does require Administrator access, but CI builds are already expected to be
-            // running with elevated permission.
-            Directory.CreateDirectory("C:\\ProgramData\\Microsoft\\VisualStudio\\Packages\\_Instances\\00000001");
-            File.WriteAllText("C:\\ProgramData\\Microsoft\\VisualStudio\\Packages\\_Instances\\00000001\\state.json", visualStudioInstanceState);
+            // Create a directory in a temporary folder with a symbolic link to the SDK package path, and set
+            // that as the AutoSDK root.
+            var temporaryDirectory = Path.Combine(Path.GetTempPath(), Path.GetFileName(sdkPackagePath), "HostWin64");
+            Directory.CreateDirectory(temporaryDirectory);
+            var symbolicLink = Path.Combine(temporaryDirectory, "Win64");
+            if (File.Exists(symbolicLink))
+            {
+                File.Delete(symbolicLink);
+            }
+            if (Directory.Exists(symbolicLink))
+            {
+                Directory.Delete(symbolicLink);
+            }
+            Directory.CreateSymbolicLink(symbolicLink, sdkPackagePath);
+            newEnvs.Add("UE_SDKS_ROOT", Path.Combine(Path.GetTempPath(), Path.GetFileName(sdkPackagePath)));
 
             return Task.FromResult(new EnvironmentForSdkUsage
             {
