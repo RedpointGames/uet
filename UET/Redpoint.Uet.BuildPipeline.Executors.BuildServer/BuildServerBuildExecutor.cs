@@ -376,9 +376,6 @@
             var nodeMap = GetNodeMap(buildGraph);
 
             var pipeline = new BuildServerPipeline();
-            pipeline.GlobalEnvironmentVariables.Add(
-                "UET_USE_STORAGE_VIRTUALIZATION",
-                buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation ? "true" : "false");
 
             if (buildSpecification.GlobalEnvironmentVariables != null)
             {
@@ -474,6 +471,7 @@
                                     GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
                                     Settings = buildSpecification.BuildGraphSettings,
                                     ProjectFolderName = buildSpecification.ProjectFolderName,
+                                    UseStorageVirtualisation = buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
                                 };
                                 job.EnvironmentVariables = new Dictionary<string, string>
                                 {
@@ -499,6 +497,7 @@
                                     GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
                                     Settings = buildSpecification.BuildGraphSettings,
                                     ProjectFolderName = buildSpecification.ProjectFolderName,
+                                    UseStorageVirtualisation = buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
                                 };
                                 job.EnvironmentVariables = new Dictionary<string, string>
                                 {

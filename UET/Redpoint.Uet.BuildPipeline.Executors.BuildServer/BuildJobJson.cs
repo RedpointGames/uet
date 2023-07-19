@@ -48,5 +48,8 @@
 
         [JsonPropertyName("ProjectFolderName"), JsonRequired]
         public string? ProjectFolderName { get; set; } = null;
+
+        [JsonPropertyName("UseStorageVirtualisation"), JsonRequired]
+        public bool UseStorageVirtualisation { get; set; } = false;
     }
 }

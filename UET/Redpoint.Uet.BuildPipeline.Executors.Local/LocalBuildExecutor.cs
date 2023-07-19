@@ -69,7 +69,7 @@
             string buildGraphRepositoryRoot,
             string nodeName)
         {
-            if (_workspaceProvider.ProvidesFastCopyOnWrite)
+            if (_workspaceProvider.ProvidesFastCopyOnWrite && !string.IsNullOrWhiteSpace(buildGraphRepositoryRoot))
             {
                 return await _workspaceProvider.GetWorkspaceAsync(
                     new FolderSnapshotWorkspaceDescriptor
@@ -303,11 +303,7 @@
 
             _logger.LogInformation("Executing build...");
 
-            SemaphoreSlim? blockingSemaphore = null;
-            if (!buildSpecification.Engine.PermitConcurrentBuilds || !buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation)
-            {
-                blockingSemaphore = new SemaphoreSlim(1);
-            }
+            SemaphoreSlim? blockingSemaphore = new SemaphoreSlim(1);
 
             // Compute the DAG and execute tasks.
             var dag = new Dictionary<string, DAGNode>();

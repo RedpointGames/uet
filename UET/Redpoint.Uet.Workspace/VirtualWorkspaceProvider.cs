@@ -207,7 +207,9 @@
         private async Task<IWorkspace> AllocateTemporaryAsync(TemporaryWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
         {
             var usingReservation = false;
-            var reservation = await _reservationManager.ReserveAsync("VirtualTemp", descriptor.Name);
+            // @note: We use the same "PhysicalTemp" name here because there's no issue sharing
+            // temporary workspaces with the physical provider.
+            var reservation = await _reservationManager.ReserveAsync("PhysicalTemp", descriptor.Name);
             try
             {
                 _logger.LogInformation($"Creating temporary workspace: {reservation.ReservedPath}");
@@ -291,7 +293,7 @@
                                 MountRequest = new MountRequest
                                 {
                                     MountPath = mountReservation.ReservedPath,
-                                    TrackPid = Process.GetCurrentProcess().Id,
+                                    TrackPid = GetTrackedPid(),
                                     WriteScratchPath = scratchReservation.ReservedPath,
                                     WriteScratchPersistence = WriteScratchPersistence.Keep,
                                     StartupBehaviour = StartupBehaviour.None,
@@ -385,7 +387,7 @@
                                     WriteScratchPath = scratchReservation.ReservedPath,
                                     WriteScratchPersistence = WriteScratchPersistence.Keep,
                                     StartupBehaviour = StartupBehaviour.None,
-                                    TrackPid = Process.GetCurrentProcess().Id,
+                                    TrackPid = GetTrackedPid(),
                                 },
                                 Tag = descriptor.PackageTag,
                                 Credential = _credentialDiscovery.GetRegistryCredential(descriptor.PackageTag),

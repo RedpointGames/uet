@@ -1,7 +1,5 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Executors.Engine
 {
-    using Microsoft.AspNetCore.Mvc.Formatters;
-    using Redpoint.Reservation;
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.Workspace.Descriptors;
     using Redpoint.Uet.Workspace.Reservation;

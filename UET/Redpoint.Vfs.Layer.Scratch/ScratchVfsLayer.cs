@@ -9,6 +9,7 @@
     using FileAccess = System.IO.FileAccess;
     using Redpoint.Vfs.Abstractions;
     using Redpoint.Vfs.LocalIo;
+    using System.Collections.Concurrent;
 
     internal class ScratchVfsLayer : IScratchVfsLayer
     {
@@ -16,8 +17,8 @@
         private readonly ILocalIoVfsFileFactory _localIoVfsFileFactory;
         private readonly string _scratchPath;
         private readonly IVfsLayer? _nextLayer;
-        private readonly KeyedSemaphoresCollection<string> _openAndReadLock;
-        private readonly KeyedSemaphoresCollection<string> _materializationAndTombstoningLock;
+        private readonly IVfsLocks _openAndReadLock;
+        private readonly IVfsLocks _materializationAndTombstoningLock;
         private readonly ConcurrentLru<string, (ScratchVfsPathStatus status, VfsEntryExistence existence)> _pathStatusCache;
         private readonly FilesystemScratchIndex _fsScratchIndex;
         private readonly FilesystemScratchCache _fsScratchCache;
@@ -36,8 +37,8 @@
             _localIoVfsFileFactory = localIoVfsFileFactory;
             _scratchPath = path;
             _nextLayer = nextLayer;
-            _openAndReadLock = new KeyedSemaphoresCollection<string>(256);
-            _materializationAndTombstoningLock = new KeyedSemaphoresCollection<string>(256);
+            _openAndReadLock = new SemaphoreSlimVfsLocks();
+            _materializationAndTombstoningLock = new SemaphoreSlimVfsLocks();
             _pathStatusCache = new ConcurrentLru<string, (ScratchVfsPathStatus, VfsEntryExistence)>(
                 Environment.ProcessorCount,
                 16 * 1024,
@@ -127,12 +128,12 @@
 
         private void ApplyDeletionAndTombstoningToPath(string path)
         {
-            if (!_materializationAndTombstoningLock.TryLock(NormalizePathKey(path), _deadlockThreshold, () =>
+            if (!_materializationAndTombstoningLock.TryLock("ApplyDeletionAndTombstoningToPath", NormalizePathKey(path), _deadlockThreshold, () =>
             {
                 ApplyDeletionAndTombstoningToPathInternal(path);
-            }))
+            }, out var blockingContext))
             {
-                throw new VfsLayerDeadlockException($"Deadlocked while trying to obtain MaterializationAndTombstoningLock for ApplyDeletionAndTombstoningToPath({path})!");
+                throw new VfsLayerDeadlockException($"Blocked by '{blockingContext}' while trying to obtain MaterializationAndTombstoningLock for ApplyDeletionAndTombstoningToPath({path})!");
             }
         }
 
@@ -168,12 +169,12 @@
 
         private void ApplyTombstoningToPath(string path)
         {
-            if (!_materializationAndTombstoningLock.TryLock(NormalizePathKey(path), _deadlockThreshold, () =>
+            if (!_materializationAndTombstoningLock.TryLock("ApplyTombstoningToPath", NormalizePathKey(path), _deadlockThreshold, () =>
             {
                 ApplyTombstoningToPathInternal(path);
-            }))
+            }, out var blockingContext))
             {
-                throw new VfsLayerDeadlockException($"Deadlocked while trying to obtain MaterializationAndTombstoningLock for ApplyTombstoningToPath({path})!");
+                throw new VfsLayerDeadlockException($"Blocked by '{blockingContext}' while trying to obtain MaterializationAndTombstoningLock for ApplyTombstoningToPath({path})!");
             }
         }
 
@@ -187,12 +188,12 @@
 
         private void ApplyMaterializationToPath(string path)
         {
-            if (!_materializationAndTombstoningLock.TryLock(NormalizePathKey(path), _deadlockThreshold, () =>
+            if (!_materializationAndTombstoningLock.TryLock("ApplyMaterializationToPath", NormalizePathKey(path), _deadlockThreshold, () =>
             {
                 ApplyMaterializationToPathInternal(path);
-            }))
+            }, out var blockingContext))
             {
-                throw new VfsLayerDeadlockException($"Deadlocked while trying to obtain MaterializationAndTombstoningLock for ApplyMaterializationToPath({path})!");
+                throw new VfsLayerDeadlockException($"Blocked by '{blockingContext}' while trying to obtain MaterializationAndTombstoningLock for ApplyMaterializationToPath({path})!");
             }
         }
 
@@ -395,7 +396,8 @@
 
         private IEnumerable<VfsEntry> ListAggregated(string path)
         {
-            using (_openAndReadLock.Lock(NormalizePathKey(path)))
+            IEnumerable<VfsEntry> result = null!;
+            if (!_openAndReadLock.TryLock("ListAggregated", NormalizePathKey(path), TimeSpan.MaxValue, () =>
             {
                 var upstream = _nextLayer?.List(path);
                 if (upstream != null)
@@ -404,10 +406,17 @@
                     upstream = upstream.Where(x => GetPathStatus(Path.Combine(path, x.Name)).status != ScratchVfsPathStatus.NonexistentTombstoned);
                 }
 
-                return DirectoryAggregation.Aggregate(
+                result = DirectoryAggregation.Aggregate(
                     upstream,
                     _fsScratchCache.GetProjectionEntriesForScratchPath(GetScratchPath(path), path),
                     _enableCorrectnessChecks);
+            }, out var blockingContext))
+            {
+                throw new VfsLayerDeadlockException($"Blocked by '{blockingContext}' while trying to obtain OpenAndReadLock on path for ListAggregated({path})!");
+            }
+            else
+            {
+                return result;
             }
         }
 
@@ -448,18 +457,18 @@
         public bool MoveFile(string oldPath, string newPath, bool replace)
         {
             bool result = false;
-            if (!_openAndReadLock.TryLock(NormalizePathKey(oldPath), _deadlockThreshold, () =>
+            if (!_openAndReadLock.TryLock("MoveFile:Old", NormalizePathKey(oldPath), _deadlockThreshold, () =>
             {
-                if (!_openAndReadLock.TryLock(NormalizePathKey(newPath), _deadlockThreshold, () =>
+                if (!_openAndReadLock.TryLock("MoveFile:New", NormalizePathKey(newPath), _deadlockThreshold, () =>
                 {
                     result = MoveFileInternal(oldPath, newPath, replace);
-                }))
+                }, out var newBlockingContext))
                 {
-                    throw new VfsLayerDeadlockException($"Deadlocked while trying to obtain OpenAndReadLock on old path for MoveFile({oldPath}, {newPath}, {replace})!");
+                    throw new VfsLayerDeadlockException($"Blocked by '{newBlockingContext}' while trying to obtain OpenAndReadLock on new path for MoveFile({oldPath}, {newPath}, {replace})!");
                 }
-            }))
+            }, out var oldBlockingContext))
             {
-                throw new VfsLayerDeadlockException($"Deadlocked while trying to obtain OpenAndReadLock on new path for MoveFile({oldPath}, {newPath}, {replace})!");
+                throw new VfsLayerDeadlockException($"Blocked by '{oldBlockingContext}' while trying to obtain OpenAndReadLock on old path for MoveFile({oldPath}, {newPath}, {replace})!");
             }
             return result;
         }
@@ -626,7 +635,7 @@
             IVfsFileHandle<IVfsFile>? result = null;
             VfsEntry? metadataResult = null;
 
-            if (!_openAndReadLock.TryLock(NormalizePathKey(path), _deadlockThreshold, () =>
+            if (!_openAndReadLock.TryLock($"OpenFile:{path},{fileMode},{fileAccess},{fileShare}", NormalizePathKey(path), _deadlockThreshold, () =>
             {
 #if ENABLE_TRACE_LOGS
                 _logger.LogTrace($"start open: {path} (mode: {fileMode}, access: {fileAccess}, share: {fileShare})");
@@ -637,9 +646,9 @@
 #if ENABLE_TRACE_LOGS
                 _logger.LogTrace($"end   open: {path} (mode: {fileMode}, access: {fileAccess}, share: {fileShare})");
 #endif
-            }))
+            }, out var blockingContext))
             {
-                throw new VfsLayerDeadlockException($"Deadlocked while trying to obtain OpenAndReadLock on OpenFile({path}, ...)!");
+                throw new VfsLayerDeadlockException($"Blocked by '{blockingContext}' while trying to obtain OpenAndReadLock on OpenFile({path}, ...)!");
             }
             metadata = metadataResult;
             return result;
@@ -837,7 +846,7 @@
         {
             var result = false;
 
-            if (!_openAndReadLock.TryLock(NormalizePathKey(path), _deadlockThreshold, () =>
+            if (!_openAndReadLock.TryLock("SetBasicInfo", NormalizePathKey(path), _deadlockThreshold, () =>
             {
                 var existingStatus = GetPathStatus(path);
                 if (existingStatus.status == ScratchVfsPathStatus.Nonexistent ||
@@ -898,9 +907,9 @@
                 _fsScratchCache.OnObjectModifiedAtRelativePath(path);
 
                 result = true;
-            }))
+            }, out var blockingContext))
             {
-                throw new VfsLayerDeadlockException($"Deadlocked while trying to obtain OpenAndReadLock on SetBasicInfo({path}, ...)!");
+                throw new VfsLayerDeadlockException($"Blocked by '{blockingContext}' while trying to obtain OpenAndReadLock on SetBasicInfo({path}, ...)!");
             }
             return result;
         }

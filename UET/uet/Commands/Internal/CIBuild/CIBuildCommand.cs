@@ -8,6 +8,7 @@
     using Redpoint.Uet.BuildPipeline.Executors.BuildServer;
     using Redpoint.Uet.BuildPipeline.Executors.GitLab;
     using Redpoint.Uet.Core.Permissions;
+    using Redpoint.Uet.Workspace;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Diagnostics;
@@ -47,6 +48,7 @@
             private readonly Options _options;
             private readonly GitLabBuildExecutorFactory _gitLabBuildExecutorFactory;
             private readonly IWorldPermissionApplier _worldPermissionApplier;
+            private readonly IDynamicWorkspaceProvider _dynamicWorkspaceProvider;
             private readonly BuildJobJsonSourceGenerationContext _buildJobJsonSourceGenerationContext;
 
             public CIBuildCommandInstance(
@@ -54,12 +56,14 @@
                 Options options,
                 GitLabBuildExecutorFactory gitLabBuildExecutorFactory,
                 IWorldPermissionApplier worldPermissionApplier,
-                IServiceProvider serviceProvider)
+                IServiceProvider serviceProvider,
+                IDynamicWorkspaceProvider dynamicWorkspaceProvider)
             {
                 _logger = logger;
                 _options = options;
                 _gitLabBuildExecutorFactory = gitLabBuildExecutorFactory;
                 _worldPermissionApplier = worldPermissionApplier;
+                _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
                 _buildJobJsonSourceGenerationContext = BuildJobJsonSourceGenerationContext.Create(serviceProvider);
             }
 
@@ -80,6 +84,10 @@
                     _logger.LogError("The UET_BUILD_JSON environment variable does not contain a valid build job description.");
                     return 1;
                 }
+
+                // Configure the dynamic workspace provider to use workspace virtualisation
+                // if appropriate.
+                _dynamicWorkspaceProvider.UseWorkspaceVirtualisation = buildJson.UseStorageVirtualisation;
 
                 var engine = EngineSpec.TryParseEngineSpecExact(buildJson.Engine);
                 if (engine == null)
@@ -137,7 +145,7 @@
                             SdksPath = buildJson.SdksPath,
                         },
                         Mac = null!,
-                        UseStorageVirtualisation = Environment.GetEnvironmentVariable("UET_USE_STORAGE_VIRTUALIZATION") != "false",
+                        UseStorageVirtualisation = buildJson.UseStorageVirtualisation,
                     };
                 }
                 else if (OperatingSystem.IsMacOS())
@@ -151,7 +159,7 @@
                             SharedStorageAbsolutePath = buildJson.SharedStoragePath,
                             SdksPath = buildJson.SdksPath,
                         },
-                        UseStorageVirtualisation = Environment.GetEnvironmentVariable("UET_USE_STORAGE_VIRTUALIZATION") != "false",
+                        UseStorageVirtualisation = buildJson.UseStorageVirtualisation,
                     };
                 }
                 else

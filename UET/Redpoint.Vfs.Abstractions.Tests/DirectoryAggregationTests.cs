@@ -193,5 +193,32 @@ namespace Redpoint.Vfs.Abstractions.Tests
             Assert.Single(aggregated, x => x.Name == "d");
             Assert.Single(aggregated, x => x.Name == "e");
         }
+
+        [Fact]
+        public void FileNamesOrderedCorrectly()
+        {
+            var targetArray = new[]
+            {
+                "app_to_bundle.sh",
+                "bundle_to_app.sh",
+                "clangformat.command",
+                "DatasmithArchicadExporter.props",
+                "MakeInstaller.command",
+                "MakeInstaller.sh",
+                "Notes.txt",
+                "setupdylibs.sh",
+                "UE_AC.xcconfig",
+                "UE_AC_ARM.xcconfig"
+            };
+
+            var comparer = new FileSystemNameComparer();
+            var results = targetArray
+            .OrderBy(x => x, comparer)
+            .ToArray();
+            for (var i = 0; i < targetArray.Length; i++)
+            {
+                Assert.Equal(targetArray[i], results[i]);
+            }
+        }
     }
 }

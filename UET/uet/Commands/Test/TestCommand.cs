@@ -156,7 +156,6 @@
                         SharedStorageAbsolutePath = macSharedStoragePath,
                         SdksPath = macSdksPath?.TrimEnd('/'),
                     },
-                    // @note: Turned off until we can fix folder snapshotting in UEFS.
                     UseStorageVirtualisation = false,
                 };
 

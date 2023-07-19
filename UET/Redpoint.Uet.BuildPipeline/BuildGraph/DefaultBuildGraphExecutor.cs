@@ -5,6 +5,8 @@
     using Redpoint.Uet.BuildPipeline.BuildGraph.Export;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Patching;
     using Redpoint.Uet.Uat;
+    using Redpoint.Uet.Workspace;
+    using Redpoint.Uet.Workspace.Descriptors;
     using System.Collections.Generic;
     using System.Reflection;
     using System.Text.Json;
@@ -16,17 +18,20 @@
         private readonly IUATExecutor _uatExecutor;
         private readonly IBuildGraphArgumentGenerator _buildGraphArgumentGenerator;
         private readonly IBuildGraphPatcher _buildGraphPatcher;
+        private readonly IDynamicWorkspaceProvider _dynamicWorkspaceProvider;
 
         public DefaultBuildGraphExecutor(
             ILogger<DefaultBuildGraphExecutor> logger,
             IUATExecutor uatExecutor,
             IBuildGraphArgumentGenerator buildGraphArgumentGenerator,
-            IBuildGraphPatcher buildGraphPatcher)
+            IBuildGraphPatcher buildGraphPatcher,
+            IDynamicWorkspaceProvider dynamicWorkspaceProvider)
         {
             _logger = logger;
             _uatExecutor = uatExecutor;
             _buildGraphArgumentGenerator = buildGraphArgumentGenerator;
             _buildGraphPatcher = buildGraphPatcher;
+            _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
         }
 
         public async Task ListGraphAsync(
@@ -74,52 +79,56 @@
             ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken)
         {
-            var nugetPackages = Path.Combine(buildGraphRepositoryRootPath, ".uet", "nuget");
-            Directory.CreateDirectory(nugetPackages);
-            var environmentVariables = new Dictionary<string, string>
+            await using (var nugetPackages = await _dynamicWorkspaceProvider.GetWorkspaceAsync(new TemporaryWorkspaceDescriptor
             {
-                { "IsBuildMachine", "1" },
-                { "uebp_LOCAL_ROOT", enginePath },
-                // BuildGraph in Unreal Engine 5.0 causes input files to be unnecessarily modified. Just allow mutation since I'm not sure what the bug is.
-                { "BUILD_GRAPH_ALLOW_MUTATION", "true" },
-                // Make sure UET knows it's running under BuildGraph for subcommands
-                // so that we can emit the extra newline necessary for BuildGraph to
-                // show all output. Refer to CommandExtensions.cs to see where this
-                // is used.
-                { "UET_RUNNING_UNDER_BUILDGRAPH", "true" },
-                { "UET_XGE_SHIM_BUILD_NODE_NAME", buildGraphNodeName },
-                // Isolate NuGet package restore so that multiple jobs can restore at
-                // the same time.
-                { "NUGET_PACKAGES", nugetPackages }
-            };
-            if (!string.IsNullOrWhiteSpace(buildGraphRepositoryRootPath))
+                Name = "NuGetPackages"
+            }, cancellationToken))
             {
-                environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = buildGraphRepositoryRootPath;
-            }
-            foreach (var kv in globalEnvironmentVariables)
-            {
-                environmentVariables[kv.Key] = kv.Value;
-            }
-
-            return await InternalRunAsync(
-                enginePath,
-                buildGraphRepositoryRootPath,
-                uetPath,
-                artifactExportPath,
-                buildGraphScript,
-                buildGraphTarget,
-                buildGraphSharedStorageDir,
-                new[]
+                var environmentVariables = new Dictionary<string, string>
                 {
-                    $"-SingleNode={buildGraphNodeName}",
-                    "-WriteToSharedStorage",
-                    $"-SharedStorageDir={buildGraphSharedStorageDir}"
-                },
-                buildGraphArguments,
-                buildGraphArgumentReplacements,
-                environmentVariables,
-                captureSpecification,
-                cancellationToken);
+                    { "IsBuildMachine", "1" },
+                    { "uebp_LOCAL_ROOT", enginePath },
+                    // BuildGraph in Unreal Engine 5.0 causes input files to be unnecessarily modified. Just allow mutation since I'm not sure what the bug is.
+                    { "BUILD_GRAPH_ALLOW_MUTATION", "true" },
+                    // Make sure UET knows it's running under BuildGraph for subcommands
+                    // so that we can emit the extra newline necessary for BuildGraph to
+                    // show all output. Refer to CommandExtensions.cs to see where this
+                    // is used.
+                    { "UET_RUNNING_UNDER_BUILDGRAPH", "true" },
+                    { "UET_XGE_SHIM_BUILD_NODE_NAME", buildGraphNodeName },
+                    // Isolate NuGet package restore so that multiple jobs can restore at
+                    // the same time.
+                    { "NUGET_PACKAGES", nugetPackages.Path }
+                };
+                if (!string.IsNullOrWhiteSpace(buildGraphRepositoryRootPath))
+                {
+                    environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = buildGraphRepositoryRootPath;
+                }
+                foreach (var kv in globalEnvironmentVariables)
+                {
+                    environmentVariables[kv.Key] = kv.Value;
+                }
+
+                return await InternalRunAsync(
+                    enginePath,
+                    buildGraphRepositoryRootPath,
+                    uetPath,
+                    artifactExportPath,
+                    buildGraphScript,
+                    buildGraphTarget,
+                    buildGraphSharedStorageDir,
+                    new[]
+                    {
+                        $"-SingleNode={buildGraphNodeName}",
+                        "-WriteToSharedStorage",
+                        $"-SharedStorageDir={buildGraphSharedStorageDir}"
+                    },
+                    buildGraphArguments,
+                    buildGraphArgumentReplacements,
+                    environmentVariables,
+                    captureSpecification,
+                    cancellationToken);
+            }
         }
 
         public async Task<BuildGraphExport> GenerateGraphAsync(
@@ -164,13 +173,21 @@
 
                 using (var reader = new FileStream(buildGraphOutput, FileMode.Open, FileAccess.Read, FileShare.None))
                 {
-                    var json = JsonSerializer.Deserialize<BuildGraphExport>(reader, BuildGraphSourceGenerationContext.Default.BuildGraphExport);
-                    if (json == null)
+                    try
+                    {
+                        var json = JsonSerializer.Deserialize<BuildGraphExport>(reader, BuildGraphSourceGenerationContext.Default.BuildGraphExport);
+                        if (json == null)
+                        {
+                            deleteBuildGraphOutput = false;
+                            throw new BuildGraphExecutionFailure($"Failed to generate build graph; UAT did not produce a valid BuildGraph JSON file. Output file is stored at: '{buildGraphOutput}'.");
+                        }
+                        return json;
+                    }
+                    catch (JsonException ex)
                     {
                         deleteBuildGraphOutput = false;
-                        throw new BuildGraphExecutionFailure($"Failed to generate build graph; UAT did not produce a valid BuildGraph JSON file. Output file is stored at: {buildGraphOutput}");
+                        throw new BuildGraphExecutionFailure($"Failed to generate build graph; UAT did not produce a valid BuildGraph JSON file. Output file is stored at: '{buildGraphOutput}'. Original exception was: {ex}");
                     }
-                    return json;
                 }
             }
             finally
