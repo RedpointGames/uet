@@ -3,6 +3,7 @@
     using System.Collections.Generic;
     using System.CommandLine;
     using UET.Commands.Storage.List;
+    using UET.Commands.Storage.Purge;
 
     internal enum StorageEntryType
     {
@@ -32,6 +33,7 @@
             var subcommands = new List<Command>
             {
                 StorageListCommand.CreateListCommand(),
+                StoragePurgeCommand.CreatePurgeCommand(),
             };
 
             var command = new Command("storage", "View or remove storage used by UET.");
