@@ -63,6 +63,8 @@
                         sdkSetups.Add(_sdkSetupsByPlatformName[platform]);
                     }
                 }
+
+                _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.PlatformNames.First()}'"))} based on environment variable '{environmentVariableName}'.");
             }
             else
             {
@@ -75,6 +77,8 @@
                         sdkSetups.Add(_sdkSetupsByPlatformName[component]);
                     }
                 }
+
+                _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.PlatformNames.First()}'"))} based on BuildGraph node name '{buildGraphNodeName}'.");
             }
 
             if (sdkSetups.Count == 0)
@@ -82,8 +86,6 @@
                 _logger.LogWarning($"This BuildGraph node has no automatic SDK providers. The necessary dependencies and environment for the build must already be installed on this machine.");
                 return new Dictionary<string, string>();
             }
-
-            _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.PlatformNames.First()}'"))} based on environment variable '{environmentVariableName}'.");
 
             var reservationManager = _reservationManagers.GetOrAdd(
                 sdksPath.TrimEnd(new[] { '\\', '/' }),
