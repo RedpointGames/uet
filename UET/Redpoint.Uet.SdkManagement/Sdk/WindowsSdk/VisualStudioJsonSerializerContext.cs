@@ -1,4 +1,4 @@
-﻿namespace Redpoint.Uet.SdkManagement.WindowsSdk
+﻿namespace Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk
 {
     using System.Collections.Generic;
     using System.Text.Json.Serialization;

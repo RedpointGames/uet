@@ -1,7 +1,7 @@
 ﻿namespace Redpoint.Uet.SdkManagement.Tests
 {
     using Redpoint.Uet.SdkManagement;
-    using Redpoint.Uet.SdkManagement.WindowsSdk;
+    using Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk;
     using System.Runtime.Versioning;
 
     public class WindowsEnvironmentSetupTests
