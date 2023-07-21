@@ -96,9 +96,11 @@
                     }
                 }
 
-                var envVars = await _localSdkManager.EnsureSdkForPlatformAsync(
+                var envVars = await _localSdkManager.SetupEnvironmentForBuildGraphNode(
                     enginePath.FullName,
                     packagePath.FullName,
+                    // @note: We just leverage the fact that the BuildGraph node name containing
+                    // the platform is enough for the platform to be installed.
                     platform,
                     context.GetCancellationToken());
 

@@ -1,16 +1,13 @@
-﻿namespace Redpoint.Uet.SdkManagement
+﻿namespace Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.Core;
-    using Redpoint.Uet.SdkManagement.WindowsSdk;
     using System;
-    using System.Collections.Concurrent;
-    using System.Diagnostics.CodeAnalysis;
+    using System.Collections.Generic;
     using System.IO.Compression;
     using System.Linq;
     using System.Net.Http.Json;
-    using System.Reflection;
     using System.Runtime.Versioning;
     using System.Text;
     using System.Text.Json;
@@ -20,170 +17,24 @@
     using System.Web;
 
     [SupportedOSPlatform("windows")]
-    public class WindowsSdkSetup : ISdkSetup
+    internal class WindowsSdkInstaller
     {
-        private readonly ILogger<WindowsSdkSetup> _logger;
-        private readonly IProcessExecutor _processExecutor;
         private readonly ISimpleDownloadProgress _simpleDownloadProgress;
+        private readonly IProcessExecutor _processExecutor;
+        private readonly ILogger<WindowsSdkInstaller> _logger;
 
-        public WindowsSdkSetup(
-            ILogger<WindowsSdkSetup> logger,
+        public WindowsSdkInstaller(
+            ISimpleDownloadProgress simpleDownloadProgress,
             IProcessExecutor processExecutor,
-            ISimpleDownloadProgress simpleDownloadProgress)
+            ILogger<WindowsSdkInstaller> logger)
         {
-            _logger = logger;
-            _processExecutor = processExecutor;
             _simpleDownloadProgress = simpleDownloadProgress;
+            _processExecutor = processExecutor;
+            _logger = logger;
         }
 
-        public string PlatformName => "Windows";
-
-        private static ConcurrentDictionary<string, Assembly> _cachedCompiles = new ConcurrentDictionary<string, Assembly>();
-
-        private enum CurrentlyIn
+        internal async Task InstallSdkToPath(WindowsSdkInstallerTarget versions, string sdkPackagePath, CancellationToken cancellationToken)
         {
-            None,
-            PreferredWindowsSdk,
-            PreferredVisualCpp,
-            VsSuggestedComponents,
-            Vs2022SuggestedComponents,
-        }
-
-        static readonly Regex _versionNumberRegex = new Regex("VersionNumber.Parse\\(\"([0-9\\.]+)\"\\)");
-        static readonly Regex _versionNumberRangeRegex = new Regex("VersionNumberRange.Parse\\(\"([0-9\\.]+)\", \"([0-9\\.]+)\"\\)");
-        static readonly Regex _elementLine = new Regex("\"([A-Za-z0-9\\.]+)\",");
-
-        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Assembly.Load is self-contained")]
-        [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "GetType references a type created in memory")]
-        internal static Task<(
-            string windowsSdkPreferredVersion,
-            string visualCppMinimumVersion,
-            string[] suggestedComponents)> ParseVersions(
-            string microsoftPlatformSdkFileContent)
-        {
-            string? windowsSdkPreferredVersion = null;
-            string? visualCppMinimumVersion = null;
-            List<string> suggestedComponents = new List<string>();
-
-            var currentlyIn = CurrentlyIn.None;
-            foreach (var line in microsoftPlatformSdkFileContent.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                if (line.StartsWith("//"))
-                {
-                    continue;
-                }
-                if (line.EndsWith(";"))
-                {
-                    currentlyIn = CurrentlyIn.None;
-                }
-
-                if (line.Contains(" PreferredWindowsSdkVersions "))
-                {
-                    currentlyIn = CurrentlyIn.PreferredWindowsSdk;
-                    continue;
-                }
-                else if (line.Contains(" PreferredVisualCppVersions "))
-                {
-                    currentlyIn = CurrentlyIn.PreferredVisualCpp;
-                    continue;
-                }
-                else if (line.Contains(" VisualStudioSuggestedComponents "))
-                {
-                    currentlyIn = CurrentlyIn.VsSuggestedComponents;
-                    continue;
-                }
-                else if (line.Contains(" VisualStudio2022SuggestedComponents "))
-                {
-                    currentlyIn = CurrentlyIn.Vs2022SuggestedComponents;
-                    continue;
-                }
-
-                switch (currentlyIn)
-                {
-                    case CurrentlyIn.PreferredWindowsSdk:
-                        {
-                            var match = _versionNumberRegex.Match(line);
-                            if (match.Success)
-                            {
-                                windowsSdkPreferredVersion = match.Groups[1].Value;
-                                currentlyIn = CurrentlyIn.None;
-                            }
-                            break;
-                        }
-                    case CurrentlyIn.PreferredVisualCpp:
-                        {
-                            var match = _versionNumberRangeRegex.Match(line);
-                            if (match.Success && line.Contains("VS2022"))
-                            {
-                                visualCppMinimumVersion = match.Groups[1].Value;
-                                currentlyIn = CurrentlyIn.None;
-                            }
-                            break;
-                        }
-                    case CurrentlyIn.VsSuggestedComponents:
-                        {
-                            var match = _elementLine.Match(line);
-                            if (match.Success)
-                            {
-                                suggestedComponents.Add(match.Groups[1].Value);
-                            }
-                            break;
-                        }
-                    case CurrentlyIn.Vs2022SuggestedComponents:
-                        {
-                            var match = _elementLine.Match(line);
-                            if (match.Success)
-                            {
-                                suggestedComponents.Add(match.Groups[1].Value);
-                            }
-                            break;
-                        }
-                }
-            }
-
-            if (windowsSdkPreferredVersion == null ||
-                visualCppMinimumVersion == null)
-            {
-                throw new InvalidOperationException("Unable to parse versions from MicrosoftPlatformSDK.Versions.cs");
-            }
-
-            return Task.FromResult<(string windowsSdkPreferredVersion, string visualCppMinimumVersion, string[] suggestedComponents)>((
-                windowsSdkPreferredVersion,
-                visualCppMinimumVersion,
-                suggestedComponents.ToArray()));
-        }
-
-        private async Task<(
-            VersionNumber windowsSdkPreferredVersion,
-            VersionNumber visualCppMinimumVersion,
-            string[] suggestedComponents)> GetVersions(string unrealEnginePath)
-        {
-            var microsoftPlatformSdkFileContent = await File.ReadAllTextAsync(Path.Combine(
-                unrealEnginePath,
-                "Engine",
-                "Source",
-                "Programs",
-                "UnrealBuildTool",
-                "Platform",
-                "Windows",
-                "MicrosoftPlatformSDK.Versions.cs"));
-            var rawVersions = await ParseVersions(microsoftPlatformSdkFileContent);
-            return (
-                VersionNumber.Parse(rawVersions.windowsSdkPreferredVersion),
-                VersionNumber.Parse(rawVersions.visualCppMinimumVersion),
-                rawVersions.suggestedComponents);
-        }
-
-        public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
-        {
-            var versions = await GetVersions(unrealEnginePath);
-            return $"{versions.windowsSdkPreferredVersion}-{versions.visualCppMinimumVersion}";
-        }
-
-        public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
-        {
-            _logger.LogInformation("Retrieving desired versions from Unreal Engine source code...");
-            var versions = await GetVersions(unrealEnginePath);
 
             const string rootManifestUrl = "https://aka.ms/vs/17/release/channel";
             var serializerOptions = new JsonSerializerOptions
@@ -267,7 +118,7 @@
                         versionSignifier = versionSignifier.Substring(0, versionSignifier.Length - suffix.Length);
                         if (numericVersionSignifier.IsMatch(versionSignifier))
                         {
-                            if (VersionNumber.Parse(vcComponent.Version!) >= versions.visualCppMinimumVersion)
+                            if (VersionNumber.Parse(vcComponent.Version!) >= versions.VisualCppMinimumVersion)
                             {
                                 if (!vcComponentsByVersionSignifier.ContainsKey(versionSignifier))
                                 {
@@ -291,7 +142,7 @@
             }
 
             // Try to find the Windows SDK.
-            var winSdkVersion = $"{versions.windowsSdkPreferredVersion.Major}.{versions.windowsSdkPreferredVersion.Minor}.{versions.windowsSdkPreferredVersion.Patch}";
+            var winSdkVersion = $"{versions.WindowsSdkPreferredVersion.Major}.{versions.WindowsSdkPreferredVersion.Minor}.{versions.WindowsSdkPreferredVersion.Patch}";
             foreach (var component in componentLookup.Keys)
             {
                 if (component == $"Win10SDK_{winSdkVersion}" ||
@@ -352,7 +203,7 @@
                     }
                 }
             };
-            foreach (var component in versions.suggestedComponents)
+            foreach (var component in versions.SuggestedComponents)
             {
                 RecursivelyAddComponent(component, "Unreal Engine");
             }
@@ -391,18 +242,16 @@
 
             // Write out the environment file.
             var msvcVersion = Path.GetFileName(Directory.GetDirectories(Path.Combine(sdkPackagePath, "VS2022", "VC", "Tools", "MSVC"))[0]);
-            var msvcRedistVersion = Path.GetFileName(Directory.GetDirectories(Path.Combine(sdkPackagePath, "VS2022", "VC", "Redist", "MSVC"))[0]);
             var winsdkVersion = Path.GetFileName(Directory.GetDirectories(Path.Combine(sdkPackagePath, "Windows Kits", "10", "bin"))[0]);
             var envs = new Dictionary<string, string>
             {
-                { "UES_VS_INSTANCE_ID", $"{versions.windowsSdkPreferredVersion}-{versions.visualCppMinimumVersion}" },
+                { "UES_VS_INSTANCE_ID", $"{versions.WindowsSdkPreferredVersion}-{versions.VisualCppMinimumVersion}" },
                 { "VCToolsInstallDir", $"{Path.Combine("<root>", "VS2022", "VC", "Tools", "MSVC", msvcVersion)}\\" },
                 { "VCToolsVersion", msvcVersion },
                 { "VisualStudioVersion", "17.0" },
                 { "VCINSTALLDIR", $"{Path.Combine("<root>", "VS2022", "VC")}\\" },
                 { "DevEnvDir", $"{Path.Combine("<root>", "VS2022", "Common7", "IDE")}\\" },
                 { "VCIDEInstallDir", $"{Path.Combine("<root>", "VS2022", "Common7", "IDE", "VC")}\\" },
-                { "VCToolsRedistDir", $"{Path.Combine("<root>", "VS2022", "VC", "Redist", "MSVC", msvcRedistVersion)}\\" },
                 { "VS170COMNTOOLS", $"{Path.Combine("<root>", "VS2022", "Common7", "Tools")}\\" },
                 { "VSINSTALLDIR", $"{Path.Combine("<root>")}\\" },
                 { "WindowsSdkBinPath", $"{Path.Combine("<root>", "Windows Kits", "10", "bin")}\\" },
@@ -450,6 +299,16 @@
                     )
                 },
             };
+            if (Directory.Exists(Path.Combine(sdkPackagePath, "VS2022", "VC", "Redist", "MSVC")))
+            {
+                var subdirs = Directory.GetDirectories(Path.Combine(sdkPackagePath, "VS2022", "VC", "Redist", "MSVC"));
+                if (subdirs.Length > 0)
+                {
+                    var msvcRedistVersion = Path.GetFileName(subdirs[0]);
+                    envs["VCToolsRedistDir"] = $"{Path.Combine("<root>", "VS2022", "VC", "Redist", "MSVC", msvcRedistVersion)}\\";
+                }
+            }
+
             File.WriteAllText(Path.Combine(sdkPackagePath, "envs.json"), JsonSerializer.Serialize(envs, new VisualStudioJsonSerializerContext(new JsonSerializerOptions { WriteIndented = true }).DictionaryStringString));
             var batchLines = new List<string>();
             foreach (var kv in envs)
@@ -705,42 +564,6 @@
             }
             // Clean up the installers folder that we no longer need.
             await DirectoryAsync.DeleteAsync(Path.Combine(sdkPackagePath, "__Installers"), true);
-        }
-
-        public Task<EnvironmentForSdkUsage> EnsureSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
-        {
-            var rawEnvs = JsonSerializer.Deserialize(File.ReadAllText(Path.Combine(sdkPackagePath, "envs.json")), VisualStudioJsonSerializerContext.Default.DictionaryStringString)!;
-            var newEnvs = new Dictionary<string, string>();
-            foreach (var kv in rawEnvs)
-            {
-                if (kv.Key == "UES_VS_INSTANCE_ID")
-                {
-                    continue;
-                }
-
-                newEnvs.Add(kv.Key, kv.Value.Replace("<root>", sdkPackagePath));
-            }
-
-            // Create a directory in a temporary folder with a symbolic link to the SDK package path, and set
-            // that as the AutoSDK root.
-            var temporaryDirectory = Path.Combine(Path.GetTempPath(), Path.GetFileName(sdkPackagePath), "HostWin64");
-            Directory.CreateDirectory(temporaryDirectory);
-            var symbolicLink = Path.Combine(temporaryDirectory, "Win64");
-            if (File.Exists(symbolicLink))
-            {
-                File.Delete(symbolicLink);
-            }
-            if (Directory.Exists(symbolicLink))
-            {
-                Directory.Delete(symbolicLink);
-            }
-            Directory.CreateSymbolicLink(symbolicLink, sdkPackagePath);
-            newEnvs.Add("UE_SDKS_ROOT", Path.Combine(Path.GetTempPath(), Path.GetFileName(sdkPackagePath)));
-
-            return Task.FromResult(new EnvironmentForSdkUsage
-            {
-                EnvironmentVariables = newEnvs,
-            });
         }
     }
 }

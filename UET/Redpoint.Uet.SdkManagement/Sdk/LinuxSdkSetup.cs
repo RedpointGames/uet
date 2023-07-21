@@ -28,7 +28,9 @@
             _simpleDownloadProgress = simpleDownloadProgress;
         }
 
-        public string PlatformName => "Linux";
+        public string[] PlatformNames => new[] { "Linux" };
+
+        public string CommonPlatformNameForPackageId => "Linux";
 
         internal static Task<string> ParseClangToolchainVersion(string linuxPlatformSdk)
         {
@@ -104,7 +106,12 @@
             File.Delete(Path.Combine(sdkPackagePath, "toolchainextract.exe"));
         }
 
-        public Task<EnvironmentForSdkUsage> EnsureSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
+        public Task<AutoSdkMapping[]> GetAutoSdkMappingsForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Array.Empty<AutoSdkMapping>());
+        }
+
+        public Task<EnvironmentForSdkUsage> GetRuntimeEnvironmentForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
         {
             return Task.FromResult(new EnvironmentForSdkUsage
             {

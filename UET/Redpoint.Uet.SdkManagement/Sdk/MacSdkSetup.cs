@@ -16,7 +16,9 @@
             _processExecutor = processExecutor;
         }
 
-        public string PlatformName => "Mac";
+        public string[] PlatformNames => new[] { "Mac", "IOS" };
+
+        public string CommonPlatformNameForPackageId => "Mac";
 
         internal static Task<string> ParseXcodeVersion(string applePlatformSdk)
         {
@@ -185,7 +187,12 @@
                 xcodeDirectory);
         }
 
-        public async Task<EnvironmentForSdkUsage> EnsureSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
+        public Task<AutoSdkMapping[]> GetAutoSdkMappingsForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Array.Empty<AutoSdkMapping>());
+        }
+
+        public async Task<EnvironmentForSdkUsage> GetRuntimeEnvironmentForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
         {
             // Accept the Xcode license agreement on this machine.
             await _processExecutor.ExecuteAsync(

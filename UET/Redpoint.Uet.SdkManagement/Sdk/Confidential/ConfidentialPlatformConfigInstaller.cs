@@ -26,16 +26,4 @@
         [JsonPropertyName("PermitNonZeroExitCode")]
         public bool PermitNonZeroExitCode { get; set; }
     }
-
-    public class ConfidentialPlatformConfig
-    {
-        [JsonPropertyName("Version"), JsonRequired]
-        public string? Version { get; set; }
-
-        [JsonPropertyName("Installers"), JsonRequired]
-        public ConfidentialPlatformConfigInstaller[]? Installers { get; set; }
-
-        [JsonPropertyName("EnvironmentVariables")]
-        public Dictionary<string, string>? EnvironmentVariables { get; set; }
-    }
 }

@@ -35,8 +35,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.Automation", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.SdkManagement", "Redpoint.Uet.SdkManagement\Redpoint.Uet.SdkManagement.csproj", "{80348F7C-DCE0-4479-AF3E-C2AB90B2FB4C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.SdkManagement.Install", "Redpoint.Uet.SdkManagement.Install\Redpoint.Uet.SdkManagement.Install.csproj", "{F561F679-F434-4DAB-A0F8-BD77CF9C5958}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.SdkManagement.Tests", "Redpoint.Uet.SdkManagement.Tests\Redpoint.Uet.SdkManagement.Tests.csproj", "{4ACFA2D2-F5D7-428B-B144-F63350848E29}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Uet.BuildPipeline", "Redpoint.Uet.BuildPipeline\Redpoint.Uet.BuildPipeline.csproj", "{559D9E41-C462-4C71-8709-20B0BCA82E89}"
@@ -348,12 +346,6 @@ Global
 		{80348F7C-DCE0-4479-AF3E-C2AB90B2FB4C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{80348F7C-DCE0-4479-AF3E-C2AB90B2FB4C}.ReleaseWithDoc|Any CPU.ActiveCfg = Release|Any CPU
 		{80348F7C-DCE0-4479-AF3E-C2AB90B2FB4C}.ReleaseWithDoc|Any CPU.Build.0 = Release|Any CPU
-		{F561F679-F434-4DAB-A0F8-BD77CF9C5958}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F561F679-F434-4DAB-A0F8-BD77CF9C5958}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F561F679-F434-4DAB-A0F8-BD77CF9C5958}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F561F679-F434-4DAB-A0F8-BD77CF9C5958}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F561F679-F434-4DAB-A0F8-BD77CF9C5958}.ReleaseWithDoc|Any CPU.ActiveCfg = Release|Any CPU
-		{F561F679-F434-4DAB-A0F8-BD77CF9C5958}.ReleaseWithDoc|Any CPU.Build.0 = Release|Any CPU
 		{4ACFA2D2-F5D7-428B-B144-F63350848E29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4ACFA2D2-F5D7-428B-B144-F63350848E29}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4ACFA2D2-F5D7-428B-B144-F63350848E29}.Release|Any CPU.ActiveCfg = Release|Any CPU

@@ -26,38 +26,20 @@
         {
             var sdksPath = OperatingSystem.IsWindows() ? buildSpecification.BuildGraphEnvironment.Windows.SdksPath : buildSpecification.BuildGraphEnvironment.Mac?.SdksPath;
             Dictionary<string, string>? sdkEnvironment = null;
-            string? sdkPlatform = null;
             if (sdksPath != null)
             {
-                var nameComponents = nodeName.Split(" ");
-                var recognisedPlatforms = _localSdkManager.GetRecognisedPlatforms();
-                foreach (var recognisedPlatform in recognisedPlatforms)
+                try
                 {
-                    if (nameComponents.Contains(recognisedPlatform))
-                    {
-                        sdkPlatform = recognisedPlatform;
-                        break;
-                    }
+                    _logger.LogInformation($"Setting up SDKs for BuildGraph node '{nodeName}'...");
+                    sdkEnvironment = await _localSdkManager.SetupEnvironmentForBuildGraphNode(
+                        enginePath,
+                        sdksPath,
+                        nodeName,
+                        cancellationToken);
                 }
-                if (sdkPlatform != null)
+                catch (Exception ex)
                 {
-                    try
-                    {
-                        _logger.LogInformation($"Setting up SDK for platform {sdkPlatform}...");
-                        sdkEnvironment = await _localSdkManager.EnsureSdkForPlatformAsync(
-                            enginePath,
-                            sdksPath,
-                            sdkPlatform,
-                            cancellationToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning($"Failed to automatically set up SDK for platform {sdkPlatform}, relying on global environment instead: {ex.Message}");
-                    }
-                }
-                else
-                {
-                    _logger.LogInformation($"The node name '{nodeName}' does not have a recognised platform name for automatic setup.");
+                    _logger.LogWarning($"Failed to automatically set up SDKs for BuildGraph node '{nodeName}', relying on global environment instead: {ex.Message}");
                 }
             }
             else

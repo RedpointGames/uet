@@ -5,12 +5,10 @@
 
     public interface ILocalSdkManager
     {
-        IEnumerable<string> GetRecognisedPlatforms();
-
-        Task<Dictionary<string, string>> EnsureSdkForPlatformAsync(
+        Task<Dictionary<string, string>> SetupEnvironmentForBuildGraphNode(
             string enginePath,
             string sdksPath,
-            string platform,
+            string buildGraphNodeName,
             CancellationToken cancellationToken);
     }
 }

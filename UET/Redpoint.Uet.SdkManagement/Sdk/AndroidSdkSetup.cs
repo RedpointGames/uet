@@ -30,7 +30,9 @@
         private const string _jdkVersion = "jdk-11.0.19+7";
         private const string _jdkDownloadUrl = "https://aka.ms/download-jdk/microsoft-jdk-11.0.19-windows-x64.zip";
 
-        public string PlatformName => "Android";
+        public string[] PlatformNames => new[] { "Android" };
+
+        public string CommonPlatformNameForPackageId => "Android";
 
         private static ConcurrentDictionary<string, Assembly> _cachedCompiles = new ConcurrentDictionary<string, Assembly>();
 
@@ -174,7 +176,12 @@
             File.WriteAllText(Path.Combine(sdkPackagePath, "jre-version.txt"), _jdkVersion);
         }
 
-        public Task<EnvironmentForSdkUsage> EnsureSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
+        public Task<AutoSdkMapping[]> GetAutoSdkMappingsForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Array.Empty<AutoSdkMapping>());
+        }
+
+        public Task<EnvironmentForSdkUsage> GetRuntimeEnvironmentForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
         {
             var ndkVersion = File.ReadAllText(Path.Combine(sdkPackagePath, "ndk-version.txt")).Trim();
             var jreVersion = File.ReadAllText(Path.Combine(sdkPackagePath, "jre-version.txt")).Trim();

@@ -1,10 +1,10 @@
 ﻿namespace Redpoint.Uet.SdkManagement
 {
     using Microsoft.Extensions.Logging;
-    using Microsoft.Win32;
     using Redpoint.ProcessExecution;
     using Redpoint.Registry;
     using Redpoint.Uet.Core;
+    using Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk;
     using System;
     using System.Runtime.Versioning;
     using System.Text;
@@ -13,35 +13,40 @@
     using System.Threading.Tasks;
 
     [SupportedOSPlatform("windows")]
-    public class ConfidentialSdkSetup : ISdkSetup
+    internal class ConfidentialSdkSetup : ISdkSetup
     {
-        private readonly ConfidentialPlatformConfig _config;
+        protected readonly ConfidentialPlatformConfig _config;
         private readonly IProcessExecutor _processExecutor;
-        private readonly ILogger<ConfidentialSdkSetup> _logger;
         private readonly IStringUtilities _stringUtilities;
+        private readonly WindowsSdkInstaller _windowsSdkInstaller;
+        private readonly ILogger<ConfidentialSdkSetup> _logger;
 
         public ConfidentialSdkSetup(
             string platformName,
             ConfidentialPlatformConfig config,
             IProcessExecutor processExecutor,
-            ILogger<ConfidentialSdkSetup> logger,
-            IStringUtilities stringUtilities)
+            IStringUtilities stringUtilities,
+            WindowsSdkInstaller windowsSdkInstaller,
+            ILogger<ConfidentialSdkSetup> logger)
         {
-            PlatformName = platformName;
+            PlatformNames = new[] { platformName };
             _config = config;
             _processExecutor = processExecutor;
-            _logger = logger;
             _stringUtilities = stringUtilities;
+            _windowsSdkInstaller = windowsSdkInstaller;
+            _logger = logger;
         }
 
-        public string PlatformName { get; }
+        public string[] PlatformNames { get; }
+
+        public string CommonPlatformNameForPackageId => _config.CommonPlatformName ?? PlatformNames[0];
 
         public Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
             return Task.FromResult(_config.Version!);
         }
 
-        public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
+        public virtual async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
         {
             foreach (var installer in _config.Installers ?? Array.Empty<ConfidentialPlatformConfigInstaller>())
             {
@@ -116,6 +121,7 @@
                         }
                     });
 
+                    _logger.LogInformation($"Executing installer at '{installer.InstallerPath!}'...");
                     var exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
@@ -161,6 +167,66 @@
                     }
                 }
             }
+
+            foreach (var extractor in _config.Extractors ?? Array.Empty<ConfidentialPlatformConfigExtractor>())
+            {
+                foreach (var file in Directory.GetFiles(extractor.MsiSourceDirectory!, extractor.MsiFilenameFilter ?? "*.msi"))
+                {
+                    var targetDirectory = Path.Combine(sdkPackagePath, extractor.ExtractionSubdirectoryPath!.Replace('/', '\\'));
+                    _logger.LogInformation($"Extracting MSI from '{file}' to '{targetDirectory}'...");
+                    await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = @"C:\WINDOWS\system32\msiexec.exe",
+                            Arguments = new[]
+                            {
+                                "/a",
+                                file,
+                                "/quiet",
+                                "/qn",
+                                $"TARGETDIR={targetDirectory}",
+                            },
+                            WorkingDirectory = Path.GetDirectoryName(file)
+                        }, CaptureSpecification.Passthrough, cancellationToken);
+                    if (!File.Exists(Path.Combine(targetDirectory, Path.GetFileName(file))))
+                    {
+                        throw new SdkSetupPackageGenerationFailedException($"MSI extraction failed for: {file}");
+                    }
+                    File.Delete(Path.Combine(targetDirectory, Path.GetFileName(file)));
+                }
+            }
+
+            if (_config.AutoSdkSetupScripts != null)
+            {
+                foreach (var setupScript in _config.AutoSdkSetupScripts)
+                {
+                    var targetPath = Path.Combine(sdkPackagePath, setupScript.TargetPath!.Replace('/', '\\'));
+                    Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
+                    var content = string.Join(Environment.NewLine, setupScript.Lines!);
+                    var existingContent = File.Exists(targetPath) ? File.ReadAllText(targetPath) : string.Empty;
+                    if (existingContent != content)
+                    {
+                        File.WriteAllText(targetPath, content);
+                    }
+                }
+            }
+
+            if (_config.RequiredWindowsSdk != null)
+            {
+                var windowsSdkPreferredVersion = VersionNumber.Parse(_config.RequiredWindowsSdk.WindowsSdkPreferredVersion!);
+                var visualCppMinimumVersion = VersionNumber.Parse(_config.RequiredWindowsSdk.VisualCppMinimumVersion!);
+                var suggestedComponents = _config.RequiredWindowsSdk.SuggestedComponents ?? Array.Empty<string>();
+
+                await _windowsSdkInstaller.InstallSdkToPath(
+                    new WindowsSdkInstallerTarget
+                    {
+                        WindowsSdkPreferredVersion = windowsSdkPreferredVersion,
+                        VisualCppMinimumVersion = visualCppMinimumVersion,
+                        SuggestedComponents = suggestedComponents,
+                    },
+                    string.IsNullOrWhiteSpace(_config.RequiredWindowsSdk.SubdirectoryName) ? sdkPackagePath : Path.Combine(sdkPackagePath, _config.RequiredWindowsSdk.SubdirectoryName),
+                    cancellationToken);
+            }
         }
 
         private void ProcessRegistryKeys(
@@ -188,7 +254,17 @@
             }
         }
 
-        public Task<EnvironmentForSdkUsage> EnsureSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
+        public Task<AutoSdkMapping[]> GetAutoSdkMappingsForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
+        {
+            var mappings = _config.AutoSdkRelativePathMappings ?? new Dictionary<string, string>();
+            return Task.FromResult(mappings.Select(x => new AutoSdkMapping
+            {
+                RelativePathInsideAutoSdkPath = x.Key,
+                RelativePathInsideSdkPackagePath = x.Value
+            }).ToArray());
+        }
+
+        public Task<EnvironmentForSdkUsage> GetRuntimeEnvironmentForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
         {
             return Task.FromResult(new EnvironmentForSdkUsage
             {
