@@ -217,11 +217,17 @@
                 settings[$"With{platform}"] = distribution.Build.Platforms.Contains(platform) ? "true" : "false";
             }
 
+            var editorPlatforms = distribution.Build.EditorPlatforms;
+            if (editorPlatforms.Length == 0)
+            {
+                editorPlatforms = new[] { "Win64" };
+            }
+
             return new BuildSpecification
             {
                 Engine = engineSpec,
                 BuildGraphScript = BuildGraphScriptSpecification.ForEngine(),
-                BuildGraphTarget = "Make Installed Build Win64",
+                BuildGraphTarget = string.Join("+", editorPlatforms.Select(x => $"Make Installed Build {x}")),
                 BuildGraphSettings = settings,
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = string.Empty,
