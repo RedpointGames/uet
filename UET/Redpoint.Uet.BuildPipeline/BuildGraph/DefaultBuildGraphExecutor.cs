@@ -104,6 +104,14 @@
                 {
                     environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = buildGraphRepositoryRootPath;
                 }
+                else
+                {
+                    environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = enginePath;
+                }
+                if (string.IsNullOrWhiteSpace(environmentVariables["BUILD_GRAPH_PROJECT_ROOT"]))
+                {
+                    throw new InvalidOperationException("BUILD_GRAPH_PROJECT_ROOT is empty, when it should be set to either the repository root or engine path.");
+                }
                 foreach (var kv in globalEnvironmentVariables)
                 {
                     environmentVariables[kv.Key] = kv.Value;
