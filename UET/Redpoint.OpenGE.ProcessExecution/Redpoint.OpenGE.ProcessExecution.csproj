@@ -20,17 +20,25 @@
     </ItemGroup>
   </Target>
 
+  <Target Name="DisplayEmbeddedShims" BeforeTargets="BeforeBuild">
+    <Message Text="OpenGE.ProcessExecution targeting RuntimeIdentifier: '$(RuntimeIdentifier)'" Importance="high" />
+    <Message Text="OpenGE.ProcessExecution is including shim for RID: 'win-x64'" Importance="high" Condition="'$(OpenGEShimIsAlreadyBuilt)' == 'true' and ('$(RuntimeIdentifier)' == 'win-x64' or '$(RuntimeIdentifier)' == '')" />
+    <Message Text="OpenGE.ProcessExecution is including shim for RID: 'osx.11.0-arm64'" Importance="high" Condition="'$(OpenGEShimIsAlreadyBuilt)' == 'true' and ('$(RuntimeIdentifier)' == 'osx.11.0-arm64' or '$(RuntimeIdentifier)' == '')" />
+    <Message Text="OpenGE.ProcessExecution is including shim for RID: 'linux-x64'" Importance="high" Condition="'$(OpenGEShimIsAlreadyBuilt)' == 'true' and ('$(RuntimeIdentifier)' == 'linux-x64' or '$(RuntimeIdentifier)' == '')" />
+    <Message Text="OpenGE.ProcessExecution is including self-built/on-demand shim for RID: 'win-x64'" Importance="high" Condition="'$(OpenGEShimIsAlreadyBuilt)' != 'true'" />
+  </Target>
+  
   <ItemGroup>
     <Compile Remove="shim-bin\**" />
     <EmbeddedResource Remove="shim-bin\**" />
     <None Remove="shim-bin\**" />
-    <EmbeddedResource Include="$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish\Redpoint.OpenGE.Shim.exe" Condition="'$(OpenGEShimIsAlreadyBuilt)' == 'true' and '$(RuntimeIdentifier)' == 'win-x64'">
+    <EmbeddedResource Include="$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish\Redpoint.OpenGE.Shim.exe" Condition="'$(OpenGEShimIsAlreadyBuilt)' == 'true' and ('$(RuntimeIdentifier)' == 'win-x64' or '$(RuntimeIdentifier)' == '')">
       <Link>Embedded\win-x64\xgConsole.exe</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\osx.11.0-arm64\publish\Redpoint.OpenGE.Shim" Condition="'$(OpenGEShimIsAlreadyBuilt)' == 'true' and '$(RuntimeIdentifier)' == 'osx.11.0-arm64'">
+    <EmbeddedResource Include="$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\osx.11.0-arm64\publish\Redpoint.OpenGE.Shim" Condition="'$(OpenGEShimIsAlreadyBuilt)' == 'true' and ('$(RuntimeIdentifier)' == 'osx.11.0-arm64' or '$(RuntimeIdentifier)' == '')">
       <Link>Embedded\osx.11.0-arm64\xgConsole</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\Redpoint.OpenGE.Shim" Condition="'$(OpenGEShimIsAlreadyBuilt)' == 'true' and '$(RuntimeIdentifier)' == 'linux-x64'">
+    <EmbeddedResource Include="$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\Redpoint.OpenGE.Shim" Condition="'$(OpenGEShimIsAlreadyBuilt)' == 'true' and ('$(RuntimeIdentifier)' == 'linux-x64' or '$(RuntimeIdentifier)' == '')">
       <Link>Embedded\linux-x64\ib_console</Link>
     </EmbeddedResource>
   </ItemGroup>
