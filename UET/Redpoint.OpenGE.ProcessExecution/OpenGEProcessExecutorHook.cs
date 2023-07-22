@@ -77,6 +77,14 @@
                                 await manifestStream!.CopyToAsync(target);
                             }
                         }
+                        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+                        {
+                            var mode = File.GetUnixFileMode(xgeShimPath + ".tmp");
+                            mode |= UnixFileMode.UserExecute;
+                            mode |= UnixFileMode.GroupExecute;
+                            mode |= UnixFileMode.OtherExecute;
+                            File.SetUnixFileMode(xgeShimPath + ".tmp", mode);
+                        }
                         File.Move(xgeShimPath + ".tmp", xgeShimPath, true);
                         _logger.LogInformation("Extracted XGE shim to: " + xgeShimPath);
                     }
