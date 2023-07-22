@@ -20,7 +20,7 @@ stages:
     paths:
       - package.version
 
-"Build OpenGE Shim":
+"Build Win OpenGE Shim":
   stage: Prebuild
   tags:
     - redpoint-games-windows
@@ -37,6 +37,39 @@ stages:
   artifacts:
     paths:
       - "UET/Redpoint.OpenGE.ProcessExecution/shim-bin/Release/net7.0/win-x64/publish"
+
+"Build Mac OpenGE Shim":
+  stage: Prebuild
+  tags:
+    - redpoint-games-mac
+  needs:
+    - Timestamp
+  interruptible: true
+  script: |
+    PACKAGE_VERSION=$(cat package.version | tr -d '\n')
+    echo "Package version: $PACKAGE_VERSION"
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION "-p:OutDir=$(pwd)/UET/Redpoint.OpenGE.ProcessExecution/shim-bin/Release/net7.0/osx.11.0-arm64" "-p:PublishDir=$(pwd)/UET/Redpoint.OpenGE.ProcessExecution/shim-bin/Release/net7.0/osx.11.0-arm64/publish" UET/Redpoint.OpenGE.Shim/Redpoint.OpenGE.Shim.csproj
+  artifacts:
+    paths:
+      - "UET/Redpoint.OpenGE.ProcessExecution/shim-bin/Release/net7.0/osx.11.0-arm64/publish"
+
+"Build Linux OpenGE Shim":
+  stage: Prebuild
+  tags:
+    - redpoint-games-windows
+  needs:
+    - Timestamp
+  interruptible: true
+  script: |
+    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=linux-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion "-p:OutDir=$((Get-Location).Path)\UET\Redpoint.OpenGE.ProcessExecution\shim-bin\Release\net7.0\linux-x64" "-p:PublishDir=$((Get-Location).Path)\UET\Redpoint.OpenGE.ProcessExecution\shim-bin\Release\net7.0\linux-x64\publish" UET/Redpoint.OpenGE.Shim/Redpoint.OpenGE.Shim.csproj
+    if ($LastExitCode -ne 0) {
+      Write-Host "Publish linux-x64 (Redpoint.OpenGE.Shim.csproj) failed with exit code $LastExitCode"
+      exit $LastExitCode 
+    }
+  artifacts:
+    paths:
+      - "UET/Redpoint.OpenGE.ProcessExecution/shim-bin/Release/net7.0/linux-x64/publish"
 
 "Build Mac Logging":
   stage: Prebuild
@@ -62,7 +95,9 @@ stages:
     - redpoint-games-windows
   needs:
     - Timestamp
-    - "Build OpenGE Shim"
+    - "Build Win OpenGE Shim"
+    - "Build Mac OpenGE Shim"
+    - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
   interruptible: true
   script: |
@@ -82,7 +117,9 @@ stages:
     - redpoint-games-mac
   needs:
     - Timestamp
-    - "Build OpenGE Shim"
+    - "Build Win OpenGE Shim"
+    - "Build Mac OpenGE Shim"
+    - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
   interruptible: true
   script: |
@@ -206,7 +243,9 @@ stages:
     - redpoint-games-windows
   needs:
     - Timestamp
-    - "Build OpenGE Shim"
+    - "Build Win OpenGE Shim"
+    - "Build Mac OpenGE Shim"
+    - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
   interruptible: true
   script: |
@@ -233,7 +272,9 @@ stages:
     - redpoint-games-mac
   needs:
     - Timestamp
-    - "Build OpenGE Shim"
+    - "Build Win OpenGE Shim"
+    - "Build Mac OpenGE Shim"
+    - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
   interruptible: true
   script: |
@@ -251,7 +292,9 @@ stages:
     - redpoint-games-windows
   needs:
     - Timestamp
-    - "Build OpenGE Shim"
+    - "Build Win OpenGE Shim"
+    - "Build Mac OpenGE Shim"
+    - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
     - "Build Win Pass 1"
     - "Build Mac Pass 1"
@@ -275,7 +318,9 @@ stages:
     - redpoint-games-mac
   needs:
     - Timestamp
-    - "Build OpenGE Shim"
+    - "Build Win OpenGE Shim"
+    - "Build Mac OpenGE Shim"
+    - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
     - "Build Win Pass 1"
     - "Build Mac Pass 1"
@@ -292,6 +337,30 @@ stages:
     paths:
       - "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet"
 
+"Test OpenGE Win":
+  stage: Build Pass 2
+  tags:
+    - redpoint-games-windows
+  needs:
+    - "Build Win Pass 2"
+  interruptible: true
+  script: |
+    .\UET\uet\bin\Release\net7.0\win-x64\publish\uet.exe internal openge --task-file UET\Redpoint.OpenGE.Shim.Tests\Windows.xml
+    if ($LastExitCode -ne 0) {
+      Write-Host "OpenGE test failed with exit code $LastExitCode"
+      exit $LastExitCode 
+    }
+
+"Test OpenGE Mac":
+  stage: Build Pass 2
+  tags:
+    - redpoint-games-mac
+  needs:
+    - "Build Mac Pass 2"
+  interruptible: true
+  script: |
+    ./UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet internal openge --task-file UET/Redpoint.OpenGE.Shim.Tests/Mac.xml
+
 "Publish to NuGet":
   stage: Publish
   tags:
@@ -300,6 +369,10 @@ stages:
     - Timestamp
     - "Build and Test Libraries on Windows"
     - job: "Build and Test Libraries on macOS"
+      artifacts: false
+    - job: "Test OpenGE Win"
+      artifacts: false
+    - job: "Test OpenGE Mac"
       artifacts: false
   interruptible: true
   script: |
@@ -330,6 +403,10 @@ stages:
     - "Build Mac Pass 2"
     - "Build Mac UEFS Client"
     - "Build Mac UEFS Daemon"
+    - job: "Test OpenGE Win"
+      artifacts: false
+    - job: "Test OpenGE Mac"
+      artifacts: false
   interruptible: false
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()

@@ -66,7 +66,7 @@
                             Caption = task.Attributes!["Caption"]!.Value,
                             // SourceFile = task.Attributes!["SourceFile"]!.Value,
                             Tool = task.Attributes!["Tool"]!.Value,
-                            WorkingDir = task.Attributes!["WorkingDir"]!.Value,
+                            WorkingDir = task.Attributes!["WorkingDir"]?.Value,
                             SkipIfProjectFailed = task.Attributes!["SkipIfProjectFailed"]?.Value?.Equals("true", StringComparison.InvariantCultureIgnoreCase) ?? false,
                             DependsOn = task.Attributes!["DependsOn"]?.Value,
                         });

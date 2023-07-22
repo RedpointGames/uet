@@ -6,8 +6,7 @@
     <OutputType>Exe</OutputType>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
-    <RuntimeIdentifiers Condition="'$(EnableLinuxSupport)' == 'true'">win-x64;osx.11.0-arm64;linux-x64</RuntimeIdentifiers>
-    <RuntimeIdentifiers Condition="'$(EnableLinuxSupport)' == 'false'">win-x64;osx.11.0-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win-x64;osx.11.0-arm64;linux-x64</RuntimeIdentifiers>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <PublishReadyToRun>true</PublishReadyToRun>
     <PublishTrimmed>true</PublishTrimmed>
