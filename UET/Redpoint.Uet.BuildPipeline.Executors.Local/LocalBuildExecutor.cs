@@ -161,10 +161,7 @@
                             globalEnvironmentVariables,
                             cancellationToken);
 
-                        int exitCode;
-                        await using (var targetWorkspace = await GetFolderWorkspaceAsync(
-                            buildSpecification.BuildGraphRepositoryRoot,
-                            node.Node.Name))
+                        async Task<int> ExecuteBuildInWorkspaceAsync(string targetWorkspacePath)
                         {
                             if (preparePlugin != null && preparePlugin.Length > 0)
                             {
@@ -177,7 +174,7 @@
                                         .First();
                                     await provider.RunBeforeBuildGraphAsync(
                                         byType,
-                                        targetWorkspace.Path,
+                                        targetWorkspacePath,
                                         cancellationToken);
                                 }
                             }
@@ -193,15 +190,15 @@
                                         .First();
                                     await provider.RunBeforeBuildGraphAsync(
                                         byType,
-                                        targetWorkspace.Path,
+                                        targetWorkspacePath,
                                         cancellationToken);
                                 }
                             }
 
                             _logger.LogTrace($"Starting: {node.Node.Name}");
-                            exitCode = await _buildGraphExecutor.ExecuteGraphNodeAsync(
-                                engineWorkspace.Path,
-                                targetWorkspace.Path,
+                            return await _buildGraphExecutor.ExecuteGraphNodeAsync(
+                                engineWorkspace!.Path,
+                                targetWorkspacePath,
                                 buildSpecification.UETPath,
                                 buildSpecification.ArtifactExportPath,
                                 buildSpecification.BuildGraphScript,
@@ -210,7 +207,7 @@
                                 OperatingSystem.IsWindows() ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                                 buildSpecification.BuildGraphSettings,
                                 buildSpecification.BuildGraphSettingReplacements,
-                                globalEnvironmentVariablesWithSdk,
+                                globalEnvironmentVariablesWithSdk!,
                                 CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                                 {
                                     ReceiveStdout = (line) =>
@@ -225,6 +222,21 @@
                                     },
                                 }),
                                 cancellationToken);
+                        }
+
+                        int exitCode;
+                        if (buildSpecification.Engine.IsEngineBuild)
+                        {
+                            exitCode = await ExecuteBuildInWorkspaceAsync(engineWorkspace.Path);
+                        }
+                        else
+                        {
+                            await using (var targetWorkspace = await GetFolderWorkspaceAsync(
+                                buildSpecification.BuildGraphRepositoryRoot,
+                                node.Node.Name))
+                            {
+                                exitCode = await ExecuteBuildInWorkspaceAsync(targetWorkspace.Path);
+                            }
                         }
                         if (exitCode == 0)
                         {

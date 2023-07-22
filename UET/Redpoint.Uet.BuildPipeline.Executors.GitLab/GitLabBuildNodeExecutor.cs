@@ -73,21 +73,7 @@
                         buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
                         cancellationToken);
 
-                    int exitCode;
-                    await using (var targetWorkspace = await _workspaceProvider.GetWorkspaceAsync(
-                        new GitWorkspaceDescriptor
-                        {
-                            RepositoryUrl = repository,
-                            RepositoryCommitOrRef = commit,
-                            AdditionalFolderLayers = Array.Empty<string>(),
-                            AdditionalFolderZips = Array.Empty<string>(),
-                            WorkspaceDisambiguators = new[] { nodeName },
-                            ProjectFolderName = buildSpecification.ProjectFolderName,
-                            IsEngineBuild = false,
-                            WindowsSharedGitCachePath = null,
-                            MacSharedGitCachePath = null,
-                        },
-                        cancellationToken))
+                    async Task<int> ExecuteBuildInWorkspaceAsync(string targetWorkspacePath)
                     {
                         if (preparePlugin != null && preparePlugin.Length > 0)
                         {
@@ -100,7 +86,7 @@
                                     .First();
                                 await provider.RunBeforeBuildGraphAsync(
                                     byType,
-                                    targetWorkspace.Path,
+                                    targetWorkspacePath,
                                     cancellationToken);
                             }
                         }
@@ -116,15 +102,15 @@
                                     .First();
                                 await provider.RunBeforeBuildGraphAsync(
                                     byType,
-                                    targetWorkspace.Path,
+                                    targetWorkspacePath,
                                     cancellationToken);
                             }
                         }
 
                         _logger.LogTrace($"Starting: {nodeName}");
-                        exitCode = await _buildGraphExecutor.ExecuteGraphNodeAsync(
+                        return await _buildGraphExecutor.ExecuteGraphNodeAsync(
                             engineWorkspace.Path,
-                            targetWorkspace.Path,
+                            targetWorkspacePath,
                             buildSpecification.UETPath,
                             buildSpecification.ArtifactExportPath,
                             buildSpecification.BuildGraphScript,
@@ -148,6 +134,32 @@
                                 },
                             }),
                             cancellationToken);
+                    }
+
+                    int exitCode;
+                    if (buildSpecification.Engine.IsEngineBuild)
+                    {
+                        exitCode = await ExecuteBuildInWorkspaceAsync(engineWorkspace.Path);
+                    }
+                    else
+                    {
+                        await using (var targetWorkspace = await _workspaceProvider.GetWorkspaceAsync(
+                            new GitWorkspaceDescriptor
+                            {
+                                RepositoryUrl = repository,
+                                RepositoryCommitOrRef = commit,
+                                AdditionalFolderLayers = Array.Empty<string>(),
+                                AdditionalFolderZips = Array.Empty<string>(),
+                                WorkspaceDisambiguators = new[] { nodeName },
+                                ProjectFolderName = buildSpecification.ProjectFolderName,
+                                IsEngineBuild = false,
+                                WindowsSharedGitCachePath = null,
+                                MacSharedGitCachePath = null,
+                            },
+                            cancellationToken))
+                        {
+                            exitCode = await ExecuteBuildInWorkspaceAsync(targetWorkspace.Path);
+                        }
                     }
                     if (exitCode == 0)
                     {
