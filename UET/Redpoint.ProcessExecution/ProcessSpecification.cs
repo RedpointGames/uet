@@ -2,6 +2,6 @@
 {
     public class ProcessSpecification : BaseExecutionSpecification
     {
-        public required string FilePath { get; init; }
+        public required string FilePath { get; set; }
     }
 }

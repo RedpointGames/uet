@@ -10,7 +10,7 @@
 
         public required string Tool { get; init; }
 
-        public required string WorkingDir { get; init; }
+        public required string? WorkingDir { get; init; }
 
         public required bool SkipIfProjectFailed { get; init; }
 

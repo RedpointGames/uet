@@ -37,11 +37,26 @@
                 return;
             }
 
+            var shimName = true switch
+            {
+                var v when v == OperatingSystem.IsWindows() => "xgConsole.exe",
+                var v when v == OperatingSystem.IsMacOS() => "xgConsole",
+                var v when v == OperatingSystem.IsLinux() => "ib_console",
+                _ => throw new PlatformNotSupportedException(),
+            };
+            var embeddedResourceName = true switch
+            {
+                var v when v == OperatingSystem.IsWindows() => "win_x64.xgConsole.exe",
+                var v when v == OperatingSystem.IsMacOS() => "osx.11.0_arm64.xgConsole",
+                var v when v == OperatingSystem.IsLinux() => "linux_x64.ib_console",
+                _ => throw new PlatformNotSupportedException(),
+            };
+
             var openGEProcessSpecification = (OpenGEProcessSpecification)processSpecification;
             if (!openGEProcessSpecification.DisableOpenGE)
             {
                 var xgeShimFolder = Path.Combine(Path.GetTempPath(), $"openge-shim-{Process.GetCurrentProcess().Id}");
-                var xgeShimPath = Path.Combine(xgeShimFolder, "xgConsole.exe");
+                var xgeShimPath = Path.Combine(xgeShimFolder, shimName);
 
                 await _semaphoreSlim.WaitAsync(cancellationToken);
                 try
@@ -49,7 +64,7 @@
                     if (!File.Exists(xgeShimPath))
                     {
                         Directory.CreateDirectory(xgeShimFolder);
-                        using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Redpoint.OpenGE.ProcessExecution.Embedded.win_x64.xgConsole.exe"))
+                        using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"Redpoint.OpenGE.ProcessExecution.Embedded.{embeddedResourceName}"))
                         {
                             using (var target = new FileStream(xgeShimPath + ".tmp", FileMode.Create, FileAccess.Write, FileShare.None))
                             {
@@ -79,6 +94,14 @@
                 newEnvironmentVariables["UET_FORCE_XGE_SHIM"] = "1";
                 newEnvironmentVariables["UET_XGE_SHIM_PIPE_NAME"] = _daemon.GetConnectionString();
                 processSpecification.EnvironmentVariables = newEnvironmentVariables;
+
+                // @note: Handle a special case where UET wants to launch the
+                // OpenGE shim directly, rather than running a process that wants
+                // to find the OpenGE shim on the PATH.
+                if (processSpecification.FilePath == "__openge__")
+                {
+                    processSpecification.FilePath = xgeShimPath;
+                }
             }
         }
     }
