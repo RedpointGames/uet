@@ -47,7 +47,7 @@
             var embeddedResourceName = true switch
             {
                 var v when v == OperatingSystem.IsWindows() => "win_x64.xgConsole.exe",
-                var v when v == OperatingSystem.IsMacOS() => "osx.11.0_arm64.xgConsole",
+                var v when v == OperatingSystem.IsMacOS() => "osx._11._0_arm64.xgConsole",
                 var v when v == OperatingSystem.IsLinux() => "linux_x64.ib_console",
                 _ => throw new PlatformNotSupportedException(),
             };
@@ -64,11 +64,17 @@
                     if (!File.Exists(xgeShimPath))
                     {
                         Directory.CreateDirectory(xgeShimFolder);
-                        using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"Redpoint.OpenGE.ProcessExecution.Embedded.{embeddedResourceName}"))
+                        var manifestName = $"Redpoint.OpenGE.ProcessExecution.Embedded.{embeddedResourceName}";
+                        var manifestStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(manifestName);
+                        if (manifestStream == null)
+                        {
+                            throw new InvalidOperationException($"This process requires the OpenGE shim to be extracted, but UET was incorrectly built and doesn't have a copy of the shim as an embedded resource with the name '{manifestName}'.");
+                        }
+                        using (manifestStream)
                         {
                             using (var target = new FileStream(xgeShimPath + ".tmp", FileMode.Create, FileAccess.Write, FileShare.None))
                             {
-                                await stream!.CopyToAsync(target);
+                                await manifestStream!.CopyToAsync(target);
                             }
                         }
                         File.Move(xgeShimPath + ".tmp", xgeShimPath, true);
