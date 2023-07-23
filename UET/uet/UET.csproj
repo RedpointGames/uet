@@ -15,6 +15,7 @@
   </Target>
 
   <ItemGroup>
+    <None Remove="Commands\Internal\SetupAppleTwoFactorProxy\worker.js" />
     <None Remove="Commands\Internal\TestGrpcPipes\TestPipes.proto" />
   </ItemGroup>
 
@@ -74,6 +75,7 @@
     <EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Deployment\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Deployment.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Deployment.xml" />
     <EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Test\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Test.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Test.xml" />
     <EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Prepare\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Prepare.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Prepare.xml" />
+    <EmbeddedResource Include="Commands\Internal\SetupAppleTwoFactorProxy\worker.js" />
   </ItemGroup>
 
   <ItemGroup>
