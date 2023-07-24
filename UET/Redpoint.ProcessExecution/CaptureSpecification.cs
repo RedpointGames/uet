@@ -19,6 +19,11 @@
         /// </summary>
         public static readonly ICaptureSpecification Sanitized = new SanitizedCaptureSpecification();
 
+        public static ICaptureSpecification CreateFromPromptResponse(CaptureSpecificationPromptResponse captureSpecificationPromptResponse)
+        {
+            return new PromptResponseCaptureSpecification(captureSpecificationPromptResponse);
+        }
+
         public static ICaptureSpecification CreateFromDelegates(CaptureSpecificationDelegates captureSpecification)
         {
             return new DelegateCaptureSpecification(captureSpecification);

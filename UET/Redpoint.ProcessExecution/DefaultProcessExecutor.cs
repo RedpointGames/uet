@@ -77,45 +77,56 @@
             {
                 throw new InvalidOperationException("Unable to start process!");
             }
-            if (startInfo.RedirectStandardInput)
+            if (captureSpecification.InterceptRawStreams)
             {
-                if (processSpecification.StdinData != null)
-                {
-                    process.StandardInput.Write(processSpecification.StdinData);
-                }
-                if (captureSpecification.InterceptStandardInput)
-                {
-                    var data = captureSpecification.OnRequestStandardInputAtStartup();
-                    if (data != null)
-                    {
-                        process.StandardInput.Write(data);
-                    }
-                }
-                process.StandardInput.Close();
+                captureSpecification.OnReceiveStreams(
+                    startInfo.RedirectStandardInput ? process.StandardInput.BaseStream : null,
+                    startInfo.RedirectStandardOutput ? process.StandardOutput.BaseStream : null,
+                    startInfo.RedirectStandardError ? process.StandardError.BaseStream : null,
+                    cancellationToken);
             }
-            if (startInfo.RedirectStandardOutput)
+            else
             {
-                process.OutputDataReceived += (sender, e) =>
+                if (startInfo.RedirectStandardInput)
                 {
-                    var line = e?.Data?.TrimEnd();
-                    if (!string.IsNullOrWhiteSpace(line))
+                    if (processSpecification.StdinData != null)
                     {
-                        captureSpecification.OnReceiveStandardOutput(line);
+                        process.StandardInput.Write(processSpecification.StdinData);
                     }
-                };
-                process.BeginOutputReadLine();
-            }
-            if (startInfo.RedirectStandardError)
-            {
-                process.ErrorDataReceived += (sender, e) =>
+                    if (captureSpecification.InterceptStandardInput)
+                    {
+                        var data = captureSpecification.OnRequestStandardInputAtStartup();
+                        if (data != null)
+                        {
+                            process.StandardInput.Write(data);
+                        }
+                    }
+                    process.StandardInput.Close();
+                }
+                if (startInfo.RedirectStandardOutput)
                 {
-                    var line = e?.Data?.TrimEnd();
-                    if (!string.IsNullOrWhiteSpace(line))
+                    process.OutputDataReceived += (sender, e) =>
                     {
-                        captureSpecification.OnReceiveStandardError(line);
-                    }
-                };
-                process.BeginErrorReadLine();
+                        var line = e?.Data?.TrimEnd();
+                        if (!string.IsNullOrWhiteSpace(line))
+                        {
+                            captureSpecification.OnReceiveStandardOutput(line);
+                        }
+                    };
+                    process.BeginOutputReadLine();
+                }
+                if (startInfo.RedirectStandardError)
+                {
+                    process.ErrorDataReceived += (sender, e) =>
+                    {
+                        var line = e?.Data?.TrimEnd();
+                        if (!string.IsNullOrWhiteSpace(line))
+                        {
+                            captureSpecification.OnReceiveStandardError(line);
+                        }
+                    };
+                    process.BeginErrorReadLine();
+                }
             }
             try
             {
