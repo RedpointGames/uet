@@ -80,9 +80,9 @@
             if (captureSpecification.InterceptRawStreams)
             {
                 captureSpecification.OnReceiveStreams(
-                    startInfo.RedirectStandardInput ? process.StandardInput.BaseStream : null,
-                    startInfo.RedirectStandardOutput ? process.StandardOutput.BaseStream : null,
-                    startInfo.RedirectStandardError ? process.StandardError.BaseStream : null,
+                    startInfo.RedirectStandardInput ? process.StandardInput : null,
+                    startInfo.RedirectStandardOutput ? process.StandardOutput : null,
+                    startInfo.RedirectStandardError ? process.StandardError : null,
                     cancellationToken);
             }
             else

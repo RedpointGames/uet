@@ -178,6 +178,13 @@
                     _logger.LogWarning($"Attempting to reserve the two-factor authentication proxy using session ID '{sessionId}'...");
                     var sessionResponse = await client.PostAsync($"{appleTwoFactorProxyUrl}/session?number={applePhoneNumber}&sessionId={sessionId}", new StringContent(string.Empty));
                     var retry = false;
+                    try
+                    {
+                        _logger.LogTrace($"Response from proxy: {await sessionResponse.Content.ReadAsStringAsync()}");
+                    }
+                    catch
+                    {
+                    }
                     switch (sessionResponse.StatusCode)
                     {
                         case HttpStatusCode.OK:
@@ -243,8 +250,7 @@
                                     case HttpStatusCode.OK:
                                         // We have a code.
                                         _logger.LogInformation("Received two-factor code from proxy, authenticating...");
-                                        var codeBytes = Encoding.UTF8.GetBytes(await codeResponse.Content.ReadAsStringAsync() + "\n");
-                                        standardInput.Write(codeBytes);
+                                        standardInput.WriteLine(await codeResponse.Content.ReadAsStringAsync());
                                         return;
                                     case HttpStatusCode.NotFound:
                                         _logger.LogInformation("2FA code not received yet, waiting 5 seconds...");

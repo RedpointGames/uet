@@ -3,7 +3,7 @@
     using System.Text.RegularExpressions;
 
 
-    public delegate Task CaptureSpecificationPromptResponseResponder(Stream standardInput);
+    public delegate Task CaptureSpecificationPromptResponseResponder(StreamWriter standardInput);
 
     public class CaptureSpecificationPromptResponse
     {

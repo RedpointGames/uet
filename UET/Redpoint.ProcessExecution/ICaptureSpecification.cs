@@ -4,7 +4,7 @@
     {
         bool InterceptRawStreams => false;
 
-        void OnReceiveStreams(Stream? standardInput, Stream? standardOutput, Stream? standardError, CancellationToken cancellationToken)
+        void OnReceiveStreams(StreamWriter? standardInput, StreamReader? standardOutput, StreamReader? standardError, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }

@@ -18,28 +18,28 @@
             _promptResponse = promptResponse;
         }
 
-        private async Task OnReceiveStreamsLoopAsync(Stream standardInput, Stream standardOutput, CancellationToken cancellationToken)
+        private async Task OnReceiveStreamsLoopAsync(StreamWriter standardInput, StreamReader standardOutput, CancellationToken cancellationToken)
         {
             try
             {
-                var memoryBuffer = new byte[128];
-                var lineBuffer = new List<byte>();
+                var memoryBuffer = new char[128];
+                var stringBuilder = new StringBuilder();
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    var bytesRead = await standardOutput.ReadAsync(memoryBuffer, cancellationToken);
-                    if (bytesRead == 0)
+                    var charsRead = await standardOutput.ReadAsync(memoryBuffer, cancellationToken);
+                    if (charsRead == 0)
                     {
                         // End of stream.
                         return;
                     }
 
-                    for (int i = 0; i < bytesRead; i++)
+                    for (int i = 0; i < charsRead; i++)
                     {
                         if (memoryBuffer[i] == '\n')
                         {
                             // This is the end of a line. Flush the buffer.
-                            Console.WriteLine(Encoding.UTF8.GetString(lineBuffer.ToArray()));
-                            lineBuffer.Clear();
+                            Console.WriteLine(stringBuilder.ToString());
+                            stringBuilder.Clear();
                         }
                         else if (memoryBuffer[i] == '\r')
                         {
@@ -47,21 +47,21 @@
                         }
                         else
                         {
-                            lineBuffer.Add(memoryBuffer[i]);
+                            stringBuilder.Append(memoryBuffer[i]);
                         }
                     }
 
-                    if (lineBuffer.Count > 0)
+                    if (stringBuilder.Length > 0)
                     {
                         // Check if the line buffer matches any of our prompt responses.
-                        var currentLine = Encoding.UTF8.GetString(lineBuffer.ToArray());
+                        var currentLine = stringBuilder.ToString();
                         foreach (var kv in _promptResponse._responses)
                         {
                             if (kv.Key.IsMatch(currentLine))
                             {
                                 // This is a prompt we're responding to. Flush the buffer.
-                                Console.WriteLine(Encoding.UTF8.GetString(lineBuffer.ToArray()));
-                                lineBuffer.Clear();
+                                Console.WriteLine(stringBuilder.ToString());
+                                stringBuilder.Clear();
 
                                 // Let the responder push the input.
                                 await kv.Value(standardInput);
@@ -84,7 +84,7 @@
 
         public bool InterceptStandardError => false;
 
-        public void OnReceiveStreams(Stream? standardInput, Stream? standardOutput, Stream? standardError, CancellationToken cancellationToken)
+        public void OnReceiveStreams(StreamWriter? standardInput, StreamReader? standardOutput, StreamReader? standardError, CancellationToken cancellationToken)
         {
             if (_promptResponseTask != null)
             {

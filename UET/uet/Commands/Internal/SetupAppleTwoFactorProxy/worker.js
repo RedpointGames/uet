@@ -10,7 +10,7 @@ async function getTwoFactorCode(url, request, env) {
     }
     if (url.searchParams.has('sessionId')) {
         var desiredSessionId = url.searchParams.get('sessionId');
-        var currentSessionId = env.KV.get('current-session');
+        var currentSessionId = await env.KV.get('current-session');
         if (currentSessionId != desiredSessionId) {
             return new Response("The requester is not the current session holder.", { status: 403 });
         }
@@ -58,14 +58,14 @@ async function setCurrentSession(url, request, env) {
         return new Response("The requester is not authorized to access this endpoint.", { status: 403 });
     }
     var desiredSessionId = url.searchParams.get('sessionId');
-    var currentSessionId = env.KV.get('current-session');
+    var currentSessionId = await env.KV.get('current-session');
     if (currentSessionId == desiredSessionId) {
         return new Response("2FA endpoint is currently reserved for you.", { status: 200 });
-    } else if (currentSessionId == null) {
-        env.KV.put('current-session', desiredSessionId, { expirationTtl: 300 });
+    } else if (currentSessionId == null || currentSessionId == "") {
+        await env.KV.put('current-session', desiredSessionId, { expirationTtl: 300 });
         return new Response("2FA endpoint reserved for session " + desiredSessionId + ".", { status: 200 });
     } else {
-        return new Response("The 2FA endpoint is currently reserved by another session. Try again later.", { status: 409 });
+        return new Response("The 2FA endpoint is currently reserved by session " + currentSessionId + ". Try again later.", { status: 409 });
     }
 }
 
