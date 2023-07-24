@@ -11,44 +11,45 @@
     internal class PromptResponseCaptureSpecification : ICaptureSpecification
     {
         private readonly CaptureSpecificationPromptResponse _promptResponse;
+        private readonly StringBuilder? _stringBuilder;
         private Task? _promptResponseTask = null;
 
-        public PromptResponseCaptureSpecification(CaptureSpecificationPromptResponse promptResponse)
+        public PromptResponseCaptureSpecification(CaptureSpecificationPromptResponse promptResponse, StringBuilder? stringBuilder)
         {
             _promptResponse = promptResponse;
+            _stringBuilder = stringBuilder;
         }
 
         private async Task OnReceiveStreamsLoopAsync(StreamWriter standardInput, StreamReader standardOutput, CancellationToken cancellationToken)
         {
             try
             {
-                var memoryBuffer = new char[128];
                 var stringBuilder = new StringBuilder();
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    var charsRead = await standardOutput.ReadAsync(memoryBuffer, cancellationToken);
-                    if (charsRead == 0)
+                    var charRead = standardOutput.Read();
+                    if (charRead == -1)
                     {
                         // End of stream.
                         return;
                     }
 
-                    for (int i = 0; i < charsRead; i++)
+                    var @char = (char)charRead;
+                    _stringBuilder?.Append(@char);
+                    Console.Write(@char);
+
+                    if (@char == '\n')
                     {
-                        if (memoryBuffer[i] == '\n')
-                        {
-                            // This is the end of a line. Flush the buffer.
-                            Console.WriteLine(stringBuilder.ToString());
-                            stringBuilder.Clear();
-                        }
-                        else if (memoryBuffer[i] == '\r')
-                        {
-                            // Ignore this character.
-                        }
-                        else
-                        {
-                            stringBuilder.Append(memoryBuffer[i]);
-                        }
+                        // This is the end of a line.
+                        stringBuilder.Clear();
+                    }
+                    else if (@char == '\r')
+                    {
+                        // Ignore this character.
+                    }
+                    else
+                    {
+                        stringBuilder.Append(@char);
                     }
 
                     if (stringBuilder.Length > 0)
@@ -60,7 +61,6 @@
                             if (kv.Key.IsMatch(currentLine))
                             {
                                 // This is a prompt we're responding to. Flush the buffer.
-                                Console.WriteLine(stringBuilder.ToString());
                                 stringBuilder.Clear();
 
                                 // Let the responder push the input.

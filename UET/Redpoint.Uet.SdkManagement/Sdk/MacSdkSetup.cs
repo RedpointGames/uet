@@ -290,7 +290,12 @@
                                     // @note: This is turned off because it seems to be extremely brittle in non-interactive scenarios.
                                     // "--experimental-unxip",
                                     await GetXcodeVersion(unrealEnginePath)
-                                }
+                                },
+                                EnvironmentVariables = new Dictionary<string, string>
+                                {
+                                    { "XCODES_USERNAME", appleEmail },
+                                    { "XCODES_PASSWORD", applePassword },
+                                },
                             },
                             CaptureSpecification.CreateFromPromptResponse(promptResponse),
                             cts.Token);
