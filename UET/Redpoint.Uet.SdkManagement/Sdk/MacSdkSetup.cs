@@ -177,6 +177,7 @@
                     {
                         "/opt/homebrew/bin/xcodes",
                         "install",
+                        xcodeVersion,
                         "--directory",
                         sdkPackagePath,
                         "--path",
