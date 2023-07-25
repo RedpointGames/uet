@@ -61,17 +61,17 @@
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
         {
             // Check that the required environment variables have been set.
-            var appleEmail = Environment.GetEnvironmentVariable("UET_APPLE_EMAIL");
-            var applePassword = Environment.GetEnvironmentVariable("UET_APPLE_PASSWORD");
-            var applePhoneNumber = Environment.GetEnvironmentVariable("UET_APPLE_PHONE_NUMBER");
-            var appleTwoFactorProxyUrl = Environment.GetEnvironmentVariable("UET_APPLE_2FA_PROXY_URL")?.TrimEnd('/');
-
-            if (string.IsNullOrWhiteSpace(appleEmail) ||
-                string.IsNullOrWhiteSpace(applePassword) ||
-                string.IsNullOrWhiteSpace(applePhoneNumber) ||
-                string.IsNullOrWhiteSpace(appleTwoFactorProxyUrl))
+            var appleXcodeStoragePath = Environment.GetEnvironmentVariable("UET_APPLE_XCODE_STORAGE_PATH");
+            if (string.IsNullOrWhiteSpace(appleXcodeStoragePath))
             {
-                throw new SdkSetupMissingAuthenticationException("You must set the UET_APPLE_EMAIL, UET_APPLE_PASSWORD, UET_APPLE_PHONE_NUMBER and UET_APPLE_2FA_PROXY_URL environment variables to authenticate an Apple account. Use 'uet internal setup-apple-two-factor-proxy' to configure a proxy for handling two-factor authentication.");
+                throw new SdkSetupMissingAuthenticationException("You must set the UET_APPLE_XCODE_STORAGE_PATH environment variable, which is the path to the mounted network share where Xcode .xip files are being stored after you have manually downloaded them from the Apple Developer portal.");
+            }
+
+            var xcodeVersion = await GetXcodeVersion(unrealEnginePath);
+            var xipPath = Path.Combine(appleXcodeStoragePath, $"Xcode_{xcodeVersion}.xip");
+            if (!File.Exists(xipPath))
+            {
+                throw new SdkSetupPackageGenerationFailedException($"Expected Xcode XIP to be present at: {xipPath}");
             }
 
             // Check that sudo does not require a password.
@@ -168,154 +168,29 @@
                 }
             }
 
-            // Reserve a session via the proxy for performing two-factor authentication. We reserve on the proxy so that
-            // even across multiple machines, we don't have two processes trying to go through two-factor authentication.
-            do
-            {
-                using (var client = new HttpClient())
+            // Install XIP.
+            exitCode = await _processExecutor.ExecuteAsync(
+                new ProcessSpecification
                 {
-                    var sessionId = Guid.NewGuid().ToString();
-                    _logger.LogWarning($"Attempting to reserve the two-factor authentication proxy using session ID '{sessionId}'...");
-                    var sessionResponse = await client.PostAsync($"{appleTwoFactorProxyUrl}/session?number={applePhoneNumber}&sessionId={sessionId}", new StringContent(string.Empty));
-                    var retry = false;
-                    try
+                    FilePath = "/usr/bin/sudo",
+                    Arguments = new[]
                     {
-                        _logger.LogTrace($"Response from proxy: {await sessionResponse.Content.ReadAsStringAsync()}");
-                    }
-                    catch
-                    {
-                    }
-                    switch (sessionResponse.StatusCode)
-                    {
-                        case HttpStatusCode.OK:
-                            // We have the session reserved.
-                            break;
-                        case HttpStatusCode.Conflict:
-                            // Another session is currently going through two-factor authentication.
-                            _logger.LogWarning("Another device is currently going through two-factor authentication. Retrying in 5 minutes...");
-                            await Task.Delay(60000 * 5, cancellationToken);
-                            retry = true;
-                            break;
-                        case HttpStatusCode.Forbidden:
-                            // This phone number is incorrect.
-                            throw new SdkSetupPackageGenerationFailedException("The two-factor authentication proxy denied your request, because the configured phone number was incorrect. This is a configuration issue and you must update the relevant environment variables.");
-                        default:
-                            throw new SdkSetupPackageGenerationFailedException($"The two-factor authentication proxy responded with the unexpected status code {sessionResponse.StatusCode} during session reservation.");
-                    }
-                    if (retry)
-                    {
-                        continue;
-                    }
-
-                    _logger.LogInformation($"Two-factor authentication proxy successfully reserved. Waiting two minutes to ensure that we are still the owner of the reservation before proceeding...");
-                    await Task.Delay(60000 * 2, cancellationToken);
-
-                    sessionResponse = await client.PostAsync($"{appleTwoFactorProxyUrl}/session?number={applePhoneNumber}&sessionId={sessionId}", new StringContent(string.Empty));
-                    retry = false;
-                    switch (sessionResponse.StatusCode)
-                    {
-                        case HttpStatusCode.OK:
-                            // We still have the session reserved.
-                            break;
-                        case HttpStatusCode.Conflict:
-                            // Another session is currently going through two-factor authentication.
-                            _logger.LogWarning("Another device stole our reservation before we could proceed. Retrying in 5 minutes...");
-                            await Task.Delay(60000 * 5, cancellationToken);
-                            retry = true;
-                            break;
-                        default:
-                            throw new SdkSetupPackageGenerationFailedException($"The two-factor authentication proxy responded with the unexpected status code {sessionResponse.StatusCode} during session confirmation.");
-                    }
-                    if (retry)
-                    {
-                        continue;
-                    }
-
-                    retry = false;
-                    var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-                    var promptResponse = new CaptureSpecificationPromptResponse();
-                    promptResponse.Add(
-                        new Regex("^Enter the [0-9]+ digit code sent to [^:]+: $"),
-                        async standardInput =>
-                        {
-                            while (true)
-                            {
-                                // Wait until the token comes in.
-                                _logger.LogInformation("Attempting to retrieve two-factor code from proxy...");
-                                var codeResponse = await client.GetAsync(
-                                    $"{appleTwoFactorProxyUrl}/?number={applePhoneNumber}&sessionId={sessionId}");
-                                switch (codeResponse.StatusCode)
-                                {
-                                    case HttpStatusCode.OK:
-                                        // We have a code.
-                                        _logger.LogInformation("Received two-factor code from proxy, authenticating...");
-                                        standardInput.WriteLine(await codeResponse.Content.ReadAsStringAsync());
-                                        return;
-                                    case HttpStatusCode.NotFound:
-                                        _logger.LogInformation("2FA code not received yet, waiting 5 seconds...");
-                                        await Task.Delay(5 * 1000, cancellationToken);
-                                        break;
-                                    default:
-                                        _logger.LogError($"The two-factor authentication proxy responded with the unexpected status code {sessionResponse.StatusCode} during code obtainment.");
-                                        retry = false;
-                                        cts.Cancel();
-                                        return;
-                                }
-                            }
-                        });
-                    promptResponse.Add(
-                        new Regex("^Apple ID: Missing username or a password\\. Please try again\\.$"),
-                        standardInput =>
-                        {
-                            retry = true;
-                            cts.Cancel();
-                            return Task.CompletedTask;
-                        });
-
-                    _logger.LogInformation("Two-factor authentication proxy reservation confirmed. Proceeding with Xcode installation and potential two-factor authentication...");
-                    try
-                    {
-                        exitCode = await _processExecutor.ExecuteAsync(
-                            new ProcessSpecification
-                            {
-                                FilePath = "/usr/bin/sudo",
-                                Arguments = new[]
-                                {
-                                    "/opt/homebrew/bin/xcodes",
-                                    "install",
-                                    "--directory",
-                                    sdkPackagePath,
-                                    "--empty-trash",
-                                    // @note: This is turned off because it seems to be extremely brittle in non-interactive scenarios.
-                                    // "--experimental-unxip",
-                                    await GetXcodeVersion(unrealEnginePath)
-                                },
-                                EnvironmentVariables = new Dictionary<string, string>
-                                {
-                                    { "XCODES_USERNAME", appleEmail },
-                                    { "XCODES_PASSWORD", applePassword },
-                                },
-                            },
-                            CaptureSpecification.CreateFromPromptResponse(promptResponse),
-                            cts.Token);
-                        if (exitCode != 0)
-                        {
-                            throw new SdkSetupPackageGenerationFailedException("xcodes was unable to download and install Xcode to the SDK package directory.");
-                        }
-                    }
-                    catch (OperationCanceledException) when (cts.IsCancellationRequested && retry && !cancellationToken.IsCancellationRequested)
-                    {
-                        // We need to retry in a moment.
-                        _logger.LogWarning("Detected that xcodes failed to detect authentication. Retrying in 15 seconds...");
-                        await Task.Delay(15 * 1000, cancellationToken);
-                        continue;
-                    }
-
-                    // We're done.
-                    break;
-                }
-            } while (true);
+                        "/opt/homebrew/bin/xcodes",
+                        "install",
+                        "--directory",
+                        sdkPackagePath,
+                        "--path",
+                        xipPath,
+                        // @note: This is turned off because it seems to be extremely brittle in non-interactive scenarios.
+                        // "--experimental-unxip",
+                    },
+                },
+                CaptureSpecification.Passthrough,
+                cancellationToken);
+            if (exitCode != 0)
+            {
+                throw new SdkSetupPackageGenerationFailedException("xcodes was unable to download and install Xcode to the SDK package directory.");
+            }
 
             // Create a symbolic link so we can execute it more easily.
             var xcodeDirectory = Directory.GetDirectories(sdkPackagePath)
