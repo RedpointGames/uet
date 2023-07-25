@@ -5,14 +5,21 @@
     using System.Diagnostics;
     using System.Runtime.Versioning;
     using System.Text.RegularExpressions;
+    using Microsoft.Extensions.Logging;
+    using System.Net;
+    using System.Text;
 
     [SupportedOSPlatform("macos")]
     public class MacSdkSetup : ISdkSetup
     {
+        private readonly ILogger<MacSdkSetup> _logger;
         private readonly IProcessExecutor _processExecutor;
 
-        public MacSdkSetup(IProcessExecutor processExecutor)
+        public MacSdkSetup(
+            ILogger<MacSdkSetup> logger,
+            IProcessExecutor processExecutor)
         {
+            _logger = logger;
             _processExecutor = processExecutor;
         }
 
@@ -53,13 +60,18 @@
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
         {
-            // Check that the authentication credentials have been set.
-            var xcodesUsername = Environment.GetEnvironmentVariable("XCODES_USERNAME");
-            var xcodesPassword = Environment.GetEnvironmentVariable("XCODES_PASSWORD");
-
-            if (string.IsNullOrWhiteSpace(xcodesUsername) || string.IsNullOrWhiteSpace(xcodesPassword))
+            // Check that the required environment variables have been set.
+            var appleXcodeStoragePath = Environment.GetEnvironmentVariable("UET_APPLE_XCODE_STORAGE_PATH");
+            if (string.IsNullOrWhiteSpace(appleXcodeStoragePath))
             {
-                throw new SdkSetupMissingAuthenticationException("You must set the XCODES_USERNAME and XCODES_PASSWORD environment variables to an Apple account (that does not have 2-factor authentication enabled) so that Xcode can be automatically downloaded.");
+                throw new SdkSetupMissingAuthenticationException("You must set the UET_APPLE_XCODE_STORAGE_PATH environment variable, which is the path to the mounted network share where Xcode .xip files are being stored after you have manually downloaded them from the Apple Developer portal.");
+            }
+
+            var xcodeVersion = await GetXcodeVersion(unrealEnginePath);
+            var xipPath = Path.Combine(appleXcodeStoragePath, $"Xcode_{xcodeVersion}.xip");
+            if (!File.Exists(xipPath))
+            {
+                throw new SdkSetupPackageGenerationFailedException($"Expected Xcode XIP to be present at: {xipPath}");
             }
 
             // Check that sudo does not require a password.
@@ -83,6 +95,7 @@
             // Ensure Homebrew is installed.
             if (!File.Exists("/opt/homebrew/bin/brew"))
             {
+                _logger.LogInformation("Installing Homebrew...");
                 var homebrewScriptPath = $"/tmp/homebrew-install-{Process.GetCurrentProcess().Id}.sh";
                 using (var client = new HttpClient())
                 {
@@ -114,6 +127,7 @@
             // Make sure xcodes is installed.
             if (!File.Exists("/opt/homebrew/bin/xcodes"))
             {
+                _logger.LogInformation("Installing xcodes...");
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
@@ -135,6 +149,7 @@
             // Make sure aria2c is installed.
             if (!File.Exists("/opt/homebrew/bin/aria2c"))
             {
+                _logger.LogInformation("Installing aria2c...");
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
@@ -153,7 +168,7 @@
                 }
             }
 
-            // Download and install Xcode to the package directory.
+            // Install XIP.
             exitCode = await _processExecutor.ExecuteAsync(
                 new ProcessSpecification
                 {
@@ -164,11 +179,11 @@
                         "install",
                         "--directory",
                         sdkPackagePath,
-                        "--empty-trash",
+                        "--path",
+                        xipPath,
                         // @note: This is turned off because it seems to be extremely brittle in non-interactive scenarios.
                         // "--experimental-unxip",
-                        await GetXcodeVersion(unrealEnginePath)
-                    }
+                    },
                 },
                 CaptureSpecification.Passthrough,
                 cancellationToken);
