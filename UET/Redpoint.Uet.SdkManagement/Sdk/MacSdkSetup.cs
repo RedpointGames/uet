@@ -6,21 +6,27 @@
     using System.Runtime.Versioning;
     using System.Text.RegularExpressions;
     using Microsoft.Extensions.Logging;
-    using System.Net;
-    using System.Text;
+    using Redpoint.ProgressMonitor;
+    using System.IO;
 
     [SupportedOSPlatform("macos")]
     public class MacSdkSetup : ISdkSetup
     {
         private readonly ILogger<MacSdkSetup> _logger;
         private readonly IProcessExecutor _processExecutor;
+        private readonly IProgressFactory _progressFactory;
+        private readonly IMonitorFactory _monitorFactory;
 
         public MacSdkSetup(
             ILogger<MacSdkSetup> logger,
-            IProcessExecutor processExecutor)
+            IProcessExecutor processExecutor,
+            IProgressFactory progressFactory,
+            IMonitorFactory monitorFactory)
         {
             _logger = logger;
             _processExecutor = processExecutor;
+            _progressFactory = progressFactory;
+            _monitorFactory = monitorFactory;
         }
 
         public string[] PlatformNames => new[] { "Mac", "IOS" };
@@ -68,10 +74,10 @@
             }
 
             var xcodeVersion = await GetXcodeVersion(unrealEnginePath);
-            var xipPath = Path.Combine(appleXcodeStoragePath, $"Xcode_{xcodeVersion}.xip");
-            if (!File.Exists(xipPath))
+            var xipSourcePath = Path.Combine(appleXcodeStoragePath, $"Xcode_{xcodeVersion}.xip");
+            if (!File.Exists(xipSourcePath))
             {
-                throw new SdkSetupPackageGenerationFailedException($"Expected Xcode XIP to be present at: {xipPath}");
+                throw new SdkSetupPackageGenerationFailedException($"Expected Xcode XIP to be present at: {xipSourcePath}");
             }
 
             // Check that sudo does not require a password.
@@ -168,39 +174,79 @@
                 }
             }
 
-            // Install XIP.
-            exitCode = await _processExecutor.ExecuteAsync(
-                new ProcessSpecification
-                {
-                    FilePath = "/usr/bin/sudo",
-                    Arguments = new[]
-                    {
-                        "/opt/homebrew/bin/xcodes",
-                        "install",
-                        xcodeVersion,
-                        "--directory",
-                        sdkPackagePath,
-                        "--path",
-                        xipPath,
-                        // @note: This is turned off because it seems to be extremely brittle in non-interactive scenarios.
-                        // "--experimental-unxip",
-                    },
-                },
-                CaptureSpecification.Passthrough,
-                cancellationToken);
-            if (exitCode != 0)
+            // We must copy the XIP to the target directory, since XIP files will
+            // always be extracted next to the .xip file, regardless of the
+            // destination. We obviously don't want that to happen on a network
+            // share.
+            _logger.LogInformation($"Copying {Path.GetFileName(xipSourcePath)} from network share...");
+            var xipPath = Path.Combine(sdkPackagePath, Path.GetFileName(xipSourcePath));
+            using (var source = new FileStream(xipSourcePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                throw new SdkSetupPackageGenerationFailedException("xcodes was unable to download and install Xcode to the SDK package directory.");
-            }
+                using (var destination = new FileStream(xipPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    // Start monitoring.
+                    var cts = new CancellationTokenSource();
+                    var progress = _progressFactory.CreateProgressForStream(source);
+                    var monitorTask = Task.Run(async () =>
+                    {
+                        var monitor = _monitorFactory.CreateByteBasedMonitor();
+                        await monitor.MonitorAsync(
+                            progress,
+                            SystemConsole.ConsoleInformation,
+                            SystemConsole.WriteProgressToConsole,
+                            cts.Token);
+                    });
 
-            // Create a symbolic link so we can execute it more easily.
-            var xcodeDirectory = Directory.GetDirectories(sdkPackagePath)
-                .Select(x => Path.GetFileName(x))
-                .Where(x => x.StartsWith("Xcode"))
-                .First();
-            File.CreateSymbolicLink(
-                Path.Combine(sdkPackagePath, "Xcode.app"),
-                xcodeDirectory);
+                    // Copy the data.
+                    await source.CopyToAsync(destination, 2 * 1024 * 1024, cancellationToken);
+
+                    // Stop monitoring.
+                    await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);
+                }
+            }
+            try
+            {
+                // Install XIP.
+                _logger.LogInformation($"Installing Xcode {xcodeVersion} using 'xcodes'...");
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = "/usr/bin/sudo",
+                        Arguments = new[]
+                        {
+                            "/opt/homebrew/bin/xcodes",
+                            "install",
+                            xcodeVersion,
+                            "--directory",
+                            sdkPackagePath,
+                            "--path",
+                            xipPath,
+                            // @note: This is turned off because it seems to be extremely brittle in non-interactive scenarios.
+                            // "--experimental-unxip",
+                        },
+                    },
+                    CaptureSpecification.Passthrough,
+                    cancellationToken);
+                if (exitCode != 0)
+                {
+                    throw new SdkSetupPackageGenerationFailedException("xcodes was unable to download and install Xcode to the SDK package directory.");
+                }
+
+                // Create a symbolic link so we can execute it more easily.
+                _logger.LogInformation($"Setting up symbolic link for Xcode.app...");
+                var xcodeDirectory = Directory.GetDirectories(sdkPackagePath)
+                    .Select(x => Path.GetFileName(x))
+                    .Where(x => x.StartsWith("Xcode"))
+                    .First();
+                File.CreateSymbolicLink(
+                    Path.Combine(sdkPackagePath, "Xcode.app"),
+                    xcodeDirectory);
+            }
+            finally
+            {
+                _logger.LogInformation($"Removing temporary .xip file to reduce disk space...");
+                File.Delete(xipPath);
+            }
         }
 
         public Task<AutoSdkMapping[]> GetAutoSdkMappingsForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
