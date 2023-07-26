@@ -183,7 +183,7 @@ Environment.SetEnvironmentVariable("MSBUILDDISABLENODEREUSE", "1");
 // manage it), then we don't want our command line tools to be broken.
 if (OperatingSystem.IsMacOS())
 {
-    if (!File.Exists("/Library/Developer/CommandLineTools"))
+    if (!Directory.Exists("/Library/Developer/CommandLineTools"))
     {
         var macosXcodeSelectServices = new ServiceCollection();
         macosXcodeSelectServices.AddUETCore();
