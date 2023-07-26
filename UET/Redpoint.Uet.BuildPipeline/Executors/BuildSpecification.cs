@@ -2,6 +2,7 @@
 {
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.BuildPipeline.Environment;
+    using Redpoint.Uet.Configuration.Engine;
 
     public class BuildSpecification
     {
@@ -50,5 +51,10 @@
         /// can save artifacts.
         /// </summary>
         public required string ArtifactExportPath { get; init; }
+
+        /// <summary>
+        /// The mobile provisions to apply before BuildGraph starts. For builds that run on a build server, these files will be staged to shared storage.
+        /// </summary>
+        public required BuildConfigMobileProvision[] MobileProvisions { get; set; }
     }
 }

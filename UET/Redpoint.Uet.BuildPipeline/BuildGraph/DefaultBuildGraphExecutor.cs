@@ -3,7 +3,9 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Export;
+    using Redpoint.Uet.BuildPipeline.BuildGraph.MobileProvisioning;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Patching;
+    using Redpoint.Uet.Configuration.Engine;
     using Redpoint.Uet.Uat;
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.Workspace.Descriptors;
@@ -19,19 +21,22 @@
         private readonly IBuildGraphArgumentGenerator _buildGraphArgumentGenerator;
         private readonly IBuildGraphPatcher _buildGraphPatcher;
         private readonly IDynamicWorkspaceProvider _dynamicWorkspaceProvider;
+        private readonly IMobileProvisioning _mobileProvisioning;
 
         public DefaultBuildGraphExecutor(
             ILogger<DefaultBuildGraphExecutor> logger,
             IUATExecutor uatExecutor,
             IBuildGraphArgumentGenerator buildGraphArgumentGenerator,
             IBuildGraphPatcher buildGraphPatcher,
-            IDynamicWorkspaceProvider dynamicWorkspaceProvider)
+            IDynamicWorkspaceProvider dynamicWorkspaceProvider,
+            IMobileProvisioning mobileProvisioning)
         {
             _logger = logger;
             _uatExecutor = uatExecutor;
             _buildGraphArgumentGenerator = buildGraphArgumentGenerator;
             _buildGraphPatcher = buildGraphPatcher;
             _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
+            _mobileProvisioning = mobileProvisioning;
         }
 
         public async Task ListGraphAsync(
@@ -56,6 +61,7 @@
                     { "IsBuildMachine", "1" },
                     { "uebp_LOCAL_ROOT", enginePath },
                 },
+                null,
                 captureSpecification,
                 cancellationToken);
             if (exitCode != 0)
@@ -76,6 +82,7 @@
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
             Dictionary<string, string> globalEnvironmentVariables,
+            BuildConfigMobileProvision[] mobileProvisions,
             ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken)
         {
@@ -138,6 +145,7 @@
                     buildGraphArguments,
                     buildGraphArgumentReplacements,
                     environmentVariables,
+                    mobileProvisions,
                     captureSpecification,
                     cancellationToken);
             }
@@ -176,6 +184,7 @@
                         { "IsBuildMachine", "1" },
                         { "uebp_LOCAL_ROOT", enginePath },
                     },
+                    null,
                     captureSpecification,
                     cancellationToken);
                 if (exitCode != 0)
@@ -223,6 +232,7 @@
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
             Dictionary<string, string> buildGraphEnvironmentVariables,
+            BuildConfigMobileProvision[]? mobileProvisions,
             ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken)
         {
@@ -266,6 +276,11 @@
             }
 
             await _buildGraphPatcher.PatchBuildGraphAsync(enginePath, buildGraphScript._forEngine);
+
+            if (mobileProvisions != null)
+            {
+                await _mobileProvisioning.InstallMobileProvisions(enginePath, buildGraphScript._forEngine, mobileProvisions, cancellationToken);
+            }
 
             if (buildGraphEnvironmentVariables.Count == 0)
             {

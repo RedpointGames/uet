@@ -7,6 +7,9 @@ stages:
   - Publish
   - End
 
+variables:
+  DEVELOPER_DIR: /Users/Shared/UET/SDKs/Mac-14.1/Xcode.app
+
 "Timestamp":
   stage: Timestamp
   tags:

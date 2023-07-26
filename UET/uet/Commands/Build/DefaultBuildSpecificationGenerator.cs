@@ -235,6 +235,7 @@
                 GlobalEnvironmentVariables = new Dictionary<string, string>(),
                 ProjectFolderName = null,
                 ArtifactExportPath = Environment.CurrentDirectory,
+                MobileProvisions = distribution.MobileProvisions,
             };
         }
 
@@ -474,6 +475,7 @@
                 GlobalEnvironmentVariables = globalEnvironmentVariables,
                 ProjectFolderName = null,
                 ArtifactExportPath = Environment.CurrentDirectory,
+                MobileProvisions = new BuildConfigMobileProvision[0],
             };
         }
 
@@ -550,6 +552,7 @@
                 UETPath = _selfLocation.GetUETLocalLocation(),
                 ProjectFolderName = distribution.FolderName,
                 ArtifactExportPath = Environment.CurrentDirectory,
+                MobileProvisions = new BuildConfigMobileProvision[0],
             };
         }
 
@@ -656,6 +659,7 @@
                 },
                 ProjectFolderName = null,
                 ArtifactExportPath = Environment.CurrentDirectory,
+                MobileProvisions = new BuildConfigMobileProvision[0],
             };
         }
 
@@ -733,6 +737,7 @@
                 UETPath = _selfLocation.GetUETLocalLocation(),
                 ProjectFolderName = string.Empty,
                 ArtifactExportPath = Environment.CurrentDirectory,
+                MobileProvisions = new BuildConfigMobileProvision[0],
             };
         }
     }

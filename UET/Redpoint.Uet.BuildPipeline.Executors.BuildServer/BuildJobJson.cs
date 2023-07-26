@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Executors.BuildServer
 {
     using Redpoint.Uet.Configuration.Dynamic;
+    using Redpoint.Uet.Configuration.Engine;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
     using System.Text.Json.Serialization;
@@ -51,5 +52,8 @@
 
         [JsonPropertyName("UseStorageVirtualisation"), JsonRequired]
         public bool UseStorageVirtualisation { get; set; } = false;
+
+        [JsonPropertyName("MobileProvisions"), JsonRequired]
+        public BuildConfigMobileProvision[] MobileProvisions { get; set; } = new BuildConfigMobileProvision[0];
     }
 }
