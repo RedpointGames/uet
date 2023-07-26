@@ -18,5 +18,8 @@
 
         [JsonPropertyName("Deployment")]
         public BuildConfigEngineDeployment[] Deployment { get; set; } = new BuildConfigEngineDeployment[0];
+
+        [JsonPropertyName("MobileProvisions")]
+        public BuildConfigMobileProvision[] MobileProvisions { get; set; } = new BuildConfigMobileProvision[0];
     }
 }

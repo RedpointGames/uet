@@ -8,6 +8,7 @@
     using Redpoint.Uet.BuildPipeline.Executors.Engine;
     using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Configuration.Dynamic;
+    using Redpoint.Uet.Configuration.Engine;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
     using Redpoint.Uet.Core;
@@ -18,6 +19,7 @@
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Reflection;
+    using System.Security.Cryptography;
     using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
@@ -47,18 +49,21 @@
             _buildJobJsonSourceGenerationContext = BuildJobJsonSourceGenerationContext.Create(serviceProvider);
         }
 
-        private struct UETPreparationInfo
+        private struct UetPreparationInfo
         {
             public string? WindowsPath { get; set; }
             public string? MacPath { get; set; }
             public string? LinuxPath { get; set; }
+            public BuildConfigMobileProvision[]? WindowsMobileProvisions { get; set; }
+            public BuildConfigMobileProvision[]? MacMobileProvisions { get; set; }
         }
 
         [UnconditionalSuppressMessage("SingleFile", "IL3000:Avoid accessing Assembly file path when publishing as a single file", Justification = "This method is aware of single file publishing.")]
-        private async Task<UETPreparationInfo> PrepareUETStorageAsync(
+        private async Task<UetPreparationInfo> PrepareUetStorageAsync(
             string windowsSharedStoragePath,
             string? macSharedStoragePath,
             string? linuxSharedStoragePath,
+            BuildConfigMobileProvision[] mobileProvisions,
             bool requiresCrossPlatformForBuild)
         {
             windowsSharedStoragePath = windowsSharedStoragePath.TrimEnd('\\');
@@ -95,7 +100,7 @@
 
             var targetFolderName = "uet";
             var targetFolderNumber = 1;
-            var preparationInfo = new UETPreparationInfo();
+            var preparationInfo = new UetPreparationInfo();
             do
             {
                 try
@@ -315,6 +320,69 @@
             }
 #endif
 
+            if (mobileProvisions.Length > 0)
+            {
+                var mobileTargetFolderName = $"mobileprovision{targetFolderNumber}";
+                var mobileTargetFolder = Path.Combine();
+                var windowsMobileProvisions = new List<BuildConfigMobileProvision>();
+                var macMobileProvisions = new List<BuildConfigMobileProvision>();
+                foreach (var mobileProvision in mobileProvisions)
+                {
+                    var files = new (string value, Action<BuildConfigMobileProvision, string> setValue)[]
+                    {
+                        (
+                            mobileProvision.CertificateSigningRequestPath!,
+                            (x, v) => { x.CertificateSigningRequestPath = v; }
+                        ),
+                        (
+                            mobileProvision.AppleProvidedCertificatePath!,
+                            (x, v) => { x.AppleProvidedCertificatePath = v; }
+                        ),
+                        (
+                            mobileProvision.PrivateKeyPasswordlessP12Path!,
+                            (x, v) => { x.PrivateKeyPasswordlessP12Path = v; }
+                        ),
+                        (
+                            mobileProvision.PublicKeyPemPath!,
+                            (x, v) => { x.PublicKeyPemPath = v; }
+                        ),
+                        (
+                            mobileProvision.MobileProvisionPath!,
+                            (x, v) => { x.MobileProvisionPath = v; }
+                        ),
+                    };
+                    var windowsMobileProvision = new BuildConfigMobileProvision();
+                    var macMobileProvision = new BuildConfigMobileProvision();
+                    foreach (var file in files)
+                    {
+                        string hash;
+                        using (var reader = new FileStream(file.value, FileMode.Open, FileAccess.Read, FileShare.Read))
+                        {
+                            using (var sha = SHA1.Create())
+                            {
+                                var hashBytes = await sha.ComputeHashAsync(reader);
+                                hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                            }
+                        }
+
+                        _logger.LogInformation($"Copying mobile provisioning file to shared storage: {file.value}");
+                        var extension = Path.GetExtension(file.value);
+                        var mobileTargetFile = Path.Combine(localOsSharedStoragePath, mobileTargetFolderName, $"{hash}{extension}");
+                        var windowsTargetFile = $"{windowsSharedStoragePath}\\{mobileTargetFolderName}\\{hash}{extension}";
+                        var macTargetFile = $"{macSharedStoragePath}/{mobileTargetFolderName}/{hash}{extension}";
+                        Directory.CreateDirectory(Path.GetDirectoryName(mobileTargetFile)!);
+                        File.Copy(file.value, mobileTargetFile);
+
+                        file.setValue(windowsMobileProvision, windowsTargetFile);
+                        file.setValue(macMobileProvision, macTargetFile);
+                    }
+                    windowsMobileProvisions.Add(windowsMobileProvision);
+                    macMobileProvisions.Add(macMobileProvision);
+                }
+                preparationInfo.WindowsMobileProvisions = windowsMobileProvisions.ToArray();
+                preparationInfo.MacMobileProvisions = macMobileProvisions.ToArray();
+            }
+
             return preparationInfo;
         }
 
@@ -405,10 +473,11 @@
                 }
             }
 
-            var preparationInfo = await PrepareUETStorageAsync(
+            var preparationInfo = await PrepareUetStorageAsync(
                 buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath,
                 buildSpecification.BuildGraphEnvironment.Mac?.SharedStorageAbsolutePath,
                 null,
+                buildSpecification.MobileProvisions,
                 requiresCrossPlatformBuild);
 
             foreach (var group in buildGraph.Groups)
@@ -472,6 +541,7 @@
                                     Settings = buildSpecification.BuildGraphSettings,
                                     ProjectFolderName = buildSpecification.ProjectFolderName,
                                     UseStorageVirtualisation = buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
+                                    MobileProvisions = preparationInfo.WindowsMobileProvisions ?? new BuildConfigMobileProvision[0],
                                 };
                                 job.EnvironmentVariables = new Dictionary<string, string>
                                 {
@@ -498,6 +568,7 @@
                                     Settings = buildSpecification.BuildGraphSettings,
                                     ProjectFolderName = buildSpecification.ProjectFolderName,
                                     UseStorageVirtualisation = buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
+                                    MobileProvisions = preparationInfo.MacMobileProvisions ?? new BuildConfigMobileProvision[0],
                                 };
                                 job.EnvironmentVariables = new Dictionary<string, string>
                                 {

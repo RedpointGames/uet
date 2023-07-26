@@ -183,6 +183,7 @@
                     ProjectFolderName = buildJson.ProjectFolderName,
                     GlobalEnvironmentVariables = buildJson.GlobalEnvironmentVariables,
                     ArtifactExportPath = Environment.CurrentDirectory,
+                    MobileProvisions = buildJson.MobileProvisions,
                 };
 
                 try

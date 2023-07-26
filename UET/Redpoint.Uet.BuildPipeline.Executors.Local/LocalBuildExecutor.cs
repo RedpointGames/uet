@@ -208,6 +208,7 @@
                                 buildSpecification.BuildGraphSettings,
                                 buildSpecification.BuildGraphSettingReplacements,
                                 globalEnvironmentVariablesWithSdk!,
+                                buildSpecification.MobileProvisions,
                                 CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                                 {
                                     ReceiveStdout = (line) =>

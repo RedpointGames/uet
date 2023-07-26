@@ -2,6 +2,7 @@
 {
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Export;
+    using Redpoint.Uet.Configuration.Engine;
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
@@ -25,6 +26,7 @@
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
             Dictionary<string, string> globalEnvironmentVariables,
+            BuildConfigMobileProvision[] mobileProvisions,
             ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken);
 
