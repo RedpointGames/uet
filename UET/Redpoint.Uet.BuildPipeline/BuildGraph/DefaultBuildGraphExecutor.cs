@@ -265,7 +265,7 @@
                 throw new NotSupportedException();
             }
 
-            await _buildGraphPatcher.PatchBuildGraphAsync(enginePath);
+            await _buildGraphPatcher.PatchBuildGraphAsync(enginePath, buildGraphScript._forEngine);
 
             if (buildGraphEnvironmentVariables.Count == 0)
             {

@@ -146,7 +146,7 @@
             }
         }
 
-        public async Task PatchBuildGraphAsync(string enginePath)
+        public async Task PatchBuildGraphAsync(string enginePath, bool isEngineBuild)
         {
             var patchLevelFilePath = Path.Combine(enginePath, "Engine", "Source", "Programs", "UET.BuildGraphPatchLevel.txt");
             var existingBuildGraphPatchLevel = string.Empty;
@@ -223,6 +223,16 @@
             if (!File.Exists(buildGraphFile) || !File.ReadAllText(buildGraphFile).Contains("BUILD_GRAPH_PROJECT_ROOT"))
             {
                 throw new InvalidOperationException("Patching process failed to produce BuildGraph.cs file that contains BUILD_GRAPH_PROJECT_ROOT. Turn on --trace to see logs about the patching process.");
+            }
+
+            if (isEngineBuild)
+            {
+                // When we're doing an engine build, we don't need to rebuild BuildGraph, UBT and associated
+                // components because RunUAT.bat/.sh will automatically do it for us. This is also intended
+                // to workaround an issue impacting engine builds on macOS where building the projects
+                // individually here relies on files that aren't set up yet because RunUAT.sh hasn't
+                // fully configured things for the build.
+                return;
             }
 
             await CopyMissingEngineBitsAsync(enginePath);

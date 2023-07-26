@@ -4,6 +4,6 @@
 
     internal interface IBuildGraphPatcher
     {
-        Task PatchBuildGraphAsync(string enginePath);
+        Task PatchBuildGraphAsync(string enginePath, bool isEngineBuild);
     }
 }
