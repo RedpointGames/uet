@@ -156,11 +156,11 @@
             }
             if (existingBuildGraphPatchLevel == _patchHash)
             {
-                _logger.LogTrace($"Build graph patch version is already {_patchHash}, no patches need to be applied.");
+                _logger.LogInformation($"BuildGraph patch version is already {_patchHash}, no patches need to be applied.");
                 return;
             }
 
-            _logger.LogTrace($"Build graph patch version is {existingBuildGraphPatchLevel}, but the target patch version is {_patchHash}, applying patches...");
+            _logger.LogInformation($"BuildGraph patch version is {existingBuildGraphPatchLevel}, but the target patch version is {_patchHash}, applying patches...");
 
             await MakeReadWriteAsync(new DirectoryInfo(Path.Combine(enginePath, "Engine", "Source", "Programs")));
 

@@ -72,7 +72,6 @@
                     mobileProvision.PublicKeyPemPath!,
                     mobileProvision.AppleProvidedCertificatePath!,
                 };
-                var failed = false;
                 foreach (var import in forImport)
                 {
                     _logger.LogInformation($"Importing certificate/public key/private key '{import}'...");
@@ -95,14 +94,8 @@
                         cancellationToken);
                     if (exitCode != 0)
                     {
-                        _logger.LogError($"Failed to import certificate/public key/private key '{import}'!");
-                        failed = true;
-                        break;
+                        _logger.LogWarning($"Failed to import certificate/public key/private key '{import}' (exit code {exitCode})!");
                     }
-                }
-                if (failed)
-                {
-                    continue;
                 }
 
                 // Import the .mobileprovision file.

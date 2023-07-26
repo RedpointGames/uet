@@ -158,8 +158,8 @@
     "Patches": [
       {
         "HandleWindowsNewLines": true,
-        "Find": "public override bool CanUseXGE()\n\t\t{\t\t\treturn false;\n\t\t}",
-        "Replace": "public override bool CanUseXGE()\n\t\t{\t\t\treturn Environment.GetEnvironmentVariable(\"UET_FORCE_XGE_SHIM\") == \"1\";\n\t\t}"
+        "Find": "public override bool CanUseXGE()\n\t\t{\n\t\t\treturn false;\n\t\t}",
+        "Replace": "public override bool CanUseXGE()\n\t\t{\n\t\t\treturn Environment.GetEnvironmentVariable(\"UET_FORCE_XGE_SHIM\") == \"1\";\n\t\t}"
       }
     ],
     "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
@@ -169,8 +169,8 @@
     "Patches": [
       {
         "HandleWindowsNewLines": true,
-        "Find": "public override bool CanUseXGE()\n\t\t{\t\t\treturn false;\n\t\t}",
-        "Replace": "public override bool CanUseXGE()\n\t\t{\t\t\treturn Environment.GetEnvironmentVariable(\"UET_FORCE_XGE_SHIM\") == \"1\";\n\t\t}"
+        "Find": "public override bool CanUseXGE()\n\t\t{\n\t\t\treturn false;\n\t\t}",
+        "Replace": "public override bool CanUseXGE()\n\t\t{\n\t\t\treturn Environment.GetEnvironmentVariable(\"UET_FORCE_XGE_SHIM\") == \"1\";\n\t\t}"
       }
     ],
     "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
