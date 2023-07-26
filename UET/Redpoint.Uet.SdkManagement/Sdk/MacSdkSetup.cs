@@ -263,7 +263,7 @@
                     FilePath = "/usr/bin/sudo",
                     Arguments = new[]
                     {
-                        "/usr/bin/xcodebuild",
+                        Path.Combine(sdkPackagePath, "Xcode.app", "Contents", "Developer", "usr", "bin", "xcodebuild"),
                         "-license",
                         "accept"
                     },
