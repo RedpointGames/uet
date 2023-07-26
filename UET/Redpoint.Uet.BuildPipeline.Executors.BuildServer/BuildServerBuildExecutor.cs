@@ -322,65 +322,87 @@
 
             if (mobileProvisions.Length > 0)
             {
-                var mobileTargetFolderName = $"mobileprovision{targetFolderNumber}";
-                var mobileTargetFolder = Path.Combine();
-                var windowsMobileProvisions = new List<BuildConfigMobileProvision>();
-                var macMobileProvisions = new List<BuildConfigMobileProvision>();
-                foreach (var mobileProvision in mobileProvisions)
+                var mobileTargetFolderNumber = 1;
+                var mobileTargetFolderName = $"mobileprovision";
+                do
                 {
-                    var files = new (string value, Action<BuildConfigMobileProvision, string> setValue)[]
+                    try
                     {
-                        (
-                            mobileProvision.CertificateSigningRequestPath!,
-                            (x, v) => { x.CertificateSigningRequestPath = v; }
-                        ),
-                        (
-                            mobileProvision.AppleProvidedCertificatePath!,
-                            (x, v) => { x.AppleProvidedCertificatePath = v; }
-                        ),
-                        (
-                            mobileProvision.PrivateKeyPasswordlessP12Path!,
-                            (x, v) => { x.PrivateKeyPasswordlessP12Path = v; }
-                        ),
-                        (
-                            mobileProvision.PublicKeyPemPath!,
-                            (x, v) => { x.PublicKeyPemPath = v; }
-                        ),
-                        (
-                            mobileProvision.MobileProvisionPath!,
-                            (x, v) => { x.MobileProvisionPath = v; }
-                        ),
-                    };
-                    var windowsMobileProvision = new BuildConfigMobileProvision();
-                    var macMobileProvision = new BuildConfigMobileProvision();
-                    foreach (var file in files)
-                    {
-                        string hash;
-                        using (var reader = new FileStream(file.value, FileMode.Open, FileAccess.Read, FileShare.Read))
+                        var mobileTargetFolder = Path.Combine();
+                        var windowsMobileProvisions = new List<BuildConfigMobileProvision>();
+                        var macMobileProvisions = new List<BuildConfigMobileProvision>();
+                        foreach (var mobileProvision in mobileProvisions)
                         {
-                            using (var sha = SHA1.Create())
+                            var files = new (string value, Action<BuildConfigMobileProvision, string> setValue)[]
                             {
-                                var hashBytes = await sha.ComputeHashAsync(reader);
-                                hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                                (
+                                    mobileProvision.CertificateSigningRequestPath!,
+                                    (x, v) => { x.CertificateSigningRequestPath = v; }
+                                ),
+                                (
+                                    mobileProvision.AppleProvidedCertificatePath!,
+                                    (x, v) => { x.AppleProvidedCertificatePath = v; }
+                                ),
+                                (
+                                    mobileProvision.PrivateKeyPasswordlessP12Path!,
+                                    (x, v) => { x.PrivateKeyPasswordlessP12Path = v; }
+                                ),
+                                (
+                                    mobileProvision.PublicKeyPemPath!,
+                                    (x, v) => { x.PublicKeyPemPath = v; }
+                                ),
+                                (
+                                    mobileProvision.MobileProvisionPath!,
+                                    (x, v) => { x.MobileProvisionPath = v; }
+                                ),
+                            };
+                            var windowsMobileProvision = new BuildConfigMobileProvision();
+                            var macMobileProvision = new BuildConfigMobileProvision();
+                            foreach (var file in files)
+                            {
+                                string hash;
+                                using (var reader = new FileStream(file.value, FileMode.Open, FileAccess.Read, FileShare.Read))
+                                {
+                                    using (var sha = SHA1.Create())
+                                    {
+                                        var hashBytes = await sha.ComputeHashAsync(reader);
+                                        hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                                    }
+                                }
+
+                                _logger.LogInformation($"Copying mobile provisioning file to shared storage: {file.value}");
+                                var extension = Path.GetExtension(file.value);
+                                var mobileTargetFile = Path.Combine(localOsSharedStoragePath, mobileTargetFolderName, $"{hash}{extension}");
+                                var windowsTargetFile = $"{windowsSharedStoragePath}\\{mobileTargetFolderName}\\{hash}{extension}";
+                                var macTargetFile = $"{macSharedStoragePath}/{mobileTargetFolderName}/{hash}{extension}";
+                                Directory.CreateDirectory(Path.GetDirectoryName(mobileTargetFile)!);
+                                File.Copy(file.value, mobileTargetFile, true);
+
+                                file.setValue(windowsMobileProvision, windowsTargetFile);
+                                file.setValue(macMobileProvision, macTargetFile);
                             }
+                            windowsMobileProvisions.Add(windowsMobileProvision);
+                            macMobileProvisions.Add(macMobileProvision);
                         }
-
-                        _logger.LogInformation($"Copying mobile provisioning file to shared storage: {file.value}");
-                        var extension = Path.GetExtension(file.value);
-                        var mobileTargetFile = Path.Combine(localOsSharedStoragePath, mobileTargetFolderName, $"{hash}{extension}");
-                        var windowsTargetFile = $"{windowsSharedStoragePath}\\{mobileTargetFolderName}\\{hash}{extension}";
-                        var macTargetFile = $"{macSharedStoragePath}/{mobileTargetFolderName}/{hash}{extension}";
-                        Directory.CreateDirectory(Path.GetDirectoryName(mobileTargetFile)!);
-                        File.Copy(file.value, mobileTargetFile);
-
-                        file.setValue(windowsMobileProvision, windowsTargetFile);
-                        file.setValue(macMobileProvision, macTargetFile);
+                        preparationInfo.WindowsMobileProvisions = windowsMobileProvisions.ToArray();
+                        preparationInfo.MacMobileProvisions = macMobileProvisions.ToArray();
+                        break;
                     }
-                    windowsMobileProvisions.Add(windowsMobileProvision);
-                    macMobileProvisions.Add(macMobileProvision);
+                    catch (IOException ex) when (ex.Message.Contains("being used by another process"))
+                    {
+                        _logger.LogWarning($"Detected that mobile provisioning files are still in-use at '{Path.Combine(localOsSharedStoragePath, mobileTargetFolderName)}', probably because there is a cancelled build job that left a stale UET process around. Picking a new directory name for staging mobile provisioning files onto shared storage...");
+                        mobileTargetFolderNumber++;
+                        mobileTargetFolderName = $"mobileprovision{mobileTargetFolderNumber}";
+                        continue;
+                    }
                 }
-                preparationInfo.WindowsMobileProvisions = windowsMobileProvisions.ToArray();
-                preparationInfo.MacMobileProvisions = macMobileProvisions.ToArray();
+                while (mobileTargetFolderNumber <= 30);
+
+                if (mobileTargetFolderNumber > 30)
+                {
+                    _logger.LogError("Could not stage mobile provisioning files to shared storage in any attempt, which is required for the build to run on a build server.");
+                    throw new InvalidOperationException("Could not stage mobile provisioning files to shared storage in any attempt, which is required for the build to run on a build server.");
+                }
             }
 
             return preparationInfo;
