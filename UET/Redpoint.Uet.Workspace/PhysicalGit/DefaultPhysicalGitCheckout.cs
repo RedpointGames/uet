@@ -1572,9 +1572,14 @@
             // First run GitDependencies.exe to fetch all our binary dependencies into a shared cache.
             await using (var gitDepsCache = await GetSharedGitDependenciesPath(descriptor, cancellationToken))
             {
-                var gitDependenciesPath = OperatingSystem.IsWindows()
-                    ? Path.Combine(repositoryPath, "Engine", "Binaries", "DotNET", "GitDependencies", "win-x64", "GitDependencies.exe")
-                    : Path.Combine(repositoryPath, "Engine", "Binaries", "DotNET", "osx-x64", "GitDependencies");
+                var gitDependenciesRootPath = Path.Combine(repositoryPath, "Engine", "Binaries", "DotNET", "GitDependencies");
+                var gitDependenciesPath = true switch
+                {
+                    var v when v == OperatingSystem.IsWindows() => Path.Combine(gitDependenciesRootPath, "win-x64", "GitDependencies.exe"),
+                    var v when v == OperatingSystem.IsMacOS() => Path.Combine(gitDependenciesRootPath, "osx-x64", "GitDependencies"),
+                    var v when v == OperatingSystem.IsLinux() => Path.Combine(gitDependenciesRootPath, "linux-x64", "GitDependencies"),
+                    _ => throw new PlatformNotSupportedException("GitDependencies is not supported on this platform!"),
+                };
                 if (File.Exists(gitDependenciesPath))
                 {
                     exitCode = await _processExecutor.ExecuteAsync(
