@@ -363,7 +363,16 @@
                                         },
                                         ReceiveStderr = (line) =>
                                         {
-                                            _logger.LogError($"{GetBuildStatusLogPrefix(0)} {line}");
+                                            if (OperatingSystem.IsWindows())
+                                            {
+                                                _logger.LogError($"{GetBuildStatusLogPrefix(0)} {line}");
+                                            }
+                                            else
+                                            {
+                                                // @note: On macOS, some output to standard error is just normal
+                                                // output and doesn't represent an error state.
+                                                _logger.LogInformation($"{GetBuildStatusLogPrefix(0)} {line}");
+                                            }
                                             CheckForRetry(line.Trim());
                                             return false;
                                         }
