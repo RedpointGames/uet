@@ -152,5 +152,27 @@
       }
     ],
     "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\EpicGames.Build.dll"
+  },
+  {
+    "File": "Engine\\Source\\Programs\\UnrealBuildTool\\Platform\\IOS\\UEBuildIOS.cs",
+    "Patches": [
+      {
+        "HandleWindowsNewLines": true,
+        "Find": "public override bool CanUseXGE()\n\t\t{\t\t\treturn false;\n\t\t}",
+        "Replace": "public override bool CanUseXGE()\n\t\t{\t\t\treturn Environment.GetEnvironmentVariable(\"UET_FORCE_XGE_SHIM\") == \"1\";\n\t\t}"
+      }
+    ],
+    "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
+  },
+  {
+    "File": "Engine\\Source\\Programs\\UnrealBuildTool\\Platform\\Mac\\UEBuildMac.cs",
+    "Patches": [
+      {
+        "HandleWindowsNewLines": true,
+        "Find": "public override bool CanUseXGE()\n\t\t{\t\t\treturn false;\n\t\t}",
+        "Replace": "public override bool CanUseXGE()\n\t\t{\t\t\treturn Environment.GetEnvironmentVariable(\"UET_FORCE_XGE_SHIM\") == \"1\";\n\t\t}"
+      }
+    ],
+    "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
   }
 ]
