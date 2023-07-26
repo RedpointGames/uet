@@ -100,9 +100,18 @@
 
                 // Import the .mobileprovision file.
                 _logger.LogInformation($"Importing mobile provisioning file '{mobileProvision.MobileProvisionPath!}'...");
-                File.Copy(
-                    mobileProvision.MobileProvisionPath!,
-                    Path.Combine(provisioningProfilesRoot, Path.GetFileName(mobileProvision.MobileProvisionPath!)));
+                var targetFile = Path.Combine(provisioningProfilesRoot, Path.GetFileName(mobileProvision.MobileProvisionPath!));
+                if (!File.Exists(targetFile))
+                {
+                    try
+                    {
+                        File.Copy(mobileProvision.MobileProvisionPath!, targetFile, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"Failed to import mobile provision file '{mobileProvision.MobileProvisionPath!}': {ex}");
+                    }
+                }
             }
         }
     }
