@@ -22,10 +22,6 @@ if (Environment.GetEnvironmentVariable("CI") == "true")
     Crayon.Output.Enable();
 }
 
-// Ensure we do not re-use MSBuild processes, because our dotnet executables
-// will often be inside UEFS packages and mounts that might go away at any time.
-Environment.SetEnvironmentVariable("MSBUILDDISABLENODEREUSE", "1");
-
 // Construct the root command. We have to do this to see what command the user
 // is invoking, to make sure we don't do the BuildConfig.json-based version switch
 // if the user is invoking a "global" command.
@@ -175,6 +171,43 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
             }
         }
     }
+}
+
+// Ensure we do not re-use MSBuild processes, because our dotnet executables
+// will often be inside UEFS packages and mounts that might go away at any time.
+Environment.SetEnvironmentVariable("MSBUILDDISABLENODEREUSE", "1");
+
+// On macOS, we always want to use the command line tools DEVELOPER_DIR by default,
+// since we'll need to run Git before we potentially have Xcode installed. Also, if
+// we clear out Xcode.app from the Applications folder (because we're using UET to 
+// manage it), then we don't want our command line tools to be broken.
+if (OperatingSystem.IsMacOS())
+{
+    if (!File.Exists("/Library/Developer/CommandLineTools"))
+    {
+        var macosXcodeSelectServices = new ServiceCollection();
+        macosXcodeSelectServices.AddUETCore();
+        macosXcodeSelectServices.AddProcessExecution();
+        var macosXcodeSelectProvider = macosXcodeSelectServices.BuildServiceProvider();
+        var macosXcodeProcessExecution = macosXcodeSelectProvider.GetRequiredService<IProcessExecutor>();
+        var macosXcodeSelectLogger = macosXcodeSelectProvider.GetRequiredService<ILogger<Program>>();
+
+        macosXcodeSelectLogger.LogInformation("Installing macOS Command Line Tools...");
+        await macosXcodeProcessExecution.ExecuteAsync(
+            new ProcessSpecification
+            {
+                FilePath = "/usr/bin/sudo",
+                Arguments = new[]
+                {
+                    "xcode-select",
+                    "--install"
+                }
+            },
+            CaptureSpecification.Passthrough,
+            CancellationToken.None);
+    }
+
+    Environment.SetEnvironmentVariable("DEVELOPER_DIR", "/Library/Developer/CommandLineTools");
 }
 
 // We didn't re-execute into a different version of UET. Invoke the originally requested command.
