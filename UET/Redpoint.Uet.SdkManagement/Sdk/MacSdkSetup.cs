@@ -276,12 +276,25 @@
                 cancellationToken);
 
             // Emit the environment variable required to use Xcode from the package directory.
+            var envs = new Dictionary<string, string>
+            {
+                { "DEVELOPER_DIR", Path.Combine(sdkPackagePath, "Xcode.app") }
+            };
+            var currentPath = Environment.GetEnvironmentVariable("PATH");
+            if (currentPath != null)
+            {
+                envs["PATH"] = string.Join(
+                    Path.PathSeparator,
+                    new[]
+                    {
+                        Path.Combine(sdkPackagePath, "Xcode.app", "Contents", "Developer", "usr", "bin"),
+                        Path.Combine(sdkPackagePath, "Xcode.app", "Contents", "Developer", "usr", "libexec"),
+                        currentPath
+                    });
+            }
             return new EnvironmentForSdkUsage
             {
-                EnvironmentVariables = new Dictionary<string, string>
-                {
-                    { "DEVELOPER_DIR", Path.Combine(sdkPackagePath, "Xcode.app") }
-                }
+                EnvironmentVariables = envs
             };
         }
     }
