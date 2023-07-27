@@ -22,6 +22,7 @@
             BuildSetEnvironment environment,
             BuildSetTool tool,
             string[] arguments,
+            Dictionary<string, string> globalEnvironmentVariables,
             Action<string> onStandardOutputLine,
             Action<string> onStandardErrorLine,
             CancellationToken cancellationToken);

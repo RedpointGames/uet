@@ -16,6 +16,7 @@
     {
         private readonly ILogger<DefaultOpenGEGraphExecutor> _logger;
         private readonly IOpenGETaskExecutor[] _taskExecutors;
+        private readonly Dictionary<string, string> _environmentVariables;
         private readonly bool _turnOffExtraLogInfo;
         private readonly string? _buildLogPrefix;
 
@@ -31,11 +32,13 @@
             ILogger<DefaultOpenGEGraphExecutor> logger,
             IOpenGETaskExecutor[] taskExecutors,
             BuildSet buildSet,
+            Dictionary<string, string> environmentVariables,
             bool turnOffExtraLogInfo,
             string? buildLogPrefix)
         {
             _logger = logger;
             _taskExecutors = taskExecutors;
+            _environmentVariables = environmentVariables;
             _turnOffExtraLogInfo = turnOffExtraLogInfo;
             _buildLogPrefix = buildLogPrefix?.Trim() ?? string.Empty;
 
@@ -361,6 +364,7 @@
                             env!,
                             tool!,
                             arguments,
+                            _environmentVariables,
                             CheckForRetry,
                             CheckForRetry,
                             cancellationToken);

@@ -160,7 +160,15 @@
                     {
                         _logger.LogTrace($"[{request.BuildNodeName}] Executing job request");
                         var buildCts = CancellationTokenSource.CreateLinkedTokenSource(globalCts.Token);
-                        executor = _executorFactory.CreateGraphExecutor(stream, buildLogPrefix: $"[{request.BuildNodeName}] ");
+                        var envs = new Dictionary<string, string>();
+                        foreach (var kv in request.EnvironmentVariables)
+                        {
+                            envs[kv.Key] = kv.Value;
+                        }
+                        executor = _executorFactory.CreateGraphExecutor(
+                            stream,
+                            envs,
+                            buildLogPrefix: $"[{request.BuildNodeName}] ");
                         exitCode = await executor.ExecuteAsync(buildCts);
                         globalCts.Token.ThrowIfCancellationRequested();
                         if (exitCode == 0)

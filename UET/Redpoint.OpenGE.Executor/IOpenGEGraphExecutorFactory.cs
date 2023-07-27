@@ -2,6 +2,10 @@
 {
     public interface IOpenGEGraphExecutorFactory
     {
-        IOpenGEGraphExecutor CreateGraphExecutor(Stream xgeJobXml, bool turnOffExtraLogInfo = false, string? buildLogPrefix = null);
+        IOpenGEGraphExecutor CreateGraphExecutor(
+            Stream xgeJobXml,
+            Dictionary<string, string> environmentVariables,
+            bool turnOffExtraLogInfo = false,
+            string? buildLogPrefix = null);
     }
 }

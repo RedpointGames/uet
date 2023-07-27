@@ -41,11 +41,21 @@ rootCommand.SetHandler(async (InvocationContext context) =>
 
     using (var reader = new StreamReader(new FileStream(context.ParseResult.GetValueForArgument(fileArgument), FileMode.Open, FileAccess.Read, FileShare.Read)))
     {
-        var response = client.SubmitJob(new OpenGEAPI.SubmitJobRequest
+        var request = new OpenGEAPI.SubmitJobRequest
         {
             BuildNodeName = Environment.GetEnvironmentVariable("UET_XGE_SHIM_BUILD_NODE_NAME") ?? context.ParseResult.GetValueForOption(titleOption) ?? string.Empty,
             JobXml = await reader.ReadToEndAsync(),
-        });
+        };
+        var originalEnvs = Environment.GetEnvironmentVariables();
+        foreach (var key in originalEnvs.Keys.OfType<string>())
+        {
+            var v = originalEnvs[key] as string;
+            if (v != null)
+            {
+                request.EnvironmentVariables[key] = v;
+            }
+        }
+        var response = client.SubmitJob(request);
         if (await response.ResponseStream.MoveNext(context.GetCancellationToken()))
         {
             context.ExitCode = response.ResponseStream.Current.ExitCode;

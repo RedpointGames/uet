@@ -14,12 +14,17 @@
             _serviceProvider = serviceProvider;
         }
 
-        public IOpenGEGraphExecutor CreateGraphExecutor(Stream xgeJobXml, bool turnOffExtraLogInfo, string? buildLogPrefix)
+        public IOpenGEGraphExecutor CreateGraphExecutor(
+            Stream xgeJobXml,
+            Dictionary<string, string> environmentVariables,
+            bool turnOffExtraLogInfo,
+            string? buildLogPrefix)
         {
             return new DefaultOpenGEGraphExecutor(
                 _serviceProvider.GetRequiredService<ILogger<DefaultOpenGEGraphExecutor>>(),
                 _serviceProvider.GetServices<IOpenGETaskExecutor>().ToArray(),
                 BuildSetReader.ParseBuildSet(xgeJobXml),
+                environmentVariables,
                 turnOffExtraLogInfo,
                 buildLogPrefix);
         }
