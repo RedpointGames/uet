@@ -15,3 +15,48 @@ message SubmitJobResponse {
 service OpenGE {
 	rpc SubmitJob(SubmitJobRequest) returns (stream SubmitJobResponse) {}
 }
+
+message QueryToolRequest {
+	string toolHash = 1;
+}
+
+message QueryToolResponse {
+	boolean present = 1;
+}
+
+message HasToolBlobRequest {
+	string hash = 1;
+	string localHintPath = 2;
+}
+
+message HasToolBlobResponse {
+	boolean exists = 1;
+}
+
+message WriteToolBlobRequest {
+	string hash = 1;
+	int64 offset = 2;
+	bool finishWrite = 3;
+	bytes data = 10;
+}
+
+message WriteToolBlobResponse {
+	int64 committedSize = 1;
+}
+
+message ConstructToolRequest {
+	string toolHash = 1;
+	map<string, string> blobHashToUnixRelativePath = 2;
+}
+
+message ConstructToolResponse {
+}
+
+service OpenGEAgent {
+	rpc QueryTool(QueryToolRequest) returns (QueryToolResponse) {}
+	rpc HasToolBlob(HasToolBlobRequest) returns (HasToolBlobResponse) {}
+	rpc WriteToolBlob(stream WriteToolBlobRequest) returns (WriteToolBlobResponse) {}
+	rpc ConstructTool(ConstructToolRequest) returns (ConstructToolResponse) {}
+
+
+}
