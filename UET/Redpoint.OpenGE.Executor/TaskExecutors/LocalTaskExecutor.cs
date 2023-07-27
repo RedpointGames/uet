@@ -68,18 +68,24 @@
             BuildSetEnvironment environment,
             BuildSetTool tool,
             string[] arguments,
+            Dictionary<string, string> globalEnvironmentVariables,
             Action<string> onStandardOutputLine,
             Action<string> onStandardErrorLine,
             CancellationToken cancellationToken)
         {
             try
             {
+                var localEnvironmentVariables = new Dictionary<string, string>(globalEnvironmentVariables);
+                foreach (var kv in environment.Variables)
+                {
+                    localEnvironmentVariables[kv.Key] = kv.Value;
+                }
                 return await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
                         FilePath = tool.Path,
                         Arguments = arguments,
-                        EnvironmentVariables = environment.Variables,
+                        EnvironmentVariables = localEnvironmentVariables,
                         WorkingDirectory = task.BuildSetTask.WorkingDir,
                     },
                     CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
