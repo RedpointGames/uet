@@ -15,7 +15,7 @@
         private readonly string _pipeName = $"OpenGE-{BitConverter.ToString(Guid.NewGuid().ToByteArray()).Replace("-", "").ToLowerInvariant()}";
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
         private readonly ILogger<DefaultOpenGEDaemon> _logger;
-        private readonly IOpenGEExecutorFactory _executorFactory;
+        private readonly IOpenGEGraphExecutorFactory _executorFactory;
         private readonly IGrpcPipeFactory _grpcPipeFactory;
         private bool _hasStarted = false;
         private IGrpcPipeServer<DefaultOpenGEDaemon>? _pipeServer = null;
@@ -27,7 +27,7 @@
 
         public DefaultOpenGEDaemon(
             ILogger<DefaultOpenGEDaemon> logger,
-            IOpenGEExecutorFactory executorFactory,
+            IOpenGEGraphExecutorFactory executorFactory,
             IGrpcPipeFactory grpcPipeFactory)
         {
             _logger = logger;
@@ -153,14 +153,14 @@
 
                 var st = Stopwatch.StartNew();
                 int exitCode;
-                IOpenGEExecutor? executor = null;
+                IOpenGEGraphExecutor? executor = null;
                 try
                 {
                     using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(request.JobXml)))
                     {
                         _logger.LogTrace($"[{request.BuildNodeName}] Executing job request");
                         var buildCts = CancellationTokenSource.CreateLinkedTokenSource(globalCts.Token);
-                        executor = _executorFactory.CreateExecutor(stream, buildLogPrefix: $"[{request.BuildNodeName}] ");
+                        executor = _executorFactory.CreateGraphExecutor(stream, buildLogPrefix: $"[{request.BuildNodeName}] ");
                         exitCode = await executor.ExecuteAsync(buildCts);
                         globalCts.Token.ThrowIfCancellationRequested();
                         if (exitCode == 0)
