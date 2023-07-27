@@ -34,7 +34,10 @@
 
     internal static class CommandExtensions
     {
-        internal static Option<bool> _trace = new Option<bool>("--trace", "Emit trace level logs to the output.");
+        internal static Option<bool> _trace = new Option<bool>(
+            "--trace",
+            () => Environment.GetEnvironmentVariable("UET_TRACE") == "1",
+            "Emit trace level logs to the output.");
 
         internal static Option<bool> GetTraceOption()
         {
