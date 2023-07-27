@@ -7,7 +7,7 @@
         [Fact]
         public void ClangTidyArgumentsAreParsedCorrectly()
         {
-            var arguments = DefaultOpenGEExecutor.SplitArguments("--lua-script-path=\"C:\\ProgramData\\ClangTidyForUnrealEngine-15\\ClangTidySystem.lua\" --lua-script-path=\"TEST\\H\\Plugins\\P\\Resources\\ClangTidy.lua\" --checks=-* --touch-path=\"TEST\\H\\Plugins\\P\\Intermediate\\Build\\Win64\\x64\\UnrealEditor\\Development\\OnlineSubsystem RedpointItchIo\\_CT\\Module.OnlineSubsystem RedpointItchIo.cpp.cttouch\" --quiet \"--header-filter=.*/OnlineSubsystem RedpointItchIo/.*\" \"-p=TEST\\H\\Plugins\\P\\Intermediate\\Build\\Win64\\x64\\UnrealEditor\\Development\\OnlineSubsystem RedpointItchIo\\_CT\\0a4a2f7ff700\\compile_commands.json\" \"TEST\\H\\Plugins\\P\\Intermediate\\Build\\Win64\\x64\\UnrealEditor\\Development\\OnlineSubsystem RedpointItchIo\\Module.OnlineSubsystem RedpointItchIo.cpp\"");
+            var arguments = DefaultOpenGEGraphExecutor.SplitArguments("--lua-script-path=\"C:\\ProgramData\\ClangTidyForUnrealEngine-15\\ClangTidySystem.lua\" --lua-script-path=\"TEST\\H\\Plugins\\P\\Resources\\ClangTidy.lua\" --checks=-* --touch-path=\"TEST\\H\\Plugins\\P\\Intermediate\\Build\\Win64\\x64\\UnrealEditor\\Development\\OnlineSubsystem RedpointItchIo\\_CT\\Module.OnlineSubsystem RedpointItchIo.cpp.cttouch\" --quiet \"--header-filter=.*/OnlineSubsystem RedpointItchIo/.*\" \"-p=TEST\\H\\Plugins\\P\\Intermediate\\Build\\Win64\\x64\\UnrealEditor\\Development\\OnlineSubsystem RedpointItchIo\\_CT\\0a4a2f7ff700\\compile_commands.json\" \"TEST\\H\\Plugins\\P\\Intermediate\\Build\\Win64\\x64\\UnrealEditor\\Development\\OnlineSubsystem RedpointItchIo\\Module.OnlineSubsystem RedpointItchIo.cpp\"");
 
             Assert.Equal(8, arguments.Length);
             Assert.Equal("--lua-script-path=C:\\ProgramData\\ClangTidyForUnrealEngine-15\\ClangTidySystem.lua", arguments[0]);
@@ -23,7 +23,7 @@
         [Fact]
         public void CmdCopyArgumentsAreParsedCorrectly()
         {
-            var arguments = DefaultOpenGEExecutor.SplitArguments("/c copy \"C:\\AAAA\\BBBB\\CCCC\\../DDDD/EEEE/FFFF\\GGGG.HHH\" \"C:\\UES\\1bf8s4lvhbyqqk-1\\Engine\\Intermediate\\Build\\IIII\\JJJJ\\UnrealGame\\Development\\KKKK\\LLLL\"");
+            var arguments = DefaultOpenGEGraphExecutor.SplitArguments("/c copy \"C:\\AAAA\\BBBB\\CCCC\\../DDDD/EEEE/FFFF\\GGGG.HHH\" \"C:\\UES\\1bf8s4lvhbyqqk-1\\Engine\\Intermediate\\Build\\IIII\\JJJJ\\UnrealGame\\Development\\KKKK\\LLLL\"");
 
             Assert.Equal(4, arguments.Length);
             Assert.Equal("/c", arguments[0]);
