@@ -6,7 +6,7 @@ namespace Redpoint.ServiceControl.Tests
     public class MacServiceControlTests
     {
         [SupportedOSPlatform("macos")]
-        [SkippableFact]
+        [SkippableFact(Skip = "We know this works, but we don't have a reliably running macOS service to test status against.")]
         public async void TestServiceStatus()
         {
             Skip.IfNot(OperatingSystem.IsMacOS());
