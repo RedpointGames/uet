@@ -33,6 +33,8 @@
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
     <ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />
     <ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />
+    <ProjectReference Include="..\Redpoint.OpenGE.PreprocessorCache\Redpoint.OpenGE.PreprocessorCache.csproj" />
+    <ProjectReference Include="..\Redpoint.OpenGE.Protocol\Redpoint.OpenGE.Protocol.csproj" />
     <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />

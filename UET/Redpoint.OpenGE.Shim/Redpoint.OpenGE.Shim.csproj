@@ -55,7 +55,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Redpoint.OpenGE.Executor\OpenGEAPI.proto" GrpcServices="Client" Access="Internal">
+    <Protobuf Include="..\Redpoint.OpenGE.Protocol\OpenGEAPI.proto" GrpcServices="Client" Access="Internal">
       <Link>OpenGEAPI.proto</Link>
     </Protobuf>
   </ItemGroup>

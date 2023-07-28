@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <ItemGroup>
+    <None Remove="OpenGEAPI.proto" />
+    <None Remove="PreprocessorCacheApi.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.23.2" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.53.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.54.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="OpenGEAPI.proto">
+      <Access>Public</Access>
+      <GrpcServices>Server</GrpcServices>
+    </Protobuf>
+    <Protobuf Include="PreprocessorCacheApi.proto">
+      <Access>Public</Access>
+      <GrpcServices>Both</GrpcServices>
+    </Protobuf>
+  </ItemGroup>
+
+</Project>

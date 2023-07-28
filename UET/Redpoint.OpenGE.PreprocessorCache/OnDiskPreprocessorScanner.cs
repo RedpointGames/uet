@@ -1,4 +1,4 @@
-﻿namespace Redpoint.OpenGE.Executor.CompilerDb.PreprocessorScanner
+﻿namespace Redpoint.OpenGE.PreprocessorCache
 {
     using Microsoft.Extensions.Logging;
     using System;
@@ -6,7 +6,7 @@
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
-    internal class OnDiskPreprocessorScanner : IPreprocessorScanner
+    internal class OnDiskPreprocessorScanner
     {
         private readonly ILogger<OnDiskPreprocessorScanner> _logger;
 

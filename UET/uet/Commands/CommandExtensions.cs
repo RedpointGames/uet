@@ -5,6 +5,7 @@
     using Redpoint.MSBuildResolution;
     using Redpoint.OpenGE.Executor;
     using Redpoint.OpenGE.ProcessExecution;
+    using Redpoint.OpenGE.PreprocessorCache;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.ProgressMonitor;
@@ -57,6 +58,7 @@
             }
             services.AddOpenGEExecutor();
             services.AddOpenGEProcessExecution();
+            services.AddOpenGEPreprocessorCache();
             services.AddSdkManagement();
             services.AddGrpcPipes();
             services.AddUefs();

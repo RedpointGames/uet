@@ -245,6 +245,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.ThirdParty.ZoneTre
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.Agent", "Redpoint.OpenGE.Agent\Redpoint.OpenGE.Agent.csproj", "{BE5D40B2-5DA5-430C-BC1B-B63D8D8B2209}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.PreprocessorCache", "Redpoint.OpenGE.PreprocessorCache\Redpoint.OpenGE.PreprocessorCache.csproj", "{4CF642C9-D063-4221-BB6E-56FFF2FF8378}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.Protocol", "Redpoint.OpenGE.Protocol\Redpoint.OpenGE.Protocol.csproj", "{E697F560-10C1-4E58-A392-290956BB2F52}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -954,6 +958,18 @@ Global
 		{BE5D40B2-5DA5-430C-BC1B-B63D8D8B2209}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BE5D40B2-5DA5-430C-BC1B-B63D8D8B2209}.ReleaseWithDoc|Any CPU.ActiveCfg = Release|Any CPU
 		{BE5D40B2-5DA5-430C-BC1B-B63D8D8B2209}.ReleaseWithDoc|Any CPU.Build.0 = Release|Any CPU
+		{4CF642C9-D063-4221-BB6E-56FFF2FF8378}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4CF642C9-D063-4221-BB6E-56FFF2FF8378}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4CF642C9-D063-4221-BB6E-56FFF2FF8378}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4CF642C9-D063-4221-BB6E-56FFF2FF8378}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4CF642C9-D063-4221-BB6E-56FFF2FF8378}.ReleaseWithDoc|Any CPU.ActiveCfg = Release|Any CPU
+		{4CF642C9-D063-4221-BB6E-56FFF2FF8378}.ReleaseWithDoc|Any CPU.Build.0 = Release|Any CPU
+		{E697F560-10C1-4E58-A392-290956BB2F52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E697F560-10C1-4E58-A392-290956BB2F52}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E697F560-10C1-4E58-A392-290956BB2F52}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E697F560-10C1-4E58-A392-290956BB2F52}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E697F560-10C1-4E58-A392-290956BB2F52}.ReleaseWithDoc|Any CPU.ActiveCfg = Release|Any CPU
+		{E697F560-10C1-4E58-A392-290956BB2F52}.ReleaseWithDoc|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package PreprocessorCacheApi;
+
+enum CacheHit {
+	Hit = 0;
+	MissDueToFileOutOfDate = 1;
+	MissDueToMissingFile = 2;
+}
+
+message GetUnresolvedDependenciesRequest {
+	string path = 1;
+}
+
+message GetUnresolvedDependenciesResponse {
+	int64 fileLastWriteTicks = 1;
+	repeated string includes = 2;
+	repeated string systemIncludes = 3;
+	repeated string compiledPlatformHeaderIncludes = 4;
+	int64 resolutionTimeMs = 5;
+	CacheHit cacheStatus = 6;
+}
+
+message GetResolvedDependenciesRequest {
+	string path = 1;
+	repeated string includeDirectories = 2;
+	repeated string systemIncludeDirectories = 3;
+	map<string, string> globalDefinitions = 4;
+}
+
+message GetResolvedDependenciesResponse {
+	repeated string dependsOnPaths = 1;
+}
+
+message PingRequest {
+}
+
+message PingResponse {
+}
+
+service PreprocessorCache {
+	rpc Ping(PingRequest) returns (PingResponse) {}
+	rpc GetUnresolvedDependencies(GetUnresolvedDependenciesRequest) returns (GetUnresolvedDependenciesResponse) {}
+	rpc GetResolvedDependencies(GetResolvedDependenciesRequest) returns (GetResolvedDependenciesResponse) {}
+}

@@ -1,4 +1,4 @@
-﻿namespace Redpoint.OpenGE.Executor.CompilerDb.PreprocessorScanner
+﻿namespace Redpoint.OpenGE.PreprocessorCache
 {
     using Tenray.ZoneTree.Serializers;
 

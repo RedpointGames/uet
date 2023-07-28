@@ -1,6 +1,6 @@
-﻿namespace Redpoint.OpenGE.Executor.CompilerDb.PreprocessorScanner
+﻿namespace Redpoint.OpenGE.PreprocessorCache
 {
-    internal record class PreprocessorScanResult
+    public record class PreprocessorScanResult
     {
         public required long FileLastWriteTicks { get; set; }
         public required string[] Includes { get; set; }

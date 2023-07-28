@@ -8,6 +8,7 @@
     using UET.Commands.Internal.GenerateJsonSchema;
     using UET.Commands.Internal.InstallPlatformSdk;
     using UET.Commands.Internal.OpenGE;
+    using UET.Commands.Internal.OpenGEPreprocessorCache;
     using UET.Commands.Internal.RemoveStalePrecompiledHeaders;
     using UET.Commands.Internal.RunDownstreamTest;
     using UET.Commands.Internal.RunGauntletTestFromBuildGraph;
@@ -40,6 +41,8 @@
                 RemoveStalePrecompiledHeadersCommand.CreateRemoveStalePrecompiledHeadersCommand(),
                 InstallPlatformSdkCommand.CreateInstallPlatformSdkCommand(),
                 OpenGECommand.CreateOpenGECommand(),
+                OpenGEPreprocessorCacheCommand.CreateOpenGEPreprocessorCacheCommand(),
+                OpenGEPreprocessorCacheClientCommand.CreateOpenGEPreprocessorCacheClientCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
