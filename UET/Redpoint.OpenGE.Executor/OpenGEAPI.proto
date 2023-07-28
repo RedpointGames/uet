@@ -21,7 +21,7 @@ message QueryToolRequest {
 }
 
 message QueryToolResponse {
-	boolean present = 1;
+	bool present = 1;
 }
 
 message HasToolBlobRequest {
@@ -30,7 +30,7 @@ message HasToolBlobRequest {
 }
 
 message HasToolBlobResponse {
-	boolean exists = 1;
+	bool exists = 1;
 }
 
 message WriteToolBlobRequest {

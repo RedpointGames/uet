@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.OpenGE.Executor\Redpoint.OpenGE.Executor.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -80,7 +80,7 @@
                 new TestTransactionRequest { Data = "test", ResetEvent = resetEvent },
                 (_, _) => Task.CompletedTask,
                 CancellationToken.None)!;
-            resetEvent.Unlock();
+            resetEvent.Open();
             Assert.Equal("test", (await transaction1.WaitForCompletionAsync(CancellationToken.None)).Data);
         }
 
@@ -132,7 +132,7 @@
                 (_, _) => Task.CompletedTask,
                 CancellationToken.None)!;
             await transaction1.DisposeAsync();
-            resetEvent.Unlock();
+            resetEvent.Open();
             Assert.Equal("test", (await transaction2.WaitForCompletionAsync(CancellationToken.None)).Data);
         }
 
@@ -159,7 +159,7 @@
                 (_, _) => Task.CompletedTask,
                 CancellationToken.None)!;
             await transaction2.DisposeAsync();
-            resetEvent.Unlock();
+            resetEvent.Open();
             Assert.Equal("test", (await transaction1.WaitForCompletionAsync(CancellationToken.None)).Data);
         }
 

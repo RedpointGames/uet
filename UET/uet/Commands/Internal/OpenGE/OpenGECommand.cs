@@ -38,7 +38,7 @@
 
             public OpenGECommandInstance(
                 IProcessExecutor processExecutor,
-                Options options) 
+                Options options)
             {
                 _processExecutor = processExecutor;
                 _options = options;
@@ -59,7 +59,7 @@
                             "/NoLogo",
                             "/ShowAgent",
                             "/ShowTime",
-                            "/Title=\"UET OpenGE\""
+                            "/Title=UET OpenGE"
                         },
                         DisableOpenGE = false,
                     },

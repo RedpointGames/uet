@@ -70,6 +70,7 @@
                     _allTasks[$"{project.Key}:{task.Key}"].DependsOn.AddRange(
                         (task.Value.DependsOn ?? string.Empty)
                             .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                            .Where(x => _allTasks.ContainsKey($"{project.Key}:{x}"))
                             .Select(x => _allTasks[$"{project.Key}:{x}"]));
                     if (_allTasks[$"{project.Key}:{task.Key}"].DependsOn.Count == 0)
                     {
