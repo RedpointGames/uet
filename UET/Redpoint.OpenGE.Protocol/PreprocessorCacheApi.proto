@@ -2,6 +2,45 @@ syntax = "proto3";
 
 package PreprocessorCacheApi;
 
+enum PreprocessorExpressionTokenType {
+	ParenOpen = 0;
+	ParenClose = 1;
+	Add = 2;
+	Subtract = 3;
+	Multiply = 4;
+	Divide = 5;
+	Modulus = 6;
+	Equals = 7;
+	NotEquals = 8;
+	LessThan = 9;
+	LessEquals = 10;
+	GreaterThan = 11;
+	GreaterEquals = 12;
+	BitwiseAnd = 13;
+	BitwiseBor = 14;
+	BitwiseXor = 15;
+	BitwiseNot = 16;
+	LeftShift = 17;
+	RightShift = 18;
+	BooleanOr = 19;
+	BooleanAnd = 20;
+	BooleanXor = 21;
+	BooleanNot = 22;
+	Stringify = 23;
+	Join = 24;
+	Comma = 25;
+}
+
+message PreprocessorExpressionToken {
+	oneof Data {
+		PreprocessorExpressionTokenType Type = 1;
+		string Identifier = 2;
+		int64 Number = 3;
+		string Text = 4;
+		string Whitespace = 5;
+	}
+}
+
 enum CacheHit {
 	Hit = 0;
 	MissDueToFileOutOfDate = 1;
