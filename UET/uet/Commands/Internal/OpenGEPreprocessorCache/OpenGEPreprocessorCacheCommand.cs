@@ -125,13 +125,10 @@
                 var result = await _cachingScanner!.ParseIncludes(
                     request.Path,
                     context.CancellationToken);
-                var response = new GetUnresolvedDependenciesResponse();
-                response.FileLastWriteTicks = result.ScanResult.FileLastWriteTicks;
-                response.ResolutionTimeMs = result.ResolutionTimeMs;
-                response.CacheStatus = result.CacheStatus;
-                response.Includes.AddRange(result.ScanResult.Includes);
-                response.SystemIncludes.AddRange(result.ScanResult.SystemIncludes);
-                response.CompiledPlatformHeaderIncludes.AddRange(result.ScanResult.CompiledPlatformHeaderIncludes);
+                var response = new GetUnresolvedDependenciesResponse
+                {
+                    Result = result,
+                };
                 _lastUsedUtc = DateTimeOffset.UtcNow;
                 return response;
             }

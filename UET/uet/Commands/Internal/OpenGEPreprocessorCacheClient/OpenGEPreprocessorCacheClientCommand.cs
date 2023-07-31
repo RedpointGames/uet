@@ -79,21 +79,11 @@
                 _logger.LogInformation($"Subsequent request completed in: {ms}ms");
                 _logger.LogInformation($"Resolution completed in: {result.ResolutionTimeMs}ms");
                 _logger.LogInformation($"Cache status: {result.CacheStatus}");
-                _logger.LogInformation($"File last written: {result.ScanResult.FileLastWriteTicks}");
-                _logger.LogInformation($"{result.ScanResult.Includes.Length} includes:");
-                foreach (var include in result.ScanResult.Includes)
+                _logger.LogInformation($"File last written: {result.Result.FileLastWriteTicks}");
+                _logger.LogInformation($"{result.Result.Directives.Count} directives:");
+                foreach (var directive in result.Result.Directives)
                 {
-                    _logger.LogInformation($"  {include}");
-                }
-                _logger.LogInformation($"{result.ScanResult.SystemIncludes.Length} system includes:");
-                foreach (var include in result.ScanResult.SystemIncludes)
-                {
-                    _logger.LogInformation($"  {include}");
-                }
-                _logger.LogInformation($"{result.ScanResult.CompiledPlatformHeaderIncludes.Length} compiled platform header includes:");
-                foreach (var include in result.ScanResult.CompiledPlatformHeaderIncludes)
-                {
-                    _logger.LogInformation($"  {include}");
+                    _logger.LogInformation($"  {directive}");
                 }
 
                 return 0;

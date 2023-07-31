@@ -35,7 +35,7 @@ namespace Redpoint.OpenGE.PreprocessorCache.Tests
         }
 
         [Fact]
-        public void TestSimpleExpression()
+        public void LexSimpleExpression()
         {
             var results = PreprocessorExpressionLexer.Lex("4+5").ToArray();
             Assert.Equal(3, results.Length);
@@ -45,7 +45,7 @@ namespace Redpoint.OpenGE.PreprocessorCache.Tests
         }
 
         [Fact]
-        public void TestInvocationExpression()
+        public void LexInvocationExpression()
         {
             var results = PreprocessorExpressionLexer.Lex("PREPROCESSOR_TO_STRING(PREPROCESSOR_JOIN(PLATFORM_HEADER_NAME/PLATFORM_HEADER_NAME, Suffix))").ToArray();
             Assert.Equal(12, results.Length);
@@ -92,7 +92,7 @@ namespace Redpoint.OpenGE.PreprocessorCache.Tests
         }
 
         [Fact]
-        public void TestStringEscape()
+        public void LexStringEscape()
         {
             var results = PreprocessorExpressionLexer.Lex("\"te+st\\\"\"").ToArray();
             Assert.Single(results);
@@ -100,7 +100,7 @@ namespace Redpoint.OpenGE.PreprocessorCache.Tests
         }
 
         [Fact]
-        public void TestTwoStrings()
+        public void LexTwoStrings()
         {
             var results = PreprocessorExpressionLexer.Lex("\"a\" \"b\"").ToArray();
             Assert.Equal(3, results.Length);

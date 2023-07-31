@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.OpenGE.PreprocessorCache
 {
     using Microsoft.Extensions.Logging;
+    using PreprocessorCacheApi;
     using System;
     using System.Diagnostics;
     using System.Threading.Tasks;
@@ -21,7 +22,7 @@
             _disk = new ZoneTreeFactory<string, PreprocessorScanResult>()
                 .SetDataDirectory(dataDirectory)
                 .SetKeySerializer(new Utf8StringSerializer())
-                .SetValueSerializer(new PreprocessorScanResultSerializer())
+                .SetValueSerializer(new ProtobufZoneTreeSerializer<PreprocessorScanResult>())
                 .ConfigureWriteAheadLogOptions(configure =>
                 {
                     // @note: If we ever run the preprocessor scanner without clean shutdown,
@@ -39,41 +40,48 @@
             _disk.Dispose();
         }
 
-        public async Task<PreprocessorScanResultWithCacheInfo> ParseIncludes(string filePath, CancellationToken cancellationToken)
+        public async Task<PreprocessorScanResultWithCacheMetadata> ParseIncludes(string filePath, CancellationToken cancellationToken)
         {
             var st = Stopwatch.StartNew();
 
-            PreprocessorCacheApi.CacheHit cacheStatus;
+            CacheHit cacheStatus;
             if (_disk.TryGet(filePath, out var diskCachedValue))
             {
-                var currentTicks = ((DateTimeOffset)File.GetLastWriteTimeUtc(filePath)).UtcTicks;
-                var lastTicks = diskCachedValue.FileLastWriteTicks;
-                if (currentTicks <= lastTicks)
+                if (diskCachedValue.CacheVersion == OnDiskPreprocessorScanner._cacheVersion)
                 {
-                    return new PreprocessorScanResultWithCacheInfo
+                    var currentTicks = ((DateTimeOffset)File.GetLastWriteTimeUtc(filePath)).UtcTicks;
+                    var lastTicks = diskCachedValue.FileLastWriteTicks;
+                    if (currentTicks <= lastTicks)
                     {
-                        ScanResult = diskCachedValue!,
-                        CacheStatus = PreprocessorCacheApi.CacheHit.Hit,
-                        ResolutionTimeMs = (long)st.ElapsedMilliseconds,
-                    };
+                        return new PreprocessorScanResultWithCacheMetadata
+                        {
+                            Result = diskCachedValue!,
+                            CacheStatus = CacheHit.Hit,
+                            ResolutionTimeMs = (long)st.ElapsedMilliseconds,
+                        };
+                    }
+                    else
+                    {
+                        cacheStatus = CacheHit.MissDueToFileOutOfDate;
+                    }
                 }
                 else
                 {
-                    cacheStatus = PreprocessorCacheApi.CacheHit.MissDueToFileOutOfDate;
+                    cacheStatus = CacheHit.MissDueToOldCacheVersion;
                 }
             }
             else
             {
-                cacheStatus = PreprocessorCacheApi.CacheHit.MissDueToMissingFile;
+                cacheStatus = CacheHit.MissDueToMissingFile;
             }
 
             var freshValue = await _onDiskPreprocessorScanner.ParseIncludes(
                 filePath,
                 cancellationToken);
             _disk.Upsert(filePath, freshValue);
-            return new PreprocessorScanResultWithCacheInfo
+            return new PreprocessorScanResultWithCacheMetadata
             {
-                ScanResult = freshValue,
+                Result = freshValue,
                 CacheStatus = cacheStatus,
                 ResolutionTimeMs = (long)st.ElapsedMilliseconds,
             };

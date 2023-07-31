@@ -32,19 +32,93 @@ enum PreprocessorExpressionTokenType {
 }
 
 message PreprocessorExpressionToken {
-	oneof Data {
-		PreprocessorExpressionTokenType Type = 1;
-		string Identifier = 2;
-		int64 Number = 3;
-		string Text = 4;
-		string Whitespace = 5;
+	oneof data {
+		PreprocessorExpressionTokenType type = 1;
+		string identifier = 2;
+		int64 number = 3;
+		string text = 4;
+		string whitespace = 5;
 	}
+}
+
+message PreprocessorExpressionInvoke {
+	string identifier = 1;
+	repeated PreprocessorExpression arguments = 2;
+}
+
+message PreprocessorExpressionUnary {
+	PreprocessorExpression expression = 1;
+	PreprocessorExpressionTokenType type = 2;
+}
+
+message PreprocessorExpressionBinary {
+	PreprocessorExpression left = 1;
+	PreprocessorExpression right = 2;
+	PreprocessorExpressionTokenType type = 3;
+}
+
+message PreprocessorExpressionChain {
+	repeated PreprocessorExpression expressions = 1;
+}
+
+message PreprocessorExpression {
+	oneof expr {
+		PreprocessorExpressionInvoke invoke = 1;
+		PreprocessorExpressionToken token = 2;
+		PreprocessorExpressionUnary unary = 3;
+		PreprocessorExpressionBinary binary = 4;
+		PreprocessorExpressionChain chain = 5;
+		string whitespace = 6;
+		string defined = 7;
+		string notDefined = 8;
+	}
+}
+
+message PreprocessorDirectiveInclude {
+	oneof include {
+		string normal = 1;
+		string system = 2;
+		PreprocessorExpression expansion = 3;
+	}
+}
+
+message PreprocessorDirectiveDefine {
+	string identifier = 1;
+	bool isFunction = 2;
+	repeated string parameters = 3;
+	PreprocessorExpression expansion = 4;
+}
+
+message PreprocessorDirectiveUndefine {
+	string identifier = 1;
+}
+
+message PreprocessorDirective {
+	repeated PreprocessorExpression conditions = 1;
+	oneof directive {
+		PreprocessorDirectiveInclude include = 2;
+		PreprocessorDirectiveDefine define = 3;
+		PreprocessorDirectiveUndefine undefine = 4;
+	}
+}
+
+message PreprocessorScanResult {
+	int64 fileLastWriteTicks = 1;
+	repeated PreprocessorDirective directives = 2;
+	int32 cacheVersion = 3;
+}
+
+message PreprocessorScanResultWithCacheMetadata {
+	PreprocessorScanResult result = 1;
+	int64 resolutionTimeMs = 2;
+	CacheHit cacheStatus = 3;
 }
 
 enum CacheHit {
 	Hit = 0;
 	MissDueToFileOutOfDate = 1;
 	MissDueToMissingFile = 2;
+	MissDueToOldCacheVersion = 3;
 }
 
 message GetUnresolvedDependenciesRequest {
@@ -52,12 +126,7 @@ message GetUnresolvedDependenciesRequest {
 }
 
 message GetUnresolvedDependenciesResponse {
-	int64 fileLastWriteTicks = 1;
-	repeated string includes = 2;
-	repeated string systemIncludes = 3;
-	repeated string compiledPlatformHeaderIncludes = 4;
-	int64 resolutionTimeMs = 5;
-	CacheHit cacheStatus = 6;
+	PreprocessorScanResultWithCacheMetadata result = 1;
 }
 
 message GetResolvedDependenciesRequest {
@@ -65,6 +134,7 @@ message GetResolvedDependenciesRequest {
 	repeated string includeDirectories = 2;
 	repeated string systemIncludeDirectories = 3;
 	map<string, string> globalDefinitions = 4;
+	repeated string forceIncludePaths = 5;
 }
 
 message GetResolvedDependenciesResponse {

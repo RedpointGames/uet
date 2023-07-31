@@ -2,6 +2,7 @@
 {
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
+    using PreprocessorCacheApi;
     using Redpoint.GrpcPipes;
     using Redpoint.ProcessExecution;
     using System.Threading;
@@ -15,7 +16,7 @@
         private readonly ProcessSpecification _daemonLaunchSpecification;
         private readonly SemaphoreSlim _clientCreatingSemaphore;
         private readonly CancellationTokenSource _daemonCancellationTokenSource;
-        private PreprocessorCacheApi.PreprocessorCache.PreprocessorCacheClient? _currentClient;
+        private PreprocessorCache.PreprocessorCacheClient? _currentClient;
         private Task<int>? _daemonProcess;
 
         public SystemWidePreprocessorCache(
@@ -34,7 +35,7 @@
             _daemonProcess = null;
         }
 
-        private async Task<PreprocessorCacheApi.PreprocessorCache.PreprocessorCacheClient> GetClientAsync(bool spawn = false)
+        private async Task<PreprocessorCache.PreprocessorCacheClient> GetClientAsync(bool spawn = false)
         {
             await _clientCreatingSemaphore.WaitAsync();
             try
@@ -61,7 +62,7 @@
                 _currentClient = _grpcPipeFactory.CreateClient(
                     "OpenGEPreprocessorCache",
                     GrpcPipeNamespace.Computer,
-                    channel => new PreprocessorCacheApi.PreprocessorCache.PreprocessorCacheClient(channel));
+                    channel => new PreprocessorCache.PreprocessorCacheClient(channel));
                 return _currentClient;
             }
             finally
@@ -77,7 +78,7 @@
             {
                 try
                 {
-                    await client.PingAsync(new PreprocessorCacheApi.PingRequest());
+                    await client.PingAsync(new PingRequest());
                     return;
                 }
                 catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable)
@@ -88,7 +89,7 @@
             } while (true);
         }
 
-        public async Task<PreprocessorScanResultWithCacheInfo> GetUnresolvedDependenciesAsync(
+        public async Task<PreprocessorScanResultWithCacheMetadata> GetUnresolvedDependenciesAsync(
             string filePath,
             CancellationToken cancellationToken)
         {
@@ -97,24 +98,12 @@
             {
                 try
                 {
-                    var response = await client.GetUnresolvedDependenciesAsync(
-                        new PreprocessorCacheApi.GetUnresolvedDependenciesRequest
+                    return (await client.GetUnresolvedDependenciesAsync(
+                        new GetUnresolvedDependenciesRequest
                         {
                             Path = filePath,
                         },
-                        cancellationToken: cancellationToken);
-                    return new PreprocessorScanResultWithCacheInfo
-                    {
-                        ScanResult = new PreprocessorScanResult
-                        {
-                            FileLastWriteTicks = response.FileLastWriteTicks,
-                            Includes = response.Includes.ToArray(),
-                            SystemIncludes = response.SystemIncludes.ToArray(),
-                            CompiledPlatformHeaderIncludes = response.CompiledPlatformHeaderIncludes.ToArray(),
-                        },
-                        ResolutionTimeMs = response.ResolutionTimeMs,
-                        CacheStatus = response.CacheStatus,
-                    };
+                        cancellationToken: cancellationToken)).Result;
                 }
                 catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable)
                 {

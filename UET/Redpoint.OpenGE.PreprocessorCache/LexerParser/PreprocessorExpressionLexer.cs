@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.OpenGE.PreprocessorCache.LexerParser
 {
-    using Google.Protobuf.WellKnownTypes;
     using PreprocessorCacheApi;
     using System;
     using System.Collections.Generic;
@@ -8,7 +7,7 @@
 
     internal class PreprocessorExpressionLexer
     {
-        public static IEnumerable<PreprocessorExpressionToken> Lex(string expression)
+        internal static IEnumerable<PreprocessorExpressionToken> Lex(string expression)
         {
             var buffer = new StringBuilder();
             var inTextMode = false;
@@ -150,6 +149,7 @@
                             current = expression[position];
                             if ((current >= 'A' && current <= 'Z') ||
                                 (current >= 'a' && current <= 'z') ||
+                                (current >= '0' && current <= '9') ||
                                 current == '_')
                             {
                                 buffer.Append(current);
@@ -225,7 +225,7 @@
                         };
                         buffer.Clear();
                     }
-                    else if (current == ' ' || current == '\t')
+                    else if (current == ' ' || current == '\t' || current == '\n' || current == '\r')
                     {
                         // Return whitespace elements.
                         yield return new PreprocessorExpressionToken
