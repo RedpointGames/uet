@@ -80,6 +80,11 @@
                 _logger.LogInformation($"Resolution completed in: {result.ResolutionTimeMs}ms");
                 _logger.LogInformation($"Cache status: {result.CacheStatus}");
                 _logger.LogInformation($"File last written: {result.Result.FileLastWriteTicks}");
+                _logger.LogInformation($"{result.Result.Conditions.Count} conditions:");
+                foreach (var condition in result.Result.Conditions)
+                {
+                    _logger.LogInformation($"  {condition}");
+                }
                 _logger.LogInformation($"{result.Result.Directives.Count} directives:");
                 foreach (var directive in result.Result.Directives)
                 {

@@ -69,7 +69,6 @@ message PreprocessorExpression {
 		PreprocessorExpressionChain chain = 5;
 		string whitespace = 6;
 		string defined = 7;
-		string notDefined = 8;
 	}
 }
 
@@ -92,8 +91,14 @@ message PreprocessorDirectiveUndefine {
 	string identifier = 1;
 }
 
+message PreprocessorCondition {
+	int64 conditionHash = 1;
+	repeated string dependentOnIdentifiers = 2;
+	PreprocessorExpression condition = 3;
+}
+
 message PreprocessorDirective {
-	repeated PreprocessorExpression conditions = 1;
+	repeated int64 conditionHashes = 1;
 	oneof directive {
 		PreprocessorDirectiveInclude include = 2;
 		PreprocessorDirectiveDefine define = 3;
@@ -103,8 +108,9 @@ message PreprocessorDirective {
 
 message PreprocessorScanResult {
 	int64 fileLastWriteTicks = 1;
-	repeated PreprocessorDirective directives = 2;
-	int32 cacheVersion = 3;
+	repeated PreprocessorCondition conditions = 2;
+	repeated PreprocessorDirective directives = 3;
+	int32 cacheVersion = 4;
 }
 
 message PreprocessorScanResultWithCacheMetadata {

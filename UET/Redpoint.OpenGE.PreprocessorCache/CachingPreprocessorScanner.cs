@@ -6,6 +6,7 @@
     using System.Diagnostics;
     using System.Threading.Tasks;
     using Tenray.ZoneTree;
+    using Tenray.ZoneTree.Exceptions;
     using Tenray.ZoneTree.Serializers;
 
     internal class CachingPreprocessorScanner : ICachingPreprocessorScanner, IDisposable
@@ -19,7 +20,7 @@
             OnDiskPreprocessorScanner onDiskPreprocessorScanner,
             string dataDirectory)
         {
-            _disk = new ZoneTreeFactory<string, PreprocessorScanResult>()
+            var factory = new ZoneTreeFactory<string, PreprocessorScanResult>()
                 .SetDataDirectory(dataDirectory)
                 .SetKeySerializer(new Utf8StringSerializer())
                 .SetValueSerializer(new ProtobufZoneTreeSerializer<PreprocessorScanResult>())
@@ -29,8 +30,23 @@
                     // we should set the following option:
                     //
                     //configure.WriteAheadLogMode = WriteAheadLogMode.Sync;
-                })
-                .OpenOrCreate();
+                });
+            try
+            {
+                _disk = factory.OpenOrCreate();
+            }
+            catch (WriteAheadLogCorruptionException)
+            {
+                if (Directory.Exists(dataDirectory))
+                {
+                    try
+                    {
+                        Directory.Delete(dataDirectory, true);
+                    }
+                    catch { }
+                }
+                _disk = factory.Create();
+            }
             _logger = logger;
             _onDiskPreprocessorScanner = onDiskPreprocessorScanner;
         }

@@ -13,7 +13,22 @@
             var lines = File.ReadAllLines(path);
 
             // @note: We just want to make sure this gets parsed correctly.
-            _ = PreprocessorScanner.Scan(lines).ToArray();
+            _ = PreprocessorScanner.Scan(lines);
+        }
+
+        [Fact]
+        public void ScanNestedIf()
+        {
+            var lines = new[]
+            {
+                "#ifndef ABC",
+                "#if 1",
+                "#include <system.h>",
+                "#endif",
+                "#endif",
+            };
+            // @note: This should work.
+            _ = PreprocessorScanner.Scan(lines);
         }
 
         [Fact]
@@ -32,9 +47,9 @@
                 "#include COMPILED_PLATFORM_HEADER(Test)",
             };
 
-            var directives = PreprocessorScanner.Scan(lines).ToArray();
+            var directives = PreprocessorScanner.Scan(lines).Directives;
 
-            Assert.Equal(9, directives.Length);
+            Assert.Equal(9, directives.Count);
 
             int i = 0;
             Assert.Equal(PreprocessorDirective.DirectiveOneofCase.Include, directives[i].DirectiveCase);

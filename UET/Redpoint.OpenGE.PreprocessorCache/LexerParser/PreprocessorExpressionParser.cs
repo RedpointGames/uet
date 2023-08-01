@@ -277,6 +277,12 @@
                     // treat it as such.
                     var identifier = tokens[position];
                     position++;
+                    // Skip whitespace that might be between an identifier and a ParenOpen.
+                    while (position < tokens.Length &&
+                        tokens[position].DataCase == PreprocessorExpressionToken.DataOneofCase.Whitespace)
+                    {
+                        position++;
+                    }
                     if (position < tokens.Length &&
                         tokens[position].DataCase == PreprocessorExpressionToken.DataOneofCase.Type &&
                         tokens[position].Type == PreprocessorExpressionTokenType.ParenOpen)
@@ -314,15 +320,27 @@
                             // to do it for us.
                             position++;
                         }
-                        var invocation = new PreprocessorExpressionInvoke
+                        if (identifier.Identifier == "defined" && arguments.Count == 1 &&
+                            arguments[0].ExprCase == PreprocessorExpression.ExprOneofCase.Token &&
+                            arguments[0].Token.DataCase == PreprocessorExpressionToken.DataOneofCase.Identifier)
                         {
-                            Identifier = identifier.Identifier,
-                        };
-                        invocation.Arguments.AddRange(arguments);
-                        returnedExpression = new PreprocessorExpression
+                            returnedExpression = new PreprocessorExpression
+                            {
+                                Defined = arguments[0].Token.Identifier,
+                            };
+                        }
+                        else
                         {
-                            Invoke = invocation,
-                        };
+                            var invocation = new PreprocessorExpressionInvoke
+                            {
+                                Identifier = identifier.Identifier,
+                            };
+                            invocation.Arguments.AddRange(arguments);
+                            returnedExpression = new PreprocessorExpression
+                            {
+                                Invoke = invocation,
+                            };
+                        }
                         break;
                     }
                     else
