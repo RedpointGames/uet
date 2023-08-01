@@ -9,6 +9,7 @@
             services.AddSingleton<OnDiskPreprocessorScanner, OnDiskPreprocessorScanner>();
             services.AddSingleton<ICachingPreprocessorScannerFactory, DefaultCachingPreprocessorScannerFactory>();
             services.AddSingleton<IPreprocessorCacheFactory, DefaultPreprocessorCacheFactory>();
+            services.AddSingleton<IPreprocessorResolver, DefaultPreprocessorResolver>();
         }
     }
 }

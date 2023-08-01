@@ -38,6 +38,7 @@ message PreprocessorExpressionToken {
 		string text = 4;
 		string whitespace = 5;
 	}
+	string numberOriginal = 6;
 }
 
 message PreprocessorExpressionInvoke {
@@ -69,6 +70,7 @@ message PreprocessorExpression {
 		PreprocessorExpressionChain chain = 5;
 		string whitespace = 6;
 		string defined = 7;
+		string hasInclude = 8;
 	}
 }
 
@@ -97,13 +99,26 @@ message PreprocessorCondition {
 	PreprocessorExpression condition = 3;
 }
 
+message PreprocessorDirectiveIf {
+	int64 conditionHash = 1;
+	repeated PreprocessorDirective subdirectives = 2;
+	bool hasElseBranch = 3;
+	PreprocessorDirective elseBranch = 4;
+}
+
+message PreprocessorDirectiveBlock {
+	repeated PreprocessorDirective subdirectives = 1;
+}
+
 message PreprocessorDirective {
-	repeated int64 conditionHashes = 1;
 	oneof directive {
 		PreprocessorDirectiveInclude include = 2;
 		PreprocessorDirectiveDefine define = 3;
 		PreprocessorDirectiveUndefine undefine = 4;
+		PreprocessorDirectiveIf if = 6;
+		PreprocessorDirectiveBlock block = 7;
 	}
+	repeated string referencedIdentifiers = 5;
 }
 
 message PreprocessorScanResult {
@@ -140,10 +155,16 @@ message GetResolvedDependenciesRequest {
 	repeated string systemIncludeDirectories = 3;
 	map<string, string> globalDefinitions = 4;
 	repeated string forceIncludePaths = 5;
+	repeated string forceIncludeFromPchPaths = 6;
+}
+
+message PreprocessorResolutionResultWithTimingMetadata {
+	repeated string dependsOnPaths = 1;
+	int64 resolutionTimeMs = 2;
 }
 
 message GetResolvedDependenciesResponse {
-	repeated string dependsOnPaths = 1;
+	PreprocessorResolutionResultWithTimingMetadata result = 1;
 }
 
 message PingRequest {

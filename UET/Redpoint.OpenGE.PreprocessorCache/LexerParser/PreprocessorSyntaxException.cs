@@ -6,7 +6,7 @@
     internal class PreprocessorSyntaxException : Exception
     {
         public PreprocessorSyntaxException(PreprocessorExpressionToken[] tokens, int position)
-            : base(position < tokens.Length ? $"Unexpected token: {tokens[position]}" : "Unexpected end of token stream")
+            : base(position < tokens.Length ? $"Unexpected token at position {position}: {tokens[position]}" : "Unexpected end of token stream")
         {
         }
     }

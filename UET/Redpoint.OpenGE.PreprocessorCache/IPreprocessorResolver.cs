@@ -1,18 +1,14 @@
 ﻿namespace Redpoint.OpenGE.PreprocessorCache
 {
     using PreprocessorCacheApi;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
 
-    public interface IPreprocessorCache
+    public interface IPreprocessorResolver
     {
-        Task EnsureConnectedAsync();
-
-        Task<PreprocessorScanResultWithCacheMetadata> GetUnresolvedDependenciesAsync(
-            string filePath,
-            CancellationToken cancellationToken);
-
-        Task<PreprocessorResolutionResultWithTimingMetadata> GetResolvedDependenciesAsync(
-            string filePath,
+        Task<PreprocessorResolutionResultWithTimingMetadata> ResolveAsync(
+            ICachingPreprocessorScanner scanner,
+            string path,
             string[] forceIncludesFromPch,
             string[] forceIncludes,
             string[] includeDirectories,

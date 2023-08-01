@@ -113,6 +113,40 @@
             } while (true);
         }
 
+        public async Task<PreprocessorResolutionResultWithTimingMetadata> GetResolvedDependenciesAsync(
+            string filePath,
+            string[] forceIncludesFromPch,
+            string[] forceIncludes,
+            string[] includeDirectories,
+            string[] systemDirectories,
+            Dictionary<string, string> globalDefinitions,
+            CancellationToken cancellationToken)
+        {
+            var client = await GetClientAsync();
+            do
+            {
+                try
+                {
+                    var request = new GetResolvedDependenciesRequest
+                    {
+                        Path = filePath,
+                    };
+                    request.IncludeDirectories.AddRange(includeDirectories);
+                    request.SystemIncludeDirectories.AddRange(systemDirectories);
+                    request.GlobalDefinitions.Add(globalDefinitions);
+                    request.ForceIncludePaths.AddRange(forceIncludes);
+                    request.ForceIncludeFromPchPaths.AddRange(forceIncludesFromPch);
+
+                    return (await client.GetResolvedDependenciesAsync(request, cancellationToken: cancellationToken)).Result;
+                }
+                catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable)
+                {
+                    client = await GetClientAsync(true);
+                    continue;
+                }
+            } while (true);
+        }
+
         public async void Dispose()
         {
             _daemonCancellationTokenSource.Cancel();

@@ -30,6 +30,7 @@
         {
             private readonly IGrpcPipeFactory _grpcPipeFactory;
             private readonly ICachingPreprocessorScannerFactory _cachingPreprocessorScannerFactory;
+            private readonly IPreprocessorResolver _preprocessorResolver;
             private readonly IReservationManagerFactory _reservationManagerFactory;
             private readonly ILogger<OpenGEPreprocessorCacheCommandInstance> _logger;
             private ICachingPreprocessorScanner? _cachingScanner;
@@ -38,11 +39,13 @@
             public OpenGEPreprocessorCacheCommandInstance(
                 IGrpcPipeFactory grpcPipeFactory,
                 ICachingPreprocessorScannerFactory cachingPreprocessorScannerFactory,
+                IPreprocessorResolver preprocessorResolver,
                 IReservationManagerFactory reservationManagerFactory,
                 ILogger<OpenGEPreprocessorCacheCommandInstance> logger)
             {
                 _grpcPipeFactory = grpcPipeFactory;
                 _cachingPreprocessorScannerFactory = cachingPreprocessorScannerFactory;
+                _preprocessorResolver = preprocessorResolver;
                 _reservationManagerFactory = reservationManagerFactory;
                 _logger = logger;
                 _lastUsedUtc = DateTimeOffset.UtcNow;
@@ -133,11 +136,25 @@
                 return response;
             }
 
-            public override Task<GetResolvedDependenciesResponse> GetResolvedDependencies(
+            public override async Task<GetResolvedDependenciesResponse> GetResolvedDependencies(
                 GetResolvedDependenciesRequest request,
                 ServerCallContext context)
             {
-                throw new RpcException(new Status(StatusCode.Unimplemented, "GetResolvedDependencies is not implemented yet."));
+                _lastUsedUtc = DateTimeOffset.UtcNow;
+                var result = await _preprocessorResolver.ResolveAsync(
+                    _cachingScanner!,
+                    request.Path,
+                    request.ForceIncludeFromPchPaths.ToArray(),
+                    request.ForceIncludePaths.ToArray(),
+                    request.IncludeDirectories.ToArray(),
+                    request.SystemIncludeDirectories.ToArray(),
+                    request.GlobalDefinitions.ToDictionary(k => k.Key, v => v.Value),
+                    context.CancellationToken);
+                _lastUsedUtc = DateTimeOffset.UtcNow;
+                return new GetResolvedDependenciesResponse
+                {
+                    Result = result
+                };
             }
         }
     }

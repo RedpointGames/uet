@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.OpenGE.PreprocessorCache.LexerParser
 {
+    using Microsoft.AspNetCore.Mvc;
     using PreprocessorCacheApi;
     using System;
     using System.Collections.Generic;
@@ -283,7 +284,80 @@
                     {
                         position++;
                     }
+                    // @hack: MSVC allows "defined X" to mean "defined(X)".
                     if (position < tokens.Length &&
+                        identifier.Identifier == "defined" &&
+                        tokens[position].DataCase == PreprocessorExpressionToken.DataOneofCase.Identifier)
+                    {
+                        returnedExpression = new PreprocessorExpression
+                        {
+                            Defined = tokens[position].Identifier,
+                        };
+                        position++;
+                        break;
+                    }
+                    // Invocation of __has_include(), which can contain non-expression
+                    // contents in it's only argument.
+                    else if (position < tokens.Length &&
+                        identifier.Identifier == "__has_include" &&
+                        tokens[position].DataCase == PreprocessorExpressionToken.DataOneofCase.Type &&
+                        tokens[position].Type == PreprocessorExpressionTokenType.ParenOpen)
+                    {
+                        position++; // Skip the opening parenthesis.
+                        // Skip whitespace that might be between the ParenOpen and the start of the include.
+                        while (position < tokens.Length &&
+                            tokens[position].DataCase == PreprocessorExpressionToken.DataOneofCase.Whitespace)
+                        {
+                            position++;
+                        }
+                        EnsureNotOutOfTokens(tokens, position);
+                        if ((tokens[position].DataCase == PreprocessorExpressionToken.DataOneofCase.Type &&
+                             tokens[position].Type == PreprocessorExpressionTokenType.LessThan) ||
+                            (tokens[position].DataCase == PreprocessorExpressionToken.DataOneofCase.Text &&
+                             tokens[position].Text.StartsWith('"')))
+                        {
+                            // Fixed include expression.
+                            var includeBuffer = string.Empty;
+                            while (position < tokens.Length && 
+                                (tokens[position].DataCase != PreprocessorExpressionToken.DataOneofCase.Type || 
+                                 tokens[position].Type != PreprocessorExpressionTokenType.ParenClose))
+                            {
+                                switch (tokens[position].DataCase)
+                                {
+                                    case PreprocessorExpressionToken.DataOneofCase.Type:
+                                        includeBuffer += _literalMappings[tokens[position].Type];
+                                        break;
+                                    case PreprocessorExpressionToken.DataOneofCase.Identifier:
+                                        includeBuffer += tokens[position].Identifier;
+                                        break;
+                                    case PreprocessorExpressionToken.DataOneofCase.Number:
+                                        includeBuffer += tokens[position].NumberOriginal;
+                                        break;
+                                    case PreprocessorExpressionToken.DataOneofCase.Text:
+                                        includeBuffer += tokens[position].Text;
+                                        break;
+                                    case PreprocessorExpressionToken.DataOneofCase.Whitespace:
+                                        includeBuffer += tokens[position].Whitespace;
+                                        break;
+                                    default:
+                                        throw new NotSupportedException("DataCase in __has_include");
+                                }
+                                position++;
+                            }
+                            returnedExpression = new PreprocessorExpression
+                            {
+                                HasInclude = includeBuffer,
+                            };
+                            position++;
+                            break;
+                        }
+                        else
+                        {
+                            throw new Exception("Dynamic include expressions for __has_include are not yet supported!");
+                        }
+                    }
+                    // Normal function invocation.
+                    else if (position < tokens.Length &&
                         tokens[position].DataCase == PreprocessorExpressionToken.DataOneofCase.Type &&
                         tokens[position].Type == PreprocessorExpressionTokenType.ParenOpen)
                     {
@@ -387,7 +461,7 @@
                     {
                         Unary = new PreprocessorExpressionUnary
                         {
-                            Type = tokens[position].Type,
+                            Type = tokens[position - 1].Type,
                             Expression = ParseTerminal(tokens, ref position),
                         }
                     };
@@ -407,6 +481,7 @@
                                 Token = new PreprocessorExpressionToken
                                 {
                                     Number = 0,
+                                    NumberOriginal = string.Empty,
                                 }
                             },
                             Right = ParseTerminal(tokens, ref position),

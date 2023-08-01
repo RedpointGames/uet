@@ -164,12 +164,18 @@
                         };
                         buffer.Clear();
                     }
-                    else if (current == '0' && (lookAhead == ' ' || lookAhead == '\t' || lookAhead == '\n' || lookAhead == '\r' || lookAhead == unchecked((char)-1)))
+                    else if (current == '0' && 
+                        lookAhead != 'b' &&
+                        lookAhead != 'x' && 
+                        !(lookAhead >= '0' && lookAhead <= '9') &&
+                        !(lookAhead >= 'a' && lookAhead <= 'f') &&
+                        !(lookAhead >= 'A' && lookAhead <= 'F'))
                     {
                         // Process exactly zero.
                         yield return new PreprocessorExpressionToken
                         {
                             Number = 0,
+                            NumberOriginal = "0",
                         };
                     }
                     else if ((current == '0' && (lookAhead == 'b' || lookAhead == 'x' || (lookAhead >= '0' && lookAhead <= '7'))) ||
@@ -203,6 +209,12 @@
                             {
                                 buffer.Append(current);
                             }
+                            else if (current == 'l' || current == 'L')
+                            {
+                                // "long" indicator; we just want it gone.
+                                position++;
+                                break;
+                            }
                             else
                             {
                                 break;
@@ -226,6 +238,7 @@
                         yield return new PreprocessorExpressionToken
                         {
                             Number = value,
+                            NumberOriginal = buffer.ToString(),
                         };
                         buffer.Clear();
                     }

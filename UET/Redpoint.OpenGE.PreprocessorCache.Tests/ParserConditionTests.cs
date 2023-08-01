@@ -39,6 +39,10 @@
                             // unknown
                             return "@";
                     }
+                case PreprocessorExpression.ExprOneofCase.Defined:
+                    return $"defined({expression.Defined})";
+                case PreprocessorExpression.ExprOneofCase.HasInclude:
+                    return $"__has_include({expression.HasInclude})";
                 default:
                     // unknown
                     return "@";
@@ -129,6 +133,44 @@
             Assert.Equal("((1==1)!=0)", RenderExpression(
                 PreprocessorExpressionParser.ParseCondition(
                     PreprocessorExpressionLexer.Lex("1 == 1 != 0"))));
+        }
+
+        [Fact]
+        public void DefinedTests()
+        {
+            Assert.Equal("defined(X)", RenderExpression(
+                PreprocessorExpressionParser.ParseCondition(
+                    PreprocessorExpressionLexer.Lex("defined(X)"))));
+            Assert.Equal("(!defined(X))", RenderExpression(
+                PreprocessorExpressionParser.ParseCondition(
+                    PreprocessorExpressionLexer.Lex("!defined(X)"))));
+            Assert.Equal("(defined(X)&&defined(Y))", RenderExpression(
+                PreprocessorExpressionParser.ParseCondition(
+                    PreprocessorExpressionLexer.Lex("defined(X) && defined(Y)"))));
+            Assert.Equal("(defined(X)&&(!defined(Y)))", RenderExpression(
+                PreprocessorExpressionParser.ParseCondition(
+                    PreprocessorExpressionLexer.Lex("defined(X) && !defined(Y)"))));
+            Assert.Equal("((!defined(X))&&defined(Y))", RenderExpression(
+                PreprocessorExpressionParser.ParseCondition(
+                    PreprocessorExpressionLexer.Lex("!defined(X) && defined(Y)"))));
+            // MSVC nonsense.
+            Assert.Equal("(defined(X)&&defined(Y))", RenderExpression(
+                PreprocessorExpressionParser.ParseCondition(
+                    PreprocessorExpressionLexer.Lex("defined X && defined Y"))));
+            Assert.Equal("(defined(X)&&(!defined(Y)))", RenderExpression(
+                PreprocessorExpressionParser.ParseCondition(
+                    PreprocessorExpressionLexer.Lex("defined X && !defined Y"))));
+        }
+
+        [Fact]
+        public void HasIncludeTests()
+        {
+            Assert.Equal("__has_include(<dir/file.h>)", RenderExpression(
+                PreprocessorExpressionParser.ParseCondition(
+                    PreprocessorExpressionLexer.Lex("__has_include(<dir/file.h>)"))));
+            Assert.Equal("__has_include(\"dir/file.h\")", RenderExpression(
+                PreprocessorExpressionParser.ParseCondition(
+                    PreprocessorExpressionLexer.Lex("__has_include(\"dir/file.h\")"))));
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.OpenGE.PreprocessorCache.LexerParser
 {
     using Google.Protobuf;
+    using Google.Protobuf.Collections;
     using PreprocessorCacheApi;
     using System;
     using System.Collections.Generic;
@@ -28,12 +29,21 @@
         private static Regex _functionDefine = new Regex("^([A-Za-z_][A-Za-z0-9_]*)\\(([a-zA-Z0-9,_\\s]*)\\)\\s");
         private static Regex _variableDefine = new Regex("^([A-Za-z_][A-Za-z0-9_]*)(\\s|$)");
 
-        private static PreprocessorDirective MakeDirective(Stack<long> conditionHashes, HashSet<long> conditionHashesUsed, PreprocessorDirective directive)
+        private static PreprocessorDirective MakeDirective(PreprocessorExpression? expression, PreprocessorDirective directive)
         {
-            directive.ConditionHashes.AddRange(conditionHashes);
-            foreach (var hash in conditionHashes)
+            if (expression != null)
             {
-                conditionHashesUsed.Add(hash);
+                var referencedIdentifiers = new HashSet<string>();
+                GetUniqueIdentifiers(expression, referencedIdentifiers);
+                if (directive.DirectiveCase == PreprocessorDirective.DirectiveOneofCase.Define &&
+                    directive.Define.IsFunction)
+                {
+                    foreach (var param in directive.Define.Parameters)
+                    {
+                        referencedIdentifiers.Remove(param);
+                    }
+                }
+                directive.ReferencedIdentifiers.AddRange(referencedIdentifiers);
             }
             return directive;
         }
@@ -44,14 +54,36 @@
             public Dictionary<long, PreprocessorCondition> Conditions { get; } = new Dictionary<long, PreprocessorCondition>();
         }
 
-        private static PreprocessorDirective? ProcessDirective(
+        private static void ProcessDirective(
             string directive,
             string value,
-            ScanResult scanResult,
-            Stack<long> conditionHashes,
-            Stack<int> conditionHashesToPopOnEndIf,
-            HashSet<long> conditionHashesUsed)
+            Stack<PreprocessorDirective> targetBlocks,
+            ScanResult scanResult)
         {
+            void AddDirective(PreprocessorDirective directive)
+            {
+                if (targetBlocks.Count == 0)
+                {
+                    scanResult.Directives.Add(directive);
+                }
+                else
+                {
+                    var target = targetBlocks.Peek();
+                    if (target.DirectiveCase == PreprocessorDirective.DirectiveOneofCase.Block)
+                    {
+                        target.Block.Subdirectives.Add(directive);
+                    }
+                    else if (target.DirectiveCase == PreprocessorDirective.DirectiveOneofCase.If)
+                    {
+                        target.If.Subdirectives.Add(directive);
+                    }
+                    else
+                    {
+                        throw new NotSupportedException();
+                    }
+                }
+            }
+
             switch (directive)
             {
                 case "#include":
@@ -60,33 +92,37 @@
                     var includeAngle = include.StartsWith('<');
                     if (includeQuote)
                     {
-                        return MakeDirective(conditionHashes, conditionHashesUsed, new PreprocessorDirective
+                        AddDirective(MakeDirective(null, new PreprocessorDirective
                         {
                             Include = new PreprocessorDirectiveInclude
                             {
                                 Normal = include.Trim('"'),
                             }
-                        });
+                        }));
+                        return;
                     }
                     else if (includeAngle)
                     {
-                        return MakeDirective(conditionHashes, conditionHashesUsed, new PreprocessorDirective
+                        AddDirective(MakeDirective(null, new PreprocessorDirective
                         {
                             Include = new PreprocessorDirectiveInclude
                             {
                                 System = include.TrimStart('<').TrimEnd('>'),
                             }
-                        });
+                        }));
+                        return;
                     }
                     else
                     {
-                        return MakeDirective(conditionHashes, conditionHashesUsed, new PreprocessorDirective
+                        var expr = PreprocessorExpressionParser.ParseExpansion(PreprocessorExpressionLexer.Lex(include));
+                        AddDirective(MakeDirective(expr, new PreprocessorDirective
                         {
                             Include = new PreprocessorDirectiveInclude
                             {
-                                Expansion = PreprocessorExpressionParser.ParseExpansion(PreprocessorExpressionLexer.Lex(include)),
+                                Expansion = expr,
                             }
-                        });
+                        }));
+                        return;
                     }
                 case "#define":
                     var defineExpr = value.TrimStart();
@@ -95,127 +131,143 @@
                     if (functionMatch.Success)
                     {
                         var exprText = value.Length > functionMatch.Length ? value.Substring(functionMatch.Length) : string.Empty;
+                        var expr = string.IsNullOrWhiteSpace(exprText)
+                            ? new PreprocessorExpression
+                            {
+                                Chain = new PreprocessorExpressionChain()
+                            }
+                            : PreprocessorExpressionParser.ParseExpansion(PreprocessorExpressionLexer.Lex(exprText));
                         var funcDefine = new PreprocessorDirectiveDefine
                         {
                             Identifier = functionMatch.Groups[1].Value,
                             IsFunction = true,
-                            Expansion =
-                                string.IsNullOrWhiteSpace(exprText)
-                                ? new PreprocessorExpression
-                                {
-                                    Chain = new PreprocessorExpressionChain()
-                                }
-                                : PreprocessorExpressionParser.ParseExpansion(PreprocessorExpressionLexer.Lex(exprText)),
+                            Expansion = expr,
                         };
                         funcDefine.Parameters.AddRange(
                             functionMatch.Groups[2].Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
-                        return MakeDirective(conditionHashes, conditionHashesUsed, new PreprocessorDirective
+                        AddDirective(MakeDirective(expr, new PreprocessorDirective
                         {
                             Define = funcDefine,
-                        });
+                        }));
+                        return;
                     }
                     else if (variableMatch.Success)
                     {
                         var exprText = value.Length > variableMatch.Length ? value.Substring(variableMatch.Length) : string.Empty;
-                        return MakeDirective(conditionHashes, conditionHashesUsed, new PreprocessorDirective
+                        var expr = string.IsNullOrWhiteSpace(exprText)
+                            ? new PreprocessorExpression
+                            {
+                                Chain = new PreprocessorExpressionChain()
+                            }
+                            : PreprocessorExpressionParser.ParseExpansion(PreprocessorExpressionLexer.Lex(exprText));
+                        AddDirective(MakeDirective(expr, new PreprocessorDirective
                         {
                             Define = new PreprocessorDirectiveDefine
                             {
                                 Identifier = variableMatch.Groups[1].Value,
                                 IsFunction = false,
-                                Expansion =
-                                    string.IsNullOrWhiteSpace(exprText)
-                                    ? new PreprocessorExpression
-                                    {
-                                        Chain = new PreprocessorExpressionChain()
-                                    }
-                                    : PreprocessorExpressionParser.ParseExpansion(PreprocessorExpressionLexer.Lex(exprText)),
+                                Expansion = expr,
                             },
-                        });
+                        }));
+                        return;
                     }
                     else
                     {
                         // Lenience.
                     }
-                    return null;
+                    return;
                 case "#undef":
-                    return MakeDirective(conditionHashes, conditionHashesUsed, new PreprocessorDirective
+                    AddDirective(MakeDirective(null, new PreprocessorDirective
                     {
                         Undefine = new PreprocessorDirectiveUndefine
                         {
                             Identifier = value.Trim(),
                         }
-                    });
+                    }));
+                    return;
                 case "#if":
-                    conditionHashes.Push(ComputeConditionHash(
-                        scanResult,
-                        PreprocessorExpressionParser.ParseCondition(PreprocessorExpressionLexer.Lex(value))));
-                    conditionHashesToPopOnEndIf.Push(1);
-                    return null;
                 case "#ifdef":
-                    conditionHashes.Push(ComputeConditionHash(
-                        scanResult,
-                        new PreprocessorExpression
-                        {
-                            Defined = value.Trim(),
-                        }));
-                    conditionHashesToPopOnEndIf.Push(1);
-                    return null;
                 case "#ifndef":
-                    conditionHashes.Push(ComputeConditionHash(
+                    var conditionHash = ComputeConditionHash(
                         scanResult,
-                        new PreprocessorExpression
+                        directive switch
                         {
-                            Unary = new PreprocessorExpressionUnary
+                            "#if" => PreprocessorExpressionParser.ParseCondition(PreprocessorExpressionLexer.Lex(value)),
+                            "#ifdef" => new PreprocessorExpression
                             {
-                                Type = PreprocessorExpressionTokenType.LogicalNot,
-                                Expression = new PreprocessorExpression
-                                {
-                                    Defined = value.Trim(),
-                                }
+                                Defined = value.Trim(),
                             },
-                        }));
-                    conditionHashesToPopOnEndIf.Push(1);
-                    return null;
-                case "#elif":
-                    var fromElifExpr = conditionHashes.Pop();
-                    conditionHashes.Push(ComputeConditionHash(
-                        scanResult,
-                        new PreprocessorExpression
-                        {
-                            Unary = new PreprocessorExpressionUnary
+                            "#ifndef" => new PreprocessorExpression
                             {
-                                Type = PreprocessorExpressionTokenType.LogicalNot,
-                                Expression = scanResult.Conditions[fromElifExpr].Condition,
-                            }
-                        }));
-                    conditionHashes.Push(ComputeConditionHash(
-                        scanResult,
-                        PreprocessorExpressionParser.ParseCondition(PreprocessorExpressionLexer.Lex(value))));
-                    conditionHashesToPopOnEndIf.Push(conditionHashesToPopOnEndIf.Pop() + 1);
-                    return null;
-                case "#else":
-                    var fromElseExpr = conditionHashes.Pop();
-                    conditionHashes.Push(ComputeConditionHash(
-                        scanResult,
-                        new PreprocessorExpression
-                        {
-                            Unary = new PreprocessorExpressionUnary
-                            {
-                                Type = PreprocessorExpressionTokenType.LogicalNot,
-                                Expression = scanResult.Conditions[fromElseExpr].Condition,
-                            }
-                        }));
-                    return null;
-                case "#endif":
-                    var toPop = conditionHashesToPopOnEndIf.Pop();
-                    for (int i = 0; i < toPop; i++)
+                                Unary = new PreprocessorExpressionUnary
+                                {
+                                    Type = PreprocessorExpressionTokenType.LogicalNot,
+                                    Expression = new PreprocessorExpression
+                                    {
+                                        Defined = value.Trim(),
+                                    }
+                                },
+                            },
+                            _ => throw new NotSupportedException()
+                        });
+                    var ifDirective = MakeDirective(null, new PreprocessorDirective
                     {
-                        conditionHashes.Pop();
+                        If = new PreprocessorDirectiveIf
+                        {
+                            ConditionHash = conditionHash,
+                        }
+                    });
+                    AddDirective(ifDirective);
+                    targetBlocks.Push(ifDirective);
+                    return;
+                case "#elif":
+                    if (targetBlocks.Count == 0 || targetBlocks.Peek().DirectiveCase != PreprocessorDirective.DirectiveOneofCase.If)
+                    {
+                        throw new Exception("Got #elif without an #if block.");
                     }
-                    return null;
+                    var elifConditionHash = ComputeConditionHash(
+                        scanResult,
+                        PreprocessorExpressionParser.ParseCondition(PreprocessorExpressionLexer.Lex(value)));
+                    var elifDirective = MakeDirective(null, new PreprocessorDirective
+                    {
+                        If = new PreprocessorDirectiveIf
+                        {
+                            ConditionHash = elifConditionHash,
+                        }
+                    });
+                    var currentIf = targetBlocks.Pop();
+                    currentIf.If.HasElseBranch = true;
+                    currentIf.If.ElseBranch = elifDirective;
+                    // @note: We don't call AddDirective because this branch
+                    // will be reached via ElseBranch.
+                    targetBlocks.Push(elifDirective);
+                    return;
+                case "#else":
+                    if (targetBlocks.Count == 0 || targetBlocks.Peek().DirectiveCase != PreprocessorDirective.DirectiveOneofCase.If)
+                    {
+                        throw new Exception("Got #else without an #if block.");
+                    }
+                    var elseDirective = MakeDirective(null, new PreprocessorDirective
+                    {
+                        Block = new PreprocessorDirectiveBlock()
+                    });
+                    var currentIfFromElse = targetBlocks.Pop();
+                    currentIfFromElse.If.HasElseBranch = true;
+                    currentIfFromElse.If.ElseBranch = elseDirective;
+                    // @note: We don't call AddDirective because this branch
+                    // will be reached via ElseBranch.
+                    targetBlocks.Push(elseDirective);
+                    return;
+                case "#endif":
+                    if (targetBlocks.Count == 0 || (
+                        targetBlocks.Peek().DirectiveCase != PreprocessorDirective.DirectiveOneofCase.If &&
+                        targetBlocks.Peek().DirectiveCase != PreprocessorDirective.DirectiveOneofCase.Block))
+                    {
+                        throw new Exception("Got #endif without an #if/#elif/#else block.");
+                    }
+                    targetBlocks.Pop();
+                    return;
             }
-            return null;
         }
 
         private static void GetUniqueIdentifiers(PreprocessorExpression expression, HashSet<string> identifiers)
@@ -291,12 +343,12 @@
         internal static ScanResult Scan(IEnumerable<string> lines)
         {
             var result = new ScanResult();
-            var conditionHashes = new Stack<long>();
-            var conditionHashesUsed = new HashSet<long>();
-            var conditionHashesToPopOnEndIf = new Stack<int>();
             var enumerator = lines.GetEnumerator();
             var lineNumber = 0;
             var inBlockComment = false;
+            var continuingPreviousDirectiveLine = false;
+            var previousDirectiveLine = string.Empty;
+            var targetBlocks = new Stack<PreprocessorDirective>();
             while (enumerator.MoveNext())
             {
                 lineNumber++;
@@ -329,16 +381,24 @@
                 }
 
                 // Is this a directive at all?
-                if (!line.StartsWith('#'))
+                if (!continuingPreviousDirectiveLine && !line.StartsWith('#'))
                 {
                     continue;
                 }
 
-                // Is it a directive we care about?
-                var directive = _directives.FirstOrDefault(x => line.StartsWith(x));
-                if (directive == null)
+                string? directive = null;
+                if (!continuingPreviousDirectiveLine)
                 {
-                    continue;
+                    // Strip all whitespace between the '#' and first non-whitespace
+                    // character to allow for directives like "#  if".
+                    line = '#' + line.Substring(1).TrimStart();
+
+                    // Is it a directive we care about?
+                    directive = _directives.FirstOrDefault(x => line.StartsWith(x));
+                    if (directive == null)
+                    {
+                        continue;
+                    }
                 }
 
                 // If the line has a // in it, strip off the comment.
@@ -378,6 +438,27 @@
                     }
                 }
 
+                // If the line ends in \, we need to grab more lines to generate the full directive value.
+                if (line.TrimEnd().EndsWith('\\'))
+                {
+                    previousDirectiveLine = previousDirectiveLine == string.Empty
+                        ? line.TrimEnd().TrimEnd('\\')
+                        : previousDirectiveLine + '\n' + line.TrimEnd().TrimEnd('\\');
+                    continuingPreviousDirectiveLine = true;
+                    continue;
+                }
+                else if (continuingPreviousDirectiveLine)
+                {
+                    line = previousDirectiveLine + '\n' + line;
+                    directive = _directives.FirstOrDefault(x => line.StartsWith(x))!;
+                    if (directive == null)
+                    {
+                        throw new InvalidOperationException("Evaluating the directive should already have passed.");
+                    }
+                    previousDirectiveLine = string.Empty;
+                    continuingPreviousDirectiveLine = false;
+                }
+
                 // Split the directive to get the value on the right.
                 var components = line.Split(new[] { ' ', '\t' }, 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 if (directive != components[0])
@@ -385,43 +466,137 @@
                     continue;
                 }
 
-                // While the value ends in \, grab more lines and stick them on the end.
+                // Determine the value associated with the directive.
                 string value = string.Empty;
                 if (components.Length == 2)
                 {
                     value = components[1];
-                    while (value[value.Length - 1] == '\\' && (value.Length == 1 || value[value.Length - 2] != '\\'))
-                    {
-                        enumerator.MoveNext();
-                        value = (value.Length > 2 ? value.Substring(0, value.Length - 2) : string.Empty) + "\n" +
-                            enumerator.Current;
-                    }
                 }
 
                 // Handle the directive.
-                PreprocessorDirective? processedDirective;
                 try
                 {
-                    processedDirective = ProcessDirective(directive, value, result, conditionHashes, conditionHashesToPopOnEndIf, conditionHashesUsed);
+                    ProcessDirective(
+                        directive, 
+                        value,
+                        targetBlocks,
+                        result);
                 }
                 catch (Exception ex)
                 {
                     throw new PreprocessorScannerException(lineNumber, line, ex);
                 }
-                if (processedDirective != null)
-                {
-                    result.Directives.Add(processedDirective);
-                }
             }
-            // Remove any conditions that weren't used by the preprocessor (i.e. these
-            // might be #if blocks that only control C/C++ code).
+
+            // Go and trim the directive tree, removing any if/block directives that
+            // have no content.
+            TrimDirectives(result.Directives);
+
+            // Rescan what condition hashes are actually used, and remove the ones
+            // that aren't.
+            var usedConditionHashes = new HashSet<long>();
+            ScanForUsedConditionHashes(usedConditionHashes, result.Directives);
             var unusedConditionHashes = result.Conditions.Keys.ToHashSet();
-            unusedConditionHashes.ExceptWith(conditionHashesUsed);
+            unusedConditionHashes.ExceptWith(usedConditionHashes);
             foreach (var hash in unusedConditionHashes)
             {
                 result.Conditions.Remove(hash);
             }
+
             return result;
+        }
+
+        private static void ScanForUsedConditionHashes(
+            HashSet<long> usedConditionHashes, 
+            IEnumerable<PreprocessorDirective> directives)
+        {
+            foreach (var directive in directives)
+            {
+                switch (directive.DirectiveCase)
+                {
+                    case PreprocessorDirective.DirectiveOneofCase.If:
+                        usedConditionHashes.Add(directive.If.ConditionHash);
+                        if (directive.If.HasElseBranch)
+                        {
+                            ScanForUsedConditionHashes(usedConditionHashes, new[] { directive.If.ElseBranch });
+                        }
+                        ScanForUsedConditionHashes(usedConditionHashes, directive.If.Subdirectives);
+                        break;
+                    case PreprocessorDirective.DirectiveOneofCase.Block:
+                        ScanForUsedConditionHashes(usedConditionHashes, directive.Block.Subdirectives);
+                        break;
+                }
+            }
+        }
+
+        private static void TrimDirectives(IList<PreprocessorDirective> directives)
+        {
+            for (int i = 0; i < directives.Count; i++)
+            {
+                var directive = directives[i];
+                switch (directive.DirectiveCase)
+                {
+                    case PreprocessorDirective.DirectiveOneofCase.If:
+                        if (directive.If.HasElseBranch)
+                        {
+                            TrimElseBranch(directive.If);
+                        }
+                        if (directive.If.Subdirectives.Count > 0)
+                        {
+                            TrimDirectives(directive.If.Subdirectives);
+                        }
+                        if (directive.If.Subdirectives.Count == 0 && 
+                            !directive.If.HasElseBranch)
+                        {
+                            directives.RemoveAt(i);
+                            i--;
+                        }
+                        break;
+                    case PreprocessorDirective.DirectiveOneofCase.Block:
+                        if (directive.Block.Subdirectives.Count > 0)
+                        {
+                            TrimDirectives(directive.Block.Subdirectives);
+                        }
+                        if (directive.Block.Subdirectives.Count == 0)
+                        {
+                            directives.RemoveAt(i);
+                            i--;
+                        }
+                        break;
+                }
+            }
+        }
+
+        private static void TrimElseBranch(PreprocessorDirectiveIf @if)
+        {
+            switch (@if.ElseBranch.DirectiveCase)
+            {
+                case PreprocessorDirective.DirectiveOneofCase.If:
+                    if (@if.ElseBranch.If.HasElseBranch)
+                    {
+                        TrimElseBranch(@if.ElseBranch.If);
+                    }
+                    if (@if.ElseBranch.If.Subdirectives.Count > 0)
+                    {
+                        TrimDirectives(@if.ElseBranch.If.Subdirectives);
+                    }
+                    if (@if.ElseBranch.If.Subdirectives.Count == 0 &&
+                        !@if.ElseBranch.If.HasElseBranch)
+                    {
+                        @if.HasElseBranch = false;
+                    }
+                    break;
+                case PreprocessorDirective.DirectiveOneofCase.Block:
+                    if (@if.ElseBranch.Block.Subdirectives.Count > 0)
+                    {
+                        TrimDirectives(@if.ElseBranch.Block.Subdirectives);
+                    }
+                    if (@if.ElseBranch.Block.Subdirectives.Count == 0)
+                    {
+                        @if.HasElseBranch = false;
+                    }
+                    break;
+            }
         }
     }
 }

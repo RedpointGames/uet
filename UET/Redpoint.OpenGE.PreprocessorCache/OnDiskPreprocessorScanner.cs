@@ -7,7 +7,7 @@
 
     internal class OnDiskPreprocessorScanner
     {
-        internal const int _cacheVersion = 6;
+        internal const int _cacheVersion = 7;
 
         public async Task<PreprocessorScanResult> ParseIncludes(
             string filePath,
