@@ -108,5 +108,13 @@ namespace Redpoint.OpenGE.PreprocessorCache.Tests
             AssertWhitespace(results[1]);
             AssertText(results[2], "\"b\"");
         }
+
+        [Fact]
+        public void LexZero()
+        {
+            var results = PreprocessorExpressionLexer.Lex("0").ToArray();
+            Assert.Single(results);
+            AssertNumber(results[0], 0);
+        }
     }
 }

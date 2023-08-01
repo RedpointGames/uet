@@ -80,22 +80,18 @@
                             nextToken = PreprocessorExpressionTokenType.GreaterThan;
                             break;
                         case '&' when lookAhead == '&':
-                            nextToken = PreprocessorExpressionTokenType.BooleanAnd;
+                            nextToken = PreprocessorExpressionTokenType.LogicalAnd;
                             position++;
                             break;
                         case '&':
                             nextToken = PreprocessorExpressionTokenType.BitwiseAnd;
                             break;
                         case '|' when lookAhead == '|':
-                            nextToken = PreprocessorExpressionTokenType.BooleanOr;
+                            nextToken = PreprocessorExpressionTokenType.LogicalOr;
                             position++;
                             break;
                         case '|':
-                            nextToken = PreprocessorExpressionTokenType.BitwiseBor;
-                            break;
-                        case '^' when lookAhead == '^':
-                            nextToken = PreprocessorExpressionTokenType.BooleanXor;
-                            position++;
+                            nextToken = PreprocessorExpressionTokenType.BitwiseOr;
                             break;
                         case '^':
                             nextToken = PreprocessorExpressionTokenType.BitwiseXor;
@@ -104,7 +100,7 @@
                             nextToken = PreprocessorExpressionTokenType.BitwiseNot;
                             break;
                         case '!':
-                            nextToken = PreprocessorExpressionTokenType.BooleanNot;
+                            nextToken = PreprocessorExpressionTokenType.LogicalNot;
                             break;
                         case '#' when lookAhead == '#':
                             nextToken = PreprocessorExpressionTokenType.Join;
@@ -167,6 +163,14 @@
                             Identifier = buffer.ToString(),
                         };
                         buffer.Clear();
+                    }
+                    else if (current == '0' && (lookAhead == ' ' || lookAhead == '\t' || lookAhead == '\n' || lookAhead == '\r' || lookAhead == unchecked((char)-1)))
+                    {
+                        // Process exactly zero.
+                        yield return new PreprocessorExpressionToken
+                        {
+                            Number = 0,
+                        };
                     }
                     else if ((current == '0' && (lookAhead == 'b' || lookAhead == 'x' || (lookAhead >= '0' && lookAhead <= '7'))) ||
                         (current >= '1' && current <= '9'))
