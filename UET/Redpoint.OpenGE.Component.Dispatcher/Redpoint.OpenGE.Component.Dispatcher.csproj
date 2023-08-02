@@ -3,6 +3,11 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <ItemGroup>
+    <PackageReference Include="System.Linq.Async" Version="6.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.ApplicationLifecycle\Redpoint.ApplicationLifecycle.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Component.PreprocessorCache\Redpoint.OpenGE.Component.PreprocessorCache.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.JobXml\Redpoint.OpenGE.JobXml.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Protocol\Redpoint.OpenGE.Protocol.csproj" />

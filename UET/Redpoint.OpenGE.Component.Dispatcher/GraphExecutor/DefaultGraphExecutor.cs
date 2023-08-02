@@ -1,7 +1,8 @@
-﻿namespace Redpoint.OpenGE.Executor
+﻿namespace Redpoint.OpenGE.Component.Dispatcher.GraphExecutor
 {
     using Crayon;
     using Microsoft.Extensions.Logging;
+    using Redpoint.OpenGE.Component.Dispatcher.Graph;
     using Redpoint.OpenGE.Executor.BuildSetData;
     using Redpoint.ProcessExecution;
     using System;
@@ -12,9 +13,9 @@
     using System.Threading.Tasks;
     using static Crayon.Output;
 
-    internal class DefaultOpenGEGraphExecutor : IOpenGEGraphExecutor
+    internal class DefaultGraphExecutor : IGraphExecutor
     {
-        private readonly ILogger<DefaultOpenGEGraphExecutor> _logger;
+        private readonly ILogger<DefaultGraphExecutor> _logger;
         private readonly IOpenGETaskExecutor[] _taskExecutors;
         private readonly Dictionary<string, string> _environmentVariables;
         private readonly bool _turnOffExtraLogInfo;
@@ -28,8 +29,8 @@
         private long _remainingTasks;
         private long _totalTasks;
 
-        public DefaultOpenGEGraphExecutor(
-            ILogger<DefaultOpenGEGraphExecutor> logger,
+        public DefaultGraphExecutor(
+            ILogger<DefaultGraphExecutor> logger,
             IOpenGETaskExecutor[] taskExecutors,
             BuildSet buildSet,
             Dictionary<string, string> environmentVariables,
@@ -228,65 +229,10 @@
             }
         }
 
-        internal static string[] SplitArguments(string arguments)
-        {
-            var argumentList = new List<string>();
-            var buffer = string.Empty;
-            var inQuote = false;
-            var isEscaping = false;
-            for (int i = 0; i < arguments.Length; i++)
-            {
-                var chr = arguments[i];
-                if (isEscaping)
-                {
-                    if (chr == '\\' || chr == '"')
-                    {
-                        buffer += chr;
-                    }
-                    else
-                    {
-                        buffer += '\\';
-                        buffer += chr;
-                    }
-                    isEscaping = false;
-                }
-                else if (chr == '\\')
-                {
-                    isEscaping = true;
-                }
-                else if (chr == '"')
-                {
-                    // @todo: Do we need to handle \" sequence?
-                    inQuote = !inQuote;
-                }
-                else if (inQuote)
-                {
-                    buffer += chr;
-                }
-                else if (chr == ' ')
-                {
-                    if (!string.IsNullOrWhiteSpace(buffer))
-                    {
-                        argumentList.Add(buffer);
-                        buffer = string.Empty;
-                    }
-                }
-                else
-                {
-                    buffer += chr;
-                }
-            }
-            if (!string.IsNullOrWhiteSpace(buffer))
-            {
-                argumentList.Add(buffer);
-            }
-            return argumentList.ToArray();
-        }
-
         private string GetBuildStatusLogPrefix(int remainingOffset)
         {
             var remainingTasks = _remainingTasks + remainingOffset;
-            var percent = (1.0 - (_totalTasks == 0 ? 0.0 : ((double)remainingTasks / _totalTasks))) * 100.0;
+            var percent = (1.0 - (_totalTasks == 0 ? 0.0 : (double)remainingTasks / _totalTasks)) * 100.0;
             var totalTasksLength = _totalTasks.ToString().Length;
             return $"{(_buildLogPrefix == string.Empty ? string.Empty : $"{_buildLogPrefix} ")}[{percent,3:0}%, {(_totalTasks - remainingTasks).ToString().PadLeft(totalTasksLength)}/{_totalTasks}]";
         }

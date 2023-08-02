@@ -7,6 +7,7 @@
     <None Remove="PreprocessorCache.proto" />
     <None Remove="Process.proto" />
     <None Remove="Task.proto" />
+    <None Remove="TaskDescriptor.proto" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +26,7 @@
       <GrpcServices>Both</GrpcServices>
     </Protobuf>
     <Protobuf Include="Process.proto" Access="Public" GrpcServices="Both" />
+    <Protobuf Include="TaskDescriptor.proto" Access="Public" GrpcServices="Both" />
     <Protobuf Include="Task.proto" Access="Public" GrpcServices="Both" />
   </ItemGroup>
 

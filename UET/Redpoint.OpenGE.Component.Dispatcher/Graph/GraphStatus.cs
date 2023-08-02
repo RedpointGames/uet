@@ -1,4 +1,4 @@
-﻿namespace Redpoint.OpenGE.Executor
+﻿namespace Redpoint.OpenGE.Component.Dispatcher.Graph
 {
     internal enum GraphStatus
     {

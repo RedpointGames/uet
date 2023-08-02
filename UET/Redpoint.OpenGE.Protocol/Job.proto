@@ -11,6 +11,25 @@ message SubmitJobRequest {
 	string workingDirectory = 4;
 }
 
+enum JobCompletionStatus {
+	Unknown = 0;
+	Success = 1;
+	Failure = 2;
+	Cancelled = 3;
+}
+
+message JobCompleteResponse {
+	JobCompletionStatus status = 1;
+	int32 exitCode = 2;
+	double totalSeconds = 3;
+}
+
+message JobResponse {
+	oneof response {
+		JobCompleteResponse jobComplete = 1;
+	}
+}
+
 service JobApi {
-	rpc SubmitJob(SubmitJobRequest) returns (stream ProcessResponse) {}
+	rpc SubmitJob(SubmitJobRequest) returns (stream JobResponse) {}
 }

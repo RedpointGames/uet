@@ -3,122 +3,244 @@ syntax = "proto3";
 package Redpoint.OpenGE.Protocol;
 
 import "Process.proto";
+import "TaskDescriptor.proto";
 
-/** File synchronisation for tools */
+/**
+ * Sent by the client at the start of the streaming call to
+ * request that a core be reserved on the remote worker for 
+ * this piece of work. A client should only be trying to
+ * reserve one core per worker at a time, to reduce how many
+ * streaming RPCs are open at any given time to a worker.
+ *
+ * Once a worker reserves a core for a client, a second
+ * ReserveCoreAndExecuteTask call can be issued if the client
+ * still has more work to schedule.
+ */
+message ReserveCoreRequest {
+	bool waitForever = 1;
+	double waitSeconds = 2;
+}
 
+/**
+ * Sent by the worker when a core has been reserved, or the
+ * timeout specified by the client has elapsed. If reserved
+ * is false, the server will close the streaming call
+ * afterwards.
+ */
+message ReserveCoreResponse {
+	bool reserved = 1;
+}
+
+/** 
+ * Sent by a client when it no longer needs to reserve
+ * a core on this worker, and ReserveCoreResponse has not
+ * been received yet. Clients should use this if they
+ * found somewhere else to schedule the work.
+ *
+ * After the server receives this message, it will simply
+ * close the streaming call with no further responses.
+ */
+message CancelReserveCoreRequest {
+}
+
+/**
+ * Sent by a client to query whether or not a tool is
+ * already available on a remote worker.
+ */
 message QueryToolRequest {
 	int64 toolXxHash64 = 1;
 }
 
+/**
+ * Sent by a worker in response to QueryToolRequest to
+ * indicate whether the tool is present.
+ */
 message QueryToolResponse {
 	bool present = 1;
 }
 
-message HasToolBlobRequest {
-	int64 toolBlobXxHash64 = 1;
+/**
+ * Describes a blob that a worker might have stored.
+ */
+message ToolBlob {
+	int64 xxHash64 = 1;
 	string localHintPath = 2;
 }
 
-message HasToolBlobResponse {
-	bool exists = 1;
+/**
+ * Sent by a client to query which tool blobs are
+ * already present on a remote worker.
+ */
+message HasToolBlobsRequest {
+	repeated ToolBlob toolBlobs = 1;
 }
 
+/**
+ * Describes whether a tool blob is present on the
+ * worker.
+ */
+message ToolBlobExistence {
+	int64 xxHash64 = 1;
+	bool exists = 2;
+}
+
+/**
+ * Sent by a worker in response to HasToolBlobsRequest
+ * to indicate which tool blobs are present.
+ */
+message HasToolBlobsResponse {
+	repeated ToolBlobExistence existence = 1;
+}
+
+/** 
+ * Sent by a client to write a chunk of data for a
+ * tool blob that the worker does not already have.
+ */
 message WriteToolBlobRequest {
-	int64 toolBlobXxHash64 = 1;
-	int64 offset = 2;
+	oneof initialOrSubsequent {
+		int64 toolBlobXxHash64 = 1;
+		int64 offset = 2;
+	}
 	bool finishWrite = 3;
 	bytes data = 10;
 }
 
+/**
+ * Sent by a worker *after* a WriteToolBlobRequest
+ * with "finishWrite" set to true is sent, to
+ * indicate that the worker has saved the tool
+ * blob to it's storage.
+ */
 message WriteToolBlobResponse {
 	int64 committedSize = 1;
 }
 
+/**
+ * Sent by a client to constructs a tool on the
+ * worker from one or more tool blobs with the 
+ * specified file layout.
+ */
 message ConstructToolRequest {
 	int64 toolXxHash64 = 1;
 	map<int64, string> toolBlobXxHash64ToUnixRelativePath = 2;
 }
 
+/**
+ * Sent by a worker once the tool has been constructed 
+ * (i.e. the worker has stored how this tool should be
+ * laid out on disk when needed for future executions).
+ */
 message ConstructToolResponse {
+	int64 toolXxHash64 = 1;
 }
 
-/** File synchronisation for data */
-
+/**
+ * Sent by a client to query which (non-tool) blobs it
+ * has in storage.
+ */
 message QueryMissingBlobsRequest {
 	repeated int64 blobXxHash64 = 1;
 }
 
+/**
+ * Sent by a worker to indicate the blobs that it is
+ * missing.
+ */
 message QueryMissingBlobsResponse {
 	repeated int64 blobXxHash64 = 1;
 }
 
+/**
+ * Sent by a client to start or continue sending a compressed
+ * ZIP file of missing blobs to a worker.
+ */
 message SendCompressedBlobsRequest {
-	bytes zipArchive = 1;
+	int64 offset = 1;
+	bool finishWrite = 2;
+	bytes data = 10;
 }
 
+/**
+ * Sent by a worker *after* a SendCompressedBlobsRequest
+ * with "finishWrite" set to true, and the compressed ZIP
+ * has been expanded and blobs stored to disk on the worker.
+ */
 message SendCompressedBlobsResponse {
 }
 
-/** Process execution */
-
-message LocalTaskDescriptor {
-	string path = 1;
-	repeated string arguments = 2;
-	map<string, string> environmentVariables = 3;
-	string workingDirectory = 4;
-}
-
-message InputFilesByPath {
-	repeated string absolutePaths = 1;
-}
-
-message InputFilesByBlobXxHash64 {
-	map<string, int64> absolutePathsToBlobs = 2;
-}
-
-message RemoteTaskDescriptor {
-	oneof tool {
-		int64 xxHash64 = 1;
-		string localAbsolutePath = 2;
-	}
-	repeated string arguments = 3;
-	map<string, string> environmentVariables = 4;
-	string workingDirectory = 5;
-	oneof input {
-		InputFilesByPath byPath = 6;
-		InputFilesByBlobXxHash64 byBlobXxHash64 = 7;
-	}
-	repeated string outputAbsolutePaths = 8;
-}
-
-message CopyTaskDescriptor {
-	string fromAbsolutePath = 1;
-	string toAbsolutePath = 2;
-}
-
-message TaskDescriptor {
-	oneof descriptor {
-		LocalTaskDescriptor local = 1;
-		RemoteTaskDescriptor remote = 2;
-		CopyTaskDescriptor copy = 3;
-	}
-}
-
+/**
+ * Sent by a client after:
+ *
+ * 1. the core has been reserved,
+ * 2. the tool blobs have been synced, and
+ * 3. all non-tool blobs have been sent
+ *
+ * to actually execute the task on the worker.
+ */
 message ExecuteTaskRequest {
 	TaskDescriptor descriptor = 1;
 }
 
+/**
+ * Sent by the worker as the task is executed. Once the 
+ * worker has sent a ProcessResponse with the exit code
+ * set, the client can then either:
+ *
+ * - sync more tool blobs
+ * - sync more non-tool blobs
+ * - execute more tasks
+ * - close the streaming call to unreserve the core
+ *
+ * The core is not unreserved on the worker until the
+ * client disconnects (either intentionally or otherwise).
+ */
+message ExecuteTaskResponse {
+	ProcessResponse response = 1;
+}
+
+/** 
+ * Encapsulates all of the requests that a client could send.
+ */
+message ExecutionRequest {
+	oneof request {
+		ReserveCoreRequest reserveCore = 1;
+		CancelReserveCoreRequest cancelReserveCore = 2;
+		QueryToolRequest queryTool = 3;
+		HasToolBlobsRequest hasToolBlobs = 4;
+		WriteToolBlobRequest writeToolBlob = 5;
+		ConstructToolRequest constructTool = 6;
+		QueryMissingBlobsRequest queryMissingBlobs = 7;
+		SendCompressedBlobsRequest sendCompressedBlobs = 8;
+		ExecuteTaskRequest executeTask = 9;
+	}
+}
+
+/**
+ * Encapsulates all of the responses a worker could send.
+ */
+message ExecutionResponse {
+	oneof response {
+		ReserveCoreResponse reserveCore = 1;
+		// No response for CancelReserveCoreRequest
+		QueryToolResponse queryTool = 3;
+		HasToolBlobsResponse hasToolBlobs = 4;
+		WriteToolBlobResponse writeToolBlob = 5;
+		ConstructToolResponse constructTool = 6;
+		QueryMissingBlobsResponse queryMissingBlobs = 7;
+		SendCompressedBlobsResponse sendCompressedBlobs = 8;
+		ExecuteTaskResponse executeTask = 9;
+	}
+}
+
+/**
+ * The task API only uses streaming requests, because the 
+ * server needs to know if the client disappears at any time
+ * (including crashes) so it can unreserve cores.
+ */
 service TaskApi {
-	/** File synchronisation for tools */
-	rpc QueryTool(QueryToolRequest) returns (QueryToolResponse) {}
-	rpc HasToolBlob(HasToolBlobRequest) returns (HasToolBlobResponse) {}
-	rpc WriteToolBlob(stream WriteToolBlobRequest) returns (WriteToolBlobResponse) {}
-	rpc ConstructTool(ConstructToolRequest) returns (ConstructToolResponse) {}
-
-	/** File synchronisation for data */
-	rpc QueryMissingBlobs(QueryMissingBlobsRequest) returns (QueryMissingBlobsResponse) {}
-	rpc SendCompressedBlobs(SendCompressedBlobsRequest) returns (SendCompressedBlobsResponse) {}
-
-	/** Task execution */
-	rpc ExecuteTask(ExecuteTaskRequest) returns (stream ProcessResponse) {}
+	/**
+	 * Streaming call used by clients to reserve cores, sync
+	 * data and execute tasks.
+	 */
+	rpc ReserveCoreAndExecute(stream ExecutionRequest) returns (stream ExecutionResponse) {}
 }

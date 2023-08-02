@@ -1,12 +1,6 @@
-﻿namespace Redpoint.OpenGE.Executor
+﻿namespace Redpoint.OpenGE.Component.Dispatcher.Graph
 {
     using Redpoint.OpenGE.JobXml;
-
-    internal record class GraphExecutionEnvironment
-    {
-        public required string WorkingDirectory { get; set; }
-        public required Dictionary<string, string> EnvironmentVariables { get; set; }
-    }
 
     internal record class GraphTaskSpec
     {

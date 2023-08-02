@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.OpenGE.Component.Dispatcher.TaskDescriptorFactories
 {
-    using Redpoint.OpenGE.Executor;
+    using Redpoint.OpenGE.Component.Dispatcher.Graph;
     using Redpoint.OpenGE.Protocol;
 
     internal class LocalTaskDescriptorFactory : ITaskDescriptorFactory
