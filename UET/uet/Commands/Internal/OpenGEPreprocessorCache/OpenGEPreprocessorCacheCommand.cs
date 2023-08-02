@@ -1,11 +1,9 @@
 ﻿namespace UET.Commands.Internal.OpenGEPreprocessorCache
 {
-    using Grpc.Core;
     using Microsoft.Extensions.Logging;
-    using PreprocessorCacheApi;
     using Redpoint.GrpcPipes;
-    using Redpoint.OpenGE.PreprocessorCache;
-    using Redpoint.Reservation;
+    using Redpoint.OpenGE.Component.PreprocessorCache;
+    using Redpoint.OpenGE.Component.PreprocessorCache.OnDemand;
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
@@ -26,77 +24,47 @@
             return command;
         }
 
-        private class OpenGEPreprocessorCacheCommandInstance : PreprocessorCache.PreprocessorCacheBase, ICommandInstance
+        private class OpenGEPreprocessorCacheCommandInstance : ICommandInstance
         {
             private readonly IGrpcPipeFactory _grpcPipeFactory;
-            private readonly ICachingPreprocessorScannerFactory _cachingPreprocessorScannerFactory;
-            private readonly IPreprocessorResolver _preprocessorResolver;
-            private readonly IReservationManagerFactory _reservationManagerFactory;
+            private readonly IPreprocessorCacheFactory _preprocessorCacheFactory;
             private readonly ILogger<OpenGEPreprocessorCacheCommandInstance> _logger;
-            private ICachingPreprocessorScanner? _cachingScanner;
-            private DateTimeOffset _lastUsedUtc;
 
             public OpenGEPreprocessorCacheCommandInstance(
                 IGrpcPipeFactory grpcPipeFactory,
-                ICachingPreprocessorScannerFactory cachingPreprocessorScannerFactory,
-                IPreprocessorResolver preprocessorResolver,
-                IReservationManagerFactory reservationManagerFactory,
+                IPreprocessorCacheFactory preprocessorCacheFactory,
                 ILogger<OpenGEPreprocessorCacheCommandInstance> logger)
             {
                 _grpcPipeFactory = grpcPipeFactory;
-                _cachingPreprocessorScannerFactory = cachingPreprocessorScannerFactory;
-                _preprocessorResolver = preprocessorResolver;
-                _reservationManagerFactory = reservationManagerFactory;
+                _preprocessorCacheFactory = preprocessorCacheFactory;
                 _logger = logger;
-                _lastUsedUtc = DateTimeOffset.UtcNow;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
-                var dataDirectory = true switch
-                {
-                    var v when v == OperatingSystem.IsWindows() => Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                        "OpenGE",
-                        "Cache"),
-                    var v when v == OperatingSystem.IsMacOS() => Path.Combine("/Users", "Shared", "OpenGE", "Cache"),
-                    var v when v == OperatingSystem.IsLinux() => Path.Combine("/tmp", "OpenGE", "Cache"),
-                    _ => throw new PlatformNotSupportedException(),
-                };
-                var reservationManager = _reservationManagerFactory.CreateReservationManager(dataDirectory);
-
-                var reservation = await reservationManager.TryReserveExactAsync("Preprocessor");
-                if (reservation == null)
-                {
-                    _logger.LogInformation("Another instance of the OpenGE preprocessor cache is running.");
-                    return 0;
-                }
-                IGrpcPipeServer<OpenGEPreprocessorCacheCommandInstance>? server = null;
+                IGrpcPipeServer<AbstractInProcessPreprocessorCache>? server = null;
                 try
                 {
-                    await using (reservation)
+                    _logger.LogInformation("Starting OpenGE preprocessor cache...");
+
+                    await using (var cache = _preprocessorCacheFactory.CreateInProcessCache())
                     {
-                        _logger.LogInformation("Starting OpenGE preprocessor cache...");
+                        await cache.EnsureAsync();
 
-                        using (_cachingScanner = _cachingPreprocessorScannerFactory.CreateCachingPreprocessorScanner(reservation.ReservedPath))
+                        server = _grpcPipeFactory.CreateServer(
+                            "OpenGEPreprocessorCache",
+                            GrpcPipeNamespace.Computer,
+                            cache);
+                        await server.StartAsync();
+
+                        // Run until terminated, or until we've been idle for 5 minutes.
+                        while (!context.GetCancellationToken().IsCancellationRequested)
                         {
-                            server = _grpcPipeFactory.CreateServer(
-                                "OpenGEPreprocessorCache",
-                                GrpcPipeNamespace.Computer,
-                                this);
-                            await server.StartAsync();
-
-                            _lastUsedUtc = DateTimeOffset.UtcNow;
-
-                            // Run until terminated, or until we've been idle for 5 minutes.
-                            while (!context.GetCancellationToken().IsCancellationRequested)
+                            await Task.Delay(10000, context.GetCancellationToken());
+                            if ((DateTimeOffset.UtcNow - cache.LastGrpcRequestUtc).TotalMinutes > 5)
                             {
-                                await Task.Delay(10000, context.GetCancellationToken());
-                                if ((DateTimeOffset.UtcNow - _lastUsedUtc).TotalMinutes > 5)
-                                {
-                                    _logger.LogInformation("OpenGE preprocessor cache is automatically exiting because it has been idle for more than 5 minutes.");
-                                    return 0;
-                                }
+                                _logger.LogInformation("OpenGE preprocessor cache is automatically exiting because it has been idle for more than 5 minutes.");
+                                return 0;
                             }
                         }
 
@@ -113,48 +81,6 @@
                         await server.StopAsync();
                     }
                 }
-            }
-
-            public override Task<PingResponse> Ping(PingRequest request, ServerCallContext context)
-            {
-                return Task.FromResult(new PingResponse());
-            }
-
-            public override async Task<GetUnresolvedDependenciesResponse> GetUnresolvedDependencies(
-                GetUnresolvedDependenciesRequest request,
-                ServerCallContext context)
-            {
-                _lastUsedUtc = DateTimeOffset.UtcNow;
-                var result = await _cachingScanner!.ParseIncludes(
-                    request.Path,
-                    context.CancellationToken);
-                var response = new GetUnresolvedDependenciesResponse
-                {
-                    Result = result,
-                };
-                _lastUsedUtc = DateTimeOffset.UtcNow;
-                return response;
-            }
-
-            public override async Task<GetResolvedDependenciesResponse> GetResolvedDependencies(
-                GetResolvedDependenciesRequest request,
-                ServerCallContext context)
-            {
-                _lastUsedUtc = DateTimeOffset.UtcNow;
-                var result = await _preprocessorResolver.ResolveAsync(
-                    _cachingScanner!,
-                    request.Path,
-                    request.ForceIncludeFromPchPaths.ToArray(),
-                    request.ForceIncludePaths.ToArray(),
-                    request.IncludeDirectories.ToArray(),
-                    request.SystemIncludeDirectories.ToArray(),
-                    request.GlobalDefinitions.ToDictionary(k => k.Key, v => v.Value),
-                    context.CancellationToken);
-                _lastUsedUtc = DateTimeOffset.UtcNow;
-                return new GetResolvedDependenciesResponse
-                {
-                    Result = result
-                };
             }
         }
     }

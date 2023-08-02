@@ -1,0 +1,180 @@
+syntax = "proto3";
+
+package Redpoint.OpenGE.Protocol;
+
+enum PreprocessorExpressionTokenType {
+	ParenOpen = 0;
+	ParenClose = 1;
+	Add = 2;
+	Subtract = 3;
+	Multiply = 4;
+	Divide = 5;
+	Modulus = 6;
+	Equals = 7;
+	NotEquals = 8;
+	LessThan = 9;
+	LessEquals = 10;
+	GreaterThan = 11;
+	GreaterEquals = 12;
+	BitwiseAnd = 13;
+	BitwiseOr = 14;
+	BitwiseXor = 15;
+	BitwiseNot = 16;
+	LeftShift = 17;
+	RightShift = 18;
+	LogicalOr = 19;
+	LogicalAnd = 20;
+	LogicalNot = 22;
+	Stringify = 23;
+	Join = 24;
+	Comma = 25;
+}
+
+message PreprocessorExpressionToken {
+	oneof data {
+		PreprocessorExpressionTokenType type = 1;
+		string identifier = 2;
+		int64 number = 3;
+		string text = 4;
+		string whitespace = 5;
+	}
+	string numberOriginal = 6;
+}
+
+message PreprocessorExpressionInvoke {
+	string identifier = 1;
+	repeated PreprocessorExpression arguments = 2;
+}
+
+message PreprocessorExpressionUnary {
+	PreprocessorExpression expression = 1;
+	PreprocessorExpressionTokenType type = 2;
+}
+
+message PreprocessorExpressionBinary {
+	PreprocessorExpression left = 1;
+	PreprocessorExpression right = 2;
+	PreprocessorExpressionTokenType type = 3;
+}
+
+message PreprocessorExpressionChain {
+	repeated PreprocessorExpression expressions = 1;
+}
+
+message PreprocessorExpression {
+	oneof expr {
+		PreprocessorExpressionInvoke invoke = 1;
+		PreprocessorExpressionToken token = 2;
+		PreprocessorExpressionUnary unary = 3;
+		PreprocessorExpressionBinary binary = 4;
+		PreprocessorExpressionChain chain = 5;
+		string whitespace = 6;
+		string defined = 7;
+		string hasInclude = 8;
+	}
+}
+
+message PreprocessorDirectiveInclude {
+	oneof include {
+		string normal = 1;
+		string system = 2;
+		PreprocessorExpression expansion = 3;
+	}
+}
+
+message PreprocessorDirectiveDefine {
+	string identifier = 1;
+	bool isFunction = 2;
+	repeated string parameters = 3;
+	PreprocessorExpression expansion = 4;
+}
+
+message PreprocessorDirectiveUndefine {
+	string identifier = 1;
+}
+
+message PreprocessorCondition {
+	int64 conditionHash = 1;
+	repeated string dependentOnIdentifiers = 2;
+	PreprocessorExpression condition = 3;
+}
+
+message PreprocessorDirectiveIf {
+	int64 conditionHash = 1;
+	repeated PreprocessorDirective subdirectives = 2;
+	bool hasElseBranch = 3;
+	PreprocessorDirective elseBranch = 4;
+}
+
+message PreprocessorDirectiveBlock {
+	repeated PreprocessorDirective subdirectives = 1;
+}
+
+message PreprocessorDirective {
+	oneof directive {
+		PreprocessorDirectiveInclude include = 2;
+		PreprocessorDirectiveDefine define = 3;
+		PreprocessorDirectiveUndefine undefine = 4;
+		PreprocessorDirectiveIf if = 6;
+		PreprocessorDirectiveBlock block = 7;
+	}
+	repeated string referencedIdentifiers = 5;
+}
+
+message PreprocessorScanResult {
+	int64 fileLastWriteTicks = 1;
+	repeated PreprocessorCondition conditions = 2;
+	repeated PreprocessorDirective directives = 3;
+	int32 cacheVersion = 4;
+}
+
+message PreprocessorScanResultWithCacheMetadata {
+	PreprocessorScanResult result = 1;
+	int64 resolutionTimeMs = 2;
+	CacheHit cacheStatus = 3;
+}
+
+enum CacheHit {
+	Hit = 0;
+	MissDueToFileOutOfDate = 1;
+	MissDueToMissingFile = 2;
+	MissDueToOldCacheVersion = 3;
+}
+
+message GetUnresolvedDependenciesRequest {
+	string path = 1;
+}
+
+message GetUnresolvedDependenciesResponse {
+	PreprocessorScanResultWithCacheMetadata result = 1;
+}
+
+message GetResolvedDependenciesRequest {
+	string path = 1;
+	repeated string includeDirectories = 2;
+	repeated string systemIncludeDirectories = 3;
+	map<string, string> globalDefinitions = 4;
+	repeated string forceIncludePaths = 5;
+	repeated string forceIncludeFromPchPaths = 6;
+}
+
+message PreprocessorResolutionResultWithTimingMetadata {
+	repeated string dependsOnPaths = 1;
+	int64 resolutionTimeMs = 2;
+}
+
+message GetResolvedDependenciesResponse {
+	PreprocessorResolutionResultWithTimingMetadata result = 1;
+}
+
+message PingRequest {
+}
+
+message PingResponse {
+}
+
+service PreprocessorCacheApi {
+	rpc Ping(PingRequest) returns (PingResponse) {}
+	rpc GetUnresolvedDependencies(GetUnresolvedDependenciesRequest) returns (GetUnresolvedDependenciesResponse) {}
+	rpc GetResolvedDependencies(GetResolvedDependenciesRequest) returns (GetResolvedDependenciesResponse) {}
+}

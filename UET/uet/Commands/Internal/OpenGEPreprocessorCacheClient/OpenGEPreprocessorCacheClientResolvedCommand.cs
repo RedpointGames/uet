@@ -2,7 +2,9 @@
 {
     using Microsoft.Extensions.Logging;
     using PreprocessorCacheApi;
+    using Redpoint.OpenGE.Component.PreprocessorCache.OnDemand;
     using Redpoint.OpenGE.PreprocessorCache;
+    using Redpoint.OpenGE.Protocol;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Diagnostics;
@@ -61,7 +63,7 @@
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
-                var preprocessorCache = _preprocessorCacheFactory.CreatePreprocessorCache(new Redpoint.ProcessExecution.ProcessSpecification
+                var preprocessorCache = _preprocessorCacheFactory.CreateOnDemandCache(new Redpoint.ProcessExecution.ProcessSpecification
                 {
                     FilePath = _selfLocation.GetUETLocalLocation(),
                     Arguments = new[]
@@ -71,7 +73,7 @@
                     }
                 });
 
-                await preprocessorCache.EnsureConnectedAsync();
+                await preprocessorCache.EnsureAsync();
 
                 async Task<PreprocessorResolutionResultWithTimingMetadata> InvokeAsync()
                 {

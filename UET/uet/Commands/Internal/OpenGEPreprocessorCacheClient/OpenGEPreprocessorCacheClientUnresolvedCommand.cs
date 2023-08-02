@@ -1,7 +1,7 @@
 ﻿namespace UET.Commands.Internal.OpenGEPreprocessorCache
 {
     using Microsoft.Extensions.Logging;
-    using Redpoint.OpenGE.PreprocessorCache;
+    using Redpoint.OpenGE.Component.PreprocessorCache.OnDemand;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Diagnostics;
@@ -50,7 +50,7 @@
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
-                var preprocessorCache = _preprocessorCacheFactory.CreatePreprocessorCache(new Redpoint.ProcessExecution.ProcessSpecification
+                var preprocessorCache = _preprocessorCacheFactory.CreateOnDemandCache(new Redpoint.ProcessExecution.ProcessSpecification
                 {
                     FilePath = _selfLocation.GetUETLocalLocation(),
                     Arguments = new[]
@@ -60,7 +60,7 @@
                     }
                 });
 
-                await preprocessorCache.EnsureConnectedAsync();
+                await preprocessorCache.EnsureAsync();
 
                 var st = Stopwatch.StartNew();
                 var result = await preprocessorCache.GetUnresolvedDependenciesAsync(

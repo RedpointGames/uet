@@ -20,9 +20,9 @@
         private readonly bool _turnOffExtraLogInfo;
         private readonly string? _buildLogPrefix;
 
-        private Dictionary<string, OpenGETask> _allTasks;
-        private Dictionary<string, OpenGEProject> _allProjects;
-        private ConcurrentQueue<OpenGETask> _queuedTasksForProcessing;
+        private Dictionary<string, GraphTask> _allTasks;
+        private Dictionary<string, GraphProject> _allProjects;
+        private ConcurrentQueue<GraphTask> _queuedTasksForProcessing;
         private SemaphoreSlim _queuedTaskAvailableForProcessing;
         private SemaphoreSlim _updatingTaskForScheduling;
         private long _remainingTasks;
@@ -42,22 +42,22 @@
             _turnOffExtraLogInfo = turnOffExtraLogInfo;
             _buildLogPrefix = buildLogPrefix?.Trim() ?? string.Empty;
 
-            _allProjects = new Dictionary<string, OpenGEProject>();
-            _allTasks = new Dictionary<string, OpenGETask>();
-            _queuedTasksForProcessing = new ConcurrentQueue<OpenGETask>();
+            _allProjects = new Dictionary<string, GraphProject>();
+            _allTasks = new Dictionary<string, GraphTask>();
+            _queuedTasksForProcessing = new ConcurrentQueue<GraphTask>();
             _queuedTaskAvailableForProcessing = new SemaphoreSlim(0);
             _updatingTaskForScheduling = new SemaphoreSlim(1);
 
             foreach (var project in buildSet.Projects)
             {
-                _allProjects[project.Key] = new OpenGEProject
+                _allProjects[project.Key] = new GraphProject
                 {
                     BuildSetProject = project.Value,
                 };
 
                 foreach (var task in project.Value.Tasks)
                 {
-                    _allTasks[$"{project.Key}:{task.Key}"] = new OpenGETask
+                    _allTasks[$"{project.Key}:{task.Key}"] = new GraphTask
                     {
                         BuildSet = buildSet,
                         BuildSetProject = project.Value,
@@ -74,7 +74,7 @@
                             .Select(x => _allTasks[$"{project.Key}:{x}"]));
                     if (_allTasks[$"{project.Key}:{task.Key}"].DependsOn.Count == 0)
                     {
-                        _allTasks[$"{project.Key}:{task.Key}"].Status = OpenGEStatus.Scheduled;
+                        _allTasks[$"{project.Key}:{task.Key}"].Status = GraphStatus.Scheduled;
                         _queuedTasksForProcessing.Enqueue(_allTasks[$"{project.Key}:{task.Key}"]);
                         _queuedTaskAvailableForProcessing.Release();
                     }
@@ -95,7 +95,7 @@
 
         public bool CancelledDueToFailure { get; set; }
 
-        private (IOpenGETaskExecutor? executor, string[] arguments) GetExecutorForTask(OpenGETask task)
+        private (IOpenGETaskExecutor? executor, string[] arguments) GetExecutorForTask(GraphTask task)
         {
             var env = task.BuildSet.Environments[task.BuildSetProject.Env];
             var tool = env.Tools[task.BuildSetTask.Tool];
@@ -185,8 +185,8 @@
                     {
                         // We can't run this task.
                         var project = _allProjects[nextTask.BuildSetProject.Name];
-                        nextTask.Status = OpenGEStatus.Failure;
-                        project.Status = OpenGEStatus.Failure;
+                        nextTask.Status = GraphStatus.Failure;
+                        project.Status = GraphStatus.Failure;
                         CancelledDueToFailure = true;
                         if (!_turnOffExtraLogInfo)
                         {
@@ -201,7 +201,7 @@
                     }
                 }
                 cancellationToken.ThrowIfCancellationRequested();
-                return _allTasks.Values.Any(x => x.Status != OpenGEStatus.Success) ? 1 : 0;
+                return _allTasks.Values.Any(x => x.Status != GraphStatus.Success) ? 1 : 0;
             }
             finally
             {
@@ -291,7 +291,7 @@
             return $"{(_buildLogPrefix == string.Empty ? string.Empty : $"{_buildLogPrefix} ")}[{percent,3:0}%, {(_totalTasks - remainingTasks).ToString().PadLeft(totalTasksLength)}/{_totalTasks}]";
         }
 
-        private async Task ExecuteTaskAsync(IOpenGETaskExecutor executor, OpenGETask task, string[] arguments, IDisposable virtualCore, CancellationTokenSource buildCancellationTokenSource)
+        private async Task ExecuteTaskAsync(IOpenGETaskExecutor executor, GraphTask task, string[] arguments, IDisposable virtualCore, CancellationTokenSource buildCancellationTokenSource)
         {
             var cancellationToken = buildCancellationTokenSource.Token;
 
@@ -299,23 +299,23 @@
             {
                 // Check if the project is failed and whether we should skip on project failure.
                 var project = _allProjects[task.BuildSetProject.Name];
-                if (project.Status == OpenGEStatus.Failure && task.BuildSetTask.SkipIfProjectFailed)
+                if (project.Status == GraphStatus.Failure && task.BuildSetTask.SkipIfProjectFailed)
                 {
-                    task.Status = OpenGEStatus.Skipped;
+                    task.Status = GraphStatus.Skipped;
                     return;
                 }
 
                 // Check if any of our dependencies have failed or are skipped. If they have, we are skipped.
-                if (task.DependsOn.Any(x => x.Status == OpenGEStatus.Failure || x.Status == OpenGEStatus.Skipped))
+                if (task.DependsOn.Any(x => x.Status == GraphStatus.Failure || x.Status == GraphStatus.Skipped))
                 {
-                    task.Status = OpenGEStatus.Skipped;
+                    task.Status = GraphStatus.Skipped;
                     return;
                 }
 
                 // Start the task.
                 try
                 {
-                    task.Status = OpenGEStatus.Running;
+                    task.Status = GraphStatus.Running;
                     if (!_turnOffExtraLogInfo)
                     {
                         _logger.LogInformation($"{GetBuildStatusLogPrefix(0)} {task.BuildSetTask.Caption} {Bright.Black($"[started on {virtualCore.ToString()}]")}");
@@ -381,7 +381,7 @@
 
                     if (exitCode == 0)
                     {
-                        task.Status = OpenGEStatus.Success;
+                        task.Status = GraphStatus.Success;
                         if (!_turnOffExtraLogInfo)
                         {
                             _logger.LogInformation($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Bright.Green($"[done in {stopwatch.Elapsed.TotalSeconds:F2} secs]")}");
@@ -393,8 +393,8 @@
                     }
                     else
                     {
-                        task.Status = OpenGEStatus.Failure;
-                        project.Status = OpenGEStatus.Failure;
+                        task.Status = GraphStatus.Failure;
+                        project.Status = GraphStatus.Failure;
                         _logger.LogTrace($"Setting CancelledDueToFailure = true because {task.BuildSetTask.Caption} returned with exit code {exitCode}");
                         CancelledDueToFailure = true;
                         if (!_turnOffExtraLogInfo)
@@ -412,8 +412,8 @@
                 }
                 catch (Exception ex)
                 {
-                    task.Status = OpenGEStatus.Failure;
-                    project.Status = OpenGEStatus.Failure;
+                    task.Status = GraphStatus.Failure;
+                    project.Status = GraphStatus.Failure;
                     if (!(ex is OperationCanceledException))
                     {
                         _logger.LogTrace($"Setting CancelledDueToFailure = true because {task.BuildSetTask.Caption} got non-cancellation exception");
@@ -469,12 +469,12 @@
                     {
                         foreach (var dependent in task.Dependents)
                         {
-                            if (dependent.Status == OpenGEStatus.Pending &&
-                                dependent.DependsOn.All(x => x.Status == OpenGEStatus.Failure || x.Status == OpenGEStatus.Success || x.Status == OpenGEStatus.Skipped))
+                            if (dependent.Status == GraphStatus.Pending &&
+                                dependent.DependsOn.All(x => x.Status == GraphStatus.Failure || x.Status == GraphStatus.Success || x.Status == GraphStatus.Skipped))
                             {
                                 // @todo: Shortcut when dependent is skipped or failed.
 
-                                dependent.Status = OpenGEStatus.Scheduled;
+                                dependent.Status = GraphStatus.Scheduled;
                                 _queuedTasksForProcessing.Enqueue(dependent);
                                 _queuedTaskAvailableForProcessing.Release();
                             }

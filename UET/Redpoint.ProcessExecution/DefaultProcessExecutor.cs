@@ -2,7 +2,9 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.ProcessExecution.Enumerable;
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
     using System.Threading.Tasks;
@@ -174,6 +176,16 @@
                 }
             }
             return process.ExitCode;
+        }
+
+        public IAsyncEnumerable<ProcessResponse> ExecuteAsync(
+            ProcessSpecification processSpecification, 
+            CancellationToken cancellationToken)
+        {
+            return new ProcessExecutionEnumerable(
+                this,
+                processSpecification,
+                cancellationToken);
         }
     }
 }

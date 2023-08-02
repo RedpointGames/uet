@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package Redpoint.OpenGE.Protocol;
+
+import "Process.proto";
+
+message SubmitJobRequest {
+	string buildNodeName = 1;
+	string jobXml = 2;
+	map<string, string> environmentVariables = 3;
+	string workingDirectory = 4;
+}
+
+service JobApi {
+	rpc SubmitJob(SubmitJobRequest) returns (stream ProcessResponse) {}
+}

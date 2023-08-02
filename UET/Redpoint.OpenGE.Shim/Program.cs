@@ -1,4 +1,5 @@
 ﻿using Redpoint.GrpcPipes;
+using Redpoint.OpenGE.Protocol;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 
@@ -37,14 +38,15 @@ rootCommand.SetHandler(async (InvocationContext context) =>
     var client = GrpcPipesCore.CreateClient(
         pipeName,
         GrpcPipeNamespace.User,
-        channel => new OpenGEAPI.OpenGE.OpenGEClient(channel));
+        channel => new JobApi.JobApiClient(channel));
 
     using (var reader = new StreamReader(new FileStream(context.ParseResult.GetValueForArgument(fileArgument), FileMode.Open, FileAccess.Read, FileShare.Read)))
     {
-        var request = new OpenGEAPI.SubmitJobRequest
+        var request = new SubmitJobRequest
         {
             BuildNodeName = Environment.GetEnvironmentVariable("UET_XGE_SHIM_BUILD_NODE_NAME") ?? context.ParseResult.GetValueForOption(titleOption) ?? string.Empty,
             JobXml = await reader.ReadToEndAsync(),
+            WorkingDirectory = Environment.CurrentDirectory,
         };
         var originalEnvs = Environment.GetEnvironmentVariables();
         foreach (var key in originalEnvs.Keys.OfType<string>())

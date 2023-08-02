@@ -5,7 +5,6 @@
     using Redpoint.MSBuildResolution;
     using Redpoint.OpenGE.Executor;
     using Redpoint.OpenGE.ProcessExecution;
-    using Redpoint.OpenGE.PreprocessorCache;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.ProgressMonitor;
@@ -32,6 +31,7 @@
     using Redpoint.GrpcPipes;
     using Redpoint.ServiceControl;
     using Redpoint.CredentialDiscovery;
+    using Redpoint.OpenGE.Component.PreprocessorCache;
 
     internal static class CommandExtensions
     {

@@ -3,8 +3,10 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <ItemGroup>
-    <None Remove="OpenGEAPI.proto" />
-    <None Remove="PreprocessorCacheApi.proto" />
+    <None Remove="Job.proto" />
+    <None Remove="PreprocessorCache.proto" />
+    <None Remove="Process.proto" />
+    <None Remove="Task.proto" />
   </ItemGroup>
 
   <ItemGroup>
@@ -17,14 +19,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="OpenGEAPI.proto">
-      <Access>Public</Access>
-      <GrpcServices>Server</GrpcServices>
-    </Protobuf>
-    <Protobuf Include="PreprocessorCacheApi.proto">
+    <Protobuf Include="Job.proto" Access="Public" GrpcServices="Both" />
+    <Protobuf Include="PreprocessorCache.proto">
       <Access>Public</Access>
       <GrpcServices>Both</GrpcServices>
     </Protobuf>
+    <Protobuf Include="Process.proto" Access="Public" GrpcServices="Both" />
+    <Protobuf Include="Task.proto" Access="Public" GrpcServices="Both" />
   </ItemGroup>
 
 </Project>

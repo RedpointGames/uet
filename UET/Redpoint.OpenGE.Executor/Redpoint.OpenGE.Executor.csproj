@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="CompilerDb\PreprocessorScanner\" />
+    <Folder Include="BuildSetData\" />
   </ItemGroup>
 
 </Project>
