@@ -31,18 +31,6 @@ message ReserveCoreResponse {
 	bool reserved = 1;
 }
 
-/** 
- * Sent by a client when it no longer needs to reserve
- * a core on this worker, and ReserveCoreResponse has not
- * been received yet. Clients should use this if they
- * found somewhere else to schedule the work.
- *
- * After the server receives this message, it will simply
- * close the streaming call with no further responses.
- */
-message CancelReserveCoreRequest {
-}
-
 /**
  * Sent by a client to query whether or not a tool is
  * already available on a remote worker.
@@ -204,7 +192,7 @@ message ExecuteTaskResponse {
 message ExecutionRequest {
 	oneof request {
 		ReserveCoreRequest reserveCore = 1;
-		CancelReserveCoreRequest cancelReserveCore = 2;
+		// (2) removed
 		QueryToolRequest queryTool = 3;
 		HasToolBlobsRequest hasToolBlobs = 4;
 		WriteToolBlobRequest writeToolBlob = 5;
@@ -221,7 +209,7 @@ message ExecutionRequest {
 message ExecutionResponse {
 	oneof response {
 		ReserveCoreResponse reserveCore = 1;
-		// No response for CancelReserveCoreRequest
+		// (2) unused
 		QueryToolResponse queryTool = 3;
 		HasToolBlobsResponse hasToolBlobs = 4;
 		WriteToolBlobResponse writeToolBlob = 5;
