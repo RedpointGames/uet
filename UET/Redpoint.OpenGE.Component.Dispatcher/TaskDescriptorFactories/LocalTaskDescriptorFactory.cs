@@ -2,6 +2,7 @@
 {
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
     using Redpoint.OpenGE.Protocol;
+    using System.Threading;
 
     internal class LocalTaskDescriptorFactory : ITaskDescriptorFactory
     {
@@ -11,7 +12,7 @@
             return 0;
         }
 
-        public ValueTask<TaskDescriptor> CreateDescriptorForTaskSpecAsync(GraphTaskSpec spec)
+        public ValueTask<TaskDescriptor> CreateDescriptorForTaskSpecAsync(GraphTaskSpec spec, CancellationToken cancellationToken)
         {
             var local = new LocalTaskDescriptor
             {

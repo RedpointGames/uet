@@ -154,7 +154,7 @@
                 _logger.LogTrace($"[{request.BuildNodeName}] Received OpenGE job request");
 
                 var st = Stopwatch.StartNew();
-                int exitCode;
+                //int exitCode = 1;
                 IGraphExecutor? executor = null;
                 try
                 {
@@ -177,6 +177,7 @@
                             buildCts);
                         globalCts.Token.ThrowIfCancellationRequested();
                     }
+                    /*
                     await responseStream.WriteAsync(new JobResponse
                     {
                         JobComplete = new JobCompleteResponse
@@ -186,6 +187,7 @@
                             TotalSeconds = st.Elapsed.TotalSeconds,
                         }
                     });
+                    */
                     /*
                     if ()
                     {
@@ -199,7 +201,7 @@
                 }
                 catch (Exception ex) when (ex is OperationCanceledException)
                 {
-                    exitCode = 1;
+                    //exitCode = 1;
                     if (!globalCts.Token.IsCancellationRequested)
                     {
                         if (executor?.CancelledDueToFailure ?? false)

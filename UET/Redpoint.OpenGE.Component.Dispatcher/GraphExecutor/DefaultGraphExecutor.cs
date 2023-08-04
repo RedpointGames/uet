@@ -1,4 +1,6 @@
-﻿namespace Redpoint.OpenGE.Component.Dispatcher.GraphExecutor
+﻿#if FALSE
+
+namespace Redpoint.OpenGE.Component.Dispatcher.GraphExecutor
 {
     using Crayon;
     using Microsoft.Extensions.Logging;
@@ -435,3 +437,5 @@
         }
     }
 }
+
+#endif

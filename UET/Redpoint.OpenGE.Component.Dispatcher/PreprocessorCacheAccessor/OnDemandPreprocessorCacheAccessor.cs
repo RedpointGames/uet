@@ -18,7 +18,7 @@
 
         public IPreprocessorCache GetPreprocessorCache()
         {
-            return _onDemand.CreateOnDemand(
+            return _onDemand.CreateOnDemandCache(
                 _provider.OnDemandProcessSpecification);
         }
     }

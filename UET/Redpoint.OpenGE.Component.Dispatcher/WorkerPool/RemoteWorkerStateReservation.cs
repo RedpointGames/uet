@@ -15,5 +15,10 @@
         /// The instance of <see cref="IWorkerCore"/> that <see cref="IWorkerPool.ReserveRemoteOrLocalCoreAsync(CancellationToken)"/> will return.
         /// </summary>
         public required IWorkerCore Core { get; set; }
+
+        /// <summary>
+        /// The cancellation token source that can be used to cancel the associated request.
+        /// </summary>
+        public required CancellationTokenSource CancellationTokenSource { get; set; }
     }
 }

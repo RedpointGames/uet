@@ -9,12 +9,14 @@
     internal class DefaultWorkerPool : IWorkerPool
     {
         private readonly ILogger<DefaultWorkerPool> _logger;
-        private readonly TaskApi.TaskApiClient _localWorker;
+        private readonly TaskApi.TaskApiClient? _localWorker;
         private readonly SemaphoreSlim _notifyReevaluationOfRemoteWorkers;
         private readonly CancellationTokenSource _disposedCts;
         private readonly SemaphoreSlim _remoteWorkerCoreAvailable;
         private readonly ConcurrentQueue<IWorkerCore> _remoteWorkerCoreQueue;
         private readonly List<RemoteWorkerState> _remoteWorkers;
+        private readonly ConcurrentQueue<TaskApi.TaskApiClient> _remoteWorkerExplicitAddQueue;
+        private readonly SemaphoreSlim _remoteWorkerExplicitAddComplete;
 
         internal int _remoteCoresRequested;
         internal int _remoteCoresReserved;
@@ -23,7 +25,7 @@
 
         public DefaultWorkerPool(
             ILogger<DefaultWorkerPool> logger,
-            TaskApi.TaskApiClient localWorker)
+            TaskApi.TaskApiClient? localWorker)
         {
             _notifyReevaluationOfRemoteWorkers = new SemaphoreSlim(0);
             _logger = logger;
@@ -32,11 +34,20 @@
             _remoteWorkerCoreAvailable = new SemaphoreSlim(0);
             _remoteWorkerCoreQueue = new ConcurrentQueue<IWorkerCore>();
             _remoteWorkers = new List<RemoteWorkerState>();
+            _remoteWorkerExplicitAddQueue = new ConcurrentQueue<TaskApi.TaskApiClient>();
+            _remoteWorkerExplicitAddComplete = new SemaphoreSlim(0);
 
             _remoteCoresRequested = 0;
             _remoteCoresReserved = 0;
 
             _remoteWorkersProcessingTask = Task.Run(PeriodicallyProcessRemoteWorkers);
+        }
+
+        internal async Task RegisterRemoteWorkerAsync(TaskApi.TaskApiClient remoteClient)
+        {
+            _remoteWorkerExplicitAddQueue.Enqueue(remoteClient);
+            _notifyReevaluationOfRemoteWorkers.Release();
+            await _remoteWorkerExplicitAddComplete.WaitAsync();
         }
 
         private async Task PeriodicallyProcessRemoteWorkers()
@@ -60,6 +71,16 @@
                 {
                     // The worker pool is disposing.
                     return;
+                }
+
+                // Process any explicitly added workers.
+                if (_remoteWorkerExplicitAddQueue.TryDequeue(out var newRemoteClient))
+                {
+                    _remoteWorkers.Add(new RemoteWorkerState
+                    {
+                        Client = newRemoteClient,
+                    });
+                    _remoteWorkerExplicitAddComplete.Release();
                 }
 
                 // Determine how many remote workers we want to trying to
@@ -140,7 +161,9 @@
                                 {
                                     Request = pendingReservation.Request,
                                     Core = new RemoteWorkerCore(this, worker, pendingReservation.Request),
+                                    CancellationTokenSource = cancellationTokenSource,
                                 };
+                                pendingReservation.CancellationTokenSource = null;
                                 Interlocked.Increment(ref _remoteCoresReserved);
                                 await worker.AddReservationAsync(reservation);
                                 _remoteWorkerCoreQueue.Enqueue(reservation.Core);
@@ -196,36 +219,18 @@
                         var pendingReservation = worker.PendingReservation;
                         if (pendingReservation != null)
                         {
-                            pendingReservation.CancellationTokenSource!.Cancel();
+                            pendingReservation.CancellationTokenSource?.Cancel();
                             try
                             {
                                 await pendingReservation.Task!;
-                        }
-
-                        // Protect against ReservationCancellationTokenSource being null
-                        // due to the finally clause inside the asynchronous task.
-                        var reservationCancellationTokenSource = worker.pend;
-                        if (reservationCancellationTokenSource != null)
-                        {
-                            reservationCancellationTokenSource.Cancel();
-                        }
-                        try
-                        {
-                            // Technically workers get the Reserving status before
-                            // their MessagingTask is assigned, so if there's an
-                            // exception in Task.Run starting, this would be null.
-                            var messagingTask = worker.MessagingTask;
-                            if (messagingTask != null)
+                            }
+                            catch (OperationCanceledException)
                             {
-                                await messagingTask;
                             }
                         }
-                        catch (OperationCanceledException)
-                        {
-                        }
-                        worker.PendingReservationStatus = RemoteWorkerStatePendingReservationStatus.Unreserved;
-                        worker.MessagingTask = null;
-                        worker.ReservationCancellationTokenSource = null;
+
+                        // Set the worker as no longer trying to reserve.
+                        worker.PendingReservation = null;
                         reservationsCancelled++;
                         if (reservationsCancelled >= -changeInReserving)
                         {
@@ -241,17 +246,41 @@
             throw new NotImplementedException();
         }
 
-        public Task<IWorkerCore> ReserveRemoteOrLocalCoreAsync(
+        public async Task<IWorkerCore> ReserveRemoteOrLocalCoreAsync(
             CancellationToken cancellationToken)
         {
             _remoteCoresRequested++;
-
-            throw new NotImplementedException();
+            _notifyReevaluationOfRemoteWorkers.Release();
+            var didAcquire = false;
+            try
+            {
+                await _remoteWorkerCoreAvailable.WaitAsync(cancellationToken);
+                if (_remoteWorkerCoreQueue.TryDequeue(out var worker))
+                {
+                    didAcquire = true;
+                    return worker;
+                }
+                throw new InvalidOperationException("Worker queue indicated remote worker was available, but none could be pulled from the concurrent queue.");
+            }
+            finally
+            {
+                if (!didAcquire)
+                {
+                    _remoteCoresRequested--;
+                }
+            }
         }
 
-        public ValueTask DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
-            throw new NotImplementedException();
+            _disposedCts.Cancel();
+            try
+            {
+                await _remoteWorkersProcessingTask;
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
     }
 }

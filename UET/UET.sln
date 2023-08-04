@@ -247,15 +247,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Agent", "Re
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Protocol", "Redpoint.OpenGE.Protocol\Redpoint.OpenGE.Protocol.csproj", "{E697F560-10C1-4E58-A392-290956BB2F52}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.Component.Dispatcher", "Redpoint.OpenGE.Component.Dispatcher\Redpoint.OpenGE.Component.Dispatcher.csproj", "{12BDA0B5-5F2B-4965-B0E9-DCDD27CD9D04}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Component.Dispatcher", "Redpoint.OpenGE.Component.Dispatcher\Redpoint.OpenGE.Component.Dispatcher.csproj", "{12BDA0B5-5F2B-4965-B0E9-DCDD27CD9D04}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.Component.Worker", "Redpoint.OpenGE.Component.Worker\Redpoint.OpenGE.Component.Worker.csproj", "{03938771-1E9C-4151-B16B-DBCA904031C1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Component.Worker", "Redpoint.OpenGE.Component.Worker\Redpoint.OpenGE.Component.Worker.csproj", "{03938771-1E9C-4151-B16B-DBCA904031C1}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Component.PreprocessorCache", "Redpoint.OpenGE.Component.PreprocessorCache\Redpoint.OpenGE.Component.PreprocessorCache.csproj", "{1F168F11-307D-4FC8-A742-11BF46F37783}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Component.PreprocessorCache.Tests", "Redpoint.OpenGE.Component.PreprocessorCache.Tests\Redpoint.OpenGE.Component.PreprocessorCache.Tests.csproj", "{F9B926AD-E2DF-4102-AEDC-B878D99F9540}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.JobXml", "Redpoint.OpenGE.JobXml\Redpoint.OpenGE.JobXml.csproj", "{8BA663FC-71D6-4EF4-AE05-51935C21FE66}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.JobXml", "Redpoint.OpenGE.JobXml\Redpoint.OpenGE.JobXml.csproj", "{8BA663FC-71D6-4EF4-AE05-51935C21FE66}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.Component.Dispatcher.Tests", "Redpoint.OpenGE.Component.Dispatcher.Tests\Redpoint.OpenGE.Component.Dispatcher.Tests.csproj", "{B954C880-B26D-4524-983E-9AD5F8E81024}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -755,6 +757,10 @@ Global
 		{8BA663FC-71D6-4EF4-AE05-51935C21FE66}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8BA663FC-71D6-4EF4-AE05-51935C21FE66}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8BA663FC-71D6-4EF4-AE05-51935C21FE66}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B954C880-B26D-4524-983E-9AD5F8E81024}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B954C880-B26D-4524-983E-9AD5F8E81024}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B954C880-B26D-4524-983E-9AD5F8E81024}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B954C880-B26D-4524-983E-9AD5F8E81024}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

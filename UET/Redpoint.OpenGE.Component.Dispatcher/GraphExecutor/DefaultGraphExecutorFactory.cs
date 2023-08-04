@@ -1,4 +1,6 @@
-﻿namespace Redpoint.OpenGE.Component.Dispatcher.GraphExecutor
+﻿#if FALSE
+
+namespace Redpoint.OpenGE.Component.Dispatcher.GraphExecutor
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
@@ -30,3 +32,5 @@
         }
     }
 }
+
+#endif

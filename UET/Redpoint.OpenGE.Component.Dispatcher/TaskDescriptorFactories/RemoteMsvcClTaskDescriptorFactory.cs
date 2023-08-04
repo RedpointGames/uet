@@ -51,7 +51,7 @@
             {
                 // This response file can't be remoted.
                 _logger.LogWarning($"Forcing to local executor because the response file isn't at a remotable path: '{responseFilePath}'");
-                return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec);
+                return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec, cancellationToken);
             }
 
             // Store the data that we need to figure out how to remote this.
@@ -151,7 +151,7 @@
             {
                 // Delegate to the local executor.
                 _logger.LogWarning($"Forcing to local executor, input: {inputFile}, output: {outputPath}");
-                return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec);
+                return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec, cancellationToken);
             }
 
             // Determine the dependent header files.

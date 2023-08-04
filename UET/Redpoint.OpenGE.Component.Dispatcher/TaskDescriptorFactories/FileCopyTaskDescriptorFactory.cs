@@ -2,6 +2,7 @@
 {
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
     using Redpoint.OpenGE.Protocol;
+    using System.Threading;
 
     internal class FileCopyTaskDescriptorFactory : ITaskDescriptorFactory
     {
@@ -22,7 +23,7 @@
             }
         }
 
-        public ValueTask<TaskDescriptor> CreateDescriptorForTaskSpecAsync(GraphTaskSpec spec)
+        public ValueTask<TaskDescriptor> CreateDescriptorForTaskSpecAsync(GraphTaskSpec spec, CancellationToken cancellationToken)
         {
             var from = spec.Arguments[2].Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
             var to = spec.Arguments[3].Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
@@ -43,6 +44,5 @@
                 }
             });
         }
-
     }
 }
