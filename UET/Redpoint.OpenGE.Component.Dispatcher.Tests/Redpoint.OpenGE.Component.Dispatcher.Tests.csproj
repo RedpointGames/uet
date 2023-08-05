@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.OpenGE.Component.Dispatcher\Redpoint.OpenGE.Component.Dispatcher.csproj" />
+    <ProjectReference Include="..\Redpoint.OpenGE.Component.Worker\Redpoint.OpenGE.Component.Worker.csproj" />
   </ItemGroup>
 
 </Project>

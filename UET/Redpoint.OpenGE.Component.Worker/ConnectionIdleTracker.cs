@@ -29,6 +29,10 @@
 
         public void StartIdling(int? newIdleTimeoutMilliseconds = null)
         {
+            if (CancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
             _threadSafety.Wait();
             try
             {

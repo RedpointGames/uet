@@ -21,7 +21,7 @@
         private readonly ILogger<DefaultWorkerComponent> _logger;
         private readonly SemaphoreSlim _reservationSemaphore = new SemaphoreSlim(
             Environment.ProcessorCount * (OperatingSystem.IsMacOS() ? 1 : 2));
-        private readonly CancellationTokenSource _udpCancellationTokenSource;
+        private CancellationTokenSource? _shutdownCancellationTokenSource;
         private string? _listeningExternalUrl;
         private WebApplication? _app;
         private UdpClient? _udp;
@@ -37,7 +37,6 @@
             _blobManager = blobManager;
             _executionManager = executionManager;
             _logger = logger;
-            _udpCancellationTokenSource = new CancellationTokenSource();
         }
 
         public TaskApi.TaskApiBase TaskApi => this;
@@ -46,6 +45,8 @@
 
         public async Task StartAsync(CancellationToken shutdownCancellationToken)
         {
+            _shutdownCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken);
+
             var builder = WebApplication.CreateBuilder();
             builder.Logging.ClearProviders();
             builder.Logging.AddProvider(new ForwardingLoggerProvider(_logger));
@@ -82,15 +83,15 @@
             _udp = new UdpClient(new IPEndPoint(IPAddress.Any, WorkerPortInformation.WorkerUdpBroadcastPort));
             _udpTask = Task.Run(async () =>
             {
-                while (_udpCancellationTokenSource.IsCancellationRequested)
+                while (_shutdownCancellationTokenSource.IsCancellationRequested)
                 {
-                    var packet = await _udp.ReceiveAsync(_udpCancellationTokenSource.Token);
+                    var packet = await _udp.ReceiveAsync(_shutdownCancellationTokenSource.Token);
                     if (Encoding.ASCII.GetString(packet.Buffer) == "OPENGE-DISCOVER")
                     {
                         await _udp.SendAsync(
                             Encoding.ASCII.GetBytes(_listeningExternalUrl!),
                             packet.RemoteEndPoint,
-                            _udpCancellationTokenSource.Token);
+                            _shutdownCancellationTokenSource.Token);
                     }
                 }
             });
@@ -98,7 +99,7 @@
 
         public async Task StopAsync()
         {
-            _udpCancellationTokenSource.Cancel();
+            _shutdownCancellationTokenSource!.Cancel();
             if (_udp != null)
             {
                 _udp.Close();
@@ -117,7 +118,9 @@
             ServerCallContext context)
         {
             var connectionIdleTracker = new ConnectionIdleTracker(
-                context.CancellationToken,
+                CancellationTokenSource.CreateLinkedTokenSource(
+                    context.CancellationToken, 
+                    _shutdownCancellationTokenSource!.Token).Token,
                 5000);
             connectionIdleTracker.StartIdling();
             var didReserve = false;

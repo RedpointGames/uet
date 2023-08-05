@@ -79,7 +79,7 @@
             }
 
             // Pull tasks off the queue until we have no tasks remaining.
-            while (instance.CancellationToken.IsCancellationRequested &&
+            while (!instance.CancellationToken.IsCancellationRequested &&
                    instance.RemainingTasks > 0)
             {
                 // Get the next task to schedule. This queue only contains
@@ -102,7 +102,7 @@
                 {
                     var status = TaskCompletionStatus.TaskCompletionException;
                     var exitCode = 1;
-                    var exceptionMessage = "The background scheduler reached completion without receiving a result from the task execution. This is a bug in OpenGE.";
+                    var exceptionMessage = string.Empty;
                     var didStart = false;
                     var didComplete = false;
                     var taskStopwatch = new Stopwatch();
