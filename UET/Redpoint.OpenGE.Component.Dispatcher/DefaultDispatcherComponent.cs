@@ -41,6 +41,8 @@
             _pipeNamespace = pipeName == null ? GrpcPipeNamespace.Computer : GrpcPipeNamespace.User;
         }
 
+        public JobApi.JobApiBase JobApi => this;
+
         public async Task StartAsync(CancellationToken shutdownCancellationToken)
         {
             _shutdownCancellationToken = shutdownCancellationToken;

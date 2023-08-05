@@ -257,7 +257,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Component.P
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.JobXml", "Redpoint.OpenGE.JobXml\Redpoint.OpenGE.JobXml.csproj", "{8BA663FC-71D6-4EF4-AE05-51935C21FE66}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.Component.Dispatcher.Tests", "Redpoint.OpenGE.Component.Dispatcher.Tests\Redpoint.OpenGE.Component.Dispatcher.Tests.csproj", "{B954C880-B26D-4524-983E-9AD5F8E81024}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Component.Dispatcher.Tests", "Redpoint.OpenGE.Component.Dispatcher.Tests\Redpoint.OpenGE.Component.Dispatcher.Tests.csproj", "{B954C880-B26D-4524-983E-9AD5F8E81024}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.Component.Worker.Tests", "Redpoint.OpenGE.Component.Worker.Tests\Redpoint.OpenGE.Component.Worker.Tests.csproj", "{7D1FE8B9-40FA-4E31-AFEB-5BC8A1F83BAD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -761,6 +763,10 @@ Global
 		{B954C880-B26D-4524-983E-9AD5F8E81024}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B954C880-B26D-4524-983E-9AD5F8E81024}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B954C880-B26D-4524-983E-9AD5F8E81024}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D1FE8B9-40FA-4E31-AFEB-5BC8A1F83BAD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D1FE8B9-40FA-4E31-AFEB-5BC8A1F83BAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D1FE8B9-40FA-4E31-AFEB-5BC8A1F83BAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D1FE8B9-40FA-4E31-AFEB-5BC8A1F83BAD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
