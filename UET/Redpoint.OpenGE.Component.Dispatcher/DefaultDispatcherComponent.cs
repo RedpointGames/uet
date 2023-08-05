@@ -48,7 +48,7 @@
             _grpcPipeFactory = grpcPipeFactory;
             _workerPool = workerPool;
             _pipeName = pipeName ?? $"OpenGE-{BitConverter.ToString(Guid.NewGuid().ToByteArray()).Replace("-", "").ToLowerInvariant()}";
-            _pipeNamespace = pipeName == null ? GrpcPipeNamespace.Computer : GrpcPipeNamespace.User;
+            _pipeNamespace = pipeName == null ? GrpcPipeNamespace.User : GrpcPipeNamespace.Computer;
         }
 
         public JobApi.JobApiBase JobApi => this;
