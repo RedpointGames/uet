@@ -3,7 +3,11 @@
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
     using Redpoint.GrpcPipes;
+    using Redpoint.OpenGE.Component.Dispatcher.Graph;
     using Redpoint.OpenGE.Component.Dispatcher.GraphExecutor;
+    using Redpoint.OpenGE.Component.Dispatcher.GraphGenerator;
+    using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
+    using Redpoint.OpenGE.JobXml;
     using Redpoint.OpenGE.Protocol;
     using System;
     using System.Collections.Generic;
@@ -18,8 +22,10 @@
         private readonly GrpcPipeNamespace _pipeNamespace;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
         private readonly ILogger<DefaultDispatcherComponent> _logger;
-        private readonly IGraphExecutorFactory _executorFactory;
+        private readonly IGraphGenerator _graphGenerator;
+        private readonly IGraphExecutor _graphExecutor;
         private readonly IGrpcPipeFactory _grpcPipeFactory;
+        private readonly IWorkerPool _workerPool;
         private bool _hasStarted = false;
         private IGrpcPipeServer<DefaultDispatcherComponent>? _pipeServer = null;
         private long _inflightJobs = 0;
@@ -30,13 +36,17 @@
 
         public DefaultDispatcherComponent(
             ILogger<DefaultDispatcherComponent> logger,
-            IGraphExecutorFactory executorFactory,
+            IGraphGenerator graphGenerator,
+            IGraphExecutor graphExecutor,
             IGrpcPipeFactory grpcPipeFactory,
+            IWorkerPool workerPool,
             string? pipeName)
         {
             _logger = logger;
-            _executorFactory = executorFactory;
+            _graphGenerator = graphGenerator;
+            _graphExecutor = graphExecutor;
             _grpcPipeFactory = grpcPipeFactory;
+            _workerPool = workerPool;
             _pipeName = pipeName ?? $"OpenGE-{BitConverter.ToString(Guid.NewGuid().ToByteArray()).Replace("-", "").ToLowerInvariant()}";
             _pipeNamespace = pipeName == null ? GrpcPipeNamespace.Computer : GrpcPipeNamespace.User;
         }
@@ -123,7 +133,10 @@
             }
         }
 
-        public override async Task SubmitJob(SubmitJobRequest request, IServerStreamWriter<JobResponse> responseStream, ServerCallContext context)
+        public override async Task SubmitJob(
+            SubmitJobRequest request, 
+            IServerStreamWriter<JobResponse> responseStream, 
+            ServerCallContext context)
         {
             if (_isShuttingDown)
             {
@@ -151,92 +164,59 @@
             // Execute the job.
             try
             {
-                var globalCts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, _shutdownCancellationToken!);
+                var globalCts = CancellationTokenSource.CreateLinkedTokenSource(
+                    context.CancellationToken, 
+                    _shutdownCancellationToken!);
 
                 _logger.LogTrace($"[{request.BuildNodeName}] Received OpenGE job request");
 
-                var st = Stopwatch.StartNew();
-                //int exitCode = 1;
-                IGraphExecutor? executor = null;
                 try
                 {
                     using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(request.JobXml)))
                     {
                         _logger.LogTrace($"[{request.BuildNodeName}] Executing job request");
-                        var buildCts = CancellationTokenSource.CreateLinkedTokenSource(globalCts.Token);
+
+                        // Convert the environment variables from the gRPC map.
                         var envs = new Dictionary<string, string>();
                         foreach (var kv in request.EnvironmentVariables)
                         {
                             envs[kv.Key] = kv.Value;
                         }
-                        executor = _executorFactory.CreateGraphExecutor(
-                            stream,
-                            envs,
-                            request.WorkingDirectory,
-                            request.BuildNodeName);
-                        await executor.ExecuteAsync(
+
+                        // Convert the graph XML into the graph object, which describes
+                        // all of the tasks to run and their dependencies.
+                        var graph = await _graphGenerator.GenerateGraphFromJobAsync(
+                            JobXmlReader.ParseJobXml(stream),
+                            new GraphExecutionEnvironment
+                            {
+                                EnvironmentVariables = envs,
+                                WorkingDirectory = request.WorkingDirectory,
+                            },
+                            globalCts.Token);
+
+                        // Tell the client how many tasks we're about to run.
+                        await responseStream.WriteAsync(new JobResponse
+                        {
+                            JobParsed = new JobParsedResponse
+                            {
+                                TotalTasks = graph.Tasks.Count,
+                            }
+                        });
+
+                        await _graphExecutor.ExecuteGraphAsync(
+                            _workerPool,
+                            graph,
                             responseStream,
-                            buildCts);
+                            context.CancellationToken);
                         globalCts.Token.ThrowIfCancellationRequested();
-                    }
-                    /*
-                    await responseStream.WriteAsync(new JobResponse
-                    {
-                        JobComplete = new JobCompleteResponse
-                        {
-                            Status = exitCode == 0 ? JobCompletionStatus.Success : JobCompletionStatus.Failure,
-                            ExitCode = exitCode,
-                            TotalSeconds = st.Elapsed.TotalSeconds,
-                        }
-                    });
-                    */
-                    /*
-                    if ()
-                    {
-                        _logger.LogInformation($"[{request.BuildNodeName}] {Bright.Green("success")} in {st.Elapsed.TotalSeconds:F2} secs");
-                    }
-                    else
-                    {
-                        _logger.LogInformation($"[{request.BuildNodeName}] {Bright.Red("failure")} in {st.Elapsed.TotalSeconds:F2} secs");
-                    }
-                    */
-                }
-                catch (Exception ex) when (ex is OperationCanceledException)
-                {
-                    //exitCode = 1;
-                    if (!globalCts.Token.IsCancellationRequested)
-                    {
-                        if (executor?.CancelledDueToFailure ?? false)
-                        {
-                            await responseStream.WriteAsync(new JobResponse
-                            {
-                                JobComplete = new JobCompleteResponse
-                                {
-                                    Status = JobCompletionStatus.Failure,
-                                    ExitCode = 1,
-                                    TotalSeconds = st.Elapsed.TotalSeconds,
-                                }
-                            });
-                            //_logger.LogInformation($"[{request.BuildNodeName}] {Bright.Red("failure")} in {st.Elapsed.TotalSeconds:F2} secs");
-                        }
-                        else
-                        {
-                            await responseStream.WriteAsync(new JobResponse
-                            {
-                                JobComplete = new JobCompleteResponse
-                                {
-                                    Status = JobCompletionStatus.Cancelled,
-                                    ExitCode = 1,
-                                    TotalSeconds = st.Elapsed.TotalSeconds,
-                                }
-                            });
-                            //_logger.LogInformation($"[{request.BuildNodeName}] {Bright.Yellow("cancelled")} in {st.Elapsed.TotalSeconds:F2} secs");
-                        }
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, $"Unhandled exception in OpenGE dispatcher component: {ex.Message}");
+                    throw new RpcException(new Status(
+                        StatusCode.Internal,
+                        ex.ToString()));
                 }
             }
             finally

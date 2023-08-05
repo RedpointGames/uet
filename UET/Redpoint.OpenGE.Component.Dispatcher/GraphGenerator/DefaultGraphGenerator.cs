@@ -56,7 +56,7 @@
             return (currentExecutor, spec);
         }
 
-        public async Task<Graph> GenerateGraphFromJob(
+        public async Task<Graph> GenerateGraphFromJobAsync(
             Job job,
             GraphExecutionEnvironment graphExecutionEnvironment,
             CancellationToken cancellationToken)

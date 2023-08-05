@@ -1,441 +1,319 @@
-﻿#if FALSE
-
-namespace Redpoint.OpenGE.Component.Dispatcher.GraphExecutor
+﻿namespace Redpoint.OpenGE.Component.Dispatcher.GraphExecutor
 {
-    using Crayon;
+    using Grpc.Core;
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
-    using Redpoint.OpenGE.Executor.BuildSetData;
-    using Redpoint.ProcessExecution;
-    using System;
+    using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
+    using Redpoint.OpenGE.Protocol;
     using System.Collections.Concurrent;
-    using System.Collections.Generic;
     using System.Diagnostics;
-    using System.Linq;
     using System.Threading.Tasks;
-    using static Crayon.Output;
 
     internal class DefaultGraphExecutor : IGraphExecutor
     {
         private readonly ILogger<DefaultGraphExecutor> _logger;
-        private readonly IOpenGETaskExecutor[] _taskExecutors;
-        private readonly Dictionary<string, string> _environmentVariables;
-        private readonly bool _turnOffExtraLogInfo;
-        private readonly string? _buildLogPrefix;
-
-        private Dictionary<string, GraphTask> _allTasks;
-        private Dictionary<string, GraphProject> _allProjects;
-        private ConcurrentQueue<GraphTask> _queuedTasksForProcessing;
-        private SemaphoreSlim _queuedTaskAvailableForProcessing;
-        private SemaphoreSlim _updatingTaskForScheduling;
-        private long _remainingTasks;
-        private long _totalTasks;
 
         public DefaultGraphExecutor(
-            ILogger<DefaultGraphExecutor> logger,
-            IOpenGETaskExecutor[] taskExecutors,
-            BuildSet buildSet,
-            Dictionary<string, string> environmentVariables,
-            bool turnOffExtraLogInfo,
-            string? buildLogPrefix)
+            ILogger<DefaultGraphExecutor> logger)
         {
             _logger = logger;
-            _taskExecutors = taskExecutors;
-            _environmentVariables = environmentVariables;
-            _turnOffExtraLogInfo = turnOffExtraLogInfo;
-            _buildLogPrefix = buildLogPrefix?.Trim() ?? string.Empty;
+        }
 
-            _allProjects = new Dictionary<string, GraphProject>();
-            _allTasks = new Dictionary<string, GraphTask>();
-            _queuedTasksForProcessing = new ConcurrentQueue<GraphTask>();
-            _queuedTaskAvailableForProcessing = new SemaphoreSlim(0);
-            _updatingTaskForScheduling = new SemaphoreSlim(1);
+        private class GraphExecutionInstance
+        {
+            public required IWorkerPool WorkerPool;
+            public long RemainingTasks;
+            public readonly SemaphoreSlim QueuedTaskAvailableForScheduling = new SemaphoreSlim(0);
+            public readonly ConcurrentQueue<GraphTask> QueuedTasksForScheduling = new ConcurrentQueue<GraphTask>();
+            public CancellationTokenSource CancellationTokenSource { get; private init; }
+            public CancellationToken CancellationToken => CancellationTokenSource.Token;
+            public readonly List<Task> ScheduledExecutions = new List<Task>();
+            public readonly SemaphoreSlim ScheduledExecutionsLock = new SemaphoreSlim(1);
+            public readonly HashSet<GraphTask> ScheduledTasks = new HashSet<GraphTask>();
+            public readonly HashSet<GraphTask> CompletedTasks = new HashSet<GraphTask>();
+            public readonly SemaphoreSlim CompletedAndScheduledTasksLock = new SemaphoreSlim(1);
 
-            foreach (var project in buildSet.Projects)
+            public GraphExecutionInstance(CancellationToken cancellationToken)
             {
-                _allProjects[project.Key] = new GraphProject
-                {
-                    BuildSetProject = project.Value,
-                };
+                CancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken);
+            }
+        }
 
-                foreach (var task in project.Value.Tasks)
-                {
-                    _allTasks[$"{project.Key}:{task.Key}"] = new GraphTask
-                    {
-                        BuildSet = buildSet,
-                        BuildSetProject = project.Value,
-                        BuildSetTask = task.Value,
-                    };
-                }
+        public async Task ExecuteGraphAsync(
+            IWorkerPool workerPool,
+            Graph graph, 
+            IAsyncStreamWriter<JobResponse> responseStream,
+            CancellationToken cancellationToken)
+        {
+            var graphStopwatch = Stopwatch.StartNew();
 
-                foreach (var task in project.Value.Tasks)
-                {
-                    _allTasks[$"{project.Key}:{task.Key}"].DependsOn.AddRange(
-                        (task.Value.DependsOn ?? string.Empty)
-                            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                            .Where(x => _allTasks.ContainsKey($"{project.Key}:{x}"))
-                            .Select(x => _allTasks[$"{project.Key}:{x}"]));
-                    if (_allTasks[$"{project.Key}:{task.Key}"].DependsOn.Count == 0)
-                    {
-                        _allTasks[$"{project.Key}:{task.Key}"].Status = GraphStatus.Scheduled;
-                        _queuedTasksForProcessing.Enqueue(_allTasks[$"{project.Key}:{task.Key}"]);
-                        _queuedTaskAvailableForProcessing.Release();
-                    }
-                }
+            // Track the state of this graph execution.
+            var instance = new GraphExecutionInstance(cancellationToken)
+            {
+                WorkerPool = workerPool,
+                RemainingTasks = graph.Tasks.Count,
+            };
 
-                foreach (var task in _allTasks)
+            // Schedule up all of the tasks that can be immediately
+            // scheduled.
+            foreach (var taskKv in graph.Tasks)
+            {
+                if (graph.TaskDependencies.WhatTargetDependsOn(taskKv.Value).Count == 0)
                 {
-                    foreach (var dependsOn in task.Value.DependsOn)
-                    {
-                        dependsOn.Dependents.Add(task.Value);
-                    }
+                    instance.QueuedTasksForScheduling.Enqueue(taskKv.Value);
+                    instance.QueuedTaskAvailableForScheduling.Release();
+                    // @note: We don't take a lock here because nothing else will
+                    // be accessing it yet.
+                    instance.ScheduledTasks.Add(taskKv.Value);
                 }
             }
 
-            _remainingTasks = _allTasks.Count;
-            _totalTasks = _remainingTasks;
-        }
-
-        public bool CancelledDueToFailure { get; set; }
-
-        private (IOpenGETaskExecutor? executor, string[] arguments) GetExecutorForTask(GraphTask task)
-        {
-            var env = task.BuildSet.Environments[task.BuildSetProject.Env];
-            var tool = env.Tools[task.BuildSetTask.Tool];
-            var arguments = SplitArguments(tool.Params);
-
-            var currentScore = -1;
-            IOpenGETaskExecutor? currentExecutor = null;
-            foreach (var executor in _taskExecutors)
+            // At this point, if we don't have anything that can be
+            // scheduled, then the execution can never make any progress.
+            if (instance.QueuedTasksForScheduling.Count == 0)
             {
-                var score = executor.ScoreTask(
-                    task,
-                    env!,
-                    tool!,
-                    arguments);
-                if (score != -1 && score > currentScore)
-                {
-                    currentExecutor = executor;
-                }
+                throw new RpcException(new Status(
+                    StatusCode.InvalidArgument, 
+                    "No task described by the job XML was immediately schedulable."));
             }
 
-            return (currentExecutor, arguments);
-        }
-
-        public async Task<int> ExecuteAsync(CancellationTokenSource buildCancellationTokenSource)
-        {
-            try
+            // Pull tasks off the queue until we have no tasks remaining.
+            while (instance.CancellationToken.IsCancellationRequested &&
+                   instance.RemainingTasks > 0)
             {
-                var cancellationToken = buildCancellationTokenSource.Token;
-                while (!cancellationToken.IsCancellationRequested && _remainingTasks > 0)
+                // Get the next task to schedule. This queue only contains
+                // tasks whose dependencies have all passed.
+                await instance.QueuedTaskAvailableForScheduling.WaitAsync(
+                    instance.CancellationToken);
+                if (Interlocked.Read(ref instance.RemainingTasks) == 0)
                 {
-                    // Get the next task to schedule. The queue only contains tasks whose dependencies
-                    // have all passed.
-                    await _queuedTaskAvailableForProcessing.WaitAsync(cancellationToken);
-                    if (Interlocked.Read(ref _remainingTasks) == 0)
-                    {
-                        break;
-                    }
-                    if (!_queuedTasksForProcessing.TryDequeue(out var nextTask))
-                    {
-                        throw new InvalidOperationException("Task was available for processing but could not be pulled from queue!");
-                    }
+                    break;
+                }
+                if (!instance.QueuedTasksForScheduling.TryDequeue(out var task))
+                {
+                    throw new RpcException(new Status(
+                        StatusCode.Internal,
+                        "Queued task semaphore indicated a task could be scheduled, but nothing was available in the queue."));
+                }
 
-                    // Figure out where we're going to execute this task.
-                    var (executor, arguments) = GetExecutorForTask(nextTask);
-                    var couldSchedule = false;
-                    if (executor != null)
+                // Schedule up a background 
+                instance.ScheduledExecutions.Add(Task.Run(async () =>
+                {
+                    var status = TaskCompletionStatus.TaskCompletionException;
+                    var exitCode = 1;
+                    var exceptionMessage = "The background scheduler reached completion without receiving a result from the task execution. This is a bug in OpenGE.";
+                    var didStart = false;
+                    var didComplete = false;
+                    var taskStopwatch = new Stopwatch();
+                    try
                     {
                         try
                         {
-                            // Reserve the virtual core that this task will run on.
-                            var virtualCore = await executor.AllocateVirtualCoreForTaskExecutionAsync(cancellationToken);
-                            try
+                            // Reserve a core from somewhere...
+                            await using var core = await instance.WorkerPool.ReserveCoreAsync(
+                                task.TaskDescriptor.DescriptorCase != TaskDescriptor.DescriptorOneofCase.Remote,
+                                instance.CancellationToken);
+
+                            // We're now going to start doing the work for this task.
+                            taskStopwatch.Start();
+                            await responseStream.WriteAsync(new JobResponse
                             {
-                                // Schedule the worker into the task pool on that virtual core.
-                                nextTask.ExecutingTask = Task.Run(async () =>
+                                TaskStarted = new TaskStartedResponse
                                 {
-                                    using (virtualCore)
-                                    {
-                                        await ExecuteTaskAsync(
-                                            executor,
-                                            nextTask,
-                                            arguments,
-                                            virtualCore,
-                                            buildCancellationTokenSource);
-                                    }
-                                });
-                                couldSchedule = true;
+                                    Id = task.GraphTaskSpec.Task.Name,
+                                    DisplayName = task.GraphTaskSpec.Task.Caption,
+                                    WorkerMachineName = core.WorkerMachineName,
+                                    WorkerCoreNumber = core.WorkerCoreNumber,
+                                },
+                            }, instance.CancellationToken);
+                            didStart = true;
+
+                            // Perform synchronisation for remote tasks.
+                            if (task.TaskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote)
+                            {
+                                // @todo: Implement tool and blob synchronisation.
                             }
-                            finally
+
+                            // Execute the task on the core.
+                            await core.Request.RequestStream.WriteAsync(new ExecutionRequest
                             {
-                                if (!couldSchedule)
+                                ExecuteTask = new ExecuteTaskRequest
                                 {
-                                    virtualCore.Dispose();
+                                    Descriptor_ = task.TaskDescriptor,
+                                }
+                            }, instance.CancellationToken);
+
+                            // Stream the results until we get an exit code.
+                            while (!didComplete &&
+                                await core.Request.ResponseStream.MoveNext(instance.CancellationToken))
+                            {
+                                var current = core.Request.ResponseStream.Current;
+                                if (current.ResponseCase != ExecutionResponse.ResponseOneofCase.ExecuteTask)
+                                {
+                                    throw new RpcException(new Status(
+                                        StatusCode.InvalidArgument,
+                                        "Unexpected task execution response from worker RPC."));
+                                }
+                                switch (current.ExecuteTask.Response.DataCase)
+                                {
+                                    case ProcessResponse.DataOneofCase.StandardOutputLine:
+                                        await responseStream.WriteAsync(new JobResponse
+                                        {
+                                            TaskOutput = new TaskOutputResponse
+                                            {
+                                                Id = task.GraphTaskSpec.Task.Name,
+                                                StandardOutputLine = current.ExecuteTask.Response.StandardOutputLine,
+                                            }
+                                        });
+                                        break;
+                                    case ProcessResponse.DataOneofCase.StandardErrorLine:
+                                        await responseStream.WriteAsync(new JobResponse
+                                        {
+                                            TaskOutput = new TaskOutputResponse
+                                            {
+                                                Id = task.GraphTaskSpec.Task.Name,
+                                                StandardErrorLine = current.ExecuteTask.Response.StandardErrorLine,
+                                            }
+                                        });
+                                        break;
+                                    case ProcessResponse.DataOneofCase.ExitCode:
+                                        exitCode = current.ExecuteTask.Response.ExitCode;
+                                        status = exitCode == 0
+                                            ? TaskCompletionStatus.TaskCompletionSuccess
+                                            : TaskCompletionStatus.TaskCompletionFailure;
+                                        didComplete = true;
+                                        break;
                                 }
                             }
                         }
+                        catch (OperationCanceledException) when (instance.CancellationTokenSource.IsCancellationRequested)
+                        {
+                            // We're stopping because something else cancelled the build.
+                            status = TaskCompletionStatus.TaskCompletionCancelled;
+                        }
                         catch (Exception ex)
                         {
-                            _logger.LogError($"{GetBuildStatusLogPrefix(0)} Failed to schedule task on virtual core: {ex}");
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogError($"{GetBuildStatusLogPrefix(0)} No executor available for running that task.");
-                    }
-                    if (!couldSchedule)
-                    {
-                        // We can't run this task.
-                        var project = _allProjects[nextTask.BuildSetProject.Name];
-                        nextTask.Status = GraphStatus.Failure;
-                        project.Status = GraphStatus.Failure;
-                        CancelledDueToFailure = true;
-                        if (!_turnOffExtraLogInfo)
-                        {
-                            _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {nextTask.BuildSetTask.Caption} {Bright.Red("[build failed]")}");
-                        }
-                        else
-                        {
-                            _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {nextTask.BuildSetTask.Caption} [failed]");
-                        }
-                        buildCancellationTokenSource.Cancel();
-                        continue;
-                    }
-                }
-                cancellationToken.ThrowIfCancellationRequested();
-                return _allTasks.Values.Any(x => x.Status != GraphStatus.Success) ? 1 : 0;
-            }
-            finally
-            {
-                if (buildCancellationTokenSource.Token.IsCancellationRequested)
-                {
-                    // Await all of the tasks that are in-progress.
-                    _logger.LogTrace("OpenGE build was cancelled. Waiting for all tasks to exit...");
-                    foreach (var task in _allTasks)
-                    {
-                        if (task.Value.ExecutingTask != null)
-                        {
-                            try
-                            {
-                                _logger.LogTrace($"Waiting for {task.Value.BuildSetTask.Caption} to exit...");
-                                await task.Value.ExecutingTask;
-                            }
-                            catch (OperationCanceledException)
-                            {
-                            }
-                        }
-                    }
-                    _logger.LogTrace("All tasks in the cancelled OpenGE build have exited.");
-                }
-            }
-        }
-
-        private string GetBuildStatusLogPrefix(int remainingOffset)
-        {
-            var remainingTasks = _remainingTasks + remainingOffset;
-            var percent = (1.0 - (_totalTasks == 0 ? 0.0 : (double)remainingTasks / _totalTasks)) * 100.0;
-            var totalTasksLength = _totalTasks.ToString().Length;
-            return $"{(_buildLogPrefix == string.Empty ? string.Empty : $"{_buildLogPrefix} ")}[{percent,3:0}%, {(_totalTasks - remainingTasks).ToString().PadLeft(totalTasksLength)}/{_totalTasks}]";
-        }
-
-        private async Task ExecuteTaskAsync(IOpenGETaskExecutor executor, GraphTask task, string[] arguments, IDisposable virtualCore, CancellationTokenSource buildCancellationTokenSource)
-        {
-            var cancellationToken = buildCancellationTokenSource.Token;
-
-            try
-            {
-                // Check if the project is failed and whether we should skip on project failure.
-                var project = _allProjects[task.BuildSetProject.Name];
-                if (project.Status == GraphStatus.Failure && task.BuildSetTask.SkipIfProjectFailed)
-                {
-                    task.Status = GraphStatus.Skipped;
-                    return;
-                }
-
-                // Check if any of our dependencies have failed or are skipped. If they have, we are skipped.
-                if (task.DependsOn.Any(x => x.Status == GraphStatus.Failure || x.Status == GraphStatus.Skipped))
-                {
-                    task.Status = GraphStatus.Skipped;
-                    return;
-                }
-
-                // Start the task.
-                try
-                {
-                    task.Status = GraphStatus.Running;
-                    if (!_turnOffExtraLogInfo)
-                    {
-                        _logger.LogInformation($"{GetBuildStatusLogPrefix(0)} {task.BuildSetTask.Caption} {Bright.Black($"[started on {virtualCore.ToString()}]")}");
-                    }
-                    else
-                    {
-                        _logger.LogInformation($"{GetBuildStatusLogPrefix(0)} {task.BuildSetTask.Caption}");
-                    }
-
-                    var stopwatch = Stopwatch.StartNew();
-                    var env = task.BuildSet.Environments[task.BuildSetProject.Env];
-                    var tool = env.Tools[task.BuildSetTask.Tool];
-
-                    bool needsRetry = false;
-                    void CheckForRetry(string data)
-                    {
-                        if (data.Contains("error C3859"))
-                        {
-                            _logger.LogTrace($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} Detected out-of-memory for MSVC (marking as retry needed)");
-                            needsRetry = true;
-                        }
-                        if (data.Contains("fatal error C1356"))
-                        {
-                            _logger.LogTrace($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} Detected high contention for MSVC (marking as retry needed)");
-                            needsRetry = true;
-                        }
-                        if (data.Contains("error LNK1107"))
-                        {
-                            _logger.LogTrace($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} Detected out-of-memory for clang-tidy (marking as retry needed)");
-                            needsRetry = true;
-                        }
-                        if (data.Contains("LLVM ERROR: out of memory"))
-                        {
-                            _logger.LogTrace($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} Detected out-of-memory for clang (marking as retry needed)");
-                            needsRetry = true;
-                        }
-                    }
-
-                    int exitCode;
-                    do
-                    {
-                        needsRetry = false;
-                        exitCode = await executor.ExecuteTaskAsync(
-                            virtualCore,
-                            GetBuildStatusLogPrefix(0),
-                            task,
-                            env!,
-                            tool!,
-                            arguments,
-                            _environmentVariables,
-                            CheckForRetry,
-                            CheckForRetry,
-                            cancellationToken);
-                        if (exitCode == 0)
-                        {
-                            break;
-                        }
-                        if (needsRetry)
-                        {
-                            _logger.LogInformation($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Bright.Yellow($"[automatically retrying]")}");
-                        }
-                    } while (needsRetry);
-
-                    if (exitCode == 0)
-                    {
-                        task.Status = GraphStatus.Success;
-                        if (!_turnOffExtraLogInfo)
-                        {
-                            _logger.LogInformation($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Bright.Green($"[done in {stopwatch.Elapsed.TotalSeconds:F2} secs]")}");
-                        }
-                        else
-                        {
-                            _logger.LogInformation($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} [{stopwatch.Elapsed.TotalSeconds:F2} secs]");
-                        }
-                    }
-                    else
-                    {
-                        task.Status = GraphStatus.Failure;
-                        project.Status = GraphStatus.Failure;
-                        _logger.LogTrace($"Setting CancelledDueToFailure = true because {task.BuildSetTask.Caption} returned with exit code {exitCode}");
-                        CancelledDueToFailure = true;
-                        if (!_turnOffExtraLogInfo)
-                        {
-                            _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Bright.Red("[build failed]")}");
-                        }
-                        else
-                        {
-                            _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} [failed]");
-                        }
-
-                        // @note: Is this correct?
-                        buildCancellationTokenSource.Cancel();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    task.Status = GraphStatus.Failure;
-                    project.Status = GraphStatus.Failure;
-                    if (!(ex is OperationCanceledException))
-                    {
-                        _logger.LogTrace($"Setting CancelledDueToFailure = true because {task.BuildSetTask.Caption} got non-cancellation exception");
-                        CancelledDueToFailure = true;
-                        if (!_turnOffExtraLogInfo)
-                        {
-                            _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Output.Background.Red(Black("[executor exception]"))}");
-                        }
-                        else
-                        {
-                            _logger.LogError($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Bright.Red("[executor failed]")}");
-                        }
-                        _logger.LogError(ex, ex.Message);
-                    }
-
-                    // @note: Is this correct?
-                    buildCancellationTokenSource.Cancel();
-
-                    throw;
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                if (!CancelledDueToFailure)
-                {
-                    if (!_turnOffExtraLogInfo)
-                    {
-                        _logger.LogWarning($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} {Bright.Yellow($"[terminating due to cancellation]")}");
-                    }
-                    else
-                    {
-                        _logger.LogWarning($"{GetBuildStatusLogPrefix(-1)} {task.BuildSetTask.Caption} [terminating due to cancellation]");
-                    }
-                }
-            }
-            finally
-            {
-                var remainingTaskCount = Interlocked.Decrement(ref _remainingTasks);
-                if (remainingTaskCount == 0)
-                {
-                    // This will cause WaitAsync to exit in the main loop
-                    // once all tasks are finished as well.
-                    _queuedTaskAvailableForProcessing.Release();
-                }
-                else
-                {
-                    // For everything that depends on us, check if it's dependencies are met and that it is
-                    // still in the Pending status. If it is, move it to the Scheduled status and put it
-                    // on the queue. We use the 'Pending' vs 'Scheduled' status to ensure we don't queue
-                    // the same thing twice.
-                    await _updatingTaskForScheduling.WaitAsync(cancellationToken);
-                    try
-                    {
-                        foreach (var dependent in task.Dependents)
-                        {
-                            if (dependent.Status == GraphStatus.Pending &&
-                                dependent.DependsOn.All(x => x.Status == GraphStatus.Failure || x.Status == GraphStatus.Success || x.Status == GraphStatus.Skipped))
-                            {
-                                // @todo: Shortcut when dependent is skipped or failed.
-
-                                dependent.Status = GraphStatus.Scheduled;
-                                _queuedTasksForProcessing.Enqueue(dependent);
-                                _queuedTaskAvailableForProcessing.Release();
-                            }
+                            status = TaskCompletionStatus.TaskCompletionException;
+                            exceptionMessage = ex.ToString();
                         }
                     }
                     finally
                     {
-                        _updatingTaskForScheduling.Release();
+                        try
+                        {
+                            if (!didStart)
+                            {
+                                // We never actually started this task because we failed
+                                // to reserve, but we need to start it so we can then immediately
+                                // convey the exception we ran into.
+                                await responseStream.WriteAsync(new JobResponse
+                                {
+                                    TaskStarted = new TaskStartedResponse
+                                    {
+                                        Id = task.GraphTaskSpec.Task.Name,
+                                        DisplayName = task.GraphTaskSpec.Task.Caption,
+                                        WorkerMachineName = string.Empty,
+                                        WorkerCoreNumber = 0,
+                                    },
+                                }, instance.CancellationToken);
+                            }
+                            await responseStream.WriteAsync(new JobResponse
+                            {
+                                TaskCompleted = new TaskCompletedResponse
+                                {
+                                    Id = task.GraphTaskSpec.Task.Name,
+                                    Status = status,
+                                    ExitCode = exitCode,
+                                    ExceptionMessage = exceptionMessage,
+                                    TotalSeconds = taskStopwatch.Elapsed.TotalSeconds,
+                                }
+                            }, instance.CancellationToken);
+
+                            if (status == TaskCompletionStatus.TaskCompletionSuccess)
+                            {
+                                // This task succeeded, queue up downstream tasks for scheduling.
+                                await instance.CompletedAndScheduledTasksLock.WaitAsync();
+                                try
+                                {
+                                    instance.CompletedTasks.Add(task);
+                                    if (Interlocked.Decrement(ref instance.RemainingTasks) != 0)
+                                    {
+                                        // What is waiting on this task?
+                                        var dependsOn = graph.TaskDependencies.WhatDependsOnTarget(task);
+                                        foreach (var depend in dependsOn)
+                                        {
+                                            // Is this task already scheduled or completed?
+                                            if (instance.CompletedTasks.Contains(depend) ||
+                                                instance.ScheduledTasks.Contains(depend))
+                                            {
+                                                continue;
+                                            }
+
+                                            // Are all the dependencies of this waiting task now satisified?
+                                            var waitingOn = graph.TaskDependencies.WhatTargetDependsOn(depend);
+                                            if (instance.CompletedTasks.IsSupersetOf(waitingOn))
+                                            {
+                                                // This task is now ready to schedule.
+                                                instance.QueuedTasksForScheduling.Enqueue(depend);
+                                                instance.QueuedTaskAvailableForScheduling.Release();
+                                                instance.ScheduledTasks.Add(depend);
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // Make sure our scheduling loop gets a chance to check
+                                        // RemainingTasks.
+                                        instance.QueuedTaskAvailableForScheduling.Release();
+                                    }
+                                }
+                                finally
+                                {
+                                    instance.CompletedAndScheduledTasksLock.Release();
+                                }
+                            }
+                            else
+                            {
+                                // This task failed, cancel the build.
+                                instance.CancellationTokenSource.Cancel();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // If any of this fails, we have to cancel the build.
+                            _logger.LogCritical(ex, ex.Message);
+                            instance.CancellationTokenSource.Cancel();
+                        }
                     }
-                }
+                }));
+            }
+
+            if (instance.RemainingTasks == 0 &&
+                instance.CompletedTasks.Count == graph.Tasks.Count)
+            {
+                // All tasks completed successfully.
+                await responseStream.WriteAsync(new JobResponse
+                {
+                    JobComplete = new JobCompleteResponse
+                    {
+                        Status = JobCompletionStatus.JobCompletionSuccess,
+                        TotalSeconds = graphStopwatch.Elapsed.TotalSeconds,
+                    }
+                });
+            }
+            else
+            {
+                // Something failed.
+                await responseStream.WriteAsync(new JobResponse
+                {
+                    JobComplete = new JobCompleteResponse
+                    {
+                        Status = JobCompletionStatus.JobCompletionFailure,
+                        TotalSeconds = graphStopwatch.Elapsed.TotalSeconds,
+                    }
+                });
             }
         }
     }
 }
-
-#endif

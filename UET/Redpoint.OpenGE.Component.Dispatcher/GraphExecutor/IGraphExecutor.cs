@@ -1,15 +1,17 @@
 ﻿namespace Redpoint.OpenGE.Component.Dispatcher.GraphExecutor
 {
     using Grpc.Core;
+    using Redpoint.OpenGE.Component.Dispatcher.Graph;
+    using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
     using Redpoint.OpenGE.Protocol;
     using System.Threading.Tasks;
 
-    public interface IGraphExecutor
+    internal interface IGraphExecutor
     {
-        bool CancelledDueToFailure { get; }
-
-        Task ExecuteAsync(
+        Task ExecuteGraphAsync(
+            IWorkerPool workerPool,
+            Graph graph,
             IAsyncStreamWriter<JobResponse> responseStream,
-            CancellationTokenSource buildCancellationTokenSource);
+            CancellationToken cancellationToken);
     }
 }

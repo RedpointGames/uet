@@ -4,9 +4,9 @@
     using Redpoint.OpenGE.Protocol;
     using System.Collections.Concurrent;
 
-    internal class RemoteWorkerState
+    internal class WorkerState
     {
-        private readonly List<RemoteWorkerStateReservation> _reservations = new List<RemoteWorkerStateReservation>();
+        private readonly List<WorkerStateReservation> _reservations = new List<WorkerStateReservation>();
         private readonly SemaphoreSlim _reservationsLock = new SemaphoreSlim(1);
 
         /// <summary>
@@ -15,9 +15,14 @@
         public required TaskApi.TaskApiClient Client { get; init; }
 
         /// <summary>
+        /// If true, this worker is on the local machine and can be used to execute tasks that do not support remoting.
+        /// </summary>
+        public bool IsLocalWorker { get; init; }
+
+        /// <summary>
         /// The pending reservation process, if there is one.
         /// </summary>
-        public RemoteWorkerStatePendingReservation? PendingReservation { get; set; }
+        public WorkerStatePendingReservation? PendingReservation { get; set; }
 
         /// <summary>
         /// The last time that we started requesting a reservation from this worker.
@@ -35,7 +40,7 @@
         /// </summary>
         public int TasksExecutedCount { get; set; }
 
-        internal async Task AddReservationAsync(RemoteWorkerStateReservation reservation)
+        internal async Task AddReservationAsync(WorkerStateReservation reservation)
         {
             await _reservationsLock.WaitAsync();
             try

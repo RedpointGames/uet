@@ -5,7 +5,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class RemoteWorkerStatePendingReservation
+    internal class WorkerStatePendingReservation
     {
         /// <summary>
         /// Our current duplex streaming call that we are performing or using the reservation on.

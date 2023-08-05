@@ -4,6 +4,8 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.GrpcPipes;
     using Redpoint.OpenGE.Component.Dispatcher.GraphExecutor;
+    using Redpoint.OpenGE.Component.Dispatcher.GraphGenerator;
+    using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
 
     internal class DefaultDispatcherComponentFactory : IDispatcherComponentFactory
     {
@@ -14,12 +16,16 @@
             _serviceProvider = serviceProvider;
         }
 
-        public IDispatcherComponent Create(string? pipeName)
+        public IDispatcherComponent Create(
+            IWorkerPool workerPool, 
+            string? pipeName)
         {
             return new DefaultDispatcherComponent(
                 _serviceProvider.GetRequiredService<ILogger<DefaultDispatcherComponent>>(),
-                _serviceProvider.GetRequiredService<IGraphExecutorFactory>(),
+                _serviceProvider.GetRequiredService<IGraphGenerator>(),
+                _serviceProvider.GetRequiredService<IGraphExecutor>(),
                 _serviceProvider.GetRequiredService<IGrpcPipeFactory>(),
+                workerPool,
                 pipeName);
         }
     }

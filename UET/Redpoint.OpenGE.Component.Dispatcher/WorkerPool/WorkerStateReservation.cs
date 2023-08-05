@@ -4,10 +4,10 @@
     using Redpoint.OpenGE.Protocol;
     using System.Threading;
 
-    internal class RemoteWorkerStateReservation
+    internal class WorkerStateReservation
     {
         /// <summary>
-        /// The duplex streaming call that is brought over from <see cref="RemoteWorkerStatePendingReservation"/> when a core is successfully reserved. This is the channel that the implementation of <see cref="IWorkerCore"/> performs operations on.
+        /// The duplex streaming call that is brought over from <see cref="WorkerStatePendingReservation"/> when a core is successfully reserved. This is the channel that the implementation of <see cref="IWorkerCore"/> performs operations on.
         /// </summary>
         public required AsyncDuplexStreamingCall<ExecutionRequest, ExecutionResponse> Request { get; set; }
 

@@ -46,12 +46,13 @@
 
             await using var pool = new DefaultWorkerPool(
                 provider.GetRequiredService<ILogger<DefaultWorkerPool>>(),
+                provider.GetRequiredService<ILogger<WorkerSubpool>>(),
                 null);
 
-            await pool.RegisterRemoteWorkerAsync(worker1Client);
-            await pool.RegisterRemoteWorkerAsync(worker2Client);
+            await pool._remoteSubpool.RegisterWorkerAsync(worker1Client);
+            await pool._remoteSubpool.RegisterWorkerAsync(worker2Client);
 
-            await using var reservation = await pool.ReserveRemoteOrLocalCoreAsync(CancellationToken.None);
+            await using var reservation = await pool.ReserveCoreAsync(false, new CancellationTokenSource(5000).Token);
 
             Assert.True(server1.Reserved == 1, "Server 1 should be reserved.");
             Assert.True(server2.Reserved == 1, "Server 2 should be reserved.");
@@ -95,11 +96,12 @@
 
             await using var pool = new DefaultWorkerPool(
                 provider.GetRequiredService<ILogger<DefaultWorkerPool>>(),
+                provider.GetRequiredService<ILogger<WorkerSubpool>>(),
                 null);
 
-            await pool.RegisterRemoteWorkerAsync(worker1Client);
+            await pool._remoteSubpool.RegisterWorkerAsync(worker1Client);
 
-            await using var reservation = await pool.ReserveRemoteOrLocalCoreAsync(CancellationToken.None);
+            await using var reservation = await pool.ReserveCoreAsync(false, new CancellationTokenSource(5000).Token);
 
             Assert.Equal(1, server1.Reserved);
 
@@ -135,14 +137,15 @@
 
             await using var pool = new DefaultWorkerPool(
                 provider.GetRequiredService<ILogger<DefaultWorkerPool>>(),
+                provider.GetRequiredService<ILogger<WorkerSubpool>>(),
                 null);
 
-            await pool.RegisterRemoteWorkerAsync(worker1Client);
+            await pool._remoteSubpool.RegisterWorkerAsync(worker1Client);
 
-            await using var reservation1 = await pool.ReserveRemoteOrLocalCoreAsync(CancellationToken.None);
-            await using var reservation2 = await pool.ReserveRemoteOrLocalCoreAsync(CancellationToken.None);
-            await using var reservation3 = await pool.ReserveRemoteOrLocalCoreAsync(CancellationToken.None);
-            await using var reservation4 = await pool.ReserveRemoteOrLocalCoreAsync(CancellationToken.None);
+            await using var reservation1 = await pool.ReserveCoreAsync(false, new CancellationTokenSource(5000).Token);
+            await using var reservation2 = await pool.ReserveCoreAsync(false, new CancellationTokenSource(5000).Token);
+            await using var reservation3 = await pool.ReserveCoreAsync(false, new CancellationTokenSource(5000).Token);
+            await using var reservation4 = await pool.ReserveCoreAsync(false, new CancellationTokenSource(5000).Token);
 
             Assert.Equal(4, server1.Reserved);
 

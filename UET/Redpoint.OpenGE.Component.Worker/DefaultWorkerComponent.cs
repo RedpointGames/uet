@@ -70,6 +70,7 @@
 
             var app = builder.Build();
             app.UseRouting();
+            app.UseGrpcWeb();
             app.MapGrpcService<TaskApi.TaskApiBase>();
 
             await app.StartAsync();
@@ -281,7 +282,6 @@
                                 {
                                     ReserveCore = new ReserveCoreResponse
                                     {
-                                        Reserved = true,
                                     }
                                 });
                             }

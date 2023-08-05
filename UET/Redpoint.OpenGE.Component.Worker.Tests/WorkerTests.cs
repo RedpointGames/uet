@@ -34,7 +34,6 @@
                 {
                     ReserveCore = new ReserveCoreRequest
                     {
-                        WaitForever = true,
                     },
                 });
                 Assert.True(

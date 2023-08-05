@@ -1,7 +1,7 @@
-﻿namespace Redpoint.OpenGE.PreprocessorCache.Tests
+﻿namespace Redpoint.OpenGE.Component.PreprocessorCache.Tests
 {
-    using PreprocessorCacheApi;
-    using Redpoint.OpenGE.PreprocessorCache.LexerParser;
+    using Redpoint.OpenGE.Component.PreprocessorCache.LexerParser;
+    using Redpoint.OpenGE.Protocol;
     using System.Linq;
 
     public class ParserExpansionTests

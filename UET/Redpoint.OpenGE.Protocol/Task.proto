@@ -17,18 +17,14 @@ import "TaskDescriptor.proto";
  * still has more work to schedule.
  */
 message ReserveCoreRequest {
-	bool waitForever = 1;
-	double waitSeconds = 2;
 }
 
 /**
- * Sent by the worker when a core has been reserved, or the
- * timeout specified by the client has elapsed. If reserved
- * is false, the server will close the streaming call
- * afterwards.
+ * Sent by the worker when a core has been reserved.
  */
 message ReserveCoreResponse {
-	bool reserved = 1;
+	string workerMachineName = 1;
+	int32 workerCoreNumber = 2;
 }
 
 /**

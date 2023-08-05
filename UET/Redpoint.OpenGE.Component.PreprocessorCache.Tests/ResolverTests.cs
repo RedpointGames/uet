@@ -1,5 +1,8 @@
-﻿namespace Redpoint.OpenGE.PreprocessorCache.Tests
+﻿namespace Redpoint.OpenGE.Component.PreprocessorCache.Tests
 {
+    using Redpoint.OpenGE.Component.PreprocessorCache.DependencyResolution;
+    using Redpoint.OpenGE.Component.PreprocessorCache.DirectiveScanner;
+
     public class ResolverTests
     {
         [SkippableFact]

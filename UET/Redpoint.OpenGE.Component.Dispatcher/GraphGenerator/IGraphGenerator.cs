@@ -7,7 +7,7 @@
 
     internal interface IGraphGenerator
     {
-        Task<Graph> GenerateGraphFromJob(
+        Task<Graph> GenerateGraphFromJobAsync(
             Job job,
             GraphExecutionEnvironment graphExecutionEnvironment,
             CancellationToken cancellationToken);

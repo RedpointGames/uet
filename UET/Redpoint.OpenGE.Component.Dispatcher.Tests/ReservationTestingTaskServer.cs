@@ -66,7 +66,6 @@
                             {
                                 ReserveCore = new ReserveCoreResponse
                                 {
-                                    Reserved = true,
                                 }
                             });
                             StartIdleChecks();

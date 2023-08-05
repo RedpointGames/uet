@@ -2,10 +2,10 @@
 {
     using System.Threading.Tasks;
 
-    internal interface IWorkerPool : IAsyncDisposable
+    public interface IWorkerPool : IAsyncDisposable
     {
-        Task<IWorkerCore> ReserveRemoteOrLocalCoreAsync(CancellationToken cancellationToken);
-
-        Task<IWorkerCore> ReserveLocalCoreAsync(CancellationToken cancellationToken);
+        Task<IWorkerCore> ReserveCoreAsync(
+            bool requireLocalCore,
+            CancellationToken cancellationToken);
     }
 }
