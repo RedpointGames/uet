@@ -1,8 +1,11 @@
 ﻿namespace Redpoint.OpenGE.Agent
 {
-    public interface IOpenGEAgent
+    using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
+
+    public interface IOpenGEAgent : IPreprocessorCacheAccessor
     {
         Task StartAsync();
+        string DispatcherConnectionString { get; }
         Task StopAsync();
     }
 }

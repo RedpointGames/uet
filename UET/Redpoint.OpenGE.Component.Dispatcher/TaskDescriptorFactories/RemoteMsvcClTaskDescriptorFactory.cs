@@ -155,7 +155,7 @@
             }
 
             // Determine the dependent header files.
-            var preprocessorCache = _preprocessorCacheAccessor.GetPreprocessorCache();
+            var preprocessorCache = await _preprocessorCacheAccessor.GetPreprocessorCacheAsync();
             var dependentFiles = await preprocessorCache.GetResolvedDependenciesAsync(
                 inputFile.FullName,
                 pchInputFile != null && forceIncludeFiles.Any(x => x.FullName == pchInputFile.FullName)

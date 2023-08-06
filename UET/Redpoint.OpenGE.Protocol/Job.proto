@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package Redpoint.OpenGE.Protocol;
 
-import "Process.proto";
-
 message SubmitJobRequest {
 	string buildNodeName = 1;
 	string jobXml = 2;
@@ -50,6 +48,7 @@ message TaskCompletedResponse {
 	int32 exitCode = 3;
 	string exceptionMessage = 4;
 	double totalSeconds = 5;
+	string displayName = 6;
 }
 
 message JobCompleteResponse {
@@ -67,6 +66,13 @@ message JobResponse {
 	}
 }
 
+message PingJobServiceRequest {
+}
+
+message PingJobServiceResponse {
+}
+
 service JobApi {
+	rpc PingJobService(PingJobServiceRequest) returns (PingJobServiceResponse) {}
 	rpc SubmitJob(SubmitJobRequest) returns (stream JobResponse) {}
 }

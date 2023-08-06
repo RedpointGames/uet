@@ -2,7 +2,7 @@
 {
     using Redpoint.OpenGE.Protocol;
 
-    internal interface IWorkerPoolFactory
+    public interface IWorkerPoolFactory
     {
         IWorkerPool CreateWorkerPool(
             TaskApi.TaskApiClient localWorker);

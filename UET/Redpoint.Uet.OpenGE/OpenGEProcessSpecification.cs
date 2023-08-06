@@ -1,4 +1,4 @@
-﻿namespace Redpoint.OpenGE
+﻿namespace Redpoint.Uet.OpenGE
 {
     using Redpoint.ProcessExecution;
 

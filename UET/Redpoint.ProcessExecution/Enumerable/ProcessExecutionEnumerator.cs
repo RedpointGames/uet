@@ -84,6 +84,7 @@
                             _processSpecification,
                             this,
                             _processCancellationTokenSource.Token);
+                        await Task.Yield();
                         SendMessageToEnumerableQueues(new ExitCodeResponse
                         {
                             ExitCode = exitCode,

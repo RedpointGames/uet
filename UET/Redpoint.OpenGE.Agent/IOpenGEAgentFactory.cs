@@ -2,6 +2,7 @@
 {
     public interface IOpenGEAgentFactory
     {
-        IOpenGEAgent CreateAgent(string rootPath);
+        IOpenGEAgent CreateAgent(
+            bool runPreprocessorComponent);
     }
 }

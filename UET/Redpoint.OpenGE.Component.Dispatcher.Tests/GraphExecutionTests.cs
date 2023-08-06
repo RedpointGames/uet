@@ -16,6 +16,21 @@
 
     public class GraphExecutionTests
     {
+        private class TestPreprocessorCacheAccessor : IPreprocessorCacheAccessor
+        {
+            private readonly IPreprocessorCache _preprocessorCache;
+
+            public TestPreprocessorCacheAccessor(IPreprocessorCache preprocessorCache)
+            {
+                _preprocessorCache = preprocessorCache;
+            }
+
+            public Task<IPreprocessorCache> GetPreprocessorCacheAsync()
+            {
+                return Task.FromResult<IPreprocessorCache>(_preprocessorCache);
+            }
+        }
+
         [Fact]
         public async Task ExecutionGraphBasicTest()
         {
@@ -27,7 +42,7 @@
             services.AddOpenGEPreprocessorCache();
             services.AddProcessExecution();
             services.AddReservation();
-            services.AddSingleton<IPreprocessorCacheAccessor, InProcessPreprocessorCacheAccessor>();
+            services.AddSingleton<IPreprocessorCacheAccessor, TestPreprocessorCacheAccessor>();
             // @note: We should really have an "InMemory" cache for unit tests like this, 
             // but we know this will never actually get used at runtime.
             services.AddSingleton<IPreprocessorCache>(sp => sp.GetRequiredService<IPreprocessorCacheFactory>().CreateInProcessCache());
@@ -102,12 +117,11 @@
                     Assert.Contains(messages, x =>
                         x.ResponseCase == JobResponse.ResponseOneofCase.TaskStarted &&
                         x.TaskStarted.Id == "Action2_0");
-                    // @note: Why doesn't this always arrive?
-                    /*Assert.Contains(messages, x =>
+                    Assert.Contains(messages, x =>
                         x.ResponseCase == JobResponse.ResponseOneofCase.TaskOutput &&
                         x.TaskOutput.Id == "Action2_0" &&
                         x.TaskOutput.OutputCase == TaskOutputResponse.OutputOneofCase.StandardOutputLine &&
-                        x.TaskOutput.StandardOutputLine.Trim() == "ok2");*/
+                        x.TaskOutput.StandardOutputLine.Trim() == "ok2");
                     Assert.Contains(messages, x =>
                         x.ResponseCase == JobResponse.ResponseOneofCase.TaskCompleted &&
                         x.TaskCompleted.Id == "Action2_0" &&

@@ -1,9 +1,7 @@
 ﻿namespace UET.Commands.Internal.OpenGEPreprocessorCache
 {
     using Microsoft.Extensions.Logging;
-    using PreprocessorCacheApi;
     using Redpoint.OpenGE.Component.PreprocessorCache.OnDemand;
-    using Redpoint.OpenGE.PreprocessorCache;
     using Redpoint.OpenGE.Protocol;
     using System.CommandLine;
     using System.CommandLine.Invocation;

@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Redpoint.OpenGE.Executor\Redpoint.OpenGE.Executor.csproj" />
+    <ProjectReference Include="..\Redpoint.OpenGE.JobXml\Redpoint.OpenGE.JobXml.csproj" />
   </ItemGroup>
 
 </Project>

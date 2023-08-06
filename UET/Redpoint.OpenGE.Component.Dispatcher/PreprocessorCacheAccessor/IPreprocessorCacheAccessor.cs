@@ -2,8 +2,8 @@
 {
     using Redpoint.OpenGE.Component.PreprocessorCache;
 
-    internal interface IPreprocessorCacheAccessor
+    public interface IPreprocessorCacheAccessor
     {
-        IPreprocessorCache GetPreprocessorCache();
+        Task<IPreprocessorCache> GetPreprocessorCacheAsync();
     }
 }

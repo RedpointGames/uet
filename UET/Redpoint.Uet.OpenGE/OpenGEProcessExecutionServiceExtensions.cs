@@ -1,4 +1,4 @@
-﻿namespace Redpoint.OpenGE.ProcessExecution
+﻿namespace Redpoint.Uet.OpenGE
 {
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.ProcessExecution;

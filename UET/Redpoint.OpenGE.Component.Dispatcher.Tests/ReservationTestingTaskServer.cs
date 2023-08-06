@@ -66,6 +66,8 @@
                             {
                                 ReserveCore = new ReserveCoreResponse
                                 {
+                                    WorkerMachineName = Environment.MachineName,
+                                    WorkerCoreNumber = 1,
                                 }
                             });
                             StartIdleChecks();

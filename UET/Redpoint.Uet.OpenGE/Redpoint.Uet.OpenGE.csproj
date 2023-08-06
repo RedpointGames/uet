@@ -28,7 +28,7 @@
     <Message Text="OpenGE.ProcessExecution is including self-built/on-demand shim for RID: 'win-x64'" Importance="high" Condition="'$(OpenGEShimIsAlreadyBuilt)' != 'true'" />
     <Error Text="OpenGE.ProcessExecution has OpenGEShimIsAlreadyBuilt == true but no OpenGEShimRuntimeIdentifier property set!" Condition="'$(OpenGEShimIsAlreadyBuilt)' == 'true' and '$(OpenGEShimRuntimeIdentifier)' == ''" />
   </Target>
-  
+
   <ItemGroup>
     <Compile Remove="shim-bin\**" />
     <EmbeddedResource Remove="shim-bin\**" />
@@ -45,8 +45,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Redpoint.OpenGE.Executor\Redpoint.OpenGE.Executor.csproj" />
-    <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.ApplicationLifecycle\Redpoint.ApplicationLifecycle.csproj" />
+    <ProjectReference Include="..\Redpoint.OpenGE.Component.Dispatcher\Redpoint.OpenGE.Component.Dispatcher.csproj" />
+    <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+  </ItemGroup>
+  
 </Project>

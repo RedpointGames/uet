@@ -4,7 +4,7 @@
     using Redpoint.OpenGE.Protocol;
     using System.Threading.Tasks;
 
-    internal class WorkerCore : IWorkerCore
+    internal class DefaultWorkerCore : IWorkerCore
     {
         private readonly WorkerSubpool _subpool;
         private readonly WorkerState _worker;
@@ -12,7 +12,7 @@
         private readonly string _workerMachineName;
         private readonly int _workerCoreNumber;
 
-        public WorkerCore(
+        public DefaultWorkerCore(
             WorkerSubpool subpool,
             WorkerState worker,
             AsyncDuplexStreamingCall<ExecutionRequest, ExecutionResponse> request,

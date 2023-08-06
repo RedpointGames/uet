@@ -3,7 +3,9 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <ItemGroup>
-    <ProjectReference Include="..\Redpoint.OpenGE.Executor\Redpoint.OpenGE.Executor.csproj" />
+    <ProjectReference Include="..\Redpoint.OpenGE.Component.Dispatcher\Redpoint.OpenGE.Component.Dispatcher.csproj" />
+    <ProjectReference Include="..\Redpoint.OpenGE.Component.PreprocessorCache\Redpoint.OpenGE.Component.PreprocessorCache.csproj" />
+    <ProjectReference Include="..\Redpoint.OpenGE.Component.Worker\Redpoint.OpenGE.Component.Worker.csproj" />
   </ItemGroup>
 
 </Project>

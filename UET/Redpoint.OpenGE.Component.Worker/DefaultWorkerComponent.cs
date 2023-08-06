@@ -12,6 +12,7 @@
     using System.Net;
     using System.Net.Sockets;
     using System.Text;
+    using System.Collections.Concurrent;
 
     internal class DefaultWorkerComponent : TaskApi.TaskApiBase, IWorkerComponent
     {
@@ -19,8 +20,8 @@
         private readonly IBlobManager _blobManager;
         private readonly IExecutionManager _executionManager;
         private readonly ILogger<DefaultWorkerComponent> _logger;
-        private readonly SemaphoreSlim _reservationSemaphore = new SemaphoreSlim(
-            Environment.ProcessorCount * (OperatingSystem.IsMacOS() ? 1 : 2));
+        private readonly SemaphoreSlim _reservationSemaphore;
+        private readonly ConcurrentBag<int> _reservationBag;
         private CancellationTokenSource? _shutdownCancellationTokenSource;
         private string? _listeningExternalUrl;
         private WebApplication? _app;
@@ -37,6 +38,10 @@
             _blobManager = blobManager;
             _executionManager = executionManager;
             _logger = logger;
+
+            var processorCount = Environment.ProcessorCount * (OperatingSystem.IsMacOS() ? 1 : 2);
+            _reservationSemaphore = new SemaphoreSlim(processorCount);
+            _reservationBag = new ConcurrentBag<int>(Enumerable.Range(1, processorCount));
         }
 
         public TaskApi.TaskApiBase TaskApi => this;
@@ -124,10 +129,11 @@
                 5000);
             connectionIdleTracker.StartIdling();
             var didReserve = false;
+            int reservedCore = 0;
             try
             {
                 // Wait for the reservation to be made first.
-                await HandleReservationRequestLoopAsync(requestStream, responseStream, connectionIdleTracker);
+                reservedCore = await HandleReservationRequestLoopAsync(requestStream, responseStream, connectionIdleTracker);
                 didReserve = true;
 
                 // Process requests after the reservation.
@@ -138,6 +144,7 @@
                         case ExecutionRequest.RequestOneofCase.ReserveCore:
                             throw new RpcException(new Status(StatusCode.InvalidArgument, "You have already obtained a reservation on this RPC call."));
                         case ExecutionRequest.RequestOneofCase.QueryTool:
+                            _logger.LogTrace("Worker ReserveCoreAndExecute QueryTool Begin");
                             connectionIdleTracker.StopIdling();
                             try
                             {
@@ -151,9 +158,11 @@
                             finally
                             {
                                 connectionIdleTracker.StartIdling();
+                                _logger.LogTrace("Worker ReserveCoreAndExecute QueryTool End");
                             }
                             break;
                         case ExecutionRequest.RequestOneofCase.HasToolBlobs:
+                            _logger.LogTrace("Worker ReserveCoreAndExecute HasToolBlobs Begin");
                             connectionIdleTracker.StopIdling();
                             try
                             {
@@ -167,9 +176,11 @@
                             finally
                             {
                                 connectionIdleTracker.StartIdling();
+                                _logger.LogTrace("Worker ReserveCoreAndExecute HasToolBlobs End");
                             }
                             break;
                         case ExecutionRequest.RequestOneofCase.WriteToolBlob:
+                            _logger.LogTrace("Worker ReserveCoreAndExecute WriteToolBlob Begin");
                             connectionIdleTracker.StopIdling();
                             try
                             {
@@ -183,9 +194,11 @@
                             finally
                             {
                                 connectionIdleTracker.StartIdling();
+                                _logger.LogTrace("Worker ReserveCoreAndExecute WriteToolBlob End");
                             }
                             break;
                         case ExecutionRequest.RequestOneofCase.ConstructTool:
+                            _logger.LogTrace("Worker ReserveCoreAndExecute ConstructTool Begin");
                             connectionIdleTracker.StopIdling();
                             try
                             {
@@ -199,9 +212,11 @@
                             finally
                             {
                                 connectionIdleTracker.StartIdling();
+                                _logger.LogTrace("Worker ReserveCoreAndExecute ConstructTool End");
                             }
                             break;
                         case ExecutionRequest.RequestOneofCase.QueryMissingBlobs:
+                            _logger.LogTrace("Worker ReserveCoreAndExecute QueryMissingBlobs Begin");
                             connectionIdleTracker.StopIdling();
                             try
                             {
@@ -215,9 +230,11 @@
                             finally
                             {
                                 connectionIdleTracker.StartIdling();
+                                _logger.LogTrace("Worker ReserveCoreAndExecute QueryMissingBlobs End");
                             }
                             break;
                         case ExecutionRequest.RequestOneofCase.SendCompressedBlobs:
+                            _logger.LogTrace("Worker ReserveCoreAndExecute SendCompressedBlobs Begin");
                             connectionIdleTracker.StopIdling();
                             try
                             {
@@ -231,9 +248,12 @@
                             finally
                             {
                                 connectionIdleTracker.StartIdling();
+                                _logger.LogTrace("Worker ReserveCoreAndExecute SendCompressedBlobs End");
                             }
                             break;
                         case ExecutionRequest.RequestOneofCase.ExecuteTask:
+                            _logger.LogTrace("Worker ReserveCoreAndExecute ExecuteTask Begin");
+                            connectionIdleTracker.StopIdling();
                             try
                             {
                                 await _executionManager.ExecuteTaskAsync(
@@ -244,6 +264,7 @@
                             finally
                             {
                                 connectionIdleTracker.StartIdling();
+                                _logger.LogTrace("Worker ReserveCoreAndExecute ExecuteTask End");
                             }
                             break;
                         default:
@@ -251,21 +272,36 @@
                     }
                 }
             }
+            catch (OperationCanceledException)
+            {
+                if (context.CancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning("The entity calling the worker's ReserveCoreAndExecute RPC cancelled the operation.");
+                    throw;
+                }
+                else if (connectionIdleTracker.CancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning("The entity calling ReserveCoreAndExecute RPC idled for too long, and the call was cancelled because the reservation was not being used.");
+                    throw;
+                }
+            }
             finally
             {
                 if (didReserve)
                 {
+                    _reservationBag.Add(reservedCore);
                     _reservationSemaphore.Release();
                 }
             }
         }
 
-        private async Task HandleReservationRequestLoopAsync(
+        private async Task<int> HandleReservationRequestLoopAsync(
             IAsyncStreamReader<ExecutionRequest> requestStream,
             IServerStreamWriter<ExecutionResponse> responseStream,
             ConnectionIdleTracker connectionIdleTracker)
         {
             bool didReserve = false;
+            int reservedCore = 0;
             bool isReturning = false;
             try
             {
@@ -280,11 +316,19 @@
                             try
                             {
                                 await _reservationSemaphore.WaitAsync(connectionIdleTracker.CancellationToken);
+                                if (!_reservationBag.TryTake(out reservedCore))
+                                {
+                                    throw new RpcException(new Status(
+                                        StatusCode.InvalidArgument,
+                                        "Core reservation bag has less items than semaphore!"));
+                                }
                                 didReserve = true;
                                 await responseStream.WriteAsync(new ExecutionResponse
                                 {
                                     ReserveCore = new ReserveCoreResponse
                                     {
+                                        WorkerMachineName = Environment.MachineName,
+                                        WorkerCoreNumber = reservedCore,
                                     }
                                 });
                             }
@@ -309,7 +353,7 @@
                     // - This function exits with an exception, but releases the
                     //   reservation it took.
                     isReturning = true;
-                    return;
+                    return reservedCore;
                 }
             } 
             finally
@@ -319,6 +363,9 @@
                     _reservationSemaphore.Release();
                 }
             }
+            throw new RpcException(new Status(
+                StatusCode.Internal,
+                "Expected HandleReservationRequestLoopAsync to exit normally or to already have thrown."));
         }
     }
 }

@@ -157,7 +157,7 @@
                             var reservation = new WorkerStateReservation
                             {
                                 Request = pendingReservation.Request,
-                                Core = new WorkerCore(
+                                Core = new DefaultWorkerCore(
                                     this, 
                                     worker,
                                     pendingReservation.Request,

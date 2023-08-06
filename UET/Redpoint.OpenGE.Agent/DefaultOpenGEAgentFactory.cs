@@ -1,32 +1,32 @@
 ﻿namespace Redpoint.OpenGE.Agent
 {
-    using System.Threading.Tasks;
+    using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.GrpcPipes;
+    using Redpoint.OpenGE.Component.Dispatcher;
+    using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
+    using Redpoint.OpenGE.Component.PreprocessorCache.OnDemand;
+    using Redpoint.OpenGE.Component.Worker;
 
     internal class DefaultOpenGEAgentFactory : IOpenGEAgentFactory
     {
-        public IOpenGEAgent CreateAgent(string rootPath)
-        {
-            return new DefaultOpenGEAgent(rootPath);
-        }
-    }
+        private readonly IServiceProvider _serviceProvider;
 
-    internal class DefaultOpenGEAgent : IOpenGEAgent
-    {
-        private readonly string _rootPath;
-
-        public DefaultOpenGEAgent(string rootPath)
+        public DefaultOpenGEAgentFactory(
+            IServiceProvider serviceProvider)
         {
-            _rootPath = rootPath;
+            _serviceProvider = serviceProvider;
         }
 
-        public Task StartAsync()
+        public IOpenGEAgent CreateAgent(
+            bool runPreprocessorComponent)
         {
-            throw new NotImplementedException();
-        }
-
-        public Task StopAsync()
-        {
-            throw new NotImplementedException();
+            return new DefaultOpenGEAgent(
+                _serviceProvider.GetRequiredService<IDispatcherComponentFactory>(),
+                _serviceProvider.GetRequiredService<IWorkerComponentFactory>(),
+                _serviceProvider.GetRequiredService<IWorkerPoolFactory>(),
+                _serviceProvider.GetRequiredService<IPreprocessorCacheFactory>(),
+                _serviceProvider.GetRequiredService<IGrpcPipeFactory>(),
+                runPreprocessorComponent);
         }
     }
 }

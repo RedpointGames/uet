@@ -3,8 +3,6 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.MSBuildResolution;
-    using Redpoint.OpenGE.Executor;
-    using Redpoint.OpenGE.ProcessExecution;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.ProgressMonitor;
@@ -32,6 +30,11 @@
     using Redpoint.ServiceControl;
     using Redpoint.CredentialDiscovery;
     using Redpoint.OpenGE.Component.PreprocessorCache;
+    using Redpoint.Uet.OpenGE;
+    using Redpoint.OpenGE.Component.Dispatcher;
+    using Redpoint.OpenGE.Component.Worker;
+    using Redpoint.OpenGE.Agent;
+    using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
 
     internal static class CommandExtensions
     {
@@ -56,7 +59,9 @@
             {
                 services.AddServiceControl();
             }
-            services.AddOpenGEExecutor();
+            services.AddOpenGEAgent();
+            services.AddOpenGEComponentDispatcher();
+            services.AddOpenGEComponentWorker();
             services.AddOpenGEProcessExecution();
             services.AddOpenGEPreprocessorCache();
             services.AddSdkManagement();
@@ -159,11 +164,9 @@
                 {
                     extraServices(services);
                 }
-                if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("UET_XGE_SHIM_PIPE_NAME")))
-                {
-                    // Run commands with an XGE shim if we don't already have one.
-                    services.AddSingleton<IApplicationLifecycle>(sp => sp.GetRequiredService<IOpenGEDaemon>());
-                }
+                services.AddSingleton<IOpenGEProvider, DefaultOpenGEProvider>();
+                services.AddSingleton<IApplicationLifecycle>(sp => sp.GetRequiredService<IOpenGEProvider>());
+                services.AddSingleton<IPreprocessorCacheAccessor>(sp => sp.GetRequiredService<IOpenGEProvider>());
                 if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("UET_AUTOMATION_LOGGER_PIPE_NAME")))
                 {
                     // Run commands with an automation logger shim if we don't already have one.

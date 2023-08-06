@@ -133,6 +133,11 @@
             }
         }
 
+        public override Task<PingJobServiceResponse> PingJobService(PingJobServiceRequest request, ServerCallContext context)
+        {
+            return Task.FromResult(new PingJobServiceResponse());
+        }
+
         public override async Task SubmitJob(
             SubmitJobRequest request, 
             IServerStreamWriter<JobResponse> responseStream, 

@@ -7,8 +7,6 @@ namespace Redpoint.Uet.BuildPipeline.Tests
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.Uat;
     using Redpoint.MSBuildResolution;
-    using Redpoint.OpenGE.ProcessExecution;
-    using Redpoint.OpenGE.Executor;
     using Redpoint.Uet.Core;
     using Redpoint.GrpcPipes;
 
@@ -19,8 +17,6 @@ namespace Redpoint.Uet.BuildPipeline.Tests
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddPathResolution();
-            services.AddOpenGEExecutor();
-            services.AddOpenGEProcessExecution();
             services.AddProcessExecution();
             services.AddGrpcPipes();
             services.AddUETCore();
