@@ -55,8 +55,8 @@
 
         public async Task ExecuteGraphAsync(
             IWorkerPool workerPool,
-            Graph graph, 
-            IAsyncStreamWriter<JobResponse> responseStream,
+            Graph graph,
+            GuardedResponseStream<JobResponse> responseStream,
             CancellationToken cancellationToken)
         {
             var graphStopwatch = Stopwatch.StartNew();
@@ -160,10 +160,10 @@
                                 }, instance.CancellationToken);
 
                                 // Stream the results until we get an exit code.
-                                while (!didComplete &&
-                                    await core.Request.ResponseStream.MoveNext(instance.CancellationToken))
+                                await using var enumerable = core.Request.GetAsyncEnumerator(instance.CancellationToken);
+                                while (!didComplete && await enumerable.MoveNextAsync(instance.CancellationToken))
                                 {
-                                    var current = core.Request.ResponseStream.Current;
+                                    var current = enumerable.Current;
                                     if (current.ResponseCase != ExecutionResponse.ResponseOneofCase.ExecuteTask)
                                     {
                                         throw new RpcException(new Status(
@@ -201,6 +201,23 @@
                                             break;
                                     }
                                 }
+                            }
+                            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled && cancellationToken.IsCancellationRequested)
+                            {
+                                // We're stopping because the caller cancelled the build (i.e. the client
+                                // of the dispatcher RPC hit "Ctrl-C").
+                                status = TaskCompletionStatus.TaskCompletionCancelled;
+                            }
+                            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled && instance.CancellationToken.IsCancellationRequested)
+                            {
+                                // We're stopping because something else cancelled the build.
+                                status = TaskCompletionStatus.TaskCompletionCancelled;
+                            }
+                            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                            {
+                                // We're stopping because the caller cancelled the build (i.e. the client
+                                // of the dispatcher RPC hit "Ctrl-C").
+                                status = TaskCompletionStatus.TaskCompletionCancelled;
                             }
                             catch (OperationCanceledException) when (instance.CancellationToken.IsCancellationRequested)
                             {
@@ -296,6 +313,20 @@
                                     instance.CancelDueToFailure();
                                 }
                             }
+                            catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
+                            {
+                                // We're stopping because the caller cancelled the build (i.e. the client
+                                // of the dispatcher RPC hit "Ctrl-C").
+                                instance.CancelDueToException(ex);
+                            }
+                            catch (OperationCanceledException) when (instance.CancellationToken.IsCancellationRequested)
+                            {
+                                // We're stopping because something else cancelled the build.
+                            }
+                            catch (ObjectDisposedException ex) when (ex.Message.Contains("Request has finished and HttpContext disposed."))
+                            {
+                                // We can't send further messages because the response stream has died.
+                            }
                             catch (Exception ex)
                             {
                                 // If any of this fails, we have to cancel the build.
@@ -305,6 +336,8 @@
                         }
                     }));
                 }
+
+                cancellationToken.ThrowIfCancellationRequested();
 
                 if (instance.RemainingTasks == 0 &&
                     instance.CompletedTasks.Count == graph.Tasks.Count)
@@ -332,7 +365,18 @@
                     });
                 }
             }
-            catch (OperationCanceledException)
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+            {
+                // Convert the RPC exception into an OperationCanceledException.
+                throw new OperationCanceledException("Cancellation via RPC", ex);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // We're stopping because the caller cancelled the build (i.e. the client
+                // of the dispatcher RPC hit "Ctrl-C").
+                throw;
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 if (instance.IsCancelledDueToFailure)
                 {
@@ -352,14 +396,17 @@
                         {
                         }
                     }
-                    await responseStream.WriteAsync(new JobResponse
+                    if (!cancellationToken.IsCancellationRequested)
                     {
-                        JobComplete = new JobCompleteResponse
+                        await responseStream.WriteAsync(new JobResponse
                         {
-                            Status = JobCompletionStatus.JobCompletionFailure,
-                            TotalSeconds = graphStopwatch.Elapsed.TotalSeconds,
-                        }
-                    });
+                            JobComplete = new JobCompleteResponse
+                            {
+                                Status = JobCompletionStatus.JobCompletionFailure,
+                                TotalSeconds = graphStopwatch.Elapsed.TotalSeconds,
+                            }
+                        });
+                    }
                 }
                 else
                 {

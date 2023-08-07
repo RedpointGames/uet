@@ -10,6 +10,16 @@
         private readonly SemaphoreSlim _reservationsLock = new SemaphoreSlim(1);
 
         /// <summary>
+        /// The display name for this worker.
+        /// </summary>
+        public required string DisplayName { get; init; }
+
+        public override string ToString()
+        {
+            return DisplayName;
+        }
+
+        /// <summary>
         /// The client for the remote worker that we will communicate on.
         /// </summary>
         public required TaskApi.TaskApiClient Client { get; init; }

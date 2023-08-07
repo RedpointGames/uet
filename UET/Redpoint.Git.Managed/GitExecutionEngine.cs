@@ -12,8 +12,7 @@
 
     internal class GitExecutionEngine : IDisposable
     {
-        private readonly SemaphoreSlim _operationReadySemaphore;
-        private readonly ConcurrentQueue<GitOperation> _pendingOperations;
+        private readonly AwaitableConcurrentQueue<GitOperation> _pendingOperations;
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly ILogger<GitExecutionEngine> _logger;
         // @bug: I'm pretty sure this can dispose the packfiles while we still
@@ -28,8 +27,7 @@
         public GitExecutionEngine(
             ILogger<GitExecutionEngine> logger)
         {
-            _operationReadySemaphore = new SemaphoreSlim(0);
-            _pendingOperations = new ConcurrentQueue<GitOperation>();
+            _pendingOperations = new AwaitableConcurrentQueue<GitOperation>();
             _cancellationTokenSource = new CancellationTokenSource();
             _logger = logger;
             _packfileCache = new ConcurrentLruBuilder<string, Packfile.Packfile>()
@@ -220,7 +218,6 @@
         internal void EnqueueOperation(GitOperation operation)
         {
             _pendingOperations.Enqueue(operation);
-            _operationReadySemaphore.Release();
         }
 
         private async Task RunAsync()
@@ -229,11 +226,7 @@
             {
                 while (!_cancellationTokenSource.IsCancellationRequested)
                 {
-                    await _operationReadySemaphore.WaitAsync(_cancellationTokenSource.Token);
-                    if (!_pendingOperations.TryDequeue(out var nextOperation))
-                    {
-                        throw new InvalidOperationException();
-                    }
+                    var nextOperation = await _pendingOperations.Dequeue(_cancellationTokenSource.Token);
 
                     try
                     {

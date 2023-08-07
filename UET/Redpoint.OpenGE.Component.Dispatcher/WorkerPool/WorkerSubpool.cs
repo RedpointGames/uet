@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.OpenGE.Component.Dispatcher.WorkerPool
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Concurrency;
     using Redpoint.OpenGE.Protocol;
     using System.Collections.Concurrent;
     using System.Threading;
@@ -10,14 +11,13 @@
     {
         private readonly ILogger<WorkerSubpool> _logger;
         private readonly SemaphoreSlim _notifyReevaluationOfWorkers;
-        private readonly SemaphoreSlim _workerCoreAvailable;
-        private readonly ConcurrentQueue<IWorkerCore> _workerCoreQueue;
+        private readonly AwaitableConcurrentQueue<IWorkerCore> _workerCoreQueue;
         internal readonly List<WorkerState> _workers;
         private readonly ConcurrentQueue<TaskApi.TaskApiClient> _workerExplicitAddQueue;
         private readonly SemaphoreSlim _workerExplicitAddComplete;
 
-        internal int _coresRequested;
-        internal int _coresReserved;
+        private int _coresRequested;
+        private int _coresReserved;
 
         internal WorkerSubpool(
             ILogger<WorkerSubpool> logger,
@@ -25,14 +25,37 @@
         {
             _logger = logger;
             _notifyReevaluationOfWorkers = notifyReevaluationOfWorkers;
-            _workerCoreAvailable = new SemaphoreSlim(0);
-            _workerCoreQueue = new ConcurrentQueue<IWorkerCore>();
+            _workerCoreQueue = new AwaitableConcurrentQueue<IWorkerCore>();
             _workers = new List<WorkerState>();
             _workerExplicitAddQueue = new ConcurrentQueue<TaskApi.TaskApiClient>();
             _workerExplicitAddComplete = new SemaphoreSlim(0);
 
             _coresRequested = 0;
             _coresReserved = 0;
+        }
+
+        internal void IncrementCoresRequested()
+        {
+            Interlocked.Increment(ref _coresRequested);
+            _logger.LogTrace($"[inc requested] cores requested: {_coresRequested}, cores reserved: {_coresReserved}");
+        }
+
+        internal void IncrementCoresReserved()
+        {
+            Interlocked.Increment(ref _coresReserved);
+            _logger.LogTrace($"[inc reserved] cores requested: {_coresRequested}, cores reserved: {_coresReserved}");
+        }
+
+        internal void DecrementCoresRequested()
+        {
+            Interlocked.Decrement(ref _coresRequested);
+            _logger.LogTrace($"[dec requested] cores requested: {_coresRequested}, cores reserved: {_coresReserved}");
+        }
+
+        internal void DecrementCoresReserved()
+        {
+            Interlocked.Decrement(ref _coresReserved);
+            _logger.LogTrace($"[dec reserved] cores requested: {_coresRequested}, cores reserved: {_coresReserved}");
         }
 
         internal async Task RegisterWorkerAsync(TaskApi.TaskApiClient remoteClient)
@@ -45,24 +68,36 @@
         internal async Task<IWorkerCore> ReserveCoreAsync(
             CancellationToken cancellationToken)
         {
-            _coresRequested++;
+            IncrementCoresRequested();
             _notifyReevaluationOfWorkers.Release();
             var didAcquire = false;
             try
             {
-                await _workerCoreAvailable.WaitAsync(cancellationToken);
-                if (_workerCoreQueue.TryDequeue(out var worker))
+                IWorkerCore worker;
+                do
                 {
-                    didAcquire = true;
-                    return worker;
+                    worker = await _workerCoreQueue.Dequeue(cancellationToken);
+                    if (worker.Dead)
+                    {
+                        // When a worker core dies, it decrements the request
+                        // count, since it normally happens when when the caller
+                        // of ReserveCoreAsync disposes the worker core. In this case
+                        // however, we're pulling a dead worker off the queue, which
+                        // means we need to refresh that we still need a core to
+                        // work with.
+                        IncrementCoresRequested();
+                        _notifyReevaluationOfWorkers.Release();
+                    }
                 }
-                throw new InvalidOperationException("Worker queue indicated remote worker was available, but none could be pulled from the concurrent queue.");
+                while (worker.Dead);
+                didAcquire = true;
+                return worker;
             }
             finally
             {
                 if (!didAcquire)
                 {
-                    _coresRequested--;
+                    DecrementCoresRequested();
                 }
             }
         }
@@ -74,7 +109,8 @@
             {
                 _workers.Add(new WorkerState
                 {
-                    Client = newRemoteClient,
+                    DisplayName = newRemoteClient?.ToString() ?? "(unnamed worker)",
+                    Client = newRemoteClient!,
                 });
                 _workerExplicitAddComplete.Release();
             }
@@ -113,6 +149,7 @@
                     // timed out recently.
                     .ThenBy(x => x.LastReservationTimeoutUtc))
                 {
+                    _logger.LogTrace($"Starting reservation on {enumeratedWorker}...");
                     var cancellationTokenSource = new CancellationTokenSource();
                     var worker = enumeratedWorker;
                     var pendingReservation = new WorkerStatePendingReservation();
@@ -128,6 +165,7 @@
                                 cancellationToken: cancellationToken);
 
                             // Send the request to reserve a core.
+                            _logger.LogTrace($"Requesting a core from {enumeratedWorker}...");
                             await pendingReservation.Request.RequestStream.WriteAsync(new ExecutionRequest
                             {
                                 ReserveCore = new ReserveCoreRequest
@@ -151,6 +189,7 @@
                                 shouldReprocessRemoteWorkers = true;
                                 return;
                             }
+                            _logger.LogTrace($"Obtained a core from {enumeratedWorker}, pushing it to the queue.");
 
                             // We've successfully reserved a core on this remote worker! Add it to the
                             // reservations list and push it into the queue of available cores.
@@ -158,7 +197,8 @@
                             {
                                 Request = pendingReservation.Request,
                                 Core = new DefaultWorkerCore(
-                                    this, 
+                                    this,
+                                    _logger,
                                     worker,
                                     pendingReservation.Request,
                                     pendingReservation.Request.ResponseStream.Current.ReserveCore.WorkerMachineName,
@@ -166,10 +206,9 @@
                                 CancellationTokenSource = cancellationTokenSource,
                             };
                             pendingReservation.CancellationTokenSource = null;
-                            Interlocked.Increment(ref _coresReserved);
+                            IncrementCoresReserved();
                             await worker.AddReservationAsync(reservation);
                             _workerCoreQueue.Enqueue(reservation.Core);
-                            _workerCoreAvailable.Release();
                             didReserve = true;
 
                             // We want to reprocess remote workers after we finish here, since the pool
@@ -221,6 +260,7 @@
                     var pendingReservation = worker.PendingReservation;
                     if (pendingReservation != null)
                     {
+                        _logger.LogTrace($"Cancelling pending reservation for {worker} because it's no longer needed.");
                         pendingReservation.CancellationTokenSource?.Cancel();
                         try
                         {

@@ -131,6 +131,14 @@ rootCommand.SetHandler(async (InvocationContext context) =>
                 }
             }
         }
+        catch (OperationCanceledException) when (context.GetCancellationToken().IsCancellationRequested)
+        {
+            context.ExitCode = 1;
+        }
+        catch (RpcException) when (context.GetCancellationToken().IsCancellationRequested)
+        {
+            context.ExitCode = 1;
+        }
         catch (RpcException ex)
         {
             Console.WriteLine($"OpenGE executor failed with exception: {ex}");

@@ -140,17 +140,11 @@
 
         public override async Task SubmitJob(
             SubmitJobRequest request, 
-            IServerStreamWriter<JobResponse> responseStream, 
+            IServerStreamWriter<JobResponse> unsafeResponseStream, 
             ServerCallContext context)
         {
-            if (_isShuttingDown)
-            {
-                // Do not start a job if we're in the process of closing the pipe.
-                return;
-            }
+            var responseStream = new GuardedResponseStream<JobResponse>(unsafeResponseStream);
 
-            // Increment the current job count.
-            await _inflightJobCountSemaphore.WaitAsync();
             try
             {
                 if (_isShuttingDown)
@@ -158,46 +152,58 @@
                     // Do not start a job if we're in the process of closing the pipe.
                     return;
                 }
-                _logger.LogTrace("OpenGE in-flight: Incremented job count");
-                _inflightJobs++;
-            }
-            finally
-            {
-                _inflightJobCountSemaphore.Release();
-            }
 
-            // Execute the job.
-            try
-            {
-                var globalCts = CancellationTokenSource.CreateLinkedTokenSource(
-                    context.CancellationToken, 
-                    _shutdownCancellationToken!);
-
-                _logger.LogTrace($"[{request.BuildNodeName}] Received OpenGE job request");
-
+                // Increment the current job count.
+                await _inflightJobCountSemaphore.WaitAsync();
                 try
                 {
-                    using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(request.JobXml)))
+                    if (_isShuttingDown)
                     {
-                        _logger.LogTrace($"[{request.BuildNodeName}] Executing job request");
+                        // Do not start a job if we're in the process of closing the pipe.
+                        return;
+                    }
+                    _logger.LogTrace("OpenGE in-flight: Incremented job count");
+                    _inflightJobs++;
+                }
+                finally
+                {
+                    _inflightJobCountSemaphore.Release();
+                }
 
-                        // Convert the environment variables from the gRPC map.
-                        var envs = new Dictionary<string, string>();
-                        foreach (var kv in request.EnvironmentVariables)
+                // Execute the job.
+                try
+                {
+                    var globalCts = CancellationTokenSource.CreateLinkedTokenSource(
+                        context.CancellationToken,
+                        _shutdownCancellationToken!);
+
+                    _logger.LogTrace($"[{request.BuildNodeName}] Received OpenGE job request");
+
+                    try
+                    {
+                        Graph.Graph graph;
+                        using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(request.JobXml)))
                         {
-                            envs[kv.Key] = kv.Value;
-                        }
+                            _logger.LogTrace($"[{request.BuildNodeName}] Executing job request");
 
-                        // Convert the graph XML into the graph object, which describes
-                        // all of the tasks to run and their dependencies.
-                        var graph = await _graphGenerator.GenerateGraphFromJobAsync(
-                            JobXmlReader.ParseJobXml(stream),
-                            new GraphExecutionEnvironment
+                            // Convert the environment variables from the gRPC map.
+                            var envs = new Dictionary<string, string>();
+                            foreach (var kv in request.EnvironmentVariables)
                             {
-                                EnvironmentVariables = envs,
-                                WorkingDirectory = request.WorkingDirectory,
-                            },
-                            globalCts.Token);
+                                envs[kv.Key] = kv.Value;
+                            }
+
+                            // Convert the graph XML into the graph object, which describes
+                            // all of the tasks to run and their dependencies.
+                            graph = await _graphGenerator.GenerateGraphFromJobAsync(
+                                JobXmlReader.ParseJobXml(stream),
+                                new GraphExecutionEnvironment
+                                {
+                                    EnvironmentVariables = envs,
+                                    WorkingDirectory = request.WorkingDirectory,
+                                },
+                                globalCts.Token);
+                        }
 
                         // Tell the client how many tasks we're about to run.
                         await responseStream.WriteAsync(new JobResponse
@@ -208,40 +214,58 @@
                             }
                         });
 
+                        _logger.LogTrace("Graph execution starting...");
                         await _graphExecutor.ExecuteGraphAsync(
                             _workerPool,
                             graph,
                             responseStream,
                             context.CancellationToken);
-                        globalCts.Token.ThrowIfCancellationRequested();
+                        _logger.LogTrace("Graph execution completed without throwing an exception");
                     }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, $"Unhandled exception in OpenGE dispatcher component: {ex.Message}");
-                    throw new RpcException(new Status(
-                        StatusCode.Internal,
-                        ex.ToString()));
-                }
-            }
-            finally
-            {
-                // Decrement the job count.
-                await _inflightJobCountSemaphore.WaitAsync();
-                try
-                {
-                    _inflightJobs--;
-                    _logger.LogTrace("OpenGE in-flight: Decremented job count");
-                    if (_inflightJobs == 0 && _isShuttingDown)
+                    catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
                     {
-                        _allInflightJobsAreComplete.Release();
-                        _logger.LogTrace("OpenGE in-flight: Firing all in-flight jobs complete semaphore");
+                        // The operation is being cancelled.
+                        _logger.LogTrace("RPC exception cancellation");
+                    }
+                    catch (OperationCanceledException ex)
+                    {
+                        // The requester cancelled the RPC; this is normal. We can't send responses
+                        // back in this state so we just gracefully exit the call to prevent this
+                        // error being logged.
+                        _logger.LogTrace("Operation cancelled: " + ex.ToString());
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Unhandled exception in OpenGE dispatcher component: {ex.Message}");
+                        throw new RpcException(new Status(
+                            StatusCode.Internal,
+                            ex.ToString()));
                     }
                 }
                 finally
                 {
-                    _inflightJobCountSemaphore.Release();
+                    // Decrement the job count.
+                    await _inflightJobCountSemaphore.WaitAsync();
+                    try
+                    {
+                        _inflightJobs--;
+                        _logger.LogTrace("OpenGE in-flight: Decremented job count");
+                        if (_inflightJobs == 0 && _isShuttingDown)
+                        {
+                            _allInflightJobsAreComplete.Release();
+                            _logger.LogTrace("OpenGE in-flight: Firing all in-flight jobs complete semaphore");
+                        }
+                    }
+                    finally
+                    {
+                        _inflightJobCountSemaphore.Release();
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Exception escaping SubmitJob, which is a bug! " + ex);
+                throw;
             }
         }
     }

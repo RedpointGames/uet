@@ -84,7 +84,7 @@
                         File.SetUnixFileMode(xgeShimPath + ".tmp", mode);
                     }
                     File.Move(xgeShimPath + ".tmp", xgeShimPath, true);
-                    _logger.LogInformation("Extracted XGE shim to: " + xgeShimPath);
+                    _logger.LogTrace("Extracted XGE shim to: " + xgeShimPath);
                 }
             }
             finally

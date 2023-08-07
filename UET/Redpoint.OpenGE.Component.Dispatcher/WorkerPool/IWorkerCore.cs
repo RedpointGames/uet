@@ -10,6 +10,8 @@
 
         int WorkerCoreNumber { get; }
 
-        AsyncDuplexStreamingCall<ExecutionRequest, ExecutionResponse> Request { get; }
+        bool Dead { get; }
+
+        BufferedAsyncDuplexStreamingCall<ExecutionRequest, ExecutionResponse> Request { get; }
     }
 }

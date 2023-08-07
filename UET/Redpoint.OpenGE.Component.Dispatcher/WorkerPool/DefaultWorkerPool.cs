@@ -34,11 +34,13 @@
             {
                 _localSubpool._workers.Add(new WorkerState
                 {
+                    DisplayName = "Local Worker",
                     Client = localWorker,
                     IsLocalWorker = true,
                 });
                 _remoteSubpool._workers.Add(new WorkerState
                 {
+                    DisplayName = "Local Worker",
                     Client = localWorker,
                     IsLocalWorker = true,
                 });

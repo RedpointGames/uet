@@ -7,6 +7,7 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
+    using System.Reflection;
     using System.Threading.Tasks;
 
     internal class DefaultProcessExecutor : IProcessExecutor
@@ -41,6 +42,8 @@
                 await hook.ModifyProcessSpecificationAsync(processSpecification, cancellationToken);
             }
 
+            Task? outputReadingTask = null;
+            Task? errorReadingTask = null;
             var argumentsEvaluated = processSpecification.Arguments.ToArray();
             var startInfo = new ProcessStartInfo
             {
@@ -97,27 +100,31 @@
             }
             if (startInfo.RedirectStandardOutput)
             {
-                process.OutputDataReceived += (sender, e) =>
+                outputReadingTask = Task.Run(async () =>
                 {
-                    var line = e?.Data?.TrimEnd();
-                    if (!string.IsNullOrWhiteSpace(line))
+                    while (!process.StandardOutput.EndOfStream)
                     {
-                        captureSpecification.OnReceiveStandardOutput(line);
+                        var line = (await process.StandardOutput.ReadLineAsync())?.TrimEnd();
+                        if (!string.IsNullOrWhiteSpace(line))
+                        {
+                            captureSpecification.OnReceiveStandardOutput(line);
+                        }
                     }
-                };
-                process.BeginOutputReadLine();
+                });
             }
             if (startInfo.RedirectStandardError)
             {
-                process.ErrorDataReceived += (sender, e) =>
+                errorReadingTask = Task.Run(async () =>
                 {
-                    var line = e?.Data?.TrimEnd();
-                    if (!string.IsNullOrWhiteSpace(line))
+                    while (!process.StandardError.EndOfStream)
                     {
-                        captureSpecification.OnReceiveStandardError(line);
+                        var line = (await process.StandardError.ReadLineAsync())?.TrimEnd();
+                        if (!string.IsNullOrWhiteSpace(line))
+                        {
+                            captureSpecification.OnReceiveStandardError(line);
+                        }
                     }
-                };
-                process.BeginErrorReadLine();
+                });
             }
             try
             {
@@ -174,6 +181,22 @@
                     // We can't get the return code for this process.
                     return int.MaxValue;
                 }
+            }
+            if (outputReadingTask != null)
+            {
+                try
+                {
+                    await outputReadingTask;
+                }
+                catch { }
+            }
+            if (errorReadingTask != null)
+            {
+                try
+                {
+                    await errorReadingTask;
+                }
+                catch { }
             }
             return process.ExitCode;
         }

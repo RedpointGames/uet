@@ -16,10 +16,12 @@
         internal class Options
         {
             public Option<FileInfo> TaskFile;
+            public Option<bool> Forever;
 
             public Options()
             {
                 TaskFile = new Option<FileInfo>("--task-file") { IsRequired = true };
+                Forever = new Option<bool>("--forever") { IsHidden = true };
             }
         }
 
@@ -45,27 +47,40 @@
                 _options = options;
             }
 
-            public Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(InvocationContext context)
             {
                 var taskFile = context.ParseResult.GetValueForOption(_options.TaskFile)!;
+                var forever = context.ParseResult.GetValueForOption(_options.Forever);
 
-                return _processExecutor.ExecuteAsync(
-                    new OpenGEProcessSpecification
+                int exitCode;
+                do
+                {
+                    try
                     {
-                        FilePath = "__openge__",
-                        Arguments = new[]
-                        {
-                            taskFile.FullName,
-                            "/Rebuild",
-                            "/NoLogo",
-                            "/ShowAgent",
-                            "/ShowTime",
-                            "/Title=UET OpenGE"
-                        },
-                        DisableOpenGE = false,
-                    },
-                    CaptureSpecification.Passthrough,
-                    context.GetCancellationToken());
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new OpenGEProcessSpecification
+                            {
+                                FilePath = "__openge__",
+                                Arguments = new[]
+                                {
+                                taskFile.FullName,
+                                "/Rebuild",
+                                "/NoLogo",
+                                "/ShowAgent",
+                                "/ShowTime",
+                                "/Title=UET OpenGE"
+                                },
+                                DisableOpenGE = false,
+                            },
+                            CaptureSpecification.Passthrough,
+                            context.GetCancellationToken());
+                    }
+                    catch (OperationCanceledException) when (context.GetCancellationToken().IsCancellationRequested)
+                    {
+                        return 1;
+                    }
+                } while (forever && !context.GetCancellationToken().IsCancellationRequested);
+                return exitCode;
             }
         }
     }

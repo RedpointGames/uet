@@ -85,21 +85,28 @@
 
             _app = app;
 
-            _udp = new UdpClient(new IPEndPoint(IPAddress.Any, WorkerPortInformation.WorkerUdpBroadcastPort));
-            _udpTask = Task.Run(async () =>
+            try
             {
-                while (_shutdownCancellationTokenSource.IsCancellationRequested)
+                _udp = new UdpClient(new IPEndPoint(IPAddress.Any, WorkerPortInformation.WorkerUdpBroadcastPort));
+                _udpTask = Task.Run(async () =>
                 {
-                    var packet = await _udp.ReceiveAsync(_shutdownCancellationTokenSource.Token);
-                    if (Encoding.ASCII.GetString(packet.Buffer) == "OPENGE-DISCOVER")
+                    while (_shutdownCancellationTokenSource.IsCancellationRequested)
                     {
-                        await _udp.SendAsync(
-                            Encoding.ASCII.GetBytes(_listeningExternalUrl!),
-                            packet.RemoteEndPoint,
-                            _shutdownCancellationTokenSource.Token);
+                        var packet = await _udp.ReceiveAsync(_shutdownCancellationTokenSource.Token);
+                        if (Encoding.ASCII.GetString(packet.Buffer) == "OPENGE-DISCOVER")
+                        {
+                            await _udp.SendAsync(
+                                Encoding.ASCII.GetBytes(_listeningExternalUrl!),
+                                packet.RemoteEndPoint,
+                                _shutdownCancellationTokenSource.Token);
+                        }
                     }
-                }
-            });
+                });
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
+            {
+                // There's already an instance running.
+            }
         }
 
         public async Task StopAsync()
@@ -114,6 +121,21 @@
             {
                 await _app.StopAsync();
                 _app = null;
+            }
+        }
+
+        private async Task<bool> PullFromRequestStreamAsync(
+            IAsyncStreamReader<ExecutionRequest> requestStream,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await requestStream.MoveNext(cancellationToken);
+            }
+            catch (IOException)
+            {
+                // We closed the stream.
+                return false;
             }
         }
 
@@ -137,7 +159,7 @@
                 didReserve = true;
 
                 // Process requests after the reservation.
-                while (await requestStream.MoveNext(connectionIdleTracker.CancellationToken))
+                while (await PullFromRequestStreamAsync(requestStream, connectionIdleTracker.CancellationToken))
                 {
                     switch (requestStream.Current.RequestCase)
                     {
@@ -276,13 +298,16 @@
             {
                 if (context.CancellationToken.IsCancellationRequested)
                 {
-                    _logger.LogWarning("The entity calling the worker's ReserveCoreAndExecute RPC cancelled the operation.");
-                    throw;
+                    if (didReserve)
+                    {
+                        _logger.LogTrace("The caller of ReserveCoreAndExecute RPC cancelled the operation, so the reservation was released.");
+                    }
+                    return;
                 }
                 else if (connectionIdleTracker.CancellationToken.IsCancellationRequested)
                 {
                     _logger.LogWarning("The entity calling ReserveCoreAndExecute RPC idled for too long, and the call was cancelled because the reservation was not being used.");
-                    throw;
+                    throw new RpcException(new Status(StatusCode.Cancelled, "Connection idled for too long, so the reservation was released."));
                 }
             }
             finally
