@@ -66,6 +66,14 @@ rootCommand.SetHandler(async (InvocationContext context) =>
         int tasksTotal = 0;
         int tasksInFlight = 0;
         int tasksComplete = 0;
+        void WriteLine(string message)
+        {
+            var remainingTasks = tasksTotal - tasksComplete;
+            var percent = (1.0 - (tasksTotal == 0 ? 0.0 : ((double)remainingTasks / tasksTotal))) * 100.0;
+            var tasksTotalLength = tasksTotal.ToString().Length;
+            var line = $"[{percent,3:0}%, {tasksComplete.ToString().PadLeft(tasksTotalLength)}/{tasksTotal}] {message}";
+            Console.WriteLine(line);
+        }
         try
         {
             while (await response.ResponseStream.MoveNext(context.GetCancellationToken()))
@@ -78,26 +86,26 @@ rootCommand.SetHandler(async (InvocationContext context) =>
                         break;
                     case JobResponse.ResponseOneofCase.TaskPreparing:
                         var taskPreparing = response.ResponseStream.Current.TaskPreparing;
-                        Console.WriteLine($"[{tasksComplete}/{tasksTotal}] {taskPreparing.DisplayName} [{taskPreparing.OperationDescription}]");
+                        WriteLine($"{taskPreparing.DisplayName} [{taskPreparing.OperationDescription}]");
                         break;
                     case JobResponse.ResponseOneofCase.TaskPrepared:
                         var taskPrepared = response.ResponseStream.Current.TaskPrepared;
-                        Console.WriteLine($"[{tasksComplete}/{tasksTotal}] {taskPrepared.DisplayName} [{taskPrepared.OperationCompletedDescription} in {taskPrepared.TotalSeconds:F2} secs]");
+                        WriteLine($"{taskPrepared.DisplayName} [{taskPrepared.OperationCompletedDescription} in {taskPrepared.TotalSeconds:F2} secs]");
                         break;
                     case JobResponse.ResponseOneofCase.TaskStarted:
                         tasksInFlight++;
                         var taskStarted = response.ResponseStream.Current.TaskStarted;
-                        Console.WriteLine($"[{tasksComplete}/{tasksTotal}] {taskStarted.DisplayName} [started on core {taskStarted.WorkerCoreNumber} on {taskStarted.WorkerMachineName}]");
+                        WriteLine($"{taskStarted.DisplayName} [started on core {taskStarted.WorkerCoreNumber} on {taskStarted.WorkerMachineName}]");
                         break;
                     case JobResponse.ResponseOneofCase.TaskOutput:
                         var taskOutput = response.ResponseStream.Current.TaskOutput;
                         switch (taskOutput.OutputCase)
                         {
                             case TaskOutputResponse.OutputOneofCase.StandardOutputLine:
-                                Console.WriteLine(taskOutput.StandardOutputLine);
+                                WriteLine(taskOutput.StandardOutputLine);
                                 break;
                             case TaskOutputResponse.OutputOneofCase.StandardErrorLine:
-                                Console.Error.WriteLine(taskOutput.StandardErrorLine);
+                                WriteLine(taskOutput.StandardErrorLine);
                                 break;
                         }
                         break;
@@ -108,17 +116,17 @@ rootCommand.SetHandler(async (InvocationContext context) =>
                         switch (taskCompleted.Status)
                         {
                             case TaskCompletionStatus.TaskCompletionSuccess:
-                                Console.WriteLine($"[{tasksComplete}/{tasksTotal}] {taskCompleted.DisplayName} [success in {taskCompleted.TotalSeconds:F2} secs]");
+                                WriteLine($"{taskCompleted.DisplayName} [success in {taskCompleted.TotalSeconds:F2} secs]");
                                 break;
                             case TaskCompletionStatus.TaskCompletionException:
-                                Console.WriteLine($"[{tasksComplete}/{tasksTotal}] {taskCompleted.DisplayName} [exception in {taskCompleted.TotalSeconds:F2} secs]");
-                                Console.WriteLine("Exception propagated from OpenGE executor: " + taskCompleted.ExceptionMessage);
+                                WriteLine($"{taskCompleted.DisplayName} [exception in {taskCompleted.TotalSeconds:F2} secs]");
+                                WriteLine("Exception propagated from OpenGE executor: " + taskCompleted.ExceptionMessage);
                                 break;
                             case TaskCompletionStatus.TaskCompletionFailure:
-                                Console.WriteLine($"[{tasksComplete}/{tasksTotal}] {taskCompleted.DisplayName} [failed in {taskCompleted.TotalSeconds:F2} secs; exit code {taskCompleted.ExitCode}]");
+                                WriteLine($"{taskCompleted.DisplayName} [failed in {taskCompleted.TotalSeconds:F2} secs; exit code {taskCompleted.ExitCode}]");
                                 break;
                             case TaskCompletionStatus.TaskCompletionCancelled:
-                                Console.WriteLine($"[{tasksComplete}/{tasksTotal}] {taskCompleted.DisplayName} [cancelled in {taskCompleted.TotalSeconds:F2} secs]");
+                                WriteLine($"{taskCompleted.DisplayName} [cancelled in {taskCompleted.TotalSeconds:F2} secs]");
                                 break;
                         }
                         break;
