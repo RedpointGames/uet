@@ -112,7 +112,9 @@
                             var match = _elementLine.Match(line);
                             if (match.Success)
                             {
-                                suggestedComponents.Add(match.Groups[1].Value);
+                                // @note: Turned off for now because they don't seem to be necessary
+                                // to get Win64 platform building.
+                                // suggestedComponents.Add(match.Groups[1].Value);
                             }
                             break;
                         }
@@ -121,7 +123,9 @@
                             var match = _elementLine.Match(line);
                             if (match.Success)
                             {
-                                suggestedComponents.Add(match.Groups[1].Value);
+                                // @note: Turned off for now because they don't seem to be necessary
+                                // to get Win64 platform building.
+                                // suggestedComponents.Add(match.Groups[1].Value);
                             }
                             break;
                         }
