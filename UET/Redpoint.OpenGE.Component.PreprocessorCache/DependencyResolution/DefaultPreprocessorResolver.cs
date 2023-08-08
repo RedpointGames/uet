@@ -92,6 +92,7 @@
                 { "_MSC_FULL_VER", 193599999 /* Latest 2022 17.5 */ },
                 { "_MSVC_WARNING_LEVEL", 0 },
                 { "__STDC_VERSION__", 201710 /* C 17 */ },
+                { "_WIN32", 1 },
             };
             foreach (var kv in standardDefines)
             {
