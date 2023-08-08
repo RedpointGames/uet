@@ -69,7 +69,7 @@
             Assert.Equal("(4+(5*6))", RenderExpression(
                 PreprocessorExpressionParser.ParseCondition(
                     PreprocessorExpressionLexer.Lex("4+5*6"))));
-            Assert.Equal("(4+((5*6)+7))", RenderExpression(
+            Assert.Equal("((4+(5*6))+7)", RenderExpression(
                 PreprocessorExpressionParser.ParseCondition(
                     PreprocessorExpressionLexer.Lex("4+5*6+7"))));
             Assert.Equal("((4*5)+(6*7))", RenderExpression(
@@ -89,7 +89,7 @@
             Assert.Equal("(4+(5*6))", RenderExpression(
                 PreprocessorExpressionParser.ParseCondition(
                     PreprocessorExpressionLexer.Lex("4\t+ 5 *\t6"))));
-            Assert.Equal("(4+((5*6)+7))", RenderExpression(
+            Assert.Equal("((4+(5*6))+7)", RenderExpression(
                 PreprocessorExpressionParser.ParseCondition(
                     PreprocessorExpressionLexer.Lex("  4   + \t5\t\t*    6 +\t\t 7\t"))));
             Assert.Equal("((4*5)+(6*7))", RenderExpression(
@@ -171,6 +171,24 @@
             Assert.Equal("__has_include(\"dir/file.h\")", RenderExpression(
                 PreprocessorExpressionParser.ParseCondition(
                     PreprocessorExpressionLexer.Lex("__has_include(\"dir/file.h\")"))));
+        }
+
+        [Fact]
+        public void LogicalPrecedenceTests()
+        {
+            var expr = RenderExpression(
+                PreprocessorExpressionParser.ParseCondition(
+                    PreprocessorExpressionLexer.Lex("defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__")));
+            Assert.Equal("((defined(__BYTE_ORDER__)&&defined(__ORDER_BIG_ENDIAN__))&&([__BYTE_ORDER__]==[__ORDER_BIG_ENDIAN__]))", expr);
+        }
+
+        [Fact]
+        public void ParenCloseTests()
+        {
+            var expr = RenderExpression(
+                PreprocessorExpressionParser.ParseCondition(
+                    PreprocessorExpressionLexer.Lex("(defined(_MSC_VER) && _MSC_VER >= 1924) || (defined(__clang__) && __clang_major__ >= 10)")));
+            Assert.Equal("((defined(_MSC_VER)&&([_MSC_VER]>=1924))||(defined(__clang__)&&([__clang_major__]>=10)))", expr);
         }
     }
 }

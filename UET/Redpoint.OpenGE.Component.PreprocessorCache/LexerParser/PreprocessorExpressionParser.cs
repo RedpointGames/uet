@@ -643,6 +643,20 @@
                     throw new PreprocessorSyntaxException(tokens, position);
                 }
                 var secondOperator = tokens[position].Type;
+                if (secondOperator == PreprocessorExpressionTokenType.ParenClose)
+                {
+                    // This is terminating a parenthesised expression.
+                    position++;
+                    return new PreprocessorExpression
+                    {
+                        Binary = new PreprocessorExpressionBinary
+                        {
+                            Left = lhs,
+                            Right = rhs,
+                            Type = firstOperator,
+                        }
+                    };
+                }
                 var secondOperatorPrecedence = GetPrecedenceLevel(secondOperator);
                 if (secondOperatorPrecedence == -1)
                 {
@@ -662,7 +676,9 @@
                         // Any token type that is the same or higher precedence value (
                         // lower binding priority) than our current operator should
                         // terminate it.
-                        _precedenceTable.Where((tokens, idx) => idx >= firstOperatorPrecedence).SelectMany(x => x).ToArray());
+                        _precedenceTable.Where((tokens, idx) => (_precedenceTable.Length - idx) <= firstOperatorPrecedence)
+                            .SelectMany(x => x)
+                            .ToArray());
 
                     // ParseExpression will have consumed our terminator, but we actually
                     // want to look at it. Check if we're out of tokens or are

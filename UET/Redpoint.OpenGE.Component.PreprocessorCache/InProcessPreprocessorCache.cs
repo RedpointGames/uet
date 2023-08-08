@@ -213,7 +213,7 @@
             {
                 throw new RpcException(new Status(
                     StatusCode.InvalidArgument,
-                    $"A generic preprocessor resolution exception occurred: {ex.Message}"));
+                    $"A generic preprocessor resolution exception occurred: {ex}"));
             }
         }
     }
