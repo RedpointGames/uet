@@ -138,9 +138,36 @@
                                 // @todo: Indicate to clients when we move between "generating the descriptor"
                                 // and "actually doing the work".
                                 //
+                                Stopwatch? prepareStopwatch = null;
+                                if (!string.IsNullOrWhiteSpace(task.TaskDescriptorFactory.PreparationOperationDescription))
+                                {
+                                    prepareStopwatch = Stopwatch.StartNew();
+                                    await responseStream.WriteAsync(new JobResponse
+                                    {
+                                        TaskPreparing = new TaskPreparingResponse
+                                        {
+                                            Id = task.GraphTaskSpec.Task.Name,
+                                            DisplayName = task.GraphTaskSpec.Task.Caption,
+                                            OperationDescription = task.TaskDescriptorFactory.PreparationOperationDescription,
+                                        }
+                                    });
+                                }
                                 var taskDescriptor = await task.TaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
                                     task.GraphTaskSpec,
                                     instance.CancellationToken);
+                                if (prepareStopwatch != null)
+                                {
+                                    await responseStream.WriteAsync(new JobResponse
+                                    {
+                                        TaskPrepared = new TaskPreparedResponse
+                                        {
+                                            Id = task.GraphTaskSpec.Task.Name,
+                                            DisplayName = task.GraphTaskSpec.Task.Caption,
+                                            TotalSeconds = prepareStopwatch!.Elapsed.TotalSeconds,
+                                            OperationCompletedDescription = task.TaskDescriptorFactory.PreparationOperationCompletedDescription ?? string.Empty,
+                                        }
+                                    });
+                                }
 
                                 // Reserve a core from somewhere...
                                 await using var core = await instance.WorkerPool.ReserveCoreAsync(

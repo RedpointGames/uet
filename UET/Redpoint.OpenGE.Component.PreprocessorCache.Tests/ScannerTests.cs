@@ -16,6 +16,17 @@
             _ = PreprocessorScanner.Scan(lines);
         }
 
+        [SkippableFact]
+        public void ScanWindowsHeader()
+        {
+            var path = @"C:\ProgramData\UET\SDKs\AutoSDK-j1pdvjgatfleort-x.8l\HostWin64\Win64\Windows Kits\10\include\10.0.18362.0\um\Windows.h";
+            Skip.IfNot(File.Exists(path), "Requires Windows SDK to be present at a specific path.");
+            var lines = File.ReadAllLines(path);
+
+            // @note: We just want to make sure this gets parsed correctly.
+            _ = PreprocessorScanner.Scan(lines);
+        }
+
         [Fact]
         public void ScanNestedIf()
         {

@@ -7,6 +7,10 @@
 
     internal interface ITaskDescriptorFactory
     {
+        string? PreparationOperationDescription => null;
+
+        string? PreparationOperationCompletedDescription => null;
+
         int ScoreTaskSpec(GraphTaskSpec spec);
 
         ValueTask<TaskDescriptor> CreateDescriptorForTaskSpecAsync(

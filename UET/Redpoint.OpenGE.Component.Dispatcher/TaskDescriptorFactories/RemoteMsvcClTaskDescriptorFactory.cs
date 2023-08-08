@@ -25,6 +25,10 @@
             _preprocessorCacheAccessor = preprocessorCacheAccessor;
         }
 
+        public string PreparationOperationDescription => "parsing headers";
+
+        public string PreparationOperationCompletedDescription => "parsed headers";
+
         public int ScoreTaskSpec(GraphTaskSpec spec)
         {
             if (Path.GetFileName(spec.Tool.Path) == "cl.exe" &&

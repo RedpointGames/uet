@@ -460,6 +460,12 @@
                 }
 
                 // Split the directive to get the value on the right.
+                if (line.StartsWith(directive + '('))
+                {
+                    // Some Windows headers do "#if(expr)". Insert a space
+                    // to make it easier to parse this.
+                    line = directive + ' ' + line.Substring(directive!.Length);
+                }
                 var components = line.Split(new[] { ' ', '\t' }, 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 if (directive != components[0])
                 {

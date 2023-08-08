@@ -76,6 +76,14 @@ rootCommand.SetHandler(async (InvocationContext context) =>
                         Console.WriteLine($"{response.ResponseStream.Current.JobParsed.TotalTasks} tasks to execute on OpenGE");
                         tasksTotal = response.ResponseStream.Current.JobParsed.TotalTasks;
                         break;
+                    case JobResponse.ResponseOneofCase.TaskPreparing:
+                        var taskPreparing = response.ResponseStream.Current.TaskPreparing;
+                        Console.WriteLine($"[{tasksComplete}/{tasksTotal}] {taskPreparing.DisplayName} [{taskPreparing.OperationDescription}]");
+                        break;
+                    case JobResponse.ResponseOneofCase.TaskPrepared:
+                        var taskPrepared = response.ResponseStream.Current.TaskPrepared;
+                        Console.WriteLine($"[{tasksComplete}/{tasksTotal}] {taskPrepared.DisplayName} [{taskPrepared.OperationCompletedDescription} in {taskPrepared.TotalSeconds:F2} secs]");
+                        break;
                     case JobResponse.ResponseOneofCase.TaskStarted:
                         tasksInFlight++;
                         var taskStarted = response.ResponseStream.Current.TaskStarted;

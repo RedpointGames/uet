@@ -93,6 +93,23 @@
                 { "_MSVC_WARNING_LEVEL", 0 },
                 { "__STDC_VERSION__", 201710 /* C 17 */ },
                 { "_WIN32", 1 },
+                { "_WIN32_WINNT", 0x0601 /* Windows 7 */ },
+                { "_WIN32_WINNT_WIN10_TH2", 0x0A01 },
+                { "_WIN32_WINNT_WIN10_RS1", 0x0A02 },
+                { "_WIN32_WINNT_WIN10_RS2", 0x0A03 },
+                { "_WIN32_WINNT_WIN10_RS3", 0x0A04 },
+                { "_WIN32_WINNT_WIN10_RS4", 0x0A05 },
+                { "_NT_TARGET_VERSION_WIN10_RS4", 0x0A05 },
+                { "_WIN32_WINNT_WIN10_RS5", 0x0A06 },
+                /*
+                 * Some undocumented define that the Windows headers rely on 
+                 * for Compiled Hybrid Portable Executable (CHPE) support, 
+                 * which is for x86 binaries that include ARM code. This
+                 * undocumented feature has since been replaced with ARM64EC,
+                 * so we don't need to actually support this; we just need the
+                 * define so the headers work.
+                 */
+                { "_M_HYBRID", 0 },
             };
             foreach (var kv in standardDefines)
             {

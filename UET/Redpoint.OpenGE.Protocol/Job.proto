@@ -19,6 +19,19 @@ message JobParsedResponse {
 	int32 totalTasks = 1;
 }
 
+message TaskPreparingResponse {
+	string id = 1;
+	string displayName = 2;
+	string operationDescription = 3;
+}
+
+message TaskPreparedResponse {
+	string id = 1;
+	string displayName = 2;
+	double totalSeconds = 3;
+	string operationCompletedDescription = 4;
+}
+
 message TaskStartedResponse {
 	string id = 1;
 	string displayName = 2;
@@ -63,6 +76,8 @@ message JobResponse {
 		TaskOutputResponse taskOutput = 3;
 		TaskCompletedResponse taskCompleted = 4;
 		JobCompleteResponse jobComplete = 5;
+		TaskPreparingResponse taskPreparing = 6;
+		TaskPreparedResponse taskPrepared = 7;
 	}
 }
 
