@@ -118,7 +118,6 @@
             string[] forceIncludesFromPch,
             string[] forceIncludes,
             string[] includeDirectories,
-            string[] systemDirectories,
             Dictionary<string, string> globalDefinitions,
             CancellationToken cancellationToken)
         {
@@ -132,7 +131,6 @@
                         Path = filePath,
                     };
                     request.IncludeDirectories.AddRange(includeDirectories);
-                    request.SystemIncludeDirectories.AddRange(systemDirectories);
                     request.GlobalDefinitions.Add(globalDefinitions);
                     request.ForceIncludePaths.AddRange(forceIncludes);
                     request.ForceIncludeFromPchPaths.AddRange(forceIncludesFromPch);

@@ -1,12 +1,10 @@
 ﻿namespace Redpoint.OpenGE.Component.Dispatcher.Graph
 {
-    using Redpoint.OpenGE.Protocol;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
+    using Redpoint.OpenGE.Component.Dispatcher.TaskDescriptorFactories;
 
     internal class GraphTask
     {
         public required GraphTaskSpec GraphTaskSpec { get; init; }
-        public required TaskDescriptor TaskDescriptor { get; init; }
+        public required ITaskDescriptorFactory TaskDescriptorFactory { get; init; }
     }
 }

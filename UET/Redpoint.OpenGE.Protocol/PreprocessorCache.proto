@@ -152,7 +152,7 @@ message GetUnresolvedDependenciesResponse {
 message GetResolvedDependenciesRequest {
 	string path = 1;
 	repeated string includeDirectories = 2;
-	repeated string systemIncludeDirectories = 3;
+	// @note: Separate systemIncludeDirectories field removed.
 	map<string, string> globalDefinitions = 4;
 	repeated string forceIncludePaths = 5;
 	repeated string forceIncludeFromPchPaths = 6;

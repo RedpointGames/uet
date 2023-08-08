@@ -31,7 +31,6 @@
         {
             public required ICachingPreprocessorScanner Scanner;
             public required string[] IncludeDirectories;
-            public required string[] SystemDirectories;
             public readonly Dictionary<string, PreprocessorDirectiveDefine> CurrentDefinitions = new Dictionary<string, PreprocessorDirectiveDefine>();
             public readonly HashSet<string> SeenFiles = new HashSet<string>(_pathComparison);
             public readonly HashSet<string> ReferencedFilesInPch = new HashSet<string>(_pathComparison);
@@ -50,7 +49,6 @@
             string[] forceIncludesFromPch,
             string[] forceIncludes,
             string[] includeDirectories,
-            string[] systemDirectories,
             Dictionary<string, string> globalDefinitions,
             CancellationToken cancellationToken)
         {
@@ -70,10 +68,6 @@
             {
                 throw new ArgumentException($"Paths must be absolute", nameof(includeDirectories));
             }
-            if (systemDirectories.Any(x => !Path.IsPathRooted(x)))
-            {
-                throw new ArgumentException($"Paths must be absolute", nameof(systemDirectories));
-            }
 
             var st = Stopwatch.StartNew();
 
@@ -82,7 +76,6 @@
             {
                 Scanner = scanner,
                 IncludeDirectories = includeDirectories,
-                SystemDirectories = systemDirectories,
                 HasInclude = (_, _) => false,
             };
 
@@ -228,7 +221,7 @@
                 else if (targetPath.StartsWith('<'))
                 {
                     effectiveCase = PreprocessorDirectiveInclude.IncludeOneofCase.System;
-                    searchPaths = state.SystemDirectories;
+                    searchPaths = state.IncludeDirectories;
                     searchValue = targetPath.TrimStart('<').TrimEnd('>');
                 }
                 else
@@ -853,7 +846,7 @@
                             searchValue = effectiveValue;
                             break;
                         case PreprocessorDirectiveInclude.IncludeOneofCase.System:
-                            searchPaths = state.SystemDirectories;
+                            searchPaths = state.IncludeDirectories;
                             searchValue = effectiveValue;
                             break;
                         default:
@@ -863,7 +856,7 @@
                     if (foundPath == null)
                     {
                         // Unable to find this file.
-                        throw new Exception($"Preprocessor was unable to find any file that matched '{searchValue}'");
+                        throw new PreprocessorIncludeNotFoundException(searchValue);
                     }
                     if (state.SeenFiles.Contains(foundPath))
                     {

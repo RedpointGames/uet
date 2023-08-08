@@ -302,9 +302,6 @@
                 @"..\Plugins\Online\OnlineSubsystemUtils\Source",
                 @"..\Plugins\Online\VoiceChat\VoiceChat\Source\Public",
                 @"..\Plugins\Online\VoiceChat\VoiceChat",
-            }.Select(x => Path.GetFullPath(Path.IsPathRooted(x) ? x : Path.Combine(enginePath, x))).ToArray();
-            var systemIncludes = new[]
-            {
                 @"ThirdParty\mimalloc\include",
                 @"ThirdParty\LibTiff\Source\Win64",
                 @"ThirdParty\LibTiff\Source",
@@ -332,7 +329,6 @@
                 Array.Empty<string>(),
                 Array.Empty<string>(),
                 includes,
-                systemIncludes,
                 globalDefinitions,
                 CancellationToken.None);
             Assert.True(result.DependsOnPaths.Count >= 2, "Expected at least two paths to be depended on.");
@@ -637,9 +633,6 @@
                 @"..\Plugins\Online\OnlineSubsystemUtils\Source",
                 @"..\Plugins\Online\VoiceChat\VoiceChat\Source\Public",
                 @"..\Plugins\Online\VoiceChat\VoiceChat",
-            }.Select(x => Path.IsPathRooted(x) ? x : Path.Combine(enginePath, x)).ToArray();
-            var systemIncludes = new[]
-            {
                 @"ThirdParty\mimalloc\include",
                 @"ThirdParty\LibTiff\Source\Win64",
                 @"ThirdParty\LibTiff\Source",
@@ -672,7 +665,6 @@
                     @"C:\Work\internal\EOS_OSB\EOS_OSB\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\ExampleOSS\Definitions.ExampleOSS.h",
                 },
                 includes,
-                systemIncludes,
                 globalDefinitions,
                 CancellationToken.None);
             Assert.True(result.DependsOnPaths.Count > 0, "Expected at least one path to be depended on.");

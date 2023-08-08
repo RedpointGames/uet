@@ -214,6 +214,20 @@
                             }
                         });
 
+                        // If there are no tasks, finish immediately.
+                        if (graph.Tasks.Count == 0)
+                        {
+                            await responseStream.WriteAsync(new JobResponse
+                            {
+                                JobComplete = new JobCompleteResponse
+                                {
+                                    Status = JobCompletionStatus.JobCompletionSuccess,
+                                    TotalSeconds = 0,
+                                }
+                            });
+                            return;
+                        }
+
                         _logger.LogTrace("Graph execution starting...");
                         await _graphExecutor.ExecuteGraphAsync(
                             _workerPool,

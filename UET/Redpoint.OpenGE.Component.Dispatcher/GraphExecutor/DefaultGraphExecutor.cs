@@ -59,6 +59,13 @@
             GuardedResponseStream<JobResponse> responseStream,
             CancellationToken cancellationToken)
         {
+            // Make sure there's at least one task. Empty graphs should not be passed
+            // to this function.
+            if (graph.Tasks.Count == 0)
+            {
+                throw new ArgumentException("There are no tasks defined in the graph.");
+            }
+
             var graphStopwatch = Stopwatch.StartNew();
 
             // Track the state of this graph execution.
@@ -125,9 +132,19 @@
                         {
                             try
                             {
+                                // Generate the task descriptor from the factory. This can take a while
+                                // if we're parsing preprocessor headers.
+                                //
+                                // @todo: Indicate to clients when we move between "generating the descriptor"
+                                // and "actually doing the work".
+                                //
+                                var taskDescriptor = await task.TaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
+                                    task.GraphTaskSpec,
+                                    instance.CancellationToken);
+
                                 // Reserve a core from somewhere...
                                 await using var core = await instance.WorkerPool.ReserveCoreAsync(
-                                    task.TaskDescriptor.DescriptorCase != TaskDescriptor.DescriptorOneofCase.Remote,
+                                    taskDescriptor.DescriptorCase != TaskDescriptor.DescriptorOneofCase.Remote,
                                     instance.CancellationToken);
 
                                 // We're now going to start doing the work for this task.
@@ -145,7 +162,7 @@
                                 didStart = true;
 
                                 // Perform synchronisation for remote tasks.
-                                if (task.TaskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote)
+                                if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote)
                                 {
                                     // @todo: Implement tool and blob synchronisation.
                                 }
@@ -155,7 +172,7 @@
                                 {
                                     ExecuteTask = new ExecuteTaskRequest
                                     {
-                                        Descriptor_ = task.TaskDescriptor,
+                                        Descriptor_ = taskDescriptor,
                                     }
                                 }, instance.CancellationToken);
 

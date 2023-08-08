@@ -17,7 +17,6 @@
             public Option<FileInfo[]> ForceIncludesFromPch;
             public Option<FileInfo[]> ForceIncludes;
             public Option<DirectoryInfo[]> IncludeDirectories;
-            public Option<DirectoryInfo[]> SystemDirectories;
             public Option<string[]> GlobalDefinitions;
 
             public Options()
@@ -26,7 +25,6 @@
                 ForceIncludesFromPch = new Option<FileInfo[]>("--force-include-from-pch");
                 ForceIncludes = new Option<FileInfo[]>("--force-include");
                 IncludeDirectories = new Option<DirectoryInfo[]>("-i");
-                SystemDirectories = new Option<DirectoryInfo[]>("-s");
                 GlobalDefinitions = new Option<string[]>("-D");
             }
         }
@@ -80,7 +78,6 @@
                         (context.ParseResult.GetValueForOption(_options.ForceIncludesFromPch) ?? Array.Empty<FileInfo>()).Select(x => x.FullName).ToArray(),
                         (context.ParseResult.GetValueForOption(_options.ForceIncludes) ?? Array.Empty<FileInfo>()).Select(x => x.FullName).ToArray(),
                         (context.ParseResult.GetValueForOption(_options.IncludeDirectories) ?? Array.Empty<DirectoryInfo>()).Select(x => x.FullName).ToArray(),
-                        (context.ParseResult.GetValueForOption(_options.SystemDirectories) ?? Array.Empty<DirectoryInfo>()).Select(x => x.FullName).ToArray(),
                         (context.ParseResult.GetValueForOption(_options.GlobalDefinitions) ?? Array.Empty<string>()).Select(x =>
                         {
                             var c = x.Split('=', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

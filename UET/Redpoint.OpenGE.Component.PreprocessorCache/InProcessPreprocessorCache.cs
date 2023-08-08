@@ -127,7 +127,6 @@
             string[] forceIncludesFromPch,
             string[] forceIncludes, 
             string[] includeDirectories,
-            string[] systemDirectories, 
             Dictionary<string, string> globalDefinitions, 
             CancellationToken cancellationToken)
         {
@@ -138,7 +137,6 @@
                 forceIncludesFromPch,
                 forceIncludes,
                 includeDirectories,
-                systemDirectories,
                 globalDefinitions,
                 cancellationToken);
         }
@@ -178,21 +176,45 @@
             GetResolvedDependenciesRequest request,
             ServerCallContext context)
         {
-            LastGrpcRequestUtc = DateTimeOffset.UtcNow;
-            var result = await _preprocessorResolver.ResolveAsync(
-                _cachingScanner!,
-                request.Path,
-                request.ForceIncludeFromPchPaths.ToArray(),
-                request.ForceIncludePaths.ToArray(),
-                request.IncludeDirectories.ToArray(),
-                request.SystemIncludeDirectories.ToArray(),
-                request.GlobalDefinitions.ToDictionary(k => k.Key, v => v.Value),
-                context.CancellationToken);
-            LastGrpcRequestUtc = DateTimeOffset.UtcNow;
-            return new GetResolvedDependenciesResponse
+            try
             {
-                Result = result
-            };
+                LastGrpcRequestUtc = DateTimeOffset.UtcNow;
+                var result = await _preprocessorResolver.ResolveAsync(
+                    _cachingScanner!,
+                    request.Path,
+                    request.ForceIncludeFromPchPaths.ToArray(),
+                    request.ForceIncludePaths.ToArray(),
+                    request.IncludeDirectories.ToArray(),
+                    request.GlobalDefinitions.ToDictionary(k => k.Key, v => v.Value),
+                    context.CancellationToken);
+                LastGrpcRequestUtc = DateTimeOffset.UtcNow;
+                return new GetResolvedDependenciesResponse
+                {
+                    Result = result
+                };
+            }
+            catch (OperationCanceledException)
+            {
+                throw new RpcException(new Status(StatusCode.Cancelled, "Call was cancelled by client."));
+            }
+            catch (PreprocessorIncludeNotFoundException ex)
+            {
+                throw new RpcException(new Status(
+                    StatusCode.InvalidArgument,
+                    $"The preprocessor cache could not resolve the include '{ex.SearchValue}'."));
+            }
+            catch (PreprocessorIdentifierNotDefinedException ex)
+            {
+                throw new RpcException(new Status(
+                    StatusCode.InvalidArgument,
+                    $"A preprocessor identifier was not defined when evaluating the preprocessor directives: {ex.Message}"));
+            }
+            catch (PreprocessorResolutionException ex)
+            {
+                throw new RpcException(new Status(
+                    StatusCode.InvalidArgument,
+                    $"A generic preprocessor resolution exception occurred: {ex.Message}"));
+            }
         }
     }
 }

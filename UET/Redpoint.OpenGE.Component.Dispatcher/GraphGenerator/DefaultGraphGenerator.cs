@@ -76,7 +76,7 @@
                     {
                         CancellationToken = cancellationToken,
                     },
-                    async (taskKv, cancellationToken) =>
+                    (taskKv, cancellationToken) =>
                     {
                         var (factory, spec) = GetFactoryAndArgumentsForTask(
                             graphExecutionEnvironment,
@@ -87,22 +87,20 @@
                             job);
                         if (factory == null)
                         {
-                            throw new InvalidOperationException("No task descriptor factory could handle '{taskKv.Key}', which is almost certainly a bug as the local task descriptor factory should be able to handle everything.");
+                            throw new InvalidOperationException($"No task descriptor factory could handle '{taskKv.Key}', which is almost certainly a bug as the local task descriptor factory should be able to handle everything.");
                         }
 
-                        var descriptor = await factory.CreateDescriptorForTaskSpecAsync(
-                            spec,
-                            cancellationToken);
                         if (!tasks.TryAdd(
                             $"{projectKv.Key}:{taskKv.Key}",
                             new GraphTask
                             {
                                 GraphTaskSpec = spec,
-                                TaskDescriptor = descriptor,
+                                TaskDescriptorFactory = factory,
                             }))
                         {
-                            throw new InvalidOperationException("Conflicting task key '{}'No task descriptor factory could handle '{taskKv.Key}', which is almost certainly a bug as the local task descriptor factory should be able to handle everything.");
+                            throw new InvalidOperationException($"Conflicting task key '{projectKv.Key}:{taskKv.Key}'.");
                         }
+                        return ValueTask.CompletedTask;
                     });
 
                 foreach (var taskKv in projectKv.Value.Tasks)

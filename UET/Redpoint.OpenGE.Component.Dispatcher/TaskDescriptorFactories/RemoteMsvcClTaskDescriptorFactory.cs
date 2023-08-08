@@ -7,6 +7,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
+    using Grpc.Core;
 
     internal class RemoteMsvcClTaskDescriptorFactory : ITaskDescriptorFactory
     {
@@ -57,7 +58,6 @@
             // Store the data that we need to figure out how to remote this.
             FileInfo? inputFile = null;
             var includeDirectories = new List<DirectoryInfo>();
-            var systemIncludeDirectories = new List<DirectoryInfo>();
             var forceIncludeFiles = new List<FileInfo>();
             var globalDefinitions = new Dictionary<string, string>();
             var isCreatingPch = false;
@@ -87,6 +87,7 @@
                     line.StartsWith("/external:I"))
                 {
                     var path = line.Substring(line.StartsWith("/I") ? "/I ".Length : "/external:I ".Length);
+                    path = path.Trim('"');
                     path = Path.IsPathRooted(path) ? path : Path.Combine(spec.WorkingDirectory, path);
                     var info = new DirectoryInfo(path);
                     if (info.Exists)
@@ -98,9 +99,13 @@
                         }
                         else
                         {
-                            systemIncludeDirectories.Add(info);
+                            includeDirectories.Add(info);
                             remotedResponseFileLines.Add("/external:I " + info.FullName.RemotifyPath()!);
                         }
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"'{path}' does not exist.");
                     }
                 }
                 else if (line.StartsWith("/FI"))
@@ -156,16 +161,24 @@
 
             // Determine the dependent header files.
             var preprocessorCache = await _preprocessorCacheAccessor.GetPreprocessorCacheAsync();
-            var dependentFiles = await preprocessorCache.GetResolvedDependenciesAsync(
-                inputFile.FullName,
-                pchInputFile != null && forceIncludeFiles.Any(x => x.FullName == pchInputFile.FullName)
-                    ? new[] { pchInputFile.FullName }
-                    : Array.Empty<string>(),
-                forceIncludeFiles.Select(x => x.FullName).Where(x => x != pchInputFile?.FullName).ToArray(),
-                includeDirectories.Select(x => x.FullName).ToArray(),
-                systemIncludeDirectories.Select(x => x.FullName).ToArray(),
-                globalDefinitions,
-                cancellationToken);
+            PreprocessorResolutionResultWithTimingMetadata dependentFiles;
+            try
+            {
+                dependentFiles = await preprocessorCache.GetResolvedDependenciesAsync(
+                    inputFile.FullName,
+                    pchInputFile != null && forceIncludeFiles.Any(x => x.FullName == pchInputFile.FullName)
+                        ? new[] { pchInputFile.FullName }
+                        : Array.Empty<string>(),
+                    forceIncludeFiles.Select(x => x.FullName).Where(x => x != pchInputFile?.FullName).ToArray(),
+                    includeDirectories.Select(x => x.FullName).ToArray(),
+                    globalDefinitions,
+                    cancellationToken);
+            }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.InvalidArgument)
+            {
+                _logger.LogWarning($"Unable to remote compile this file as the preprocessor cache reported an error while parsing headers: {ex.Status.Detail}");
+                return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec, cancellationToken);
+            }
 
             // Return the remote task descriptor.
             var descriptor = new RemoteTaskDescriptor();
@@ -190,10 +203,14 @@
             {
                 descriptor.OutputAbsolutePaths.Add(pchCacheFile.FullName);
             }
+
+            return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec, cancellationToken);
+            /*
             return new TaskDescriptor
             {
                 Remote = descriptor,
             };
+            */
         }
     }
 }

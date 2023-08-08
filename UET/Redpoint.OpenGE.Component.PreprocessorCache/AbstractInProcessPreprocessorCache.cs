@@ -23,7 +23,6 @@
             string[] forceIncludesFromPch,
             string[] forceIncludes,
             string[] includeDirectories,
-            string[] systemDirectories,
             Dictionary<string, string> globalDefinitions,
             CancellationToken cancellationToken);
 
