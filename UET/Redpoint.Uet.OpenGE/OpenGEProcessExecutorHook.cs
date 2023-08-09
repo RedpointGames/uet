@@ -1,6 +1,8 @@
 ﻿namespace Redpoint.Uet.OpenGE
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.GrpcPipes;
+    using Redpoint.OpenGE.Protocol;
     using Redpoint.ProcessExecution;
     using System;
     using System.Collections.Generic;
@@ -14,28 +16,33 @@
     {
         private readonly ILogger<OpenGEProcessExecutorHook> _logger;
         private readonly IOpenGEProvider _provider;
+        private readonly IGrpcPipeFactory _pipeFactory;
         private static SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
 
         public OpenGEProcessExecutorHook(
             ILogger<OpenGEProcessExecutorHook> logger,
-            IOpenGEProvider provider)
+            IOpenGEProvider provider,
+            IGrpcPipeFactory pipeFactory)
         {
             _logger = logger;
             _provider = provider;
+            _pipeFactory = pipeFactory;
         }
 
-        public async Task ModifyProcessSpecificationAsync(ProcessSpecification processSpecification, CancellationToken cancellationToken)
+        public async Task<IAsyncDisposable?> ModifyProcessSpecificationWithCleanupAsync(
+            ProcessSpecification processSpecification,
+            CancellationToken cancellationToken)
         {
             if (processSpecification is not OpenGEProcessSpecification openGEProcessSpecification)
             {
-                return;
+                return null;
             }
 
             var environmentInfo = await _provider.GetOpenGEEnvironmentInfo();
 
             if (!environmentInfo.ShouldUseOpenGE || openGEProcessSpecification.DisableOpenGE)
             {
-                return;
+                return null;
             }
 
             var shimName = true switch
@@ -92,6 +99,28 @@
                 _semaphoreSlim.Release();
             }
 
+            JobApi.JobApiClient upstream;
+            if (environmentInfo.UsingSystemWideDaemon)
+            {
+                upstream = _pipeFactory.CreateClient(
+                    "OpenGE",
+                    GrpcPipeNamespace.Computer,
+                    channel => new JobApi.JobApiClient(channel));
+            }
+            else
+            {
+                upstream = _pipeFactory.CreateClient(
+                    environmentInfo.PerProcessDispatcherPipeName,
+                    GrpcPipeNamespace.User,
+                    channel => new JobApi.JobApiClient(channel));
+            }
+
+            var logInterceptingPipeName = Guid.NewGuid().ToString();
+            var logInterceptingServer = _pipeFactory.CreateServer(
+                logInterceptingPipeName,
+                GrpcPipeNamespace.User,
+                new LogInterceptingDispatcher(_logger, upstream));
+
             var path = processSpecification.EnvironmentVariables != null && processSpecification.EnvironmentVariables.ContainsKey("PATH")
                 ? processSpecification.EnvironmentVariables["PATH"]
                 : Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
@@ -104,10 +133,7 @@
             var newEnvironmentVariables = processSpecification.EnvironmentVariables != null ? new Dictionary<string, string>(processSpecification.EnvironmentVariables) : new Dictionary<string, string>();
             newEnvironmentVariables["PATH"] = newPath;
             newEnvironmentVariables["UET_FORCE_XGE_SHIM"] = "1";
-            if (!environmentInfo.UsingSystemWideDaemon)
-            {
-                newEnvironmentVariables["UET_XGE_SHIM_PIPE_NAME"] = environmentInfo.PerProcessDispatcherPipeName;
-            }
+            newEnvironmentVariables["UET_XGE_SHIM_PIPE_NAME"] = logInterceptingPipeName;
             processSpecification.EnvironmentVariables = newEnvironmentVariables;
 
             // @note: Handle a special case where UET wants to launch the
@@ -116,6 +142,25 @@
             if (processSpecification.FilePath == "__openge__")
             {
                 processSpecification.FilePath = xgeShimPath;
+            }
+
+            await logInterceptingServer.StartAsync();
+            return new LogInterceptingServerStopper(logInterceptingServer);
+        }
+
+        private class LogInterceptingServerStopper : IAsyncDisposable
+        {
+            private IGrpcPipeServer<LogInterceptingDispatcher> _logInterceptingServer;
+
+            public LogInterceptingServerStopper(
+                IGrpcPipeServer<LogInterceptingDispatcher> logInterceptingServer)
+            {
+                _logInterceptingServer = logInterceptingServer;
+            }
+
+            public async ValueTask DisposeAsync()
+            {
+                await _logInterceptingServer.StopAsync();
             }
         }
     }

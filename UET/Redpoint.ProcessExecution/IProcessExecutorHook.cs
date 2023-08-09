@@ -4,6 +4,15 @@
 
     public interface IProcessExecutorHook
     {
-        Task ModifyProcessSpecificationAsync(ProcessSpecification processSpecification, CancellationToken cancellationToken);
+        Task ModifyProcessSpecificationAsync(ProcessSpecification processSpecification, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        async Task<IAsyncDisposable?> ModifyProcessSpecificationWithCleanupAsync(ProcessSpecification processSpecification, CancellationToken cancellationToken)
+        {
+            await ModifyProcessSpecificationAsync(processSpecification, cancellationToken);
+            return null;
+        }
     }
 }

@@ -1,6 +1,7 @@
 ﻿namespace UET.Services
 {
     using Grpc.Core;
+    using Microsoft.Extensions.Logging;
     using Redpoint.GrpcPipes;
     using Redpoint.OpenGE.Agent;
     using Redpoint.OpenGE.Component.PreprocessorCache;
@@ -16,6 +17,7 @@
     internal class DefaultOpenGEProvider : IOpenGEProvider
     {
         private readonly SemaphoreSlim _setupSemaphore = new SemaphoreSlim(1);
+        private readonly ILogger<DefaultOpenGEProvider> _logger;
         private readonly IPathResolver _pathResolver;
         private readonly IGrpcPipeFactory _grpcPipeFactory;
         private readonly IOpenGEAgentFactory _openGEAgentFactory;
@@ -23,14 +25,18 @@
         private readonly ISelfLocation _selfLocation;
         private OpenGEEnvironmentInfo? _environmentInfo;
         private IOpenGEAgent? _agent;
+        private IPreprocessorCache? _onDemandCache;
+        private readonly SemaphoreSlim _onDemandCacheSemaphore = new SemaphoreSlim(1);
 
         public DefaultOpenGEProvider(
+            ILogger<DefaultOpenGEProvider> logger,
             IPathResolver pathResolver,
             IGrpcPipeFactory grpcPipeFactory,
             IOpenGEAgentFactory openGEAgentFactory,
             IPreprocessorCacheFactory preprocessorCacheFactory,
             ISelfLocation selfLocation)
         {
+            _logger = logger;
             _pathResolver = pathResolver;
             _grpcPipeFactory = grpcPipeFactory;
             _openGEAgentFactory = openGEAgentFactory;
@@ -98,6 +104,7 @@
                 }
                 if (usingSystemWide)
                 {
+                    _logger.LogInformation("Using system-wide OpenGE daemon for executing tasks.");
                     _environmentInfo = new OpenGEEnvironmentInfo
                     {
                         ShouldUseOpenGE = true,
@@ -112,6 +119,7 @@
                 var existingPipeName = Environment.GetEnvironmentVariable("UET_XGE_SHIM_PIPE_NAME");
                 if (!string.IsNullOrWhiteSpace(existingPipeName))
                 {
+                    _logger.LogInformation("Using inherited OpenGE pipe for executing tasks.");
                     _environmentInfo = new OpenGEEnvironmentInfo
                     {
                         ShouldUseOpenGE = true,
@@ -123,6 +131,7 @@
 
                 // The system-wide daemon is not available. Create an OpenGE
                 // agent within our process.
+                _logger.LogInformation("Launching in-process version of OpenGE for executing tasks.");
                 _agent = _openGEAgentFactory.CreateAgent(false);
                 await _agent.StartAsync();
                 _environmentInfo = new OpenGEEnvironmentInfo
@@ -141,26 +150,44 @@
 
         public async Task<IPreprocessorCache> GetPreprocessorCacheAsync()
         {
-            if (_environmentInfo != null)
+            if (_environmentInfo == null)
             {
                 await GetOpenGEEnvironmentInfo();
             }
 
-            if (_agent != null)
-            {
-                return await _agent.GetPreprocessorCacheAsync();
-            }
+            // @note: The daemon no longer goes through this code
+            // path, because the daemon has it's own service bindings
+            // that mean IPreprocessorCacheAccessor is provided by
+            // OpenGEHostedService. Therefore, the only code that
+            // calls this function requires the on-demand cache.
 
-            return _preprocessorCacheFactory.CreateOnDemandCache(
-                new ProcessSpecification
+            if (_onDemandCache != null)
+            {
+                return _onDemandCache;
+            }
+            await _onDemandCacheSemaphore.WaitAsync();
+            try
+            {
+                if (_onDemandCache != null)
                 {
-                    FilePath = _selfLocation.GetUETLocalLocation(),
-                    Arguments = new[]
+                    return _onDemandCache;
+                }
+                _onDemandCache = _preprocessorCacheFactory.CreateOnDemandCache(
+                    new ProcessSpecification
                     {
-                        "internal",
-                        "openge-preprocessor-cache"
-                    }
-                });
+                        FilePath = _selfLocation.GetUETLocalLocation(),
+                        Arguments = new[]
+                        {
+                            "internal",
+                            "openge-preprocessor-cache"
+                        }
+                    });
+                return _onDemandCache;
+            }
+            finally
+            {
+                _onDemandCacheSemaphore.Release();
+            }
         }
 
         public Task StartAsync(CancellationToken shutdownCancellationToken)

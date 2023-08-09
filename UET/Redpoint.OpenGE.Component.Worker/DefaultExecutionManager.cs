@@ -117,7 +117,19 @@
                         }
                         if (response.DataCase == ProcessResponse.DataOneofCase.ExitCode)
                         {
-                            didGetExitCode = true;
+                            if (response.ExitCode == -1073741502)
+                            {
+                                // @note: This is a weird transient exit code we get on Windows sometimes.
+                                // Just retry in this case.
+                                restartingCancellationTokenSource.Cancel();
+                                restartingCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
+                                    cancellationToken);
+                                shouldRestart = true;
+                            }
+                            else
+                            {
+                                didGetExitCode = true;
+                            }
                         }
                     }
                     if (!didGetExitCode && !shouldRestart)
