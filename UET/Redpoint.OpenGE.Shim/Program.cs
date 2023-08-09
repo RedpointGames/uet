@@ -15,6 +15,8 @@ var showTimeOption = new Option<bool>("/ShowTime");
 var titleOption = new Option<string>("/Title");
 var noWaitOption = new Option<bool>("/NoWait");
 var useIdeMonitor = new Option<bool>("/UseIdeMonitor");
+var silentOption = new Option<bool>("/Silent");
+var commandOption = new Option<string>("/Command");
 var fileArgument = new Argument<string>();
 
 var rootCommand = new Command("openge-shim", "OpenGE shim to emulate xgConsole.");
@@ -25,9 +27,19 @@ rootCommand.AddOption(showTimeOption);
 rootCommand.AddOption(titleOption);
 rootCommand.AddOption(noWaitOption);
 rootCommand.AddOption(useIdeMonitor);
+rootCommand.AddOption(silentOption);
+rootCommand.AddOption(commandOption);
 rootCommand.AddArgument(fileArgument);
 rootCommand.SetHandler(async (InvocationContext context) =>
 {
+    if (context.ParseResult.GetValueForOption(commandOption) == "Unused")
+    {
+        // This is UBT testing Incredibuild to see if another build is running, but OpenGE
+        // permits multiple builds in parallel.
+        context.ExitCode = 0;
+        return;
+    }
+
     var pipeName = Environment.GetEnvironmentVariable("UET_XGE_SHIM_PIPE_NAME");
     var pipeNamespace = GrpcPipeNamespace.User;
     if (string.IsNullOrWhiteSpace(pipeName))

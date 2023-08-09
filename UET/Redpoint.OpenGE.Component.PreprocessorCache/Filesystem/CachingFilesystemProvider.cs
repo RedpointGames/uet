@@ -1,12 +1,8 @@
 ﻿namespace Redpoint.OpenGE.Component.PreprocessorCache.Filesystem
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
 
-    internal class CachingFilesystemProvider
+    internal class CachingFilesystemExistenceProvider : IFilesystemExistenceProvider
     {
         //
         // Directories on Windows have their modification times changed whenever
@@ -72,5 +68,9 @@
         //       and return "not exists".
         //
 
+        public bool FileExists(string path, long buildStartTicks)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

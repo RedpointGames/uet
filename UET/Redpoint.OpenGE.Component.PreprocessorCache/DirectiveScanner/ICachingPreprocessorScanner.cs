@@ -5,8 +5,6 @@
 
     internal interface ICachingPreprocessorScanner : IDisposable
     {
-        Task<PreprocessorScanResultWithCacheMetadata> ParseIncludes(
-            string filePath,
-            CancellationToken cancellationToken);
+        PreprocessorScanResultWithCacheMetadata ParseIncludes(string filePath);
     }
 }

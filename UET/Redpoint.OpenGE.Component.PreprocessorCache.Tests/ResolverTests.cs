@@ -2,6 +2,7 @@
 {
     using Redpoint.OpenGE.Component.PreprocessorCache.DependencyResolution;
     using Redpoint.OpenGE.Component.PreprocessorCache.DirectiveScanner;
+    using Redpoint.OpenGE.Component.PreprocessorCache.Filesystem;
 
     public class ResolverTests
     {
@@ -320,7 +321,7 @@
                 { "PLATFORM_EXCEPTIONS_DISABLED", "0" },
             };
 
-            var resolver = new DefaultPreprocessorResolver();
+            var resolver = new DefaultPreprocessorResolver(new GenericInMemoryFilesystemExistenceProvider());
 
             // @note: We just want to make sure this does not throw an exception.
             var result = await resolver.ResolveAsync(
@@ -330,6 +331,7 @@
                 Array.Empty<string>(),
                 includes,
                 globalDefinitions,
+                DateTimeOffset.UtcNow.Ticks,
                 CancellationToken.None);
             Assert.True(result.DependsOnPaths.Count >= 2, "Expected at least two paths to be depended on.");
         }
@@ -651,7 +653,7 @@
                 { "PLATFORM_EXCEPTIONS_DISABLED", "0" },
             };
 
-            var resolver = new DefaultPreprocessorResolver();
+            var resolver = new DefaultPreprocessorResolver(new GenericInMemoryFilesystemExistenceProvider());
 
             var result = await resolver.ResolveAsync(
                 new NonCachingPreprocessorScanner(),
@@ -666,6 +668,7 @@
                 },
                 includes,
                 globalDefinitions,
+                DateTimeOffset.UtcNow.Ticks,
                 CancellationToken.None);
             Assert.True(result.DependsOnPaths.Count > 0, "Expected at least one path to be depended on.");
         }

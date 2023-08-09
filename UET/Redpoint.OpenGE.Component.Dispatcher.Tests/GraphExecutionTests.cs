@@ -39,7 +39,7 @@
             services.AddGrpcPipes();
             services.AddOpenGEComponentDispatcher();
             services.AddOpenGEComponentWorker();
-            services.AddOpenGEPreprocessorCache();
+            services.AddOpenGEComponentPreprocessorCache();
             services.AddProcessExecution();
             services.AddReservation();
             services.AddSingleton<IPreprocessorCacheAccessor, TestPreprocessorCacheAccessor>();

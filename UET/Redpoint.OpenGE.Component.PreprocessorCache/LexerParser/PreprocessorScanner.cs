@@ -58,7 +58,8 @@
             string directive,
             string value,
             Stack<PreprocessorDirective> targetBlocks,
-            ScanResult scanResult)
+            ScanResult scanResult,
+            ref long nextIncludeDirectiveId)
         {
             void AddDirective(PreprocessorDirective directive)
             {
@@ -97,6 +98,7 @@
                             Include = new PreprocessorDirectiveInclude
                             {
                                 Normal = include.Trim('"'),
+                                DirectiveId = nextIncludeDirectiveId++,
                             }
                         }));
                         return;
@@ -108,6 +110,7 @@
                             Include = new PreprocessorDirectiveInclude
                             {
                                 System = include.TrimStart('<').TrimEnd('>'),
+                                DirectiveId = nextIncludeDirectiveId++,
                             }
                         }));
                         return;
@@ -120,6 +123,7 @@
                             Include = new PreprocessorDirectiveInclude
                             {
                                 Expansion = expr,
+                                DirectiveId = nextIncludeDirectiveId++,
                             }
                         }));
                         return;
@@ -349,6 +353,7 @@
             var continuingPreviousDirectiveLine = false;
             var previousDirectiveLine = string.Empty;
             var targetBlocks = new Stack<PreprocessorDirective>();
+            long directiveId = 2000;
             while (enumerator.MoveNext())
             {
                 lineNumber++;
@@ -486,7 +491,8 @@
                         directive,
                         value,
                         targetBlocks,
-                        result);
+                        result,
+                        ref directiveId);
                 }
                 catch (Exception ex)
                 {

@@ -6,6 +6,7 @@
     using Redpoint.OpenGE.Component.PreprocessorCache;
     using Redpoint.OpenGE.Component.PreprocessorCache.DependencyResolution;
     using Redpoint.OpenGE.Component.PreprocessorCache.DirectiveScanner;
+    using Redpoint.OpenGE.Component.PreprocessorCache.Filesystem;
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
     using System.Collections.Concurrent;
@@ -37,7 +38,7 @@
             return new InProcessPreprocessorCache(
                 _serviceProvider.GetRequiredService<ICachingPreprocessorScannerFactory>(),
                 _serviceProvider.GetRequiredService<IPreprocessorResolver>(),
-                _serviceProvider.GetRequiredService<IReservationManagerFactory>());
+                _serviceProvider.GetRequiredService<IOpenGECacheReservationManagerProvider>());
         }
 
         public void Dispose()

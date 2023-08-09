@@ -30,7 +30,7 @@
                             // SkipIfProjectFailed = tool.Attributes!["SkipIfProjectFailed"]!.Value.Equals("true", StringComparison.InvariantCultureIgnoreCase),
                             // AutoReserveMemory = tool.Attributes!["AutoReserveMemory"]!.Value,
                             // OutputFileMasks = tool.Attributes!["OutputFileMasks"]!.Value,
-                            // AutoRecover = tool.Attributes!["AutoRecover"]?.Value ?? string.Empty,
+                            AutoRecover = tool.Attributes!["AutoRecover"]?.Value?.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
                         });
                 }
 

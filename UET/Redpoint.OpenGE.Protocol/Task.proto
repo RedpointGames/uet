@@ -163,6 +163,8 @@ message SendCompressedBlobsResponse {
  */
 message ExecuteTaskRequest {
 	TaskDescriptor descriptor = 1;
+	repeated string autoRecover = 2;
+	repeated string ignoreLines = 3;
 }
 
 /**

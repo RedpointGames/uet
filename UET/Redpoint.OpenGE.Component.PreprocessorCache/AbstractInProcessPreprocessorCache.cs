@@ -24,6 +24,7 @@
             string[] forceIncludes,
             string[] includeDirectories,
             Dictionary<string, string> globalDefinitions,
+            long buildStartTicks,
             CancellationToken cancellationToken);
 
         public abstract Task<PreprocessorScanResultWithCacheMetadata> GetUnresolvedDependenciesAsync(

@@ -201,6 +201,7 @@
                                 {
                                     EnvironmentVariables = envs,
                                     WorkingDirectory = request.WorkingDirectory,
+                                    BuildStartTicks = DateTimeOffset.UtcNow.Ticks,
                                 },
                                 globalCts.Token);
                         }
@@ -210,7 +211,7 @@
                         {
                             JobParsed = new JobParsedResponse
                             {
-                                TotalTasks = graph.Tasks.Count,
+                                TotalTasks = graph.Tasks.Count(x => x.Value is not DescribingGraphTask),
                             }
                         });
 

@@ -21,14 +21,10 @@
         {
         }
 
-        public async Task<PreprocessorScanResultWithCacheMetadata> ParseIncludes(
-            string filePath,
-            CancellationToken cancellationToken)
+        public PreprocessorScanResultWithCacheMetadata ParseIncludes(string filePath)
         {
             var st = Stopwatch.StartNew();
-            var result = await _onDiskPreprocessorScanner.ParseIncludes(
-                filePath,
-                cancellationToken);
+            var result = _onDiskPreprocessorScanner.ParseIncludes(filePath);
             return new PreprocessorScanResultWithCacheMetadata
             {
                 Result = result,

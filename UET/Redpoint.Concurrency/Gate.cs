@@ -59,5 +59,19 @@
             await _semaphore.WaitAsync(cancellationToken);
             _semaphore.Release();
         }
+
+        /// <summary>
+        /// Wait synchronously until the gate is opened.
+        /// </summary>
+        public void Wait()
+        {
+            if (_opened)
+            {
+                return;
+            }
+
+            _semaphore.Wait();
+            _semaphore.Release();
+        }
     }
 }

@@ -7,13 +7,11 @@
 
     internal class OnDiskPreprocessorScanner
     {
-        internal const int _cacheVersion = 7;
+        internal const int _cacheVersion = 8;
 
-        public async Task<PreprocessorScanResult> ParseIncludes(
-            string filePath,
-            CancellationToken cancellationToken)
+        public PreprocessorScanResult ParseIncludes(string filePath)
         {
-            var lines = await File.ReadAllLinesAsync(filePath, cancellationToken);
+            var lines = File.ReadAllLines(filePath);
             DateTimeOffset ticks = File.GetLastWriteTimeUtc(filePath);
             var directivesAndConditions = PreprocessorScanner.Scan(lines);
             var result = new PreprocessorScanResult

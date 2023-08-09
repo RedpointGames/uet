@@ -166,6 +166,48 @@
                 true);
         }
 
+        public IReservation? TryReserveExact(string targetName)
+        {
+            if (_localReservations.TryAdd(targetName, true))
+            {
+                try
+                {
+                    var handle = File.OpenHandle(
+                        Path.Combine(_lockPath, targetName),
+                        FileMode.Create,
+                        FileAccess.ReadWrite,
+                        FileShare.None,
+                        FileOptions.DeleteOnClose);
+                    var reservedPath = Path.Combine(_rootPath, targetName);
+                    Directory.CreateDirectory(reservedPath);
+                    _logger.LogInformation($"Reservation target '{targetName}' has been acquired in this process.");
+                    File.WriteAllLines(Path.Combine(_metaPath, "desc." + targetName), new[] { targetName });
+                    File.WriteAllText(Path.Combine(_metaPath, "date." + targetName), DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
+                    return new Reservation(
+                        handle,
+                        reservedPath,
+                        Path.Combine(_metaPath, "date." + targetName),
+                        () =>
+                        {
+                            _logger.LogInformation($"Reservation target '{targetName}' has been released in this process.");
+                            _localReservations.Remove(targetName, out _);
+                        });
+                }
+                catch (IOException ex) when (ex.Message.Contains("another process"))
+                {
+                    // Attempt the next reservation.
+                    _logger.LogInformation($"Reservation target '{targetName}' is in use by another process.");
+                    _localReservations.Remove(targetName, out _);
+                    return null;
+                }
+            }
+            else
+            {
+                _logger.LogInformation($"Reservation target '{targetName}' is internally used elsewhere in this process.");
+                return null;
+            }
+        }
+
         private async Task<IReservation?> ReserveExactInternalAsync(string targetName, CancellationToken cancellationToken, bool allowFailure)
         {
             do

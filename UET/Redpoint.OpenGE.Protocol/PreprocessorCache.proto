@@ -2,6 +2,11 @@ syntax = "proto3";
 
 package Redpoint.OpenGE.Protocol;
 
+message FilesystemExistenceEntry {
+	bool exists = 1;
+	int64 lastCheckTicks = 2;
+}
+
 enum PreprocessorExpressionTokenType {
 	ParenOpen = 0;
 	ParenClose = 1;
@@ -80,6 +85,7 @@ message PreprocessorDirectiveInclude {
 		string system = 2;
 		PreprocessorExpression expansion = 3;
 	}
+	int64 directiveId = 10;
 }
 
 message PreprocessorDirectiveDefine {
@@ -156,6 +162,7 @@ message GetResolvedDependenciesRequest {
 	map<string, string> globalDefinitions = 4;
 	repeated string forceIncludePaths = 5;
 	repeated string forceIncludeFromPchPaths = 6;
+	int64 buildStartTicks = 7;
 }
 
 message PreprocessorResolutionResultWithTimingMetadata {

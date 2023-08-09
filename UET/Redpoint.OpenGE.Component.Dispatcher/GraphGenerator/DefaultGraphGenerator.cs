@@ -70,6 +70,7 @@
             {
                 projects[projectKv.Key] = projectKv.Value;
 
+                var deps = new ConcurrentDictionary<string, string[]>();
                 await Parallel.ForEachAsync(
                     projectKv.Value.Tasks.ToAsyncEnumerable(),
                     new ParallelOptions
@@ -90,26 +91,77 @@
                             throw new InvalidOperationException($"No task descriptor factory could handle '{taskKv.Key}', which is almost certainly a bug as the local task descriptor factory should be able to handle everything.");
                         }
 
-                        if (!tasks.TryAdd(
-                            $"{projectKv.Key}:{taskKv.Key}",
-                            new GraphTask
+                        if (factory.PreparationOperationDescription == null)
+                        {
+                            // This is a fast describing task, which means we don't
+                            // generate a separate step for "preparing" the task.
+                            var fastExecutableTask = new FastExecutableGraphTask
                             {
                                 GraphTaskSpec = spec,
                                 TaskDescriptorFactory = factory,
-                            }))
-                        {
-                            throw new InvalidOperationException($"Conflicting task key '{projectKv.Key}:{taskKv.Key}'.");
+                            };
+                            if (!tasks.TryAdd($"exec:{projectKv.Key}:{taskKv.Key}", fastExecutableTask))
+                            {
+                                throw new InvalidOperationException($"Conflicting task key 'exec:{projectKv.Key}:{taskKv.Key}'.");
+                            }
+                            var taskDependencies = (taskKv.Value.DependsOn ?? string.Empty)
+                                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                                .Select(x => $"exec:{projectKv.Key}:{x}")
+                                .ToArray();
+                            if (!deps.TryAdd($"exec:{projectKv.Key}:{taskKv.Key}", taskDependencies))
+                            {
+                                throw new InvalidOperationException($"Conflicting deps key '{projectKv.Key}:{taskKv.Key}'.");
+                            }
                         }
+                        else
+                        {
+                            // This is a slow describing task (relatively), which means
+                            // we tell downstream clients when we're doing work to
+                            // prepare the descriptor. This encompasses things like
+                            // scanning headers locally to figure out remoting dependencies.
+                            var describingGraphTask = new DescribingGraphTask
+                            {
+                                GraphTaskSpec = spec,
+                                TaskDescriptorFactory = factory,
+                                TaskDescriptor = null,
+                            };
+                            var executableGraphTask = new ExecutableGraphTask
+                            {
+                                GraphTaskSpec = spec,
+                                DescribingGraphTask = describingGraphTask,
+                            };
+                            if (!tasks.TryAdd($"desc:{projectKv.Key}:{taskKv.Key}", describingGraphTask))
+                            {
+                                throw new InvalidOperationException($"Conflicting task key 'desc:{projectKv.Key}:{taskKv.Key}'.");
+                            }
+                            if (!tasks.TryAdd($"exec:{projectKv.Key}:{taskKv.Key}", executableGraphTask))
+                            {
+                                throw new InvalidOperationException($"Conflicting task key 'exec:{projectKv.Key}:{taskKv.Key}'.");
+                            }
+                            var taskDependencies = (taskKv.Value.DependsOn ?? string.Empty)
+                                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                                .Select(x => $"exec:{projectKv.Key}:{x}")
+                                .ToArray();
+                            if (!deps.TryAdd($"desc:{projectKv.Key}:{taskKv.Key}", taskDependencies))
+                            {
+                                throw new InvalidOperationException($"Conflicting deps key '{projectKv.Key}:{taskKv.Key}'.");
+                            }
+                            if (!deps.TryAdd($"exec:{projectKv.Key}:{taskKv.Key}", new[] { $"desc:{projectKv.Key}:{taskKv.Key}" }))
+                            {
+                                throw new InvalidOperationException($"Conflicting deps key '{projectKv.Key}:{taskKv.Key}'.");
+                            }
+                        }
+
+
                         return ValueTask.CompletedTask;
                     });
 
-                foreach (var taskKv in projectKv.Value.Tasks)
+                foreach (var depKv in deps)
                 {
-                    var task = tasks[$"{projectKv.Key}:{taskKv.Key}"];
-                    var taskDependencies = (taskKv.Value.DependsOn ?? string.Empty)
-                        .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                        .Where(x => tasks.ContainsKey($"{projectKv.Key}:{x}"))
-                        .Select(x => tasks[$"{projectKv.Key}:{x}"])
+                    var task = tasks[depKv.Key];
+                    var taskDependencies = depKv.Value
+                        .Where(x => tasks.ContainsKey(x))
+                        .Select(x => tasks[x])
                         .ToArray();
                     dependencies.SetDependsOn(task, taskDependencies);
                     if (taskDependencies.Length == 0)

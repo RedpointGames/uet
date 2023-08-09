@@ -3,6 +3,7 @@
     using Grpc.Core;
     using Redpoint.OpenGE.Component.PreprocessorCache.DependencyResolution;
     using Redpoint.OpenGE.Component.PreprocessorCache.DirectiveScanner;
+    using Redpoint.OpenGE.Component.PreprocessorCache.Filesystem;
     using Redpoint.OpenGE.Protocol;
     using Redpoint.Reservation;
     using System;
@@ -16,7 +17,7 @@
     {
         private readonly ICachingPreprocessorScannerFactory _cachingPreprocessorScannerFactory;
         private readonly IPreprocessorResolver _preprocessorResolver;
-        private readonly IReservationManagerFactory _reservationManagerFactory;
+        private readonly IOpenGECacheReservationManagerProvider _openGEReservationManagerProvider;
         private readonly SemaphoreSlim _initSemaphore = new SemaphoreSlim(1);
         private ICachingPreprocessorScanner? _cachingScanner;
         private bool _inited = false;
@@ -26,11 +27,11 @@
         public InProcessPreprocessorCache(
             ICachingPreprocessorScannerFactory cachingPreprocessorScannerFactory,
             IPreprocessorResolver preprocessorResolver,
-            IReservationManagerFactory reservationManagerFactory)
+            IOpenGECacheReservationManagerProvider openGEReservationManagerProvider)
         {
             _cachingPreprocessorScannerFactory = cachingPreprocessorScannerFactory;
             _preprocessorResolver = preprocessorResolver;
-            _reservationManagerFactory = reservationManagerFactory;
+            _openGEReservationManagerProvider = openGEReservationManagerProvider;
         }
 
         public override DateTimeOffset LastGrpcRequestUtc { get; protected set; } = DateTimeOffset.UtcNow;
@@ -94,19 +95,7 @@
                     return;
                 }
 
-                var dataDirectory = true switch
-                {
-                    var v when v == OperatingSystem.IsWindows() => Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                        "OpenGE",
-                        "Cache"),
-                    var v when v == OperatingSystem.IsMacOS() => Path.Combine("/Users", "Shared", "OpenGE", "Cache"),
-                    var v when v == OperatingSystem.IsLinux() => Path.Combine("/tmp", "OpenGE", "Cache"),
-                    _ => throw new PlatformNotSupportedException(),
-                };
-                var reservationManager = _reservationManagerFactory.CreateReservationManager(dataDirectory);
-
-                _reservation = await reservationManager.TryReserveExactAsync("Preprocessor");
+                _reservation = await _openGEReservationManagerProvider.ReservationManager.TryReserveExactAsync("Preprocessor");
                 if (_reservation == null)
                 {
                     throw new PreprocessorCacheAlreadyRunningException();
@@ -127,7 +116,8 @@
             string[] forceIncludesFromPch,
             string[] forceIncludes, 
             string[] includeDirectories,
-            Dictionary<string, string> globalDefinitions, 
+            Dictionary<string, string> globalDefinitions,
+            long buildStartTicks,
             CancellationToken cancellationToken)
         {
             await EnsureAsync();
@@ -138,6 +128,7 @@
                 forceIncludes,
                 includeDirectories,
                 globalDefinitions,
+                buildStartTicks,
                 cancellationToken);
         }
 
@@ -146,9 +137,7 @@
             CancellationToken cancellationToken)
         {
             await EnsureAsync();
-            return await _cachingScanner!.ParseIncludes(
-                filePath,
-                cancellationToken);
+            return _cachingScanner!.ParseIncludes(filePath);
         }
 
         public override Task<PingResponse> Ping(PingRequest request, ServerCallContext context)
@@ -156,20 +145,18 @@
             return Task.FromResult(new PingResponse());
         }
 
-        public override async Task<GetUnresolvedDependenciesResponse> GetUnresolvedDependencies(
+        public override Task<GetUnresolvedDependenciesResponse> GetUnresolvedDependencies(
             GetUnresolvedDependenciesRequest request,
             ServerCallContext context)
         {
             LastGrpcRequestUtc = DateTimeOffset.UtcNow;
-            var result = await _cachingScanner!.ParseIncludes(
-                request.Path,
-                context.CancellationToken);
+            var result = _cachingScanner!.ParseIncludes(request.Path);
             var response = new GetUnresolvedDependenciesResponse
             {
                 Result = result,
             };
             LastGrpcRequestUtc = DateTimeOffset.UtcNow;
-            return response;
+            return Task.FromResult(response);
         }
 
         public override async Task<GetResolvedDependenciesResponse> GetResolvedDependencies(
@@ -186,6 +173,7 @@
                     request.ForceIncludePaths.ToArray(),
                     request.IncludeDirectories.ToArray(),
                     request.GlobalDefinitions.ToDictionary(k => k.Key, v => v.Value),
+                    request.BuildStartTicks,
                     context.CancellationToken);
                 LastGrpcRequestUtc = DateTimeOffset.UtcNow;
                 return new GetResolvedDependenciesResponse

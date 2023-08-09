@@ -56,7 +56,7 @@
             _disk.Dispose();
         }
 
-        public async Task<PreprocessorScanResultWithCacheMetadata> ParseIncludes(string filePath, CancellationToken cancellationToken)
+        public PreprocessorScanResultWithCacheMetadata ParseIncludes(string filePath)
         {
             var st = Stopwatch.StartNew();
 
@@ -91,9 +91,7 @@
                 cacheStatus = CacheHit.MissDueToMissingFile;
             }
 
-            var freshValue = await _onDiskPreprocessorScanner.ParseIncludes(
-                filePath,
-                cancellationToken);
+            var freshValue = _onDiskPreprocessorScanner.ParseIncludes(filePath);
             _disk.Upsert(filePath, freshValue);
             return new PreprocessorScanResultWithCacheMetadata
             {

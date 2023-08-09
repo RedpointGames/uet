@@ -41,7 +41,6 @@
                 RemoveStalePrecompiledHeadersCommand.CreateRemoveStalePrecompiledHeadersCommand(),
                 InstallPlatformSdkCommand.CreateInstallPlatformSdkCommand(),
                 OpenGECommand.CreateOpenGECommand(),
-                OpenGEAgentCommand.CreateOpenGEAgentCommand(),
                 OpenGEPreprocessorCacheCommand.CreateOpenGEPreprocessorCacheCommand(),
                 OpenGEPreprocessorCacheClientCommand.CreateOpenGEPreprocessorCacheClientCommand(),
             };

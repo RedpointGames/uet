@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
+
+  <PropertyGroup>
+    <RestoreAdditionalProjectSources>$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AssemblyName>openge-agent</AssemblyName>
+    <Description>The OpenGE agent daemon.</Description>
+    <Product>OpenGE Agent</Product>
+    <AssemblyTitle>OpenGE Agent</AssemblyTitle>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="7.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.OpenGE.Agent\Redpoint.OpenGE.Agent.csproj" />
+    <ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
+    <ProjectReference Include="..\Redpoint.Logging.Mac\Redpoint.Logging.Mac.csproj" />
+  </ItemGroup>
+
+</Project>

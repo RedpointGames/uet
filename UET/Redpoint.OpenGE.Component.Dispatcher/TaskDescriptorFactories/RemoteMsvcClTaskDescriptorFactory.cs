@@ -176,6 +176,7 @@
                     forceIncludeFiles.Select(x => x.FullName).Where(x => x != pchInputFile?.FullName).ToArray(),
                     includeDirectories.Select(x => x.FullName).ToArray(),
                     globalDefinitions,
+                    spec.ExecutionEnvironment.BuildStartTicks,
                     cancellationToken);
             }
             catch (RpcException ex) when (ex.StatusCode == StatusCode.InvalidArgument)

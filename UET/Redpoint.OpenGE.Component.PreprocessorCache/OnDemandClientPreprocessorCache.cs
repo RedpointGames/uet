@@ -119,6 +119,7 @@
             string[] forceIncludes,
             string[] includeDirectories,
             Dictionary<string, string> globalDefinitions,
+            long buildStartTicks,
             CancellationToken cancellationToken)
         {
             var client = await GetClientAsync();
@@ -129,6 +130,7 @@
                     var request = new GetResolvedDependenciesRequest
                     {
                         Path = filePath,
+                        BuildStartTicks = buildStartTicks,
                     };
                     request.IncludeDirectories.AddRange(includeDirectories);
                     request.GlobalDefinitions.Add(globalDefinitions);

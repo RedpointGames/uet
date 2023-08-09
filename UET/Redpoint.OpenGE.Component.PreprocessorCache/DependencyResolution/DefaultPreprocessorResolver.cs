@@ -1,15 +1,19 @@
 ﻿namespace Redpoint.OpenGE.Component.PreprocessorCache.DependencyResolution
 {
     using Redpoint.Collections;
+    using Redpoint.Concurrency;
     using Redpoint.OpenGE.Component.PreprocessorCache;
     using Redpoint.OpenGE.Component.PreprocessorCache.DirectiveScanner;
+    using Redpoint.OpenGE.Component.PreprocessorCache.Filesystem;
     using Redpoint.OpenGE.Component.PreprocessorCache.LexerParser;
     using Redpoint.OpenGE.Protocol;
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
+    using System.Runtime.InteropServices;
     using System.Threading.Tasks;
 
     internal class DefaultPreprocessorResolver : IPreprocessorResolver
@@ -17,6 +21,13 @@
         private static readonly StringComparer _pathComparison = OperatingSystem.IsWindows()
             ? StringComparer.InvariantCultureIgnoreCase
             : StringComparer.InvariantCulture;
+        private readonly IFilesystemExistenceProvider _filesystemExistenceProvider;
+
+        public DefaultPreprocessorResolver(
+            IFilesystemExistenceProvider filesystemExistenceProvider)
+        {
+            _filesystemExistenceProvider = filesystemExistenceProvider;
+        }
 
         private enum PreprocessorConditionState
         {
@@ -26,6 +37,92 @@
         }
 
         private delegate bool PreprocessorStateHasInclude(string currentPath, string targetPath);
+
+        private class ForwardIncludeScanRequest
+        {
+            public required PreprocessorState State;
+            public required PreprocessorDirectiveInclude Directive;
+            public required string Path;
+            public required string[] IncludeParentPaths;
+            public readonly Gate Completed = new Gate();
+            public bool Cancelled;
+            public string? FoundPath;
+            public string? SearchValue;
+        }
+
+        private static class ForwardIncludeScanner
+        {
+            private readonly static ConcurrentDictionary<long, ForwardIncludeScanRequest> _forwardIncludeScanRequestsLookup = new ConcurrentDictionary<long, ForwardIncludeScanRequest>();
+            private readonly static TerminableConcurrentQueue<ForwardIncludeScanRequest> _forwardIncludeScanRequests = new TerminableConcurrentQueue<ForwardIncludeScanRequest>();
+            private readonly static Thread[] _forwardIncludeScanThreads;
+            private static long _nextId = 1000;
+
+            static ForwardIncludeScanner()
+            {
+                _forwardIncludeScanThreads = Enumerable.Range(0, 8).Select(x =>
+                {
+                    var thread = new Thread(ForwardIncludeScanning);
+                    thread.Start();
+                    return thread;
+                }).ToArray();
+            }
+
+            public static long EnqueueRequest(ForwardIncludeScanRequest request)
+            {
+                var allocatedId = Interlocked.Increment(ref _nextId);
+                if (!_forwardIncludeScanRequestsLookup.TryAdd(allocatedId, request))
+                {
+                    throw new InvalidOperationException("Unable to add request to forward scanner");
+                }
+                _forwardIncludeScanRequests.Enqueue(request);
+                return allocatedId;
+            }
+
+            public static bool TryPullRequest(long id, [NotNullWhen(true)] out ForwardIncludeScanRequest? request)
+            {
+                if (_forwardIncludeScanRequestsLookup.TryRemove(id, out var requestInternal))
+                {
+                    if (requestInternal.Cancelled)
+                    {
+                        request = null;
+                        return false;
+                    }
+
+                    request = requestInternal;
+                    return true;
+                }
+
+                request = null;
+                return false;
+            }
+
+            private static void ForwardIncludeScanning()
+            {
+                foreach (var request in _forwardIncludeScanRequests)
+                {
+                    if (request.Cancelled)
+                    {
+                        request.Completed.Open();
+                        continue;
+                    }
+
+                    try
+                    {
+                        request.FoundPath = ResolveIncludeDirective(
+                            request.State,
+                            request.Directive,
+                            request.Path,
+                            request.IncludeParentPaths,
+                            out request.SearchValue);
+                    }
+                    catch
+                    {
+                        request.FoundPath = null;
+                    }
+                    request.Completed.Open();
+                }
+            }
+        }
 
         private class PreprocessorState
         {
@@ -38,18 +135,20 @@
             public readonly Dictionary<long, PreprocessorConditionState> ConditionStates = new Dictionary<long, PreprocessorConditionState>();
             public readonly Dictionary<long, PreprocessorCondition> Conditions = new Dictionary<long, PreprocessorCondition>();
             public readonly Dictionary<string, HashSet<long>> ConditionDependentsOfIdentifiers = new Dictionary<string, HashSet<long>>();
-            public readonly Dictionary<string, bool> FileExistenceCache = new Dictionary<string, bool>(_pathComparison);
             public readonly DependencyGraph<string> DefineGraph = new DependencyGraph<string>();
             public required PreprocessorStateHasInclude HasInclude;
+            public required long BuildStartTicks;
+            public required IFilesystemExistenceProvider FilesystemExistenceProvider;
         }
 
-        public async Task<PreprocessorResolutionResultWithTimingMetadata> ResolveAsync(
+        public Task<PreprocessorResolutionResultWithTimingMetadata> ResolveAsync(
             ICachingPreprocessorScanner scanner,
             string path,
             string[] forceIncludesFromPch,
             string[] forceIncludes,
             string[] includeDirectories,
             Dictionary<string, string> globalDefinitions,
+            long buildStartTicks,
             CancellationToken cancellationToken)
         {
             if (!Path.IsPathRooted(path))
@@ -77,6 +176,8 @@
                 Scanner = scanner,
                 IncludeDirectories = includeDirectories,
                 HasInclude = (_, _) => false,
+                BuildStartTicks = buildStartTicks,
+                FilesystemExistenceProvider = _filesystemExistenceProvider,
             };
 
             // Add the standard defines. Some of these will have the wrong values, but they're "good enough"
@@ -154,7 +255,7 @@
                     var stack = new Stack<string>();
                     stack.Push(path);
                     state.HasInclude = HasIncludeWithStack(state, stack);
-                    await ProcessFileAsync(
+                    ProcessFile(
                         state,
                         rootFile,
                         stack,
@@ -177,7 +278,7 @@
                     var stack = new Stack<string>();
                     stack.Push(path);
                     state.HasInclude = HasIncludeWithStack(state, stack);
-                    await ProcessFileAsync(
+                    ProcessFile(
                         state,
                         rootFile,
                         stack,
@@ -196,7 +297,7 @@
             {
                 var stack = new Stack<string>();
                 state.HasInclude = HasIncludeWithStack(state, stack);
-                await ProcessFileAsync(
+                ProcessFile(
                     state,
                     path,
                     stack,
@@ -218,7 +319,7 @@
                 ResolutionTimeMs = st.ElapsedMilliseconds,
             };
             result.DependsOnPaths.AddRange(state.ReferencedFiles);
-            return result;
+            return Task.FromResult(result);
         }
 
         private PreprocessorStateHasInclude HasIncludeWithStack(
@@ -679,7 +780,7 @@
             }
         }
 
-        private static async Task ProcessFileAsync(
+        private static void ProcessFile(
             PreprocessorState state,
             string path,
             Stack<string> includeParentPaths,
@@ -696,7 +797,7 @@
             referencedFiles.Add(path);
 
             // Get the unresolved data from the cache.
-            var unresolvedState = await state.Scanner.ParseIncludes(path, cancellationToken);
+            var unresolvedState = state.Scanner.ParseIncludes(path);
             cancellationToken.ThrowIfCancellationRequested();
 
             // For each condition this file depends on, add it to
@@ -718,25 +819,89 @@
                 }
             }
 
-            // Process each directive in order.
-            foreach (var directive in unresolvedState.Result.Directives)
+            // For all of the include directives, push them into the forward include scanner
+            // so that we can start working on them while processing this file.
+            string[]? includeParentPathsLocked = null;
+            Dictionary<long, long>? forwardScannerLookup = null;
+            void PreloadDirectiveRecursive(PreprocessorDirective directive)
             {
-                await ProcessDirective(
+                switch (directive.DirectiveCase)
+                {
+                    case PreprocessorDirective.DirectiveOneofCase.Include:
+                        if (directive.Include.IncludeCase != PreprocessorDirectiveInclude.IncludeOneofCase.Expansion)
+                        {
+                            if (includeParentPathsLocked == null)
+                            {
+                                includeParentPathsLocked = includeParentPaths.ToArray();
+                            }
+                            if (forwardScannerLookup == null)
+                            {
+                                forwardScannerLookup = new Dictionary<long, long>();
+                            }
+                            var request = new ForwardIncludeScanRequest
+                            {
+                                State = state,
+                                Directive = directive.Include,
+                                Path = path,
+                                IncludeParentPaths = includeParentPathsLocked,
+                            };
+                            forwardScannerLookup[directive.Include.DirectiveId] = ForwardIncludeScanner.EnqueueRequest(request);
+                        }
+                        break;
+                    case PreprocessorDirective.DirectiveOneofCase.If:
+                        foreach (var subdir in directive.If.Subdirectives)
+                        {
+                            PreloadDirectiveRecursive(subdir);
+                        }
+                        if (directive.If.HasElseBranch)
+                        {
+                            PreloadDirectiveRecursive(directive.If.ElseBranch);
+                        }
+                        break;
+                    case PreprocessorDirective.DirectiveOneofCase.Block:
+                        foreach (var subdir in directive.Block.Subdirectives)
+                        {
+                            PreloadDirectiveRecursive(subdir);
+                        }
+                        break;
+                }
+            }
+
+            // Process each directive in order.
+            for (int directiveIndex = 0; directiveIndex < unresolvedState.Result.Directives.Count; directiveIndex++)
+            {
+                var directive = unresolvedState.Result.Directives[directiveIndex];
+                ProcessDirective(
                     state,
                     path,
                     includeParentPaths,
                     referencedFiles,
                     directive,
+                    forwardScannerLookup,
                     cancellationToken);
+            }
+
+            // Go and cancel any include requests that are still outstanding (since we 
+            // didn't end up waiting on them).
+            if (forwardScannerLookup != null)
+            {
+                foreach (var id in forwardScannerLookup.Values)
+                {
+                    if (ForwardIncludeScanner.TryPullRequest(id, out var request))
+                    {
+                        request.Cancelled = true;
+                    }
+                }
             }
         }
 
-        private static async Task ProcessDirective(
+        private static void ProcessDirective(
             PreprocessorState state,
             string path,
             Stack<string> includeParentPaths,
             HashSet<string> referencedFiles,
             PreprocessorDirective directive,
+            Dictionary<long, long>? forwardScannerLookup,
             CancellationToken cancellationToken)
         {
             switch (directive.DirectiveCase)
@@ -756,24 +921,26 @@
                             // Process the nested directives.
                             foreach (var subdirective in directive.If.Subdirectives)
                             {
-                                await ProcessDirective(
+                                ProcessDirective(
                                     state,
                                     path,
                                     includeParentPaths,
                                     referencedFiles,
                                     subdirective,
+                                    forwardScannerLookup,
                                     cancellationToken);
                             }
                         }
                         else if (directive.If.HasElseBranch)
                         {
                             // Process the else branch if it exists.
-                            await ProcessDirective(
+                            ProcessDirective(
                                 state,
                                 path,
                                 includeParentPaths,
                                 referencedFiles,
                                 directive.If.ElseBranch,
+                                forwardScannerLookup,
                                 cancellationToken);
                         }
                         break;
@@ -784,12 +951,13 @@
                         // used for unconditional else blocks.
                         foreach (var subdirective in directive.Block.Subdirectives)
                         {
-                            await ProcessDirective(
+                            ProcessDirective(
                                 state,
                                 path,
                                 includeParentPaths,
                                 referencedFiles,
                                 subdirective,
+                                forwardScannerLookup,
                                 cancellationToken);
                         }
                         break;
@@ -820,61 +988,29 @@
                         break;
                     }
                 case PreprocessorDirective.DirectiveOneofCase.Include:
-                    PreprocessorDirectiveInclude.IncludeOneofCase effectiveCase;
-                    string effectiveValue;
-                    switch (directive.Include.IncludeCase)
+                    string? foundPath;
+                    string? searchValue;
+                    if (forwardScannerLookup != null &&
+                        forwardScannerLookup.ContainsKey(directive.Include.DirectiveId) &&
+                        ForwardIncludeScanner.TryPullRequest(forwardScannerLookup[directive.Include.DirectiveId], out var request))
                     {
-                        case PreprocessorDirectiveInclude.IncludeOneofCase.Normal:
-                            effectiveCase = PreprocessorDirectiveInclude.IncludeOneofCase.Normal;
-                            effectiveValue = directive.Include.Normal;
-                            break;
-                        case PreprocessorDirectiveInclude.IncludeOneofCase.System:
-                            effectiveCase = PreprocessorDirectiveInclude.IncludeOneofCase.System;
-                            effectiveValue = directive.Include.System;
-                            break;
-                        case PreprocessorDirectiveInclude.IncludeOneofCase.Expansion:
-                            var expandedInclude = EvaluateExpansion(
-                                state,
-                                directive.Include.Expansion,
-                                new Dictionary<string, PreprocessorExpression>());
-                            if (expandedInclude.StartsWith('"'))
-                            {
-                                effectiveCase = PreprocessorDirectiveInclude.IncludeOneofCase.Normal;
-                                effectiveValue = expandedInclude.Trim('"');
-                            }
-                            else if (expandedInclude.StartsWith('<'))
-                            {
-                                effectiveCase = PreprocessorDirectiveInclude.IncludeOneofCase.System;
-                                effectiveValue = expandedInclude.TrimStart('<').TrimEnd('>');
-                            }
-                            else
-                            {
-                                throw new Exception($"Include macro expanded into non-include value '{expandedInclude}' (it probably needs quotes)");
-                            }
-                            break;
-                        default:
-                            throw new NotSupportedException($"Unsupported IncludeCase '{directive.Include.IncludeCase}' in cache");
+                        request.Completed.Wait();
+                        foundPath = request.FoundPath;
+                        searchValue = request.SearchValue;
                     }
-                    string[] searchPaths;
-                    string searchValue;
-                    switch (effectiveCase)
+                    else
                     {
-                        case PreprocessorDirectiveInclude.IncludeOneofCase.Normal:
-                            searchPaths = state.IncludeDirectories;
-                            searchValue = effectiveValue;
-                            break;
-                        case PreprocessorDirectiveInclude.IncludeOneofCase.System:
-                            searchPaths = state.IncludeDirectories;
-                            searchValue = effectiveValue;
-                            break;
-                        default:
-                            throw new NotSupportedException($"Unsupported post-eval IncludeCase '{directive.Include.IncludeCase}' in cache");
+                        foundPath = ResolveIncludeDirective(
+                            state,
+                            directive.Include,
+                            path,
+                            includeParentPaths,
+                            out searchValue);
                     }
-                    string? foundPath = FindInclude(state, path, includeParentPaths, effectiveCase, searchPaths, searchValue);
                     if (foundPath == null)
                     {
                         // Unable to find this file.
-                        throw new PreprocessorIncludeNotFoundException(searchValue);
+                        throw new PreprocessorIncludeNotFoundException(searchValue!);
                     }
                     if (state.SeenFiles.Contains(foundPath))
                     {
@@ -885,7 +1021,7 @@
                     includeParentPaths.Push(path);
                     try
                     {
-                        await ProcessFileAsync(
+                        ProcessFile(
                             state,
                             foundPath,
                             includeParentPaths,
@@ -906,17 +1042,72 @@
             }
         }
 
+        private static string? ResolveIncludeDirective(
+            PreprocessorState state,
+            PreprocessorDirectiveInclude directive,
+            string path,
+            IEnumerable<string> includeParentPaths,
+            out string searchValue)
+        {
+            PreprocessorDirectiveInclude.IncludeOneofCase effectiveCase;
+            string effectiveValue;
+            switch (directive.IncludeCase)
+            {
+                case PreprocessorDirectiveInclude.IncludeOneofCase.Normal:
+                    effectiveCase = PreprocessorDirectiveInclude.IncludeOneofCase.Normal;
+                    effectiveValue = directive.Normal;
+                    break;
+                case PreprocessorDirectiveInclude.IncludeOneofCase.System:
+                    effectiveCase = PreprocessorDirectiveInclude.IncludeOneofCase.System;
+                    effectiveValue = directive.System;
+                    break;
+                case PreprocessorDirectiveInclude.IncludeOneofCase.Expansion:
+                    var expandedInclude = EvaluateExpansion(
+                        state,
+                        directive.Expansion,
+                        new Dictionary<string, PreprocessorExpression>());
+                    if (expandedInclude.StartsWith('"'))
+                    {
+                        effectiveCase = PreprocessorDirectiveInclude.IncludeOneofCase.Normal;
+                        effectiveValue = expandedInclude.Trim('"');
+                    }
+                    else if (expandedInclude.StartsWith('<'))
+                    {
+                        effectiveCase = PreprocessorDirectiveInclude.IncludeOneofCase.System;
+                        effectiveValue = expandedInclude.TrimStart('<').TrimEnd('>');
+                    }
+                    else
+                    {
+                        throw new Exception($"Include macro expanded into non-include value '{expandedInclude}' (it probably needs quotes)");
+                    }
+                    break;
+                default:
+                    throw new NotSupportedException($"Unsupported IncludeCase '{directive.IncludeCase}' in cache");
+            }
+            string[] searchPaths;
+            switch (effectiveCase)
+            {
+                case PreprocessorDirectiveInclude.IncludeOneofCase.Normal:
+                    searchPaths = state.IncludeDirectories;
+                    searchValue = effectiveValue;
+                    break;
+                case PreprocessorDirectiveInclude.IncludeOneofCase.System:
+                    searchPaths = state.IncludeDirectories;
+                    searchValue = effectiveValue;
+                    break;
+                default:
+                    throw new NotSupportedException($"Unsupported post-eval IncludeCase '{directive.IncludeCase}' in cache");
+            }
+            return FindInclude(state, path, includeParentPaths, effectiveCase, searchPaths, searchValue);
+        }
+
         private static bool ConsiderPath(
             PreprocessorState state,
             string consideredPath,
             [NotNullWhen(true)] out string? foundPath)
         {
             consideredPath = consideredPath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
-            if (!state.FileExistenceCache.ContainsKey(consideredPath))
-            {
-                state.FileExistenceCache[consideredPath] = File.Exists(consideredPath);
-            }
-            if (state.FileExistenceCache[consideredPath])
+            if (state.FilesystemExistenceProvider.FileExists(consideredPath, state.BuildStartTicks))
             {
                 foundPath = consideredPath;
                 return true;
@@ -928,7 +1119,7 @@
         private static string? FindInclude(
             PreprocessorState state,
             string path,
-            Stack<string> includeParentPaths,
+            IEnumerable<string> includeParentPaths,
             PreprocessorDirectiveInclude.IncludeOneofCase effectiveCase,
             string[] searchPaths,
             string searchValue)

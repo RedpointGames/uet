@@ -54,6 +54,7 @@
                 }
 
                 // See if xgConsole is already on the PATH.
+                /*
                 bool hasExistingXgConsole = false;
                 try
                 {
@@ -66,7 +67,7 @@
                 if (hasExistingXgConsole)
                 {
                     // This computer already has XGE or OpenGE installed globally,
-                    // so we don't need to set up it up.
+                    // so we don't need to set it up.
                     _environmentInfo = new OpenGEEnvironmentInfo
                     {
                         ShouldUseOpenGE = false,
@@ -75,6 +76,7 @@
                     };
                     return _environmentInfo;
                 }
+                */
 
                 // See if we're running OpenGE system-wide. We do this by trying
                 // to connect to the daemon on the well-known system-wide pipe name,

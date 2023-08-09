@@ -63,7 +63,7 @@
             services.AddOpenGEComponentDispatcher();
             services.AddOpenGEComponentWorker();
             services.AddOpenGEProcessExecution();
-            services.AddOpenGEPreprocessorCache();
+            services.AddOpenGEComponentPreprocessorCache();
             services.AddSdkManagement();
             services.AddGrpcPipes();
             services.AddUefs();

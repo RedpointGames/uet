@@ -128,122 +128,159 @@
                         var didStart = false;
                         var didComplete = false;
                         var taskStopwatch = new Stopwatch();
+                        var skipEmitComplete = false;
                         try
                         {
                             try
                             {
-                                // Generate the task descriptor from the factory. This can take a while
-                                // if we're parsing preprocessor headers.
-                                //
-                                // @todo: Indicate to clients when we move between "generating the descriptor"
-                                // and "actually doing the work".
-                                //
-                                Stopwatch? prepareStopwatch = null;
-                                if (!string.IsNullOrWhiteSpace(task.TaskDescriptorFactory.PreparationOperationDescription))
+                                // Do descriptor generation based on the task.
+                                TaskDescriptor taskDescriptor;
+                                switch (task)
                                 {
-                                    prepareStopwatch = Stopwatch.StartNew();
-                                    await responseStream.WriteAsync(new JobResponse
-                                    {
-                                        TaskPreparing = new TaskPreparingResponse
+                                    case DescribingGraphTask describingGraphTask:
+                                        // Generate the task descriptor from the factory. This can take a while
+                                        // if we're parsing preprocessor headers.
+                                        Stopwatch? prepareStopwatch = null;
+                                        if (!string.IsNullOrWhiteSpace(describingGraphTask.TaskDescriptorFactory.PreparationOperationDescription))
                                         {
-                                            Id = task.GraphTaskSpec.Task.Name,
-                                            DisplayName = task.GraphTaskSpec.Task.Caption,
-                                            OperationDescription = task.TaskDescriptorFactory.PreparationOperationDescription,
-                                        }
-                                    });
-                                }
-                                var taskDescriptor = await task.TaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
-                                    task.GraphTaskSpec,
-                                    instance.CancellationToken);
-                                if (prepareStopwatch != null)
-                                {
-                                    await responseStream.WriteAsync(new JobResponse
-                                    {
-                                        TaskPrepared = new TaskPreparedResponse
-                                        {
-                                            Id = task.GraphTaskSpec.Task.Name,
-                                            DisplayName = task.GraphTaskSpec.Task.Caption,
-                                            TotalSeconds = prepareStopwatch!.Elapsed.TotalSeconds,
-                                            OperationCompletedDescription = task.TaskDescriptorFactory.PreparationOperationCompletedDescription ?? string.Empty,
-                                        }
-                                    });
-                                }
-
-                                // Reserve a core from somewhere...
-                                await using var core = await instance.WorkerPool.ReserveCoreAsync(
-                                    taskDescriptor.DescriptorCase != TaskDescriptor.DescriptorOneofCase.Remote,
-                                    instance.CancellationToken);
-
-                                // We're now going to start doing the work for this task.
-                                taskStopwatch.Start();
-                                await responseStream.WriteAsync(new JobResponse
-                                {
-                                    TaskStarted = new TaskStartedResponse
-                                    {
-                                        Id = task.GraphTaskSpec.Task.Name,
-                                        DisplayName = task.GraphTaskSpec.Task.Caption,
-                                        WorkerMachineName = core.WorkerMachineName,
-                                        WorkerCoreNumber = core.WorkerCoreNumber,
-                                    },
-                                }, instance.CancellationToken);
-                                didStart = true;
-
-                                // Perform synchronisation for remote tasks.
-                                if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote)
-                                {
-                                    // @todo: Implement tool and blob synchronisation.
-                                }
-
-                                // Execute the task on the core.
-                                await core.Request.RequestStream.WriteAsync(new ExecutionRequest
-                                {
-                                    ExecuteTask = new ExecuteTaskRequest
-                                    {
-                                        Descriptor_ = taskDescriptor,
-                                    }
-                                }, instance.CancellationToken);
-
-                                // Stream the results until we get an exit code.
-                                await using var enumerable = core.Request.GetAsyncEnumerator(instance.CancellationToken);
-                                while (!didComplete && await enumerable.MoveNextAsync(instance.CancellationToken))
-                                {
-                                    var current = enumerable.Current;
-                                    if (current.ResponseCase != ExecutionResponse.ResponseOneofCase.ExecuteTask)
-                                    {
-                                        throw new RpcException(new Status(
-                                            StatusCode.InvalidArgument,
-                                            "Unexpected task execution response from worker RPC."));
-                                    }
-                                    switch (current.ExecuteTask.Response.DataCase)
-                                    {
-                                        case ProcessResponse.DataOneofCase.StandardOutputLine:
+                                            prepareStopwatch = Stopwatch.StartNew();
                                             await responseStream.WriteAsync(new JobResponse
                                             {
-                                                TaskOutput = new TaskOutputResponse
+                                                TaskPreparing = new TaskPreparingResponse
                                                 {
-                                                    Id = task.GraphTaskSpec.Task.Name,
-                                                    StandardOutputLine = current.ExecuteTask.Response.StandardOutputLine,
+                                                    Id = describingGraphTask.GraphTaskSpec.Task.Name,
+                                                    DisplayName = describingGraphTask.GraphTaskSpec.Task.Caption,
+                                                    OperationDescription = describingGraphTask.TaskDescriptorFactory.PreparationOperationDescription,
                                                 }
                                             });
-                                            break;
-                                        case ProcessResponse.DataOneofCase.StandardErrorLine:
+                                        }
+                                        describingGraphTask.TaskDescriptor = taskDescriptor = await describingGraphTask.TaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
+                                            task.GraphTaskSpec,
+                                            instance.CancellationToken);
+                                        if (prepareStopwatch != null)
+                                        {
                                             await responseStream.WriteAsync(new JobResponse
                                             {
-                                                TaskOutput = new TaskOutputResponse
+                                                TaskPrepared = new TaskPreparedResponse
                                                 {
                                                     Id = task.GraphTaskSpec.Task.Name,
-                                                    StandardErrorLine = current.ExecuteTask.Response.StandardErrorLine,
+                                                    DisplayName = task.GraphTaskSpec.Task.Caption,
+                                                    TotalSeconds = prepareStopwatch!.Elapsed.TotalSeconds,
+                                                    OperationCompletedDescription = describingGraphTask.TaskDescriptorFactory.PreparationOperationCompletedDescription ?? string.Empty,
                                                 }
                                             });
+                                        }
+                                        break;
+                                    case FastExecutableGraphTask fastExecutableGraphTask:
+                                        taskDescriptor = await fastExecutableGraphTask.TaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
+                                            fastExecutableGraphTask.GraphTaskSpec,
+                                            instance.CancellationToken);
+                                        break;
+                                    case ExecutableGraphTask executableGraphTask:
+                                        taskDescriptor = executableGraphTask.DescribingGraphTask.TaskDescriptor!;
+                                        break;
+                                    default:
+                                        throw new NotSupportedException();
+                                }
+
+                                // Do execution based on the task.
+                                switch (task)
+                                {
+                                    case DescribingGraphTask:
+                                        // No execution work to do for this task.
+                                        exitCode = 0;
+                                        status = TaskCompletionStatus.TaskCompletionSuccess;
+                                        didComplete = true;
+                                        skipEmitComplete = true;
+                                        break;
+                                    default:
+                                        {
+                                            // Reserve a core from somewhere...
+                                            await using var core = await instance.WorkerPool.ReserveCoreAsync(
+                                                taskDescriptor.DescriptorCase != TaskDescriptor.DescriptorOneofCase.Remote,
+                                                instance.CancellationToken);
+
+                                            // We're now going to start doing the work for this task.
+                                            taskStopwatch.Start();
+                                            await responseStream.WriteAsync(new JobResponse
+                                            {
+                                                TaskStarted = new TaskStartedResponse
+                                                {
+                                                    Id = task.GraphTaskSpec.Task.Name,
+                                                    DisplayName = task.GraphTaskSpec.Task.Caption,
+                                                    WorkerMachineName = core.WorkerMachineName,
+                                                    WorkerCoreNumber = core.WorkerCoreNumber,
+                                                },
+                                            }, instance.CancellationToken);
+                                            didStart = true;
+
+                                            // Perform synchronisation for remote tasks.
+                                            if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote)
+                                            {
+                                                // @todo: Implement tool and blob synchronisation.
+                                            }
+
+                                            // Execute the task on the core.
+                                            var executeTaskRequest = new ExecuteTaskRequest
+                                            {
+                                                Descriptor_ = taskDescriptor,
+                                            };
+                                            if (task.GraphTaskSpec.Tool.AutoRecover != null)
+                                            {
+                                                executeTaskRequest.AutoRecover.AddRange(task.GraphTaskSpec.Tool.AutoRecover);
+                                            }
+                                            // @note: This hides MSVC's useless output where it shows you the filename
+                                            // of the file you are compiling.
+                                            executeTaskRequest.IgnoreLines.Add(task.GraphTaskSpec.Task.Caption);
+                                            await core.Request.RequestStream.WriteAsync(new ExecutionRequest
+                                            {
+                                                ExecuteTask = executeTaskRequest
+                                            }, instance.CancellationToken);
+
+                                            // Stream the results until we get an exit code.
+                                            await using var enumerable = core.Request.GetAsyncEnumerator(instance.CancellationToken);
+                                            while (!didComplete && await enumerable.MoveNextAsync(instance.CancellationToken))
+                                            {
+                                                var current = enumerable.Current;
+                                                if (current.ResponseCase != ExecutionResponse.ResponseOneofCase.ExecuteTask)
+                                                {
+                                                    throw new RpcException(new Status(
+                                                        StatusCode.InvalidArgument,
+                                                        "Unexpected task execution response from worker RPC."));
+                                                }
+                                                switch (current.ExecuteTask.Response.DataCase)
+                                                {
+                                                    case ProcessResponse.DataOneofCase.StandardOutputLine:
+                                                        await responseStream.WriteAsync(new JobResponse
+                                                        {
+                                                            TaskOutput = new TaskOutputResponse
+                                                            {
+                                                                Id = task.GraphTaskSpec.Task.Name,
+                                                                StandardOutputLine = current.ExecuteTask.Response.StandardOutputLine,
+                                                            }
+                                                        });
+                                                        break;
+                                                    case ProcessResponse.DataOneofCase.StandardErrorLine:
+                                                        await responseStream.WriteAsync(new JobResponse
+                                                        {
+                                                            TaskOutput = new TaskOutputResponse
+                                                            {
+                                                                Id = task.GraphTaskSpec.Task.Name,
+                                                                StandardErrorLine = current.ExecuteTask.Response.StandardErrorLine,
+                                                            }
+                                                        });
+                                                        break;
+                                                    case ProcessResponse.DataOneofCase.ExitCode:
+                                                        exitCode = current.ExecuteTask.Response.ExitCode;
+                                                        status = exitCode == 0
+                                                            ? TaskCompletionStatus.TaskCompletionSuccess
+                                                            : TaskCompletionStatus.TaskCompletionFailure;
+                                                        didComplete = true;
+                                                        break;
+                                                }
+                                            }
                                             break;
-                                        case ProcessResponse.DataOneofCase.ExitCode:
-                                            exitCode = current.ExecuteTask.Response.ExitCode;
-                                            status = exitCode == 0
-                                                ? TaskCompletionStatus.TaskCompletionSuccess
-                                                : TaskCompletionStatus.TaskCompletionFailure;
-                                            didComplete = true;
-                                            break;
-                                    }
+                                        }
                                 }
                             }
                             catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled && cancellationToken.IsCancellationRequested)
@@ -279,34 +316,37 @@
                         {
                             try
                             {
-                                if (!didStart)
+                                if (!skipEmitComplete)
                                 {
-                                    // We never actually started this task because we failed
-                                    // to reserve, but we need to start it so we can then immediately
-                                    // convey the exception we ran into.
+                                    if (!didStart)
+                                    {
+                                        // We never actually started this task because we failed
+                                        // to reserve, but we need to start it so we can then immediately
+                                        // convey the exception we ran into.
+                                        await responseStream.WriteAsync(new JobResponse
+                                        {
+                                            TaskStarted = new TaskStartedResponse
+                                            {
+                                                Id = task.GraphTaskSpec.Task.Name,
+                                                DisplayName = task.GraphTaskSpec.Task.Caption,
+                                                WorkerMachineName = string.Empty,
+                                                WorkerCoreNumber = 0,
+                                            },
+                                        }, instance.CancellationToken);
+                                    }
                                     await responseStream.WriteAsync(new JobResponse
                                     {
-                                        TaskStarted = new TaskStartedResponse
+                                        TaskCompleted = new TaskCompletedResponse
                                         {
                                             Id = task.GraphTaskSpec.Task.Name,
                                             DisplayName = task.GraphTaskSpec.Task.Caption,
-                                            WorkerMachineName = string.Empty,
-                                            WorkerCoreNumber = 0,
-                                        },
+                                            Status = status,
+                                            ExitCode = exitCode,
+                                            ExceptionMessage = exceptionMessage,
+                                            TotalSeconds = taskStopwatch.Elapsed.TotalSeconds,
+                                        }
                                     }, instance.CancellationToken);
                                 }
-                                await responseStream.WriteAsync(new JobResponse
-                                {
-                                    TaskCompleted = new TaskCompletedResponse
-                                    {
-                                        Id = task.GraphTaskSpec.Task.Name,
-                                        DisplayName = task.GraphTaskSpec.Task.Caption,
-                                        Status = status,
-                                        ExitCode = exitCode,
-                                        ExceptionMessage = exceptionMessage,
-                                        TotalSeconds = taskStopwatch.Elapsed.TotalSeconds,
-                                    }
-                                }, instance.CancellationToken);
 
                                 if (status == TaskCompletionStatus.TaskCompletionSuccess)
                                 {

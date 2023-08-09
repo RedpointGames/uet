@@ -49,7 +49,6 @@
             _workersProcessingTask = Task.Run(PeriodicallyProcessWorkers);
         }
 
-
         private async Task PeriodicallyProcessWorkers()
         {
             while (!_disposedCts.IsCancellationRequested)
