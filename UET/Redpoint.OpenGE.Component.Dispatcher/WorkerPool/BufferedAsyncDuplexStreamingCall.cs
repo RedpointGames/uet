@@ -76,6 +76,24 @@
             }
         }
 
+        public async ValueTask<TResponse> GetNextAsync(CancellationToken cancellationToken = default)
+        {
+            var result = await _queue.Dequeue(cancellationToken);
+            if (result.response != null)
+            {
+                return result.response;
+            }
+            else if (result.ex != null)
+            {
+                result.ex.Throw();
+                throw new InvalidProgramException("Expected result.ex.Throw() to throw an exception before this point.");
+            }
+            else
+            {
+                throw new OperationCanceledException("The underlying response stream has been closed normally.");
+            }
+        }
+
         public async IAsyncEnumerator<TResponse> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
             await foreach (var element in _queue.WithCancellation(cancellationToken))

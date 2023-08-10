@@ -106,7 +106,7 @@ message WriteToolBlobResponse {
  */
 message ConstructToolRequest {
 	int64 toolXxHash64 = 1;
-	map<int64, string> toolBlobXxHash64ToUnixRelativePath = 2;
+	map<string, int64> unixRelativePathToToolBlobXxHash64 = 2;
 }
 
 /**
