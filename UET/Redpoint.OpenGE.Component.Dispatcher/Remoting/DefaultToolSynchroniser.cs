@@ -81,7 +81,7 @@
                             sizeof(long));
                     }
                     var toolHash = BitConverter.ToInt64(XxHash64.Hash(toolHashBuffer));
-                    _hashedToolCache[path] = new HashedToolInfo
+                    _hashedToolCache[path] = toolInfo = new HashedToolInfo
                     {
                         ToolLastModifiedUtc = toolLastModifiedUtc,
                         LocalBasePath = basePath,
@@ -171,6 +171,7 @@
                             writeToolBlobRequest.Offset = stream.Position;
                         }
                         writeToolBlobRequest.FinishWrite = finished;
+                        // @todo: Use internals to avoid a copy here?
                         writeToolBlobRequest.Data = ByteString.CopyFrom(buffer, 0, bytesRead);
                         await workerCore.Request.RequestStream.WriteAsync(new ExecutionRequest
                         {

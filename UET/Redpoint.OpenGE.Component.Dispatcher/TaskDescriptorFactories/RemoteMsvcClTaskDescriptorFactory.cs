@@ -209,13 +209,8 @@
                 descriptor.OutputAbsolutePaths.Add(pchCacheFile.FullName);
             }
 
-            return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec, cancellationToken);
-            /*
-            return new TaskDescriptor
-            {
-                Remote = descriptor,
-            };
-            */
+            //return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec, cancellationToken);
+            return new TaskDescriptor { Remote = descriptor };
         }
     }
 }

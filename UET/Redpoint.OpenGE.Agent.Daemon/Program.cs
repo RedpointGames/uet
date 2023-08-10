@@ -6,6 +6,7 @@
     using Redpoint.GrpcPipes;
     using Redpoint.Logging.Mac;
     using Redpoint.Logging.SingleLine;
+    using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Component.Dispatcher;
     using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
     using Redpoint.OpenGE.Component.PreprocessorCache;
@@ -71,6 +72,7 @@
             services.AddProcessExecution();
             services.AddPathResolution();
             services.AddReservation();
+            services.AddOpenGECore();
             services.AddOpenGEComponentDispatcher();
             services.AddOpenGEComponentWorker();
             services.AddOpenGEComponentPreprocessorCache();

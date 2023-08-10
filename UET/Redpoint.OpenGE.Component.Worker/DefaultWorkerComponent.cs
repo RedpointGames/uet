@@ -124,7 +124,7 @@
             }
         }
 
-        private async Task<bool> PullFromRequestStreamAsync(
+        private static async Task<bool> PullFromRequestStreamAsync(
             IAsyncStreamReader<ExecutionRequest> requestStream,
             CancellationToken cancellationToken)
         {
@@ -137,6 +137,25 @@
                 // We closed the stream.
                 return false;
             }
+        }
+
+        private class WorkerRequestStream : IWorkerRequestStream
+        {
+            private readonly IAsyncStreamReader<ExecutionRequest> _requestStream;
+
+            public WorkerRequestStream(IAsyncStreamReader<ExecutionRequest> requestStream)
+            {
+                _requestStream = requestStream;
+            }
+
+            public Task<bool> MoveNext(CancellationToken cancellationToken)
+            {
+                return PullFromRequestStreamAsync(
+                    _requestStream,
+                    cancellationToken);
+            }
+
+            public ExecutionRequest Current => _requestStream.Current;
         }
 
         public override async Task ReserveCoreAndExecute(
@@ -210,6 +229,7 @@
                                 {
                                     WriteToolBlob = await _toolManager.WriteToolBlobAsync(
                                         requestStream.Current.WriteToolBlob,
+                                        new WorkerRequestStream(requestStream),
                                         context.CancellationToken),
                                 });
                             }

@@ -3,6 +3,7 @@
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
+    using Redpoint.OpenGE.Component.Dispatcher.Remoting;
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
     using Redpoint.OpenGE.Protocol;
     using System.Collections.Concurrent;
@@ -12,11 +13,14 @@
     internal class DefaultGraphExecutor : IGraphExecutor
     {
         private readonly ILogger<DefaultGraphExecutor> _logger;
+        private readonly IToolSynchroniser _toolSynchroniser;
 
         public DefaultGraphExecutor(
-            ILogger<DefaultGraphExecutor> logger)
+            ILogger<DefaultGraphExecutor> logger,
+            IToolSynchroniser toolSynchroniser)
         {
             _logger = logger;
+            _toolSynchroniser = toolSynchroniser;
         }
 
         private class GraphExecutionInstance
@@ -217,7 +221,15 @@
                                             // Perform synchronisation for remote tasks.
                                             if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote)
                                             {
-                                                // @todo: Implement tool and blob synchronisation.
+                                                // Synchronise the tool and determine the hash to
+                                                // use for the actual request.
+                                                var toolXxHash64 = await _toolSynchroniser.SynchroniseToolAndGetXxHash64(
+                                                    core,
+                                                    taskDescriptor.Remote.ToolLocalAbsolutePath,
+                                                    instance.CancellationToken);
+                                                taskDescriptor.Remote.ToolXxHash64 = toolXxHash64;
+
+                                                throw new RpcException(new Status(StatusCode.Unimplemented, "TODO"));
                                             }
 
                                             // Execute the task on the core.

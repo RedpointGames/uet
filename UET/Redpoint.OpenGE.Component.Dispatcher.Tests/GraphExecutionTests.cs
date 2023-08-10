@@ -9,6 +9,7 @@
     using Redpoint.OpenGE.Component.PreprocessorCache;
     using Redpoint.OpenGE.Component.PreprocessorCache.OnDemand;
     using Redpoint.OpenGE.Component.Worker;
+    using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Protocol;
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
@@ -37,6 +38,7 @@
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddGrpcPipes();
+            services.AddOpenGECore();
             services.AddOpenGEComponentDispatcher();
             services.AddOpenGEComponentWorker();
             services.AddOpenGEComponentPreprocessorCache();

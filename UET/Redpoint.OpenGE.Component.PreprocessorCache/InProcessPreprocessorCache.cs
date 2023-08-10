@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.OpenGE.Component.PreprocessorCache
 {
     using Grpc.Core;
+    using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Component.PreprocessorCache.DependencyResolution;
     using Redpoint.OpenGE.Component.PreprocessorCache.DirectiveScanner;
     using Redpoint.OpenGE.Component.PreprocessorCache.Filesystem;
@@ -17,7 +18,7 @@
     {
         private readonly ICachingPreprocessorScannerFactory _cachingPreprocessorScannerFactory;
         private readonly IPreprocessorResolver _preprocessorResolver;
-        private readonly IOpenGECacheReservationManagerProvider _openGEReservationManagerProvider;
+        private readonly IReservationManagerForOpenGE _openGEReservationManagerProvider;
         private readonly SemaphoreSlim _initSemaphore = new SemaphoreSlim(1);
         private ICachingPreprocessorScanner? _cachingScanner;
         private bool _inited = false;
@@ -27,7 +28,7 @@
         public InProcessPreprocessorCache(
             ICachingPreprocessorScannerFactory cachingPreprocessorScannerFactory,
             IPreprocessorResolver preprocessorResolver,
-            IOpenGECacheReservationManagerProvider openGEReservationManagerProvider)
+            IReservationManagerForOpenGE openGEReservationManagerProvider)
         {
             _cachingPreprocessorScannerFactory = cachingPreprocessorScannerFactory;
             _preprocessorResolver = preprocessorResolver;

@@ -3,6 +3,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.OpenGE.Component.Dispatcher.GraphExecutor;
     using Redpoint.OpenGE.Component.Dispatcher.GraphGenerator;
+    using Redpoint.OpenGE.Component.Dispatcher.Remoting;
     using Redpoint.OpenGE.Component.Dispatcher.TaskDescriptorFactories;
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
 
@@ -21,6 +22,8 @@
             services.AddSingleton<IDispatcherComponentFactory, DefaultDispatcherComponentFactory>();
 
             services.AddSingleton<IWorkerPoolFactory, DefaultWorkerPoolFactory>();
+
+            services.AddSingleton<IToolSynchroniser, DefaultToolSynchroniser>();
         }
     }
 }

@@ -14,7 +14,6 @@
             services.AddSingleton<ICachingPreprocessorScannerFactory, DefaultCachingPreprocessorScannerFactory>();
             services.AddSingleton<IPreprocessorCacheFactory, DefaultPreprocessorCacheFactory>();
             services.AddSingleton<IPreprocessorResolver, DefaultPreprocessorResolver>();
-            services.AddSingleton<IOpenGECacheReservationManagerProvider, OpenGECacheReservationManagerProvider>();
             if (OperatingSystem.IsWindowsVersionAtLeast(5, 2))
             {
                 services.AddSingleton<IFilesystemExistenceProvider, WindowsZoneTreeFilesystemExistenceProvider>();

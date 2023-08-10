@@ -1,9 +1,9 @@
-﻿namespace Redpoint.OpenGE.Component.PreprocessorCache.Filesystem
+﻿namespace Redpoint.OpenGE.Core
 {
     using Redpoint.Reservation;
     using System.Runtime.Versioning;
 
-    internal class OpenGECacheReservationManagerProvider : IOpenGECacheReservationManagerProvider
+    internal class ReservationManagerForOpenGE : IReservationManagerForOpenGE
     {
         private readonly IReservationManager _reservationManager;
 
@@ -16,15 +16,15 @@
             }
         }
 
-        public OpenGECacheReservationManagerProvider(
+        public ReservationManagerForOpenGE(
             IReservationManagerFactory reservationManagerFactory)
         {
 #pragma warning disable CA1416
             var dataDirectory = true switch
             {
                 var v when v == OperatingSystem.IsWindows() => Path.Combine(
-                    Environment.GetFolderPath(IsSystem() 
-                        ? Environment.SpecialFolder.CommonApplicationData 
+                    Environment.GetFolderPath(IsSystem()
+                        ? Environment.SpecialFolder.CommonApplicationData
                         : Environment.SpecialFolder.LocalApplicationData),
                     "OpenGE",
                     "Cache"),

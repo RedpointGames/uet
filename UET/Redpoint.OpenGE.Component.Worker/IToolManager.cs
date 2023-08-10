@@ -14,7 +14,8 @@
             CancellationToken cancellationToken);
 
         Task<WriteToolBlobResponse> WriteToolBlobAsync(
-            WriteToolBlobRequest request,
+            WriteToolBlobRequest initialRequest,
+            IWorkerRequestStream requestStream,
             CancellationToken cancellationToken);
 
         Task<ConstructToolResponse> ConstructToolAsync(

@@ -34,6 +34,7 @@
     using Redpoint.OpenGE.Component.Dispatcher;
     using Redpoint.OpenGE.Component.Worker;
     using Redpoint.OpenGE.Agent;
+    using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
 
     internal static class CommandExtensions
@@ -60,6 +61,7 @@
                 services.AddServiceControl();
             }
             services.AddOpenGEAgent();
+            services.AddOpenGECore();
             services.AddOpenGEComponentDispatcher();
             services.AddOpenGEComponentWorker();
             services.AddOpenGEProcessExecution();

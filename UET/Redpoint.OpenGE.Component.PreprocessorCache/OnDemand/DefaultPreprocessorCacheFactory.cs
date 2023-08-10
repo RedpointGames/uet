@@ -3,12 +3,11 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.GrpcPipes;
+    using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Component.PreprocessorCache;
     using Redpoint.OpenGE.Component.PreprocessorCache.DependencyResolution;
     using Redpoint.OpenGE.Component.PreprocessorCache.DirectiveScanner;
-    using Redpoint.OpenGE.Component.PreprocessorCache.Filesystem;
     using Redpoint.ProcessExecution;
-    using Redpoint.Reservation;
     using System.Collections.Concurrent;
 
     internal class DefaultPreprocessorCacheFactory : IPreprocessorCacheFactory, IDisposable
@@ -38,7 +37,7 @@
             return new InProcessPreprocessorCache(
                 _serviceProvider.GetRequiredService<ICachingPreprocessorScannerFactory>(),
                 _serviceProvider.GetRequiredService<IPreprocessorResolver>(),
-                _serviceProvider.GetRequiredService<IOpenGECacheReservationManagerProvider>());
+                _serviceProvider.GetRequiredService<IReservationManagerForOpenGE>());
         }
 
         public void Dispose()

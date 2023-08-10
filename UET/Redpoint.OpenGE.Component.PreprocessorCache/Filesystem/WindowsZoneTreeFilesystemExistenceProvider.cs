@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.OpenGE.Component.PreprocessorCache.Filesystem
 {
+    using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Protocol;
     using Redpoint.Reservation;
     using System.Collections.Concurrent;
@@ -21,7 +22,7 @@
         private readonly IReservation? _reservation;
 
         public WindowsZoneTreeFilesystemExistenceProvider(
-            IOpenGECacheReservationManagerProvider openGEReservationManagerProvider)
+            IReservationManagerForOpenGE openGEReservationManagerProvider)
         {
             _reservation = openGEReservationManagerProvider.ReservationManager.TryReserveExact("Filesystem");
             if (_reservation == null)
