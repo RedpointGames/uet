@@ -131,22 +131,32 @@ message QueryMissingBlobsRequest {
  * missing.
  */
 message QueryMissingBlobsResponse {
-	repeated int64 blobXxHash64 = 1;
+	repeated int64 missingBlobXxHash64 = 1;
+}
+
+/**
+ * The format that the client is sending the blobs in.
+ */
+enum CompressedBlobsFormat {
+	BrotliSequentialVersion1 = 0;
 }
 
 /**
  * Sent by a client to start or continue sending a compressed
- * ZIP file of missing blobs to a worker.
+ * stream of missing blobs to a worker.
  */
 message SendCompressedBlobsRequest {
-	int64 offset = 1;
-	bool finishWrite = 2;
+	oneof initialOrSubsequent {
+		CompressedBlobsFormat format = 1;
+		int64 offset = 2;
+	}
+	bool finishWrite = 3;
 	bytes data = 10;
 }
 
 /**
  * Sent by a worker *after* a SendCompressedBlobsRequest
- * with "finishWrite" set to true, and the compressed ZIP
+ * with "finishWrite" set to true, and the compressed stream
  * has been expanded and blobs stored to disk on the worker.
  */
 message SendCompressedBlobsResponse {
@@ -182,6 +192,33 @@ message ExecuteTaskRequest {
  */
 message ExecuteTaskResponse {
 	ProcessResponse response = 1;
+	// @note: Only present when the response is exit code.
+	map<string, int64> outputAbsolutePathsToBlobXxHash64 = 2;
+}
+
+/**
+ * Sent by the dispatcher to request the content of an output file
+ * based on the xxhash64 returned by ExecuteTaskResponse. Both
+ * input blobs and output blobs are stored in the same hash-indexed
+ * file storage, which allows workers to re-use output files as
+ * inputs without having the dispatcher send them back.
+ */
+message ReceiveOutputBlobsRequest {
+	repeated int64 blobXxHash64 = 1;
+}
+
+/**
+ * Sent by the worker in response to ReceiveOutputBlobsRequest, where
+ * the resulting stream contains all of the blobs to be sent down to
+ * the dispatcher.
+ */
+message ReceiveOutputBlobsResponse {
+	oneof initialOrSubsequent {
+		CompressedBlobsFormat format = 1;
+		int64 offset = 2;
+	}
+	bool finishWrite = 3;
+	bytes data = 10;
 }
 
 /** 
@@ -196,8 +233,9 @@ message ExecutionRequest {
 		WriteToolBlobRequest writeToolBlob = 5;
 		ConstructToolRequest constructTool = 6;
 		QueryMissingBlobsRequest queryMissingBlobs = 7;
-		SendCompressedBlobsRequest sendCompressedBlobs = 8;
+		SendCompressedBlobsRequest sendCompressedBlobs = 8;		
 		ExecuteTaskRequest executeTask = 9;
+		ReceiveOutputBlobsRequest receiveOutputBlobs = 10;
 	}
 }
 
@@ -215,6 +253,7 @@ message ExecutionResponse {
 		QueryMissingBlobsResponse queryMissingBlobs = 7;
 		SendCompressedBlobsResponse sendCompressedBlobs = 8;
 		ExecuteTaskResponse executeTask = 9;
+		ReceiveOutputBlobsResponse receiveOutputBlobs = 10;
 	}
 }
 

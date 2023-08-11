@@ -27,6 +27,11 @@
         public static IDisposable? TryObtainLock(string path)
         {
             path = Path.IsPathRooted(path) ? path : Path.GetFullPath(path);
+            var parentPath = Path.GetDirectoryName(path);
+            if (parentPath != null)
+            {
+                Directory.CreateDirectory(parentPath);
+            }
             if (_localLocks.TryAdd(path, true))
             {
                 try

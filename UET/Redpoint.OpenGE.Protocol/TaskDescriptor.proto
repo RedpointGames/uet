@@ -16,11 +16,17 @@ message InputFilesByPathOrContent {
 
 message InputFilesByBlobXxHash64 {
 	map<string, int64> absolutePathsToBlobs = 2;
+	repeated string absolutePathsToVirtualContent = 3;
+}
+
+message ToolExecutionInfo {
+	int64 toolXxHash64 = 1;
+	string toolExecutableName = 2;
 }
 
 message RemoteTaskDescriptor {
 	oneof tool {
-		int64 toolXxHash64 = 1;
+		ToolExecutionInfo toolExecutionInfo = 1;
 		string toolLocalAbsolutePath = 2;
 	}
 	repeated string arguments = 3;
@@ -31,6 +37,12 @@ message RemoteTaskDescriptor {
 		InputFilesByBlobXxHash64 inputsByBlobXxHash64 = 7;
 	}
 	repeated string outputAbsolutePaths = 8;
+	// @note: If the tool enumerates files or directories for
+	// inputs, this must be set to true, otherwise there will be
+	// files from previous builds in the same working directory
+	// on the worker (since it's faster to re-use a partially
+	// populated workspace than it is to build a whole new one).
+	bool requireCleanWorkspace = 9;
 }
 
 message CopyTaskDescriptor {

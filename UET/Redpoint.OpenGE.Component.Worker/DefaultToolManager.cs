@@ -43,16 +43,6 @@
             };
         }
 
-        private async Task<long> HashFile(string path, CancellationToken cancellationToken)
-        {
-            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                var hasher = new XxHash64();
-                await hasher.AppendAsync(stream, cancellationToken);
-                return BitConverter.ToInt64(hasher.GetCurrentHash());
-            }
-        }
-
         public async Task<HasToolBlobsResponse> HasToolBlobsAsync(
             HasToolBlobsRequest request,
             CancellationToken cancellationToken)
@@ -70,13 +60,13 @@
                 }
                 else if (File.Exists(file.LocalHintPath))
                 {
-                    var localHintHash = await HashFile(file.LocalHintPath, cancellationToken);
+                    var localHintHash = (await XxHash64Helpers.HashFile(file.LocalHintPath, cancellationToken)).hash;
                     if (localHintHash == file.XxHash64)
                     {
                         try
                         {
                             File.Copy(file.LocalHintPath, targetPath + ".tmp", true);
-                            if (await HashFile(targetPath + ".tmp", cancellationToken) == file.XxHash64)
+                            if ((await XxHash64Helpers.HashFile(targetPath + ".tmp", cancellationToken)).hash == file.XxHash64)
                             {
                                 File.Move(targetPath + ".tmp", targetPath, true);
                                 exists.Add(file.XxHash64);

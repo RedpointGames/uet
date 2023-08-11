@@ -3,6 +3,7 @@
     using Google.Protobuf;
     using Grpc.Core;
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
+    using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Protocol;
     using System;
     using System.Collections.Concurrent;
@@ -22,21 +23,12 @@
         {
             public required DateTimeOffset ToolLastModifiedUtc;
             public required long ToolXxHash64;
+            public required string ToolExecutableName;
             public required string LocalBasePath;
             public required Dictionary<string, long> UnixRelativePathToToolBlobXxHash64;
         }
 
-        private async Task<long> HashFile(string path, CancellationToken cancellationToken)
-        {
-            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                var hasher = new XxHash64();
-                await hasher.AppendAsync(stream, cancellationToken);
-                return BitConverter.ToInt64(hasher.GetCurrentHash());
-            }
-        }
-
-        public async Task<long> SynchroniseToolAndGetXxHash64(
+        public async Task<ToolExecutionInfo> SynchroniseToolAndGetXxHash64(
             IWorkerCore workerCore, 
             string path,
             CancellationToken cancellationToken)
@@ -66,7 +58,7 @@
                         async (file, cancellationToken) =>
                         {
                             var relativePath = Path.GetRelativePath(basePath, file).Replace('\\', '/');
-                            var pathHash = await HashFile(file, cancellationToken);
+                            var pathHash = (await XxHash64Helpers.HashFile(file, cancellationToken)).hash;
                             files[relativePath] = pathHash;
                         });
                     var sortedHashes = files.Values.OrderBy(x => x).ToArray();
@@ -86,6 +78,7 @@
                         ToolLastModifiedUtc = toolLastModifiedUtc,
                         LocalBasePath = basePath,
                         ToolXxHash64 = toolHash,
+                        ToolExecutableName = Path.GetFileName(path),
                         UnixRelativePathToToolBlobXxHash64 = new Dictionary<string, long>(files),
                     };
                 }
@@ -111,7 +104,11 @@
             if (response.QueryTool.Present)
             {
                 // This tool already exists on the remote worker.
-                return toolInfo.ToolXxHash64;
+                return new ToolExecutionInfo
+                {
+                    ToolXxHash64 = toolInfo.ToolXxHash64,
+                    ToolExecutableName = toolInfo.ToolExecutableName,
+                };
             }
 
             // What blobs are we missing?
@@ -213,7 +210,11 @@
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Remote worker did not create remote tool correctly."));
             }
 
-            return toolInfo.ToolXxHash64;
+            return new ToolExecutionInfo
+            {
+                ToolXxHash64 = toolInfo.ToolXxHash64,
+                ToolExecutableName = toolInfo.ToolExecutableName,
+            };
         }
     }
 }

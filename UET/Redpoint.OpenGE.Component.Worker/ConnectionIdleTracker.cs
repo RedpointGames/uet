@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.OpenGE.Component.Worker
 {
+    using System.Diagnostics;
     using System.Threading.Tasks;
 
     internal class ConnectionIdleTracker
@@ -46,8 +47,11 @@
                     var cancelIdlingToken = _cancelIdling!.Token;
                     _idleCheckingTask = Task.Run(async () =>
                     {
-                        await Task.Delay(_idleTimeoutMilliseconds, cancelIdlingToken);
-                        _idledTooLong.Cancel();
+                        if (!Debugger.IsAttached)
+                        {
+                            await Task.Delay(_idleTimeoutMilliseconds, cancelIdlingToken);
+                            _idledTooLong.Cancel();
+                        }
                     });
                 }
             }

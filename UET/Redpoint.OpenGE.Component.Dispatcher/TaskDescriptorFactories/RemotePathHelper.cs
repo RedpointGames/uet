@@ -19,7 +19,7 @@
                     // Can't be remotified.
                     return null;
                 }
-                return $"{{__OPENGE_VIRTUAL_ROOT__}}/{root[0]}/{path.Substring(root.Length).Replace('\\', '/')}";
+                return $"{{__OPENGE_VIRTUAL_ROOT__}}\\{root[0]}\\{path.Substring(root.Length).Replace('/', '\\')}";
             }
             else
             {

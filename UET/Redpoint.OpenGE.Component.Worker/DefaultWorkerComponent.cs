@@ -262,12 +262,11 @@
                             connectionIdleTracker.StopIdling();
                             try
                             {
-                                await responseStream.WriteAsync(new ExecutionResponse
-                                {
-                                    QueryMissingBlobs = await _blobManager.QueryMissingBlobsAsync(
-                                        requestStream.Current.QueryMissingBlobs,
-                                        context.CancellationToken),
-                                });
+                                await _blobManager.QueryMissingBlobsAsync(
+                                    context,
+                                    requestStream.Current.QueryMissingBlobs,
+                                    responseStream,
+                                    context.CancellationToken);
                             }
                             finally
                             {
@@ -280,12 +279,12 @@
                             connectionIdleTracker.StopIdling();
                             try
                             {
-                                await responseStream.WriteAsync(new ExecutionResponse
-                                {
-                                    SendCompressedBlobs = await _blobManager.SendCompressedBlobsAsync(
-                                        requestStream.Current.SendCompressedBlobs,
-                                        context.CancellationToken),
-                                });
+                                await _blobManager.SendCompressedBlobsAsync(
+                                    context,
+                                    requestStream.Current,
+                                    requestStream,
+                                    responseStream,
+                                    context.CancellationToken);
                             }
                             finally
                             {
@@ -332,6 +331,8 @@
             }
             finally
             {
+                _blobManager.NotifyServerCallEnded(context);
+
                 if (didReserve)
                 {
                     _reservationBag.Add(reservedCore);

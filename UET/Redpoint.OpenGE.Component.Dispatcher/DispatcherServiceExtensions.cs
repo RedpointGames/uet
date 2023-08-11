@@ -24,6 +24,7 @@
             services.AddSingleton<IWorkerPoolFactory, DefaultWorkerPoolFactory>();
 
             services.AddSingleton<IToolSynchroniser, DefaultToolSynchroniser>();
+            services.AddSingleton<IBlobSynchroniser, DefaultBlobSynchroniser>();
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace Redpoint.OpenGE.Component.Dispatcher.WorkerPool
+﻿namespace Redpoint.OpenGE.Core
 {
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
@@ -6,7 +6,6 @@
     using System.Runtime.ExceptionServices;
     using System.Threading;
     using System.Threading.Tasks;
-    using System.Xml.Linq;
 
     public class BufferedAsyncDuplexStreamingCall<TRequest, TResponse> : IAsyncEnumerable<TResponse>, IAsyncDisposable where TResponse : class
     {

@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.OpenGE.Component.Dispatcher.GraphExecutor
 {
+    using Google.Protobuf.Collections;
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
@@ -14,13 +15,16 @@
     {
         private readonly ILogger<DefaultGraphExecutor> _logger;
         private readonly IToolSynchroniser _toolSynchroniser;
+        private readonly IBlobSynchroniser _blobSynchroniser;
 
         public DefaultGraphExecutor(
             ILogger<DefaultGraphExecutor> logger,
-            IToolSynchroniser toolSynchroniser)
+            IToolSynchroniser toolSynchroniser,
+            IBlobSynchroniser blobSynchroniser)
         {
             _logger = logger;
             _toolSynchroniser = toolSynchroniser;
+            _blobSynchroniser = blobSynchroniser;
         }
 
         private class GraphExecutionInstance
@@ -223,13 +227,17 @@
                                             {
                                                 // Synchronise the tool and determine the hash to
                                                 // use for the actual request.
-                                                var toolXxHash64 = await _toolSynchroniser.SynchroniseToolAndGetXxHash64(
+                                                var toolExecutionInfo = await _toolSynchroniser.SynchroniseToolAndGetXxHash64(
                                                     core,
                                                     taskDescriptor.Remote.ToolLocalAbsolutePath,
                                                     instance.CancellationToken);
-                                                taskDescriptor.Remote.ToolXxHash64 = toolXxHash64;
+                                                taskDescriptor.Remote.ToolExecutionInfo = toolExecutionInfo;
 
-                                                throw new RpcException(new Status(StatusCode.Unimplemented, "TODO"));
+                                                // Synchronise all of the input blobs.
+                                                await _blobSynchroniser.SynchroniseInputBlobs(
+                                                    core,
+                                                    taskDescriptor.Remote,
+                                                    instance.CancellationToken);
                                             }
 
                                             // Execute the task on the core.
@@ -251,6 +259,7 @@
 
                                             // Stream the results until we get an exit code.
                                             await using var enumerable = core.Request.GetAsyncEnumerator(instance.CancellationToken);
+                                            ExecuteTaskResponse? finalExecuteTaskResponse = null;
                                             while (!didComplete && await enumerable.MoveNextAsync(instance.CancellationToken))
                                             {
                                                 var current = enumerable.Current;
@@ -284,6 +293,7 @@
                                                         break;
                                                     case ProcessResponse.DataOneofCase.ExitCode:
                                                         exitCode = current.ExecuteTask.Response.ExitCode;
+                                                        finalExecuteTaskResponse = current.ExecuteTask;
                                                         status = exitCode == 0
                                                             ? TaskCompletionStatus.TaskCompletionSuccess
                                                             : TaskCompletionStatus.TaskCompletionFailure;
@@ -291,6 +301,24 @@
                                                         break;
                                                 }
                                             }
+
+                                            // If we were successful, synchronise the output blobs back.
+                                            if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote && 
+                                                status == TaskCompletionStatus.TaskCompletionSuccess)
+                                            {
+                                                if (finalExecuteTaskResponse == null)
+                                                {
+                                                    // This should never be null since we break the loop on ExitCode.
+                                                    throw new InvalidOperationException();
+                                                }
+
+                                                await _blobSynchroniser.SynchroniseOutputBlobs(
+                                                    core,
+                                                    taskDescriptor.Remote,
+                                                    finalExecuteTaskResponse,
+                                                    instance.CancellationToken);
+                                            }
+
                                             break;
                                         }
                                 }

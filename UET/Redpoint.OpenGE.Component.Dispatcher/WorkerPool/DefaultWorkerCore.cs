@@ -2,6 +2,7 @@
 {
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
+    using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Protocol;
     using System.Threading;
     using System.Threading.Tasks;
