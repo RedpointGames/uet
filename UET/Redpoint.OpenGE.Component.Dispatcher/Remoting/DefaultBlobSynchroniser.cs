@@ -12,11 +12,13 @@
 
     internal class DefaultBlobSynchroniser : IBlobSynchroniser
     {
-        public async Task SynchroniseInputBlobs(
+        public async Task<InputFilesByBlobXxHash64> SynchroniseInputBlobs(
             IWorkerCore workerCore, 
             RemoteTaskDescriptor remoteTaskDescriptor, 
             CancellationToken cancellationToken)
         {
+            var inputFilesByBlobXxHash64 = new InputFilesByBlobXxHash64();
+
             // Hash all of the content that we need on the remote.
             var pathsToContentHashes = new ConcurrentDictionary<string, long>();
             var contentHashesToContent = new ConcurrentDictionary<long, BlobInfo>();
@@ -43,7 +45,19 @@
                     Path = null,
                     Content = entry.Value,
                     ByteLength = contentLengthBytes,
-                }; 
+                };
+                inputFilesByBlobXxHash64.AbsolutePathsToBlobs[entry.Key] = contentHash;
+                inputFilesByBlobXxHash64.AbsolutePathsToVirtualContent.Add(entry.Key);
+            }
+            foreach (var kv in contentHashesToContent)
+            {
+                // We've already added virtualised paths to the AbsolutePathsToBlobs above, so no
+                // need to handle that here. We just can't access AbsolutePathsToBlobs inside the
+                // Parallel.ForEachAsync used for file hashing.
+                if (kv.Value.Path != null)
+                {
+                    inputFilesByBlobXxHash64.AbsolutePathsToBlobs[kv.Value.Path] = kv.Key;
+                }
             }
 
             // What blobs are we missing on the remote?
@@ -61,7 +75,7 @@
             if (response.QueryMissingBlobs.MissingBlobXxHash64.Count == 0)
             {
                 // We don't have any blobs to transfer.
-                return;
+                return inputFilesByBlobXxHash64;
             }
 
             // Create a stream from the content blobs, and then copy from that stream
@@ -87,6 +101,7 @@
             }
 
             // And now we're done.
+            return inputFilesByBlobXxHash64;
         }
 
         public async Task SynchroniseOutputBlobs(

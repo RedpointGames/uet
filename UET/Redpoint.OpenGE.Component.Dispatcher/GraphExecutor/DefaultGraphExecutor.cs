@@ -234,10 +234,11 @@
                                                 taskDescriptor.Remote.ToolExecutionInfo = toolExecutionInfo;
 
                                                 // Synchronise all of the input blobs.
-                                                await _blobSynchroniser.SynchroniseInputBlobs(
+                                                var inputsByBlobXxHash64 = await _blobSynchroniser.SynchroniseInputBlobs(
                                                     core,
                                                     taskDescriptor.Remote,
                                                     instance.CancellationToken);
+                                                taskDescriptor.Remote.InputsByBlobXxHash64 = inputsByBlobXxHash64;
                                             }
 
                                             // Execute the task on the core.
