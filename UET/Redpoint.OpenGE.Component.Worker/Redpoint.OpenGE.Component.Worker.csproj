@@ -2,8 +2,16 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
+  <PropertyGroup>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore.Web" Version="2.55.0" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.18-beta">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
     <PackageReference Include="Google.Protobuf" Version="3.23.2" />
     <PackageReference Include="Grpc.AspNetCore.Server" Version="2.53.0" />

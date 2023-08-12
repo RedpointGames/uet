@@ -31,6 +31,18 @@
             return Convert.ToHexString(BitConverter.GetBytes(hash)).ToLowerInvariant();
         }
 
+        public async Task<string> GetToolPathAsync(
+            long toolXxHash64,
+            string toolExecutableName,
+            CancellationToken cancellationToken)
+        {
+            var toolsPath = await GetToolsPath();
+            return Path.Combine(
+                toolsPath,
+                HashAsHex(toolXxHash64),
+                toolExecutableName);
+        }
+
         public async Task<QueryToolResponse> QueryToolAsync(
             QueryToolRequest request,
             CancellationToken cancellationToken)

@@ -4,6 +4,8 @@
 
     public interface IReservationManagerForOpenGE
     {
+        string RootDirectory { get; }
+
         IReservationManager ReservationManager { get; }
     }
 }

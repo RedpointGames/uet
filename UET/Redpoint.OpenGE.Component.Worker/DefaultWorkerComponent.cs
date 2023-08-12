@@ -309,7 +309,7 @@
                             }
                             break;
                         default:
-                            throw new RpcException(new Status(StatusCode.Unimplemented, "Unexpected RPC request."));
+                            throw new RpcException(new Status(StatusCode.Unimplemented, $"Worker does not know how to handle this RPC request: '{requestStream.Current.RequestCase}'"));
                     }
                 }
             }

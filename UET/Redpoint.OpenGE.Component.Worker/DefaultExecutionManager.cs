@@ -9,13 +9,16 @@
     {
         private readonly ITaskDescriptorExecutor<LocalTaskDescriptor> _localTaskExecutor;
         private readonly ITaskDescriptorExecutor<CopyTaskDescriptor> _copyTaskExecutor;
+        private readonly ITaskDescriptorExecutor<RemoteTaskDescriptor> _remoteTaskExecutor;
 
         public DefaultExecutionManager(
             ITaskDescriptorExecutor<LocalTaskDescriptor> localTaskExecutor,
-            ITaskDescriptorExecutor<CopyTaskDescriptor> copyTaskExecutor)
+            ITaskDescriptorExecutor<CopyTaskDescriptor> copyTaskExecutor,
+            ITaskDescriptorExecutor<RemoteTaskDescriptor> remoteTaskExecutor)
         {
             _localTaskExecutor = localTaskExecutor;
             _copyTaskExecutor = copyTaskExecutor;
+            _remoteTaskExecutor = remoteTaskExecutor;
         }
 
         public async Task ExecuteTaskAsync(
@@ -168,6 +171,10 @@
                         cancellationToken);
                     break;
                 case TaskDescriptor.DescriptorOneofCase.Remote:
+                    processResponseStream = _remoteTaskExecutor.ExecuteAsync(
+                        request.Descriptor_.Remote,
+                        cancellationToken);
+                    break;
                 default:
                     throw new RpcException(new Status(StatusCode.Unimplemented, "No executor for this descriptor type."));
             }

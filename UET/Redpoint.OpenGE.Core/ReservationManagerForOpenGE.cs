@@ -5,6 +5,7 @@
 
     internal class ReservationManagerForOpenGE : IReservationManagerForOpenGE
     {
+        private readonly string _rootDirectory;
         private readonly IReservationManager _reservationManager;
 
         [SupportedOSPlatform("windows")]
@@ -16,11 +17,13 @@
             }
         }
 
+        public string RootDirectory => _rootDirectory;
+
         public ReservationManagerForOpenGE(
             IReservationManagerFactory reservationManagerFactory)
         {
 #pragma warning disable CA1416
-            var dataDirectory = true switch
+            _rootDirectory = true switch
             {
                 var v when v == OperatingSystem.IsWindows() => Path.Combine(
                     Environment.GetFolderPath(IsSystem()
@@ -33,7 +36,7 @@
                 _ => throw new PlatformNotSupportedException(),
             };
 #pragma warning restore CA1416
-            _reservationManager = reservationManagerFactory.CreateReservationManager(dataDirectory);
+            _reservationManager = reservationManagerFactory.CreateReservationManager(_rootDirectory);
         }
 
         public IReservationManager ReservationManager => _reservationManager;

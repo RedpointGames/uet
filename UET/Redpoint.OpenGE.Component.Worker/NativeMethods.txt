@@ -1,0 +1,5 @@
+WNetAddConnection2
+WNetCancelConnection2
+WNetOpenEnum
+WNetEnumResource
+WNetCloseEnum

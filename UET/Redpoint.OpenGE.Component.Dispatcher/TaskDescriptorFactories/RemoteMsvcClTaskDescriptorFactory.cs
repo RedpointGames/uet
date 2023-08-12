@@ -8,6 +8,8 @@
     using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
     using Grpc.Core;
+    using Redpoint.OpenGE.Core;
+    using System.IO;
 
     internal class RemoteMsvcClTaskDescriptorFactory : ITaskDescriptorFactory
     {
@@ -39,6 +41,59 @@
             }
 
             return -1;
+        }
+
+        private record class PotentiallyQuotedPath
+        {
+            private bool _quoted;
+            private string _path;
+
+            public PotentiallyQuotedPath(string potentiallyQuotedPath)
+            {
+                _quoted = potentiallyQuotedPath.StartsWith('"');
+                _path = potentiallyQuotedPath.Trim('"');
+            }
+
+            public void MakeAbsolutePath(string workingDirectory)
+            {
+                var oldPath = _path;
+                _path = System.IO.Path.IsPathRooted(_path) ? _path : System.IO.Path.Combine(workingDirectory, _path);
+                if (!oldPath.Contains(" ") && _path.Contains(" "))
+                {
+                    // We just added a space into this path, so it probably needs to be quoted to get the right effect.
+                    _quoted = true;
+                }
+            }
+
+            public string Path
+            {
+                get
+                {
+                    return _path;
+                }
+                set
+                {
+                    _path = value;
+                }
+            }
+
+            public string QuoteAndRemotifyTarget(FileSystemInfo info)
+            {
+                if (_quoted)
+                {
+                    return '"' + info.FullName.RemotifyPath() + '"';
+                }
+                return info.FullName.RemotifyPath()!;
+            }
+
+            public override string ToString()
+            {
+                if (_quoted)
+                {
+                    return '"' + _path + '"';
+                }
+                return _path;
+            }
         }
 
         public async ValueTask<TaskDescriptor> CreateDescriptorForTaskSpecAsync(
@@ -76,10 +131,10 @@
                 if (!line.StartsWith('/'))
                 {
                     // This is the input file.
-                    var path = line;
-                    path = Path.IsPathRooted(path) ? path : Path.Combine(spec.WorkingDirectory, path);
-                    inputFile = new FileInfo(path);
-                    remotedResponseFileLines.Add(inputFile.FullName.RemotifyPath()!);
+                    var path = new PotentiallyQuotedPath(line);
+                    path.MakeAbsolutePath(spec.WorkingDirectory);
+                    inputFile = new FileInfo(path.Path);
+                    remotedResponseFileLines.Add(path.QuoteAndRemotifyTarget(inputFile));
                 }
                 else if (line.StartsWith("/D"))
                 {
@@ -90,21 +145,20 @@
                 else if (line.StartsWith("/I") ||
                     line.StartsWith("/external:I"))
                 {
-                    var path = line.Substring(line.StartsWith("/I") ? "/I ".Length : "/external:I ".Length);
-                    path = path.Trim('"');
-                    path = Path.IsPathRooted(path) ? path : Path.Combine(spec.WorkingDirectory, path);
-                    var info = new DirectoryInfo(path);
+                    var path = new PotentiallyQuotedPath(line.Substring(line.StartsWith("/I") ? "/I ".Length : "/external:I ".Length));
+                    path.MakeAbsolutePath(spec.WorkingDirectory);
+                    var info = new DirectoryInfo(path.Path);
                     if (info.Exists)
                     {
                         if (line.StartsWith("/I"))
                         {
                             includeDirectories.Add(info);
-                            remotedResponseFileLines.Add("/I " + info.FullName.RemotifyPath()!);
+                            remotedResponseFileLines.Add("/I " + path.QuoteAndRemotifyTarget(info));
                         }
                         else
                         {
                             includeDirectories.Add(info);
-                            remotedResponseFileLines.Add("/external:I " + info.FullName.RemotifyPath()!);
+                            remotedResponseFileLines.Add("/external:I " + path.QuoteAndRemotifyTarget(info));
                         }
                     }
                     else
@@ -114,40 +168,40 @@
                 }
                 else if (line.StartsWith("/FI"))
                 {
-                    var path = line.Substring("/FI".Length).Trim('"');
-                    path = Path.IsPathRooted(path) ? path : Path.Combine(spec.WorkingDirectory, path);
-                    var fi = new FileInfo(path);
+                    var path = new PotentiallyQuotedPath(line.Substring("/FI".Length));
+                    path.MakeAbsolutePath(spec.WorkingDirectory);
+                    var fi = new FileInfo(path.Path);
                     forceIncludeFiles.Add(fi);
-                    remotedResponseFileLines.Add("/FI" + fi.FullName.RemotifyPath()!);
+                    remotedResponseFileLines.Add("/FI" + path.QuoteAndRemotifyTarget(fi));
                 }
                 else if (line.StartsWith("/Yu"))
                 {
-                    var path = line.Substring("/Yu".Length).Trim('"');
-                    path = Path.IsPathRooted(path) ? path : Path.Combine(spec.WorkingDirectory, path);
-                    pchInputFile = new FileInfo(path);
-                    remotedResponseFileLines.Add("/Yu" + pchInputFile.FullName.RemotifyPath()!);
+                    var path = new PotentiallyQuotedPath(line.Substring("/Yu".Length));
+                    path.MakeAbsolutePath(spec.WorkingDirectory);
+                    pchInputFile = new FileInfo(path.Path);
+                    remotedResponseFileLines.Add("/Yu" + path.QuoteAndRemotifyTarget(pchInputFile));
                 }
                 else if (line.StartsWith("/Yc"))
                 {
-                    var path = line.Substring("/Yc".Length).Trim('"');
-                    path = Path.IsPathRooted(path) ? path : Path.Combine(spec.WorkingDirectory, path);
-                    pchInputFile = new FileInfo(path);
+                    var path = new PotentiallyQuotedPath(line.Substring("/Yc".Length));
+                    path.MakeAbsolutePath(spec.WorkingDirectory);
+                    pchInputFile = new FileInfo(path.Path);
                     isCreatingPch = true;
-                    remotedResponseFileLines.Add("/Yc" + pchInputFile.FullName.RemotifyPath()!);
+                    remotedResponseFileLines.Add("/Yc" + path.QuoteAndRemotifyTarget(pchInputFile));
                 }
                 else if (line.StartsWith("/Fp"))
                 {
-                    var path = line.Substring("/Fp".Length).Trim('"');
-                    path = Path.IsPathRooted(path) ? path : Path.Combine(spec.WorkingDirectory, path);
-                    pchCacheFile = new FileInfo(path);
-                    remotedResponseFileLines.Add("/Fp" + pchCacheFile.FullName.RemotifyPath()!);
+                    var path = new PotentiallyQuotedPath(line.Substring("/Fp".Length));
+                    path.MakeAbsolutePath(spec.WorkingDirectory);
+                    pchCacheFile = new FileInfo(path.Path);
+                    remotedResponseFileLines.Add("/Fp" + path.QuoteAndRemotifyTarget(pchCacheFile));
                 }
                 else if (line.StartsWith("/Fo"))
                 {
-                    var path = line.Substring("/Fo".Length).Trim('"');
-                    path = Path.IsPathRooted(path) ? path : Path.Combine(spec.WorkingDirectory, path);
-                    outputPath = new FileInfo(path);
-                    remotedResponseFileLines.Add("/Fo" + outputPath.FullName.RemotifyPath()!);
+                    var path = new PotentiallyQuotedPath(line.Substring("/Fo".Length));
+                    path.MakeAbsolutePath(spec.WorkingDirectory);
+                    outputPath = new FileInfo(path.Path);
+                    remotedResponseFileLines.Add("/Fo" + path.QuoteAndRemotifyTarget(outputPath));
                 }
                 else
                 {
@@ -191,9 +245,78 @@
             descriptor.Arguments.Add("@" + responseFileRemotePath);
             descriptor.EnvironmentVariables.MergeFrom(spec.ExecutionEnvironment.EnvironmentVariables);
             descriptor.EnvironmentVariables.MergeFrom(spec.Environment.Variables);
-            descriptor.WorkingDirectory = spec.WorkingDirectory;
+            descriptor.WorkingDirectoryAbsolutePath = spec.WorkingDirectory;
             var inputsByPathOrContent = new InputFilesByPathOrContent();
-            inputsByPathOrContent.AbsolutePaths.Add(inputFile.FullName);
+            using (var reader = new StreamReader(inputFile.FullName))
+            {
+                var inputContent = await reader.ReadToEndAsync();
+                var inputLines = inputContent.Replace("\r\n", "\n").Split('\n');
+
+                // If any includes in the input file are absolute paths, then we need to remotify
+                // the path and virtualise the content. This happens when Unreal is doing unity builds or
+                // generating PCH files.
+                var newInputLines = new List<string>();
+                var isVirtualised = false;
+                foreach (var line in inputLines)
+                {
+                    if (line.TrimStart().StartsWith("#include"))
+                    {
+                        string includePath;
+                        var included = line.Substring("#include".Length).Trim();
+                        var isSystem = false;
+                        if (included.StartsWith('"'))
+                        {
+                            includePath = included.Trim('"');
+                        }
+                        else if (included.StartsWith('<'))
+                        {
+                            includePath = included.TrimStart('<').TrimEnd('>');
+                            isSystem = true;
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                        includePath = includePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+                        if (Path.IsPathRooted(includePath))
+                        {
+                            if (!isSystem)
+                            {
+                                newInputLines.Add($"#include \"{includePath.RemotifyPath()!.Replace('\\', '/')}\"");
+                            }
+                            else
+                            {
+                                newInputLines.Add($"#include <{includePath.RemotifyPath()!.Replace('\\', '/')}>");
+                            }
+                            isVirtualised = true;
+                        }
+                        else
+                        {
+                            newInputLines.Add(line);
+                        }
+                    }
+                    else
+                    {
+                        newInputLines.Add(line);
+                    }
+                }
+
+                // Add the input file based on whether it's virtualised.
+                if (isVirtualised)
+                {
+                    inputsByPathOrContent.AbsolutePathsToVirtualContent.Add(
+                        inputFile.FullName,
+                        string.Join('\n', newInputLines));
+                    // @note: Remove the input file from dependent paths because we virtualise it instead.
+                    dependentFiles.DependsOnPaths.Remove(inputFile.FullName);
+                    _logger.LogInformation($"Virtualising: {inputFile.FullName}");
+                }
+                else
+                {
+                    inputsByPathOrContent.AbsolutePaths.Add(inputFile.FullName);
+                    _logger.LogInformation($"Not virtualising: {inputFile.FullName}");
+                }
+            }
             if (pchCacheFile != null && !isCreatingPch)
             {
                 inputsByPathOrContent.AbsolutePaths.Add(pchCacheFile.FullName);
@@ -209,7 +332,6 @@
                 descriptor.OutputAbsolutePaths.Add(pchCacheFile.FullName);
             }
 
-            //return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec, cancellationToken);
             return new TaskDescriptor { Remote = descriptor };
         }
     }

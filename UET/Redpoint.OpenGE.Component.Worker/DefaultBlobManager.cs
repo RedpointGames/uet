@@ -52,6 +52,64 @@
             }
         }
 
+        public string ConvertAbsolutePathToBuildDirectoryPath(string targetDirectory, string absolutePath)
+        {
+            var remotifiedPath = absolutePath.RemotifyPath(false);
+            if (remotifiedPath == null)
+            {
+                throw new InvalidOperationException($"Expected path '{absolutePath}' to be rooted and not a UNC path.");
+            }
+
+            return Path.Combine(targetDirectory, remotifiedPath.TrimStart(Path.DirectorySeparatorChar));
+        }
+
+        public async Task LayoutBuildDirectoryAsync(
+            string targetDirectory,
+            InputFilesByBlobXxHash64 inputFiles,
+            string virtualRootPath,
+            CancellationToken cancellationToken)
+        {
+            var blobsPath = await GetBlobsPath();
+
+            var virtualised = new HashSet<string>(inputFiles.AbsolutePathsToVirtualContent);
+            await Parallel.ForEachAsync(
+                inputFiles.AbsolutePathsToBlobs.ToAsyncEnumerable(),
+                cancellationToken,
+                async (kv, cancellationToken) =>
+                {
+                    var targetPath = ConvertAbsolutePathToBuildDirectoryPath(
+                        targetDirectory,
+                        kv.Key);
+                    Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
+                    if (virtualised.Contains(kv.Key))
+                    {
+                        // Grab the blob content, replace {__OPENGE_VIRTUAL_ROOT__} and then emit it.
+                        using var sourceStream = new FileStream(
+                            Path.Combine(blobsPath, HashAsHex(kv.Value)),
+                            FileMode.Open,
+                            FileAccess.Read,
+                            FileShare.Read);
+                        using var reader = new StreamReader(sourceStream, leaveOpen: true);
+                        var content = await reader.ReadToEndAsync(cancellationToken);
+                        content = content.Replace("{__OPENGE_VIRTUAL_ROOT__}", virtualRootPath);
+                        using var targetStream = new FileStream(
+                            targetPath,
+                            FileMode.Create,
+                            FileAccess.Write,
+                            FileShare.None);
+                        using var writer = new StreamWriter(targetStream, leaveOpen: true);
+                        await writer.WriteAsync(content);
+                    }
+                    else
+                    {
+                        File.Copy(
+                            Path.Combine(blobsPath, HashAsHex(kv.Value)),
+                            targetPath,
+                            true);
+                    }
+                });
+        }
+
         public async Task QueryMissingBlobsAsync(
             ServerCallContext context,
             QueryMissingBlobsRequest request, 

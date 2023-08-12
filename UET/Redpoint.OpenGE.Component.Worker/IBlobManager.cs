@@ -8,6 +8,16 @@
     {
         void NotifyServerCallEnded(ServerCallContext context);
 
+        string ConvertAbsolutePathToBuildDirectoryPath(
+            string targetDirectory, 
+            string absolutePath);
+
+        Task LayoutBuildDirectoryAsync(
+            string targetDirectory,
+            InputFilesByBlobXxHash64 inputFiles,
+            string virtualRootPath,
+            CancellationToken cancellationToken);
+
         Task QueryMissingBlobsAsync(
             ServerCallContext context,
             QueryMissingBlobsRequest request,

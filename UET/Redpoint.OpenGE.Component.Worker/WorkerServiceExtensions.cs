@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.OpenGE.Component.Worker
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.OpenGE.Component.Worker.DriveMapping;
     using Redpoint.OpenGE.Component.Worker.TaskDescriptorExecutors;
     using Redpoint.OpenGE.Protocol;
 
@@ -12,8 +13,20 @@
             services.AddSingleton<IBlobManager, DefaultBlobManager>();
             services.AddSingleton<IExecutionManager, DefaultExecutionManager>();
             services.AddSingleton<IWorkerComponentFactory, DefaultWorkerComponentFactory>();
+            if (OperatingSystem.IsWindowsVersionAtLeast(5, 0))
+            {
+                services.AddSingleton<IDirectoryDriveMapping, WindowsDirectoryDriveMapping>();
+            }
+            else
+            {
+                services.AddSingleton<IDirectoryDriveMapping, UnixDirectoryDriveMapping>();
+            }
+
+            // @note: These also need to be injected into DefaultExecutionManager in
+            // order for descriptors to actually execute.
             services.AddSingleton<ITaskDescriptorExecutor<LocalTaskDescriptor>, LocalTaskDescriptorExecutor>();
             services.AddSingleton<ITaskDescriptorExecutor<CopyTaskDescriptor>, CopyTaskDescriptorExecutor>();
+            services.AddSingleton<ITaskDescriptorExecutor<RemoteTaskDescriptor>, RemoteTaskDescriptorExecutor>();
         }
     }
 }

@@ -202,6 +202,8 @@
                 { "_WIN32_WINNT_WIN10_RS4", 0x0A05 },
                 { "_NT_TARGET_VERSION_WIN10_RS4", 0x0A05 },
                 { "_WIN32_WINNT_WIN10_RS5", 0x0A06 },
+                { "_M_X64", 1 },
+                { "_VCRT_COMPILER_PREPROCESSOR", 1 },
                 /*
                  * Some undocumented define that the Windows headers rely on 
                  * for Compiled Hybrid Portable Executable (CHPE) support, 

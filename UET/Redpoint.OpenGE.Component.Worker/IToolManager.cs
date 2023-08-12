@@ -5,6 +5,11 @@
 
     internal interface IToolManager
     {
+        Task<string> GetToolPathAsync(
+            long toolXxHash64,
+            string toolExecutableName,
+            CancellationToken cancellationToken);
+
         Task<QueryToolResponse> QueryToolAsync(
             QueryToolRequest request,
             CancellationToken cancellationToken);
