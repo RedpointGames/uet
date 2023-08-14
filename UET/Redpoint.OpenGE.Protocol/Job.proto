@@ -32,11 +32,30 @@ message TaskPreparedResponse {
 	string operationCompletedDescription = 4;
 }
 
+enum TaskPhase {
+	Initial = 0;
+	RemoteToolSynchronisation = 1;
+	RemoteInputBlobSynchronisation = 2;
+	TaskExecution = 3;
+	RemoteOutputBlobSynchronisation = 4;
+}
+
 message TaskStartedResponse {
 	string id = 1;
 	string displayName = 2;
 	string workerMachineName = 3;
 	int32 workerCoreNumber = 4;
+	TaskPhase initialPhase = 5;
+	int64 initialPhaseStartTimeUtcTicks = 6;
+}
+
+message TaskPhaseChangeResponse {
+	string id = 1;
+	string displayName = 2;
+	TaskPhase newPhase = 3;
+	int64 newPhaseStartTimeUtcTicks = 4;
+	double totalSecondsInPreviousPhase = 5;
+	map<string, string> previousPhaseMetadata = 6;
 }
 
 message TaskOutputResponse {
@@ -62,6 +81,9 @@ message TaskCompletedResponse {
 	string exceptionMessage = 4;
 	double totalSeconds = 5;
 	string displayName = 6;
+	int64 finalPhaseEndTimeUtcTicks = 7;
+	double totalSecondsInPreviousPhase = 8;
+	map<string, string> previousPhaseMetadata = 9;
 }
 
 message JobCompleteResponse {
@@ -78,6 +100,7 @@ message JobResponse {
 		JobCompleteResponse jobComplete = 5;
 		TaskPreparingResponse taskPreparing = 6;
 		TaskPreparedResponse taskPrepared = 7;
+		TaskPhaseChangeResponse taskPhaseChange = 8;
 	}
 }
 

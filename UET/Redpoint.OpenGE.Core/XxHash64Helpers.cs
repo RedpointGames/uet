@@ -22,5 +22,10 @@
             var bytes = Encoding.UTF8.GetBytes(content);
             return (BitConverter.ToInt64(XxHash64.Hash(bytes)), bytes.Length);
         }
+
+        public static string HexString(this long hash)
+        {
+            return Convert.ToHexString(BitConverter.GetBytes(hash)).ToLowerInvariant();
+        }
     }
 }

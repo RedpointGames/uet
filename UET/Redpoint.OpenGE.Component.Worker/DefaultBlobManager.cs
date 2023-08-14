@@ -30,11 +30,6 @@
             _disposed = false;
         }
 
-        private string HashAsHex(long hash)
-        {
-            return Convert.ToHexString(BitConverter.GetBytes(hash)).ToLowerInvariant();
-        }
-
         private string ParsePeer(string peer)
         {
             return peer.Substring(0, peer.LastIndexOf(':'));
@@ -85,7 +80,7 @@
                     {
                         // Grab the blob content, replace {__OPENGE_VIRTUAL_ROOT__} and then emit it.
                         using var sourceStream = new FileStream(
-                            Path.Combine(blobsPath, HashAsHex(kv.Value)),
+                            Path.Combine(blobsPath, kv.Value.HexString()),
                             FileMode.Open,
                             FileAccess.Read,
                             FileShare.Read);
@@ -103,7 +98,7 @@
                     else
                     {
                         File.Copy(
-                            Path.Combine(blobsPath, HashAsHex(kv.Value)),
+                            Path.Combine(blobsPath, kv.Value.HexString()),
                             targetPath,
                             true);
                     }
@@ -140,7 +135,7 @@
                 var exists = new HashSet<long>();
                 foreach (var hash in request.BlobXxHash64)
                 {
-                    var targetPath = Path.Combine(blobsPath, HashAsHex(hash));
+                    var targetPath = Path.Combine(blobsPath, hash.HexString());
                     if (File.Exists(targetPath))
                     {
                         exists.Add(hash);
@@ -155,7 +150,11 @@
                 {
                     QueryMissingBlobs = response,
                 });
-                retainLock = true;
+
+                // @note: If we have no missing blobs, then the client will never call
+                // SendCompressedBlobsAsync and thus we should not retain the lock or
+                // it won't be released until the RPC is closed.
+                retainLock = response.MissingBlobXxHash64.Count > 0;
             }
             finally
             {
@@ -200,7 +199,7 @@
                             throw new InvalidOperationException();
                         }
                         lockFile = LockFile.TryObtainLock(
-                            Path.Combine(blobsPath, HashAsHex(blobHash) + ".lock"));
+                            Path.Combine(blobsPath, blobHash.HexString() + ".lock"));
                         while (lockFile == null)
                         {
                             // @hack: This is super questionable, but we know that
@@ -214,7 +213,7 @@
                         }
                         hash = new XxHash64();
                         currentStream = new FileStream(
-                            Path.Combine(blobsPath, HashAsHex(blobHash) + ".tmp"),
+                            Path.Combine(blobsPath, blobHash.HexString() + ".tmp"),
                             FileMode.Create,
                             FileAccess.Write,
                             FileShare.None);
@@ -240,15 +239,15 @@
                             if (BitConverter.ToInt64(hash.GetCurrentHash()) == blobHash)
                             {
                                 File.Move(
-                                    Path.Combine(blobsPath, HashAsHex(blobHash) + ".tmp"),
-                                    Path.Combine(blobsPath, HashAsHex(blobHash)));
+                                    Path.Combine(blobsPath, blobHash.HexString() + ".tmp"),
+                                    Path.Combine(blobsPath, blobHash.HexString()));
                             }
                             else
                             {
                                 try
                                 {
                                     File.Delete(
-                                        Path.Combine(blobsPath, HashAsHex(blobHash) + ".tmp"));
+                                        Path.Combine(blobsPath, blobHash.HexString() + ".tmp"));
                                 }
                                 catch
                                 {

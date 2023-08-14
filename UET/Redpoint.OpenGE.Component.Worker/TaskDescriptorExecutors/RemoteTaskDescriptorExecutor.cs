@@ -13,6 +13,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.Reservation;
     using Redpoint.OpenGE.Component.Worker.DriveMapping;
+    using System.Diagnostics;
 
     internal class RemoteTaskDescriptorExecutor : ITaskDescriptorExecutor<RemoteTaskDescriptor>
     {
@@ -88,10 +89,13 @@
                 }
 
                 // Ask the tool manager where our tool is located.
+                var st = Stopwatch.StartNew();
                 var toolPath = await _toolManager.GetToolPathAsync(
                     descriptor.ToolExecutionInfo.ToolXxHash64,
                     descriptor.ToolExecutionInfo.ToolExecutableName,
                     cancellationToken);
+                _logger.LogInformation($"Tool path obtained in: {st.Elapsed}");
+                st.Restart();
 
                 // Shorten the directory path if needed.
                 var rootPath = _reservationManagerForOpenGE.RootDirectory;
@@ -103,6 +107,8 @@
                         + Path.DirectorySeparatorChar
                         + shortenedReservationPath.Substring(rootPath.Length).TrimStart(Path.DirectorySeparatorChar);
                 }
+                _logger.LogInformation($"Path shortening set up in: {st.Elapsed}");
+                st.Restart();
 
                 // Ask the blob manager to lay out all of the files in the reservation
                 // based on the input files.
@@ -111,6 +117,8 @@
                     descriptor.InputsByBlobXxHash64,
                     shortenedReservationPath,
                     cancellationToken);
+                _logger.LogInformation($"Laid out build directory in: {st.Elapsed}");
+                st.Restart();
 
                 // Replace {__OPENGE_VIRTUAL_ROOT__} in the arguments as well.
                 var arguments = descriptor

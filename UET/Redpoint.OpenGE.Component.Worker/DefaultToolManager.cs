@@ -26,11 +26,6 @@
             _disposed = false;
         }
 
-        private string HashAsHex(long hash)
-        {
-            return Convert.ToHexString(BitConverter.GetBytes(hash)).ToLowerInvariant();
-        }
-
         public async Task<string> GetToolPathAsync(
             long toolXxHash64,
             string toolExecutableName,
@@ -39,7 +34,7 @@
             var toolsPath = await GetToolsPath();
             return Path.Combine(
                 toolsPath,
-                HashAsHex(toolXxHash64),
+                toolXxHash64.HexString(),
                 toolExecutableName);
         }
 
@@ -51,7 +46,7 @@
 
             return new QueryToolResponse
             {
-                Present = Directory.Exists(Path.Combine(toolsPath, HashAsHex(request.ToolXxHash64)))
+                Present = Directory.Exists(Path.Combine(toolsPath, request.ToolXxHash64.HexString()))
             };
         }
 
@@ -65,7 +60,7 @@
             var exists = new HashSet<long>();
             foreach (var file in request.ToolBlobs)
             {
-                var targetPath = Path.Combine(toolBlobsPath, HashAsHex(file.XxHash64));
+                var targetPath = Path.Combine(toolBlobsPath, file.XxHash64.HexString());
                 if (File.Exists(targetPath))
                 {
                     exists.Add(file.XxHash64);
@@ -120,7 +115,7 @@
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Expected first WriteToolBlobRequest to have hash"));
             }
 
-            var targetPath = Path.Combine(toolBlobsPath, HashAsHex(initialRequest.ToolBlobXxHash64));
+            var targetPath = Path.Combine(toolBlobsPath, initialRequest.ToolBlobXxHash64.HexString());
             var lockPath = targetPath + ".lock";
             var temporaryPath = targetPath + ".tmp";
             long committedSize = 0;
@@ -231,7 +226,7 @@
             var toolsPath = await GetToolsPath();
             var toolBlobsPath = await GetToolBlobsPath();
 
-            var hash = HashAsHex(request.ToolXxHash64);
+            var hash = request.ToolXxHash64.HexString();
             var targetPath = Path.Combine(toolsPath, hash);
             var temporaryPath = Path.Combine(toolsPath, hash + ".tmp");
             var lockPath = Path.Combine(toolsPath, hash + ".lock");
@@ -285,12 +280,12 @@
                     {
                         Directory.CreateDirectory(Path.Combine(temporaryPath, directoryName));
                     }
-                    if (!File.Exists(Path.Combine(toolBlobsPath, HashAsHex(pathToHash.Value))))
+                    if (!File.Exists(Path.Combine(toolBlobsPath, pathToHash.Value.HexString())))
                     {
                         throw new RpcException(new Status(StatusCode.InvalidArgument, "Missing tool blob for tool construction!"));
                     }
                     File.Copy(
-                        Path.Combine(toolBlobsPath, HashAsHex(pathToHash.Value)),
+                        Path.Combine(toolBlobsPath, pathToHash.Value.HexString()),
                         Path.Combine(temporaryPath, pathToHash.Key),
                         true);
                 }

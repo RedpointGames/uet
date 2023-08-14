@@ -1,17 +1,27 @@
 ﻿namespace Redpoint.OpenGE.Component.Dispatcher.Remoting
 {
     using Grpc.Core;
+    using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Core.ReadableStream;
     using Redpoint.OpenGE.Core.WritableStream;
     using Redpoint.OpenGE.Protocol;
     using System.Collections.Concurrent;
+    using System.Diagnostics;
     using System.IO.Compression;
     using System.Threading.Tasks;
 
     internal class DefaultBlobSynchroniser : IBlobSynchroniser
     {
+        private readonly ILogger<DefaultBlobSynchroniser> _logger;
+
+        public DefaultBlobSynchroniser(
+            ILogger<DefaultBlobSynchroniser> logger)
+        {
+            _logger = logger;
+        }
+
         public async Task<InputFilesByBlobXxHash64> SynchroniseInputBlobs(
             IWorkerCore workerCore, 
             RemoteTaskDescriptor remoteTaskDescriptor, 
@@ -20,6 +30,7 @@
             var inputFilesByBlobXxHash64 = new InputFilesByBlobXxHash64();
 
             // Hash all of the content that we need on the remote.
+            var st = Stopwatch.StartNew();
             var pathsToContentHashes = new ConcurrentDictionary<string, long>();
             var contentHashesToContent = new ConcurrentDictionary<long, BlobInfo>();
             await Parallel.ForEachAsync(
@@ -59,6 +70,8 @@
                     inputFilesByBlobXxHash64.AbsolutePathsToBlobs[kv.Value.Path] = kv.Key;
                 }
             }
+            _logger.LogInformation($"Hashed input files for blob synchronisation in: {st.Elapsed}");
+            st.Restart();
 
             // What blobs are we missing on the remote?
             var queryMissingBlobsRequest = new QueryMissingBlobsRequest();
@@ -72,6 +85,8 @@
             {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Remote worker did not respond with a QueryMissingBlobsResponse."));
             }
+            _logger.LogInformation($"Received input file difference in: {st.Elapsed}");
+            st.Restart();
             if (response.QueryMissingBlobs.MissingBlobXxHash64.Count == 0)
             {
                 // We don't have any blobs to transfer.
@@ -81,6 +96,8 @@
             // Create a stream from the content blobs, and then copy from that stream
             // through the compressor stream, and then read chunks from that stream
             // and send them to the server.
+            _logger.LogInformation($"Starting blob synchronisation... ({inputFilesByBlobXxHash64.AbsolutePathsToBlobs.Count} blobs)");
+            long size = 0;
             await using (var destination = new SendCompressedBlobsWritableBinaryChunkStream(
                 workerCore.Request.RequestStream))
             {
@@ -93,7 +110,10 @@
                         await source.CopyToAsync(compressor, cancellationToken);
                     }
                 }
+                size = destination.Position;
             }
+            _logger.LogInformation($"Synchronised blobs in: {st.Elapsed}");
+            _logger.LogInformation($"Synchronised blobs size: {size / 1024} KB");
             response = await workerCore.Request.GetNextAsync();
             if (response.ResponseCase != ExecutionResponse.ResponseOneofCase.SendCompressedBlobs)
             {

@@ -6,9 +6,11 @@
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
     using Redpoint.OpenGE.Component.Dispatcher.Remoting;
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
+    using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Protocol;
     using System.Collections.Concurrent;
     using System.Diagnostics;
+    using System.Globalization;
     using System.Threading.Tasks;
 
     internal class DefaultGraphExecutor : IGraphExecutor
@@ -137,6 +139,32 @@
                         var didComplete = false;
                         var taskStopwatch = new Stopwatch();
                         var skipEmitComplete = false;
+                        var currentPhaseStopwatch = new Stopwatch();
+                        var currentPhaseStartTimestamp = DateTimeOffset.UtcNow;
+                        var currentPhase = TaskPhase.Initial;
+                        var finalPhaseMetadata = new Dictionary<string, string>();
+                        async Task SendPhaseChangeAsync(
+                            TaskPhase newPhase,
+                            IDictionary<string, string> previousPhaseMetadata)
+                        {
+                            currentPhase = newPhase;
+                            currentPhaseStartTimestamp = DateTimeOffset.UtcNow;
+                            var totalSecondsInToolSynchronisationPhase = currentPhaseStopwatch!.Elapsed.TotalSeconds;
+                            currentPhaseStopwatch.Restart();
+                            var phaseChange = new TaskPhaseChangeResponse
+                            {
+                                Id = task.GraphTaskSpec.Task.Name,
+                                DisplayName = task.GraphTaskSpec.Task.Caption,
+                                NewPhase = currentPhase,
+                                NewPhaseStartTimeUtcTicks = currentPhaseStartTimestamp.UtcTicks,
+                                TotalSecondsInPreviousPhase = totalSecondsInToolSynchronisationPhase
+                            };
+                            phaseChange.PreviousPhaseMetadata.Add(previousPhaseMetadata);
+                            await responseStream.WriteAsync(new JobResponse
+                            {
+                                TaskPhaseChange = phaseChange,
+                            });
+                        }
                         try
                         {
                             try
@@ -210,6 +238,10 @@
 
                                             // We're now going to start doing the work for this task.
                                             taskStopwatch.Start();
+                                            currentPhaseStopwatch.Start();
+                                            currentPhase = taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote
+                                                ? TaskPhase.RemoteToolSynchronisation
+                                                : TaskPhase.TaskExecution;
                                             await responseStream.WriteAsync(new JobResponse
                                             {
                                                 TaskStarted = new TaskStartedResponse
@@ -218,6 +250,8 @@
                                                     DisplayName = task.GraphTaskSpec.Task.Caption,
                                                     WorkerMachineName = core.WorkerMachineName,
                                                     WorkerCoreNumber = core.WorkerCoreNumber,
+                                                    InitialPhaseStartTimeUtcTicks = currentPhaseStartTimestamp.UtcTicks,
+                                                    InitialPhase = currentPhase,
                                                 },
                                             }, instance.CancellationToken);
                                             didStart = true;
@@ -233,12 +267,44 @@
                                                     instance.CancellationToken);
                                                 taskDescriptor.Remote.ToolExecutionInfo = toolExecutionInfo;
 
+                                                // Notify the client we're changing phases.
+                                                await SendPhaseChangeAsync(
+                                                    TaskPhase.RemoteInputBlobSynchronisation,
+                                                    new Dictionary<string, string>
+                                                    {
+                                                        { "tool.xxHash64", taskDescriptor.Remote.ToolExecutionInfo.ToolXxHash64.HexString() },
+                                                        { "tool.executableName", taskDescriptor.Remote.ToolExecutionInfo.ToolExecutableName },
+                                                    });
+
                                                 // Synchronise all of the input blobs.
-                                                var inputsByBlobXxHash64 = await _blobSynchroniser.SynchroniseInputBlobs(
+                                                var inputBlobSynchronisation = await _blobSynchroniser.SynchroniseInputBlobs(
                                                     core,
                                                     taskDescriptor.Remote,
                                                     instance.CancellationToken);
-                                                taskDescriptor.Remote.InputsByBlobXxHash64 = inputsByBlobXxHash64;
+                                                taskDescriptor.Remote.InputsByBlobXxHash64 = inputBlobSynchronisation.Result;
+
+                                                // Notify the client we're changing phases.
+                                                await SendPhaseChangeAsync(
+                                                    TaskPhase.TaskExecution,
+                                                    new Dictionary<string, string>
+                                                    {
+                                                        { 
+                                                            "inputBlobSync.elapsedUtcTicksHashingInputFiles", 
+                                                            inputBlobSynchronisation.ElapsedUtcTicksHashingInputFiles.ToString(CultureInfo.InvariantCulture) 
+                                                        },
+                                                        { 
+                                                            "inputBlobSync.elapsedUtcTicksQueryingMissingBlobs", 
+                                                            inputBlobSynchronisation.ElapsedUtcTicksQueryingMissingBlobs.ToString(CultureInfo.InvariantCulture)
+                                                        },
+                                                        {
+                                                            "inputBlobSync.elapsedUtcTicksTransferringCompressedBlobs",
+                                                            inputBlobSynchronisation.ElapsedUtcTicksTransferringCompressedBlobs.ToString(CultureInfo.InvariantCulture) 
+                                                        },
+                                                        {
+                                                            "inputBlobSync.compressedDataTransferLength", 
+                                                            inputBlobSynchronisation.CompressedDataTransferLength.ToString(CultureInfo.InvariantCulture) 
+                                                        },
+                                                    });
                                             }
 
                                             // Execute the task on the core.
@@ -303,6 +369,9 @@
                                                 }
                                             }
 
+                                            // Attach any metadata from the task execution.
+                                            // @note: We don't have any metadata for task execution yet.
+
                                             // If we were successful, synchronise the output blobs back.
                                             if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote && 
                                                 status == TaskCompletionStatus.TaskCompletionSuccess)
@@ -313,11 +382,36 @@
                                                     throw new InvalidOperationException();
                                                 }
 
-                                                await _blobSynchroniser.SynchroniseOutputBlobs(
+                                                // Notify the client we're changing phases.
+                                                await SendPhaseChangeAsync(
+                                                    TaskPhase.RemoteOutputBlobSynchronisation,
+                                                    finalPhaseMetadata);
+                                                finalPhaseMetadata.Clear();
+
+                                                var outputBlobSynchronisation = await _blobSynchroniser.SynchroniseOutputBlobs(
                                                     core,
                                                     taskDescriptor.Remote,
                                                     finalExecuteTaskResponse,
                                                     instance.CancellationToken);
+                                                finalPhaseMetadata = new Dictionary<string, string>
+                                                {
+                                                    {
+                                                        "outputBlobSync.elapsedUtcTicksHashingInputFiles",
+                                                        outputBlobSynchronisation.ElapsedUtcTicksHashingInputFiles.ToString(CultureInfo.InvariantCulture)
+                                                    },
+                                                    {
+                                                        "outputBlobSync.elapsedUtcTicksQueryingMissingBlobs",
+                                                        outputBlobSynchronisation.ElapsedUtcTicksQueryingMissingBlobs.ToString(CultureInfo.InvariantCulture)
+                                                    },
+                                                    {
+                                                        "outputBlobSync.elapsedUtcTicksTransferringCompressedBlobs",
+                                                        outputBlobSynchronisation.ElapsedUtcTicksTransferringCompressedBlobs.ToString(CultureInfo.InvariantCulture)
+                                                    },
+                                                    {
+                                                        "outputBlobSync.compressedDataTransferLength",
+                                                        outputBlobSynchronisation.CompressedDataTransferLength.ToString(CultureInfo.InvariantCulture)
+                                                    },
+                                                };
                                             }
 
                                             break;
@@ -385,6 +479,9 @@
                                             ExitCode = exitCode,
                                             ExceptionMessage = exceptionMessage,
                                             TotalSeconds = taskStopwatch.Elapsed.TotalSeconds,
+                                            FinalPhaseEndTimeUtcTicks = DateTimeOffset.UtcNow.UtcTicks,
+                                            TotalSecondsInPreviousPhase = currentPhaseStopwatch.Elapsed.TotalSeconds,
+                                            PreviousPhaseMetadata = { finalPhaseMetadata },
                                         }
                                     }, instance.CancellationToken);
                                 }
