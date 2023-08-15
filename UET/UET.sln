@@ -263,7 +263,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Agent.Daemo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Core", "Redpoint.OpenGE.Core\Redpoint.OpenGE.Core.csproj", "{0E00257D-D7B5-4A23-91D4-E6E2CB0C118D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.Core.Tests", "Redpoint.OpenGE.Core.Tests\Redpoint.OpenGE.Core.Tests.csproj", "{8CC0B4F3-D9FD-40A9-993C-58BB4B092FCC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Core.Tests", "Redpoint.OpenGE.Core.Tests\Redpoint.OpenGE.Core.Tests.csproj", "{8CC0B4F3-D9FD-40A9-993C-58BB4B092FCC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ProcessExecution.Tests", "Redpoint.ProcessExecution.Tests\Redpoint.ProcessExecution.Tests.csproj", "{C28793ED-B4E8-48F1-B0D5-32E29F58FD95}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -779,6 +781,10 @@ Global
 		{8CC0B4F3-D9FD-40A9-993C-58BB4B092FCC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8CC0B4F3-D9FD-40A9-993C-58BB4B092FCC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8CC0B4F3-D9FD-40A9-993C-58BB4B092FCC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C28793ED-B4E8-48F1-B0D5-32E29F58FD95}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C28793ED-B4E8-48F1-B0D5-32E29F58FD95}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C28793ED-B4E8-48F1-B0D5-32E29F58FD95}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C28793ED-B4E8-48F1-B0D5-32E29F58FD95}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

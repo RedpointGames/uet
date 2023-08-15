@@ -1,0 +1,14 @@
+CreateProcess
+GetStdHandle
+GetCurrentProcess
+DuplicateHandle
+CreatePipe
+CloseHandle
+WIN32_ERROR
+GetConsoleCP
+GetConsoleOutputCP
+GetExitCodeProcess
+STILL_ACTIVE
+TerminateProcess
+NtQueryInformationProcess
+PROCESS_BASIC_INFORMATION
