@@ -10,38 +10,38 @@
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An implementation of <see cref="GrpcWritableBinaryChunkStream{ExecutionRequest}"/>
-    /// that is used by the dispatcher to send input blobs to the worker.
+    /// An implementation of <see cref="GrpcWritableBinaryChunkStream{ExecutionResponse}"/>
+    /// that is used by the worker to send output blobs to the dispatcher.
     /// </summary>
-    public class SendCompressedBlobsWritableBinaryChunkStream : GrpcWritableBinaryChunkStream<ExecutionRequest>
+    public class ReceiveOutputBlobsWritableBinaryChunkStream : GrpcWritableBinaryChunkStream<ExecutionResponse>
     {
-        public SendCompressedBlobsWritableBinaryChunkStream(
-            IAsyncStreamWriter<ExecutionRequest> sendingStream)
+        public ReceiveOutputBlobsWritableBinaryChunkStream(
+            IAsyncStreamWriter<ExecutionResponse> sendingStream)
             : base(sendingStream)
         {
         }
 
-        protected override ExecutionRequest ConstructForSending(
+        protected override ExecutionResponse ConstructForSending(
             ReadOnlyMemory<byte> data,
             long position,
             bool isFinished)
         {
-            var request = new SendCompressedBlobsRequest
+            var response = new ReceiveOutputBlobsResponse
             {
                 Data = ByteString.CopyFrom(data.Span),
                 FinishWrite = isFinished,
             };
             if (position != 0)
             {
-                request.Offset = position;
+                response.Offset = position;
             }
             else
             {
-                request.Format = CompressedBlobsFormat.BrotliSequentialVersion1;
+                response.Format = CompressedBlobsFormat.BrotliSequentialVersion1;
             }
-            return new ExecutionRequest
+            return new ExecutionResponse
             {
-                SendCompressedBlobs = request,
+                ReceiveOutputBlobs = response,
             };
         }
     }

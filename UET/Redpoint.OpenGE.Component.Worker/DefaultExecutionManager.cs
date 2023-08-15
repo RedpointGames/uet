@@ -1,21 +1,25 @@
 ﻿namespace Redpoint.OpenGE.Component.Worker
 {
     using Grpc.Core;
+    using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Component.Worker.TaskDescriptorExecutors;
     using Redpoint.OpenGE.Protocol;
     using System.Threading.Tasks;
 
     internal class DefaultExecutionManager : IExecutionManager
     {
+        private readonly ILogger<DefaultExecutionManager> _logger;
         private readonly ITaskDescriptorExecutor<LocalTaskDescriptor> _localTaskExecutor;
         private readonly ITaskDescriptorExecutor<CopyTaskDescriptor> _copyTaskExecutor;
         private readonly ITaskDescriptorExecutor<RemoteTaskDescriptor> _remoteTaskExecutor;
 
         public DefaultExecutionManager(
+            ILogger<DefaultExecutionManager> logger,
             ITaskDescriptorExecutor<LocalTaskDescriptor> localTaskExecutor,
             ITaskDescriptorExecutor<CopyTaskDescriptor> copyTaskExecutor,
             ITaskDescriptorExecutor<RemoteTaskDescriptor> remoteTaskExecutor)
         {
+            _logger = logger;
             _localTaskExecutor = localTaskExecutor;
             _copyTaskExecutor = copyTaskExecutor;
             _remoteTaskExecutor = remoteTaskExecutor;
@@ -60,6 +64,10 @@
                     var didGetExitCode = false;
                     await foreach (var response in processResponseStream)
                     {
+                        if (_logger.IsEnabled(LogLevel.Trace))
+                        {
+                            _logger.LogTrace("Worker process response stream: " + response.ToString());
+                        }
                         if (didGetExitCode)
                         {
                             throw new RpcException(new Status(StatusCode.Internal, "Task executor sent response after sending ExitCode."));
@@ -67,16 +75,16 @@
                         var shouldAutoRecover = false;
                         if (autoRecover.Count > 0)
                         {
-                            switch (response.DataCase)
+                            switch (response.Response.DataCase)
                             {
                                 case ProcessResponse.DataOneofCase.StandardOutputLine:
-                                    if (autoRecover.Any(x => response.StandardOutputLine.Contains(x)))
+                                    if (autoRecover.Any(x => response.Response.StandardOutputLine.Contains(x)))
                                     {
                                         shouldAutoRecover = true;
                                     }
                                     break;
                                 case ProcessResponse.DataOneofCase.StandardErrorLine:
-                                    if (autoRecover.Any(x => response.StandardErrorLine.Contains(x)))
+                                    if (autoRecover.Any(x => response.Response.StandardErrorLine.Contains(x)))
                                     {
                                         shouldAutoRecover = true;
                                     }
@@ -93,16 +101,16 @@
                             break;
                         }
                         var ignoreThisOutputLine = false;
-                        switch (response.DataCase)
+                        switch (response.Response.DataCase)
                         {
                             case ProcessResponse.DataOneofCase.StandardOutputLine:
-                                if (request.IgnoreLines.Any(x => response.StandardOutputLine.Contains(x)))
+                                if (request.IgnoreLines.Any(x => response.Response.StandardOutputLine.Contains(x)))
                                 {
                                     ignoreThisOutputLine = true;
                                 }
                                 break;
                             case ProcessResponse.DataOneofCase.StandardErrorLine:
-                                if (request.IgnoreLines.Any(x => response.StandardErrorLine.Contains(x)))
+                                if (request.IgnoreLines.Any(x => response.Response.StandardErrorLine.Contains(x)))
                                 {
                                     ignoreThisOutputLine = true;
                                 }
@@ -112,15 +120,12 @@
                         {
                             await responseStream.WriteAsync(new ExecutionResponse
                             {
-                                ExecuteTask = new ExecuteTaskResponse
-                                {
-                                    Response = response,
-                                },
+                                ExecuteTask = response,
                             });
                         }
-                        if (response.DataCase == ProcessResponse.DataOneofCase.ExitCode)
+                        if (response.Response.DataCase == ProcessResponse.DataOneofCase.ExitCode)
                         {
-                            if (response.ExitCode == -1073741502)
+                            if (response.Response.ExitCode == -1073741502)
                             {
                                 // @note: This is a weird transient exit code we get on Windows sometimes.
                                 // Just retry in this case.
@@ -155,9 +160,9 @@
             }
         }
 
-        private IAsyncEnumerable<ProcessResponse> GetProcessResponseStreamFromRequest(ExecuteTaskRequest request, CancellationToken cancellationToken)
+        private IAsyncEnumerable<ExecuteTaskResponse> GetProcessResponseStreamFromRequest(ExecuteTaskRequest request, CancellationToken cancellationToken)
         {
-            IAsyncEnumerable<ProcessResponse> processResponseStream;
+            IAsyncEnumerable<ExecuteTaskResponse> processResponseStream;
             switch (request.Descriptor_.DescriptorCase)
             {
                 case TaskDescriptor.DescriptorOneofCase.Local:

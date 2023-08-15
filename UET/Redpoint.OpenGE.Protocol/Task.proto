@@ -177,6 +177,15 @@ message ExecuteTaskRequest {
 	repeated string ignoreLines = 3;
 }
 
+/** 
+ * Stores the mapping of paths within a build
+ * directory to the hashed blobs that were stored
+ * as part of the task execution.
+ */
+message OutputFilesByBlobXxHash64 {
+	map<string, int64> absolutePathsToBlobs = 1;
+}
+
 /**
  * Sent by the worker as the task is executed. Once the 
  * worker has sent a ProcessResponse with the exit code
@@ -193,7 +202,7 @@ message ExecuteTaskRequest {
 message ExecuteTaskResponse {
 	ProcessResponse response = 1;
 	// @note: Only present when the response is exit code.
-	map<string, int64> outputAbsolutePathsToBlobXxHash64 = 2;
+	OutputFilesByBlobXxHash64 outputAbsolutePathsToBlobXxHash64 = 2;
 }
 
 /**

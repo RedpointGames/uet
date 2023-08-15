@@ -14,6 +14,7 @@
     using Redpoint.Reservation;
     using Redpoint.OpenGE.Component.Worker.DriveMapping;
     using System.Diagnostics;
+    using Redpoint.OpenGE.Component.Worker.PchPortability;
 
     internal class RemoteTaskDescriptorExecutor : ITaskDescriptorExecutor<RemoteTaskDescriptor>
     {
@@ -72,7 +73,7 @@
             Directory.CreateDirectory(path);
         }
 
-        public async IAsyncEnumerable<Protocol.ProcessResponse> ExecuteAsync(
+        public async IAsyncEnumerable<ExecuteTaskResponse> ExecuteAsync(
             RemoteTaskDescriptor descriptor,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
@@ -114,8 +115,8 @@
                 // based on the input files.
                 await _blobManager.LayoutBuildDirectoryAsync(
                     reservation.ReservedPath,
-                    descriptor.InputsByBlobXxHash64,
                     shortenedReservationPath,
+                    descriptor.InputsByBlobXxHash64,
                     cancellationToken);
                 _logger.LogInformation($"Laid out build directory in: {st.Elapsed}");
                 st.Restart();
@@ -159,21 +160,43 @@
                     },
                     cancellationToken))
                 {
-                    yield return response switch
+                    switch (response)
                     {
-                        ExitCodeResponse r => new Protocol.ProcessResponse
-                        {
-                            ExitCode = r.ExitCode,
-                        },
-                        StandardOutputResponse r => new Protocol.ProcessResponse
-                        {
-                            StandardOutputLine = r.Data,
-                        },
-                        StandardErrorResponse r => new Protocol.ProcessResponse
-                        {
-                            StandardOutputLine = r.Data,
-                        },
-                        _ => throw new InvalidOperationException("Received unexpected ProcessResponse type from IProcessExecutor!"),
+                        case ExitCodeResponse exitCode:
+                            var outputBlobs = await _blobManager.CaptureOutputBlobsFromBuildDirectoryAsync(
+                                reservation.ReservedPath,
+                                shortenedReservationPath,
+                                descriptor.OutputAbsolutePaths,
+                                cancellationToken);
+                            yield return new ExecuteTaskResponse
+                            {
+                                Response = new Protocol.ProcessResponse
+                                {
+                                    ExitCode = exitCode.ExitCode,
+                                },
+                                OutputAbsolutePathsToBlobXxHash64 = outputBlobs,
+                            };
+                            break;
+                        case StandardOutputResponse standardOutput:
+                            yield return new ExecuteTaskResponse
+                            {
+                                Response = new Protocol.ProcessResponse
+                                {
+                                    StandardOutputLine = standardOutput.Data,
+                                },
+                            };
+                            break;
+                        case StandardErrorResponse standardError:
+                            yield return new ExecuteTaskResponse
+                            {
+                                Response = new Protocol.ProcessResponse
+                                {
+                                    StandardOutputLine = standardError.Data,
+                                },
+                            };
+                            break;
+                        default:
+                            throw new InvalidOperationException("Received unexpected ProcessResponse type from IProcessExecutor!");
                     };
                 }
             }

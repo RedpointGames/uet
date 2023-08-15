@@ -19,6 +19,7 @@
         private TOutbound? _current;
         private int _currentPosition;
         private bool _finished;
+        private long _globalPosition;
 
         public GrpcReadableBinaryChunkStream(
             BufferedAsyncDuplexStreamingCall<TInbound, TOutbound> stream)
@@ -28,6 +29,7 @@
             _needsNextItem = true;
             _current = null;
             _currentPosition = 0;
+            _globalPosition = 0;
             _finished = false;
         }
 
@@ -40,6 +42,7 @@
             _needsNextItem = false;
             _current = initial;
             _currentPosition = 0;
+            _globalPosition = 0;
             _finished = false;
         }
 
@@ -104,6 +107,7 @@
                         toRead)
                     .CopyTo(buffer);
                 _currentPosition += toRead;
+                _globalPosition += toRead;
                 read += toRead;
                 if (_currentPosition == data.Length)
                 {
@@ -131,7 +135,7 @@
 
         public override long Length => throw new NotSupportedException();
 
-        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override long Position { get => _globalPosition; set => throw new NotSupportedException(); }
 
         public override void Flush()
         {

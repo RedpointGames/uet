@@ -22,15 +22,18 @@
             _logger = logger;
         }
 
-        public async Task<InputFilesByBlobXxHash64> SynchroniseInputBlobs(
+        public async Task<BlobSynchronisationResult<InputFilesByBlobXxHash64>> SynchroniseInputBlobs(
             IWorkerCore workerCore, 
             RemoteTaskDescriptor remoteTaskDescriptor, 
             CancellationToken cancellationToken)
         {
             var inputFilesByBlobXxHash64 = new InputFilesByBlobXxHash64();
+            var stopwatchHashing = Stopwatch.StartNew();
+            var stopwatchQuerying = new Stopwatch();
+            var stopwatchSyncing = new Stopwatch();
+            long compressedTransferLength = 0;
 
             // Hash all of the content that we need on the remote.
-            var st = Stopwatch.StartNew();
             var pathsToContentHashes = new ConcurrentDictionary<string, long>();
             var contentHashesToContent = new ConcurrentDictionary<long, BlobInfo>();
             await Parallel.ForEachAsync(
@@ -70,10 +73,10 @@
                     inputFilesByBlobXxHash64.AbsolutePathsToBlobs[kv.Value.Path] = kv.Key;
                 }
             }
-            _logger.LogInformation($"Hashed input files for blob synchronisation in: {st.Elapsed}");
-            st.Restart();
+            stopwatchHashing.Stop();
 
             // What blobs are we missing on the remote?
+            stopwatchQuerying.Start();
             var queryMissingBlobsRequest = new QueryMissingBlobsRequest();
             queryMissingBlobsRequest.BlobXxHash64.AddRange(pathsToContentHashes.Values);
             await workerCore.Request.RequestStream.WriteAsync(new ExecutionRequest
@@ -85,19 +88,24 @@
             {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Remote worker did not respond with a QueryMissingBlobsResponse."));
             }
-            _logger.LogInformation($"Received input file difference in: {st.Elapsed}");
-            st.Restart();
+            stopwatchQuerying.Stop();
             if (response.QueryMissingBlobs.MissingBlobXxHash64.Count == 0)
             {
                 // We don't have any blobs to transfer.
-                return inputFilesByBlobXxHash64;
+                return new BlobSynchronisationResult<InputFilesByBlobXxHash64>
+                {
+                    ElapsedUtcTicksHashingInputFiles = stopwatchHashing.ElapsedTicks,
+                    ElapsedUtcTicksQueryingMissingBlobs = stopwatchQuerying.ElapsedTicks,
+                    ElapsedUtcTicksTransferringCompressedBlobs = 0,
+                    CompressedDataTransferLength = 0,
+                    Result = inputFilesByBlobXxHash64,
+                };
             }
 
             // Create a stream from the content blobs, and then copy from that stream
             // through the compressor stream, and then read chunks from that stream
             // and send them to the server.
-            _logger.LogInformation($"Starting blob synchronisation... ({inputFilesByBlobXxHash64.AbsolutePathsToBlobs.Count} blobs)");
-            long size = 0;
+            stopwatchSyncing.Start();
             await using (var destination = new SendCompressedBlobsWritableBinaryChunkStream(
                 workerCore.Request.RequestStream))
             {
@@ -110,26 +118,36 @@
                         await source.CopyToAsync(compressor, cancellationToken);
                     }
                 }
-                size = destination.Position;
+                compressedTransferLength = destination.Position;
             }
-            _logger.LogInformation($"Synchronised blobs in: {st.Elapsed}");
-            _logger.LogInformation($"Synchronised blobs size: {size / 1024} KB");
             response = await workerCore.Request.GetNextAsync();
             if (response.ResponseCase != ExecutionResponse.ResponseOneofCase.SendCompressedBlobs)
             {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Remote worker did not respond with a SendCompressedBlobsResponse."));
             }
+            stopwatchSyncing.Stop();
 
             // And now we're done.
-            return inputFilesByBlobXxHash64;
+            return new BlobSynchronisationResult<InputFilesByBlobXxHash64>
+            {
+                ElapsedUtcTicksHashingInputFiles = stopwatchHashing.ElapsedTicks,
+                ElapsedUtcTicksQueryingMissingBlobs = stopwatchQuerying.ElapsedTicks,
+                ElapsedUtcTicksTransferringCompressedBlobs = stopwatchSyncing.ElapsedTicks,
+                CompressedDataTransferLength = compressedTransferLength,
+                Result = inputFilesByBlobXxHash64,
+            };
         }
 
-        public async Task SynchroniseOutputBlobs(
+        public async Task<BlobSynchronisationResult> SynchroniseOutputBlobs(
             IWorkerCore workerCore,
             RemoteTaskDescriptor remoteTaskDescriptor,
             ExecuteTaskResponse finalExecuteTaskResponse,
             CancellationToken cancellationToken)
         {
+            var stopwatchHashing = Stopwatch.StartNew();
+            var stopwatchSyncing = new Stopwatch();
+            long compressedTransferLength = 0;
+
             // Check that the final response is what we wanted.
             if (finalExecuteTaskResponse.Response.DataCase != ProcessResponse.DataOneofCase.ExitCode)
             {
@@ -146,7 +164,7 @@
                 cancellationToken,
                 async (absolutePath, cancellationToken) =>
                 {
-                    if (!finalExecuteTaskResponse.OutputAbsolutePathsToBlobXxHash64.TryGetValue(
+                    if (!finalExecuteTaskResponse.OutputAbsolutePathsToBlobXxHash64.AbsolutePathsToBlobs.TryGetValue(
                         absolutePath,
                         out var blobXxHash64))
                     {
@@ -177,8 +195,10 @@
                 }
                 hashesToFiles[kv.Value].Add(kv.Key);
             }
+            stopwatchHashing.Stop();
 
             // Pull the blobs from the remote.
+            stopwatchHashing.Start();
             var receiveOutputBlobsRequest = new ReceiveOutputBlobsRequest();
             receiveOutputBlobsRequest.BlobXxHash64.AddRange(hashesToPull.Keys);
             await workerCore.Request.RequestStream.WriteAsync(new ExecutionRequest
@@ -240,6 +260,7 @@
                         {
                             await decompressor.CopyToAsync(destination);
                         }
+                        compressedTransferLength = source.Position;
                     }
                 }
             }
@@ -252,8 +273,16 @@
                 }
                 currentStreams.Clear();
             }
+            stopwatchHashing.Stop();
 
             // And now we're done.
+            return new BlobSynchronisationResult
+            {
+                ElapsedUtcTicksHashingInputFiles = stopwatchHashing.ElapsedTicks,
+                ElapsedUtcTicksQueryingMissingBlobs = 0,
+                ElapsedUtcTicksTransferringCompressedBlobs = stopwatchSyncing.ElapsedTicks,
+                CompressedDataTransferLength = compressedTransferLength,
+            };
         }
     }
 }

@@ -14,8 +14,8 @@
 
         Task LayoutBuildDirectoryAsync(
             string targetDirectory,
+            string shortenedTargetDirectory,
             InputFilesByBlobXxHash64 inputFiles,
-            string virtualRootPath,
             CancellationToken cancellationToken);
 
         Task QueryMissingBlobsAsync(
@@ -28,6 +28,18 @@
             ServerCallContext context,
             ExecutionRequest initialRequest,
             IAsyncStreamReader<ExecutionRequest> requestStream,
+            IServerStreamWriter<ExecutionResponse> responseStream,
+            CancellationToken cancellationToken);
+
+        Task<OutputFilesByBlobXxHash64> CaptureOutputBlobsFromBuildDirectoryAsync(
+            string targetDirectory,
+            string shortenedTargetDirectory,
+            IEnumerable<string> outputAbsolutePaths,
+            CancellationToken cancellationToken);
+
+        Task ReceiveOutputBlobsAsync(
+            ServerCallContext context,
+            ExecutionRequest request,
             IServerStreamWriter<ExecutionResponse> responseStream,
             CancellationToken cancellationToken);
     }

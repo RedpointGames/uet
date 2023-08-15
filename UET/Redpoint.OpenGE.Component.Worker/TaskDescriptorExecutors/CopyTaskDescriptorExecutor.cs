@@ -5,20 +5,23 @@
 
     internal class CopyTaskDescriptorExecutor : ITaskDescriptorExecutor<CopyTaskDescriptor>
     {
-        public IAsyncEnumerable<ProcessResponse> ExecuteAsync(
+        public IAsyncEnumerable<ExecuteTaskResponse> ExecuteAsync(
             CopyTaskDescriptor descriptor,
             CancellationToken cancellationToken)
         {
             return Execute(descriptor, cancellationToken).ToAsyncEnumerable();
         }
 
-        private IEnumerable<ProcessResponse> Execute(
+        private IEnumerable<ExecuteTaskResponse> Execute(
             CopyTaskDescriptor descriptor,
             CancellationToken cancellationToken)
         {
-            yield return new ProcessResponse
+            yield return new ExecuteTaskResponse
             {
-                StandardOutputLine = $"Copying '{descriptor.FromAbsolutePath}' to '{descriptor.ToAbsolutePath}' via OpenGE...",
+                Response = new ProcessResponse
+                {
+                    StandardOutputLine = $"Copying '{descriptor.FromAbsolutePath}' to '{descriptor.ToAbsolutePath}' via OpenGE...",
+                }
             };
             Exception? error = null;
             try
@@ -31,20 +34,29 @@
             }
             if (error == null)
             {
-                yield return new ProcessResponse
+                yield return new ExecuteTaskResponse
                 {
-                    ExitCode = 0,
+                    Response = new ProcessResponse
+                    {
+                        ExitCode = 0,
+                    }
                 };
             }
             else
             {
-                yield return new ProcessResponse
+                yield return new ExecuteTaskResponse
                 {
-                    StandardErrorLine = $"Failed to copy '{descriptor.FromAbsolutePath}' to '{descriptor.ToAbsolutePath}' via OpenGE: {error.Message}",
+                    Response = new ProcessResponse
+                    {
+                        StandardErrorLine = $"Failed to copy '{descriptor.FromAbsolutePath}' to '{descriptor.ToAbsolutePath}' via OpenGE: {error.Message}",
+                    }
                 };
-                yield return new ProcessResponse
+                yield return new ExecuteTaskResponse
                 {
-                    ExitCode = 1,
+                    Response = new ProcessResponse
+                    {
+                        ExitCode = 1,
+                    }
                 };
             }
         }

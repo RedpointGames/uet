@@ -308,6 +308,23 @@
                                 _logger.LogTrace("Worker ReserveCoreAndExecute ExecuteTask End");
                             }
                             break;
+                        case ExecutionRequest.RequestOneofCase.ReceiveOutputBlobs:
+                            _logger.LogTrace("Worker ReserveCoreAndExecute ReceiveOutputBlobs Begin");
+                            connectionIdleTracker.StopIdling();
+                            try
+                            {
+                                await _blobManager.ReceiveOutputBlobsAsync(
+                                    context,
+                                    requestStream.Current,
+                                    responseStream,
+                                    context.CancellationToken);
+                            }
+                            finally
+                            {
+                                connectionIdleTracker.StartIdling();
+                                _logger.LogTrace("Worker ReserveCoreAndExecute ReceiveOutputBlobs End");
+                            }
+                            break;
                         default:
                             throw new RpcException(new Status(StatusCode.Unimplemented, $"Worker does not know how to handle this RPC request: '{requestStream.Current.RequestCase}'"));
                     }

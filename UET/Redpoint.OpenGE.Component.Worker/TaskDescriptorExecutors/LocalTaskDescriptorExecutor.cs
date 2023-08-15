@@ -16,7 +16,7 @@
             _processExecutor = processExecutor;
         }
 
-        public async IAsyncEnumerable<Protocol.ProcessResponse> ExecuteAsync(
+        public async IAsyncEnumerable<ExecuteTaskResponse> ExecuteAsync(
             LocalTaskDescriptor descriptor, 
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
@@ -31,21 +31,24 @@
                 },
                 cancellationToken))
             {
-                yield return response switch
+                yield return new ExecuteTaskResponse
                 {
-                    ExitCodeResponse r => new Protocol.ProcessResponse
+                    Response = response switch
                     {
-                        ExitCode = r.ExitCode,
-                    },
-                    StandardOutputResponse r => new Protocol.ProcessResponse
-                    {
-                        StandardOutputLine = r.Data,
-                    },
-                    StandardErrorResponse r => new Protocol.ProcessResponse
-                    {
-                        StandardOutputLine = r.Data,
-                    },
-                    _ => throw new InvalidOperationException("Received unexpected ProcessResponse type from IProcessExecutor!"),
+                        ExitCodeResponse r => new Protocol.ProcessResponse
+                        {
+                            ExitCode = r.ExitCode,
+                        },
+                        StandardOutputResponse r => new Protocol.ProcessResponse
+                        {
+                            StandardOutputLine = r.Data,
+                        },
+                        StandardErrorResponse r => new Protocol.ProcessResponse
+                        {
+                            StandardOutputLine = r.Data,
+                        },
+                        _ => throw new InvalidOperationException("Received unexpected ProcessResponse type from IProcessExecutor!"),
+                    }
                 };
             }
         }

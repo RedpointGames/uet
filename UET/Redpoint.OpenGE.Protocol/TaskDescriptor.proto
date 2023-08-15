@@ -9,6 +9,11 @@ message LocalTaskDescriptor {
 	string workingDirectory = 4;
 }
 
+message PchFileReplacementLocations {
+	int32 portablePathPrefixLength = 1;
+	repeated int64 replacementOffsets = 2;
+}
+
 message InputFilesByPathOrContent {
 	repeated string absolutePaths = 1;
 	map<string, string> absolutePathsToVirtualContent = 2;

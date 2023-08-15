@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.OpenGE.Component.Worker.DriveMapping;
+    using Redpoint.OpenGE.Component.Worker.PchPortability;
     using Redpoint.OpenGE.Component.Worker.TaskDescriptorExecutors;
     using Redpoint.OpenGE.Protocol;
 
@@ -21,6 +22,7 @@
             {
                 services.AddSingleton<IDirectoryDriveMapping, UnixDirectoryDriveMapping>();
             }
+            services.AddSingleton<IPchPortability, DefaultPchPortability>();
 
             // @note: These also need to be injected into DefaultExecutionManager in
             // order for descriptors to actually execute.

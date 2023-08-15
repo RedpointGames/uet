@@ -369,19 +369,20 @@
                                                 }
                                             }
 
+                                            if (finalExecuteTaskResponse == null)
+                                            {
+                                                // This should never be null since we break the loop on ExitCode.
+                                                throw new InvalidOperationException();
+                                            }
+
                                             // Attach any metadata from the task execution.
                                             // @note: We don't have any metadata for task execution yet.
 
                                             // If we were successful, synchronise the output blobs back.
                                             if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote && 
-                                                status == TaskCompletionStatus.TaskCompletionSuccess)
+                                                status == TaskCompletionStatus.TaskCompletionSuccess &&
+                                                finalExecuteTaskResponse.OutputAbsolutePathsToBlobXxHash64 != null)
                                             {
-                                                if (finalExecuteTaskResponse == null)
-                                                {
-                                                    // This should never be null since we break the loop on ExitCode.
-                                                    throw new InvalidOperationException();
-                                                }
-
                                                 // Notify the client we're changing phases.
                                                 await SendPhaseChangeAsync(
                                                     TaskPhase.RemoteOutputBlobSynchronisation,

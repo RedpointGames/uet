@@ -2,6 +2,7 @@
 {
     using Grpc.Core;
     using System;
+    using System.Diagnostics;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -59,6 +60,7 @@
             {
                 return;
             }
+            var remainingInIncomingBuffer = buffer.Length;
             await _writingSemaphore.WaitAsync(CancellationToken.None);
             try
             {
@@ -70,10 +72,10 @@
                 var incomingBufferOffset = 0;
                 do
                 {
-                    var remainingInBuffer = _memoryBuffer.Length - _memoryBufferPosition;
+                    var remainingInMemoryBuffer = _memoryBuffer.Length - _memoryBufferPosition;
                     var bytesToWrite = Math.Min(
-                        remainingInBuffer,
-                        buffer.Length);
+                        remainingInMemoryBuffer,
+                        remainingInIncomingBuffer);
                     buffer
                         .Slice(
                             incomingBufferOffset,
@@ -84,6 +86,7 @@
                             bytesToWrite));
                     _memoryBufferPosition += bytesToWrite;
                     incomingBufferOffset += bytesToWrite;
+                    remainingInIncomingBuffer -= bytesToWrite;
 
                     if (_memoryBufferPosition == _memoryBuffer.Length)
                     {

@@ -1,8 +1,11 @@
 ﻿namespace Redpoint.OpenGE.Component.Worker
 {
     using Grpc.Core;
+    using Microsoft.AspNetCore.Components.Forms;
+    using Redpoint.OpenGE.Component.Worker.PchPortability;
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Core.ReadableStream;
+    using Redpoint.OpenGE.Core.WritableStream;
     using Redpoint.OpenGE.Protocol;
     using Redpoint.Reservation;
     using System;
@@ -15,15 +18,18 @@
     internal class DefaultBlobManager : IBlobManager, IAsyncDisposable
     {
         private readonly IReservationManagerForOpenGE _reservationManagerForOpenGE;
+        private readonly IPchPortability _pchPortability;
         private readonly ConcurrentDictionary<string, ServerCallContext> _remoteHostLocks;
         private readonly SemaphoreSlim _blobsReservationSemaphore;
         private IReservation? _blobsReservation;
         private bool _disposed;
 
         public DefaultBlobManager(
-            IReservationManagerForOpenGE reservationManagerForOpenGE)
+            IReservationManagerForOpenGE reservationManagerForOpenGE,
+            IPchPortability pchPortability)
         {
             _reservationManagerForOpenGE = reservationManagerForOpenGE;
+            _pchPortability = pchPortability;
             _remoteHostLocks = new ConcurrentDictionary<string, ServerCallContext>();
             _blobsReservationSemaphore = new SemaphoreSlim(1);
             _blobsReservation = null;
@@ -60,8 +66,8 @@
 
         public async Task LayoutBuildDirectoryAsync(
             string targetDirectory,
+            string shortenedTargetDirectory,
             InputFilesByBlobXxHash64 inputFiles,
-            string virtualRootPath,
             CancellationToken cancellationToken)
         {
             var blobsPath = await GetBlobsPath();
@@ -86,7 +92,7 @@
                             FileShare.Read);
                         using var reader = new StreamReader(sourceStream, leaveOpen: true);
                         var content = await reader.ReadToEndAsync(cancellationToken);
-                        content = content.Replace("{__OPENGE_VIRTUAL_ROOT__}", virtualRootPath);
+                        content = content.Replace("{__OPENGE_VIRTUAL_ROOT__}", shortenedTargetDirectory);
                         using var targetStream = new FileStream(
                             targetPath,
                             FileMode.Create,
@@ -101,6 +107,23 @@
                             Path.Combine(blobsPath, kv.Value.HexString()),
                             targetPath,
                             true);
+                        if (targetPath.EndsWith(".pch", StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            try
+                            {
+                                await _pchPortability.ConvertPotentialPortablePchToPch(
+                                    targetPath,
+                                    shortenedTargetDirectory,
+                                    cancellationToken);
+                            }
+                            catch
+                            {
+                                // @note: If we don't succeed in undoing portabilization,
+                                // make sure we don't leave a broken PCH file.
+                                File.Delete(targetPath);
+                                throw;
+                            }
+                        }
                     }
                 });
         }
@@ -240,7 +263,8 @@
                             {
                                 File.Move(
                                     Path.Combine(blobsPath, blobHash.HexString() + ".tmp"),
-                                    Path.Combine(blobsPath, blobHash.HexString()));
+                                    Path.Combine(blobsPath, blobHash.HexString()),
+                                    true);
                             }
                             else
                             {
@@ -305,6 +329,132 @@
                 // Release the lock to allow other requests from the same host
                 // to come through.
                 _remoteHostLocks.TryRemove(peerHost, out _);
+            }
+        }
+
+        public async Task<OutputFilesByBlobXxHash64> CaptureOutputBlobsFromBuildDirectoryAsync(
+            string targetDirectory,
+            string shortenedTargetDirectory,
+            IEnumerable<string> outputAbsolutePaths,
+            CancellationToken cancellationToken)
+        {
+            var blobsPath = await GetBlobsPath();
+
+            var results = new ConcurrentDictionary<string, long>();
+
+            var virtualised = new HashSet<string>(outputAbsolutePaths);
+            await Parallel.ForEachAsync(
+                outputAbsolutePaths.ToAsyncEnumerable(),
+                cancellationToken,
+                async (path, cancellationToken) =>
+                {
+                    var targetPath = ConvertAbsolutePathToBuildDirectoryPath(
+                        targetDirectory,
+                        path);
+                    if (File.Exists(targetPath))
+                    {
+                        if (targetPath.EndsWith(".pch", StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            try
+                            {
+                                await _pchPortability.ConvertPchToPortablePch(
+                                    targetPath,
+                                    shortenedTargetDirectory,
+                                    cancellationToken);
+                            }
+                            catch
+                            {
+                                // @note: If we don't succeed in doing portabilization,
+                                // make sure we don't leave a broken PCH file.
+                                File.Delete(targetPath);
+                                throw;
+                            }
+                        }
+
+                        var fileHash = (await XxHash64Helpers.HashFile(targetPath, cancellationToken)).hash;
+                        var blobPath = Path.Combine(blobsPath, fileHash.HexString());
+                        results[path] = fileHash;
+                        if (!File.Exists(blobPath))
+                        {
+                            var lockFile = LockFile.TryObtainLock(
+                                Path.Combine(blobsPath, fileHash.HexString() + ".lock"));
+                            while (lockFile == null)
+                            {
+                                // @hack: This is super questionable, but we know that
+                                // the file copy below is *not* asynchronous, nor is blob
+                                // writing in other request threads.
+                                //
+                                // The lock will never be held over an async yield even
+                                // across RPCs, so sleeping the current thread while another
+                                // RPC's thread completes writing to the file is probably
+                                // safe.
+                                Thread.Sleep(200);
+                            }
+                            try
+                            {
+                                if (!File.Exists(blobPath))
+                                {
+                                    File.Copy(
+                                        targetPath,
+                                        blobPath,
+                                        true);
+                                }
+                            }
+                            finally
+                            {
+                                lockFile.Dispose();
+                            }
+                        }
+                    }
+                });
+
+            return new OutputFilesByBlobXxHash64
+            {
+                AbsolutePathsToBlobs = { results }
+            };
+        }
+
+        public async Task ReceiveOutputBlobsAsync(
+            ServerCallContext context,
+            ExecutionRequest request,
+            IServerStreamWriter<ExecutionResponse> responseStream,
+            CancellationToken cancellationToken)
+        {
+            var blobsPath = await GetBlobsPath();
+
+            var allEntriesByBlobHash = new ConcurrentDictionary<long, BlobInfo>();
+            var requestedBlobHashes = request.ReceiveOutputBlobs.BlobXxHash64;
+
+            await Parallel.ForEachAsync(
+                requestedBlobHashes.ToAsyncEnumerable(),
+                cancellationToken,
+                (blobHash, cancellationToken) =>
+                {
+                    var blobPath = Path.Combine(blobsPath, blobHash.HexString());
+                    var blobFileInfo = new FileInfo(blobPath);
+                    if (blobFileInfo.Exists)
+                    {
+                        allEntriesByBlobHash[blobHash] = new BlobInfo
+                        {
+                            ByteLength = blobFileInfo.Length,
+                            Content = null,
+                            Path = blobPath,
+                        };
+                    }
+                    return ValueTask.CompletedTask;
+                });
+
+            await using (var destination = new ReceiveOutputBlobsWritableBinaryChunkStream(responseStream))
+            {
+                await using (var compressor = new BrotliStream(destination, CompressionMode.Compress))
+                {
+                    using (var source = new SequentialVersion1Encoder(
+                        allEntriesByBlobHash,
+                        requestedBlobHashes))
+                    {
+                        await source.CopyToAsync(compressor, cancellationToken);
+                    }
+                }
             }
         }
 
