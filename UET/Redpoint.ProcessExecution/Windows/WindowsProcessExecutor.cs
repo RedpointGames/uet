@@ -170,6 +170,7 @@
                                 environmentBlock = GetEnvironmentVariablesBlock(processSpecification.EnvironmentVariables);
                             }
 
+                            // Set up the working directory.
                             string? workingDirectory = processSpecification.WorkingDirectory;
                             if (workingDirectory != null &&
                                 workingDirectory.Length == 0)
@@ -177,9 +178,19 @@
                                 workingDirectory = null;
                             }
 
+                            // If we have per-process drive mappings, we need to create the process
+                            // in a suspended state and set up our chroot state now (so the handles
+                            // can be inherited).
+                            WindowsChrootState? chrootState = null;
+                            if (processSpecification.PerProcessDriveMappings != null)
+                            {
+                                creationFlags |= PROCESS_CREATION_FLAGS.CREATE_SUSPENDED;
+                                chrootState = WindowsChroot.SetupChrootState(processSpecification.PerProcessDriveMappings!);
+                            }
+
+                            // Create the process.
                             bool retVal;
                             int errorCode = 0;
-
                             fixed (char* environmentBlockPtr = environmentBlock)
                             fixed (char* commandLinePtrRaw = commandLine.ToString())
                             fixed (char* workingDirectoryPtr = workingDirectory)
@@ -205,13 +216,31 @@
                             }
 
                             if (processInfo.hProcess != IntPtr.Zero && processInfo.hProcess != new IntPtr(-1))
-                                Marshal.InitHandle(procSH, processInfo.hProcess);
-                            if (processInfo.hThread != IntPtr.Zero && processInfo.hThread != new IntPtr(-1))
-                                PInvoke.CloseHandle(processInfo.hThread);
-
-                            if (!retVal)
                             {
-                                throw new Win32Exception(errorCode);
+                                Marshal.InitHandle(procSH, processInfo.hProcess);
+                            }
+                            try
+                            {
+                                if (!retVal)
+                                {
+                                    throw new Win32Exception(errorCode);
+                                }
+
+                                // If we have per-process drive mappings, go and apply them to the
+                                // process and resume it.
+                                if (retVal && chrootState != null)
+                                {
+                                    WindowsChroot.UseChrootStateAndResumeThread(
+                                        chrootState,
+                                        ref processInfo);
+                                }
+                            }
+                            finally
+                            {
+                                if (processInfo.hThread != IntPtr.Zero && processInfo.hThread != new IntPtr(-1))
+                                {
+                                    PInvoke.CloseHandle(processInfo.hThread);
+                                }
                             }
                         }
                         catch

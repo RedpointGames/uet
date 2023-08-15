@@ -1,6 +1,8 @@
 ﻿namespace Redpoint.ProcessExecution.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.ProcessExecution.Windows;
+    using System.Runtime.Versioning;
     using System.Text;
     using Xunit;
 
@@ -145,5 +147,187 @@
                     cts.Token);
             });
         }
+
+        [SkippableFact]
+        [SupportedOSPlatform("windows")]
+        public async Task CanMapDriveForCmdAndSeeContentsOfSystemDriveAsync()
+        {
+            Skip.IfNot(OperatingSystem.IsWindows());
+
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddProcessExecution();
+            var sp = services.BuildServiceProvider();
+
+            var executor = sp.GetRequiredService<IProcessExecutor>();
+
+            var stdout = new StringBuilder();
+            var exitCode = await executor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = @"C:\Windows\system32\cmd.exe",
+                    Arguments = new[]
+                    {
+                        "/C",
+                        "C: && cd \\ && dir",
+                    },
+                    PerProcessDriveMappings = new Dictionary<char, string>
+                    {
+                        { 'I', Environment.CurrentDirectory }
+                    },
+                },
+                CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
+                CancellationToken.None);
+            Assert.Equal(0, exitCode);
+        }
+
+        [SkippableFact]
+        [SupportedOSPlatform("windows")]
+        public async Task CanSeeContentsOfSystemDriveAsync()
+        {
+            Skip.IfNot(OperatingSystem.IsWindows());
+
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddProcessExecution();
+            var sp = services.BuildServiceProvider();
+
+            var executor = sp.GetRequiredService<IProcessExecutor>();
+
+            var stdout = new StringBuilder();
+            var exitCode = await executor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = @"C:\Windows\system32\cmd.exe",
+                    Arguments = new[]
+                    {
+                        "/C",
+                        "C: && cd \\ && dir",
+                    },
+                },
+                CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
+                CancellationToken.None);
+            Assert.Equal(0, exitCode);
+        }
+
+        [SkippableFact]
+        [SupportedOSPlatform("windows")]
+        public async Task CanMapDriveForCmdAndSeeContentsAsync()
+        {
+            Skip.IfNot(OperatingSystem.IsWindows());
+
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddProcessExecution();
+            var sp = services.BuildServiceProvider();
+
+            var executor = sp.GetRequiredService<IProcessExecutor>();
+
+            var stdout = new StringBuilder();
+            var exitCode = await executor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = @"C:\Windows\system32\cmd.exe",
+                    Arguments = new[]
+                    {
+                        "/C",
+                        "I: && cd \\ && dir",
+                    },
+                    PerProcessDriveMappings = new Dictionary<char, string>
+                    {
+                        { 'I', Environment.CurrentDirectory }
+                    },
+                },
+                CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
+                CancellationToken.None);
+            Assert.Equal(0, exitCode);
+            var lines = stdout.ToString().Split("\r\n");
+            Assert.Contains(lines, x => x.Contains("Redpoint.ProcessExecution.Tests.dll"));
+        }
+
+        [SkippableFact]
+        [SupportedOSPlatform("windows")]
+        public async Task CanMapDriveForCmdAsync()
+        {
+            Skip.IfNot(OperatingSystem.IsWindows());
+
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddProcessExecution();
+            var sp = services.BuildServiceProvider();
+
+            var executor = sp.GetRequiredService<IProcessExecutor>();
+
+            var stdout = new StringBuilder();
+            var exitCode = await executor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = @"C:\Windows\system32\cmd.exe",
+                    Arguments = new[]
+                    {
+                        "/C",
+                        "echo test",
+                    },
+                    PerProcessDriveMappings = new Dictionary<char, string>
+                    {
+                        { 'I', Environment.CurrentDirectory }
+                    },
+                },
+                CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
+                CancellationToken.None);
+            Assert.Equal(0, exitCode);
+            Assert.Equal("test", stdout.ToString().Trim());
+        }
+
+        [SkippableFact]
+        [SupportedOSPlatform("windows")]
+        public async Task CanMapEmptyDrivesForCmdAsync()
+        {
+            Skip.IfNot(OperatingSystem.IsWindows());
+
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddProcessExecution();
+            var sp = services.BuildServiceProvider();
+
+            var executor = sp.GetRequiredService<IProcessExecutor>();
+
+            var stdout = new StringBuilder();
+            var exitCode = await executor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = @"C:\Windows\system32\cmd.exe",
+                    Arguments = new[]
+                    {
+                        "/C",
+                        "echo test",
+                    },
+                    // @note: This causes the process executor to go through the
+                    // flow of setting up per-process drive mappings, but with
+                    // no drive overrides present in the device lookup map.
+                    PerProcessDriveMappings = new Dictionary<char, string>(),
+                },
+                CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
+                CancellationToken.None);
+            Assert.Equal(0, exitCode);
+            Assert.Equal("test", stdout.ToString().Trim());
+        }
+
+        /*
+        [SkippableFact]
+        [SupportedOSPlatform("windows5.1.2600")]
+        public async Task CanApplyChrootToExistingProcess()
+        {
+            Skip.IfNot(OperatingSystem.IsWindows());
+
+            var state = WindowsChroot.SetupChrootState(new Dictionary<char, string>
+            {
+                { 'I', Environment.CurrentDirectory },
+            });
+            WindowsChroot.ApplyChrootStateToExistingProcess(state, 36168);
+
+            await Task.Delay(120000);
+        }
+        */
     }
 }

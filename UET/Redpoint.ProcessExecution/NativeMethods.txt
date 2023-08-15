@@ -12,3 +12,6 @@ STILL_ACTIVE
 TerminateProcess
 NtQueryInformationProcess
 PROCESS_BASIC_INFORMATION
+QueryDosDevice
+MAX_PATH
+ResumeThread
