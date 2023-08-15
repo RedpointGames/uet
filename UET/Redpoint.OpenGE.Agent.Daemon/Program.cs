@@ -48,7 +48,7 @@
             services.AddLogging(logging =>
             {
                 logging.ClearProviders();
-                logging.SetMinimumLevel(LogLevel.Information);
+                logging.SetMinimumLevel(args.Contains("--trace") ? LogLevel.Trace : LogLevel.Information);
                 logging.AddSingleLineConsoleFormatter();
                 logging.AddSingleLineConsole();
 
