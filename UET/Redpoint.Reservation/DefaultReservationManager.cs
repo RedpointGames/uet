@@ -32,14 +32,33 @@
                     dividend = BigInteger.DivRem(dividend, alphabet.Length, out BigInteger remainder);
                     builder.Insert(0, alphabet[Math.Abs((int)remainder)]);
                 }
+                string target;
                 if (!length.HasValue)
                 {
-                    return builder.ToString().Trim('.');
+                    target = builder.ToString();
                 }
                 else
                 {
-                    return builder.ToString().Substring(0, length.Value).Trim('.');
+                    target = builder.ToString().Substring(0, length.Value);
                 }
+                var targetChars = target.ToCharArray();
+                // @note: We must replace . at the end of the string with _
+                // because Windows does not support trailing dots. However,
+                // we don't want to alter the length of the resulting string
+                // for OpenGE path length stability reasons, so we replace
+                // dots with underscores instead of trimming.
+                for (int d = targetChars.Length - 1; d >= 0; d--)
+                {
+                    if (targetChars[d] == '.')
+                    {
+                        targetChars[d] = '_';
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                return new string(targetChars);
             }
         }
 
@@ -105,9 +124,16 @@
         public Task<IReservation> ReserveAsync(string @namespace, params string[] parameters)
         {
             var id = GetStabilityHash($"{@namespace}:{string.Join("-", parameters)}", 14);
+            // @note: The upper bound here can not be changed without changing the
+            // target length of 'targetName' below.
             for (int i = 0; i < 1000; i++)
             {
-                var targetName = $"{id}-{i}";
+                if (id.Length != 14)
+                {
+                    throw new InvalidOperationException($"Expected stability hash '{id}' to be exactly 14 characters long.");
+                }
+                // @note: targetName will be the same length in all scenarios.
+                var targetName = $"{id}-{i:D3}";
                 if (_localReservations.TryAdd(targetName, true))
                 {
                     try
