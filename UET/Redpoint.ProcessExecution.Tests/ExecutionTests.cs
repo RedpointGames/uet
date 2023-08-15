@@ -313,6 +313,41 @@
             Assert.Equal("test", stdout.ToString().Trim());
         }
 
+        [SkippableFact]
+        [SupportedOSPlatform("windows")]
+        public async Task CanStartCmdInMappedDriveAsync()
+        {
+            Skip.IfNot(OperatingSystem.IsWindows());
+
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddProcessExecution();
+            var sp = services.BuildServiceProvider();
+
+            var executor = sp.GetRequiredService<IProcessExecutor>();
+
+            var stdout = new StringBuilder();
+            var exitCode = await executor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = @"C:\Windows\system32\cmd.exe",
+                    Arguments = new[]
+                    {
+                        "/C",
+                        "echo test",
+                    },
+                    PerProcessDriveMappings = new Dictionary<char, string>
+                    {
+                        { 'I', Environment.CurrentDirectory }
+                    },
+                    WorkingDirectory = "I:\\"
+                },
+                CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
+                CancellationToken.None);
+            Assert.Equal(0, exitCode);
+            Assert.Equal("test", stdout.ToString().Trim());
+        }
+
         /*
         [SkippableFact]
         [SupportedOSPlatform("windows5.1.2600")]

@@ -9,6 +9,7 @@
         {
             if (OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
             {
+                services.AddSingleton<DefaultProcessExecutor, DefaultProcessExecutor>();
                 services.AddSingleton<IProcessExecutor, WindowsProcessExecutor>();
             }
             else

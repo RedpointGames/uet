@@ -30,13 +30,16 @@
         private static readonly object _createProcessLock = new object();
         private readonly ILogger<WindowsProcessExecutor> _logger;
         private readonly IServiceProvider _serviceProvider;
+        private readonly DefaultProcessExecutor _fallbackExecutor;
 
         public WindowsProcessExecutor(
             ILogger<WindowsProcessExecutor> logger,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider,
+            DefaultProcessExecutor fallbackExecutor)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
+            _fallbackExecutor = fallbackExecutor;
         }
 
         private string EscapeArgumentForLogging(string argument)
@@ -48,7 +51,28 @@
             return $"\"{argument.Replace("\\", "\\\\")}\"";
         }
 
-        public async Task<int> ExecuteAsync(
+        public Task<int> ExecuteAsync(
+            ProcessSpecification processSpecification,
+            ICaptureSpecification captureSpecification,
+            CancellationToken cancellationToken)
+        {
+            if (processSpecification.PerProcessDriveMappings != null)
+            {
+                return ExecuteInternalAsync(
+                    processSpecification,
+                    captureSpecification,
+                    cancellationToken);
+            }
+            else
+            {
+                return _fallbackExecutor.ExecuteAsync(
+                    processSpecification,
+                    captureSpecification,
+                    cancellationToken);
+            }
+        }
+
+        private async Task<int> ExecuteInternalAsync(
             ProcessSpecification processSpecification,
             ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken)
@@ -197,18 +221,21 @@
                             {
                                 var commandLinePtr = new PWSTR(commandLinePtrRaw);
                                 var currentDirectoryPtr = new PCWSTR(workingDirectoryPtr);
-                                retVal = PInvoke.CreateProcess(
-                                    new PCWSTR(null),           // we don't need this since all the info is in commandLine
-                                    commandLinePtr,             // pointer to the command line string
-                                    &unusedSecurityAttrs,       // address to process security attributes, we don't need to inherit the handle
-                                    &unusedSecurityAttrs,       // address to thread security attributes.
-                                    new BOOL(true),             // handle inheritance flag
-                                    creationFlags,              // creation flags
-                                    (void*)environmentBlockPtr, // pointer to new environment block
-                                    currentDirectoryPtr,        // pointer to current directory name
-                                    &startupInfo,               // pointer to STARTUPINFO
-                                    &processInfo                // pointer to PROCESS_INFORMATION
-                                );
+                                using (WindowsChroot.TemporarilyChangeDeviceMap(chrootState))
+                                {
+                                    retVal = PInvoke.CreateProcess(
+                                        new PCWSTR(null),           // we don't need this since all the info is in commandLine
+                                        commandLinePtr,             // pointer to the command line string
+                                        &unusedSecurityAttrs,       // address to process security attributes, we don't need to inherit the handle
+                                        &unusedSecurityAttrs,       // address to thread security attributes.
+                                        new BOOL(true),             // handle inheritance flag
+                                        creationFlags,              // creation flags
+                                        (void*)environmentBlockPtr, // pointer to new environment block
+                                        currentDirectoryPtr,        // pointer to current directory name
+                                        &startupInfo,               // pointer to STARTUPINFO
+                                        &processInfo                // pointer to PROCESS_INFORMATION
+                                    );
+                                }
                                 if (!retVal)
                                 {
                                     errorCode = Marshal.GetLastWin32Error();

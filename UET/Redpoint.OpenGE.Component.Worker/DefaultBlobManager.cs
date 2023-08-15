@@ -1,8 +1,6 @@
 ﻿namespace Redpoint.OpenGE.Component.Worker
 {
     using Grpc.Core;
-    using Microsoft.AspNetCore.Components.Forms;
-    using Redpoint.OpenGE.Component.Worker.PchPortability;
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Core.ReadableStream;
     using Redpoint.OpenGE.Core.WritableStream;
@@ -18,18 +16,15 @@
     internal class DefaultBlobManager : IBlobManager, IAsyncDisposable
     {
         private readonly IReservationManagerForOpenGE _reservationManagerForOpenGE;
-        private readonly IPchPortability _pchPortability;
         private readonly ConcurrentDictionary<string, ServerCallContext> _remoteHostLocks;
         private readonly SemaphoreSlim _blobsReservationSemaphore;
         private IReservation? _blobsReservation;
         private bool _disposed;
 
         public DefaultBlobManager(
-            IReservationManagerForOpenGE reservationManagerForOpenGE,
-            IPchPortability pchPortability)
+            IReservationManagerForOpenGE reservationManagerForOpenGE)
         {
             _reservationManagerForOpenGE = reservationManagerForOpenGE;
-            _pchPortability = pchPortability;
             _remoteHostLocks = new ConcurrentDictionary<string, ServerCallContext>();
             _blobsReservationSemaphore = new SemaphoreSlim(1);
             _blobsReservation = null;
@@ -107,23 +102,6 @@
                             Path.Combine(blobsPath, kv.Value.HexString()),
                             targetPath,
                             true);
-                        if (targetPath.EndsWith(".pch", StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            try
-                            {
-                                await _pchPortability.ConvertPotentialPortablePchToPch(
-                                    targetPath,
-                                    shortenedTargetDirectory,
-                                    cancellationToken);
-                            }
-                            catch
-                            {
-                                // @note: If we don't succeed in undoing portabilization,
-                                // make sure we don't leave a broken PCH file.
-                                File.Delete(targetPath);
-                                throw;
-                            }
-                        }
                     }
                 });
         }
@@ -353,24 +331,6 @@
                         path);
                     if (File.Exists(targetPath))
                     {
-                        if (targetPath.EndsWith(".pch", StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            try
-                            {
-                                await _pchPortability.ConvertPchToPortablePch(
-                                    targetPath,
-                                    shortenedTargetDirectory,
-                                    cancellationToken);
-                            }
-                            catch
-                            {
-                                // @note: If we don't succeed in doing portabilization,
-                                // make sure we don't leave a broken PCH file.
-                                File.Delete(targetPath);
-                                throw;
-                            }
-                        }
-
                         var fileHash = (await XxHash64Helpers.HashFile(targetPath, cancellationToken)).hash;
                         var blobPath = Path.Combine(blobsPath, fileHash.HexString());
                         results[path] = fileHash;

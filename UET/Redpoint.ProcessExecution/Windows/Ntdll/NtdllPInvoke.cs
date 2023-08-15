@@ -22,6 +22,14 @@
             int ProcessInformationSize);
 
         [DllImport("ntdll.dll")]
+        internal static extern unsafe NTSTATUS NtQueryInformationProcess(
+            nint ProcessHandle,
+            PROCESS_INFORMATION_CLASS ProcessInformationClass,
+            void* ProcessInformation,
+            uint ProcessInformationSize,
+            uint* ProcessInformationReturnSize);
+
+        [DllImport("ntdll.dll")]
         internal static extern unsafe NTSTATUS NtCreateSymbolicLinkObject(
             nint* LinkHandle,
             ACCESS_MASK DesiredAccess,

@@ -11,10 +11,7 @@
     using System.Threading;
     using System.Runtime.CompilerServices;
     using Microsoft.Extensions.Logging;
-    using Redpoint.Reservation;
-    using Redpoint.OpenGE.Component.Worker.DriveMapping;
     using System.Diagnostics;
-    using Redpoint.OpenGE.Component.Worker.PchPortability;
 
     internal class RemoteTaskDescriptorExecutor : ITaskDescriptorExecutor<RemoteTaskDescriptor>
     {
@@ -23,22 +20,19 @@
         private readonly IToolManager _toolManager;
         private readonly IBlobManager _blobManager;
         private readonly IProcessExecutor _processExecutor;
-        private readonly IDirectoryDriveMapping _directoryDriveMapping;
 
         public RemoteTaskDescriptorExecutor(
             ILogger<RemoteTaskDescriptorExecutor> logger,
             IReservationManagerForOpenGE reservationManagerForOpenGE,
             IToolManager toolManager,
             IBlobManager blobManager,
-            IProcessExecutor processExecutor,
-            IDirectoryDriveMapping directoryDriveMapping)
+            IProcessExecutor processExecutor)
         {
             _logger = logger;
             _reservationManagerForOpenGE = reservationManagerForOpenGE;
             _toolManager = toolManager;
             _blobManager = blobManager;
             _processExecutor = processExecutor;
-            _directoryDriveMapping = directoryDriveMapping;
         }
 
         private void RecreateDirectory(string path)
@@ -98,18 +92,12 @@
                 _logger.LogInformation($"Tool path obtained in: {st.Elapsed}");
                 st.Restart();
 
-                // Shorten the directory path if needed.
-                var rootPath = _reservationManagerForOpenGE.RootDirectory;
-                var shortenedRootPath = _directoryDriveMapping.ShortenPath(rootPath);
-                var shortenedReservationPath = reservation.ReservedPath;
-                if (rootPath != shortenedRootPath)
-                {
-                    shortenedReservationPath = shortenedRootPath.TrimEnd(Path.DirectorySeparatorChar)
-                        + Path.DirectorySeparatorChar
-                        + shortenedReservationPath.Substring(rootPath.Length).TrimStart(Path.DirectorySeparatorChar);
-                }
-                _logger.LogInformation($"Path shortening set up in: {st.Elapsed}");
-                st.Restart();
+                // On Windows, we map the I: drive letter on a per-process level
+                // to the reservation root, which makes paths identical on every
+                // machine that the process is running on. This is required for
+                // PCH files to be portable across machines.
+                var virtualDriveLetter = 'I';
+                var shortenedReservationPath = OperatingSystem.IsWindows() ? $"{virtualDriveLetter}:" : reservation.ReservedPath;
 
                 // Ask the blob manager to lay out all of the files in the reservation
                 // based on the input files.
@@ -147,17 +135,28 @@
                     shortenedReservationPath,
                     descriptor.WorkingDirectoryAbsolutePath);
 
+                // Set up the process specification.
+                var processSpecification = new ProcessSpecification
+                {
+                    FilePath = toolPath,
+                    Arguments = arguments,
+                    EnvironmentVariables = environmentVariables,
+                    WorkingDirectory = workingDirectory,
+                };
+                if (OperatingSystem.IsWindows())
+                {
+                    processSpecification.PerProcessDriveMappings = new Dictionary<char, string>
+                    {
+                        { virtualDriveLetter, reservation.ReservedPath },
+                    };
+                }
+
                 // Execute the process in the virtual root.
                 _logger.LogInformation($"File path: {toolPath}");
                 _logger.LogInformation($"Arguments: {string.Join(" ", arguments)}");
                 _logger.LogInformation($"Working directory: {workingDirectory}");
-                await foreach (var response in _processExecutor.ExecuteAsync(new ProcessSpecification
-                    {
-                        FilePath = toolPath,
-                        Arguments = arguments,
-                        EnvironmentVariables = environmentVariables,
-                        WorkingDirectory = workingDirectory,
-                    },
+                await foreach (var response in _processExecutor.ExecuteAsync(
+                    processSpecification,
                     cancellationToken))
                 {
                     switch (response)
@@ -178,6 +177,7 @@
                             };
                             break;
                         case StandardOutputResponse standardOutput:
+                            _logger.LogInformation(standardOutput.Data);
                             yield return new ExecuteTaskResponse
                             {
                                 Response = new Protocol.ProcessResponse
@@ -187,6 +187,7 @@
                             };
                             break;
                         case StandardErrorResponse standardError:
+                            _logger.LogInformation(standardError.Data);
                             yield return new ExecuteTaskResponse
                             {
                                 Response = new Protocol.ProcessResponse
