@@ -23,7 +23,10 @@
             }
         }
 
-        public ValueTask<TaskDescriptor> CreateDescriptorForTaskSpecAsync(GraphTaskSpec spec, CancellationToken cancellationToken)
+        public ValueTask<TaskDescriptor> CreateDescriptorForTaskSpecAsync(
+            GraphTaskSpec spec,
+            bool guaranteedToExecuteLocally,
+            CancellationToken cancellationToken)
         {
             var from = spec.Arguments[2].Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
             var to = spec.Arguments[3].Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);

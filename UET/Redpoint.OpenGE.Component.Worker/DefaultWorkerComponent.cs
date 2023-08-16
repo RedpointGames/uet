@@ -83,6 +83,8 @@
 
             _listeningExternalUrl = app.Urls.First();
 
+            _logger.LogInformation($"Worker listening on: {_listeningExternalUrl}");
+
             _app = app;
 
             try

@@ -98,6 +98,7 @@
 
         public async ValueTask<TaskDescriptor> CreateDescriptorForTaskSpecAsync(
             GraphTaskSpec spec,
+            bool guaranteedToExecuteLocally,
             CancellationToken cancellationToken)
         {
             // Get the response file path, removing the leading '@'.
@@ -106,12 +107,12 @@
             {
                 responseFilePath = Path.Combine(spec.WorkingDirectory, responseFilePath);
             }
-            var responseFileRemotePath = responseFilePath.RemotifyPath();
+            var responseFileRemotePath = (guaranteedToExecuteLocally ? (responseFilePath + ".vlocal") : responseFilePath).RemotifyPath();
             if (responseFileRemotePath == null)
             {
                 // This response file can't be remoted.
                 _logger.LogWarning($"Forcing to local executor because the response file isn't at a remotable path: '{responseFilePath}'");
-                return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec, cancellationToken);
+                return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec, guaranteedToExecuteLocally, cancellationToken);
             }
 
             // Store the data that we need to figure out how to remote this.
@@ -214,29 +215,33 @@
             {
                 // Delegate to the local executor.
                 _logger.LogWarning($"Forcing to local executor, input: {inputFile}, output: {outputPath}");
-                return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec, cancellationToken);
+                return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec, guaranteedToExecuteLocally, cancellationToken);
             }
 
             // Determine the dependent header files.
             var preprocessorCache = await _preprocessorCacheAccessor.GetPreprocessorCacheAsync();
             PreprocessorResolutionResultWithTimingMetadata dependentFiles;
-            try
+            if (!guaranteedToExecuteLocally)
             {
-                dependentFiles = await preprocessorCache.GetResolvedDependenciesAsync(
-                    inputFile.FullName,
-                    pchInputFile != null && forceIncludeFiles.Any(x => x.FullName == pchInputFile.FullName)
-                        ? new[] { pchInputFile.FullName }
-                        : Array.Empty<string>(),
-                    forceIncludeFiles.Select(x => x.FullName).Where(x => x != pchInputFile?.FullName).ToArray(),
-                    includeDirectories.Select(x => x.FullName).ToArray(),
-                    globalDefinitions,
-                    spec.ExecutionEnvironment.BuildStartTicks,
-                    cancellationToken);
+                try
+                {
+                    dependentFiles = await preprocessorCache.GetResolvedDependenciesAsync(
+                        inputFile.FullName,
+                        forceIncludeFiles.Select(x => x.FullName).ToArray(),
+                        includeDirectories.Select(x => x.FullName).ToArray(),
+                        globalDefinitions,
+                        spec.ExecutionEnvironment.BuildStartTicks,
+                        cancellationToken);
+                }
+                catch (RpcException ex) when (ex.StatusCode == StatusCode.InvalidArgument)
+                {
+                    _logger.LogWarning($"Unable to remote compile this file as the preprocessor cache reported an error while parsing headers: {ex.Status.Detail}");
+                    return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec, guaranteedToExecuteLocally, cancellationToken);
+                }
             }
-            catch (RpcException ex) when (ex.StatusCode == StatusCode.InvalidArgument)
+            else
             {
-                _logger.LogWarning($"Unable to remote compile this file as the preprocessor cache reported an error while parsing headers: {ex.Status.Detail}");
-                return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec, cancellationToken);
+                dependentFiles = new PreprocessorResolutionResultWithTimingMetadata();
             }
 
             // Return the remote task descriptor.
@@ -246,7 +251,9 @@
             descriptor.EnvironmentVariables.MergeFrom(spec.ExecutionEnvironment.EnvironmentVariables);
             descriptor.EnvironmentVariables.MergeFrom(spec.Environment.Variables);
             descriptor.WorkingDirectoryAbsolutePath = spec.WorkingDirectory;
+            descriptor.UseFastLocalExecution = guaranteedToExecuteLocally;
             var inputsByPathOrContent = new InputFilesByPathOrContent();
+            var inputFileFullName = inputFile.FullName;
             using (var reader = new StreamReader(inputFile.FullName))
             {
                 var inputContent = await reader.ReadToEndAsync();
@@ -301,20 +308,31 @@
                     }
                 }
 
+                // If this is fast local execution, create a temporary file to sit next to it.
+                if (guaranteedToExecuteLocally && isVirtualised)
+                {
+                    inputFileFullName = inputFileFullName + ".vlocal";
+                    using (var writer = new StreamWriter(inputFileFullName))
+                    {
+                        await writer.WriteAsync(string.Join('\n', newInputLines));
+                    }
+                    inputsByPathOrContent.AbsolutePaths.Add(inputFileFullName);
+                    _logger.LogInformation($"Locally virtualising: {inputFileFullName}");
+                }
                 // Add the input file based on whether it's virtualised.
-                if (isVirtualised)
+                else if (isVirtualised)
                 {
                     inputsByPathOrContent.AbsolutePathsToVirtualContent.Add(
-                        inputFile.FullName,
+                        inputFileFullName,
                         string.Join('\n', newInputLines));
                     // @note: Remove the input file from dependent paths because we virtualise it instead.
-                    dependentFiles.DependsOnPaths.Remove(inputFile.FullName);
-                    _logger.LogInformation($"Virtualising: {inputFile.FullName}");
+                    dependentFiles.DependsOnPaths.Remove(inputFileFullName);
+                    _logger.LogInformation($"Virtualising: {inputFileFullName}");
                 }
                 else
                 {
-                    inputsByPathOrContent.AbsolutePaths.Add(inputFile.FullName);
-                    _logger.LogInformation($"Not virtualising: {inputFile.FullName}");
+                    inputsByPathOrContent.AbsolutePaths.Add(inputFileFullName);
+                    _logger.LogInformation($"Not virtualising: {inputFileFullName}");
                 }
             }
             if (pchCacheFile != null && !isCreatingPch)
@@ -323,8 +341,15 @@
             }
             inputsByPathOrContent.AbsolutePaths.AddRange(dependentFiles.DependsOnPaths);
             inputsByPathOrContent.AbsolutePathsToVirtualContent.Add(
-                responseFilePath,
+                guaranteedToExecuteLocally ? (responseFilePath + ".vlocal") : responseFilePath,
                 string.Join('\n', remotedResponseFileLines));
+            if (guaranteedToExecuteLocally)
+            {
+                using (var writer = new StreamWriter(responseFilePath + ".vlocal"))
+                {
+                    await writer.WriteAsync(string.Join('\n', remotedResponseFileLines));
+                }
+            }
             descriptor.InputsByPathOrContent = inputsByPathOrContent;
             descriptor.OutputAbsolutePaths.Add(outputPath.FullName);
             if (pchCacheFile != null && isCreatingPch)

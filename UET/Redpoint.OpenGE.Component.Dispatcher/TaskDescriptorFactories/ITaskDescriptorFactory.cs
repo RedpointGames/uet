@@ -15,6 +15,7 @@
 
         ValueTask<TaskDescriptor> CreateDescriptorForTaskSpecAsync(
             GraphTaskSpec spec, 
+            bool guaranteedToExecuteLocally,
             CancellationToken cancellationToken);
     }
 }

@@ -12,7 +12,10 @@
             return 0;
         }
 
-        public ValueTask<TaskDescriptor> CreateDescriptorForTaskSpecAsync(GraphTaskSpec spec, CancellationToken cancellationToken)
+        public ValueTask<TaskDescriptor> CreateDescriptorForTaskSpecAsync(
+            GraphTaskSpec spec,
+            bool guaranteedToExecuteLocally,
+            CancellationToken cancellationToken)
         {
             var local = new LocalTaskDescriptor
             {

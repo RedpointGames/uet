@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.OpenGE.Component.Dispatcher.WorkerPool
 {
+    using Grpc.Net.Client;
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Protocol;
     using System.Threading;

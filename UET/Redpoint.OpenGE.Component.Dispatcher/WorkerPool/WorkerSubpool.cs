@@ -129,7 +129,7 @@
             var changeInReserving = targetReserving - currentlyReserving;
             if (changeInReserving != 0)
             {
-                _logger.LogTrace($"Worker pool is now trying to reserve {targetReserving} cores, a change of {changeInReserving}.");
+                _logger.LogInformation($"Worker pool is now trying to reserve {targetReserving} cores, a change of {changeInReserving}.");
             }
 
             // We need to reserve cores from more remote workers.
@@ -149,7 +149,7 @@
                     // timed out recently.
                     .ThenBy(x => x.LastReservationTimeoutUtc))
                 {
-                    _logger.LogTrace($"Starting reservation on {enumeratedWorker}...");
+                    _logger.LogInformation($"Starting reservation on {enumeratedWorker}...");
                     var cancellationTokenSource = new CancellationTokenSource();
                     var worker = enumeratedWorker;
                     var pendingReservation = new WorkerStatePendingReservation();
@@ -165,7 +165,7 @@
                                 cancellationToken: cancellationToken);
 
                             // Send the request to reserve a core.
-                            _logger.LogTrace($"Requesting a core from {enumeratedWorker}...");
+                            _logger.LogInformation($"Requesting a core from {enumeratedWorker}...");
                             await pendingReservation.Request.RequestStream.WriteAsync(new ExecutionRequest
                             {
                                 ReserveCore = new ReserveCoreRequest
@@ -189,7 +189,7 @@
                                 shouldReprocessRemoteWorkers = true;
                                 return;
                             }
-                            _logger.LogTrace($"Obtained a core from {enumeratedWorker}, pushing it to the queue.");
+                            _logger.LogInformation($"Obtained a core from {enumeratedWorker}, pushing it to the queue.");
 
                             // We've successfully reserved a core on this remote worker! Add it to the
                             // reservations list and push it into the queue of available cores.
@@ -260,7 +260,7 @@
                     var pendingReservation = worker.PendingReservation;
                     if (pendingReservation != null)
                     {
-                        _logger.LogTrace($"Cancelling pending reservation for {worker} because it's no longer needed.");
+                        _logger.LogInformation($"Cancelling pending reservation for {worker} because it's no longer needed.");
                         pendingReservation.CancellationTokenSource?.Cancel();
                         try
                         {

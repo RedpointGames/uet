@@ -169,254 +169,313 @@
                         {
                             try
                             {
-                                // Do descriptor generation based on the task.
-                                TaskDescriptor taskDescriptor;
-                                switch (task)
+                                // Try to get a local core first, since this will let us run remote
+                                // tasks much faster.
+                                _logger.LogInformation("Trying to get a local core...");
+                                var localCoreTimeout = CancellationTokenSource.CreateLinkedTokenSource(
+                                    new CancellationTokenSource(250).Token,
+                                    instance.CancellationToken);
+                                IWorkerCore? localCore = null;
+                                try
                                 {
-                                    case DescribingGraphTask describingGraphTask:
-                                        // Generate the task descriptor from the factory. This can take a while
-                                        // if we're parsing preprocessor headers.
-                                        Stopwatch? prepareStopwatch = null;
-                                        if (!string.IsNullOrWhiteSpace(describingGraphTask.TaskDescriptorFactory.PreparationOperationDescription))
-                                        {
-                                            prepareStopwatch = Stopwatch.StartNew();
-                                            await responseStream.WriteAsync(new JobResponse
-                                            {
-                                                TaskPreparing = new TaskPreparingResponse
-                                                {
-                                                    Id = describingGraphTask.GraphTaskSpec.Task.Name,
-                                                    DisplayName = describingGraphTask.GraphTaskSpec.Task.Caption,
-                                                    OperationDescription = describingGraphTask.TaskDescriptorFactory.PreparationOperationDescription,
-                                                }
-                                            });
-                                        }
-                                        describingGraphTask.TaskDescriptor = taskDescriptor = await describingGraphTask.TaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
-                                            task.GraphTaskSpec,
-                                            instance.CancellationToken);
-                                        if (prepareStopwatch != null)
-                                        {
-                                            await responseStream.WriteAsync(new JobResponse
-                                            {
-                                                TaskPrepared = new TaskPreparedResponse
-                                                {
-                                                    Id = task.GraphTaskSpec.Task.Name,
-                                                    DisplayName = task.GraphTaskSpec.Task.Caption,
-                                                    TotalSeconds = prepareStopwatch!.Elapsed.TotalSeconds,
-                                                    OperationCompletedDescription = describingGraphTask.TaskDescriptorFactory.PreparationOperationCompletedDescription ?? string.Empty,
-                                                }
-                                            });
-                                        }
-                                        break;
-                                    case FastExecutableGraphTask fastExecutableGraphTask:
-                                        taskDescriptor = await fastExecutableGraphTask.TaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
-                                            fastExecutableGraphTask.GraphTaskSpec,
-                                            instance.CancellationToken);
-                                        break;
-                                    case ExecutableGraphTask executableGraphTask:
-                                        taskDescriptor = executableGraphTask.DescribingGraphTask.TaskDescriptor!;
-                                        break;
-                                    default:
-                                        throw new NotSupportedException();
+                                    localCore = await instance.WorkerPool.ReserveCoreAsync(
+                                        true,
+                                        localCoreTimeout.Token);
+                                    _logger.LogInformation("Obtained a local core.");
                                 }
-
-                                // Do execution based on the task.
-                                switch (task)
+                                catch (OperationCanceledException)
                                 {
-                                    case DescribingGraphTask:
-                                        // No execution work to do for this task.
-                                        exitCode = 0;
-                                        status = TaskCompletionStatus.TaskCompletionSuccess;
-                                        didComplete = true;
-                                        skipEmitComplete = true;
-                                        break;
-                                    default:
-                                        {
-                                            // Reserve a core from somewhere...
-                                            await using var core = await instance.WorkerPool.ReserveCoreAsync(
-                                                taskDescriptor.DescriptorCase != TaskDescriptor.DescriptorOneofCase.Remote,
+                                    // Could not get a local core fast enough.
+                                    _logger.LogInformation("Unable to get a local core, potentially remoting instead.");
+                                }
+                                try
+                                {
+                                    // Do descriptor generation based on the task.
+                                    TaskDescriptor taskDescriptor;
+                                    switch (task)
+                                    {
+                                        case DescribingGraphTask describingGraphTask:
+                                            // Generate the task descriptor from the factory. This can take a while
+                                            // if we're parsing preprocessor headers.
+                                            Stopwatch? prepareStopwatch = null;
+                                            if (!string.IsNullOrWhiteSpace(describingGraphTask.TaskDescriptorFactory.PreparationOperationDescription) &&
+                                                localCore == null)
+                                            {
+                                                prepareStopwatch = Stopwatch.StartNew();
+                                                await responseStream.WriteAsync(new JobResponse
+                                                {
+                                                    TaskPreparing = new TaskPreparingResponse
+                                                    {
+                                                        Id = describingGraphTask.GraphTaskSpec.Task.Name,
+                                                        DisplayName = describingGraphTask.GraphTaskSpec.Task.Caption,
+                                                        OperationDescription = describingGraphTask.TaskDescriptorFactory.PreparationOperationDescription,
+                                                    }
+                                                });
+                                            }
+                                            describingGraphTask.TaskDescriptor = taskDescriptor = await describingGraphTask.TaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
+                                                task.GraphTaskSpec,
+                                                localCore != null,
                                                 instance.CancellationToken);
-
-                                            // We're now going to start doing the work for this task.
-                                            taskStopwatch.Start();
-                                            currentPhaseStopwatch.Start();
-                                            currentPhase = taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote
-                                                ? TaskPhase.RemoteToolSynchronisation
-                                                : TaskPhase.TaskExecution;
-                                            await responseStream.WriteAsync(new JobResponse
+                                            if (prepareStopwatch != null &&
+                                                localCore == null)
                                             {
-                                                TaskStarted = new TaskStartedResponse
+                                                await responseStream.WriteAsync(new JobResponse
                                                 {
-                                                    Id = task.GraphTaskSpec.Task.Name,
-                                                    DisplayName = task.GraphTaskSpec.Task.Caption,
-                                                    WorkerMachineName = core.WorkerMachineName,
-                                                    WorkerCoreNumber = core.WorkerCoreNumber,
-                                                    InitialPhaseStartTimeUtcTicks = currentPhaseStartTimestamp.UtcTicks,
-                                                    InitialPhase = currentPhase,
-                                                },
-                                            }, instance.CancellationToken);
-                                            didStart = true;
-
-                                            // Perform synchronisation for remote tasks.
-                                            if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote)
-                                            {
-                                                // Synchronise the tool and determine the hash to
-                                                // use for the actual request.
-                                                var toolExecutionInfo = await _toolSynchroniser.SynchroniseToolAndGetXxHash64(
-                                                    core,
-                                                    taskDescriptor.Remote.ToolLocalAbsolutePath,
-                                                    instance.CancellationToken);
-                                                taskDescriptor.Remote.ToolExecutionInfo = toolExecutionInfo;
-
-                                                // Notify the client we're changing phases.
-                                                await SendPhaseChangeAsync(
-                                                    TaskPhase.RemoteInputBlobSynchronisation,
-                                                    new Dictionary<string, string>
+                                                    TaskPrepared = new TaskPreparedResponse
                                                     {
-                                                        { "tool.xxHash64", taskDescriptor.Remote.ToolExecutionInfo.ToolXxHash64.HexString() },
-                                                        { "tool.executableName", taskDescriptor.Remote.ToolExecutionInfo.ToolExecutableName },
-                                                    });
-
-                                                // Synchronise all of the input blobs.
-                                                var inputBlobSynchronisation = await _blobSynchroniser.SynchroniseInputBlobs(
-                                                    core,
-                                                    taskDescriptor.Remote,
-                                                    instance.CancellationToken);
-                                                taskDescriptor.Remote.InputsByBlobXxHash64 = inputBlobSynchronisation.Result;
-
-                                                // Notify the client we're changing phases.
-                                                await SendPhaseChangeAsync(
-                                                    TaskPhase.TaskExecution,
-                                                    new Dictionary<string, string>
-                                                    {
-                                                        { 
-                                                            "inputBlobSync.elapsedUtcTicksHashingInputFiles", 
-                                                            inputBlobSynchronisation.ElapsedUtcTicksHashingInputFiles.ToString(CultureInfo.InvariantCulture) 
-                                                        },
-                                                        { 
-                                                            "inputBlobSync.elapsedUtcTicksQueryingMissingBlobs", 
-                                                            inputBlobSynchronisation.ElapsedUtcTicksQueryingMissingBlobs.ToString(CultureInfo.InvariantCulture)
-                                                        },
-                                                        {
-                                                            "inputBlobSync.elapsedUtcTicksTransferringCompressedBlobs",
-                                                            inputBlobSynchronisation.ElapsedUtcTicksTransferringCompressedBlobs.ToString(CultureInfo.InvariantCulture) 
-                                                        },
-                                                        {
-                                                            "inputBlobSync.compressedDataTransferLength", 
-                                                            inputBlobSynchronisation.CompressedDataTransferLength.ToString(CultureInfo.InvariantCulture) 
-                                                        },
-                                                    });
+                                                        Id = task.GraphTaskSpec.Task.Name,
+                                                        DisplayName = task.GraphTaskSpec.Task.Caption,
+                                                        TotalSeconds = prepareStopwatch!.Elapsed.TotalSeconds,
+                                                        OperationCompletedDescription = describingGraphTask.TaskDescriptorFactory.PreparationOperationCompletedDescription ?? string.Empty,
+                                                    }
+                                                });
                                             }
-
-                                            // Execute the task on the core.
-                                            var executeTaskRequest = new ExecuteTaskRequest
+                                            if (localCore != null)
                                             {
-                                                Descriptor_ = taskDescriptor,
-                                            };
-                                            if (task.GraphTaskSpec.Tool.AutoRecover != null)
-                                            {
-                                                executeTaskRequest.AutoRecover.AddRange(task.GraphTaskSpec.Tool.AutoRecover);
-                                            }
-                                            // @note: This hides MSVC's useless output where it shows you the filename
-                                            // of the file you are compiling.
-                                            executeTaskRequest.IgnoreLines.Add(task.GraphTaskSpec.Task.Caption);
-                                            await core.Request.RequestStream.WriteAsync(new ExecutionRequest
-                                            {
-                                                ExecuteTask = executeTaskRequest
-                                            }, instance.CancellationToken);
-
-                                            // Stream the results until we get an exit code.
-                                            await using var enumerable = core.Request.GetAsyncEnumerator(instance.CancellationToken);
-                                            ExecuteTaskResponse? finalExecuteTaskResponse = null;
-                                            while (!didComplete && await enumerable.MoveNextAsync(instance.CancellationToken))
-                                            {
-                                                var current = enumerable.Current;
-                                                if (current.ResponseCase != ExecutionResponse.ResponseOneofCase.ExecuteTask)
+                                                // Shortcut into the downstream execution task.
+                                                var executionTasks = graph.TaskDependencies.WhatDependsOnTarget(task);
+                                                if (executionTasks.Count == 1)
                                                 {
-                                                    throw new RpcException(new Status(
-                                                        StatusCode.InvalidArgument,
-                                                        "Unexpected task execution response from worker RPC."));
-                                                }
-                                                switch (current.ExecuteTask.Response.DataCase)
-                                                {
-                                                    case ProcessResponse.DataOneofCase.StandardOutputLine:
-                                                        await responseStream.WriteAsync(new JobResponse
-                                                        {
-                                                            TaskOutput = new TaskOutputResponse
-                                                            {
-                                                                Id = task.GraphTaskSpec.Task.Name,
-                                                                StandardOutputLine = current.ExecuteTask.Response.StandardOutputLine,
-                                                            }
-                                                        });
-                                                        break;
-                                                    case ProcessResponse.DataOneofCase.StandardErrorLine:
-                                                        await responseStream.WriteAsync(new JobResponse
-                                                        {
-                                                            TaskOutput = new TaskOutputResponse
-                                                            {
-                                                                Id = task.GraphTaskSpec.Task.Name,
-                                                                StandardErrorLine = current.ExecuteTask.Response.StandardErrorLine,
-                                                            }
-                                                        });
-                                                        break;
-                                                    case ProcessResponse.DataOneofCase.ExitCode:
-                                                        exitCode = current.ExecuteTask.Response.ExitCode;
-                                                        finalExecuteTaskResponse = current.ExecuteTask;
-                                                        status = exitCode == 0
-                                                            ? TaskCompletionStatus.TaskCompletionSuccess
-                                                            : TaskCompletionStatus.TaskCompletionFailure;
-                                                        didComplete = true;
-                                                        break;
+                                                    await FinishTaskAsync(graph, instance, task, status, false);
+                                                    task = executionTasks.First();
                                                 }
                                             }
-
-                                            if (finalExecuteTaskResponse == null)
-                                            {
-                                                // This should never be null since we break the loop on ExitCode.
-                                                throw new InvalidOperationException();
-                                            }
-
-                                            // Attach any metadata from the task execution.
-                                            // @note: We don't have any metadata for task execution yet.
-
-                                            // If we were successful, synchronise the output blobs back.
-                                            if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote && 
-                                                status == TaskCompletionStatus.TaskCompletionSuccess &&
-                                                finalExecuteTaskResponse.OutputAbsolutePathsToBlobXxHash64 != null)
-                                            {
-                                                // Notify the client we're changing phases.
-                                                await SendPhaseChangeAsync(
-                                                    TaskPhase.RemoteOutputBlobSynchronisation,
-                                                    finalPhaseMetadata);
-                                                finalPhaseMetadata.Clear();
-
-                                                var outputBlobSynchronisation = await _blobSynchroniser.SynchroniseOutputBlobs(
-                                                    core,
-                                                    taskDescriptor.Remote,
-                                                    finalExecuteTaskResponse,
-                                                    instance.CancellationToken);
-                                                finalPhaseMetadata = new Dictionary<string, string>
-                                                {
-                                                    {
-                                                        "outputBlobSync.elapsedUtcTicksHashingInputFiles",
-                                                        outputBlobSynchronisation.ElapsedUtcTicksHashingInputFiles.ToString(CultureInfo.InvariantCulture)
-                                                    },
-                                                    {
-                                                        "outputBlobSync.elapsedUtcTicksQueryingMissingBlobs",
-                                                        outputBlobSynchronisation.ElapsedUtcTicksQueryingMissingBlobs.ToString(CultureInfo.InvariantCulture)
-                                                    },
-                                                    {
-                                                        "outputBlobSync.elapsedUtcTicksTransferringCompressedBlobs",
-                                                        outputBlobSynchronisation.ElapsedUtcTicksTransferringCompressedBlobs.ToString(CultureInfo.InvariantCulture)
-                                                    },
-                                                    {
-                                                        "outputBlobSync.compressedDataTransferLength",
-                                                        outputBlobSynchronisation.CompressedDataTransferLength.ToString(CultureInfo.InvariantCulture)
-                                                    },
-                                                };
-                                            }
-
                                             break;
-                                        }
+                                        case FastExecutableGraphTask fastExecutableGraphTask:
+                                            taskDescriptor = await fastExecutableGraphTask.TaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
+                                                fastExecutableGraphTask.GraphTaskSpec,
+                                                localCore != null,
+                                                instance.CancellationToken);
+                                            break;
+                                        case ExecutableGraphTask executableGraphTask:
+                                            taskDescriptor = executableGraphTask.DescribingGraphTask.TaskDescriptor!;
+                                            break;
+                                        default:
+                                            throw new NotSupportedException();
+                                    }
+
+                                    // Do execution based on the task.
+                                    switch (task)
+                                    {
+                                        case DescribingGraphTask:
+                                            // No execution work to do for this task.
+                                            exitCode = 0;
+                                            status = TaskCompletionStatus.TaskCompletionSuccess;
+                                            didComplete = true;
+                                            skipEmitComplete = true;
+                                            break;
+                                        default:
+                                            {
+                                                // Reserve a core from somewhere...
+                                                _logger.LogInformation("Waiting for core reservation for task...");
+                                                IWorkerCore core;
+                                                var usingFastLocalExecution = false;
+                                                if (localCore != null)
+                                                {
+                                                    core = localCore;
+                                                    localCore = null; // So we don't call DisposeAsync twice on the same core.
+                                                    usingFastLocalExecution = true;
+                                                }
+                                                else
+                                                {
+                                                    core = await instance.WorkerPool.ReserveCoreAsync(
+                                                        taskDescriptor.DescriptorCase != TaskDescriptor.DescriptorOneofCase.Remote,
+                                                        instance.CancellationToken);
+                                                }
+                                                await using (core)
+                                                {
+                                                    // We're now going to start doing the work for this task.
+                                                    _logger.LogInformation($"Got core reservation from: {core.WorkerMachineName} {core.WorkerCoreNumber}");
+                                                    taskStopwatch.Start();
+                                                    currentPhaseStopwatch.Start();
+                                                    currentPhase = (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote && !usingFastLocalExecution)
+                                                        ? TaskPhase.RemoteToolSynchronisation
+                                                        : TaskPhase.TaskExecution;
+                                                    await responseStream.WriteAsync(new JobResponse
+                                                    {
+                                                        TaskStarted = new TaskStartedResponse
+                                                        {
+                                                            Id = task.GraphTaskSpec.Task.Name,
+                                                            DisplayName = task.GraphTaskSpec.Task.Caption,
+                                                            WorkerMachineName = core.WorkerMachineName,
+                                                            WorkerCoreNumber = core.WorkerCoreNumber,
+                                                            InitialPhaseStartTimeUtcTicks = currentPhaseStartTimestamp.UtcTicks,
+                                                            InitialPhase = currentPhase,
+                                                        },
+                                                    }, instance.CancellationToken);
+                                                    didStart = true;
+
+                                                    // Perform synchronisation for remote tasks.
+                                                    if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote && !usingFastLocalExecution)
+                                                    {
+                                                        // Synchronise the tool and determine the hash to
+                                                        // use for the actual request.
+                                                        var toolExecutionInfo = await _toolSynchroniser.SynchroniseToolAndGetXxHash64(
+                                                            core,
+                                                            taskDescriptor.Remote.ToolLocalAbsolutePath,
+                                                            instance.CancellationToken);
+                                                        taskDescriptor.Remote.ToolExecutionInfo = toolExecutionInfo;
+
+                                                        // Notify the client we're changing phases.
+                                                        await SendPhaseChangeAsync(
+                                                            TaskPhase.RemoteInputBlobSynchronisation,
+                                                            new Dictionary<string, string>
+                                                            {
+                                                                { "tool.xxHash64", taskDescriptor.Remote.ToolExecutionInfo.ToolXxHash64.HexString() },
+                                                                { "tool.executableName", taskDescriptor.Remote.ToolExecutionInfo.ToolExecutableName },
+                                                            });
+
+                                                        // Synchronise all of the input blobs.
+                                                        var inputBlobSynchronisation = await _blobSynchroniser.SynchroniseInputBlobs(
+                                                            core,
+                                                            taskDescriptor.Remote,
+                                                            instance.CancellationToken);
+                                                        taskDescriptor.Remote.InputsByBlobXxHash64 = inputBlobSynchronisation.Result;
+
+                                                        // Notify the client we're changing phases.
+                                                        await SendPhaseChangeAsync(
+                                                            TaskPhase.TaskExecution,
+                                                            new Dictionary<string, string>
+                                                            {
+                                                                {
+                                                                    "inputBlobSync.elapsedUtcTicksHashingInputFiles",
+                                                                    inputBlobSynchronisation.ElapsedUtcTicksHashingInputFiles.ToString(CultureInfo.InvariantCulture)
+                                                                },
+                                                                {
+                                                                    "inputBlobSync.elapsedUtcTicksQueryingMissingBlobs",
+                                                                    inputBlobSynchronisation.ElapsedUtcTicksQueryingMissingBlobs.ToString(CultureInfo.InvariantCulture)
+                                                                },
+                                                                {
+                                                                    "inputBlobSync.elapsedUtcTicksTransferringCompressedBlobs",
+                                                                    inputBlobSynchronisation.ElapsedUtcTicksTransferringCompressedBlobs.ToString(CultureInfo.InvariantCulture)
+                                                                },
+                                                                {
+                                                                    "inputBlobSync.compressedDataTransferLength",
+                                                                    inputBlobSynchronisation.CompressedDataTransferLength.ToString(CultureInfo.InvariantCulture)
+                                                                },
+                                                            });
+                                                    }
+
+                                                    // Execute the task on the core.
+                                                    var executeTaskRequest = new ExecuteTaskRequest
+                                                    {
+                                                        Descriptor_ = taskDescriptor,
+                                                    };
+                                                    if (task.GraphTaskSpec.Tool.AutoRecover != null)
+                                                    {
+                                                        executeTaskRequest.AutoRecover.AddRange(task.GraphTaskSpec.Tool.AutoRecover);
+                                                    }
+                                                    // @note: This hides MSVC's useless output where it shows you the filename
+                                                    // of the file you are compiling.
+                                                    executeTaskRequest.IgnoreLines.Add(task.GraphTaskSpec.Task.Caption);
+                                                    await core.Request.RequestStream.WriteAsync(new ExecutionRequest
+                                                    {
+                                                        ExecuteTask = executeTaskRequest
+                                                    }, instance.CancellationToken);
+
+                                                    // Stream the results until we get an exit code.
+                                                    await using var enumerable = core.Request.GetAsyncEnumerator(instance.CancellationToken);
+                                                    ExecuteTaskResponse? finalExecuteTaskResponse = null;
+                                                    while (!didComplete && await enumerable.MoveNextAsync(instance.CancellationToken))
+                                                    {
+                                                        var current = enumerable.Current;
+                                                        if (current.ResponseCase != ExecutionResponse.ResponseOneofCase.ExecuteTask)
+                                                        {
+                                                            throw new RpcException(new Status(
+                                                                StatusCode.InvalidArgument,
+                                                                "Unexpected task execution response from worker RPC."));
+                                                        }
+                                                        switch (current.ExecuteTask.Response.DataCase)
+                                                        {
+                                                            case ProcessResponse.DataOneofCase.StandardOutputLine:
+                                                                await responseStream.WriteAsync(new JobResponse
+                                                                {
+                                                                    TaskOutput = new TaskOutputResponse
+                                                                    {
+                                                                        Id = task.GraphTaskSpec.Task.Name,
+                                                                        StandardOutputLine = current.ExecuteTask.Response.StandardOutputLine,
+                                                                    }
+                                                                });
+                                                                break;
+                                                            case ProcessResponse.DataOneofCase.StandardErrorLine:
+                                                                await responseStream.WriteAsync(new JobResponse
+                                                                {
+                                                                    TaskOutput = new TaskOutputResponse
+                                                                    {
+                                                                        Id = task.GraphTaskSpec.Task.Name,
+                                                                        StandardErrorLine = current.ExecuteTask.Response.StandardErrorLine,
+                                                                    }
+                                                                });
+                                                                break;
+                                                            case ProcessResponse.DataOneofCase.ExitCode:
+                                                                exitCode = current.ExecuteTask.Response.ExitCode;
+                                                                finalExecuteTaskResponse = current.ExecuteTask;
+                                                                status = exitCode == 0
+                                                                    ? TaskCompletionStatus.TaskCompletionSuccess
+                                                                    : TaskCompletionStatus.TaskCompletionFailure;
+                                                                didComplete = true;
+                                                                break;
+                                                        }
+                                                    }
+
+                                                    if (finalExecuteTaskResponse == null)
+                                                    {
+                                                        // This should never be null since we break the loop on ExitCode.
+                                                        throw new InvalidOperationException();
+                                                    }
+
+                                                    // Attach any metadata from the task execution.
+                                                    // @note: We don't have any metadata for task execution yet.
+
+                                                    // If we were successful, synchronise the output blobs back.
+                                                    if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote &&
+                                                        status == TaskCompletionStatus.TaskCompletionSuccess &&
+                                                        finalExecuteTaskResponse.OutputAbsolutePathsToBlobXxHash64 != null && 
+                                                        !usingFastLocalExecution)
+                                                    {
+                                                        // Notify the client we're changing phases.
+                                                        await SendPhaseChangeAsync(
+                                                            TaskPhase.RemoteOutputBlobSynchronisation,
+                                                            finalPhaseMetadata);
+                                                        finalPhaseMetadata.Clear();
+
+                                                        var outputBlobSynchronisation = await _blobSynchroniser.SynchroniseOutputBlobs(
+                                                            core,
+                                                            taskDescriptor.Remote,
+                                                            finalExecuteTaskResponse,
+                                                            instance.CancellationToken);
+                                                        finalPhaseMetadata = new Dictionary<string, string>
+                                                        {
+                                                            {
+                                                                "outputBlobSync.elapsedUtcTicksHashingInputFiles",
+                                                                outputBlobSynchronisation.ElapsedUtcTicksHashingInputFiles.ToString(CultureInfo.InvariantCulture)
+                                                            },
+                                                            {
+                                                                "outputBlobSync.elapsedUtcTicksQueryingMissingBlobs",
+                                                                outputBlobSynchronisation.ElapsedUtcTicksQueryingMissingBlobs.ToString(CultureInfo.InvariantCulture)
+                                                            },
+                                                            {
+                                                                "outputBlobSync.elapsedUtcTicksTransferringCompressedBlobs",
+                                                                outputBlobSynchronisation.ElapsedUtcTicksTransferringCompressedBlobs.ToString(CultureInfo.InvariantCulture)
+                                                            },
+                                                            {
+                                                                "outputBlobSync.compressedDataTransferLength",
+                                                                outputBlobSynchronisation.CompressedDataTransferLength.ToString(CultureInfo.InvariantCulture)
+                                                            },
+                                                        };
+                                                    }
+                                                }
+
+                                                break;
+                                            }
+                                    }
+                                }
+                                finally
+                                {
+                                    if (localCore != null)
+                                    {
+                                        await localCore.DisposeAsync();
+                                    }
                                 }
                             }
                             catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled && cancellationToken.IsCancellationRequested)
@@ -487,14 +546,47 @@
                                     }, instance.CancellationToken);
                                 }
 
-                                if (status == TaskCompletionStatus.TaskCompletionSuccess)
+                                await FinishTaskAsync(graph, instance, task, status, true);
+                            }
+                            catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
+                            {
+                                // We're stopping because the caller cancelled the build (i.e. the client
+                                // of the dispatcher RPC hit "Ctrl-C").
+                                instance.CancelDueToException(ex);
+                            }
+                            catch (OperationCanceledException) when (instance.CancellationToken.IsCancellationRequested)
+                            {
+                                // We're stopping because something else cancelled the build.
+                            }
+                            catch (ObjectDisposedException ex) when (ex.Message.Contains("Request has finished and HttpContext disposed."))
+                            {
+                                // We can't send further messages because the response stream has died.
+                            }
+                            catch (Exception ex)
+                            {
+                                // If any of this fails, we have to cancel the build.
+                                _logger.LogCritical(ex, $"Exception during task execution finalisation: {ex.Message}");
+                                instance.CancelDueToException(ex);
+                            }
+                        }
+
+                        static async Task FinishTaskAsync(
+                            Graph graph, 
+                            GraphExecutionInstance instance,
+                            GraphTask task, 
+                            TaskCompletionStatus status,
+                            bool scheduleDownstream)
+                        {
+                            if (status == TaskCompletionStatus.TaskCompletionSuccess)
+                            {
+                                // This task succeeded, queue up downstream tasks for scheduling.
+                                await instance.CompletedAndScheduledTasksLock.WaitAsync();
+                                try
                                 {
-                                    // This task succeeded, queue up downstream tasks for scheduling.
-                                    await instance.CompletedAndScheduledTasksLock.WaitAsync();
-                                    try
+                                    instance.CompletedTasks.Add(task);
+                                    if (Interlocked.Decrement(ref instance.RemainingTasks) != 0)
                                     {
-                                        instance.CompletedTasks.Add(task);
-                                        if (Interlocked.Decrement(ref instance.RemainingTasks) != 0)
+                                        if (scheduleDownstream)
                                         {
                                             // What is waiting on this task?
                                             var dependsOn = graph.TaskDependencies.WhatDependsOnTarget(task);
@@ -518,43 +610,23 @@
                                                 }
                                             }
                                         }
-                                        else
-                                        {
-                                            // Make sure our scheduling loop gets a chance to check
-                                            // RemainingTasks.
-                                            instance.QueuedTaskAvailableForScheduling.Release();
-                                        }
                                     }
-                                    finally
+                                    else
                                     {
-                                        instance.CompletedAndScheduledTasksLock.Release();
+                                        // Make sure our scheduling loop gets a chance to check
+                                        // RemainingTasks.
+                                        instance.QueuedTaskAvailableForScheduling.Release();
                                     }
                                 }
-                                else
+                                finally
                                 {
-                                    // This task failed, cancel the build.
-                                    instance.CancelDueToFailure();
+                                    instance.CompletedAndScheduledTasksLock.Release();
                                 }
                             }
-                            catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
+                            else
                             {
-                                // We're stopping because the caller cancelled the build (i.e. the client
-                                // of the dispatcher RPC hit "Ctrl-C").
-                                instance.CancelDueToException(ex);
-                            }
-                            catch (OperationCanceledException) when (instance.CancellationToken.IsCancellationRequested)
-                            {
-                                // We're stopping because something else cancelled the build.
-                            }
-                            catch (ObjectDisposedException ex) when (ex.Message.Contains("Request has finished and HttpContext disposed."))
-                            {
-                                // We can't send further messages because the response stream has died.
-                            }
-                            catch (Exception ex)
-                            {
-                                // If any of this fails, we have to cancel the build.
-                                _logger.LogCritical(ex, $"Exception during task execution finalisation: {ex.Message}");
-                                instance.CancelDueToException(ex);
+                                // This task failed, cancel the build.
+                                instance.CancelDueToFailure();
                             }
                         }
                     }));
