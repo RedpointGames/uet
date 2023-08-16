@@ -20,7 +20,6 @@
 
         public abstract Task<PreprocessorResolutionResultWithTimingMetadata> GetResolvedDependenciesAsync(
             string filePath,
-            string[] forceIncludesFromPch,
             string[] forceIncludes,
             string[] includeDirectories,
             Dictionary<string, string> globalDefinitions,

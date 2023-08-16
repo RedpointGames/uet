@@ -114,7 +114,6 @@
 
         public async override Task<PreprocessorResolutionResultWithTimingMetadata> GetResolvedDependenciesAsync(
             string filePath, 
-            string[] forceIncludesFromPch,
             string[] forceIncludes, 
             string[] includeDirectories,
             Dictionary<string, string> globalDefinitions,
@@ -125,7 +124,6 @@
             return await _preprocessorResolver.ResolveAsync(
                 _cachingScanner!,
                 filePath,
-                forceIncludesFromPch,
                 forceIncludes,
                 includeDirectories,
                 globalDefinitions,
@@ -170,7 +168,6 @@
                 var result = await _preprocessorResolver.ResolveAsync(
                     _cachingScanner!,
                     request.Path,
-                    request.ForceIncludeFromPchPaths.ToArray(),
                     request.ForceIncludePaths.ToArray(),
                     request.IncludeDirectories.ToArray(),
                     request.GlobalDefinitions.ToDictionary(k => k.Key, v => v.Value),

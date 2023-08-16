@@ -144,7 +144,6 @@
         public Task<PreprocessorResolutionResultWithTimingMetadata> ResolveAsync(
             ICachingPreprocessorScanner scanner,
             string path,
-            string[] forceIncludesFromPch,
             string[] forceIncludes,
             string[] includeDirectories,
             Dictionary<string, string> globalDefinitions,
@@ -154,10 +153,6 @@
             if (!Path.IsPathRooted(path))
             {
                 throw new ArgumentException($"Path '{path}' must be an absolute path", nameof(path));
-            }
-            if (forceIncludesFromPch.Any(x => !Path.IsPathRooted(x)))
-            {
-                throw new ArgumentException($"Paths must be absolute", nameof(forceIncludesFromPch));
             }
             if (forceIncludes.Any(x => !Path.IsPathRooted(x)))
             {
@@ -244,31 +239,6 @@
                         Expansion = PreprocessorExpressionParser.ParseExpansion(
                             PreprocessorExpressionLexer.Lex(globalDefinition.Value))
                     };
-            }
-
-            // Process all of the root files that are force included via
-            // a precompiled header. We'll exclude any files that are
-            // referenced by the PCH, because their content will already
-            // be in the binary PCH file.
-            foreach (var rootFile in forceIncludesFromPch)
-            {
-                try
-                {
-                    var stack = new Stack<string>();
-                    stack.Push(path);
-                    state.HasInclude = HasIncludeWithStack(state, stack);
-                    ProcessFile(
-                        state,
-                        rootFile,
-                        stack,
-                        state.ReferencedFilesInPch,
-                        cancellationToken);
-                }
-                catch (Exception ex) when (!(ex is OperationCanceledException))
-                {
-                    throw new PreprocessorResolutionException(rootFile, ex);
-                }
-                cancellationToken.ThrowIfCancellationRequested();
             }
 
             // Process all of the root files that are forced included

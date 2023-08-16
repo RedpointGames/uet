@@ -161,7 +161,8 @@ message GetResolvedDependenciesRequest {
 	// @note: Separate systemIncludeDirectories field removed.
 	map<string, string> globalDefinitions = 4;
 	repeated string forceIncludePaths = 5;
-	repeated string forceIncludeFromPchPaths = 6;
+	// @note: forceIncludeFromPchPaths field removed because it doesn't allow
+	// us to reduce file transfers.
 	int64 buildStartTicks = 7;
 }
 

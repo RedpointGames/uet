@@ -115,7 +115,6 @@
 
         public async Task<PreprocessorResolutionResultWithTimingMetadata> GetResolvedDependenciesAsync(
             string filePath,
-            string[] forceIncludesFromPch,
             string[] forceIncludes,
             string[] includeDirectories,
             Dictionary<string, string> globalDefinitions,
@@ -135,7 +134,6 @@
                     request.IncludeDirectories.AddRange(includeDirectories);
                     request.GlobalDefinitions.Add(globalDefinitions);
                     request.ForceIncludePaths.AddRange(forceIncludes);
-                    request.ForceIncludeFromPchPaths.AddRange(forceIncludesFromPch);
 
                     return (await client.GetResolvedDependenciesAsync(request, cancellationToken: cancellationToken)).Result;
                 }

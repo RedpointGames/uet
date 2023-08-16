@@ -75,7 +75,6 @@
                 {
                     return await preprocessorCache!.GetResolvedDependenciesAsync(
                         context.ParseResult.GetValueForOption(_options.File)!.FullName,
-                        (context.ParseResult.GetValueForOption(_options.ForceIncludesFromPch) ?? Array.Empty<FileInfo>()).Select(x => x.FullName).ToArray(),
                         (context.ParseResult.GetValueForOption(_options.ForceIncludes) ?? Array.Empty<FileInfo>()).Select(x => x.FullName).ToArray(),
                         (context.ParseResult.GetValueForOption(_options.IncludeDirectories) ?? Array.Empty<DirectoryInfo>()).Select(x => x.FullName).ToArray(),
                         (context.ParseResult.GetValueForOption(_options.GlobalDefinitions) ?? Array.Empty<string>()).Select(x =>

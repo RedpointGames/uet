@@ -10,7 +10,6 @@
         Task<PreprocessorResolutionResultWithTimingMetadata> ResolveAsync(
             ICachingPreprocessorScanner scanner,
             string path,
-            string[] forceIncludesFromPch,
             string[] forceIncludes,
             string[] includeDirectories,
             Dictionary<string, string> globalDefinitions,

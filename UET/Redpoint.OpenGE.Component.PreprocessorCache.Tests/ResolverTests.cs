@@ -328,7 +328,6 @@
                 new NonCachingPreprocessorScanner(),
                 path,
                 Array.Empty<string>(),
-                Array.Empty<string>(),
                 includes,
                 globalDefinitions,
                 DateTimeOffset.UtcNow.Ticks,
@@ -661,10 +660,6 @@
                 new[]
                 {
                     pchPath,
-                },
-                new[]
-                {
-                    @"C:\Work\internal\EOS_OSB\EOS_OSB\Intermediate\Build\Win64\x64\UnrealEditor\DebugGame\ExampleOSS\Definitions.ExampleOSS.h",
                 },
                 includes,
                 globalDefinitions,
