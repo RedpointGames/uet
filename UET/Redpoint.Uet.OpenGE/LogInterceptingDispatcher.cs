@@ -81,7 +81,23 @@
                         break;
                     case JobResponse.ResponseOneofCase.TaskCompleted:
                         tasksComplete++;
-                        _logger.LogInformation($"{GetBuildStatusLogPrefix()} {response.TaskCompleted.DisplayName} {Bright.Green($"[done in {response.TaskCompleted.TotalSeconds:F2} secs]")}");
+                        var taskCompleted = response.TaskCompleted;
+                        switch (taskCompleted.Status)
+                        {
+                            case TaskCompletionStatus.TaskCompletionSuccess:
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix()} {response.TaskCompleted.DisplayName} {Bright.Green($"[success in {taskCompleted.TotalSeconds:F2} secs]")}");
+                                break;
+                            case TaskCompletionStatus.TaskCompletionException:
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix()} {response.TaskCompleted.DisplayName} {Bright.Red($"[exception in {taskCompleted.TotalSeconds:F2} secs]")}");
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix()} {response.TaskCompleted.DisplayName} Exception propagated from OpenGE executor: " + taskCompleted.ExceptionMessage);
+                                break;
+                            case TaskCompletionStatus.TaskCompletionFailure:
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix()} {response.TaskCompleted.DisplayName} {taskCompleted.DisplayName} {Bright.Red($"[failed in {taskCompleted.TotalSeconds:F2} secs; exit code {taskCompleted.ExitCode}]")}");
+                                break;
+                            case TaskCompletionStatus.TaskCompletionCancelled:
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix()} {response.TaskCompleted.DisplayName} {taskCompleted.DisplayName} {Bright.Yellow($"[cancelled in {taskCompleted.TotalSeconds:F2} secs]")}");
+                                break;
+                        }
                         break;
                 }
             }

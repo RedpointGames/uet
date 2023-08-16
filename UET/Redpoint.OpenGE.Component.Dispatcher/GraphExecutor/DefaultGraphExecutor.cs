@@ -41,8 +41,10 @@
             public readonly SemaphoreSlim ScheduledExecutionsLock = new SemaphoreSlim(1);
             public readonly HashSet<GraphTask> ScheduledTasks = new HashSet<GraphTask>();
             public readonly HashSet<GraphTask> CompletedTasks = new HashSet<GraphTask>();
+            public readonly HashSet<GraphTask> CancelledDueToUpstreamFailureTasks = new HashSet<GraphTask>();
             public readonly SemaphoreSlim CompletedAndScheduledTasksLock = new SemaphoreSlim(1);
-            public bool IsCancelledDueToFailure { get; private set; }
+            public bool IsCancelledDueToException { get; private set; }
+            public string? ExceptionMessage { get; private set; }
 
             public GraphExecutionInstance(CancellationToken cancellationToken)
             {
@@ -50,15 +52,10 @@
                     cancellationToken);
             }
 
-            internal void CancelDueToFailure()
-            {
-                IsCancelledDueToFailure = true;
-                _cancellationTokenSource.Cancel();
-            }
-
             internal void CancelDueToException(Exception ex)
             {
-                IsCancelledDueToFailure = true;
+                IsCancelledDueToException = true;
+                ExceptionMessage = ex.ToString();
                 _cancellationTokenSource.Cancel();
             }
         }
@@ -124,9 +121,9 @@
                     }
                     if (!instance.QueuedTasksForScheduling.TryDequeue(out var task))
                     {
-                        throw new RpcException(new Status(
-                            StatusCode.Internal,
-                            "Queued task semaphore indicated a task could be scheduled, but nothing was available in the queue."));
+                        // This can happen during failures when we want this while loop
+                        // to recheck RemainingTasks. Go back and fetch more tasks.
+                        continue;
                     }
 
                     // Schedule up a background 
@@ -269,15 +266,18 @@
                                                 // Reserve a core from somewhere...
                                                 _logger.LogInformation("Waiting for core reservation for task...");
                                                 IWorkerCore core;
-                                                var usingFastLocalExecution = false;
                                                 if (localCore != null)
                                                 {
                                                     core = localCore;
                                                     localCore = null; // So we don't call DisposeAsync twice on the same core.
-                                                    usingFastLocalExecution = true;
                                                 }
                                                 else
                                                 {
+                                                    if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote &&
+                                                        taskDescriptor.Remote.UseFastLocalExecution)
+                                                    {
+                                                        throw new InvalidOperationException("UseFastLocalExecution must not be set if we're not using a local core!");
+                                                    }
                                                     core = await instance.WorkerPool.ReserveCoreAsync(
                                                         taskDescriptor.DescriptorCase != TaskDescriptor.DescriptorOneofCase.Remote,
                                                         instance.CancellationToken);
@@ -288,9 +288,11 @@
                                                     _logger.LogInformation($"Got core reservation from: {core.WorkerMachineName} {core.WorkerCoreNumber}");
                                                     taskStopwatch.Start();
                                                     currentPhaseStopwatch.Start();
-                                                    currentPhase = (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote && !usingFastLocalExecution)
-                                                        ? TaskPhase.RemoteToolSynchronisation
-                                                        : TaskPhase.TaskExecution;
+                                                    currentPhase = (
+                                                        taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote && 
+                                                        !taskDescriptor.Remote.UseFastLocalExecution)
+                                                            ? TaskPhase.RemoteToolSynchronisation
+                                                            : TaskPhase.TaskExecution;
                                                     await responseStream.WriteAsync(new JobResponse
                                                     {
                                                         TaskStarted = new TaskStartedResponse
@@ -306,7 +308,8 @@
                                                     didStart = true;
 
                                                     // Perform synchronisation for remote tasks.
-                                                    if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote && !usingFastLocalExecution)
+                                                    if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote && 
+                                                        !taskDescriptor.Remote.UseFastLocalExecution)
                                                     {
                                                         // Synchronise the tool and determine the hash to
                                                         // use for the actual request.
@@ -431,7 +434,7 @@
                                                     if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote &&
                                                         status == TaskCompletionStatus.TaskCompletionSuccess &&
                                                         finalExecuteTaskResponse.OutputAbsolutePathsToBlobXxHash64 != null && 
-                                                        !usingFastLocalExecution)
+                                                        !taskDescriptor.Remote.UseFastLocalExecution)
                                                     {
                                                         // Notify the client we're changing phases.
                                                         await SendPhaseChangeAsync(
@@ -625,8 +628,24 @@
                             }
                             else
                             {
-                                // This task failed, cancel the build.
-                                instance.CancelDueToFailure();
+                                // This task failed, we won't run downstream tasks.
+                                // What is waiting on this task?
+                                var dependsOn = new HashSet<GraphTask>();
+                                graph.TaskDependencies.WhatDependsOnTargetRecursive(task, dependsOn);
+                                foreach (var depend in dependsOn)
+                                {
+                                    // Is this task still pending? If so, we won't be running it.
+                                    if (!instance.CancelledDueToUpstreamFailureTasks.Contains(depend))
+                                    {
+                                        Interlocked.Decrement(ref instance.RemainingTasks);
+                                        instance.CancelledDueToUpstreamFailureTasks.Add(depend);
+                                        continue;
+                                    }
+                                }
+
+                                // Make sure our scheduling loop gets a chance to check
+                                // RemainingTasks.
+                                instance.QueuedTaskAvailableForScheduling.Release();
                             }
                         }
                     }));
@@ -673,7 +692,7 @@
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                if (instance.IsCancelledDueToFailure)
+                if (instance.IsCancelledDueToException)
                 {
                     // This is a propagation of build cancellation due to
                     // task failure, which can happen due to the top-level
@@ -699,6 +718,7 @@
                             {
                                 Status = JobCompletionStatus.JobCompletionFailure,
                                 TotalSeconds = graphStopwatch.Elapsed.TotalSeconds,
+                                ExceptionMessage = instance.ExceptionMessage ?? string.Empty,
                             }
                         });
                     }

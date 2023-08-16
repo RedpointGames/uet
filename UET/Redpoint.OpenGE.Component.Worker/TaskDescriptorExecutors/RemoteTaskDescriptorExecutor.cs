@@ -90,16 +90,19 @@
             // Get a workspace to set up our drive mappings in.
             await using (var reservation = await _reservationManagerForOpenGE.ReservationManager.ReserveAsync(
                 "OpenGEBuild-LocalExec",
-                descriptor.ToolExecutionInfo.ToolExecutableName))
+                descriptor.ToolLocalAbsolutePath))
             {
                 // Symlink our drives so that I:\ mapping still works.
                 foreach (var drive in DriveInfo.GetDrives())
                 {
                     if (drive.Name != "I:\\")
                     {
-                        Directory.CreateSymbolicLink(
-                            Path.Combine(reservation.ReservedPath, drive.Name[0].ToString()),
-                            drive.Name);
+                        if (!Directory.Exists(Path.Combine(reservation.ReservedPath, drive.Name[0].ToString())))
+                        {
+                            Directory.CreateSymbolicLink(
+                                Path.Combine(reservation.ReservedPath, drive.Name[0].ToString()),
+                                drive.Name);
+                        }
                     }
                 }
 

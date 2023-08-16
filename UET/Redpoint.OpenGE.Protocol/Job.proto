@@ -89,6 +89,7 @@ message TaskCompletedResponse {
 message JobCompleteResponse {
 	JobCompletionStatus status = 1;
 	double totalSeconds = 2;
+	string exceptionMessage = 3;
 }
 
 message JobResponse {

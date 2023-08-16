@@ -151,6 +151,10 @@ rootCommand.SetHandler(async (InvocationContext context) =>
                                 context.ExitCode = 0;
                                 break;
                             case JobCompletionStatus.JobCompletionFailure:
+                                if (!string.IsNullOrWhiteSpace(jobComplete.ExceptionMessage))
+                                {
+                                    Console.WriteLine(jobComplete.ExceptionMessage);
+                                }
                                 Console.WriteLine($"OpenGE job failed, see above for errors.");
                                 context.ExitCode = 1;
                                 break;

@@ -124,6 +124,7 @@
             FileInfo? pchInputFile = null;
             FileInfo? pchCacheFile = null;
             FileInfo? outputPath = null;
+            FileInfo? sourceDependencies = null;
             List<string> remotedResponseFileLines = new List<string>();
 
             // Read all the lines.
@@ -204,6 +205,13 @@
                     outputPath = new FileInfo(path.Path);
                     remotedResponseFileLines.Add("/Fo" + path.QuoteAndRemotifyTarget(outputPath));
                 }
+                else if (line.StartsWith("/sourceDependencies "))
+                {
+                    var path = new PotentiallyQuotedPath(line.Substring("/sourceDependencies ".Length));
+                    path.MakeAbsolutePath(spec.WorkingDirectory);
+                    sourceDependencies = new FileInfo(path.Path);
+                    remotedResponseFileLines.Add("/sourceDependencies " + path.QuoteAndRemotifyTarget(sourceDependencies));
+                }
                 else
                 {
                     remotedResponseFileLines.Add(line);
@@ -263,6 +271,7 @@
                 // the path and virtualise the content. This happens when Unreal is doing unity builds or
                 // generating PCH files.
                 var newInputLines = new List<string>();
+                var newInputLinesVlocal = new List<string>();
                 var isVirtualised = false;
                 foreach (var line in inputLines)
                 {
@@ -290,10 +299,12 @@
                             if (!isSystem)
                             {
                                 newInputLines.Add($"#include \"{includePath.RemotifyPath()!.Replace('\\', '/')}\"");
+                                newInputLinesVlocal.Add($"#include \"{includePath.RemotifyPath()!.Replace('\\', '/').Replace("{__OPENGE_VIRTUAL_ROOT__}", "I:")}\"");
                             }
                             else
                             {
                                 newInputLines.Add($"#include <{includePath.RemotifyPath()!.Replace('\\', '/')}>");
+                                newInputLinesVlocal.Add($"#include <{includePath.RemotifyPath()!.Replace('\\', '/').Replace("{__OPENGE_VIRTUAL_ROOT__}", "I:")}>");
                             }
                             isVirtualised = true;
                         }
@@ -314,7 +325,7 @@
                     inputFileFullName = inputFileFullName + ".vlocal";
                     using (var writer = new StreamWriter(inputFileFullName))
                     {
-                        await writer.WriteAsync(string.Join('\n', newInputLines));
+                        await writer.WriteAsync(string.Join('\n', newInputLinesVlocal));
                     }
                     inputsByPathOrContent.AbsolutePaths.Add(inputFileFullName);
                     _logger.LogInformation($"Locally virtualising: {inputFileFullName}");
@@ -347,11 +358,15 @@
             {
                 using (var writer = new StreamWriter(responseFilePath + ".vlocal"))
                 {
-                    await writer.WriteAsync(string.Join('\n', remotedResponseFileLines));
+                    await writer.WriteAsync(string.Join('\n', remotedResponseFileLines.Select(x => x.Replace("{__OPENGE_VIRTUAL_ROOT__}", "I:"))));
                 }
             }
             descriptor.InputsByPathOrContent = inputsByPathOrContent;
             descriptor.OutputAbsolutePaths.Add(outputPath.FullName);
+            if (sourceDependencies != null)
+            {
+                descriptor.OutputAbsolutePaths.Add(sourceDependencies.FullName);
+            }
             if (pchCacheFile != null && isCreatingPch)
             {
                 descriptor.OutputAbsolutePaths.Add(pchCacheFile.FullName);
