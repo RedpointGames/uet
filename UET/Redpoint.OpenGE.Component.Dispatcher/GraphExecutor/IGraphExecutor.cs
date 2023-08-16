@@ -11,6 +11,7 @@
         Task ExecuteGraphAsync(
             IWorkerPool workerPool,
             Graph graph,
+            JobBuildBehaviour buildBehaviour,
             GuardedResponseStream<JobResponse> responseStream,
             CancellationToken cancellationToken);
     }

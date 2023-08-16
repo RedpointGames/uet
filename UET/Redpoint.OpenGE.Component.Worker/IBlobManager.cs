@@ -9,12 +9,11 @@
         void NotifyServerCallEnded(ServerCallContext context);
 
         string ConvertAbsolutePathToBuildDirectoryPath(
-            string targetDirectory, 
+            string targetDirectory,
             string absolutePath);
 
         Task LayoutBuildDirectoryAsync(
             string targetDirectory,
-            string shortenedTargetDirectory,
             InputFilesByBlobXxHash64 inputFiles,
             CancellationToken cancellationToken);
 
@@ -33,7 +32,6 @@
 
         Task<OutputFilesByBlobXxHash64> CaptureOutputBlobsFromBuildDirectoryAsync(
             string targetDirectory,
-            string shortenedTargetDirectory,
             IEnumerable<string> outputAbsolutePaths,
             CancellationToken cancellationToken);
 

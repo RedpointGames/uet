@@ -1,7 +1,7 @@
 ﻿namespace Redpoint.Uet.Workspace.ParallelCopy
 {
     using Microsoft.Extensions.Logging;
-    using Redpoint.Uet.Core;
+    using Redpoint.IO;
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;

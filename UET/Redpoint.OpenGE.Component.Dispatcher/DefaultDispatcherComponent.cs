@@ -233,6 +233,7 @@
                         await _graphExecutor.ExecuteGraphAsync(
                             _workerPool,
                             graph,
+                            request.BuildBehaviour,
                             responseStream,
                             context.CancellationToken);
                         _logger.LogTrace("Graph execution completed without throwing an exception");

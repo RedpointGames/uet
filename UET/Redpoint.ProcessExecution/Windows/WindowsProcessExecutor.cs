@@ -20,6 +20,7 @@
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.DependencyInjection;
     using PInvoke = global::Windows.Win32.PInvoke;
+    using System.Reflection.Metadata;
 
     /// <remarks>
     /// This implementation is mostly from https://github.com/dotnet/runtime/blob/55c896f28b418893e202b4d20e95f5ed62402b91/src/libraries/System.Diagnostics.Process/src/System/Diagnostics/Process.Windows.cs, but with added support for suspending and chroot'ing Windows processes.
@@ -257,9 +258,19 @@
                                 // process and resume it.
                                 if (retVal && chrootState != null)
                                 {
-                                    WindowsChroot.UseChrootStateAndResumeThread(
-                                        chrootState,
-                                        ref processInfo);
+                                    try
+                                    {
+                                        WindowsChroot.UseChrootStateAndResumeThread(
+                                            chrootState,
+                                            ref processInfo);
+                                    }
+                                    catch
+                                    {
+                                        // The process will be in a suspended state and never resume.
+                                        // Terminate it rather than leaving it running.
+                                        PInvoke.TerminateProcess(processInfo.hProcess, unchecked((uint)-1));
+                                        throw;
+                                    }
                                 }
                             }
                             finally

@@ -55,11 +55,17 @@ rootCommand.SetHandler(async (InvocationContext context) =>
 
     using (var reader = new StreamReader(new FileStream(context.ParseResult.GetValueForArgument(fileArgument), FileMode.Open, FileAccess.Read, FileShare.Read)))
     {
+        var behaviour = new JobBuildBehaviour();
+        if (Environment.GetEnvironmentVariable("OPENGE_FORCE_REMOTING_FOR_LOCAL_WORKER") == "1")
+        {
+            behaviour.ForceRemotingForLocalWorker = true;
+        }
         var request = new SubmitJobRequest
         {
             BuildNodeName = Environment.GetEnvironmentVariable("UET_XGE_SHIM_BUILD_NODE_NAME") ?? context.ParseResult.GetValueForOption(titleOption) ?? string.Empty,
             JobXml = await reader.ReadToEndAsync(),
             WorkingDirectory = Environment.CurrentDirectory,
+            BuildBehaviour = behaviour,
         };
         var originalEnvs = Environment.GetEnvironmentVariables();
         foreach (var key in originalEnvs.Keys.OfType<string>())

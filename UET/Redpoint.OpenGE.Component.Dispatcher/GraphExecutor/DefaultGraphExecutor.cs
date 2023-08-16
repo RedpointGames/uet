@@ -63,6 +63,7 @@
         public async Task ExecuteGraphAsync(
             IWorkerPool workerPool,
             Graph graph,
+            JobBuildBehaviour buildBehaviour,
             GuardedResponseStream<JobResponse> responseStream,
             CancellationToken cancellationToken)
         {
@@ -168,22 +169,33 @@
                             {
                                 // Try to get a local core first, since this will let us run remote
                                 // tasks much faster.
-                                _logger.LogInformation("Trying to get a local core...");
-                                var localCoreTimeout = CancellationTokenSource.CreateLinkedTokenSource(
-                                    new CancellationTokenSource(250).Token,
-                                    instance.CancellationToken);
                                 IWorkerCore? localCore = null;
-                                try
+                                if (buildBehaviour != null && buildBehaviour.ForceRemotingForLocalWorker)
                                 {
-                                    localCore = await instance.WorkerPool.ReserveCoreAsync(
-                                        true,
-                                        localCoreTimeout.Token);
-                                    _logger.LogInformation("Obtained a local core.");
+                                    _logger.LogInformation("Skipping fast local execution because this job requested forced remoting.");
                                 }
-                                catch (OperationCanceledException)
+                                else if (Debugger.IsAttached)
                                 {
-                                    // Could not get a local core fast enough.
-                                    _logger.LogInformation("Unable to get a local core, potentially remoting instead.");
+                                    _logger.LogInformation("Skipping fast local execution because a debugger is attached.");
+                                }
+                                else
+                                {
+                                    _logger.LogInformation("Trying to get a local core...");
+                                    var localCoreTimeout = CancellationTokenSource.CreateLinkedTokenSource(
+                                        new CancellationTokenSource(250).Token,
+                                        instance.CancellationToken);
+                                    try
+                                    {
+                                        localCore = await instance.WorkerPool.ReserveCoreAsync(
+                                            true,
+                                            localCoreTimeout.Token);
+                                        _logger.LogInformation("Obtained a local core.");
+                                    }
+                                    catch (OperationCanceledException)
+                                    {
+                                        // Could not get a local core fast enough.
+                                        _logger.LogInformation("Unable to get a local core, potentially remoting instead.");
+                                    }
                                 }
                                 try
                                 {
@@ -194,9 +206,13 @@
                                         case DescribingGraphTask describingGraphTask:
                                             // Generate the task descriptor from the factory. This can take a while
                                             // if we're parsing preprocessor headers.
+                                            var downstreamTasks = graph.TaskDependencies.WhatDependsOnTarget(task);
+                                            var isLocalCoreCandidateThatCanRunLocally =
+                                                localCore != null &&
+                                                downstreamTasks.Count == 1;
                                             Stopwatch? prepareStopwatch = null;
                                             if (!string.IsNullOrWhiteSpace(describingGraphTask.TaskDescriptorFactory.PreparationOperationDescription) &&
-                                                localCore == null)
+                                                !isLocalCoreCandidateThatCanRunLocally)
                                             {
                                                 prepareStopwatch = Stopwatch.StartNew();
                                                 await responseStream.WriteAsync(new JobResponse
@@ -211,10 +227,10 @@
                                             }
                                             describingGraphTask.TaskDescriptor = taskDescriptor = await describingGraphTask.TaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
                                                 task.GraphTaskSpec,
-                                                localCore != null,
+                                                isLocalCoreCandidateThatCanRunLocally,
                                                 instance.CancellationToken);
                                             if (prepareStopwatch != null &&
-                                                localCore == null)
+                                                !isLocalCoreCandidateThatCanRunLocally)
                                             {
                                                 await responseStream.WriteAsync(new JobResponse
                                                 {
@@ -227,15 +243,16 @@
                                                     }
                                                 });
                                             }
-                                            if (localCore != null)
+                                            if (isLocalCoreCandidateThatCanRunLocally)
                                             {
                                                 // Shortcut into the downstream execution task.
-                                                var executionTasks = graph.TaskDependencies.WhatDependsOnTarget(task);
-                                                if (executionTasks.Count == 1)
-                                                {
-                                                    await FinishTaskAsync(graph, instance, task, status, false);
-                                                    task = executionTasks.First();
-                                                }
+                                                await FinishTaskAsync(
+                                                    graph, 
+                                                    instance,
+                                                    task,
+                                                    TaskCompletionStatus.TaskCompletionSuccess,
+                                                    false);
+                                                task = downstreamTasks.First();
                                             }
                                             break;
                                         case FastExecutableGraphTask fastExecutableGraphTask:
@@ -254,12 +271,25 @@
                                     // Do execution based on the task.
                                     switch (task)
                                     {
-                                        case DescribingGraphTask:
+                                        case DescribingGraphTask describingGraphTask:
                                             // No execution work to do for this task.
-                                            exitCode = 0;
-                                            status = TaskCompletionStatus.TaskCompletionSuccess;
-                                            didComplete = true;
-                                            skipEmitComplete = true;
+                                            if (describingGraphTask.TaskDescriptor == null ||
+                                                (describingGraphTask.TaskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote &&
+                                                 describingGraphTask.TaskDescriptor.Remote.UseFastLocalExecution))
+                                            {
+                                                exitCode = 1;
+                                                status = TaskCompletionStatus.TaskCompletionException;
+                                                didComplete = true;
+                                                skipEmitComplete = false;
+                                                exceptionMessage = "Resulting descriptor was not valid from describing task!";
+                                            }
+                                            else
+                                            {
+                                                exitCode = 0;
+                                                status = TaskCompletionStatus.TaskCompletionSuccess;
+                                                didComplete = true;
+                                                skipEmitComplete = true;
+                                            }
                                             break;
                                         default:
                                             {
@@ -507,6 +537,7 @@
                             {
                                 _logger.LogCritical(ex, $"Exception during task execution: {ex.Message}");
                                 status = TaskCompletionStatus.TaskCompletionException;
+                                skipEmitComplete = false;
                                 exceptionMessage = ex.ToString();
                             }
                         }

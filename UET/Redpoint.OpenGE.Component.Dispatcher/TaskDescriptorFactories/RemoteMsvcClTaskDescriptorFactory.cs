@@ -35,7 +35,8 @@
         {
             if (Path.GetFileName(spec.Tool.Path) == "cl.exe" &&
                 spec.Arguments.Length > 0 &&
-                spec.Arguments[0].StartsWith('@'))
+                spec.Arguments[0].StartsWith('@') &&
+                OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
             {
                 return 1000;
             }
@@ -77,15 +78,6 @@
                 }
             }
 
-            public string QuoteAndRemotifyTarget(FileSystemInfo info)
-            {
-                if (_quoted)
-                {
-                    return '"' + info.FullName.RemotifyPath() + '"';
-                }
-                return info.FullName.RemotifyPath()!;
-            }
-
             public override string ToString()
             {
                 if (_quoted)
@@ -107,13 +99,6 @@
             {
                 responseFilePath = Path.Combine(spec.WorkingDirectory, responseFilePath);
             }
-            var responseFileRemotePath = (guaranteedToExecuteLocally ? (responseFilePath + ".vlocal") : responseFilePath).RemotifyPath();
-            if (responseFileRemotePath == null)
-            {
-                // This response file can't be remoted.
-                _logger.LogWarning($"Forcing to local executor because the response file isn't at a remotable path: '{responseFilePath}'");
-                return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(spec, guaranteedToExecuteLocally, cancellationToken);
-            }
 
             // Store the data that we need to figure out how to remote this.
             FileInfo? inputFile = null;
@@ -125,7 +110,6 @@
             FileInfo? pchCacheFile = null;
             FileInfo? outputPath = null;
             FileInfo? sourceDependencies = null;
-            List<string> remotedResponseFileLines = new List<string>();
 
             // Read all the lines.
             foreach (var line in File.ReadAllLines(responseFilePath))
@@ -136,13 +120,11 @@
                     var path = new PotentiallyQuotedPath(line);
                     path.MakeAbsolutePath(spec.WorkingDirectory);
                     inputFile = new FileInfo(path.Path);
-                    remotedResponseFileLines.Add(path.QuoteAndRemotifyTarget(inputFile));
                 }
                 else if (line.StartsWith("/D"))
                 {
                     var define = line.Substring("/D".Length).Split('=', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                     globalDefinitions[define[0]] = define.Length >= 2 ? define[1] : "1";
-                    remotedResponseFileLines.Add(line);
                 }
                 else if (line.StartsWith("/I") ||
                     line.StartsWith("/external:I"))
@@ -155,12 +137,10 @@
                         if (line.StartsWith("/I"))
                         {
                             includeDirectories.Add(info);
-                            remotedResponseFileLines.Add("/I " + path.QuoteAndRemotifyTarget(info));
                         }
                         else
                         {
                             includeDirectories.Add(info);
-                            remotedResponseFileLines.Add("/external:I " + path.QuoteAndRemotifyTarget(info));
                         }
                     }
                     else
@@ -174,14 +154,12 @@
                     path.MakeAbsolutePath(spec.WorkingDirectory);
                     var fi = new FileInfo(path.Path);
                     forceIncludeFiles.Add(fi);
-                    remotedResponseFileLines.Add("/FI" + path.QuoteAndRemotifyTarget(fi));
                 }
                 else if (line.StartsWith("/Yu"))
                 {
                     var path = new PotentiallyQuotedPath(line.Substring("/Yu".Length));
                     path.MakeAbsolutePath(spec.WorkingDirectory);
                     pchInputFile = new FileInfo(path.Path);
-                    remotedResponseFileLines.Add("/Yu" + path.QuoteAndRemotifyTarget(pchInputFile));
                 }
                 else if (line.StartsWith("/Yc"))
                 {
@@ -189,32 +167,24 @@
                     path.MakeAbsolutePath(spec.WorkingDirectory);
                     pchInputFile = new FileInfo(path.Path);
                     isCreatingPch = true;
-                    remotedResponseFileLines.Add("/Yc" + path.QuoteAndRemotifyTarget(pchInputFile));
                 }
                 else if (line.StartsWith("/Fp"))
                 {
                     var path = new PotentiallyQuotedPath(line.Substring("/Fp".Length));
                     path.MakeAbsolutePath(spec.WorkingDirectory);
                     pchCacheFile = new FileInfo(path.Path);
-                    remotedResponseFileLines.Add("/Fp" + path.QuoteAndRemotifyTarget(pchCacheFile));
                 }
                 else if (line.StartsWith("/Fo"))
                 {
                     var path = new PotentiallyQuotedPath(line.Substring("/Fo".Length));
                     path.MakeAbsolutePath(spec.WorkingDirectory);
                     outputPath = new FileInfo(path.Path);
-                    remotedResponseFileLines.Add("/Fo" + path.QuoteAndRemotifyTarget(outputPath));
                 }
                 else if (line.StartsWith("/sourceDependencies "))
                 {
                     var path = new PotentiallyQuotedPath(line.Substring("/sourceDependencies ".Length));
                     path.MakeAbsolutePath(spec.WorkingDirectory);
                     sourceDependencies = new FileInfo(path.Path);
-                    remotedResponseFileLines.Add("/sourceDependencies " + path.QuoteAndRemotifyTarget(sourceDependencies));
-                }
-                else
-                {
-                    remotedResponseFileLines.Add(line);
                 }
             }
 
@@ -255,112 +225,19 @@
             // Return the remote task descriptor.
             var descriptor = new RemoteTaskDescriptor();
             descriptor.ToolLocalAbsolutePath = spec.Tool.Path;
-            descriptor.Arguments.Add("@" + responseFileRemotePath);
+            descriptor.Arguments.Add("@" + responseFilePath);
             descriptor.EnvironmentVariables.MergeFrom(spec.ExecutionEnvironment.EnvironmentVariables);
             descriptor.EnvironmentVariables.MergeFrom(spec.Environment.Variables);
             descriptor.WorkingDirectoryAbsolutePath = spec.WorkingDirectory;
             descriptor.UseFastLocalExecution = guaranteedToExecuteLocally;
             var inputsByPathOrContent = new InputFilesByPathOrContent();
-            var inputFileFullName = inputFile.FullName;
-            using (var reader = new StreamReader(inputFile.FullName))
-            {
-                var inputContent = await reader.ReadToEndAsync();
-                var inputLines = inputContent.Replace("\r\n", "\n").Split('\n');
-
-                // If any includes in the input file are absolute paths, then we need to remotify
-                // the path and virtualise the content. This happens when Unreal is doing unity builds or
-                // generating PCH files.
-                var newInputLines = new List<string>();
-                var newInputLinesVlocal = new List<string>();
-                var isVirtualised = false;
-                foreach (var line in inputLines)
-                {
-                    if (line.TrimStart().StartsWith("#include"))
-                    {
-                        string includePath;
-                        var included = line.Substring("#include".Length).Trim();
-                        var isSystem = false;
-                        if (included.StartsWith('"'))
-                        {
-                            includePath = included.Trim('"');
-                        }
-                        else if (included.StartsWith('<'))
-                        {
-                            includePath = included.TrimStart('<').TrimEnd('>');
-                            isSystem = true;
-                        }
-                        else
-                        {
-                            continue;
-                        }
-                        includePath = includePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-                        if (Path.IsPathRooted(includePath))
-                        {
-                            if (!isSystem)
-                            {
-                                newInputLines.Add($"#include \"{includePath.RemotifyPath()!.Replace('\\', '/')}\"");
-                                newInputLinesVlocal.Add($"#include \"{includePath.RemotifyPath()!.Replace('\\', '/').Replace("{__OPENGE_VIRTUAL_ROOT__}", "I:")}\"");
-                            }
-                            else
-                            {
-                                newInputLines.Add($"#include <{includePath.RemotifyPath()!.Replace('\\', '/')}>");
-                                newInputLinesVlocal.Add($"#include <{includePath.RemotifyPath()!.Replace('\\', '/').Replace("{__OPENGE_VIRTUAL_ROOT__}", "I:")}>");
-                            }
-                            isVirtualised = true;
-                        }
-                        else
-                        {
-                            newInputLines.Add(line);
-                        }
-                    }
-                    else
-                    {
-                        newInputLines.Add(line);
-                    }
-                }
-
-                // If this is fast local execution, create a temporary file to sit next to it.
-                if (guaranteedToExecuteLocally && isVirtualised)
-                {
-                    inputFileFullName = inputFileFullName + ".vlocal";
-                    using (var writer = new StreamWriter(inputFileFullName))
-                    {
-                        await writer.WriteAsync(string.Join('\n', newInputLinesVlocal));
-                    }
-                    inputsByPathOrContent.AbsolutePaths.Add(inputFileFullName);
-                    _logger.LogInformation($"Locally virtualising: {inputFileFullName}");
-                }
-                // Add the input file based on whether it's virtualised.
-                else if (isVirtualised)
-                {
-                    inputsByPathOrContent.AbsolutePathsToVirtualContent.Add(
-                        inputFileFullName,
-                        string.Join('\n', newInputLines));
-                    // @note: Remove the input file from dependent paths because we virtualise it instead.
-                    dependentFiles.DependsOnPaths.Remove(inputFileFullName);
-                    _logger.LogInformation($"Virtualising: {inputFileFullName}");
-                }
-                else
-                {
-                    inputsByPathOrContent.AbsolutePaths.Add(inputFileFullName);
-                    _logger.LogInformation($"Not virtualising: {inputFileFullName}");
-                }
-            }
             if (pchCacheFile != null && !isCreatingPch)
             {
                 inputsByPathOrContent.AbsolutePaths.Add(pchCacheFile.FullName);
             }
             inputsByPathOrContent.AbsolutePaths.AddRange(dependentFiles.DependsOnPaths);
-            inputsByPathOrContent.AbsolutePathsToVirtualContent.Add(
-                guaranteedToExecuteLocally ? (responseFilePath + ".vlocal") : responseFilePath,
-                string.Join('\n', remotedResponseFileLines));
-            if (guaranteedToExecuteLocally)
-            {
-                using (var writer = new StreamWriter(responseFilePath + ".vlocal"))
-                {
-                    await writer.WriteAsync(string.Join('\n', remotedResponseFileLines.Select(x => x.Replace("{__OPENGE_VIRTUAL_ROOT__}", "I:"))));
-                }
-            }
+            inputsByPathOrContent.AbsolutePaths.Add(responseFilePath);
+            inputsByPathOrContent.AbsolutePaths.Add(inputFile.FullName);
             descriptor.InputsByPathOrContent = inputsByPathOrContent;
             descriptor.OutputAbsolutePaths.Add(outputPath.FullName);
             if (sourceDependencies != null)

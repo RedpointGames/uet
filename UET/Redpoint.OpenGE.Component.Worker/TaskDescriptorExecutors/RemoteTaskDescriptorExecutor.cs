@@ -13,6 +13,7 @@
     using Microsoft.Extensions.Logging;
     using System.Diagnostics;
     using System.Runtime.Versioning;
+    using Redpoint.IO;
 
     internal class RemoteTaskDescriptorExecutor : ITaskDescriptorExecutor<RemoteTaskDescriptor>
     {
@@ -87,117 +88,68 @@
             RemoteTaskDescriptor descriptor,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            // Get a workspace to set up our drive mappings in.
-            await using (var reservation = await _reservationManagerForOpenGE.ReservationManager.ReserveAsync(
-                "OpenGEBuild-LocalExec",
-                descriptor.ToolLocalAbsolutePath))
+            // Set up the environment variable dictionary.
+            Dictionary<string, string>? environmentVariables = null;
+            if (descriptor.EnvironmentVariables.Count > 0)
             {
-                // Symlink our drives so that I:\ mapping still works.
-                foreach (var drive in DriveInfo.GetDrives())
+                environmentVariables = new Dictionary<string, string>();
+                foreach (var kv in descriptor.EnvironmentVariables)
                 {
-                    if (drive.Name != "I:\\")
-                    {
-                        if (!Directory.Exists(Path.Combine(reservation.ReservedPath, drive.Name[0].ToString())))
+                    environmentVariables[kv.Key] = kv.Value;
+                }
+            }
+
+            // Set up the process specification.
+            var processSpecification = new ProcessSpecification
+            {
+                FilePath = descriptor.ToolLocalAbsolutePath,
+                Arguments = descriptor.Arguments,
+                EnvironmentVariables = environmentVariables,
+                WorkingDirectory = descriptor.WorkingDirectoryAbsolutePath,
+            };
+
+            // Execute the process in the virtual root.
+            _logger.LogInformation($"File path: {descriptor.ToolLocalAbsolutePath}");
+            _logger.LogInformation($"Arguments: {string.Join(" ", descriptor.Arguments)}");
+            _logger.LogInformation($"Working directory: {descriptor.WorkingDirectoryAbsolutePath}");
+            await foreach (var response in _processExecutor.ExecuteAsync(
+                processSpecification,
+                cancellationToken))
+            {
+                switch (response)
+                {
+                    case ExitCodeResponse exitCode:
+                        yield return new ExecuteTaskResponse
                         {
-                            Directory.CreateSymbolicLink(
-                                Path.Combine(reservation.ReservedPath, drive.Name[0].ToString()),
-                                drive.Name);
-                        }
-                    }
-                }
-
-                // On Windows, we map the I: drive letter on a per-process level
-                // to the reservation root, which makes paths identical on every
-                // machine that the process is running on. This is required for
-                // PCH files to be portable across machines.
-                var virtualDriveLetter = 'I';
-                var shortenedReservationPath = OperatingSystem.IsWindows() ? $"{virtualDriveLetter}:" : reservation.ReservedPath;
-
-                // Replace {__OPENGE_VIRTUAL_ROOT__} in the arguments as well.
-                var arguments = descriptor
-                    .Arguments
-                    .Select(x => x.Replace(
-                        "{__OPENGE_VIRTUAL_ROOT__}",
-                        shortenedReservationPath))
-                    .ToArray();
-
-                // Replace {__OPENGE_VIRTUAL_ROOT__} in the environment variables.
-                Dictionary<string, string>? environmentVariables = null;
-                if (descriptor.EnvironmentVariables.Count > 0)
-                {
-                    environmentVariables = new Dictionary<string, string>();
-                    foreach (var kv in descriptor.EnvironmentVariables)
-                    {
-                        environmentVariables[kv.Key] = kv.Value.Replace(
-                            "{__OPENGE_VIRTUAL_ROOT__}",
-                            shortenedReservationPath);
-                    }
-                }
-
-                // Convert the working directory.
-                var workingDirectory = _blobManager.ConvertAbsolutePathToBuildDirectoryPath(
-                    shortenedReservationPath,
-                    descriptor.WorkingDirectoryAbsolutePath);
-
-                // Set up the process specification.
-                var processSpecification = new ProcessSpecification
-                {
-                    FilePath = descriptor.ToolLocalAbsolutePath,
-                    Arguments = arguments,
-                    EnvironmentVariables = environmentVariables,
-                    WorkingDirectory = workingDirectory,
+                            Response = new Protocol.ProcessResponse
+                            {
+                                ExitCode = exitCode.ExitCode,
+                            },
+                        };
+                        break;
+                    case StandardOutputResponse standardOutput:
+                        _logger.LogInformation(standardOutput.Data);
+                        yield return new ExecuteTaskResponse
+                        {
+                            Response = new Protocol.ProcessResponse
+                            {
+                                StandardOutputLine = standardOutput.Data,
+                            },
+                        };
+                        break;
+                    case StandardErrorResponse standardError:
+                        _logger.LogInformation(standardError.Data);
+                        yield return new ExecuteTaskResponse
+                        {
+                            Response = new Protocol.ProcessResponse
+                            {
+                                StandardOutputLine = standardError.Data,
+                            },
+                        };
+                        break;
+                    default:
+                        throw new InvalidOperationException("Received unexpected ProcessResponse type from IProcessExecutor!");
                 };
-                if (OperatingSystem.IsWindows())
-                {
-                    processSpecification.PerProcessDriveMappings = new Dictionary<char, string>
-                    {
-                        { virtualDriveLetter, reservation.ReservedPath },
-                    };
-                }
-
-                // Execute the process in the virtual root.
-                _logger.LogInformation($"File path: {descriptor.ToolLocalAbsolutePath}");
-                _logger.LogInformation($"Arguments: {string.Join(" ", arguments)}");
-                _logger.LogInformation($"Working directory: {workingDirectory}");
-                await foreach (var response in _processExecutor.ExecuteAsync(
-                    processSpecification,
-                    cancellationToken))
-                {
-                    switch (response)
-                    {
-                        case ExitCodeResponse exitCode:
-                            yield return new ExecuteTaskResponse
-                            {
-                                Response = new Protocol.ProcessResponse
-                                {
-                                    ExitCode = exitCode.ExitCode,
-                                },
-                            };
-                            break;
-                        case StandardOutputResponse standardOutput:
-                            _logger.LogInformation(standardOutput.Data);
-                            yield return new ExecuteTaskResponse
-                            {
-                                Response = new Protocol.ProcessResponse
-                                {
-                                    StandardOutputLine = standardOutput.Data,
-                                },
-                            };
-                            break;
-                        case StandardErrorResponse standardError:
-                            _logger.LogInformation(standardError.Data);
-                            yield return new ExecuteTaskResponse
-                            {
-                                Response = new Protocol.ProcessResponse
-                                {
-                                    StandardOutputLine = standardError.Data,
-                                },
-                            };
-                            break;
-                        default:
-                            throw new InvalidOperationException("Received unexpected ProcessResponse type from IProcessExecutor!");
-                    };
-                }
             }
         }
 
@@ -205,13 +157,16 @@
             RemoteTaskDescriptor descriptor,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
+            if (!OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
+            {
+                throw new InvalidOperationException("Remoting tasks can't run on non-Windows platforms yet.");
+            }
+
             // Get a workspace to work in.
             await using (var reservation = await _reservationManagerForOpenGE.ReservationManager.ReserveAsync(
                 "OpenGEBuild", 
                 descriptor.ToolExecutionInfo.ToolExecutableName))
             {
-                var reservationPath = reservation.ReservedPath;
-
                 // Ask the tool manager where our tool is located.
                 var st = Stopwatch.StartNew();
                 var toolPath = await _toolManager.GetToolPathAsync(
@@ -221,69 +176,67 @@
                 _logger.LogInformation($"Tool path obtained in: {st.Elapsed}");
                 st.Restart();
 
-                // On Windows, we map the I: drive letter on a per-process level
-                // to the reservation root, which makes paths identical on every
-                // machine that the process is running on. This is required for
-                // PCH files to be portable across machines.
-                var virtualDriveLetter = 'I';
-                var shortenedReservationPath = OperatingSystem.IsWindows() ? $"{virtualDriveLetter}:" : reservationPath;
-
                 // Ask the blob manager to lay out all of the files in the reservation
                 // based on the input files.
                 await _blobManager.LayoutBuildDirectoryAsync(
-                    reservationPath,
-                    shortenedReservationPath,
+                    reservation.ReservedPath,
                     descriptor.InputsByBlobXxHash64,
                     cancellationToken);
                 _logger.LogInformation($"Laid out build directory in: {st.Elapsed}");
                 st.Restart();
 
-                // Replace {__OPENGE_VIRTUAL_ROOT__} in the arguments as well.
-                var arguments = descriptor
-                    .Arguments
-                    .Select(x => x.Replace(
-                        "{__OPENGE_VIRTUAL_ROOT__}",
-                        shortenedReservationPath))
-                    .ToArray();
+                // Inside our reservation directory, we need to create a junction
+                // for the folder that our tool is in.
+                var toolFolder = Path.GetDirectoryName(toolPath)!;
+                Junction.CreateJunction(
+                    _blobManager.ConvertAbsolutePathToBuildDirectoryPath(reservation.ReservedPath, toolFolder),
+                    toolFolder,
+                    true);
 
-                // Replace {__OPENGE_VIRTUAL_ROOT__} in the environment variables.
+                // We also need to map SYSTEMROOT, since that is where our Windows
+                // folder is.
+                var systemRoot = Environment.GetEnvironmentVariable("SYSTEMROOT")!;
+                if (Directory.Exists(systemRoot))
+                {
+                    Junction.CreateJunction(
+                        _blobManager.ConvertAbsolutePathToBuildDirectoryPath(reservation.ReservedPath, systemRoot),
+                        systemRoot,
+                        true);
+                }
+
+                // Set up the environment variable dictionary.
                 Dictionary<string, string>? environmentVariables = null;
                 if (descriptor.EnvironmentVariables.Count > 0)
                 {
                     environmentVariables = new Dictionary<string, string>();
                     foreach (var kv in descriptor.EnvironmentVariables)
                     {
-                        environmentVariables[kv.Key] = kv.Value.Replace(
-                            "{__OPENGE_VIRTUAL_ROOT__}",
-                            shortenedReservationPath);
+                        environmentVariables[kv.Key] = kv.Value;
                     }
                 }
-
-                // Convert the working directory.
-                var workingDirectory = _blobManager.ConvertAbsolutePathToBuildDirectoryPath(
-                    shortenedReservationPath,
-                    descriptor.WorkingDirectoryAbsolutePath);
 
                 // Set up the process specification.
                 var processSpecification = new ProcessSpecification
                 {
                     FilePath = toolPath,
-                    Arguments = arguments,
+                    Arguments = descriptor.Arguments,
                     EnvironmentVariables = environmentVariables,
-                    WorkingDirectory = workingDirectory,
+                    WorkingDirectory = descriptor.WorkingDirectoryAbsolutePath,
                 };
                 if (OperatingSystem.IsWindows())
                 {
-                    processSpecification.PerProcessDriveMappings = new Dictionary<char, string>
-                    {
-                        { virtualDriveLetter, reservationPath },
-                    };
+                    processSpecification.PerProcessDriveMappings = DriveInfo
+                        .GetDrives()
+                        .Where(x => Path.Exists(Path.Combine(reservation.ReservedPath, x.Name[0].ToString())))
+                        .ToDictionary(
+                            k => k.Name[0],
+                            v => Path.Combine(reservation.ReservedPath, v.Name[0].ToString()));
                 }
 
                 // Execute the process in the virtual root.
                 _logger.LogInformation($"File path: {toolPath}");
-                _logger.LogInformation($"Arguments: {string.Join(" ", arguments)}");
-                _logger.LogInformation($"Working directory: {workingDirectory}");
+                _logger.LogInformation($"Arguments: {string.Join(" ", descriptor.Arguments)}");
+                _logger.LogInformation($"Working directory: {descriptor.WorkingDirectoryAbsolutePath}");
                 await foreach (var response in _processExecutor.ExecuteAsync(
                     processSpecification,
                     cancellationToken))
@@ -292,8 +245,7 @@
                     {
                         case ExitCodeResponse exitCode:
                             var outputBlobs = await _blobManager.CaptureOutputBlobsFromBuildDirectoryAsync(
-                                reservationPath,
-                                shortenedReservationPath,
+                                reservation.ReservedPath,
                                 descriptor.OutputAbsolutePaths,
                                 cancellationToken);
                             yield return new ExecuteTaskResponse

@@ -23,10 +23,6 @@
             IReadOnlyDictionary<long, BlobInfo> allEntriesByBlobHash,
             IEnumerable<long> missingBlobHashes)
         {
-            if (allEntriesByBlobHash.Count == 0)
-            {
-                throw new ArgumentException("Must have at least one blob", nameof(allEntriesByBlobHash));
-            }
             _allEntriesByBlobHash = allEntriesByBlobHash;
             _orderedMissingBlobHashes = missingBlobHashes.OrderBy(x => x).ToArray();
             _length = _allEntriesByBlobHash.Values.Sum(x => x.ByteLength + _entryHeader);

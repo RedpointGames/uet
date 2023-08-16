@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.OpenGE.Component.Worker
 {
     using Grpc.Core;
+    using Redpoint.IO;
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Core.ReadableStream;
     using Redpoint.OpenGE.Core.WritableStream;
@@ -50,7 +51,7 @@
 
         public string ConvertAbsolutePathToBuildDirectoryPath(string targetDirectory, string absolutePath)
         {
-            var remotifiedPath = absolutePath.RemotifyPath(false);
+            var remotifiedPath = absolutePath[0] + absolutePath.Substring(2);
             if (remotifiedPath == null)
             {
                 throw new InvalidOperationException($"Expected path '{absolutePath}' to be rooted and not a UNC path.");
@@ -61,50 +62,84 @@
 
         public async Task LayoutBuildDirectoryAsync(
             string targetDirectory,
-            string shortenedTargetDirectory,
             InputFilesByBlobXxHash64 inputFiles,
             CancellationToken cancellationToken)
         {
             var blobsPath = await GetBlobsPath();
 
-            var virtualised = new HashSet<string>(inputFiles.AbsolutePathsToVirtualContent);
-            await Parallel.ForEachAsync(
-                inputFiles.AbsolutePathsToBlobs.ToAsyncEnumerable(),
-                cancellationToken,
-                async (kv, cancellationToken) =>
+            // Figure out what files were previously created in this workspace,
+            // so we can compute the different in files we have and the files
+            // we want. This allows us to remove files we don't want.
+            var filesToDelete = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+            var existingFilesPath = Path.Combine(targetDirectory, ".bloblist");
+            if (File.Exists(existingFilesPath))
+            {
+                using (var reader = new StreamReader(existingFilesPath))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        var line = await reader.ReadLineAsync();
+                        filesToDelete.Add(line!);
+                    }
+                }
+            }
+            var filesToCreate = new HashSet<string>(inputFiles.AbsolutePathsToBlobs.Keys, StringComparer.InvariantCultureIgnoreCase);
+            filesToDelete.ExceptWith(filesToCreate);
+
+            // Remove files we don't want.
+            Parallel.ForEach(
+                filesToDelete,
+                path =>
+                {
+                    var targetPath = ConvertAbsolutePathToBuildDirectoryPath(
+                        targetDirectory,
+                        path);
+                    if (File.Exists(targetPath))
+                    {
+                        File.Delete(targetPath);
+                    }
+                });
+
+            // Write the new list of files that we will be writing. We do this after the delete
+            // operation so that we know the old list won't be needed any more.
+            using (var writer = new StreamWriter(existingFilesPath))
+            {
+                foreach (var path in filesToCreate)
+                {
+                    writer.WriteLine(path);
+                }
+            }
+
+            // Write out all of the files we want in this directory.
+            Parallel.ForEach(
+                inputFiles.AbsolutePathsToBlobs,
+                new ParallelOptions
+                {
+                    CancellationToken = cancellationToken
+                },
+                kv =>
                 {
                     var targetPath = ConvertAbsolutePathToBuildDirectoryPath(
                         targetDirectory,
                         kv.Key);
-                    if (!File.Exists(targetPath))
+                    Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
+                    if (!File.Exists(Path.Combine(blobsPath, kv.Value.HexString())))
                     {
-                        Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
-                        if (virtualised.Contains(kv.Key))
-                        {
-                            // Grab the blob content, replace {__OPENGE_VIRTUAL_ROOT__} and then emit it.
-                            using var sourceStream = new FileStream(
-                                Path.Combine(blobsPath, kv.Value.HexString()),
-                                FileMode.Open,
-                                FileAccess.Read,
-                                FileShare.Read);
-                            using var reader = new StreamReader(sourceStream, leaveOpen: true);
-                            var content = await reader.ReadToEndAsync(cancellationToken);
-                            content = content.Replace("{__OPENGE_VIRTUAL_ROOT__}", shortenedTargetDirectory);
-                            using var targetStream = new FileStream(
-                                targetPath,
-                                FileMode.Create,
-                                FileAccess.Write,
-                                FileShare.None);
-                            using var writer = new StreamWriter(targetStream, leaveOpen: true);
-                            await writer.WriteAsync(content);
-                        }
-                        else
-                        {
-                            File.Copy(
-                                Path.Combine(blobsPath, kv.Value.HexString()),
-                                targetPath,
-                                true);
-                        }
+                        throw new InvalidOperationException($"Expected blob file was not transferred from dispatcher: {kv.Value.HexString()}");
+                    }
+                    if (OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
+                    {
+                        HardLink.CreateHardLink(
+                            targetPath,
+                            Path.Combine(blobsPath, kv.Value.HexString()),
+                            true);
+                    }
+                    else
+                    {
+                        File.Copy(
+                            Path.Combine(blobsPath, kv.Value.HexString()),
+                            targetPath,
+                            true);
                     }
                 });
         }
@@ -315,7 +350,6 @@
 
         public async Task<OutputFilesByBlobXxHash64> CaptureOutputBlobsFromBuildDirectoryAsync(
             string targetDirectory,
-            string shortenedTargetDirectory,
             IEnumerable<string> outputAbsolutePaths,
             CancellationToken cancellationToken)
         {

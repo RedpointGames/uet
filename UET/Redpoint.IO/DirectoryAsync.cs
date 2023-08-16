@@ -1,4 +1,4 @@
-﻿namespace Redpoint.Uet.Core
+﻿namespace Redpoint.IO
 {
     public static class DirectoryAsync
     {

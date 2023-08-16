@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.IO;
     using Redpoint.Reservation;
     using Redpoint.Uet.Core;
     using System;

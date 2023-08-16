@@ -25,6 +25,7 @@
   
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.ApplicationLifecycle\Redpoint.ApplicationLifecycle.csproj" />
+    <ProjectReference Include="..\Redpoint.IO\Redpoint.IO.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Core\Redpoint.OpenGE.Core.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Protocol\Redpoint.OpenGE.Protocol.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />

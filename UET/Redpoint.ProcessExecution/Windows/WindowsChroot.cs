@@ -46,7 +46,7 @@
                     &objectAttributes);
                 if (status.SeverityCode != NTSTATUS.Severity.Success)
                 {
-                    throw new InvalidOperationException($"Got NTSTATUS {status} when setting up object directory for per-process drive mappings.");
+                    throw new InvalidOperationException($"Got NTSTATUS {status.Value:X} when setting up object directory for per-process drive mappings.");
                 }
                 mappings.Add(objectDirectoryHandle);
 
@@ -106,7 +106,7 @@
                             &linkTargetUnicode);
                         if (status.SeverityCode != NTSTATUS.Severity.Success)
                         {
-                            throw new InvalidOperationException($"Got NTSTATUS {status} when mapping drive '{driveString}' to '{linkTarget}'.");
+                            throw new InvalidOperationException($"Got NTSTATUS {status.Value:X} when mapping drive '{driveString}' to '{linkTarget}'.");
                         }
                         mappings.Add(linkHandle);
                     }
@@ -132,7 +132,7 @@
                 sizeof(nint));
             if (status.SeverityCode != NTSTATUS.Severity.Success)
             {
-                throw new InvalidOperationException($"Got NTSTATUS {status} when setting information process ProcessDeviceMap.");
+                throw new InvalidOperationException($"Got NTSTATUS {status.Value:X} when setting information process ProcessDeviceMap.");
             }
         }
 
@@ -146,7 +146,7 @@
                 sizeof(nint));
             if (status.SeverityCode != NTSTATUS.Severity.Success)
             {
-                throw new InvalidOperationException($"Got NTSTATUS {status} when setting information process ProcessDeviceMap.");
+                throw new InvalidOperationException($"Got NTSTATUS {status.Value:X} when setting information process ProcessDeviceMap.");
             }
 
             foreach (var mapping in chrootState.Handles)
