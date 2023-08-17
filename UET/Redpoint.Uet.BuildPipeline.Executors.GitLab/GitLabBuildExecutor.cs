@@ -54,7 +54,7 @@
                 var job = new GitLabJob();
                 job.Stage = sourceJob.Stage;
                 job.Variables = sourceJob.EnvironmentVariables;
-                job.Needs = sourceJob.Needs.ToList();
+                job.Needs = sourceJob.IsManual ? new List<string>() : sourceJob.Needs.ToList();
 
                 if (sourceJob.Platform == BuildServerJobPlatform.Windows)
                 {
