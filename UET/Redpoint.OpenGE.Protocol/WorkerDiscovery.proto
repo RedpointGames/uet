@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package Redpoint.OpenGE.Protocol;
+
+enum WorkerPlatform {
+	Unknown = 0;
+	Windows = 1;
+	Mac = 2;
+	Linux = 3;
+}
+
+message WorkerDiscoveryRequest {
+	fixed32 opengeMagicNumber = 1;
+	int32 opengeProtocolVersion = 2;
+	WorkerPlatform workerPlatform = 3;
+}
+
+message WorkerDiscoveryResponse {
+	int32 workerPort = 1;
+	string workerDisplayName = 2;
+	string workerUniqueId = 3;
+}

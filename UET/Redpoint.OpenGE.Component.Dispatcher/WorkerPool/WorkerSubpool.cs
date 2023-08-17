@@ -13,7 +13,7 @@
         private readonly SemaphoreSlim _notifyReevaluationOfWorkers;
         private readonly AwaitableConcurrentQueue<IWorkerCore> _workerCoreQueue;
         internal readonly List<WorkerState> _workers;
-        private readonly ConcurrentQueue<TaskApi.TaskApiClient> _workerExplicitAddQueue;
+        private readonly ConcurrentQueue<WorkerAddRequest> _workerExplicitAddQueue;
         private readonly SemaphoreSlim _workerExplicitAddComplete;
 
         private int _coresRequested;
@@ -27,7 +27,7 @@
             _notifyReevaluationOfWorkers = notifyReevaluationOfWorkers;
             _workerCoreQueue = new AwaitableConcurrentQueue<IWorkerCore>();
             _workers = new List<WorkerState>();
-            _workerExplicitAddQueue = new ConcurrentQueue<TaskApi.TaskApiClient>();
+            _workerExplicitAddQueue = new ConcurrentQueue<WorkerAddRequest>();
             _workerExplicitAddComplete = new SemaphoreSlim(0);
 
             _coresRequested = 0;
@@ -58,9 +58,9 @@
             _logger.LogTrace($"[dec reserved] cores requested: {_coresRequested}, cores reserved: {_coresReserved}");
         }
 
-        internal async Task RegisterWorkerAsync(TaskApi.TaskApiClient remoteClient)
+        internal async Task RegisterWorkerAsync(WorkerAddRequest request)
         {
-            _workerExplicitAddQueue.Enqueue(remoteClient);
+            _workerExplicitAddQueue.Enqueue(request);
             _notifyReevaluationOfWorkers.Release();
             await _workerExplicitAddComplete.WaitAsync();
         }
@@ -105,13 +105,17 @@
         internal async Task ProcessWorkersAsync()
         {
             // Process any explicitly added workers.
-            if (_workerExplicitAddQueue.TryDequeue(out var newRemoteClient))
+            if (_workerExplicitAddQueue.TryDequeue(out var incomingRequest))
             {
-                _workers.Add(new WorkerState
+                if (!_workers.Any(x => x.UniqueId == incomingRequest.UniqueId))
                 {
-                    DisplayName = newRemoteClient?.ToString() ?? "(unnamed worker)",
-                    Client = newRemoteClient!,
-                });
+                    _workers.Add(new WorkerState
+                    {
+                        DisplayName = incomingRequest.DisplayName,
+                        UniqueId = incomingRequest.UniqueId,
+                        Client = incomingRequest.Client,
+                    });
+                }
                 _workerExplicitAddComplete.Release();
             }
 

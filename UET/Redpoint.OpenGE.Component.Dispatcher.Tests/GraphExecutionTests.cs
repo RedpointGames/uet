@@ -60,9 +60,14 @@
             try
             {
                 var workerClient = new TaskApi.TaskApiClient(
-                    GrpcChannel.ForAddress(worker.ListeningExternalUrl!));
+                    GrpcChannel.ForAddress($"http://127.0.0.1:{worker.ListeningPort}"));
                 await using var workerPool = workerPoolFactory.CreateWorkerPool(
-                    workerClient);
+                    new WorkerAddRequest
+                    {
+                        DisplayName = "Test Client",
+                        UniqueId = "1",
+                        Client = workerClient,
+                    });
                 var dispatcher = dispatcherFactory.Create(
                     workerPool,
                     null);

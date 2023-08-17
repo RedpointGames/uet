@@ -13,6 +13,8 @@
     using System.Net.Sockets;
     using System.Text;
     using System.Collections.Concurrent;
+    using Google.Protobuf;
+    using Redpoint.OpenGE.Core;
 
     internal class DefaultWorkerComponent : TaskApi.TaskApiBase, IWorkerComponent
     {
@@ -20,10 +22,12 @@
         private readonly IBlobManager _blobManager;
         private readonly IExecutionManager _executionManager;
         private readonly ILogger<DefaultWorkerComponent> _logger;
+        private readonly string _workerDisplayName;
+        private readonly string _workerUniqueId;
         private readonly SemaphoreSlim _reservationSemaphore;
         private readonly ConcurrentBag<int> _reservationBag;
         private CancellationTokenSource? _shutdownCancellationTokenSource;
-        private string? _listeningExternalUrl;
+        private int? _listeningPort;
         private WebApplication? _app;
         private UdpClient? _udp;
         private Task? _udpTask;
@@ -39,6 +43,9 @@
             _executionManager = executionManager;
             _logger = logger;
 
+            _workerDisplayName = Environment.MachineName;
+            _workerUniqueId = Guid.NewGuid().ToString();
+
             var processorCount = Environment.ProcessorCount * (OperatingSystem.IsMacOS() ? 1 : 2);
             _reservationSemaphore = new SemaphoreSlim(processorCount);
             _reservationBag = new ConcurrentBag<int>(Enumerable.Range(1, processorCount));
@@ -46,7 +53,11 @@
 
         public TaskApi.TaskApiBase TaskApi => this;
 
-        public string? ListeningExternalUrl => _listeningExternalUrl;
+        public int? ListeningPort => _listeningPort;
+
+        public string WorkerDisplayName => _workerDisplayName;
+
+        public string WorkerUniqueId => _workerUniqueId;
 
         public async Task StartAsync(CancellationToken shutdownCancellationToken)
         {
@@ -67,7 +78,7 @@
             builder.WebHost.ConfigureKestrel(serverOptions =>
             {
                 serverOptions.Listen(
-                    new IPEndPoint(IPAddress.Loopback, 0),
+                    new IPEndPoint(IPAddress.Any, 0),
                     listenOptions =>
                     {
                         listenOptions.Protocols = HttpProtocols.Http2;
@@ -81,33 +92,64 @@
 
             await app.StartAsync();
 
-            _listeningExternalUrl = app.Urls.First();
+            _listeningPort = new Uri(app.Urls.First()).Port;
 
-            _logger.LogInformation($"Worker listening on: {_listeningExternalUrl}");
+            _logger.LogInformation($"Worker listening on port: {_listeningPort}");
 
             _app = app;
 
             try
             {
-                _udp = new UdpClient(new IPEndPoint(IPAddress.Any, WorkerPortInformation.WorkerUdpBroadcastPort));
+                _udp = new UdpClient();
+                _udp.Client.Bind(new IPEndPoint(IPAddress.Parse("10.7.0.241"), WorkerDiscoveryConstants.WorkerUdpBroadcastPort));
                 _udpTask = Task.Run(async () =>
                 {
                     while (_shutdownCancellationTokenSource.IsCancellationRequested)
                     {
                         var packet = await _udp.ReceiveAsync(_shutdownCancellationTokenSource.Token);
-                        if (Encoding.ASCII.GetString(packet.Buffer) == "OPENGE-DISCOVER")
+                        _logger.LogInformation($"Got incoming packet on auto-discovery port from remote: {packet.RemoteEndPoint}");
+                        try
                         {
-                            await _udp.SendAsync(
-                                Encoding.ASCII.GetBytes(_listeningExternalUrl!),
-                                packet.RemoteEndPoint,
-                                _shutdownCancellationTokenSource.Token);
+                            var request = WorkerDiscoveryRequest.Parser.ParseFrom(packet.Buffer);
+                            var currentPlatform = true switch
+                            {
+                                var v when v == OperatingSystem.IsWindows() => WorkerPlatform.Windows,
+                                var v when v == OperatingSystem.IsMacOS() => WorkerPlatform.Mac,
+                                var v when v == OperatingSystem.IsLinux() => WorkerPlatform.Linux,
+                                _ => WorkerPlatform.Unknown,
+                            };
+                            if (request.OpengeMagicNumber == WorkerDiscoveryConstants.OpenGEMagicNumber &&
+                                request.OpengeProtocolVersion == WorkerDiscoveryConstants.OpenGEProtocolVersion &&
+                                request.WorkerPlatform == currentPlatform)
+                            {
+                                var response = new WorkerDiscoveryResponse
+                                {
+                                    WorkerPort = _listeningPort.Value,
+                                    WorkerDisplayName = _workerDisplayName,
+                                    WorkerUniqueId = _workerUniqueId,
+                                }.ToByteArray();
+                                await _udp.SendAsync(
+                                    response,
+                                    packet.RemoteEndPoint,
+                                    _shutdownCancellationTokenSource.Token);
+                            }
+                            else
+                            {
+                                _logger.LogInformation($"Incoming request didn't match constraints: {request}");
+                            }
+                        }
+                        catch
+                        {
+                            _logger.LogWarning($"Ignoring unknown discovery packet from {packet.RemoteEndPoint}");
                         }
                     }
                 });
+                _logger.LogInformation($"Worker discovery listening on UDP port: {WorkerDiscoveryConstants.WorkerUdpBroadcastPort}");
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
             {
                 // There's already an instance running.
+                _logger.LogInformation($"Worker discovery turned off as there is already a worker listening on UDP port: {WorkerDiscoveryConstants.WorkerUdpBroadcastPort}");
             }
         }
 
@@ -158,6 +200,11 @@
             }
 
             public ExecutionRequest Current => _requestStream.Current;
+        }
+
+        public override Task<PingTaskServiceResponse> PingTaskService(PingTaskServiceRequest request, ServerCallContext context)
+        {
+            return Task.FromResult(new PingTaskServiceResponse());
         }
 
         public override async Task ReserveCoreAndExecute(

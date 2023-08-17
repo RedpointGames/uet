@@ -8,6 +8,7 @@
     <None Remove="Process.proto" />
     <None Remove="Task.proto" />
     <None Remove="TaskDescriptor.proto" />
+    <None Remove="WorkerDiscovery.proto" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,11 +21,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Protobuf Include="WorkerDiscovery.proto" Access="Public" GrpcServices="Both" />
     <Protobuf Include="Job.proto" Access="Public" GrpcServices="Both" />
-    <Protobuf Include="PreprocessorCache.proto">
-      <Access>Public</Access>
-      <GrpcServices>Both</GrpcServices>
-    </Protobuf>
+    <Protobuf Include="PreprocessorCache.proto" Access="Public" GrpcServices="Both" />
     <Protobuf Include="Process.proto" Access="Public" GrpcServices="Both" />
     <Protobuf Include="TaskDescriptor.proto" Access="Public" GrpcServices="Both" />
     <Protobuf Include="Task.proto" Access="Public" GrpcServices="Both" />

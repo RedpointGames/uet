@@ -7,6 +7,10 @@
     {
         TaskApi.TaskApiBase TaskApi { get; }
 
-        string? ListeningExternalUrl { get; }
+        int? ListeningPort { get; }
+
+        string WorkerDisplayName { get; }
+
+        string WorkerUniqueId { get; }
     }
 }

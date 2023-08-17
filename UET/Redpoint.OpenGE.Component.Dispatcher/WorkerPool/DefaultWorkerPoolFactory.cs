@@ -15,12 +15,12 @@
         }
 
         public IWorkerPool CreateWorkerPool(
-            TaskApi.TaskApiClient localWorker)
+            WorkerAddRequest localWorkerAddRequest)
         {
             return new DefaultWorkerPool(
                 _serviceProvider.GetRequiredService<ILogger<DefaultWorkerPool>>(),
                 _serviceProvider.GetRequiredService<ILogger<WorkerSubpool>>(),
-                localWorker);
+                localWorkerAddRequest);
         }
     }
 }

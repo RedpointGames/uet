@@ -26,7 +26,7 @@
             try
             {
                 var taskClient = new TaskApi.TaskApiClient(
-                    GrpcChannel.ForAddress(worker.ListeningExternalUrl!));
+                    GrpcChannel.ForAddress($"http://127.0.0.1:{worker.ListeningPort}"));
 
                 var duplex = taskClient.ReserveCoreAndExecute();
 

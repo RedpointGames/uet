@@ -49,8 +49,20 @@
                 provider.GetRequiredService<ILogger<WorkerSubpool>>(),
                 null);
 
-            await pool._remoteSubpool.RegisterWorkerAsync(worker1Client);
-            await pool._remoteSubpool.RegisterWorkerAsync(worker2Client);
+            await pool._remoteSubpool.RegisterWorkerAsync(
+                new WorkerAddRequest
+                {
+                    DisplayName = "Test Client 1",
+                    UniqueId = "1",
+                    Client = worker1Client,
+                });
+            await pool._remoteSubpool.RegisterWorkerAsync(
+                new WorkerAddRequest
+                {
+                    DisplayName = "Test Client 2",
+                    UniqueId = "2",
+                    Client = worker2Client,
+                });
 
             await using var reservation = await pool.ReserveCoreAsync(false, new CancellationTokenSource(5000).Token);
 
@@ -99,7 +111,13 @@
                 provider.GetRequiredService<ILogger<WorkerSubpool>>(),
                 null);
 
-            await pool._remoteSubpool.RegisterWorkerAsync(worker1Client);
+            await pool._remoteSubpool.RegisterWorkerAsync(
+                new WorkerAddRequest
+                {
+                    DisplayName = "Test Client 1",
+                    UniqueId = "1",
+                    Client = worker1Client,
+                });
 
             await using var reservation = await pool.ReserveCoreAsync(false, new CancellationTokenSource(5000).Token);
 
@@ -140,7 +158,13 @@
                 provider.GetRequiredService<ILogger<WorkerSubpool>>(),
                 null);
 
-            await pool._remoteSubpool.RegisterWorkerAsync(worker1Client);
+            await pool._remoteSubpool.RegisterWorkerAsync(
+                new WorkerAddRequest
+                {
+                    DisplayName = "Test Client 1",
+                    UniqueId = "1",
+                    Client = worker1Client,
+                });
 
             await using var reservation1 = await pool.ReserveCoreAsync(false, new CancellationTokenSource(5000).Token);
             await using var reservation2 = await pool.ReserveCoreAsync(false, new CancellationTokenSource(5000).Token);

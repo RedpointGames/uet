@@ -266,12 +266,24 @@ message ExecutionResponse {
 	}
 }
 
+message PingTaskServiceRequest {
+}
+
+message PingTaskServiceResponse {
+}
+
 /**
  * The task API only uses streaming requests, because the 
  * server needs to know if the client disappears at any time
  * (including crashes) so it can unreserve cores.
  */
 service TaskApi {
+	/**
+	 * Ping call that dispatchers use to verify that a worker's
+	 * remote address is available.
+	 */
+	rpc PingTaskService(PingTaskServiceRequest) returns (PingTaskServiceResponse) {}
+
 	/**
 	 * Streaming call used by clients to reserve cores, sync
 	 * data and execute tasks.

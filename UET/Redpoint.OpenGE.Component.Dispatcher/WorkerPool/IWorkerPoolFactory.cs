@@ -5,6 +5,6 @@
     public interface IWorkerPoolFactory
     {
         IWorkerPool CreateWorkerPool(
-            TaskApi.TaskApiClient localWorker);
+            WorkerAddRequest localWorkerAddRequest);
     }
 }
