@@ -1,0 +1,11 @@
+DnsServiceRegister
+DnsServiceRegisterCancel
+DnsServiceDeRegister
+DnsServiceBrowse
+DnsServiceBrowseCancel
+DnsServiceConstructInstance
+DnsServiceFreeInstance
+DnsFree
+DNS_QUERY_OPTIONS
+DNS_REQUEST_PENDING
+WIN32_ERROR
