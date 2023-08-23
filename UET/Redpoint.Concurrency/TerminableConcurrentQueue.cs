@@ -1,17 +1,17 @@
 ﻿namespace Redpoint.Concurrency
 {
     using System;
+    using System.Collections;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Threading;
-    using System.Threading.Tasks;
 
     /// <summary>
-    /// A version of <see cref="AwaitableConcurrentQueue{T}"/> that you can terminate
+    /// A version of <see cref="ConcurrentQueue{T}"/> that you can terminate
     /// downstream enumerations.
     /// </summary>
     /// <typeparam name="T">The element in the queue.</typeparam>
-    public class TerminableAwaitableConcurrentQueue<T> : IAsyncEnumerable<T>
+    public class TerminableConcurrentQueue<T> : IEnumerable<T>
     {
         private readonly SemaphoreSlim _ready = new SemaphoreSlim(0);
         private readonly ConcurrentQueue<T> _queue = new ConcurrentQueue<T>();
@@ -25,7 +25,7 @@
         {
             if (_terminated)
             {
-                throw new InvalidOperationException("This asynchronous concurrent queue has been terminated.");
+                throw new InvalidOperationException("This concurrent queue has been terminated.");
             }
             _queue.Enqueue(item);
             _ready.Release();
@@ -33,9 +33,9 @@
 
         /// <summary>
         /// Terminates the queue, meaning that no further items can be dequeued
-        /// from it. Once this is called, <see cref="Dequeue(CancellationToken)"/>
+        /// from it. Once this is called, <see cref="Dequeue()"/>
         /// will throw <see cref="OperationCanceledException"/>, and enumerables from
-        /// <see cref="GetAsyncEnumerator(CancellationToken)"/> will stop enumerating
+        /// <see cref="GetEnumerator()"/> will stop enumerating
         /// normally.
         /// </summary>
         public void Terminate()
@@ -55,11 +55,10 @@
         /// Dequeues an item from the queue, asynchronously waiting until an item
         /// is available.
         /// </summary>
-        /// <param name="cancellationToken">The cancellation token to cancel the dequeue operation.</param>
         /// <returns>The item that was dequeued.</returns>
-        public async ValueTask<T> Dequeue(CancellationToken cancellationToken)
+        public T Dequeue()
         {
-            await _ready.WaitAsync(cancellationToken);
+            _ready.Wait();
             if (!_queue.TryDequeue(out var result))
             {
                 if (_terminated)
@@ -76,22 +75,26 @@
         }
 
         /// <inheritdoc />
-        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        public IEnumerator<T> GetEnumerator()
         {
-            return new AsyncEnumerator(this, cancellationToken);
+            return new Enumerator(this);
         }
 
-        private class AsyncEnumerator : IAsyncEnumerator<T>
+        /// <inheritdoc />
+        IEnumerator IEnumerable.GetEnumerator()
         {
-            private readonly TerminableAwaitableConcurrentQueue<T> _queue;
-            private readonly CancellationToken _cancellationToken;
+            return new Enumerator(this);
+        }
+
+        private class Enumerator : IEnumerator<T>
+        {
+            private readonly TerminableConcurrentQueue<T> _queue;
             private T? _current;
             private bool _currentSet;
 
-            public AsyncEnumerator(TerminableAwaitableConcurrentQueue<T> queue, CancellationToken cancellationToken)
+            public Enumerator(TerminableConcurrentQueue<T> queue)
             {
                 _queue = queue;
-                _cancellationToken = cancellationToken;
                 _current = default(T);
                 _currentSet = false;
             }
@@ -102,14 +105,15 @@
                 false => throw new InvalidOperationException("You must call MoveNext first!"),
             };
 
-            public ValueTask DisposeAsync()
+            object IEnumerator.Current => Current!;
+
+            public void Dispose()
             {
-                return ValueTask.CompletedTask;
             }
 
-            public async ValueTask<bool> MoveNextAsync()
+            public bool MoveNext()
             {
-                await _queue._ready.WaitAsync(_cancellationToken);
+                _queue._ready.Wait();
                 if (!_queue._queue.TryDequeue(out var result))
                 {
                     if (_queue._terminated)
@@ -125,6 +129,10 @@
                 _current = result!;
                 _currentSet = true;
                 return true;
+            }
+
+            public void Reset()
+            {
             }
         }
     }

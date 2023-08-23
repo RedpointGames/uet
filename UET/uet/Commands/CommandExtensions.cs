@@ -1,5 +1,6 @@
 ﻿namespace UET.Commands
 {
+    using Redpoint.AutoDiscovery;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.MSBuildResolution;
@@ -51,6 +52,7 @@
 
         private static void AddGeneralServices(IServiceCollection services, LogLevel minimumLogLevel)
         {
+            services.AddAutoDiscovery();
             services.AddPathResolution();
             services.AddMSBuildPathResolution();
             services.AddReservation();

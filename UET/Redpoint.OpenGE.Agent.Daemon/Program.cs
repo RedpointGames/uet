@@ -14,6 +14,7 @@
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
+    using Redpoint.AutoDiscovery;
 
     public static class Program
     {
@@ -68,6 +69,7 @@
                 }
             });
 
+            services.AddAutoDiscovery();
             services.AddGrpcPipes();
             services.AddProcessExecution();
             services.AddPathResolution();

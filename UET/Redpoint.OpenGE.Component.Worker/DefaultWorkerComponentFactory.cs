@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.AutoDiscovery;
     using System;
 
     internal class DefaultWorkerComponentFactory : IWorkerComponentFactory
@@ -20,7 +21,8 @@
                 _serviceProvider.GetRequiredService<IToolManager>(),
                 _serviceProvider.GetRequiredService<IBlobManager>(),
                 _serviceProvider.GetRequiredService<IExecutionManager>(),
-                _serviceProvider.GetRequiredService<ILogger<DefaultWorkerComponent>>());
+                _serviceProvider.GetRequiredService<ILogger<DefaultWorkerComponent>>(),
+                _serviceProvider.GetRequiredService<INetworkAutoDiscovery>());
         }
     }
 }

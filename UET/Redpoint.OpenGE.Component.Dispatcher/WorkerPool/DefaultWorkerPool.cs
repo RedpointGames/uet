@@ -3,7 +3,11 @@
     using Google.Protobuf;
     using Grpc.Core;
     using Grpc.Net.Client;
+    using Grpc.Net.Client.Balancer;
+    using Grpc.Net.Client.Configuration;
+    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.AutoDiscovery;
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Protocol;
     using System.Collections.Concurrent;
@@ -15,21 +19,24 @@
     internal class DefaultWorkerPool : IWorkerPool
     {
         private readonly ILogger<DefaultWorkerPool> _logger;
+        private readonly INetworkAutoDiscovery _networkAutoDiscovery;
         private readonly SemaphoreSlim _notifyReevaluationOfWorkers;
         private readonly CancellationTokenSource _disposedCts;
         internal readonly WorkerSubpool _localSubpool;
         internal readonly WorkerSubpool _remoteSubpool;
         internal readonly ConcurrentDictionary<string, bool> _remoteWorkersHandled;
-
         private readonly Task _workersProcessingTask;
         private readonly Task _discoverRemoteWorkersTask;
+        private readonly string? _localWorkerUniqueId;
 
         public DefaultWorkerPool(
             ILogger<DefaultWorkerPool> logger,
             ILogger<WorkerSubpool> subpoolLogger,
+            INetworkAutoDiscovery networkAutoDiscovery,
             WorkerAddRequest? localWorkerAddRequest)
         {
             _logger = logger;
+            _networkAutoDiscovery = networkAutoDiscovery;
             _notifyReevaluationOfWorkers = new SemaphoreSlim(0);
             _disposedCts = new CancellationTokenSource();
             _localSubpool = new WorkerSubpool(
@@ -42,6 +49,7 @@
 
             if (localWorkerAddRequest != null)
             {
+                _localWorkerUniqueId = localWorkerAddRequest.UniqueId;
                 _localSubpool._workers.Add(new WorkerState
                 {
                     DisplayName = localWorkerAddRequest.DisplayName,
@@ -64,64 +72,47 @@
 
         private async Task DiscoverRemoteWorkers()
         {
-            var request = new WorkerDiscoveryRequest
+            while (true)
             {
-                OpengeMagicNumber = WorkerDiscoveryConstants.OpenGEMagicNumber,
-                OpengeProtocolVersion = WorkerDiscoveryConstants.OpenGEProtocolVersion,
-                WorkerPlatform = true switch
+                try
                 {
-                    var v when v == OperatingSystem.IsWindows() => WorkerPlatform.Windows,
-                    var v when v == OperatingSystem.IsMacOS() => WorkerPlatform.Mac,
-                    var v when v == OperatingSystem.IsLinux() => WorkerPlatform.Linux,
-                    _ => WorkerPlatform.Unknown,
-                }
-            };
-
-            var client = new UdpClient();
-            client.EnableBroadcast = true;
-            client.Client.Bind(new IPEndPoint(
-                IPAddress.Parse("10.7.0.241"),
-                0));
-
-            int sendDelaySeconds = 5;
-
-            var sendLoop = Task.Run(async () =>
-            {
-                while (!_disposedCts.IsCancellationRequested)
-                {
-                    _logger.LogInformation("Attempting to discover other workers on the local network...");
-                    for (int i = 0; i < 10; i++)
+                    await foreach (var entry in _networkAutoDiscovery.DiscoverServicesAsync(
+                        $"_{WorkerDiscoveryConstants.OpenGEPlatformIdentifier}{WorkerDiscoveryConstants.OpenGEProtocolVersion}-openge._tcp.local",
+                        _disposedCts.Token))
                     {
-                        await client.SendAsync(
-                            request.ToByteArray(),
-                            new IPEndPoint(
-                                IPAddress.Parse("10.7.0.25"), 
-                                WorkerDiscoveryConstants.WorkerUdpBroadcastPort),
-                            _disposedCts.Token);
-                    }
+                        var workerUniqueId = entry.ServiceName.Split('.')[0];
+                        if (_localWorkerUniqueId == workerUniqueId)
+                        {
+                            // This is our local worker, which we're already connected to directly.
+                            continue;
+                        }
 
-                    await Task.Delay(sendDelaySeconds * 1000, _disposedCts.Token);
-                    sendDelaySeconds *= 2;
-                    if (sendDelaySeconds > 120)
-                    {
-                        sendDelaySeconds = 120;
-                    }
-                }
-            });
+                        if (_remoteSubpool.HasWorker(workerUniqueId))
+                        {
+                            // We already have this worker. Do not connect to it again.
+                            continue;
+                        }
 
-            var receiveLoop = Task.Run(async () =>
-            {
-                while (!_disposedCts.IsCancellationRequested)
-                {
-                    var packet = await client.ReceiveAsync(_disposedCts.Token);
-                    try
-                    {
-                        _logger.LogInformation($"Received packet from: {packet.RemoteEndPoint}");
-                        var response = WorkerDiscoveryResponse.Parser.ParseFrom(packet.Buffer);
+                        var factory = new StaticResolverFactory(addr => entry.TargetAddressList.Select(x => new BalancerAddress(x.ToString(), entry.TargetPort)));
+                        var services = new ServiceCollection();
+                        services.AddSingleton<ResolverFactory>(factory);
 
                         // Try to ping this remote worker.
                         var taskApi = new TaskApi.TaskApiClient(
-                            GrpcChannel.ForAddress($"http://{packet.RemoteEndPoint.Address}:{response.WorkerPort}"));
+                            GrpcChannel.ForAddress(
+                                $"static:///{entry.ServiceName}",
+                                new GrpcChannelOptions
+                                {
+                                    ServiceConfig = new ServiceConfig
+                                    {
+                                        LoadBalancingConfigs =
+                                        {
+                                            new PickFirstConfig(),
+                                        }
+                                    },
+                                    ServiceProvider = services.BuildServiceProvider(),
+                                    Credentials = ChannelCredentials.Insecure,
+                                }));
                         var usable = false;
                         try
                         {
@@ -135,38 +126,30 @@
                         }
                         if (usable)
                         {
-                            if (!_remoteWorkersHandled.TryGetValue(response.WorkerUniqueId, out var exists))
-                            {
-                                // If we got a worker that we've never seen before, broadcast immediately
-                                // from us so that we discover them in return.
-                                await client.SendAsync(
-                                    request.ToByteArray(),
-                                    new IPEndPoint(IPAddress.Broadcast, WorkerDiscoveryConstants.WorkerUdpBroadcastPort),
-                                    _disposedCts.Token);
-                                _remoteWorkersHandled.TryAdd(response.WorkerUniqueId, true);
-                            }
-
                             await _remoteSubpool.RegisterWorkerAsync(new WorkerAddRequest
                             {
-                                DisplayName = response.WorkerDisplayName,
-                                UniqueId = response.WorkerUniqueId,
+                                DisplayName = entry.TargetHostname,
+                                UniqueId = workerUniqueId,
                                 Client = taskApi,
                             });
-                            _logger.LogInformation($"Discovered remote worker {response.WorkerDisplayName} at '{packet.RemoteEndPoint}'.");
+                            _logger.LogInformation($"Discovered remote worker {entry.TargetHostname} at '{entry.ServiceName}'.");
                         }
                         else
                         {
-                            _logger.LogWarning($"Discovered remote worker at {packet.RemoteEndPoint.Address}, but it wasn't usable based on the gRPC ping request.");
+                            _logger.LogWarning($"Discovered remote worker at {entry.ServiceName}, but it wasn't usable based on the gRPC ping request.");
                         }
                     }
-                    catch
-                    {
-                        _logger.LogWarning($"Ignoring unknown discovery response packet from {packet.RemoteEndPoint}");
-                    }
                 }
-            });
-
-            await Task.WhenAll(sendLoop, receiveLoop);
+                catch (OperationCanceledException) when (_disposedCts.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogCritical(ex, $"Critical failure in worker discovery loop: {ex.Message}");
+                    await Task.Delay(5000);
+                }
+            }
         }
 
         private async Task PeriodicallyProcessWorkers()

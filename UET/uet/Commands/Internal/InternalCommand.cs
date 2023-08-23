@@ -13,6 +13,7 @@
     using UET.Commands.Internal.RunDownstreamTest;
     using UET.Commands.Internal.RunGauntletTestFromBuildGraph;
     using UET.Commands.Internal.SetFilterFile;
+    using UET.Commands.Internal.TestAutoDiscovery;
     using UET.Commands.Internal.TestGrpcPipes;
     using UET.Commands.Internal.TestUefsConnection;
     using UET.Commands.Internal.UpdateCopyrightHeadersForMarketplace;
@@ -33,6 +34,7 @@
                 UpdateCopyrightHeadersForMarketplaceCommand.CreateUpdateCopyrightHeadersForMarketplaceCommand(),
                 UpdateUPluginCommand.CreateUpdateUPluginCommand(),
                 UploadToBackblazeB2Command.CreateUploadToBackblazeB2Command(),
+                TestAutoDiscoveryCommand.CreateTestAutoDiscoveryCommand(),
                 TestGrpcPipesCommand.CreateTestGrpcPipesCommand(),
                 TestUefsConnectionCommand.CreateTestUefsConnectionCommand(),
                 CreateGitHubReleaseCommand.CreateCreateGitHubReleaseCommand(),

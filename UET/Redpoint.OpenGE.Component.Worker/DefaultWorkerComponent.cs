@@ -15,6 +15,7 @@
     using System.Collections.Concurrent;
     using Google.Protobuf;
     using Redpoint.OpenGE.Core;
+    using Redpoint.AutoDiscovery;
 
     internal class DefaultWorkerComponent : TaskApi.TaskApiBase, IWorkerComponent
     {
@@ -22,6 +23,7 @@
         private readonly IBlobManager _blobManager;
         private readonly IExecutionManager _executionManager;
         private readonly ILogger<DefaultWorkerComponent> _logger;
+        private readonly INetworkAutoDiscovery _networkAutoDiscovery;
         private readonly string _workerDisplayName;
         private readonly string _workerUniqueId;
         private readonly SemaphoreSlim _reservationSemaphore;
@@ -29,20 +31,20 @@
         private CancellationTokenSource? _shutdownCancellationTokenSource;
         private int? _listeningPort;
         private WebApplication? _app;
-        private UdpClient? _udp;
-        private Task? _udpTask;
+        private IAsyncDisposable? _autoDiscoveryInstance;
 
         public DefaultWorkerComponent(
             IToolManager toolManager,
             IBlobManager blobManager,
             IExecutionManager executionManager,
-            ILogger<DefaultWorkerComponent> logger)
+            ILogger<DefaultWorkerComponent> logger,
+            INetworkAutoDiscovery networkAutoDiscovery)
         {
             _toolManager = toolManager;
             _blobManager = blobManager;
             _executionManager = executionManager;
             _logger = logger;
-
+            _networkAutoDiscovery = networkAutoDiscovery;
             _workerDisplayName = Environment.MachineName;
             _workerUniqueId = Guid.NewGuid().ToString();
 
@@ -98,68 +100,21 @@
 
             _app = app;
 
-            try
-            {
-                _udp = new UdpClient();
-                _udp.Client.Bind(new IPEndPoint(IPAddress.Parse("10.7.0.241"), WorkerDiscoveryConstants.WorkerUdpBroadcastPort));
-                _udpTask = Task.Run(async () =>
-                {
-                    while (_shutdownCancellationTokenSource.IsCancellationRequested)
-                    {
-                        var packet = await _udp.ReceiveAsync(_shutdownCancellationTokenSource.Token);
-                        _logger.LogInformation($"Got incoming packet on auto-discovery port from remote: {packet.RemoteEndPoint}");
-                        try
-                        {
-                            var request = WorkerDiscoveryRequest.Parser.ParseFrom(packet.Buffer);
-                            var currentPlatform = true switch
-                            {
-                                var v when v == OperatingSystem.IsWindows() => WorkerPlatform.Windows,
-                                var v when v == OperatingSystem.IsMacOS() => WorkerPlatform.Mac,
-                                var v when v == OperatingSystem.IsLinux() => WorkerPlatform.Linux,
-                                _ => WorkerPlatform.Unknown,
-                            };
-                            if (request.OpengeMagicNumber == WorkerDiscoveryConstants.OpenGEMagicNumber &&
-                                request.OpengeProtocolVersion == WorkerDiscoveryConstants.OpenGEProtocolVersion &&
-                                request.WorkerPlatform == currentPlatform)
-                            {
-                                var response = new WorkerDiscoveryResponse
-                                {
-                                    WorkerPort = _listeningPort.Value,
-                                    WorkerDisplayName = _workerDisplayName,
-                                    WorkerUniqueId = _workerUniqueId,
-                                }.ToByteArray();
-                                await _udp.SendAsync(
-                                    response,
-                                    packet.RemoteEndPoint,
-                                    _shutdownCancellationTokenSource.Token);
-                            }
-                            else
-                            {
-                                _logger.LogInformation($"Incoming request didn't match constraints: {request}");
-                            }
-                        }
-                        catch
-                        {
-                            _logger.LogWarning($"Ignoring unknown discovery packet from {packet.RemoteEndPoint}");
-                        }
-                    }
-                });
-                _logger.LogInformation($"Worker discovery listening on UDP port: {WorkerDiscoveryConstants.WorkerUdpBroadcastPort}");
-            }
-            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
-            {
-                // There's already an instance running.
-                _logger.LogInformation($"Worker discovery turned off as there is already a worker listening on UDP port: {WorkerDiscoveryConstants.WorkerUdpBroadcastPort}");
-            }
+            var autoDiscoveryName = $"{_workerUniqueId}._{WorkerDiscoveryConstants.OpenGEPlatformIdentifier}{WorkerDiscoveryConstants.OpenGEProtocolVersion}-openge._tcp.local";
+            _autoDiscoveryInstance = await _networkAutoDiscovery.RegisterServiceAsync(
+                autoDiscoveryName,
+                _listeningPort.Value,
+                shutdownCancellationToken);
+            _logger.LogInformation($"Worker advertising on auto-discovery name: {autoDiscoveryName}");
         }
 
         public async Task StopAsync()
         {
             _shutdownCancellationTokenSource!.Cancel();
-            if (_udp != null)
+            if (_autoDiscoveryInstance != null)
             {
-                _udp.Close();
-                _udp.Dispose();
+                await _autoDiscoveryInstance.DisposeAsync();
+                _autoDiscoveryInstance = null;
             }
             if (_app != null)
             {
@@ -208,13 +163,13 @@
         }
 
         public override async Task ReserveCoreAndExecute(
-            IAsyncStreamReader<ExecutionRequest> requestStream, 
-            IServerStreamWriter<ExecutionResponse> responseStream, 
+            IAsyncStreamReader<ExecutionRequest> requestStream,
+            IServerStreamWriter<ExecutionResponse> responseStream,
             ServerCallContext context)
         {
             var connectionIdleTracker = new ConnectionIdleTracker(
                 CancellationTokenSource.CreateLinkedTokenSource(
-                    context.CancellationToken, 
+                    context.CancellationToken,
                     _shutdownCancellationTokenSource!.Token).Token,
                 5000);
             connectionIdleTracker.StartIdling();
@@ -241,7 +196,7 @@
                                 await responseStream.WriteAsync(new ExecutionResponse
                                 {
                                     QueryTool = await _toolManager.QueryToolAsync(
-                                        requestStream.Current.QueryTool, 
+                                        requestStream.Current.QueryTool,
                                         context.CancellationToken),
                                 });
                             }
@@ -418,7 +373,7 @@
             try
             {
                 var shouldReturn = false;
-                while (!shouldReturn && 
+                while (!shouldReturn &&
                     await requestStream.MoveNext(connectionIdleTracker.CancellationToken))
                 {
                     switch (requestStream.Current.RequestCase)
@@ -467,7 +422,7 @@
                     isReturning = true;
                     return reservedCore;
                 }
-            } 
+            }
             finally
             {
                 if (didReserve && !isReturning)

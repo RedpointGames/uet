@@ -3,8 +3,11 @@
     extern alias SDWin64;
     using System;
     using System.ComponentModel;
+    using System.Diagnostics;
+    using System.Net.Sockets;
     using System.Runtime.InteropServices;
     using System.Runtime.Versioning;
+    using Redpoint.Concurrency;
     using SDWin64::Windows.Win32;
     using SDWin64::Windows.Win32.Foundation;
     using SDWin64::Windows.Win32.NetworkManagement.Dns;
@@ -13,15 +16,24 @@
     internal unsafe class Win64ServiceBrowseCall : WindowsNativeRequestCall<DNS_SERVICE_BROWSE_REQUEST, DNS_SERVICE_CANCEL>
     {
         private readonly string _query;
+        private readonly TerminableAwaitableConcurrentQueue<NetworkService> _resultStream;
 
-        public Win64ServiceBrowseCall(string query)
+        public Win64ServiceBrowseCall(
+            string query,
+            TerminableAwaitableConcurrentQueue<NetworkService> resultStream)
         {
             _query = query;
+            _resultStream = resultStream;
         }
 
         protected override IEnumerable<nint> ConstructPtrsForRequest()
         {
-            yield return Marshal.StringToHGlobalUni(_query);
+            yield return Marshal.StringToHGlobalAuto(_query);
+        }
+
+        protected override object? GetCustomDataForRequest()
+        {
+            return _resultStream;
         }
 
         protected override DNS_SERVICE_BROWSE_REQUEST ConstructRequest(
@@ -29,7 +41,6 @@
             nint[] ptrs,
             IDisposable[] disposables)
         {
-            var serviceInstance = (Win64ServiceInstance)disposables[0];
             return new DNS_SERVICE_BROWSE_REQUEST
             {
                 Version = (uint)DNS_QUERY_OPTIONS.DNS_QUERY_REQUEST_VERSION2,
@@ -37,15 +48,16 @@
                 QueryName = new PCWSTR((char*)ptrs[0]),
                 pQueryContext = (void*)id,
                 Anonymous =
-                    {
-                        pBrowseCallbackV2 = (delegate* unmanaged[Stdcall]<void*, DNS_QUERY_RESULT*, void>)Marshal.GetFunctionPointerForDelegate(RequestReceivedResult),
-                    }
+                {
+                    pBrowseCallbackV2 = (delegate* unmanaged[Stdcall]<void*, DNS_QUERY_RESULT*, void>)Marshal.GetFunctionPointerForDelegate(RequestReceivedResult),
+                }
             };
         }
 
         protected override void CancelRequest(DNS_SERVICE_CANCEL* cancel)
         {
             PInvoke.DnsServiceBrowseCancel(cancel);
+            _resultStream.Terminate();
         }
 
         protected override unsafe void StartRequest(
@@ -67,21 +79,71 @@
             DNS_QUERY_RESULT* result)
         {
             var inflight = _calls[(nint)queryContext];
+            var stream = (TerminableAwaitableConcurrentQueue<NetworkService>)inflight.CustomData!;
             if (result == null)
             {
                 inflight.ResultException = new InvalidOperationException("Returned DNS_QUERY_RESULT is null.");
-                inflight.AsyncSemaphore.Unlock();
+                PInvoke.DnsServiceBrowseCancel(inflight.CancellableRequest.Cancel);
+                stream.Terminate();
+                inflight.AsyncSemaphore.Open();
                 return;
             }
-
-            if (result->QueryStatus != 0)
+            else if (result->QueryStatus != 0)
             {
                 inflight.ResultException = new Win32Exception(result->QueryStatus);
+                PInvoke.DnsServiceBrowseCancel(inflight.CancellableRequest.Cancel);
+                stream.Terminate();
+                inflight.AsyncSemaphore.Open();
+                return;
             }
+            else
+            {
+                // Stream results.
+                var current = result->pQueryRecords;
+                while (current != null)
+                {
+                    var name = Marshal.PtrToStringAuto((nint)current->pName.Value);
 
-            PInvoke.DnsFree(result->pQueryRecords, DNS_FREE_TYPE.DnsFreeRecordList);
+                    switch ((DNS_TYPE)current->wType)
+                    {
+                        case DNS_TYPE.DNS_TYPE_SRV:
+                            var nameTarget = Marshal.PtrToStringAuto((nint)current->Data.SRV.pNameTarget.Value);
+                            var port = current->Data.SRV.wPort;
+                            var priority = current->Data.SRV.wPriority;
+                            var weight = current->Data.SRV.wWeight;
+                            try
+                            {
+                                var addressList = System.Net.Dns.GetHostEntry(nameTarget!).AddressList;
+                                if (addressList != null && addressList.Length > 0)
+                                {
+                                    stream.Enqueue(new NetworkService
+                                    {
+                                        ServiceName = name!,
+                                        TargetHostname = nameTarget!,
+                                        TargetAddressList = addressList!,
+                                        TargetPort = port,
+                                    });
+                                }
+                            }
+                            catch (Exception)
+                            {
+                                // If the hostname can't be resolved, ignore
+                                // the DNS-SD entry.
+                            }
+                            break;
+                        case DNS_TYPE.DNS_TYPE_PTR:
+                            break;
+                        case DNS_TYPE.DNS_TYPE_TEXT:
+                            break;
+                        default:
+                            Debugger.Break();
+                            break;
+                    }
 
-            inflight.AsyncSemaphore.Unlock();
+                    current = current->pNext;
+                }
+                PInvoke.DnsFree(result->pQueryRecords, DNS_FREE_TYPE.DnsFreeRecordList);
+            }
         }
     }
 }

@@ -13,6 +13,7 @@
         private readonly SemaphoreSlim _notifyReevaluationOfWorkers;
         private readonly AwaitableConcurrentQueue<IWorkerCore> _workerCoreQueue;
         internal readonly List<WorkerState> _workers;
+        private readonly ConcurrentDictionary<string, bool> _workersRegistered;
         private readonly ConcurrentQueue<WorkerAddRequest> _workerExplicitAddQueue;
         private readonly SemaphoreSlim _workerExplicitAddComplete;
 
@@ -27,6 +28,7 @@
             _notifyReevaluationOfWorkers = notifyReevaluationOfWorkers;
             _workerCoreQueue = new AwaitableConcurrentQueue<IWorkerCore>();
             _workers = new List<WorkerState>();
+            _workersRegistered = new ConcurrentDictionary<string, bool>();
             _workerExplicitAddQueue = new ConcurrentQueue<WorkerAddRequest>();
             _workerExplicitAddComplete = new SemaphoreSlim(0);
 
@@ -63,6 +65,11 @@
             _workerExplicitAddQueue.Enqueue(request);
             _notifyReevaluationOfWorkers.Release();
             await _workerExplicitAddComplete.WaitAsync();
+        }
+
+        internal bool HasWorker(string workerUniqueId)
+        {
+            return _workersRegistered.ContainsKey(workerUniqueId);
         }
 
         internal async Task<IWorkerCore> ReserveCoreAsync(
@@ -115,6 +122,7 @@
                         UniqueId = incomingRequest.UniqueId,
                         Client = incomingRequest.Client,
                     });
+                    _workersRegistered[incomingRequest.UniqueId] = true;
                 }
                 _workerExplicitAddComplete.Release();
             }

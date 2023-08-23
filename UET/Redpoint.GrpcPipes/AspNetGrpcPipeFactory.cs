@@ -103,7 +103,13 @@
                         var ac = di.GetAccessControl();
                         var everyone = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
                         ac.AddAccessRule(new FileSystemAccessRule(everyone, FileSystemRights.Modify | FileSystemRights.Synchronize, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
-                        di.SetAccessControl(ac);
+                        try
+                        {
+                            di.SetAccessControl(ac);
+                        }
+                        catch (UnauthorizedAccessException)
+                        {
+                        }
                     }
                     else
                     {

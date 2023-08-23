@@ -48,7 +48,7 @@
 
                 var requestStarted = false;
                 var nativeRequest = _calls.Add(
-                    id => ConstructRequest(id, disposables.ToArray()),
+                    id => ConstructRequest(id, ptrs.ToArray(), disposables.ToArray()),
                     ptrs.ToArray(),
                     disposables.ToArray(),
                     cancel =>
@@ -56,6 +56,7 @@
                         CancelRequest((TCancel*)cancel);
                     },
                     cancellationToken);
+                nativeRequest.CustomData = GetCustomDataForRequest();
                 nativeMemoryCaptured = true;
                 try
                 {
@@ -63,6 +64,7 @@
                         nativeRequest.Request,
                         nativeRequest,
                         nativeRequest.CancellableRequest.Cancel);
+                    nativeRequest.CancellableRequest.Started();
                     requestStarted = true;
                     return nativeRequest;
                 }
@@ -98,6 +100,11 @@
 
         protected virtual void NotifyDisposablesOfSuccessfulRequest(IDisposable[] disposables)
         {
+        }
+
+        protected virtual object? GetCustomDataForRequest()
+        {
+            return null;
         }
 
         protected abstract TRequest ConstructRequest(nint id, nint[] ptrs, IDisposable[] disposables);

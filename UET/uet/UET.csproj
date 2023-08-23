@@ -31,6 +31,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.B2Net\Redpoint.ThirdParty.B2Net.csproj" />
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
+    <ProjectReference Include="..\Redpoint.AutoDiscovery\Redpoint.AutoDiscovery.csproj" />
     <ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />
     <ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Agent\Redpoint.OpenGE.Agent.csproj" />

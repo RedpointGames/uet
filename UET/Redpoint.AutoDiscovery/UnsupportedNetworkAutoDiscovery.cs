@@ -17,7 +17,7 @@
             _logger = logger;
         }
 
-        public IAsyncEnumerable<NetworkService> DiscoverServicesAsync(string name)
+        public IAsyncEnumerable<NetworkService> DiscoverServicesAsync(string query, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Network auto-discovery is not supported on this operating system.");
             return Array.Empty<NetworkService>().ToAsyncEnumerable();

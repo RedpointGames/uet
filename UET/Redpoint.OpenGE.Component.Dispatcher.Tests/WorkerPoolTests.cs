@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.AutoDiscovery;
     using Redpoint.GrpcPipes;
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
     using Redpoint.OpenGE.Protocol;
@@ -15,6 +16,7 @@
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddGrpcPipes();
+            services.AddAutoDiscovery();
             var provider = services.BuildServiceProvider();
             var factory = provider.GetRequiredService<IGrpcPipeFactory>();
 
@@ -47,6 +49,7 @@
             await using var pool = new DefaultWorkerPool(
                 provider.GetRequiredService<ILogger<DefaultWorkerPool>>(),
                 provider.GetRequiredService<ILogger<WorkerSubpool>>(),
+                provider.GetRequiredService<INetworkAutoDiscovery>(),
                 null);
 
             await pool._remoteSubpool.RegisterWorkerAsync(
@@ -87,6 +90,7 @@
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddGrpcPipes();
+            services.AddAutoDiscovery();
             var provider = services.BuildServiceProvider();
             var factory = provider.GetRequiredService<IGrpcPipeFactory>();
 
@@ -109,6 +113,7 @@
             await using var pool = new DefaultWorkerPool(
                 provider.GetRequiredService<ILogger<DefaultWorkerPool>>(),
                 provider.GetRequiredService<ILogger<WorkerSubpool>>(),
+                provider.GetRequiredService<INetworkAutoDiscovery>(),
                 null);
 
             await pool._remoteSubpool.RegisterWorkerAsync(
@@ -134,6 +139,7 @@
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddGrpcPipes();
+            services.AddAutoDiscovery();
             var provider = services.BuildServiceProvider();
             var factory = provider.GetRequiredService<IGrpcPipeFactory>();
 
@@ -156,6 +162,7 @@
             await using var pool = new DefaultWorkerPool(
                 provider.GetRequiredService<ILogger<DefaultWorkerPool>>(),
                 provider.GetRequiredService<ILogger<WorkerSubpool>>(),
+                provider.GetRequiredService<INetworkAutoDiscovery>(),
                 null);
 
             await pool._remoteSubpool.RegisterWorkerAsync(

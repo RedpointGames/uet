@@ -19,7 +19,7 @@
         {
             _instance = PInvoke.DnsServiceConstructInstance(
                 name,
-                "",
+                Environment.MachineName,
                 null,
                 null,
                 port,

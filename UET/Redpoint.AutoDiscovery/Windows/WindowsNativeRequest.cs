@@ -17,6 +17,7 @@
         public readonly nint[] HGlobalPtrs;
         public readonly IDisposable[] DisposablePtrs;
         public Exception? ResultException;
+        public object? CustomData;
 
         public WindowsNativeRequest(
             nint id,
@@ -36,6 +37,8 @@
                 cancel =>
                 {
                     cancelHandler(cancel);
+                    ResultException = new OperationCanceledException(cancellationToken);
+                    AsyncSemaphore.Open();
                 });
         }
 

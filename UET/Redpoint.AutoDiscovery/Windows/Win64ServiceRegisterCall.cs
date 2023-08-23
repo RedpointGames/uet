@@ -79,7 +79,7 @@
             {
                 inflight.ResultException = new Win32Exception((int)status);
             }
-            inflight.AsyncSemaphore.Unlock();
+            inflight.AsyncSemaphore.Open();
         }
     }
 }

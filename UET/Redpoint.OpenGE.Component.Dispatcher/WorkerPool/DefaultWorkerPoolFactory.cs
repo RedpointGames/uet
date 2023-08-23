@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.AutoDiscovery;
     using Redpoint.OpenGE.Protocol;
 
     internal class DefaultWorkerPoolFactory : IWorkerPoolFactory
@@ -20,6 +21,7 @@
             return new DefaultWorkerPool(
                 _serviceProvider.GetRequiredService<ILogger<DefaultWorkerPool>>(),
                 _serviceProvider.GetRequiredService<ILogger<WorkerSubpool>>(),
+                _serviceProvider.GetRequiredService<INetworkAutoDiscovery>(),
                 localWorkerAddRequest);
         }
     }
