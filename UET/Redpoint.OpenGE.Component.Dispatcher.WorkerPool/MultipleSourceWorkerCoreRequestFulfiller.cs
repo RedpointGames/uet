@@ -18,7 +18,6 @@
         private readonly Dictionary<IWorkerCoreProvider<TWorkerCore>, WorkerCoreObtainmentState> _currentProviders;
         private readonly SemaphoreSlim _currentProvidersLock;
         private readonly Task _backgroundTask;
-        private WorkerCoreRequestStatistics? _lastStatistics;
 
         private class WorkerCoreObtainmentState
         {
@@ -63,7 +62,6 @@
 
         private Task OnNotifiedRequestsChanged(WorkerCoreRequestStatistics statistics, CancellationToken token)
         {
-            _lastStatistics = statistics;
             _processRequestsSemaphore.Release();
             return Task.CompletedTask;
         }
@@ -149,13 +147,38 @@
                 }
             }
 
+            // Get the initial providers.
+            while (true)
+            {
+                await _currentProvidersLock.WaitAsync(_disposedCts.Token);
+                try
+                {
+                    foreach (var provider in await _providerCollection.GetProvidersAsync())
+                    {
+                        _currentProviders.Add(provider, new WorkerCoreObtainmentState());
+                    }
+                    break;
+                }
+                catch (OperationCanceledException) when (_disposedCts.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogCritical(ex, ex.Message);
+                    await Task.Delay(1000);
+                }
+                finally
+                {
+                    _currentProvidersLock.Release();
+                }
+            }
+
             // Process requests.
             while (true)
             {
                 try
                 {
-                    _lastStatistics = await _requestCollection.GetCurrentStatisticsAsync(_disposedCts.Token);
-
                     while (!_disposedCts.IsCancellationRequested)
                     {
                         await _processRequestsSemaphore.WaitAsync(_disposedCts.Token);
@@ -226,7 +249,7 @@
                                 // Start background tasks to obtain more cores.
                                 var idleProviders = _currentProviders.Where(x => !x.Value.IsObtainingCore).ToList();
                                 idleProviders.Shuffle();
-                                for (int i = 0; i < differenceCores; i++)
+                                for (int i = 0; i < differenceCores && i < idleProviders.Count; i++)
                                 {
                                     var provider = idleProviders[i];
                                     provider.Value.IsObtainingCore = true;
@@ -289,7 +312,7 @@
                                 // Kill off obtainment tasks and release cores that we no longer need.
                                 var workingProviders = _currentProviders.Where(x => x.Value.IsObtainingCore).ToList();
                                 workingProviders.Shuffle();
-                                for (int i = 0; i < -differenceCores; i++)
+                                for (int i = 0; i < -differenceCores && i < workingProviders.Count; i++)
                                 {
                                     var provider = workingProviders[i];
                                     if (provider.Value.ObtainedCore != null)

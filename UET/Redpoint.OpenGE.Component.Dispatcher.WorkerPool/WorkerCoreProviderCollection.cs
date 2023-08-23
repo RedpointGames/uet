@@ -22,6 +22,19 @@
 
         public IAsyncEvent<WorkerCoreProviderCollectionChanged<TWorkerCore>> OnProvidersChanged => _onProvidersChanged;
 
+        public async Task<IReadOnlyList<IWorkerCoreProvider<TWorkerCore>>> GetProvidersAsync()
+        {
+            await _providerLock.WaitAsync();
+            try
+            {
+                return new List<IWorkerCoreProvider<TWorkerCore>>(_providers);
+            }
+            finally
+            {
+                _providerLock.Release();
+            }
+        }
+
         public async Task AddAsync(IWorkerCoreProvider<TWorkerCore> provider)
         {
             await _providerLock.WaitAsync();

@@ -12,6 +12,32 @@
     public class MultipleSourceWorkerCoreRequestFulfillerTests
     {
         [Fact]
+        public async Task MultipleSourceCanFulfillSingleRequest()
+        {
+            var services = new ServiceCollection();
+            services.AddLogging();
+            var sp = services.BuildServiceProvider();
+            var logger = sp.GetRequiredService<ILogger<MultipleSourceWorkerCoreRequestFulfiller<NullWorkerCore>>>();
+
+            var requestCollection = new WorkerCoreRequestCollection<NullWorkerCore>();
+            var providerCollection = new WorkerCoreProviderCollection<NullWorkerCore>();
+            var provider = new TestCoreProvider();
+            provider.ProvideCore.Release(1);
+            await providerCollection.AddAsync(provider);
+
+            await using (var fulfiller = new MultipleSourceWorkerCoreRequestFulfiller<NullWorkerCore>(
+                logger,
+                requestCollection,
+                providerCollection,
+                true))
+            {
+                await using (var request = await requestCollection.CreateFulfilledRequestAsync(true, CancellationToken.None))
+                {
+                }
+            }
+        }
+
+        [Fact]
         public async Task MultipleSourceCanFulfillRequestsInParallel()
         {
             var services = new ServiceCollection();
