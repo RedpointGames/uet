@@ -25,8 +25,6 @@
     [SupportedOSPlatform("windows5.1.2600")]
     internal static class WindowsChroot
     {
-        internal static nint? _restorableDeviceMapForCurrentProcess = null;
-
         internal static unsafe WindowsChrootState SetupChrootState(IDictionary<char, string> perProcessDriveMappings)
         {
             var mappings = new List<nint>();
@@ -136,7 +134,7 @@
             }
         }
 
-        internal static unsafe void UseChrootStateAndResumeThread(WindowsChrootState chrootState, ref PROCESS_INFORMATION processInfo)
+        internal static unsafe void UseChrootState(WindowsChrootState chrootState, ref PROCESS_INFORMATION processInfo)
         {
             nint objectRootHandle = chrootState.ObjectRootHandle;
             var status = NtdllPInvoke.NtSetInformationProcess(
@@ -153,86 +151,14 @@
             {
                 PInvoke.CloseHandle(new HANDLE(mapping));
             }
+        }
 
+        internal static unsafe void ResumeThread(WindowsChrootState chrootState, ref PROCESS_INFORMATION processInfo)
+        {
             if (PInvoke.ResumeThread(processInfo.hThread) == unchecked((uint)-1))
             {
                 throw new InvalidOperationException($"ResumeThread failed!");
             }
-        }
-
-        internal unsafe class RestoreDeviceMap : IDisposable
-        {
-            public void Dispose()
-            {
-                var currentHandle = Process.GetCurrentProcess().Handle;
-                nint objectRootHandle = WindowsChroot._restorableDeviceMapForCurrentProcess!.Value;
-                var status = NtdllPInvoke.NtSetInformationProcess(
-                    currentHandle,
-                    PROCESS_INFORMATION_CLASS.ProcessDeviceMap,
-                    &objectRootHandle,
-                    sizeof(nint));
-                if (status.SeverityCode != NTSTATUS.Severity.Success)
-                {
-                    throw new InvalidOperationException($"Got NTSTATUS {status.Value:X} when restoring current process ProcessDeviceMap.");
-                }
-            }
-        }
-
-        internal class NullDisposable : IDisposable
-        {
-            public void Dispose()
-            {
-            }
-        }
-
-        internal static unsafe IDisposable TemporarilyChangeDeviceMap(WindowsChrootState? chrootState)
-        {
-            if (chrootState == null)
-            {
-                return new NullDisposable();
-            }    
-
-            var currentHandle = Process.GetCurrentProcess().Handle;
-
-            // @note: There's no reasonable way to query the current device map, because we don't
-            // get a handle back and the values are opaque. So instead if we haven't already set up
-            // a device map when we're starting, we create a new blank one now that we can restore
-            // into after the disposable is released.
-            if (!_restorableDeviceMapForCurrentProcess.HasValue)
-            {
-                string objectDirectoryName = $@"\BaseNamedObjects\RedpointProcMapRestore{Guid.NewGuid().ToString().Replace("-", "").ToLowerInvariant()}";
-                fixed (char* objectDirectoryNamePtr = objectDirectoryName)
-                {
-                    var objectDirectoryNameUnicode = new Ntdll.UNICODE_STRING(objectDirectoryNamePtr, objectDirectoryName.Length);
-                    var objectAttributes = new OBJECT_ATTRIBUTES(
-                        &objectDirectoryNameUnicode,
-                        OBJECT_ATTRIBUTES_FLAGS.OBJ_CASE_INSENSITIVE);
-
-                    nint restorableObjectDirectoryHandle;
-                    var restorableStatus = NtdllPInvoke.NtCreateDirectoryObject(
-                        &restorableObjectDirectoryHandle,
-                        ACCESS_MASK.DIRECTORY_ALL_ACCESS,
-                        &objectAttributes);
-                    if (restorableStatus.SeverityCode != NTSTATUS.Severity.Success)
-                    {
-                        throw new InvalidOperationException($"Got NTSTATUS {restorableStatus:X} when setting up object directory for per-process drive mappings.");
-                    }
-                    _restorableDeviceMapForCurrentProcess = restorableObjectDirectoryHandle;
-                }
-            }
-
-            nint objectRootHandle = chrootState.ObjectRootHandle;
-            var status = NtdllPInvoke.NtSetInformationProcess(
-                currentHandle,
-                PROCESS_INFORMATION_CLASS.ProcessDeviceMap,
-                &objectRootHandle,
-                sizeof(nint));
-            if (status.SeverityCode != NTSTATUS.Severity.Success)
-            {
-                throw new InvalidOperationException($"Got NTSTATUS {status.Value:X} when setting current process ProcessDeviceMap.");
-            }
-
-            return new RestoreDeviceMap();
         }
     }
 }

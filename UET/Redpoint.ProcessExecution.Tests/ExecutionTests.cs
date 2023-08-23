@@ -348,21 +348,40 @@
             Assert.Equal("test", stdout.ToString().Trim());
         }
 
-        /*
         [SkippableFact]
-        [SupportedOSPlatform("windows5.1.2600")]
-        public async Task CanApplyChrootToExistingProcess()
+        [SupportedOSPlatform("windows")]
+        public async Task CanStartCmdInMappedDriveAndSeeContentsAsync()
         {
             Skip.IfNot(OperatingSystem.IsWindows());
 
-            var state = WindowsChroot.SetupChrootState(new Dictionary<char, string>
-            {
-                { 'I', Environment.CurrentDirectory },
-            });
-            WindowsChroot.ApplyChrootStateToExistingProcess(state, 36168);
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddProcessExecution();
+            var sp = services.BuildServiceProvider();
 
-            await Task.Delay(120000);
+            var executor = sp.GetRequiredService<IProcessExecutor>();
+
+            var stdout = new StringBuilder();
+            var exitCode = await executor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = @"C:\Windows\system32\cmd.exe",
+                    Arguments = new[]
+                    {
+                        "/C",
+                        "dir",
+                    },
+                    PerProcessDriveMappings = new Dictionary<char, string>
+                    {
+                        { 'I', Environment.CurrentDirectory }
+                    },
+                    WorkingDirectory = "I:\\"
+                },
+                CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
+                CancellationToken.None);
+            Assert.Equal(0, exitCode);
+            var lines = stdout.ToString().Split("\r\n");
+            Assert.Contains(lines, x => x.Contains("Redpoint.ProcessExecution.Tests.dll"));
         }
-        */
     }
 }

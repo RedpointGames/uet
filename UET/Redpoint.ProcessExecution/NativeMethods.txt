@@ -15,3 +15,14 @@ PROCESS_BASIC_INFORMATION
 QueryDosDevice
 MAX_PATH
 ResumeThread
+VirtualAllocEx
+WriteProcessMemory
+CreateRemoteThread
+SetCurrentDirectory
+GetModuleHandle
+GetProcAddress
+WaitForSingleObject
+GetExitCodeThread
+CloseHandle
+VirtualFreeEx
+INFINITE

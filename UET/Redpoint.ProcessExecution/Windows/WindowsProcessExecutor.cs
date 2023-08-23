@@ -124,7 +124,7 @@
                 SafeFileHandle? childErrorPipeHandle = null;
 
                 // Compute whether we're redirecting anything.
-                var redirectStandardInput = 
+                var redirectStandardInput =
                     captureSpecification.InterceptStandardInput ||
                     processSpecification.StdinData != null;
                 var redirectStandardOutput =
@@ -222,21 +222,23 @@
                             {
                                 var commandLinePtr = new PWSTR(commandLinePtrRaw);
                                 var currentDirectoryPtr = new PCWSTR(workingDirectoryPtr);
-                                using (WindowsChroot.TemporarilyChangeDeviceMap(chrootState))
-                                {
-                                    retVal = PInvoke.CreateProcess(
-                                        new PCWSTR(null),           // we don't need this since all the info is in commandLine
-                                        commandLinePtr,             // pointer to the command line string
-                                        &unusedSecurityAttrs,       // address to process security attributes, we don't need to inherit the handle
-                                        &unusedSecurityAttrs,       // address to thread security attributes.
-                                        new BOOL(true),             // handle inheritance flag
-                                        creationFlags,              // creation flags
-                                        (void*)environmentBlockPtr, // pointer to new environment block
-                                        currentDirectoryPtr,        // pointer to current directory name
-                                        &startupInfo,               // pointer to STARTUPINFO
-                                        &processInfo                // pointer to PROCESS_INFORMATION
-                                    );
-                                }
+                                retVal = PInvoke.CreateProcess(
+                                    new PCWSTR(null),           // we don't need this since all the info is in commandLine
+                                    commandLinePtr,             // pointer to the command line string
+                                    &unusedSecurityAttrs,       // address to process security attributes, we don't need to inherit the handle
+                                    &unusedSecurityAttrs,       // address to thread security attributes.
+                                    new BOOL(true),             // handle inheritance flag
+                                    creationFlags,              // creation flags
+                                    (void*)environmentBlockPtr, // pointer to new environment block
+                                                                // pointer to current directory name
+                                                                // @note: If we're using per-process drive mappings, we inherit the current
+                                                                // directory and change it after we've applied the device mappings to the new
+                                                                // process, since our current process doesn't have the device mappings and thus
+                                                                // it's view of what the working directory should be isn't the same.
+                                    processSpecification.PerProcessDriveMappings != null ? null : currentDirectoryPtr,
+                                    &startupInfo,               // pointer to STARTUPINFO
+                                    &processInfo                // pointer to PROCESS_INFORMATION
+                                );
                                 if (!retVal)
                                 {
                                     errorCode = Marshal.GetLastWin32Error();
@@ -251,7 +253,7 @@
                             {
                                 if (!retVal)
                                 {
-                                    throw new Win32Exception(errorCode);
+                                    throw new Win32Exception(errorCode, $"Result of CreateProcess was {retVal} with last Win32 error {errorCode}, hProcess handle was {processInfo.hProcess.Value}.");
                                 }
 
                                 // If we have per-process drive mappings, go and apply them to the
@@ -260,9 +262,12 @@
                                 {
                                     try
                                     {
-                                        WindowsChroot.UseChrootStateAndResumeThread(
-                                            chrootState,
-                                            ref processInfo);
+                                        WindowsChroot.UseChrootState(chrootState, ref processInfo);
+                                        if (workingDirectory != null)
+                                        {
+                                            WindowsWorkingDirectory.SetWorkingDirectoryOfAnotherProcess(processInfo.hProcess, workingDirectory);
+                                        }
+                                        WindowsChroot.ResumeThread(chrootState, ref processInfo);
                                     }
                                     catch
                                     {
@@ -485,14 +490,15 @@
             uint returnLength;
             unsafe
             {
-                if (global::Windows.Wdk.PInvoke.NtQueryInformationProcess(
+                var statusResult = global::Windows.Wdk.PInvoke.NtQueryInformationProcess(
                     new HANDLE(handle.DangerousGetHandle()),
                     global::Windows.Wdk.System.Threading.PROCESSINFOCLASS.ProcessBasicInformation,
                     &info,
                     (uint)sizeof(PROCESS_BASIC_INFORMATION),
-                    &returnLength) != 0)
+                    &returnLength);
+                if (statusResult != 0)
                 {
-                    throw new Win32Exception();
+                    throw new Win32Exception(statusResult);
                 }
             }
             return (int)info.UniqueProcessId;
@@ -504,14 +510,15 @@
             uint returnLength;
             unsafe
             {
-                if (global::Windows.Wdk.PInvoke.NtQueryInformationProcess(
+                var statusResult = global::Windows.Wdk.PInvoke.NtQueryInformationProcess(
                     new HANDLE(handle.DangerousGetHandle()),
                     global::Windows.Wdk.System.Threading.PROCESSINFOCLASS.ProcessBasicInformation,
                     &info,
                     (uint)sizeof(PROCESS_BASIC_INFORMATION),
-                    &returnLength) != 0)
+                    &returnLength);
+                if (statusResult != 0)
                 {
-                    throw new Win32Exception();
+                    throw new Win32Exception(statusResult);
                 }
             }
             return (int)info.InheritedFromUniqueProcessId;
@@ -641,15 +648,15 @@
         }
 
         private static void CreatePipeWithSecurityAttributes(
-            out SafeFileHandle hReadPipe, 
+            out SafeFileHandle hReadPipe,
             out SafeFileHandle hWritePipe,
             ref SECURITY_ATTRIBUTES lpPipeAttributes,
             uint nSize)
         {
             bool ret = PInvoke.CreatePipe(
-                out hReadPipe, 
-                out hWritePipe, 
-                lpPipeAttributes, 
+                out hReadPipe,
+                out hWritePipe,
+                lpPipeAttributes,
                 nSize);
             if (!ret || hReadPipe.IsInvalid || hWritePipe.IsInvalid)
             {
@@ -668,7 +675,7 @@
                 if (parentInputs)
                 {
                     CreatePipeWithSecurityAttributes(
-                        out childHandle, 
+                        out childHandle,
                         out hTmp,
                         ref securityAttributesParent,
                         0);
