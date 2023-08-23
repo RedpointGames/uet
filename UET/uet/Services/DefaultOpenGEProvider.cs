@@ -132,7 +132,7 @@
                 // The system-wide daemon is not available. Create an OpenGE
                 // agent within our process.
                 _logger.LogInformation("Launching in-process version of OpenGE for executing tasks.");
-                _agent = _openGEAgentFactory.CreateAgent(false);
+                _agent = _openGEAgentFactory.CreateAgent(false, true);
                 await _agent.StartAsync();
                 _environmentInfo = new OpenGEEnvironmentInfo
                 {

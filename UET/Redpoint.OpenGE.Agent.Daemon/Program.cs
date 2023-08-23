@@ -79,6 +79,7 @@
             services.AddOpenGEComponentWorker();
             services.AddOpenGEComponentPreprocessorCache();
             services.AddOpenGEAgent();
+            services.AddSingleton<IOpenGEDaemonArgs>(new DefaultOpenGEDaemonArgs(args));
             services.AddSingleton<OpenGEHostedService>();
             services.AddHostedService(sp => sp.GetRequiredService<OpenGEHostedService>());
             services.AddSingleton<IPreprocessorCacheAccessor>(sp => sp.GetRequiredService<OpenGEHostedService>());

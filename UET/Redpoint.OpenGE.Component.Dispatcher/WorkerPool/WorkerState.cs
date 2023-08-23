@@ -60,6 +60,19 @@
         /// </summary>
         public int TasksExecutedCount { get; set; }
 
+        public async Task<int> GetReservationCountAsync()
+        {
+            await _reservationsLock.WaitAsync();
+            try
+            {
+                return _reservations.Count;
+            }
+            finally
+            {
+                _reservationsLock.Release();
+            }
+        }
+
         internal async Task AddReservationAsync(WorkerStateReservation reservation)
         {
             await _reservationsLock.WaitAsync();

@@ -18,7 +18,8 @@
         }
 
         public IOpenGEAgent CreateAgent(
-            bool runPreprocessorComponent)
+            bool runPreprocessorComponent,
+            bool runLocalWorker)
         {
             return new DefaultOpenGEAgent(
                 _serviceProvider.GetRequiredService<IDispatcherComponentFactory>(),
@@ -26,7 +27,8 @@
                 _serviceProvider.GetRequiredService<IWorkerPoolFactory>(),
                 _serviceProvider.GetRequiredService<IPreprocessorCacheFactory>(),
                 _serviceProvider.GetRequiredService<IGrpcPipeFactory>(),
-                runPreprocessorComponent);
+                runPreprocessorComponent,
+                runLocalWorker);
         }
     }
 }

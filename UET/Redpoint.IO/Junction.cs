@@ -44,13 +44,13 @@
                     | FILE_FLAGS_AND_ATTRIBUTES.FILE_FLAG_OPEN_REPARSE_POINT,
                 null))
             {
-                if (reparsePointHandle.IsInvalid || 
+                if (reparsePointHandle.IsInvalid ||
                     Marshal.GetLastWin32Error() != 0)
                 {
                     throw new IOException("Unable to open reparse point.", new Win32Exception());
                 }
 
-                var target = $@"\??\{junctionTarget}";
+                var target = DosDevicePath.GetFullyQualifiedDosDevicePath(junctionTarget);
                 if (target.Length >= 8192)
                 {
                     throw new ArgumentException($"The path '{target}' is too long.");

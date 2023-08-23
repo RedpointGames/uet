@@ -133,6 +133,10 @@
             // available on a remote worker.
             const int forwardHeuristic = 4;
             var targetReserving = (_coresRequested - _coresReserved) * forwardHeuristic;
+            if (targetReserving < 0)
+            {
+                targetReserving = 0;
+            }
 
             // Determine the change in attempted reservations we need to
             // be making.
@@ -148,7 +152,7 @@
             if (changeInReserving > 0)
             {
                 var reservationsInitiated = 0;
-                foreach (var enumeratedWorker in _workers
+                var availableWorkersForReservation = _workers
                     .Where(x => x.PendingReservation == null)
                     // Prioritize the local worker first, since that will
                     // ensure we satisfy local-only tasks.
@@ -159,7 +163,20 @@
                     // Then by workers who have the oldest "timeouts" i.e.
                     // deprioritize those who reservation attempts have
                     // timed out recently.
-                    .ThenBy(x => x.LastReservationTimeoutUtc))
+                    .ThenBy(x => x.LastReservationTimeoutUtc)
+                    .ToList();
+                if (availableWorkersForReservation.Count == 0)
+                {
+                    _logger.LogWarning($"There are no more available workers for reservation at this time. Available: {availableWorkersForReservation.Count}, Total: {_workers.Count}");
+                    foreach (var worker in _workers)
+                    {
+                        _logger.LogWarning($"{worker.DisplayName}:");
+                        _logger.LogWarning($"  Pending reservation? {worker.PendingReservation != null}");
+                        _logger.LogWarning($"  Last reservation timeout: {worker.LastReservationTimeoutUtc}");
+                        _logger.LogWarning($"  Current reservation count: {await worker.GetReservationCountAsync()}");
+                    }
+                }
+                foreach (var enumeratedWorker in availableWorkersForReservation)
                 {
                     _logger.LogInformation($"Starting reservation on {enumeratedWorker}...");
                     var cancellationTokenSource = new CancellationTokenSource();

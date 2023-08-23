@@ -24,5 +24,14 @@
                 _serviceProvider.GetRequiredService<INetworkAutoDiscovery>(),
                 localWorkerAddRequest);
         }
+
+        public IWorkerPool CreateWorkerPool()
+        {
+            return new DefaultWorkerPool(
+                _serviceProvider.GetRequiredService<ILogger<DefaultWorkerPool>>(),
+                _serviceProvider.GetRequiredService<ILogger<WorkerSubpool>>(),
+                _serviceProvider.GetRequiredService<INetworkAutoDiscovery>(),
+                null);
+        }
     }
 }

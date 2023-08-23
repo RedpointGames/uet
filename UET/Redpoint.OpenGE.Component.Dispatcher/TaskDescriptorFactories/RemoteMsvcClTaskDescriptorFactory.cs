@@ -17,6 +17,52 @@
         private readonly LocalTaskDescriptorFactory _localTaskDescriptorFactory;
         private readonly IPreprocessorCacheAccessor _preprocessorCacheAccessor;
 
+        private static readonly HashSet<string> _knownMachineSpecificEnvironmentVariables = new HashSet<string>
+        {
+            "ALLUSERSPROFILE",
+            "APPDATA",
+            "CommonProgramFiles",
+            "CommonProgramFiles(x86)",
+            "CommonProgramW6432",
+            "COMPUTERNAME",
+            "ComSpec",
+            "DriverData",
+            "HOMEDRIVE",
+            "HOMEPATH",
+            "LOCALAPPDATA",
+            "LOGONSERVER",
+            "NUMBER_OF_PROCESSORS",
+            "OneDrive",
+            "OS",
+            "Path",                                 // @note: Should this really be excluded?
+            "PATHEXT",
+            "POWERSHELL_DISTRIBUTION_CHANNEL",
+            "PROCESSOR_ARCHITECTURE",
+            "PROCESSOR_IDENTIFIER",
+            "PROCESSOR_LEVEL",
+            "PROCESSOR_REVISION",
+            "ProgramData",
+            "ProgramFiles",
+            "ProgramFiles(x86)",
+            "ProgramW6432",
+            "PROMPT",
+            "PSModulePath",                         // @note: Should this really be excluded?
+            "PUBLIC",
+            "SESSIONNAME",
+            "SystemDrive",                          // @note: Should this really be excluded?
+            "SystemRoot",                           // @note: Should this really be excluded?
+            "TEMP",
+            "TMP",
+            "USERDOMAIN",
+            "USERDOMAIN_ROAMINGPROFILE",
+            "USERNAME",
+            "USERPROFILE",
+            "windir",
+            "WSLENV",
+            "WT_PROFILE_ID",
+            "WT_SESSION",
+        };
+
         public RemoteMsvcClTaskDescriptorFactory(
             ILogger<RemoteMsvcClTaskDescriptorFactory> logger,
             LocalTaskDescriptorFactory localTaskDescriptorFactory,
@@ -222,12 +268,27 @@
                 dependentFiles = new PreprocessorResolutionResultWithTimingMetadata();
             }
 
+            // Compute the environment variables, excluding any environment variables we
+            // know to be per-machine.
+            var environmentVariables = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+            foreach (var kv in spec.ExecutionEnvironment.EnvironmentVariables)
+            {
+                environmentVariables[kv.Key] = kv.Value;
+            }
+            foreach (var kv in spec.Environment.Variables)
+            {
+                environmentVariables[kv.Key] = kv.Value;
+            }
+            foreach (var knownKey in _knownMachineSpecificEnvironmentVariables)
+            {
+                environmentVariables.Remove(knownKey);
+            }
+
             // Return the remote task descriptor.
             var descriptor = new RemoteTaskDescriptor();
             descriptor.ToolLocalAbsolutePath = spec.Tool.Path;
             descriptor.Arguments.Add("@" + responseFilePath);
-            descriptor.EnvironmentVariables.MergeFrom(spec.ExecutionEnvironment.EnvironmentVariables);
-            descriptor.EnvironmentVariables.MergeFrom(spec.Environment.Variables);
+            descriptor.EnvironmentVariables.MergeFrom(environmentVariables);
             descriptor.WorkingDirectoryAbsolutePath = spec.WorkingDirectory;
             descriptor.UseFastLocalExecution = guaranteedToExecuteLocally;
             var inputsByPathOrContent = new InputFilesByPathOrContent();

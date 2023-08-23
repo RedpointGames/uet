@@ -4,6 +4,8 @@
 
     public interface IWorkerPoolFactory
     {
+        IWorkerPool CreateWorkerPool();
+
         IWorkerPool CreateWorkerPool(
             WorkerAddRequest localWorkerAddRequest);
     }

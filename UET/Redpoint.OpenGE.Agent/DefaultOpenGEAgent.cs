@@ -20,6 +20,7 @@
         private readonly IPreprocessorCacheFactory _preprocessorCacheFactory;
         private readonly IGrpcPipeFactory _grpcPipeFactory;
         private readonly bool _runAsSystemWideService;
+        private readonly bool _runLocalWorker;
         private CancellationTokenSource _shutdownCancellationTokenSource;
         private AbstractInProcessPreprocessorCache? _preprocessorComponent;
         private IWorkerComponent? _workerComponent;
@@ -34,7 +35,8 @@
             IWorkerPoolFactory workerPoolFactory,
             IPreprocessorCacheFactory preprocessorCacheFactory,
             IGrpcPipeFactory grpcPipeFactory,
-            bool runAsSystemWideService)
+            bool runAsSystemWideService,
+            bool runLocalWorker)
         {
             _dispatcherComponentFactory = dispatcherComponentFactory;
             _workerComponentFactory = workerComponentFactory;
@@ -42,6 +44,7 @@
             _preprocessorCacheFactory = preprocessorCacheFactory;
             _grpcPipeFactory = grpcPipeFactory;
             _runAsSystemWideService = runAsSystemWideService;
+            _runLocalWorker = runLocalWorker;
             _shutdownCancellationTokenSource = new CancellationTokenSource();
         }
 
@@ -58,16 +61,24 @@
                 await _preprocessorServer.StartAsync();
             }
 
-            _workerComponent = _workerComponentFactory.Create();
-            await _workerComponent.StartAsync(_shutdownCancellationTokenSource.Token);
-            _localWorkerClient = new TaskApi.TaskApiClient(
-                GrpcChannel.ForAddress($"http://127.0.0.1:{_workerComponent.ListeningPort}"));
-            _workerPool = _workerPoolFactory.CreateWorkerPool(new WorkerAddRequest
+            if (_runLocalWorker)
             {
-                DisplayName = _workerComponent.WorkerDisplayName,
-                UniqueId = _workerComponent.WorkerUniqueId,
-                Client = _localWorkerClient,
-            });
+                _workerComponent = _workerComponentFactory.Create();
+                await _workerComponent.StartAsync(_shutdownCancellationTokenSource.Token);
+                _localWorkerClient = new TaskApi.TaskApiClient(
+                    GrpcChannel.ForAddress($"http://127.0.0.1:{_workerComponent.ListeningPort}"));
+                _workerPool = _workerPoolFactory.CreateWorkerPool(new WorkerAddRequest
+                {
+                    DisplayName = _workerComponent.WorkerDisplayName,
+                    UniqueId = _workerComponent.WorkerUniqueId,
+                    Client = _localWorkerClient,
+                });
+            }
+            else
+            {
+                _workerPool = _workerPoolFactory.CreateWorkerPool();
+            }
+
             _dispatcherComponent = _dispatcherComponentFactory.Create(
                 _workerPool,
                 _runAsSystemWideService ? "OpenGE" : null);

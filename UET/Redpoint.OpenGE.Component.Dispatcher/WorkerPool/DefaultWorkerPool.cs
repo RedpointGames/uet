@@ -22,7 +22,7 @@
         private readonly INetworkAutoDiscovery _networkAutoDiscovery;
         private readonly SemaphoreSlim _notifyReevaluationOfWorkers;
         private readonly CancellationTokenSource _disposedCts;
-        internal readonly WorkerSubpool _localSubpool;
+        internal readonly WorkerSubpool? _localSubpool;
         internal readonly WorkerSubpool _remoteSubpool;
         internal readonly ConcurrentDictionary<string, bool> _remoteWorkersHandled;
         private readonly Task _workersProcessingTask;
@@ -39,9 +39,11 @@
             _networkAutoDiscovery = networkAutoDiscovery;
             _notifyReevaluationOfWorkers = new SemaphoreSlim(0);
             _disposedCts = new CancellationTokenSource();
-            _localSubpool = new WorkerSubpool(
-                subpoolLogger,
-                _notifyReevaluationOfWorkers);
+            _localSubpool = localWorkerAddRequest != null
+                ? new WorkerSubpool(
+                    subpoolLogger,
+                    _notifyReevaluationOfWorkers)
+                : null;
             _remoteSubpool = new WorkerSubpool(
                 subpoolLogger,
                 _notifyReevaluationOfWorkers);
@@ -50,7 +52,7 @@
             if (localWorkerAddRequest != null)
             {
                 _localWorkerUniqueId = localWorkerAddRequest.UniqueId;
-                _localSubpool._workers.Add(new WorkerState
+                _localSubpool!._workers.Add(new WorkerState
                 {
                     DisplayName = localWorkerAddRequest.DisplayName,
                     Client = localWorkerAddRequest.Client,
@@ -103,6 +105,11 @@
                                 $"static:///{entry.ServiceName}",
                                 new GrpcChannelOptions
                                 {
+                                    HttpHandler = new SocketsHttpHandler
+                                    {
+                                        EnableMultipleHttp2Connections = true,
+                                        ConnectTimeout = TimeSpan.FromSeconds(1)
+                                    },
                                     ServiceConfig = new ServiceConfig
                                     {
                                         LoadBalancingConfigs =
@@ -118,7 +125,7 @@
                         {
                             await taskApi.PingTaskServiceAsync(
                                 new PingTaskServiceRequest(),
-                                deadline: DateTime.UtcNow.AddSeconds(5));
+                                deadline: DateTime.UtcNow.AddSeconds(10));
                             usable = true;
                         }
                         catch
@@ -136,7 +143,7 @@
                         }
                         else
                         {
-                            _logger.LogWarning($"Discovered remote worker at {entry.ServiceName}, but it wasn't usable based on the gRPC ping request.");
+                            _logger.LogWarning($"Discovered remote worker at {entry.ServiceName}, but it wasn't usable based on the gRPC ping request. The addresses we tried were: {string.Join(", ", entry.TargetAddressList.Select(x => x.ToString()))}");
                         }
                     }
                 }
@@ -175,7 +182,10 @@
                     return;
                 }
 
-                await _localSubpool.ProcessWorkersAsync();
+                if (_localSubpool != null)
+                {
+                    await _localSubpool.ProcessWorkersAsync();
+                }
                 await _remoteSubpool.ProcessWorkersAsync();
             }
         }
@@ -186,7 +196,14 @@
         {
             if (requireLocalCore)
             {
-                return _localSubpool.ReserveCoreAsync(cancellationToken);
+                if (_localSubpool != null)
+                {
+                    return _localSubpool.ReserveCoreAsync(cancellationToken);
+                }
+                else
+                {
+                    throw new InvalidOperationException("Requested a local core, but none are available on this system.");
+                }
             }
             else
             {

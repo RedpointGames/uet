@@ -3,6 +3,7 @@
     public interface IOpenGEAgentFactory
     {
         IOpenGEAgent CreateAgent(
-            bool runPreprocessorComponent);
+            bool runPreprocessorComponent,
+            bool runLocalWorker);
     }
 }

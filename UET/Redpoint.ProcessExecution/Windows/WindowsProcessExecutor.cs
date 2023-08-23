@@ -88,6 +88,7 @@
                 }
             }
 
+            WindowsChrootState? chrootState = null;
             try
             {
                 // Construct the command line.
@@ -206,7 +207,6 @@
                             // If we have per-process drive mappings, we need to create the process
                             // in a suspended state and set up our chroot state now (so the handles
                             // can be inherited).
-                            WindowsChrootState? chrootState = null;
                             if (processSpecification.PerProcessDriveMappings != null)
                             {
                                 creationFlags |= PROCESS_CREATION_FLAGS.CREATE_SUSPENDED;
@@ -262,12 +262,15 @@
                                 {
                                     try
                                     {
+                                        _logger.LogTrace("WindowsProcessExecutor: Applying chroot state to process.");
                                         WindowsChroot.UseChrootState(chrootState, ref processInfo);
                                         if (workingDirectory != null)
                                         {
+                                            _logger.LogTrace("WindowsProcessExecutor: Applying working directory to process.");
                                             WindowsWorkingDirectory.SetWorkingDirectoryOfAnotherProcess(processInfo.hProcess, workingDirectory);
                                         }
-                                        WindowsChroot.ResumeThread(chrootState, ref processInfo);
+                                        _logger.LogTrace("WindowsProcessExecutor: Resuming thread.");
+                                        WindowsChroot.ResumeThread(ref processInfo);
                                     }
                                     catch
                                     {
@@ -477,6 +480,10 @@
             }
             finally
             {
+                if (chrootState != null)
+                {
+                    WindowsChroot.CleanupChrootState(chrootState);
+                }
                 foreach (var disposable in disposables)
                 {
                     await disposable.DisposeAsync();

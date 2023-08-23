@@ -23,6 +23,34 @@
         private readonly IBlobManager _blobManager;
         private readonly IProcessExecutor _processExecutor;
 
+        private static HashSet<string> _knownDirectoryEnvironmentVariables = new HashSet<string>
+        {
+            "ALLUSERSPROFILE",
+            "APPDATA",
+            "CommonProgramFiles",
+            "CommonProgramFiles(x86)",
+            "CommonProgramW6432",
+            "OneDrive",
+            "ProgramData",
+            "ProgramFiles",
+            "ProgramFiles(x86)",
+            "ProgramW6432",
+            "PUBLIC",
+            "TEMP",
+            "TMP",
+            "USERPROFILE"
+        };
+        private static HashSet<string> _knownDirectorySpecialFolders = new HashSet<string>
+        {
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            Environment.GetFolderPath(Environment.SpecialFolder.Personal),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            Path.GetTempPath(),
+        };
+
         public RemoteTaskDescriptorExecutor(
             ILogger<RemoteTaskDescriptorExecutor> logger,
             IReservationManagerForOpenGE reservationManagerForOpenGE,
@@ -35,38 +63,6 @@
             _toolManager = toolManager;
             _blobManager = blobManager;
             _processExecutor = processExecutor;
-        }
-
-        private void RecreateDirectory(string path)
-        {
-            try
-            {
-                Directory.Delete(path, true);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                // Try and remove "Read Only" flags on files and directories.
-                foreach (var entry in Directory.GetFileSystemEntries(
-                    path,
-                    "*",
-                    new EnumerationOptions
-                    {
-                        AttributesToSkip = FileAttributes.System,
-                        RecurseSubdirectories = true
-                    }))
-                {
-                    var attrs = File.GetAttributes(entry);
-                    if ((attrs & FileAttributes.ReadOnly) != 0)
-                    {
-                        attrs ^= FileAttributes.ReadOnly;
-                        File.SetAttributes(entry, attrs);
-                    }
-                }
-
-                // Now try to delete again.
-                Directory.Delete(path, true);
-            }
-            Directory.CreateDirectory(path);
         }
 
         public IAsyncEnumerable<ExecuteTaskResponse> ExecuteAsync(
@@ -88,6 +84,8 @@
             RemoteTaskDescriptor descriptor,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Executing remote task with local execution strategy.");
+
             // Set up the environment variable dictionary.
             Dictionary<string, string>? environmentVariables = null;
             if (descriptor.EnvironmentVariables.Count > 0)
@@ -109,9 +107,6 @@
             };
 
             // Execute the process in the virtual root.
-            _logger.LogInformation($"File path: {descriptor.ToolLocalAbsolutePath}");
-            _logger.LogInformation($"Arguments: {string.Join(" ", descriptor.Arguments)}");
-            _logger.LogInformation($"Working directory: {descriptor.WorkingDirectoryAbsolutePath}");
             await foreach (var response in _processExecutor.ExecuteAsync(
                 processSpecification,
                 cancellationToken))
@@ -162,9 +157,11 @@
                 throw new InvalidOperationException("Remoting tasks can't run on non-Windows platforms yet.");
             }
 
+            _logger.LogInformation("Executing remote task with remote execution strategy.");
+
             // Get a workspace to work in.
             await using (var reservation = await _reservationManagerForOpenGE.ReservationManager.ReserveAsync(
-                "OpenGEBuild", 
+                "OpenGEBuild",
                 descriptor.ToolExecutionInfo.ToolExecutableName))
             {
                 // Ask the tool manager where our tool is located.
@@ -204,16 +201,54 @@
                         true);
                 }
 
+                // Create directories that should exist based on the environment.
+                var effectiveEnvironmentVariables = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+                foreach (string key in Environment.GetEnvironmentVariables().Keys)
+                {
+                    effectiveEnvironmentVariables[key] = Environment.GetEnvironmentVariable(key)!;
+                }
+                foreach (var kv in descriptor.EnvironmentVariables)
+                {
+                    effectiveEnvironmentVariables[kv.Key] = kv.Value;
+                }
+                foreach (var key in _knownDirectoryEnvironmentVariables)
+                {
+                    if (effectiveEnvironmentVariables.ContainsKey(key))
+                    {
+                        var targetPath = _blobManager.ConvertAbsolutePathToBuildDirectoryPath(
+                            reservation.ReservedPath,
+                            effectiveEnvironmentVariables[key]);
+                        if (!Path.Exists(targetPath))
+                        {
+                            Directory.CreateDirectory(targetPath);
+                        }
+                    }
+                }
+                foreach (var path in _knownDirectorySpecialFolders)
+                {
+                    var targetPath = _blobManager.ConvertAbsolutePathToBuildDirectoryPath(
+                        reservation.ReservedPath,
+                        path);
+                    if (!Path.Exists(targetPath))
+                    {
+                        Directory.CreateDirectory(targetPath);
+                    }
+                }
+
                 // Set up the environment variable dictionary.
-                Dictionary<string, string>? environmentVariables = null;
+                Dictionary<string, string> environmentVariables = new Dictionary<string, string>();
                 if (descriptor.EnvironmentVariables.Count > 0)
                 {
-                    environmentVariables = new Dictionary<string, string>();
                     foreach (var kv in descriptor.EnvironmentVariables)
                     {
                         environmentVariables[kv.Key] = kv.Value;
                     }
                 }
+
+                // @note: We *MUST* set the SystemRoot environment variable. If we don't, cl.exe will
+                // output with a weird "cannot create temporarily il file" failure, even though the error
+                // has nothing to do with the TMP directory or disk space.
+                environmentVariables["SystemRoot"] = systemRoot ?? @"C:\Windows";
 
                 // Set up the process specification.
                 var processSpecification = new ProcessSpecification
@@ -237,6 +272,21 @@
                 _logger.LogInformation($"File path: {toolPath}");
                 _logger.LogInformation($"Arguments: {string.Join(" ", descriptor.Arguments)}");
                 _logger.LogInformation($"Working directory: {descriptor.WorkingDirectoryAbsolutePath}");
+                if (processSpecification.PerProcessDriveMappings != null)
+                {
+                    foreach (var mapping in processSpecification.PerProcessDriveMappings)
+                    {
+                        _logger.LogInformation($"Drive mapping: '{mapping.Key}:\\' -> '{mapping.Value}'");
+                    }
+                    if (processSpecification.PerProcessDriveMappings.Count == 0)
+                    {
+                        _logger.LogInformation($"No drive mappings are being applied (empty).");
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation($"No drive mappings are being applied (not configured).");
+                }
                 await foreach (var response in _processExecutor.ExecuteAsync(
                     processSpecification,
                     cancellationToken))
