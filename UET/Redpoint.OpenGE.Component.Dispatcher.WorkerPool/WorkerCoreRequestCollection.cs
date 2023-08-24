@@ -6,7 +6,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class WorkerCoreRequestCollection<TWorkerCore> where TWorkerCore : IAsyncDisposable
+    public class WorkerCoreRequestCollection<TWorkerCore> where TWorkerCore : IAsyncDisposable
     {
         private readonly List<WorkerCoreRequest> _requests;
         private readonly MutexSlim _requestLock;

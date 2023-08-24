@@ -5,25 +5,55 @@
 
     internal class ConnectionIdleTracker
     {
-        private readonly CancellationTokenSource _idledTooLong;
+        private CancellationTokenSource _idledTooLong;
         private readonly CancellationTokenSource _waitingForRequest;
         private int _idleTimeoutMilliseconds;
+        private readonly Func<ConnectionIdleEventOutcome>? _considerIdleEvent;
         private readonly SemaphoreSlim _threadSafety;
         private CancellationTokenSource _cancelIdling;
         private Task? _idleCheckingTask;
 
         public ConnectionIdleTracker(
             CancellationToken clientInitiatedRequestCancellation,
-            int idleTimeoutMilliseconds)
+            int idleTimeoutMilliseconds,
+            Func<ConnectionIdleEventOutcome>? considerIdleEvent)
         {
-            _idledTooLong = new CancellationTokenSource();
             _waitingForRequest = CancellationTokenSource.CreateLinkedTokenSource(
-                clientInitiatedRequestCancellation,
-                _idledTooLong.Token);
+                clientInitiatedRequestCancellation);
             _cancelIdling = new CancellationTokenSource();
             _idleCheckingTask = null;
             _idleTimeoutMilliseconds = idleTimeoutMilliseconds;
+            _considerIdleEvent = considerIdleEvent;
             _threadSafety = new SemaphoreSlim(1);
+            _idledTooLong = new CancellationTokenSource();
+            ResetIdledTooLong();
+        }
+
+        private void ResetIdledTooLong()
+        {
+            _idledTooLong = new CancellationTokenSource();
+            _idledTooLong.Token.Register(() =>
+            {
+                var outcome = ConnectionIdleEventOutcome.Idled;
+                if (_considerIdleEvent != null)
+                {
+                    outcome = _considerIdleEvent();
+                }
+                if (outcome == ConnectionIdleEventOutcome.Idled)
+                {
+                    _waitingForRequest.Cancel();
+                }
+                else if (outcome == ConnectionIdleEventOutcome.ResetIdleTimer)
+                {
+                    StopIdling();
+                    ResetIdledTooLong();
+                    StartIdling();
+                }
+                else
+                {
+                    throw new NotSupportedException();
+                }
+            });
         }
 
         public CancellationToken CancellationToken => _waitingForRequest.Token;

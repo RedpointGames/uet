@@ -6,13 +6,17 @@
 
     internal interface IBlobSynchroniser
     {
-        Task<BlobSynchronisationResult<InputFilesByBlobXxHash64>> SynchroniseInputBlobs(
-            IWorkerCore workerCore,
+        Task<BlobHashingResult> HashInputBlobsAsync(
             RemoteTaskDescriptor remoteTaskDescriptor,
             CancellationToken cancellationToken);
 
-        Task<BlobSynchronisationResult> SynchroniseOutputBlobs(
-            IWorkerCore workerCore,
+        Task<BlobSynchronisationResult<InputFilesByBlobXxHash64>> SynchroniseInputBlobsAsync(
+            ITaskApiWorkerCore workerCore,
+            BlobHashingResult hashingResult,
+            CancellationToken cancellationToken);
+
+        Task<BlobSynchronisationResult> SynchroniseOutputBlobsAsync(
+            ITaskApiWorkerCore workerCore,
             RemoteTaskDescriptor remoteTaskDescriptor,
             ExecuteTaskResponse finalExecuteTaskResponse,
             CancellationToken cancellationToken);

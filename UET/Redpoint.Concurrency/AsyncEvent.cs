@@ -13,7 +13,7 @@
     public class AsyncEvent : IAsyncEvent
     {
         private readonly List<Func<CancellationToken, Task>> _handlers;
-        private readonly SemaphoreSlim _handlersLock;
+        private readonly MutexSlim _handlersLock;
 
         /// <summary>
         /// Construct a new asynchronous event.
@@ -21,35 +21,35 @@
         public AsyncEvent()
         {
             _handlers = new List<Func<CancellationToken, Task>>();
-            _handlersLock = new SemaphoreSlim(1);
+            _handlersLock = new MutexSlim();
+        }
+
+        /// <inheritdoc />
+        public void Add(Func<CancellationToken, Task> handler)
+        {
+            using var _ = _handlersLock.Wait();
+            _handlers.Add(handler);
         }
 
         /// <inheritdoc />
         public async Task AddAsync(Func<CancellationToken, Task> handler)
         {
-            await _handlersLock.WaitAsync();
-            try
-            {
-                _handlers.Add(handler);
-            }
-            finally
-            {
-                _handlersLock.Release();
-            }
+            using var _ = await _handlersLock.WaitAsync();
+            _handlers.Add(handler);
+        }
+
+        /// <inheritdoc />
+        public void Remove(Func<CancellationToken, Task> handler)
+        {
+            using var _ = _handlersLock.Wait();
+            _handlers.Remove(handler);
         }
 
         /// <inheritdoc />
         public async Task RemoveAsync(Func<CancellationToken, Task> handler)
         {
-            await _handlersLock.WaitAsync();
-            try
-            {
-                _handlers.Remove(handler);
-            }
-            finally
-            {
-                _handlersLock.Release();
-            }
+            using var _ = await _handlersLock.WaitAsync();
+            _handlers.Remove(handler);
         }
 
         /// <summary>
@@ -59,8 +59,13 @@
         /// <returns>An awaitable task for when all handlers have completed.</returns>
         public async Task BroadcastAsync(CancellationToken cancellationToken)
         {
+            Func<CancellationToken, Task>[] handlers;
+            using (await _handlersLock.WaitAsync())
+            {
+                handlers = _handlers.ToArray();
+            }
             await Parallel.ForEachAsync(
-                _handlers,
+                handlers,
                 cancellationToken,
                 async (handler, ct) =>
                 {
@@ -76,7 +81,7 @@
     public class AsyncEvent<TArgs> : IAsyncEvent<TArgs>
     {
         private readonly List<Func<TArgs, CancellationToken, Task>> _handlers;
-        private readonly SemaphoreSlim _handlersLock;
+        private readonly MutexSlim _handlersLock;
 
         /// <summary>
         /// Construct a new asynchronous event.
@@ -84,35 +89,35 @@
         public AsyncEvent()
         {
             _handlers = new List<Func<TArgs, CancellationToken, Task>>();
-            _handlersLock = new SemaphoreSlim(1);
+            _handlersLock = new MutexSlim();
+        }
+
+        /// <inheritdoc />
+        public void Add(Func<TArgs, CancellationToken, Task> handler)
+        {
+            using var _ = _handlersLock.Wait();
+            _handlers.Add(handler);
         }
 
         /// <inheritdoc />
         public async Task AddAsync(Func<TArgs, CancellationToken, Task> handler)
         {
-            await _handlersLock.WaitAsync();
-            try
-            {
-                _handlers.Add(handler);
-            }
-            finally
-            {
-                _handlersLock.Release();
-            }
+            using var _ = await _handlersLock.WaitAsync();
+            _handlers.Add(handler);
+        }
+
+        /// <inheritdoc />
+        public void Remove(Func<TArgs, CancellationToken, Task> handler)
+        {
+            using var _ = _handlersLock.Wait();
+            _handlers.Remove(handler);
         }
 
         /// <inheritdoc />
         public async Task RemoveAsync(Func<TArgs, CancellationToken, Task> handler)
         {
-            await _handlersLock.WaitAsync();
-            try
-            {
-                _handlers.Remove(handler);
-            }
-            finally
-            {
-                _handlersLock.Release();
-            }
+            using var _ = await _handlersLock.WaitAsync();
+            _handlers.Remove(handler);
         }
 
         /// <summary>
@@ -123,8 +128,13 @@
         /// <returns>An awaitable task for when all handlers have completed.</returns>
         public async Task BroadcastAsync(TArgs args, CancellationToken cancellationToken)
         {
+            Func<TArgs, CancellationToken, Task>[] handlers;
+            using (await _handlersLock.WaitAsync())
+            {
+                handlers = _handlers.ToArray();
+            }
             await Parallel.ForEachAsync(
-                _handlers,
+                handlers,
                 cancellationToken,
                 async (handler, ct) =>
                 {

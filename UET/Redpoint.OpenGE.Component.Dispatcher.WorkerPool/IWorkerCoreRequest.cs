@@ -3,7 +3,7 @@
     using System;
     using System.Threading.Tasks;
 
-    internal interface IWorkerCoreRequest<TWorkerCore> : IAsyncDisposable where TWorkerCore : IAsyncDisposable
+    public interface IWorkerCoreRequest<TWorkerCore> : IAsyncDisposable where TWorkerCore : IAsyncDisposable
     {
         bool RequireLocal { get; }
 

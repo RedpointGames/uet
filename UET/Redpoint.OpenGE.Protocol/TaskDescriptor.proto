@@ -19,8 +19,13 @@ message InputFilesByPathOrContent {
 	map<string, string> absolutePathsToVirtualContent = 2;
 }
 
+message InputFilesByBlobXxHash64Entry {
+	int64 xxHash64 = 1;
+	int64 lastModifiedUtcTicks = 2;
+}
+
 message InputFilesByBlobXxHash64 {
-	map<string, int64> absolutePathsToBlobs = 2;
+	map<string, InputFilesByBlobXxHash64Entry> absolutePathsToBlobs = 2;
 	repeated string absolutePathsToVirtualContent = 3;
 }
 

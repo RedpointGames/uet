@@ -2,6 +2,7 @@
 {
     using Grpc.Net.Client;
     using Microsoft.AspNetCore.Hosting.Server;
+    using Microsoft.Extensions.Logging;
     using Redpoint.GrpcPipes;
     using Redpoint.OpenGE.Component.Dispatcher;
     using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
@@ -14,9 +15,10 @@
 
     internal class DefaultOpenGEAgent : IOpenGEAgent
     {
+        private readonly ILogger<DefaultOpenGEAgent> _logger;
         private readonly IDispatcherComponentFactory _dispatcherComponentFactory;
         private readonly IWorkerComponentFactory _workerComponentFactory;
-        private readonly IWorkerPoolFactory _workerPoolFactory;
+        private readonly ITaskApiWorkerPoolFactory _taskApiWorkerPoolFactory;
         private readonly IPreprocessorCacheFactory _preprocessorCacheFactory;
         private readonly IGrpcPipeFactory _grpcPipeFactory;
         private readonly bool _runAsSystemWideService;
@@ -25,22 +27,24 @@
         private AbstractInProcessPreprocessorCache? _preprocessorComponent;
         private IWorkerComponent? _workerComponent;
         private TaskApi.TaskApiClient? _localWorkerClient;
-        private IWorkerPool? _workerPool;
+        private ITaskApiWorkerPool? _taskApiWorkerPool;
         private IDispatcherComponent? _dispatcherComponent;
         private IGrpcPipeServer<AbstractInProcessPreprocessorCache>? _preprocessorServer;
 
         public DefaultOpenGEAgent(
+            ILogger<DefaultOpenGEAgent> logger,
             IDispatcherComponentFactory dispatcherComponentFactory,
             IWorkerComponentFactory workerComponentFactory,
-            IWorkerPoolFactory workerPoolFactory,
+            ITaskApiWorkerPoolFactory taskApiWorkerPoolFactory,
             IPreprocessorCacheFactory preprocessorCacheFactory,
             IGrpcPipeFactory grpcPipeFactory,
             bool runAsSystemWideService,
             bool runLocalWorker)
         {
+            _logger = logger;
             _dispatcherComponentFactory = dispatcherComponentFactory;
             _workerComponentFactory = workerComponentFactory;
-            _workerPoolFactory = workerPoolFactory;
+            _taskApiWorkerPoolFactory = taskApiWorkerPoolFactory;
             _preprocessorCacheFactory = preprocessorCacheFactory;
             _grpcPipeFactory = grpcPipeFactory;
             _runAsSystemWideService = runAsSystemWideService;
@@ -67,20 +71,28 @@
                 await _workerComponent.StartAsync(_shutdownCancellationTokenSource.Token);
                 _localWorkerClient = new TaskApi.TaskApiClient(
                     GrpcChannel.ForAddress($"http://127.0.0.1:{_workerComponent.ListeningPort}"));
-                _workerPool = _workerPoolFactory.CreateWorkerPool(new WorkerAddRequest
+                _taskApiWorkerPool = _taskApiWorkerPoolFactory.CreateWorkerPool(new TaskApiWorkerPoolConfiguration
                 {
-                    DisplayName = _workerComponent.WorkerDisplayName,
-                    UniqueId = _workerComponent.WorkerUniqueId,
-                    Client = _localWorkerClient,
+                    EnableNetworkAutoDiscovery = true,
+                    LocalWorker = new TaskApiWorkerPoolConfigurationLocalWorker
+                    {
+                        DisplayName = _workerComponent.WorkerDisplayName,
+                        UniqueId = _workerComponent.WorkerUniqueId,
+                        Client = _localWorkerClient,
+                    }
                 });
             }
             else
             {
-                _workerPool = _workerPoolFactory.CreateWorkerPool();
+                _taskApiWorkerPool = _taskApiWorkerPoolFactory.CreateWorkerPool(new TaskApiWorkerPoolConfiguration
+                {
+                    EnableNetworkAutoDiscovery = true,
+                    LocalWorker = null,
+                });
             }
 
             _dispatcherComponent = _dispatcherComponentFactory.Create(
-                _workerPool,
+                _taskApiWorkerPool,
                 _runAsSystemWideService ? "OpenGE" : null);
             await _dispatcherComponent.StartAsync(_shutdownCancellationTokenSource.Token);
         }
@@ -103,27 +115,32 @@
             _shutdownCancellationTokenSource = new CancellationTokenSource();
             if (_dispatcherComponent != null)
             {
+                _logger.LogInformation("Agent is stopping dispatcher component...");
                 await _dispatcherComponent.StopAsync();
                 _dispatcherComponent = null;
             }
-            if (_workerPool != null)
+            if (_taskApiWorkerPool != null)
             {
-                await _workerPool.DisposeAsync();
-                _workerPool = null;
+                _logger.LogInformation("Agent is stopping worker pool...");
+                await _taskApiWorkerPool.DisposeAsync();
+                _taskApiWorkerPool = null;
             }
             _localWorkerClient = null;
             if (_workerComponent != null)
             {
+                _logger.LogInformation("Agent is stopping worker component...");
                 await _workerComponent.StopAsync();
                 _workerComponent = null;
             }
             if (_preprocessorComponent != null)
             {
+                _logger.LogInformation("Agent is stopping preprocessor component...");
                 await _preprocessorComponent.DisposeAsync();
                 _preprocessorComponent = null;
             }
             if (_preprocessorServer != null)
             {
+                _logger.LogInformation("Agent is stopping preprocessor server...");
                 await _preprocessorServer.StopAsync();
                 _preprocessorServer = null;
             }

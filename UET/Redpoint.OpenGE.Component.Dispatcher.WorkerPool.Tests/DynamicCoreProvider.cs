@@ -10,7 +10,10 @@
         public DynamicCoreProvider(int coresAvailable)
         {
             _provideCore.Release(coresAvailable);
+            Id = Guid.NewGuid().ToString();
         }
+
+        public string Id { get; }
 
         public async Task<IWorkerCore> RequestCoreAsync(CancellationToken cancellationToken)
         {

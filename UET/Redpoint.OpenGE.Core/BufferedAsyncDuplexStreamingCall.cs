@@ -15,6 +15,8 @@
         private readonly TerminableAwaitableConcurrentQueue<(TResponse? response, ExceptionDispatchInfo? ex)> _queue;
         private readonly CancellationTokenSource _cancellationTokenSource;
         private ExceptionDispatchInfo? _exception;
+        private AsyncEvent<Exception> _onException;
+        private AsyncEvent<StatusCode> _onTerminated;
 
         public BufferedAsyncDuplexStreamingCall(
             ILogger logger,
@@ -25,6 +27,8 @@
             _queue = new TerminableAwaitableConcurrentQueue<(TResponse? response, ExceptionDispatchInfo? ex)>();
             _cancellationTokenSource = new CancellationTokenSource();
             _exception = null;
+            _onException = new AsyncEvent<Exception>();
+            _onTerminated = new AsyncEvent<StatusCode>();
         }
 
         public void StartObserving()
@@ -37,7 +41,9 @@
 
         public Exception? Exception => _exception?.SourceException;
 
-        public Func<Exception, Task>? OnException { get; set; }
+        public IAsyncEvent<Exception> OnException => _onException;
+
+        public IAsyncEvent<StatusCode> OnTerminated => _onTerminated;
 
         public IClientStreamWriter<TRequest> RequestStream => _call.RequestStream;
 
@@ -54,24 +60,37 @@
                 }
                 _logger.LogTrace($"Terminating AsyncDuplexStreamingCall due to normal completion");
                 _queue.Terminate();
+                await _onTerminated.BroadcastAsync(StatusCode.OK, CancellationToken.None);
             }
             catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
             {
                 _logger.LogTrace($"Terminating AsyncDuplexStreamingCall due to call being called cancelled by client");
                 _queue.Terminate();
+                await _onTerminated.BroadcastAsync(StatusCode.Cancelled, CancellationToken.None);
             }
             catch (OperationCanceledException) when (_cancellationTokenSource.IsCancellationRequested)
             {
                 _logger.LogTrace($"Terminating AsyncDuplexStreamingCall due to cancellation token");
                 _queue.Terminate();
+                await _onTerminated.BroadcastAsync(StatusCode.Cancelled, CancellationToken.None);
+            }
+            catch (RpcException ex)
+            {
+                _logger.LogTrace($"AsyncDuplexStreamingCall got exception: {ex}");
+                _exception = ExceptionDispatchInfo.Capture(ex);
+                await _onException.BroadcastAsync(ex, CancellationToken.None);
+                _queue.Enqueue((null, _exception));
+                _queue.Terminate();
+                await _onTerminated.BroadcastAsync(ex.StatusCode, CancellationToken.None);
             }
             catch (Exception ex)
             {
                 _logger.LogTrace($"AsyncDuplexStreamingCall got exception: {ex}");
                 _exception = ExceptionDispatchInfo.Capture(ex);
-                OnException?.Invoke(ex);
+                await _onException.BroadcastAsync(ex, CancellationToken.None);
                 _queue.Enqueue((null, _exception));
                 _queue.Terminate();
+                await _onTerminated.BroadcastAsync(StatusCode.Internal, CancellationToken.None);
             }
         }
 

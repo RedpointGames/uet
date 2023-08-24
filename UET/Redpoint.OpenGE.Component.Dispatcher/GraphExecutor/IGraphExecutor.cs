@@ -9,7 +9,7 @@
     internal interface IGraphExecutor
     {
         Task ExecuteGraphAsync(
-            IWorkerPool workerPool,
+            ITaskApiWorkerPool workerPool,
             Graph graph,
             JobBuildBehaviour buildBehaviour,
             GuardedResponseStream<JobResponse> responseStream,

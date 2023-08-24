@@ -31,7 +31,7 @@
 
         private class GraphExecutionInstance
         {
-            public required IWorkerPool WorkerPool;
+            public required ITaskApiWorkerPool WorkerPool;
             public long RemainingTasks;
             public readonly SemaphoreSlim QueuedTaskAvailableForScheduling = new SemaphoreSlim(0);
             public readonly ConcurrentQueue<GraphTask> QueuedTasksForScheduling = new ConcurrentQueue<GraphTask>();
@@ -61,7 +61,7 @@
         }
 
         public async Task ExecuteGraphAsync(
-            IWorkerPool workerPool,
+            ITaskApiWorkerPool workerPool,
             Graph graph,
             JobBuildBehaviour buildBehaviour,
             GuardedResponseStream<JobResponse> responseStream,
@@ -102,7 +102,7 @@
             if (instance.QueuedTasksForScheduling.Count == 0)
             {
                 throw new RpcException(new Status(
-                    StatusCode.InvalidArgument, 
+                    StatusCode.InvalidArgument,
                     "No task described by the job XML was immediately schedulable."));
             }
 
@@ -169,7 +169,7 @@
                             {
                                 // Try to get a local core first, since this will let us run remote
                                 // tasks much faster.
-                                IWorkerCore? localCore = null;
+                                IWorkerCoreRequest<ITaskApiWorkerCore>? localCoreRequest = null;
                                 if (buildBehaviour != null && buildBehaviour.ForceRemotingForLocalWorker)
                                 {
                                     _logger.LogInformation("Skipping fast local execution because this job requested forced remoting.");
@@ -186,7 +186,7 @@
                                         instance.CancellationToken);
                                     try
                                     {
-                                        localCore = await instance.WorkerPool.ReserveCoreAsync(
+                                        localCoreRequest = await instance.WorkerPool.ReserveCoreAsync(
                                             true,
                                             localCoreTimeout.Token);
                                         _logger.LogInformation("Obtained a local core.");
@@ -208,7 +208,7 @@
                                             // if we're parsing preprocessor headers.
                                             var downstreamTasks = graph.TaskDependencies.WhatDependsOnTarget(task);
                                             var isLocalCoreCandidateThatCanRunLocally =
-                                                localCore != null &&
+                                                localCoreRequest != null &&
                                                 downstreamTasks.Count == 1;
                                             Stopwatch? prepareStopwatch = null;
                                             if (!string.IsNullOrWhiteSpace(describingGraphTask.TaskDescriptorFactory.PreparationOperationDescription) &&
@@ -229,6 +229,27 @@
                                                 task.GraphTaskSpec,
                                                 isLocalCoreCandidateThatCanRunLocally,
                                                 instance.CancellationToken);
+                                            if (describingGraphTask.TaskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote &&
+                                                !taskDescriptor.Remote.UseFastLocalExecution)
+                                            {
+                                                // We must hash the tools and blobs ahead of time while we don't
+                                                // hold a reservation on a remote worker. We can't spend time hashing
+                                                // data with a reservation open because remote workers will kick us for
+                                                // being idle.
+                                                await Task.WhenAll(
+                                                    Task.Run(async () =>
+                                                    {
+                                                        describingGraphTask.ToolHashingResult = await _toolSynchroniser.HashToolAsync(
+                                                            describingGraphTask.TaskDescriptor.Remote,
+                                                            instance.CancellationToken);
+                                                    }),
+                                                    Task.Run(async () =>
+                                                    {
+                                                        describingGraphTask.BlobHashingResult = await _blobSynchroniser.HashInputBlobsAsync(
+                                                            describingGraphTask.TaskDescriptor.Remote,
+                                                            instance.CancellationToken);
+                                                    }));
+                                            }
                                             if (prepareStopwatch != null &&
                                                 !isLocalCoreCandidateThatCanRunLocally)
                                             {
@@ -247,7 +268,7 @@
                                             {
                                                 // Shortcut into the downstream execution task.
                                                 await FinishTaskAsync(
-                                                    graph, 
+                                                    graph,
                                                     instance,
                                                     task,
                                                     TaskCompletionStatus.TaskCompletionSuccess,
@@ -258,8 +279,29 @@
                                         case FastExecutableGraphTask fastExecutableGraphTask:
                                             taskDescriptor = await fastExecutableGraphTask.TaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
                                                 fastExecutableGraphTask.GraphTaskSpec,
-                                                localCore != null,
+                                                localCoreRequest != null,
                                                 instance.CancellationToken);
+                                            if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote &&
+                                                !taskDescriptor.Remote.UseFastLocalExecution)
+                                            {
+                                                // We must hash the tools and blobs ahead of time while we don't
+                                                // hold a reservation on a remote worker. We can't spend time hashing
+                                                // data with a reservation open because remote workers will kick us for
+                                                // being idle.
+                                                await Task.WhenAll(
+                                                    Task.Run(async () =>
+                                                    {
+                                                        fastExecutableGraphTask.ToolHashingResult = await _toolSynchroniser.HashToolAsync(
+                                                            taskDescriptor.Remote,
+                                                            instance.CancellationToken);
+                                                    }),
+                                                    Task.Run(async () =>
+                                                    {
+                                                        fastExecutableGraphTask.BlobHashingResult = await _blobSynchroniser.HashInputBlobsAsync(
+                                                            taskDescriptor.Remote,
+                                                            instance.CancellationToken);
+                                                    }));
+                                            }
                                             break;
                                         case ExecutableGraphTask executableGraphTask:
                                             taskDescriptor = executableGraphTask.DescribingGraphTask.TaskDescriptor!;
@@ -291,15 +333,15 @@
                                                 skipEmitComplete = true;
                                             }
                                             break;
-                                        default:
+                                        case IRemotableGraphTask remotableGraphTask:
                                             {
                                                 // Reserve a core from somewhere...
                                                 _logger.LogInformation("Waiting for core reservation for task...");
-                                                IWorkerCore core;
-                                                if (localCore != null)
+                                                IWorkerCoreRequest<ITaskApiWorkerCore> coreRequest;
+                                                if (localCoreRequest != null)
                                                 {
-                                                    core = localCore;
-                                                    localCore = null; // So we don't call DisposeAsync twice on the same core.
+                                                    coreRequest = localCoreRequest;
+                                                    localCoreRequest = null; // So we don't call DisposeAsync twice on the same core.
                                                 }
                                                 else
                                                 {
@@ -308,18 +350,19 @@
                                                     {
                                                         throw new InvalidOperationException("UseFastLocalExecution must not be set if we're not using a local core!");
                                                     }
-                                                    core = await instance.WorkerPool.ReserveCoreAsync(
+                                                    coreRequest = await instance.WorkerPool.ReserveCoreAsync(
                                                         taskDescriptor.DescriptorCase != TaskDescriptor.DescriptorOneofCase.Remote,
                                                         instance.CancellationToken);
                                                 }
-                                                await using (core)
+                                                await using (coreRequest)
                                                 {
                                                     // We're now going to start doing the work for this task.
+                                                    var core = await coreRequest.WaitForCoreAsync(CancellationToken.None);
                                                     _logger.LogInformation($"Got core reservation from: {core.WorkerMachineName} {core.WorkerCoreNumber}");
                                                     taskStopwatch.Start();
                                                     currentPhaseStopwatch.Start();
                                                     currentPhase = (
-                                                        taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote && 
+                                                        taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote &&
                                                         !taskDescriptor.Remote.UseFastLocalExecution)
                                                             ? TaskPhase.RemoteToolSynchronisation
                                                             : TaskPhase.TaskExecution;
@@ -338,18 +381,20 @@
                                                     didStart = true;
 
                                                     // Perform synchronisation for remote tasks.
-                                                    if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote && 
+                                                    if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote &&
                                                         !taskDescriptor.Remote.UseFastLocalExecution)
                                                     {
                                                         // Synchronise the tool and determine the hash to
                                                         // use for the actual request.
-                                                        var toolExecutionInfo = await _toolSynchroniser.SynchroniseToolAndGetXxHash64(
+                                                        _logger.LogInformation($"{core.WorkerCoreUniqueAssignmentId}: Synchronising tool...");
+                                                        var toolExecutionInfo = await _toolSynchroniser.SynchroniseToolAndGetXxHash64Async(
                                                             core,
-                                                            taskDescriptor.Remote.ToolLocalAbsolutePath,
+                                                            remotableGraphTask.ToolHashingResult!,
                                                             instance.CancellationToken);
                                                         taskDescriptor.Remote.ToolExecutionInfo = toolExecutionInfo;
 
                                                         // Notify the client we're changing phases.
+                                                        _logger.LogInformation($"{core.WorkerCoreUniqueAssignmentId}: Sending phase change to client...");
                                                         await SendPhaseChangeAsync(
                                                             TaskPhase.RemoteInputBlobSynchronisation,
                                                             new Dictionary<string, string>
@@ -359,13 +404,15 @@
                                                             });
 
                                                         // Synchronise all of the input blobs.
-                                                        var inputBlobSynchronisation = await _blobSynchroniser.SynchroniseInputBlobs(
+                                                        _logger.LogInformation($"{core.WorkerCoreUniqueAssignmentId}: Synchronising {remotableGraphTask.BlobHashingResult!.ContentHashesToContent.Count} blobs...");
+                                                        var inputBlobSynchronisation = await _blobSynchroniser.SynchroniseInputBlobsAsync(
                                                             core,
-                                                            taskDescriptor.Remote,
+                                                            remotableGraphTask.BlobHashingResult!,
                                                             instance.CancellationToken);
                                                         taskDescriptor.Remote.InputsByBlobXxHash64 = inputBlobSynchronisation.Result;
 
                                                         // Notify the client we're changing phases.
+                                                        _logger.LogInformation($"{core.WorkerCoreUniqueAssignmentId}: Sending phase change to client...");
                                                         await SendPhaseChangeAsync(
                                                             TaskPhase.TaskExecution,
                                                             new Dictionary<string, string>
@@ -390,6 +437,7 @@
                                                     }
 
                                                     // Execute the task on the core.
+                                                    _logger.LogInformation($"{core.WorkerCoreUniqueAssignmentId}: Executing task...");
                                                     var executeTaskRequest = new ExecuteTaskRequest
                                                     {
                                                         Descriptor_ = taskDescriptor,
@@ -463,7 +511,7 @@
                                                     // If we were successful, synchronise the output blobs back.
                                                     if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote &&
                                                         status == TaskCompletionStatus.TaskCompletionSuccess &&
-                                                        finalExecuteTaskResponse.OutputAbsolutePathsToBlobXxHash64 != null && 
+                                                        finalExecuteTaskResponse.OutputAbsolutePathsToBlobXxHash64 != null &&
                                                         !taskDescriptor.Remote.UseFastLocalExecution)
                                                     {
                                                         // Notify the client we're changing phases.
@@ -472,7 +520,7 @@
                                                             finalPhaseMetadata);
                                                         finalPhaseMetadata.Clear();
 
-                                                        var outputBlobSynchronisation = await _blobSynchroniser.SynchroniseOutputBlobs(
+                                                        var outputBlobSynchronisation = await _blobSynchroniser.SynchroniseOutputBlobsAsync(
                                                             core,
                                                             taskDescriptor.Remote,
                                                             finalExecuteTaskResponse,
@@ -501,13 +549,15 @@
 
                                                 break;
                                             }
+                                        default:
+                                            throw new NotSupportedException($"Unknown graph task to execute: {task.GetType().FullName}");
                                     }
                                 }
                                 finally
                                 {
-                                    if (localCore != null)
+                                    if (localCoreRequest != null)
                                     {
-                                        await localCore.DisposeAsync();
+                                        await localCoreRequest.DisposeAsync();
                                     }
                                 }
                             }
@@ -605,9 +655,9 @@
                         }
 
                         static async Task FinishTaskAsync(
-                            Graph graph, 
+                            Graph graph,
                             GraphExecutionInstance instance,
-                            GraphTask task, 
+                            GraphTask task,
                             TaskCompletionStatus status,
                             bool scheduleDownstream)
                         {

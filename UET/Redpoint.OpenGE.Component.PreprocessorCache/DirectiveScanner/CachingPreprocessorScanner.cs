@@ -91,6 +91,13 @@
                 cacheStatus = CacheHit.MissDueToMissingFile;
             }
 
+#if DEBUG
+            if (!File.Exists(filePath))
+            {
+                Debugger.Break();
+            }
+#endif
+
             var freshValue = _onDiskPreprocessorScanner.ParseIncludes(filePath);
             _disk.Upsert(filePath, freshValue);
             return new PreprocessorScanResultWithCacheMetadata

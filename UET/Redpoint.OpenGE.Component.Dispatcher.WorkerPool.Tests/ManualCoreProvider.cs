@@ -9,7 +9,10 @@
 
         public ManualCoreProvider()
         {
+            Id = Guid.NewGuid().ToString();
         }
+
+        public string Id { get; }
 
         public void ReleaseCore()
         {

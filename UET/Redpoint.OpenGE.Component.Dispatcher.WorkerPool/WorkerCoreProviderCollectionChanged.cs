@@ -2,7 +2,7 @@
 {
     using System.Collections.Generic;
 
-    internal record class WorkerCoreProviderCollectionChanged<TWorkerCore>
+    public record class WorkerCoreProviderCollectionChanged<TWorkerCore>
     {
         public required IReadOnlyList<IWorkerCoreProvider<TWorkerCore>> CurrentProviders { get; init; }
 

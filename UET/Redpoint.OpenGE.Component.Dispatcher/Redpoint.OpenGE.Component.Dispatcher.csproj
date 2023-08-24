@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.ApplicationLifecycle\Redpoint.ApplicationLifecycle.csproj" />
     <ProjectReference Include="..\Redpoint.AutoDiscovery\Redpoint.AutoDiscovery.csproj" />
+    <ProjectReference Include="..\Redpoint.OpenGE.Component.Dispatcher.WorkerPool\Redpoint.OpenGE.Component.Dispatcher.WorkerPool.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Component.PreprocessorCache\Redpoint.OpenGE.Component.PreprocessorCache.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.JobXml\Redpoint.OpenGE.JobXml.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Protocol\Redpoint.OpenGE.Protocol.csproj" />

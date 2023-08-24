@@ -53,7 +53,7 @@
             var grpcPipeFactory = provider.GetRequiredService<IGrpcPipeFactory>();
             var workerFactory = provider.GetRequiredService<IWorkerComponentFactory>();
             var dispatcherFactory = provider.GetRequiredService<IDispatcherComponentFactory>();
-            var workerPoolFactory = provider.GetRequiredService<IWorkerPoolFactory>();
+            var workerPoolFactory = provider.GetRequiredService<ITaskApiWorkerPoolFactory>();
 
             var worker = workerFactory.Create();
             await worker.StartAsync(CancellationToken.None);
@@ -61,13 +61,16 @@
             {
                 var workerClient = new TaskApi.TaskApiClient(
                     GrpcChannel.ForAddress($"http://127.0.0.1:{worker.ListeningPort}"));
-                await using var workerPool = workerPoolFactory.CreateWorkerPool(
-                    new WorkerAddRequest
+                await using var workerPool = workerPoolFactory.CreateWorkerPool(new TaskApiWorkerPoolConfiguration
+                {
+                    EnableNetworkAutoDiscovery = false,
+                    LocalWorker = new TaskApiWorkerPoolConfigurationLocalWorker
                     {
                         DisplayName = "Test Client",
                         UniqueId = "1",
                         Client = workerClient,
-                    });
+                    }
+                });
                 var dispatcher = dispatcherFactory.Create(
                     workerPool,
                     null);

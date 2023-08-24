@@ -17,7 +17,7 @@
         }
 
         public IDispatcherComponent Create(
-            IWorkerPool workerPool, 
+            ITaskApiWorkerPool workerPool,
             string? pipeName)
         {
             return new DefaultDispatcherComponent(

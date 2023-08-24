@@ -8,9 +8,9 @@
     using Redpoint.Collections;
     using Redpoint.Concurrency;
 
-    internal class MultipleSourceWorkerCoreRequestFulfiller<TWorkerCore> : IAsyncDisposable where TWorkerCore : IAsyncDisposable
+    public class MultipleSourceWorkerCoreRequestFulfiller<TWorkerCore> : IAsyncDisposable where TWorkerCore : IAsyncDisposable
     {
-        private readonly ILogger<MultipleSourceWorkerCoreRequestFulfiller<TWorkerCore>> _logger;
+        private readonly ILogger _logger;
         private readonly WorkerCoreRequestCollection<TWorkerCore> _requestCollection;
         private readonly WorkerCoreProviderCollection<TWorkerCore> _providerCollection;
         private readonly bool _fulfillsLocalRequests;
@@ -123,7 +123,7 @@
         }
 
         public MultipleSourceWorkerCoreRequestFulfiller(
-            ILogger<MultipleSourceWorkerCoreRequestFulfiller<TWorkerCore>> logger,
+            ILogger logger,
             WorkerCoreRequestCollection<TWorkerCore> requestCollection,
             WorkerCoreProviderCollection<TWorkerCore> providerCollection,
             bool canFulfillLocalRequests)

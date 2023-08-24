@@ -17,6 +17,8 @@
             InputFilesByBlobXxHash64 inputFiles,
             CancellationToken cancellationToken);
 
+        bool IsTransferringFromPeer(ServerCallContext context);
+
         Task QueryMissingBlobsAsync(
             ServerCallContext context,
             QueryMissingBlobsRequest request,

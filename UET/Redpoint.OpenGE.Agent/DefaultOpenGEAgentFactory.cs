@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.OpenGE.Agent
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
     using Redpoint.GrpcPipes;
     using Redpoint.OpenGE.Component.Dispatcher;
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
@@ -22,9 +23,10 @@
             bool runLocalWorker)
         {
             return new DefaultOpenGEAgent(
+                _serviceProvider.GetRequiredService<ILogger<DefaultOpenGEAgent>>(),
                 _serviceProvider.GetRequiredService<IDispatcherComponentFactory>(),
                 _serviceProvider.GetRequiredService<IWorkerComponentFactory>(),
-                _serviceProvider.GetRequiredService<IWorkerPoolFactory>(),
+                _serviceProvider.GetRequiredService<ITaskApiWorkerPoolFactory>(),
                 _serviceProvider.GetRequiredService<IPreprocessorCacheFactory>(),
                 _serviceProvider.GetRequiredService<IGrpcPipeFactory>(),
                 runPreprocessorComponent,

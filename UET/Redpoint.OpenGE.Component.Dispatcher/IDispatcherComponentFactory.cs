@@ -5,7 +5,7 @@
     public interface IDispatcherComponentFactory
     {
         IDispatcherComponent Create(
-            IWorkerPool workerPool,
+            ITaskApiWorkerPool workerPool,
             string? pipeName);
     }
 }

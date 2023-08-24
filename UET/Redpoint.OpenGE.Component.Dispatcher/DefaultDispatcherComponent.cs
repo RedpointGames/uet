@@ -25,7 +25,7 @@
         private readonly IGraphGenerator _graphGenerator;
         private readonly IGraphExecutor _graphExecutor;
         private readonly IGrpcPipeFactory _grpcPipeFactory;
-        private readonly IWorkerPool _workerPool;
+        private readonly ITaskApiWorkerPool _workerPool;
         private bool _hasStarted = false;
         private IGrpcPipeServer<DefaultDispatcherComponent>? _pipeServer = null;
         private long _inflightJobs = 0;
@@ -39,7 +39,7 @@
             IGraphGenerator graphGenerator,
             IGraphExecutor graphExecutor,
             IGrpcPipeFactory grpcPipeFactory,
-            IWorkerPool workerPool,
+            ITaskApiWorkerPool workerPool,
             string? pipeName)
         {
             _logger = logger;
@@ -139,8 +139,8 @@
         }
 
         public override async Task SubmitJob(
-            SubmitJobRequest request, 
-            IServerStreamWriter<JobResponse> unsafeResponseStream, 
+            SubmitJobRequest request,
+            IServerStreamWriter<JobResponse> unsafeResponseStream,
             ServerCallContext context)
         {
             var responseStream = new GuardedResponseStream<JobResponse>(unsafeResponseStream);

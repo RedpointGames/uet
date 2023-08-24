@@ -2,8 +2,10 @@
 {
     using System.Threading.Tasks;
 
-    internal interface IWorkerCoreProvider<TWorkerCore>
+    public interface IWorkerCoreProvider<TWorkerCore>
     {
+        string Id { get; }
+
         Task<TWorkerCore> RequestCoreAsync(CancellationToken cancellationToken);
     }
 }

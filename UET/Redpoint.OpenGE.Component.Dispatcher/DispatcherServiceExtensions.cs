@@ -5,6 +5,7 @@
     using Redpoint.OpenGE.Component.Dispatcher.GraphGenerator;
     using Redpoint.OpenGE.Component.Dispatcher.Remoting;
     using Redpoint.OpenGE.Component.Dispatcher.TaskDescriptorFactories;
+    using Redpoint.OpenGE.Component.Dispatcher.TaskDescriptorFactories.Msvc;
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
 
     public static class DispatcherServiceExtensions
@@ -15,13 +16,16 @@
             services.AddSingleton<LocalTaskDescriptorFactory, LocalTaskDescriptorFactory>();
             services.AddSingleton<ITaskDescriptorFactory>(sp => sp.GetRequiredService<LocalTaskDescriptorFactory>());
             services.AddSingleton<ITaskDescriptorFactory, RemoteMsvcClTaskDescriptorFactory>();
+            services.AddSingleton<ITaskDescriptorFactory, RemoteClangTaskDescriptorFactory>();
+
+            services.AddSingleton<IMsvcResponseFileParser, DefaultMsvcResponseFileParser>();
 
             services.AddSingleton<IGraphGenerator, DefaultGraphGenerator>();
             services.AddSingleton<IGraphExecutor, DefaultGraphExecutor>();
 
             services.AddSingleton<IDispatcherComponentFactory, DefaultDispatcherComponentFactory>();
 
-            services.AddSingleton<IWorkerPoolFactory, DefaultWorkerPoolFactory>();
+            services.AddSingleton<ITaskApiWorkerPoolFactory, DefaultTaskApiWorkerPoolFactory>();
 
             services.AddSingleton<IToolSynchroniser, DefaultToolSynchroniser>();
             services.AddSingleton<IBlobSynchroniser, DefaultBlobSynchroniser>();

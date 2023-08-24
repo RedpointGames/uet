@@ -15,7 +15,21 @@
         /// </summary>
         /// <param name="handler">The handler to add.</param>
         /// <returns>An awaitable task for when the handler has been added.</returns>
+        void Add(Func<CancellationToken, Task> handler);
+
+        /// <summary>
+        /// Add a handler to the asynchronous event.
+        /// </summary>
+        /// <param name="handler">The handler to add.</param>
+        /// <returns>An awaitable task for when the handler has been added.</returns>
         Task AddAsync(Func<CancellationToken, Task> handler);
+
+        /// <summary>
+        /// Remove a handler to the asynchronous event.
+        /// </summary>
+        /// <param name="handler">The handler to add.</param>
+        /// <returns>An awaitable task for when the handler has been added.</returns>
+        void Remove(Func<CancellationToken, Task> handler);
 
         /// <summary>
         /// Remove a handler to the asynchronous event.
@@ -37,7 +51,21 @@
         /// </summary>
         /// <param name="handler">The handler to add.</param>
         /// <returns>An awaitable task for when the handler has been added.</returns>
+        void Add(Func<TArgs, CancellationToken, Task> handler);
+
+        /// <summary>
+        /// Add a handler to the asynchronous event.
+        /// </summary>
+        /// <param name="handler">The handler to add.</param>
+        /// <returns>An awaitable task for when the handler has been added.</returns>
         Task AddAsync(Func<TArgs, CancellationToken, Task> handler);
+
+        /// <summary>
+        /// Remove a handler to the asynchronous event.
+        /// </summary>
+        /// <param name="handler">The handler to add.</param>
+        /// <returns>An awaitable task for when the handler has been added.</returns>
+        void Remove(Func<TArgs, CancellationToken, Task> handler);
 
         /// <summary>
         /// Remove a handler to the asynchronous event.

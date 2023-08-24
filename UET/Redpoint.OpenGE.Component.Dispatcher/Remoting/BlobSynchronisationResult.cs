@@ -12,6 +12,6 @@
 
     internal class BlobSynchronisationResult<T> : BlobSynchronisationResult
     {
-        public required InputFilesByBlobXxHash64 Result;
+        public required T Result;
     }
 }

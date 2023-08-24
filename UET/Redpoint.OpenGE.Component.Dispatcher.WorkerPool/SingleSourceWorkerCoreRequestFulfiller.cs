@@ -5,9 +5,9 @@
     using System.Linq;
     using System.Threading.Tasks;
 
-    internal class SingleSourceWorkerCoreRequestFulfiller<TWorkerCore> : IAsyncDisposable where TWorkerCore : IAsyncDisposable
+    public class SingleSourceWorkerCoreRequestFulfiller<TWorkerCore> : IAsyncDisposable where TWorkerCore : IAsyncDisposable
     {
-        private readonly ILogger<SingleSourceWorkerCoreRequestFulfiller<TWorkerCore>> _logger;
+        private readonly ILogger _logger;
         private readonly WorkerCoreRequestCollection<TWorkerCore> _requestCollection;
         private readonly IWorkerCoreProvider<TWorkerCore> _coreProvider;
         private readonly bool _fulfillsLocalRequests;
@@ -17,7 +17,7 @@
         private WorkerCoreRequestStatistics? _lastStatistics;
 
         public SingleSourceWorkerCoreRequestFulfiller(
-            ILogger<SingleSourceWorkerCoreRequestFulfiller<TWorkerCore>> logger,
+            ILogger logger,
             WorkerCoreRequestCollection<TWorkerCore> requestCollection,
             IWorkerCoreProvider<TWorkerCore> coreProvider,
             bool canFulfillLocalRequests)
@@ -94,19 +94,27 @@
                             var nextUnfulfilledRequest = unfulfilledRequests.FirstOrDefault();
                             if (nextUnfulfilledRequest != null)
                             {
-                                var nextAvailableCore = await _coreProvider.RequestCoreAsync(_disposedCts.Token);
-                                var didFulfill = false;
                                 try
                                 {
-                                    await nextUnfulfilledRequest.FulfillRequestAsync(nextAvailableCore);
-                                    didFulfill = true;
+                                    var nextAvailableCore = await _coreProvider.RequestCoreAsync(_disposedCts.Token);
+                                    var didFulfill = false;
+                                    try
+                                    {
+                                        await nextUnfulfilledRequest.FulfillRequestAsync(nextAvailableCore);
+                                        didFulfill = true;
+                                    }
+                                    finally
+                                    {
+                                        if (!didFulfill)
+                                        {
+                                            await nextAvailableCore.DisposeAsync();
+                                        }
+                                    }
                                 }
                                 finally
                                 {
-                                    if (!didFulfill)
-                                    {
-                                        await nextAvailableCore.DisposeAsync();
-                                    }
+                                    // We failed to acquire a core.
+                                    _processRequestsSemaphore.Release();
                                 }
                             }
                         }

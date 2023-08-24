@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.OpenGE.Component.Dispatcher.WorkerPool
 {
-    internal interface IWorkerCoreWithLiveness : IWorkerCore
+    public interface IWorkerCoreWithLiveness : IWorkerCore
     {
         ValueTask<bool> IsAliveAsync(CancellationToken cancellationToken);
     }

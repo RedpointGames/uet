@@ -123,30 +123,42 @@
                         targetDirectory,
                         kv.Key);
                     Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
-                    if (!File.Exists(Path.Combine(blobsPath, kv.Value.HexString())))
+                    if (!File.Exists(Path.Combine(blobsPath, kv.Value.XxHash64.HexString())))
                     {
-                        throw new InvalidOperationException($"Expected blob file was not transferred from dispatcher: {kv.Value.HexString()}");
+                        throw new InvalidOperationException($"Expected blob file was not transferred from dispatcher: {kv.Value.XxHash64.HexString()}");
                     }
                     if (OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
                     {
                         HardLink.CreateHardLink(
                             targetPath,
-                            Path.Combine(blobsPath, kv.Value.HexString()),
+                            Path.Combine(blobsPath, kv.Value.XxHash64.HexString()),
                             true);
                     }
                     else
                     {
                         File.Copy(
-                            Path.Combine(blobsPath, kv.Value.HexString()),
+                            Path.Combine(blobsPath, kv.Value.XxHash64.HexString()),
                             targetPath,
                             true);
+                    }
+                    if (kv.Value.LastModifiedUtcTicks != 0)
+                    {
+                        File.SetLastWriteTimeUtc(
+                            targetPath,
+                            new DateTime(kv.Value.LastModifiedUtcTicks, DateTimeKind.Utc));
                     }
                 });
         }
 
+        public bool IsTransferringFromPeer(ServerCallContext context)
+        {
+            var peerHost = ParsePeer(context.Peer);
+            return _remoteHostLocks.TryGetValue(peerHost, out _);
+        }
+
         public async Task QueryMissingBlobsAsync(
             ServerCallContext context,
-            QueryMissingBlobsRequest request, 
+            QueryMissingBlobsRequest request,
             IServerStreamWriter<ExecutionResponse> responseStream,
             CancellationToken cancellationToken)
         {
@@ -461,7 +473,7 @@
             private string _peerHost;
 
             public PeerLockDisposable(
-                ConcurrentDictionary<string, bool> remoteHostLocks, 
+                ConcurrentDictionary<string, bool> remoteHostLocks,
                 string peerHost)
             {
                 _remoteHostLocks = remoteHostLocks;

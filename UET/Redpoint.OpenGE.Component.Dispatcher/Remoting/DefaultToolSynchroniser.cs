@@ -14,12 +14,16 @@
     using System.Text;
     using System.Threading.Tasks;
 
+    internal interface IHashedToolInfo
+    {
+    }
+
     internal class DefaultToolSynchroniser : IToolSynchroniser
     {
         private readonly Dictionary<string, HashedToolInfo> _hashedToolCache = new Dictionary<string, HashedToolInfo>();
         private readonly SemaphoreSlim _toolHashingSemaphore = new SemaphoreSlim(1);
 
-        private class HashedToolInfo
+        private class HashedToolInfo : IHashedToolInfo
         {
             public required DateTimeOffset ToolLastModifiedUtc;
             public required long ToolXxHash64;
@@ -28,11 +32,12 @@
             public required Dictionary<string, long> UnixRelativePathToToolBlobXxHash64;
         }
 
-        public async Task<ToolExecutionInfo> SynchroniseToolAndGetXxHash64(
-            IWorkerCore workerCore, 
-            string path,
+        public async Task<IHashedToolInfo> HashToolAsync(
+            RemoteTaskDescriptor remoteTaskDescriptor,
             CancellationToken cancellationToken)
         {
+            var path = remoteTaskDescriptor.ToolLocalAbsolutePath;
+
             // Compute all the files we want on the remote
             // machine and all of the hashes.
             HashedToolInfo toolInfo;
@@ -88,6 +93,16 @@
                 _toolHashingSemaphore.Release();
             }
 
+            return toolInfo;
+        }
+
+        public async Task<ToolExecutionInfo> SynchroniseToolAndGetXxHash64Async(
+            ITaskApiWorkerCore workerCore,
+            IHashedToolInfo toolInfoInterface,
+            CancellationToken cancellationToken)
+        {
+            var toolInfo = (HashedToolInfo)toolInfoInterface;
+
             // Do we already have the tool on the remote?
             await workerCore.Request.RequestStream.WriteAsync(new ExecutionRequest
             {
@@ -133,7 +148,7 @@
             var remoteFound = response.HasToolBlobs.Existence.Where(x => x.Exists).Select(x => x.XxHash64).ToHashSet();
             var remoteMissing = new HashSet<long>(toolInfo.UnixRelativePathToToolBlobXxHash64.Values);
             remoteMissing.ExceptWith(remoteFound);
-            
+
             // Generate reverse map so we can find what we need to send.
             var reverse = new Dictionary<long, string>();
             foreach (var kv in toolInfo.UnixRelativePathToToolBlobXxHash64)
@@ -186,7 +201,7 @@
                     }
                 }
             }
-            
+
             // Construct the tool layout on the remote worker.
             var constructToolRequest = new ConstructToolRequest
             {

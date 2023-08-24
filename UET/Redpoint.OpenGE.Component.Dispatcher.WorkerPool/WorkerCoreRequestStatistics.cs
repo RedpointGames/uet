@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.OpenGE.Component.Dispatcher.WorkerPool
 {
-    internal class WorkerCoreRequestStatistics
+    public class WorkerCoreRequestStatistics
     {
         public required int UnfulfilledLocalRequests { get; init; }
         public required int UnfulfilledRemotableRequests { get; init; }

@@ -48,7 +48,7 @@
             _workerDisplayName = Environment.MachineName;
             _workerUniqueId = Guid.NewGuid().ToString();
 
-            var processorCount = Environment.ProcessorCount * (OperatingSystem.IsMacOS() ? 1 : 2);
+            var processorCount = Environment.ProcessorCount;// * (OperatingSystem.IsMacOS() ? 1 : 2);
             _reservationSemaphore = new SemaphoreSlim(processorCount);
             _reservationBag = new ConcurrentBag<int>(Enumerable.Range(1, processorCount));
         }
@@ -167,29 +167,44 @@
             IServerStreamWriter<ExecutionResponse> responseStream,
             ServerCallContext context)
         {
+            var uniqueAssignmentId = Guid.NewGuid().ToString();
             var connectionIdleTracker = new ConnectionIdleTracker(
                 CancellationTokenSource.CreateLinkedTokenSource(
                     context.CancellationToken,
                     _shutdownCancellationTokenSource!.Token).Token,
-                5000);
+                5000,
+                () =>
+                {
+                    if (_blobManager.IsTransferringFromPeer(context))
+                    {
+                        return ConnectionIdleEventOutcome.ResetIdleTimer;
+                    }
+                    else
+                    {
+                        return ConnectionIdleEventOutcome.Idled;
+                    }
+                });
             connectionIdleTracker.StartIdling();
             var didReserve = false;
             int reservedCore = 0;
+            ExecutionRequest.RequestOneofCase lastRequest = ExecutionRequest.RequestOneofCase.None;
+            DateTimeOffset lastRequestTime = DateTimeOffset.UtcNow;
             try
             {
                 // Wait for the reservation to be made first.
-                reservedCore = await HandleReservationRequestLoopAsync(requestStream, responseStream, connectionIdleTracker);
+                reservedCore = await HandleReservationRequestLoopAsync(requestStream, responseStream, uniqueAssignmentId, connectionIdleTracker);
                 didReserve = true;
 
                 // Process requests after the reservation.
                 while (await PullFromRequestStreamAsync(requestStream, connectionIdleTracker.CancellationToken))
                 {
+                    lastRequest = requestStream.Current.RequestCase;
                     switch (requestStream.Current.RequestCase)
                     {
                         case ExecutionRequest.RequestOneofCase.ReserveCore:
                             throw new RpcException(new Status(StatusCode.InvalidArgument, "You have already obtained a reservation on this RPC call."));
                         case ExecutionRequest.RequestOneofCase.QueryTool:
-                            _logger.LogTrace("Worker ReserveCoreAndExecute QueryTool Begin");
+                            _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute QueryTool Begin");
                             connectionIdleTracker.StopIdling();
                             try
                             {
@@ -203,11 +218,11 @@
                             finally
                             {
                                 connectionIdleTracker.StartIdling();
-                                _logger.LogTrace("Worker ReserveCoreAndExecute QueryTool End");
+                                _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute QueryTool End");
                             }
                             break;
                         case ExecutionRequest.RequestOneofCase.HasToolBlobs:
-                            _logger.LogTrace("Worker ReserveCoreAndExecute HasToolBlobs Begin");
+                            _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute HasToolBlobs Begin");
                             connectionIdleTracker.StopIdling();
                             try
                             {
@@ -221,11 +236,11 @@
                             finally
                             {
                                 connectionIdleTracker.StartIdling();
-                                _logger.LogTrace("Worker ReserveCoreAndExecute HasToolBlobs End");
+                                _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute HasToolBlobs End");
                             }
                             break;
                         case ExecutionRequest.RequestOneofCase.WriteToolBlob:
-                            _logger.LogTrace("Worker ReserveCoreAndExecute WriteToolBlob Begin");
+                            _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute WriteToolBlob Begin");
                             connectionIdleTracker.StopIdling();
                             try
                             {
@@ -240,11 +255,11 @@
                             finally
                             {
                                 connectionIdleTracker.StartIdling();
-                                _logger.LogTrace("Worker ReserveCoreAndExecute WriteToolBlob End");
+                                _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute WriteToolBlob End");
                             }
                             break;
                         case ExecutionRequest.RequestOneofCase.ConstructTool:
-                            _logger.LogTrace("Worker ReserveCoreAndExecute ConstructTool Begin");
+                            _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute ConstructTool Begin");
                             connectionIdleTracker.StopIdling();
                             try
                             {
@@ -258,11 +273,11 @@
                             finally
                             {
                                 connectionIdleTracker.StartIdling();
-                                _logger.LogTrace("Worker ReserveCoreAndExecute ConstructTool End");
+                                _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute ConstructTool End");
                             }
                             break;
                         case ExecutionRequest.RequestOneofCase.QueryMissingBlobs:
-                            _logger.LogTrace("Worker ReserveCoreAndExecute QueryMissingBlobs Begin");
+                            _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute QueryMissingBlobs Begin");
                             connectionIdleTracker.StopIdling();
                             try
                             {
@@ -275,11 +290,11 @@
                             finally
                             {
                                 connectionIdleTracker.StartIdling();
-                                _logger.LogTrace("Worker ReserveCoreAndExecute QueryMissingBlobs End");
+                                _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute QueryMissingBlobs End");
                             }
                             break;
                         case ExecutionRequest.RequestOneofCase.SendCompressedBlobs:
-                            _logger.LogTrace("Worker ReserveCoreAndExecute SendCompressedBlobs Begin");
+                            _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute SendCompressedBlobs Begin");
                             connectionIdleTracker.StopIdling();
                             try
                             {
@@ -293,11 +308,11 @@
                             finally
                             {
                                 connectionIdleTracker.StartIdling();
-                                _logger.LogTrace("Worker ReserveCoreAndExecute SendCompressedBlobs End");
+                                _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute SendCompressedBlobs End");
                             }
                             break;
                         case ExecutionRequest.RequestOneofCase.ExecuteTask:
-                            _logger.LogTrace("Worker ReserveCoreAndExecute ExecuteTask Begin");
+                            _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute ExecuteTask Begin");
                             connectionIdleTracker.StopIdling();
                             try
                             {
@@ -309,11 +324,11 @@
                             finally
                             {
                                 connectionIdleTracker.StartIdling();
-                                _logger.LogTrace("Worker ReserveCoreAndExecute ExecuteTask End");
+                                _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute ExecuteTask End");
                             }
                             break;
                         case ExecutionRequest.RequestOneofCase.ReceiveOutputBlobs:
-                            _logger.LogTrace("Worker ReserveCoreAndExecute ReceiveOutputBlobs Begin");
+                            _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute ReceiveOutputBlobs Begin");
                             connectionIdleTracker.StopIdling();
                             try
                             {
@@ -326,7 +341,7 @@
                             finally
                             {
                                 connectionIdleTracker.StartIdling();
-                                _logger.LogTrace("Worker ReserveCoreAndExecute ReceiveOutputBlobs End");
+                                _logger.LogTrace($"{uniqueAssignmentId}: Worker ReserveCoreAndExecute ReceiveOutputBlobs End");
                             }
                             break;
                         default:
@@ -340,13 +355,13 @@
                 {
                     if (didReserve)
                     {
-                        _logger.LogTrace("The caller of ReserveCoreAndExecute RPC cancelled the operation, so the reservation was released.");
+                        _logger.LogTrace($"{uniqueAssignmentId}: The caller of ReserveCoreAndExecute RPC cancelled the operation, so the reservation was released.");
                     }
                     return;
                 }
                 else if (connectionIdleTracker.CancellationToken.IsCancellationRequested)
                 {
-                    _logger.LogWarning("The entity calling ReserveCoreAndExecute RPC idled for too long, and the call was cancelled because the reservation was not being used.");
+                    _logger.LogWarning($"{uniqueAssignmentId}: The entity calling ReserveCoreAndExecute RPC idled for too long, and the call was cancelled because the reservation was not being used. The last request was {lastRequest} approximately {(DateTimeOffset.UtcNow - lastRequestTime).TotalSeconds} seconds ago.");
                     throw new RpcException(new Status(StatusCode.Cancelled, "Connection idled for too long, so the reservation was released."));
                 }
             }
@@ -365,6 +380,7 @@
         private async Task<int> HandleReservationRequestLoopAsync(
             IAsyncStreamReader<ExecutionRequest> requestStream,
             IServerStreamWriter<ExecutionResponse> responseStream,
+            string uniqueAssignmentId,
             ConnectionIdleTracker connectionIdleTracker)
         {
             bool didReserve = false;
@@ -396,6 +412,7 @@
                                     {
                                         WorkerMachineName = Environment.MachineName,
                                         WorkerCoreNumber = reservedCore,
+                                        WorkerCoreUniqueAssignmentId = uniqueAssignmentId,
                                     }
                                 });
                             }

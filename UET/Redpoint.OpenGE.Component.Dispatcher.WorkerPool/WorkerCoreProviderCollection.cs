@@ -7,15 +7,15 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal class WorkerCoreProviderCollection<TWorkerCore> where TWorkerCore : IAsyncDisposable
+    public class WorkerCoreProviderCollection<TWorkerCore> where TWorkerCore : IAsyncDisposable
     {
-        private readonly List<IWorkerCoreProvider<TWorkerCore>> _providers;
+        private readonly Dictionary<string, IWorkerCoreProvider<TWorkerCore>> _providers;
         private readonly MutexSlim _providerLock;
         private readonly AsyncEvent<WorkerCoreProviderCollectionChanged<TWorkerCore>> _onProvidersChanged;
 
         public WorkerCoreProviderCollection()
         {
-            _providers = new List<IWorkerCoreProvider<TWorkerCore>>();
+            _providers = new Dictionary<string, IWorkerCoreProvider<TWorkerCore>>();
             _providerLock = new MutexSlim();
             _onProvidersChanged = new AsyncEvent<WorkerCoreProviderCollectionChanged<TWorkerCore>>();
         }
@@ -25,19 +25,29 @@
         public async Task<IReadOnlyList<IWorkerCoreProvider<TWorkerCore>>> GetProvidersAsync()
         {
             using var _ = await _providerLock.WaitAsync(CancellationToken.None);
-            return new List<IWorkerCoreProvider<TWorkerCore>>(_providers);
+            return new List<IWorkerCoreProvider<TWorkerCore>>(_providers.Values);
+        }
+
+        public async Task<bool> HasAsync(string providerId)
+        {
+            using var _ = await _providerLock.WaitAsync(CancellationToken.None);
+            return _providers.ContainsKey(providerId);
         }
 
         public async Task AddAsync(IWorkerCoreProvider<TWorkerCore> provider)
         {
             using var _ = await _providerLock.WaitAsync(CancellationToken.None);
 
-            _providers.Add(provider);
+            if (_providers.ContainsKey(provider.Id))
+            {
+                return;
+            }
+            _providers.Add(provider.Id, provider);
             try
             {
                 await _onProvidersChanged.BroadcastAsync(new WorkerCoreProviderCollectionChanged<TWorkerCore>
                 {
-                    CurrentProviders = new List<IWorkerCoreProvider<TWorkerCore>>(_providers),
+                    CurrentProviders = new List<IWorkerCoreProvider<TWorkerCore>>(_providers.Values),
                     AddedProvider = provider,
                     RemovedProvider = null,
                 }, CancellationToken.None);
@@ -51,14 +61,14 @@
         {
             using var _ = await _providerLock.WaitAsync(CancellationToken.None);
 
-            if (_providers.Contains(provider))
+            if (_providers.ContainsKey(provider.Id))
             {
-                _providers.Remove(provider);
+                _providers.Remove(provider.Id);
                 try
                 {
                     await _onProvidersChanged.BroadcastAsync(new WorkerCoreProviderCollectionChanged<TWorkerCore>
                     {
-                        CurrentProviders = new List<IWorkerCoreProvider<TWorkerCore>>(_providers),
+                        CurrentProviders = new List<IWorkerCoreProvider<TWorkerCore>>(_providers.Values),
                         AddedProvider = null,
                         RemovedProvider = provider,
                     }, CancellationToken.None);

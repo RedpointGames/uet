@@ -6,9 +6,13 @@
 
     internal interface IToolSynchroniser
     {
-        Task<ToolExecutionInfo> SynchroniseToolAndGetXxHash64(
-            IWorkerCore workerCore,
-            string path,
+        Task<IHashedToolInfo> HashToolAsync(
+            RemoteTaskDescriptor remoteTaskDescriptor,
+            CancellationToken cancellationToken);
+
+        Task<ToolExecutionInfo> SynchroniseToolAndGetXxHash64Async(
+            ITaskApiWorkerCore workerCore,
+            IHashedToolInfo hashedToolInfo,
             CancellationToken cancellationToken);
     }
 }

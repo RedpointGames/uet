@@ -25,6 +25,7 @@ message ReserveCoreRequest {
 message ReserveCoreResponse {
 	string workerMachineName = 1;
 	int32 workerCoreNumber = 2;
+	string workerCoreUniqueAssignmentId = 3;
 }
 
 /**
