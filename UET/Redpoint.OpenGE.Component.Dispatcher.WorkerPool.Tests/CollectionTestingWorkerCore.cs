@@ -1,6 +1,8 @@
 ﻿namespace Redpoint.OpenGE.Component.Dispatcher.WorkerPool.Tests
 {
-    internal class NullWorkerCore : IAsyncDisposable
+    using System.Threading.Tasks;
+
+    internal class CollectionTestingWorkerCore : IWorkerCore
     {
         public ValueTask DisposeAsync()
         {

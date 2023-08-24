@@ -9,13 +9,13 @@
     internal class WorkerCoreRequestCollection<TWorkerCore> where TWorkerCore : IAsyncDisposable
     {
         private readonly List<WorkerCoreRequest> _requests;
-        private readonly SemaphoreSlim _requestLock;
+        private readonly MutexSlim _requestLock;
         private readonly AsyncEvent<WorkerCoreRequestStatistics> _onRequestsChanged;
 
         public WorkerCoreRequestCollection()
         {
             _requests = new List<WorkerCoreRequest>();
-            _requestLock = new SemaphoreSlim(1);
+            _requestLock = new MutexSlim();
             _onRequestsChanged = new AsyncEvent<WorkerCoreRequestStatistics>();
         }
 
@@ -63,45 +63,24 @@
 
         public async Task<WorkerCoreRequestStatistics> GetCurrentStatisticsAsync(CancellationToken cancellationToken)
         {
-            await _requestLock.WaitAsync(cancellationToken);
-            try
-            {
-                return ObtainStatisticsWithinLock();
-            }
-            finally
-            {
-                _requestLock.Release();
-            }
+            using var _ = await _requestLock.WaitAsync(cancellationToken);
+            return ObtainStatisticsWithinLock();
         }
 
         public async Task<IReadOnlyList<IWorkerCoreRequest<TWorkerCore>>> GetUnfulfilledLocalRequestsAsync(CancellationToken cancellationToken)
         {
-            await _requestLock.WaitAsync(cancellationToken);
-            try
-            {
-                return _requests
-                    .Where(x => x.RequireLocal && x.AssignedCore == null)
-                    .ToList();
-            }
-            finally
-            {
-                _requestLock.Release();
-            }
+            using var _ = await _requestLock.WaitAsync(cancellationToken);
+            return _requests
+                .Where(x => x.RequireLocal && x.AssignedCore == null)
+                .ToList();
         }
 
         public async Task<IReadOnlyList<IWorkerCoreRequest<TWorkerCore>>> GetUnfulfilledRemotableRequestsAsync(CancellationToken cancellationToken)
         {
-            await _requestLock.WaitAsync(cancellationToken);
-            try
-            {
-                return _requests
-                    .Where(x => !x.RequireLocal && x.AssignedCore == null)
-                    .ToList();
-            }
-            finally
-            {
-                _requestLock.Release();
-            }
+            using var _ = await _requestLock.WaitAsync(cancellationToken);
+            return _requests
+                .Where(x => !x.RequireLocal && x.AssignedCore == null)
+                .ToList();
         }
 
         public async Task<IWorkerCoreRequest<TWorkerCore>> CreateFulfilledRequestAsync(
@@ -129,26 +108,20 @@
             bool requireLocal,
             CancellationToken cancellationToken)
         {
-            await _requestLock.WaitAsync(cancellationToken);
+            using var _ = await _requestLock.WaitAsync(cancellationToken);
+
+            var newRequest = new WorkerCoreRequest(this, requireLocal);
+            _requests.Add(newRequest);
             try
             {
-                var newRequest = new WorkerCoreRequest(this, requireLocal);
-                _requests.Add(newRequest);
-                try
-                {
-                    await _onRequestsChanged.BroadcastAsync(
-                        ObtainStatisticsWithinLock(),
-                        cancellationToken);
-                }
-                catch
-                {
-                }
-                return newRequest;
+                await _onRequestsChanged.BroadcastAsync(
+                    ObtainStatisticsWithinLock(),
+                    cancellationToken);
             }
-            finally
+            catch
             {
-                _requestLock.Release();
             }
+            return newRequest;
         }
 
         private class WorkerCoreRequest : IWorkerCoreRequest<TWorkerCore>
@@ -176,25 +149,20 @@
                 {
                     throw new InvalidOperationException();
                 }
-                await _collection._requestLock.WaitAsync(CancellationToken.None);
+
+                using var _ = await _collection._requestLock.WaitAsync(CancellationToken.None);
+
+                _assignedCore = core;
                 try
                 {
-                    _assignedCore = core;
-                    try
-                    {
-                        await _collection._onRequestsChanged.BroadcastAsync(
-                            _collection.ObtainStatisticsWithinLock(),
-                            CancellationToken.None);
-                    }
-                    catch
-                    {
-                    }
-                    _requestCompleted.Open();
+                    await _collection._onRequestsChanged.BroadcastAsync(
+                        _collection.ObtainStatisticsWithinLock(),
+                        CancellationToken.None);
                 }
-                finally
+                catch
                 {
-                    _collection._requestLock.Release();
                 }
+                _requestCompleted.Open();
             }
 
             public async ValueTask DisposeAsync()
@@ -203,24 +171,20 @@
                 {
                     await _assignedCore.DisposeAsync();
                 }
-                await _collection._requestLock.WaitAsync(CancellationToken.None);
+
+                using var _ = await _collection._requestLock.WaitAsync(CancellationToken.None);
+
+                _collection._requests.Remove(this);
                 try
                 {
-                    _collection._requests.Remove(this);
-                    try
-                    {
-                        await _collection._onRequestsChanged.BroadcastAsync(
-                            _collection.ObtainStatisticsWithinLock(),
-                            CancellationToken.None);
-                    }
-                    catch
-                    {
-                    }
+                    await _collection._onRequestsChanged.BroadcastAsync(
+                        _collection.ObtainStatisticsWithinLock(),
+                        CancellationToken.None);
                 }
-                finally
+                catch
                 {
-                    _collection._requestLock.Release();
                 }
+
                 _requestCompleted.Open();
             }
 

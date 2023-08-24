@@ -15,32 +15,34 @@
         [Fact]
         public async Task SingleSourceCanFulfillLocalRequestsViaNotification()
         {
+            var cancellationToken = new CancellationTokenSource(5000).Token;
+
             var services = new ServiceCollection();
             services.AddLogging();
             var sp = services.BuildServiceProvider();
-            var logger = sp.GetRequiredService<ILogger<SingleSourceWorkerCoreRequestFulfiller<NullWorkerCore>>>();
+            var logger = sp.GetRequiredService<ILogger<SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
 
-            var testProvider = new TestCoreProvider();
+            var testProvider = new ManualCoreProvider();
 
-            var collection = new WorkerCoreRequestCollection<NullWorkerCore>();
-            await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<NullWorkerCore>(
+            var collection = new WorkerCoreRequestCollection<IWorkerCore>();
+            await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                 logger,
                 collection,
                 testProvider,
                 true))
             {
                 {
-                    var stats = await collection.GetCurrentStatisticsAsync(CancellationToken.None);
+                    var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
                     Assert.Equal(0, stats.UnfulfilledLocalRequests);
                     Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                     Assert.Equal(0, stats.FulfilledLocalRequests);
                     Assert.Equal(0, stats.FulfilledRemotableRequests);
                 }
 
-                await using (var localRequest = await collection.CreateUnfulfilledRequestAsync(true, CancellationToken.None))
+                await using (var localRequest = await collection.CreateUnfulfilledRequestAsync(true, cancellationToken))
                 {
                     {
-                        var stats = await collection.GetCurrentStatisticsAsync(CancellationToken.None);
+                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
                         Assert.Equal(1, stats.UnfulfilledLocalRequests);
                         Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                         Assert.Equal(0, stats.FulfilledLocalRequests);
@@ -53,11 +55,11 @@
                         gate.Open();
                         return Task.CompletedTask;
                     });
-                    testProvider.ProvideCore.Release();
+                    testProvider.ReleaseCore();
                     await gate.WaitAsync();
 
                     {
-                        var stats = await collection.GetCurrentStatisticsAsync(CancellationToken.None);
+                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
                         Assert.Equal(0, stats.UnfulfilledLocalRequests);
                         Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                         Assert.Equal(1, stats.FulfilledLocalRequests);
@@ -70,43 +72,45 @@
         [Fact]
         public async Task SingleSourceCanFulfillLocalRequestsViaWaitForCoreAsync()
         {
+            var cancellationToken = new CancellationTokenSource(5000).Token;
+
             var services = new ServiceCollection();
             services.AddLogging();
             var sp = services.BuildServiceProvider();
-            var logger = sp.GetRequiredService<ILogger<SingleSourceWorkerCoreRequestFulfiller<NullWorkerCore>>>();
+            var logger = sp.GetRequiredService<ILogger<SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
 
-            var testProvider = new TestCoreProvider();
+            var testProvider = new ManualCoreProvider();
 
-            var collection = new WorkerCoreRequestCollection<NullWorkerCore>();
-            await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<NullWorkerCore>(
+            var collection = new WorkerCoreRequestCollection<IWorkerCore>();
+            await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                 logger,
                 collection,
                 testProvider,
                 true))
             {
                 {
-                    var stats = await collection.GetCurrentStatisticsAsync(CancellationToken.None);
+                    var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
                     Assert.Equal(0, stats.UnfulfilledLocalRequests);
                     Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                     Assert.Equal(0, stats.FulfilledLocalRequests);
                     Assert.Equal(0, stats.FulfilledRemotableRequests);
                 }
 
-                await using (var localRequest = await collection.CreateUnfulfilledRequestAsync(true, CancellationToken.None))
+                await using (var localRequest = await collection.CreateUnfulfilledRequestAsync(true, cancellationToken))
                 {
                     {
-                        var stats = await collection.GetCurrentStatisticsAsync(CancellationToken.None);
+                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
                         Assert.Equal(1, stats.UnfulfilledLocalRequests);
                         Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                         Assert.Equal(0, stats.FulfilledLocalRequests);
                         Assert.Equal(0, stats.FulfilledRemotableRequests);
                     }
 
-                    testProvider.ProvideCore.Release();
-                    await localRequest.WaitForCoreAsync(CancellationToken.None);
+                    testProvider.ReleaseCore();
+                    await localRequest.WaitForCoreAsync(cancellationToken);
 
                     {
-                        var stats = await collection.GetCurrentStatisticsAsync(CancellationToken.None);
+                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
                         Assert.Equal(0, stats.UnfulfilledLocalRequests);
                         Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                         Assert.Equal(1, stats.FulfilledLocalRequests);
@@ -119,22 +123,24 @@
         [Fact]
         public async Task SourceSourceCanCreateFulfilledRequests()
         {
+            var cancellationToken = new CancellationTokenSource(5000).Token;
+
             var services = new ServiceCollection();
             services.AddLogging();
             var sp = services.BuildServiceProvider();
-            var logger = sp.GetRequiredService<ILogger<SingleSourceWorkerCoreRequestFulfiller<NullWorkerCore>>>();
+            var logger = sp.GetRequiredService<ILogger<SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
 
-            var testProvider = new TestCoreProvider();
+            var testProvider = new ManualCoreProvider();
 
-            var collection = new WorkerCoreRequestCollection<NullWorkerCore>();
-            await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<NullWorkerCore>(
+            var collection = new WorkerCoreRequestCollection<IWorkerCore>();
+            await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                 logger,
                 collection,
                 testProvider,
                 true))
             {
                 {
-                    var stats = await collection.GetCurrentStatisticsAsync(CancellationToken.None);
+                    var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
                     Assert.Equal(0, stats.UnfulfilledLocalRequests);
                     Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                     Assert.Equal(0, stats.FulfilledLocalRequests);
@@ -143,12 +149,12 @@
 
                 var fulfilledRequest = Task.Run(async () =>
                 {
-                    return await collection.CreateFulfilledRequestAsync(true, CancellationToken.None);
+                    return await collection.CreateFulfilledRequestAsync(true, cancellationToken);
                 });
-                testProvider.ProvideCore.Release();
+                testProvider.ReleaseCore();
                 await using (var request = await fulfilledRequest)
                 {
-                    var stats = await collection.GetCurrentStatisticsAsync(CancellationToken.None);
+                    var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
                     Assert.Equal(0, stats.UnfulfilledLocalRequests);
                     Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                     Assert.Equal(1, stats.FulfilledLocalRequests);
@@ -156,7 +162,7 @@
                 }
 
                 {
-                    var stats = await collection.GetCurrentStatisticsAsync(CancellationToken.None);
+                    var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
                     Assert.Equal(0, stats.UnfulfilledLocalRequests);
                     Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                     Assert.Equal(0, stats.FulfilledLocalRequests);
@@ -168,16 +174,18 @@
         [Fact]
         public async Task SingleSourceCanFulfillRequestsInParallel()
         {
+            var cancellationToken = new CancellationTokenSource(5000).Token;
+
             var services = new ServiceCollection();
             services.AddLogging();
             var sp = services.BuildServiceProvider();
-            var logger = sp.GetRequiredService<ILogger<SingleSourceWorkerCoreRequestFulfiller<NullWorkerCore>>>();
+            var logger = sp.GetRequiredService<ILogger<SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
 
-            var testProvider = new TestCoreProvider();
-            testProvider.ProvideCore.Release(24);
+            var testProvider = new ManualCoreProvider();
+            testProvider.ReleaseCores(24);
 
-            var collection = new WorkerCoreRequestCollection<NullWorkerCore>();
-            await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<NullWorkerCore>(
+            var collection = new WorkerCoreRequestCollection<IWorkerCore>();
+            await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                 logger,
                 collection,
                 testProvider,
@@ -188,7 +196,7 @@
                     Enumerable.Range(0, 24).ToAsyncEnumerable(),
                     async (index, _) =>
                     {
-                        await using (var request = await collection.CreateFulfilledRequestAsync(true, CancellationToken.None))
+                        await using (var request = await collection.CreateFulfilledRequestAsync(true, cancellationToken))
                         {
                             Interlocked.Increment(ref coresFulfilled);
                         }

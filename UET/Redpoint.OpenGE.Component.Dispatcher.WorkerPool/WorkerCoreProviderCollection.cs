@@ -10,13 +10,13 @@
     internal class WorkerCoreProviderCollection<TWorkerCore> where TWorkerCore : IAsyncDisposable
     {
         private readonly List<IWorkerCoreProvider<TWorkerCore>> _providers;
-        private readonly SemaphoreSlim _providerLock;
+        private readonly MutexSlim _providerLock;
         private readonly AsyncEvent<WorkerCoreProviderCollectionChanged<TWorkerCore>> _onProvidersChanged;
 
         public WorkerCoreProviderCollection()
         {
             _providers = new List<IWorkerCoreProvider<TWorkerCore>>();
-            _providerLock = new SemaphoreSlim(1);
+            _providerLock = new MutexSlim();
             _onProvidersChanged = new AsyncEvent<WorkerCoreProviderCollectionChanged<TWorkerCore>>();
         }
 
@@ -24,67 +24,48 @@
 
         public async Task<IReadOnlyList<IWorkerCoreProvider<TWorkerCore>>> GetProvidersAsync()
         {
-            await _providerLock.WaitAsync();
-            try
-            {
-                return new List<IWorkerCoreProvider<TWorkerCore>>(_providers);
-            }
-            finally
-            {
-                _providerLock.Release();
-            }
+            using var _ = await _providerLock.WaitAsync(CancellationToken.None);
+            return new List<IWorkerCoreProvider<TWorkerCore>>(_providers);
         }
 
         public async Task AddAsync(IWorkerCoreProvider<TWorkerCore> provider)
         {
-            await _providerLock.WaitAsync();
+            using var _ = await _providerLock.WaitAsync(CancellationToken.None);
+
+            _providers.Add(provider);
             try
             {
-                _providers.Add(provider);
-                try
+                await _onProvidersChanged.BroadcastAsync(new WorkerCoreProviderCollectionChanged<TWorkerCore>
                 {
-                    await _onProvidersChanged.BroadcastAsync(new WorkerCoreProviderCollectionChanged<TWorkerCore>
-                    {
-                        CurrentProviders = new List<IWorkerCoreProvider<TWorkerCore>>(_providers),
-                        AddedProvider = provider,
-                        RemovedProvider = null,
-                    }, CancellationToken.None);
-                }
-                catch
-                {
-                }
+                    CurrentProviders = new List<IWorkerCoreProvider<TWorkerCore>>(_providers),
+                    AddedProvider = provider,
+                    RemovedProvider = null,
+                }, CancellationToken.None);
             }
-            finally
+            catch
             {
-                _providerLock.Release();
             }
         }
 
         public async Task RemoveAsync(IWorkerCoreProvider<TWorkerCore> provider)
         {
-            await _providerLock.WaitAsync();
-            try
+            using var _ = await _providerLock.WaitAsync(CancellationToken.None);
+
+            if (_providers.Contains(provider))
             {
-                if (_providers.Contains(provider))
+                _providers.Remove(provider);
+                try
                 {
-                    _providers.Remove(provider);
-                    try
+                    await _onProvidersChanged.BroadcastAsync(new WorkerCoreProviderCollectionChanged<TWorkerCore>
                     {
-                        await _onProvidersChanged.BroadcastAsync(new WorkerCoreProviderCollectionChanged<TWorkerCore>
-                        {
-                            CurrentProviders = new List<IWorkerCoreProvider<TWorkerCore>>(_providers),
-                            AddedProvider = null,
-                            RemovedProvider = provider,
-                        }, CancellationToken.None);
-                    }
-                    catch
-                    {
-                    }
+                        CurrentProviders = new List<IWorkerCoreProvider<TWorkerCore>>(_providers),
+                        AddedProvider = null,
+                        RemovedProvider = provider,
+                    }, CancellationToken.None);
                 }
-            }
-            finally
-            {
-                _providerLock.Release();
+                catch
+                {
+                }
             }
         }
     }
