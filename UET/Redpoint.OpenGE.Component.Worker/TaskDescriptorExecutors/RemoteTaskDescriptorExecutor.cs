@@ -245,10 +245,11 @@
                     }
                 }
 
-                // @note: We *MUST* set the SystemRoot environment variable. If we don't, cl.exe will
+                // @note: We *MUST* set these environment variables. If we don't, cl.exe will
                 // output with a weird "cannot create temporarily il file" failure, even though the error
                 // has nothing to do with the TMP directory or disk space.
                 environmentVariables["SystemRoot"] = systemRoot ?? @"C:\Windows";
+                environmentVariables["USERPROFILE"] = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
                 // Set up the process specification.
                 var processSpecification = new ProcessSpecification
