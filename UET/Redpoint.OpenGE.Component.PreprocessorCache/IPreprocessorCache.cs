@@ -17,6 +17,7 @@
             string[] includeDirectories,
             Dictionary<string, string> globalDefinitions,
             long buildStartTicks,
+            CompilerArchitype architype,
             CancellationToken cancellationToken);
     }
 }

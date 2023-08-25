@@ -1,5 +1,7 @@
 ﻿namespace Redpoint.OpenGE.Component.Dispatcher.TaskDescriptorFactories.Msvc
 {
+    using Redpoint.OpenGE.Protocol;
+
     internal interface IMsvcResponseFileParser
     {
         Task<MsvcParsedResponseFile?> ParseResponseFileAsync(
@@ -7,7 +9,7 @@
             string workingDirectory,
             bool guaranteedToExecuteLocally,
             long buildStartTicks,
-            IReadOnlyDictionary<string, string>? extraGlobalDefinitions,
+            CompilerArchitype architype,
             CancellationToken cancellationToken);
     }
 }

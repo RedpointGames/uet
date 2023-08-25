@@ -27,7 +27,7 @@
             string workingDirectory,
             bool guaranteedToExecuteLocally,
             long buildStartTicks,
-            IReadOnlyDictionary<string, string>? extraGlobalDefinitions,
+            CompilerArchitype architype,
             CancellationToken cancellationToken)
         {
             // Get the response file path.
@@ -41,13 +41,6 @@
             var includeDirectories = new List<DirectoryInfo>();
             var forceIncludeFiles = new List<FileInfo>();
             var globalDefinitions = new Dictionary<string, string>();
-            if (extraGlobalDefinitions != null)
-            {
-                foreach (var kv in extraGlobalDefinitions)
-                {
-                    globalDefinitions[kv.Key] = kv.Value;
-                }
-            }
             var isCreatingPch = false;
             FileInfo? pchInputFile = null;
             FileInfo? pchCacheFile = null;
@@ -166,6 +159,7 @@
                         includeDirectories.Select(x => x.FullName).ToArray(),
                         globalDefinitions,
                         buildStartTicks,
+                        architype,
                         cancellationToken);
                 }
                 catch (RpcException ex) when (ex.StatusCode == StatusCode.InvalidArgument)

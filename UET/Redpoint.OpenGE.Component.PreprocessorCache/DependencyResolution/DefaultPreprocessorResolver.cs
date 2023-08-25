@@ -148,6 +148,7 @@
             string[] includeDirectories,
             Dictionary<string, string> globalDefinitions,
             long buildStartTicks,
+            CompilerArchitype architype,
             CancellationToken cancellationToken)
         {
             if (!Path.IsPathRooted(path))
@@ -175,40 +176,38 @@
                 FilesystemExistenceProvider = _filesystemExistenceProvider,
             };
 
-            // Add the standard defines. Some of these will have the wrong values, but they're "good enough"
-            // to get includes resolving.
+            // Generate standard defines based on the compiler architype.
             var standardDefines = new Dictionary<string, object>
             {
                 { "__cplusplus", 1 },
                 { "__FILE__", "__FILE__" },
                 { "__LINE__", 0 },
                 { "__STDC__", 0 },
-                { "_MSVC_LANG", 201703 /* C++ 17 */ },
-                { "_MSC_VER", 1935 /* 2022 17.5 */ },
-                { "_MSC_FULL_VER", 193599999 /* Latest 2022 17.5 */ },
-                { "_MSVC_WARNING_LEVEL", 0 },
-                { "__STDC_VERSION__", 201710 /* C 17 */ },
-                { "_WIN32", 1 },
-                { "_WIN32_WINNT", 0x0601 /* Windows 7 */ },
-                { "_WIN32_WINNT_WIN10_TH2", 0x0A01 },
-                { "_WIN32_WINNT_WIN10_RS1", 0x0A02 },
-                { "_WIN32_WINNT_WIN10_RS2", 0x0A03 },
-                { "_WIN32_WINNT_WIN10_RS3", 0x0A04 },
-                { "_WIN32_WINNT_WIN10_RS4", 0x0A05 },
-                { "_NT_TARGET_VERSION_WIN10_RS4", 0x0A05 },
-                { "_WIN32_WINNT_WIN10_RS5", 0x0A06 },
-                { "_M_X64", 1 },
-                { "_VCRT_COMPILER_PREPROCESSOR", 1 },
-                /*
-                 * Some undocumented define that the Windows headers rely on 
-                 * for Compiled Hybrid Portable Executable (CHPE) support, 
-                 * which is for x86 binaries that include ARM code. This
-                 * undocumented feature has since been replaced with ARM64EC,
-                 * so we don't need to actually support this; we just need the
-                 * define so the headers work.
-                 */
-                { "_M_HYBRID", 0 },
             };
+            switch (architype.CompilerCase)
+            {
+                case CompilerArchitype.CompilerOneofCase.Msvc:
+                    standardDefines["_MSVC_LANG"] = architype.Msvc.CppLanguageVersion;
+                    standardDefines["_MSC_VER"] = architype.Msvc.MsvcVersion;
+                    standardDefines["_MSC_FULL_VER"] = architype.Msvc.MsvcFullVersion;
+                    standardDefines["_MSVC_WARNING_LEVEL"] = 0;
+                    standardDefines["__STDC_VERSION__"] = architype.Msvc.CLanguageVersion;
+                    break;
+                case CompilerArchitype.CompilerOneofCase.Clang:
+                    standardDefines["__clang__"] = 1;
+                    standardDefines["__clang_major__"] = architype.Clang.MajorVersion;
+                    standardDefines["__clang_minor__"] = architype.Clang.MinorVersion;
+                    standardDefines["__clang_patchlevel__"] = architype.Clang.PatchVersion;
+                    break;
+            }
+            foreach (var strKv in architype.TargetPlatformStringDefines)
+            {
+                standardDefines[strKv.Key] = strKv.Value;
+            }
+            foreach (var numKv in architype.TargetPlatformNumericDefines)
+            {
+                standardDefines[numKv.Key] = numKv.Value;
+            }
             foreach (var kv in standardDefines)
             {
                 state.CurrentDefinitions[kv.Key] =
@@ -221,6 +220,7 @@
                             {
                                 string s => new PreprocessorExpressionToken { Text = s },
                                 int i => new PreprocessorExpressionToken { Number = i },
+                                long i => new PreprocessorExpressionToken { Number = i },
                                 _ => throw new NotSupportedException(),
                             },
                         },

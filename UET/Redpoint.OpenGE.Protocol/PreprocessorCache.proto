@@ -155,6 +155,28 @@ message GetUnresolvedDependenciesResponse {
 	PreprocessorScanResultWithCacheMetadata result = 1;
 }
 
+message CompilerArchitype {
+	oneof compiler {
+		MsvcCompiler msvc = 1;
+		ClangCompiler clang = 2;
+	}
+	map<string, string> targetPlatformStringDefines = 3;
+	map<string, int64> targetPlatformNumericDefines = 4;
+}
+
+message MsvcCompiler {
+	int32 cppLanguageVersion = 1;
+	int32 cLanguageVersion = 2;
+	int32 msvcVersion = 3;
+	int64 msvcFullVersion = 4;
+}
+
+message ClangCompiler {
+	int32 majorVersion = 1;
+	int32 minorVersion = 2;
+	int32 patchVersion = 3;
+}
+
 message GetResolvedDependenciesRequest {
 	string path = 1;
 	repeated string includeDirectories = 2;
@@ -164,6 +186,8 @@ message GetResolvedDependenciesRequest {
 	// @note: forceIncludeFromPchPaths field removed because it doesn't allow
 	// us to reduce file transfers.
 	int64 buildStartTicks = 7;
+	CompilerArchitype architype = 8;
+
 }
 
 message PreprocessorResolutionResultWithTimingMetadata {

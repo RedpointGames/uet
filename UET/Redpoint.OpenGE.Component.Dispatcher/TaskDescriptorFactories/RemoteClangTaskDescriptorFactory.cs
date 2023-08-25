@@ -25,20 +25,15 @@
             _msvcResponseFileParser = msvcResponseFileParser;
         }
 
+        public override string PreparationOperationDescription => "parsing headers";
+
+        public override string PreparationOperationCompletedDescription => "parsed headers";
+
         private readonly IReadOnlySet<string> _recognisedClangCompilers = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase)
         {
             "clang-cl.exe",
             "clang-tidy.exe"
         };
-
-        private readonly IReadOnlyDictionary<string, string> _clangExtraDefinitions = new Dictionary<string, string>
-        {
-            { "__clang__", "1" }
-        };
-
-        public string PreparationOperationDescription => "parsing headers";
-
-        public string PreparationOperationCompletedDescription => "parsed headers";
 
         public override int ScoreTaskSpec(GraphTaskSpec spec)
         {
@@ -146,7 +141,40 @@
                 spec.WorkingDirectory,
                 guaranteedToExecuteLocally,
                 spec.ExecutionEnvironment.BuildStartTicks,
-                _clangExtraDefinitions,
+                new CompilerArchitype
+                {
+                    Clang = new ClangCompiler
+                    {
+                        MajorVersion = 15,
+                        MinorVersion = 0,
+                        PatchVersion = 7,
+                    },
+                    TargetPlatformNumericDefines =
+                    {
+                        { "__x86_64__", 1 },
+                        { "_WIN32", 1 },
+                        { "_WIN64", 1 },
+                        { "_WIN32_WINNT", 0x0601 /* Windows 7 */ },
+                        { "_WIN32_WINNT_WIN10_TH2", 0x0A01 },
+                        { "_WIN32_WINNT_WIN10_RS1", 0x0A02 },
+                        { "_WIN32_WINNT_WIN10_RS2", 0x0A03 },
+                        { "_WIN32_WINNT_WIN10_RS3", 0x0A04 },
+                        { "_WIN32_WINNT_WIN10_RS4", 0x0A05 },
+                        { "_NT_TARGET_VERSION_WIN10_RS4", 0x0A05 },
+                        { "_WIN32_WINNT_WIN10_RS5", 0x0A06 },
+                        { "_M_X64", 1 },
+                        { "_VCRT_COMPILER_PREPROCESSOR", 1 },
+                        /*
+                         * Some undocumented define that the Windows headers rely on 
+                         * for Compiled Hybrid Portable Executable (CHPE) support, 
+                         * which is for x86 binaries that include ARM code. This
+                         * undocumented feature has since been replaced with ARM64EC,
+                         * so we don't need to actually support this; we just need the
+                         * define so the headers work.
+                         */
+                        { "_M_HYBRID", 0 },
+                    }
+                },
                 cancellationToken);
             if (msvcParsedResponseFile == null)
             {

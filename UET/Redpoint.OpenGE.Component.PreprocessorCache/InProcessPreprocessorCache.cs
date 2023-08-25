@@ -118,6 +118,7 @@
             string[] includeDirectories,
             Dictionary<string, string> globalDefinitions,
             long buildStartTicks,
+            CompilerArchitype architype,
             CancellationToken cancellationToken)
         {
             await EnsureAsync();
@@ -128,6 +129,7 @@
                 includeDirectories,
                 globalDefinitions,
                 buildStartTicks,
+                architype,
                 cancellationToken);
         }
 
@@ -172,6 +174,7 @@
                     request.IncludeDirectories.ToArray(),
                     request.GlobalDefinitions.ToDictionary(k => k.Key, v => v.Value),
                     request.BuildStartTicks,
+                    request.Architype,
                     context.CancellationToken);
                 LastGrpcRequestUtc = DateTimeOffset.UtcNow;
                 return new GetResolvedDependenciesResponse

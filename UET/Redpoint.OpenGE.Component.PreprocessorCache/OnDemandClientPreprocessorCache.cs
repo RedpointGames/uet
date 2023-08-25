@@ -119,6 +119,7 @@
             string[] includeDirectories,
             Dictionary<string, string> globalDefinitions,
             long buildStartTicks,
+            CompilerArchitype architype,
             CancellationToken cancellationToken)
         {
             var client = await GetClientAsync();
@@ -130,6 +131,7 @@
                     {
                         Path = filePath,
                         BuildStartTicks = buildStartTicks,
+                        Architype = architype,
                     };
                     request.IncludeDirectories.AddRange(includeDirectories);
                     request.GlobalDefinitions.Add(globalDefinitions);

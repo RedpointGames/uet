@@ -53,6 +53,10 @@
             "WT_SESSION",
         };
 
+        public abstract string PreparationOperationDescription { get; }
+
+        public abstract string PreparationOperationCompletedDescription { get; }
+
         public abstract int ScoreTaskSpec(GraphTaskSpec spec);
 
         public abstract ValueTask<TaskDescriptor> CreateDescriptorForTaskSpecAsync(
