@@ -84,12 +84,13 @@
                         await _processRequestsSemaphore.WaitAsync(_disposedCts.Token);
 
                         var unfulfilledRequestCount = _fulfillsLocalRequests
-                            ? _lastStatistics.UnfulfilledLocalRequests
+                            ? (_lastStatistics.UnfulfilledLocalRequests + _lastStatistics.UnfulfilledRemotableRequests)
                             : _lastStatistics.UnfulfilledRemotableRequests;
                         if (unfulfilledRequestCount > 0)
                         {
                             var unfulfilledRequests = _fulfillsLocalRequests
-                                ? await _requestCollection.GetUnfulfilledLocalRequestsAsync(_disposedCts.Token)
+                                ? (await _requestCollection.GetUnfulfilledLocalRequestsAsync(_disposedCts.Token)).Concat(
+                                    await _requestCollection.GetUnfulfilledRemotableRequestsAsync(_disposedCts.Token))
                                 : await _requestCollection.GetUnfulfilledRemotableRequestsAsync(_disposedCts.Token);
                             var nextUnfulfilledRequest = unfulfilledRequests.FirstOrDefault();
                             if (nextUnfulfilledRequest != null)
