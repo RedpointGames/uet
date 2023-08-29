@@ -184,6 +184,7 @@
                 OutputFile = outputFile,
                 SourceDependencies = sourceDependencies,
                 ClangDepfile = clangDepfile,
+                PchOriginalHeaderFile = isCreatingPch ? null : pchInputFile,
             };
         }
     }

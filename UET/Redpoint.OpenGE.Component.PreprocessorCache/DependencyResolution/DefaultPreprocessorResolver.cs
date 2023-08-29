@@ -198,6 +198,10 @@
                     standardDefines["__clang_major__"] = architype.Clang.MajorVersion;
                     standardDefines["__clang_minor__"] = architype.Clang.MinorVersion;
                     standardDefines["__clang_patchlevel__"] = architype.Clang.PatchVersion;
+                    standardDefines["_MSC_VER"] = architype.Clang.EmulatedMsvcVersion;
+                    standardDefines["_MSC_FULL_VER"] = architype.Clang.EmulatedMsvcFullVersion;
+                    standardDefines["_MSVC_LANG"] = architype.Clang.CppLanguageVersion;
+                    standardDefines["__STDC_VERSION__"] = architype.Clang.CLanguageVersion;
                     break;
             }
             foreach (var strKv in architype.TargetPlatformStringDefines)
@@ -356,7 +360,13 @@
             switch (condition.ExprCase)
             {
                 case PreprocessorExpression.ExprOneofCase.Invoke:
-                    if (condition.Invoke.Identifier == "defined" &&
+                    if (condition.Invoke.Identifier == "__has_warning" ||
+                        condition.Invoke.Identifier == "__has_feature")
+                    {
+                        // Clang special macro functions, we just always treat these as false.
+                        return 0;
+                    }
+                    else if (condition.Invoke.Identifier == "defined" &&
                         condition.Invoke.Arguments.Count == 1 &&
                         condition.Invoke.Arguments[0].ExprCase == PreprocessorExpression.ExprOneofCase.Token &&
                         condition.Invoke.Arguments[0].Token.DataCase == PreprocessorExpressionToken.DataOneofCase.Identifier)

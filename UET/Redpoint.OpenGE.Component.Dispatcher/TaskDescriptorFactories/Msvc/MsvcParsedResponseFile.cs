@@ -12,5 +12,6 @@
         public required FileInfo OutputFile { get; init; }
         public required FileInfo? SourceDependencies { get; init; }
         public required FileInfo? ClangDepfile { get; init; }
+        public required FileInfo? PchOriginalHeaderFile { get; init; }
     }
 }

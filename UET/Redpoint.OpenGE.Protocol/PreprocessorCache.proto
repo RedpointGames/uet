@@ -172,9 +172,13 @@ message MsvcCompiler {
 }
 
 message ClangCompiler {
-	int32 majorVersion = 1;
-	int32 minorVersion = 2;
-	int32 patchVersion = 3;
+	int32 cppLanguageVersion = 1;
+	int32 cLanguageVersion = 2;
+	int32 majorVersion = 3;
+	int32 minorVersion = 4;
+	int32 patchVersion = 5;
+	int32 emulatedMsvcVersion = 6;
+	int64 emulatedMsvcFullVersion = 7;
 }
 
 message GetResolvedDependenciesRequest {

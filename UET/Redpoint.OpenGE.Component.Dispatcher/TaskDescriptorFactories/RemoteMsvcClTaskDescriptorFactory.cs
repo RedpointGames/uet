@@ -62,9 +62,9 @@
                     Msvc = new MsvcCompiler
                     {
                         CppLanguageVersion = 201703 /* C++ 17 */,
+                        CLanguageVersion = 201710 /* C 17 */,
                         MsvcVersion = 1935 /* 2022 17.5 */,
                         MsvcFullVersion = 193599999 /* Latest 2022 17.5 */,
-                        CLanguageVersion = 201710 /* C 17 */,
                     },
                     TargetPlatformNumericDefines =
                     {
