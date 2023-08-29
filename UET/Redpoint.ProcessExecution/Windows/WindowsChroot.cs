@@ -42,36 +42,6 @@
             {
                 PerProcessDriveMappings = perProcessDriveMappings,
             };
-            /*
-            var mappings = new List<nint>();
-
-            string objectDirectoryName = $@"\??\RedpointProcMap{Guid.NewGuid().ToString().Replace("-", "").ToLowerInvariant()}";
-            fixed (char* objectDirectoryNamePtr = objectDirectoryName)
-            {
-                var objectDirectoryNameUnicode = new Ntdll.UNICODE_STRING(objectDirectoryNamePtr, objectDirectoryName.Length);
-                var objectAttributes = new OBJECT_ATTRIBUTES(
-                    &objectDirectoryNameUnicode,
-                    OBJECT_ATTRIBUTES_FLAGS.OBJ_CASE_INSENSITIVE);
-
-                nint objectDirectoryHandle;
-                var status = NtdllPInvoke.NtCreateDirectoryObject(
-                    &objectDirectoryHandle,
-                    ACCESS_MASK.DIRECTORY_ALL_ACCESS,
-                    &objectAttributes);
-                if (status.SeverityCode != NTSTATUS.Severity.Success)
-                {
-                    throw new InvalidOperationException($"Got NTSTATUS {status.Value:X} when setting up object directory for per-process drive mappings.");
-                }
-                mappings.Add(objectDirectoryHandle);
-
-
-
-                return new WindowsChrootState
-                {
-                    Handles = mappings.ToArray(),
-                    ObjectRootHandle = objectDirectoryHandle,
-                };
-            }*/
         }
 
         internal static unsafe void UseChrootState(WindowsChrootState chrootState, ref PROCESS_INFORMATION processInfo)

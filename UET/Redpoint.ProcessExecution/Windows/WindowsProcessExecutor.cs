@@ -213,6 +213,8 @@
                                 chrootState = WindowsChroot.SetupChrootState(processSpecification.PerProcessDriveMappings!);
                             }
 
+                        retryCreation:
+
                             // Create the process.
                             bool retVal;
                             int errorCode = 0;
@@ -271,6 +273,12 @@
                                         }
                                         _logger.LogTrace("WindowsProcessExecutor: Resuming thread.");
                                         WindowsChroot.ResumeThread(ref processInfo);
+                                    }
+                                    catch (InvalidOperationException ex) when (ex.Message.Contains("Got NTSTATUS C0000008 when setting information process ProcessDeviceMap"))
+                                    {
+                                        // This randomly seems to happen. Just retry creating the process.
+                                        PInvoke.TerminateProcess(processInfo.hProcess, unchecked((uint)-1));
+                                        goto retryCreation;
                                     }
                                     catch
                                     {
