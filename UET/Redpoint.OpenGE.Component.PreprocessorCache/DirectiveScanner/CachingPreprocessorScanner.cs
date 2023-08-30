@@ -20,6 +20,7 @@
             OnDiskPreprocessorScanner onDiskPreprocessorScanner,
             string dataDirectory)
         {
+            var st = Stopwatch.StartNew();
             var factory = new ZoneTreeFactory<string, PreprocessorScanResult>()
                 .SetDataDirectory(dataDirectory)
                 .SetKeySerializer(new Utf8StringSerializer())
@@ -49,6 +50,7 @@
             }
             _logger = logger;
             _onDiskPreprocessorScanner = onDiskPreprocessorScanner;
+            _logger.LogInformation($"Preprocessor directive cache initialized in {st.Elapsed.TotalSeconds:F2} seconds.");
         }
 
         public void Dispose()

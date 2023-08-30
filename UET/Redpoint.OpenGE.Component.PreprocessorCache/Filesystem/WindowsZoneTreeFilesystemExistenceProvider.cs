@@ -1,9 +1,12 @@
 ﻿namespace Redpoint.OpenGE.Component.PreprocessorCache.Filesystem
 {
+    using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Protocol;
     using Redpoint.Reservation;
     using System.Collections.Concurrent;
+    using System.Diagnostics;
+    using System.IO.Hashing;
     using System.Runtime.CompilerServices;
     using System.Runtime.Versioning;
     using System.Text;
@@ -15,26 +18,27 @@
     using static Windows.Win32.PInvoke;
 
     [SupportedOSPlatform("windows5.2")]
-    internal class WindowsZoneTreeFilesystemExistenceProvider : IFilesystemExistenceProvider, IAsyncDisposable, IRefComparer<string>, ISerializer<string>
+    internal class WindowsZoneTreeFilesystemExistenceProvider : IFilesystemExistenceProvider, IAsyncDisposable
     {
-        private readonly IZoneTree<string, FilesystemExistenceEntry>? _disk;
-        private readonly ConcurrentDictionary<string, (bool exists, long lastCheckTicks)>? _inMemoryFallback;
+        private readonly IZoneTree<long, FilesystemExistenceEntry>? _disk;
+        private readonly ConcurrentDictionary<long, (bool exists, long lastCheckTicks)>? _inMemoryFallback;
         private readonly IReservation? _reservation;
 
         public WindowsZoneTreeFilesystemExistenceProvider(
+            ILogger<WindowsZoneTreeFilesystemExistenceProvider> logger,
             IReservationManagerForOpenGE openGEReservationManagerProvider)
         {
             _reservation = openGEReservationManagerProvider.ReservationManager.TryReserveExact("Filesystem");
             if (_reservation == null)
             {
-                _inMemoryFallback = new ConcurrentDictionary<string, (bool, long)>(StringComparer.InvariantCultureIgnoreCase);
+                _inMemoryFallback = new ConcurrentDictionary<long, (bool, long)>();
                 return;
             }
 
-            var factory = new ZoneTreeFactory<string, FilesystemExistenceEntry>()
+            var st = Stopwatch.StartNew();
+            var factory = new ZoneTreeFactory<long, FilesystemExistenceEntry>()
                 .SetDataDirectory(_reservation.ReservedPath)
-                .SetComparer(this)
-                .SetKeySerializer(this)
+                .SetDiskSegmentCompression(false)
                 .SetValueSerializer(new ProtobufZoneTreeSerializer<FilesystemExistenceEntry>());
             try
             {
@@ -52,6 +56,7 @@
                 }
                 _disk = factory.Create();
             }
+            logger.LogInformation($"Filesystem existence cache initialized in {st.Elapsed.TotalSeconds:F2} seconds.");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -63,25 +68,27 @@
 
         public bool FileExists(string path, long buildStartTicks)
         {
+            var pathHash = XxHash64Helpers.HashString(path.ToLowerInvariant()).hash;
+
             if (_inMemoryFallback != null)
             {
-                var e = _inMemoryFallback.GetOrAdd(path, x => (FileExistsInternal(x), buildStartTicks));
+                var e = _inMemoryFallback.GetOrAdd(pathHash, x => (FileExistsInternal(path), buildStartTicks));
                 if (e.lastCheckTicks < buildStartTicks)
                 {
                     var val = (FileExistsInternal(path), buildStartTicks);
                     return _inMemoryFallback.AddOrUpdate(
-                        path,
+                        pathHash,
                         val,
                         (_, _) => val).exists;
                 }
                 return e.exists;
             }
 
-            if (!_disk!.TryGet(path, out var value) ||
+            if (!_disk!.TryGet(pathHash, out var value) ||
                 value.LastCheckTicks < buildStartTicks)
             {
                 var exists = FileExistsInternal(path);
-                _disk.Upsert(path, new FilesystemExistenceEntry { Exists = exists, LastCheckTicks = buildStartTicks });
+                _disk.Upsert(pathHash, new FilesystemExistenceEntry { Exists = exists, LastCheckTicks = buildStartTicks });
                 return exists;
             }
             else
@@ -94,20 +101,21 @@
         {
         }
 
-        int IRefComparer<string>.Compare(in string x, in string y)
+        /*
+        int IRefComparer<long>.Compare(in long x, in long y)
         {
-            return string.Compare(x, y, StringComparison.InvariantCultureIgnoreCase);
+            return x.CompareTo(y);
         }
 
-        string ISerializer<string>.Deserialize(byte[] bytes)
+        long ISerializer<long>.Deserialize(byte[] bytes)
         {
-            return Encoding.UTF8.GetString(bytes);
+            return BitConverter.ToInt64(bytes);
         }
 
-        byte[] ISerializer<string>.Serialize(in string entry)
+        byte[] ISerializer<long>.Serialize(in long entry)
         {
-            return Encoding.UTF8.GetBytes(entry.ToLowerInvariant());
-        }
+            return BitConverter.GetBytes(entry);
+        }*/
 
         public async ValueTask DisposeAsync()
         {
