@@ -14,7 +14,6 @@
         private readonly SemaphoreSlim _processRequestsSemaphore;
         private readonly Task _backgroundTask;
         private readonly CancellationTokenSource _disposedCts;
-        private WorkerCoreRequestStatistics? _lastStatistics;
 
         public SingleSourceWorkerCoreRequestFulfiller(
             ILogger logger,
@@ -46,7 +45,6 @@
 
         private Task OnNotifiedRequestsChanged(WorkerCoreRequestStatistics statistics, CancellationToken token)
         {
-            _lastStatistics = statistics;
             _processRequestsSemaphore.Release();
             return Task.CompletedTask;
         }
@@ -77,23 +75,14 @@
             {
                 try
                 {
-                    _lastStatistics = await _requestCollection.GetCurrentStatisticsAsync(_disposedCts.Token);
-
                     while (!_disposedCts.IsCancellationRequested)
                     {
                         await _processRequestsSemaphore.WaitAsync(_disposedCts.Token);
 
-                        var unfulfilledRequestCount = _fulfillsLocalRequests
-                            ? (_lastStatistics.UnfulfilledLocalRequests + _lastStatistics.UnfulfilledRemotableRequests)
-                            : _lastStatistics.UnfulfilledRemotableRequests;
-                        if (unfulfilledRequestCount > 0)
+                        var nextUnfulfilledRequest = await _requestCollection.GetNextUnfulfilledRequestAsync(_fulfillsLocalRequests, _disposedCts.Token);
+                        if (nextUnfulfilledRequest != null)
                         {
-                            var unfulfilledRequests = _fulfillsLocalRequests
-                                ? (await _requestCollection.GetUnfulfilledLocalRequestsAsync(_disposedCts.Token)).Concat(
-                                    await _requestCollection.GetUnfulfilledRemotableRequestsAsync(_disposedCts.Token))
-                                : await _requestCollection.GetUnfulfilledRemotableRequestsAsync(_disposedCts.Token);
-                            var nextUnfulfilledRequest = unfulfilledRequests.FirstOrDefault();
-                            if (nextUnfulfilledRequest != null)
+                            await using (nextUnfulfilledRequest)
                             {
                                 try
                                 {

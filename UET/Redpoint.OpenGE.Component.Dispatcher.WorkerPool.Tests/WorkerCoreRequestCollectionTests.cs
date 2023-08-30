@@ -49,7 +49,7 @@
                         Assert.Equal(0, stats.FulfilledRemotableRequests);
                     }
 
-                    await localRequest.FulfillRequestAsync(new CollectionTestingWorkerCore());
+                    await ((WorkerCoreRequestCollection<CollectionTestingWorkerCore>.WorkerCoreRequest)localRequest).FulfillRequestWithinLockAsync(new CollectionTestingWorkerCore());
 
                     {
                         var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
@@ -59,7 +59,7 @@
                         Assert.Equal(0, stats.FulfilledRemotableRequests);
                     }
 
-                    await remoteRequest.FulfillRequestAsync(new CollectionTestingWorkerCore());
+                    await ((WorkerCoreRequestCollection<CollectionTestingWorkerCore>.WorkerCoreRequest)remoteRequest).FulfillRequestWithinLockAsync(new CollectionTestingWorkerCore());
 
                     {
                         var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);

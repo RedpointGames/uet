@@ -7,8 +7,6 @@
     {
         bool RequireLocal { get; }
 
-        Task FulfillRequestAsync(TWorkerCore core);
-
         Task<TWorkerCore> WaitForCoreAsync(CancellationToken cancellationToken);
     }
 }

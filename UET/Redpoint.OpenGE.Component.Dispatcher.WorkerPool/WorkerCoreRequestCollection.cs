@@ -6,7 +6,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    public class WorkerCoreRequestCollection<TWorkerCore> where TWorkerCore : IAsyncDisposable
+    public partial class WorkerCoreRequestCollection<TWorkerCore> where TWorkerCore : IAsyncDisposable
     {
         private readonly List<WorkerCoreRequest> _requests;
         private readonly MutexSlim _requestLock;
@@ -67,20 +67,49 @@
             return ObtainStatisticsWithinLock();
         }
 
-        public async Task<IReadOnlyList<IWorkerCoreRequest<TWorkerCore>>> GetUnfulfilledLocalRequestsAsync(CancellationToken cancellationToken)
+        public async Task<IWorkerCoreRequestLock<TWorkerCore>?> GetNextUnfulfilledRequestAsync(
+            bool includeLocal,
+            CancellationToken cancellationToken)
         {
             using var _ = await _requestLock.WaitAsync(cancellationToken);
-            return _requests
-                .Where(x => x.RequireLocal && x.AssignedCore == null)
-                .ToList();
+
+            var nextRequest = _requests.FirstOrDefault(x =>
+                (includeLocal || !x.RequireLocal) &&
+                x.AssignedCore == null &&
+                !x.LockAcquired);
+            if (nextRequest == null)
+            {
+                return null;
+            }
+            nextRequest.LockAcquired = true;
+            return new WorkerCoreRequestLock(this, nextRequest);
         }
 
-        public async Task<IReadOnlyList<IWorkerCoreRequest<TWorkerCore>>> GetUnfulfilledRemotableRequestsAsync(CancellationToken cancellationToken)
+        public async Task<IWorkerCoreRequestCollectionLock<TWorkerCore>> GetAllUnfulfilledRequestsAsync(
+            bool includeLocal,
+            CancellationToken cancellationToken)
         {
-            using var _ = await _requestLock.WaitAsync(cancellationToken);
-            return _requests
-                .Where(x => !x.RequireLocal && x.AssignedCore == null)
-                .ToList();
+            var @lock = await _requestLock.WaitAsync(cancellationToken);
+            var handedOverLock = false;
+            try
+            {
+                var requests = _requests
+                    .Where(x =>
+                        (includeLocal || !x.RequireLocal) &&
+                        x.AssignedCore == null &&
+                        !x.LockAcquired)
+                    .ToList();
+                var result = new WorkerCoreRequestCollectionLock(@lock, requests);
+                handedOverLock = true;
+                return result;
+            }
+            finally
+            {
+                if (!handedOverLock)
+                {
+                    @lock.Dispose();
+                }
+            }
         }
 
         public async Task<IWorkerCoreRequest<TWorkerCore>> CreateFulfilledRequestAsync(
@@ -122,81 +151,6 @@
             {
             }
             return newRequest;
-        }
-
-        private class WorkerCoreRequest : IWorkerCoreRequest<TWorkerCore>
-        {
-            private readonly Gate _requestCompleted;
-            private readonly WorkerCoreRequestCollection<TWorkerCore> _collection;
-            private TWorkerCore? _assignedCore;
-
-            public WorkerCoreRequest(
-                WorkerCoreRequestCollection<TWorkerCore> collection,
-                bool requireLocal)
-            {
-                _requestCompleted = new Gate();
-                _collection = collection;
-                RequireLocal = requireLocal;
-            }
-
-            public bool RequireLocal { get; }
-
-            public TWorkerCore? AssignedCore => _assignedCore;
-
-            public async Task FulfillRequestAsync(TWorkerCore core)
-            {
-                if (_assignedCore != null)
-                {
-                    throw new InvalidOperationException();
-                }
-
-                using var _ = await _collection._requestLock.WaitAsync(CancellationToken.None);
-
-                _assignedCore = core;
-                try
-                {
-                    await _collection._onRequestsChanged.BroadcastAsync(
-                        _collection.ObtainStatisticsWithinLock(),
-                        CancellationToken.None);
-                }
-                catch
-                {
-                }
-                _requestCompleted.Open();
-            }
-
-            public async ValueTask DisposeAsync()
-            {
-                if (_assignedCore != null)
-                {
-                    await _assignedCore.DisposeAsync();
-                }
-
-                using var _ = await _collection._requestLock.WaitAsync(CancellationToken.None);
-
-                _collection._requests.Remove(this);
-                try
-                {
-                    await _collection._onRequestsChanged.BroadcastAsync(
-                        _collection.ObtainStatisticsWithinLock(),
-                        CancellationToken.None);
-                }
-                catch
-                {
-                }
-
-                _requestCompleted.Open();
-            }
-
-            public async Task<TWorkerCore> WaitForCoreAsync(CancellationToken cancellationToken)
-            {
-                await _requestCompleted.WaitAsync(cancellationToken);
-                if (_assignedCore == null)
-                {
-                    throw new Exception("Worker core request not fulfilled.");
-                }
-                return _assignedCore;
-            }
         }
     }
 }

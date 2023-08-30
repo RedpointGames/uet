@@ -257,57 +257,59 @@
                         using (await _currentProvidersLock.WaitAsync(_disposedCts.Token))
                         {
                             // Step 1: Get the list of requests we haven't fulfilled yet.
-                            var initiallyUnfulfilledRequests = _fulfillsLocalRequests
-                                ? await _requestCollection.GetUnfulfilledLocalRequestsAsync(_disposedCts.Token)
-                                : await _requestCollection.GetUnfulfilledRemotableRequestsAsync(_disposedCts.Token);
-
-                            // Step 2: Fulfill any unfulfilled requests that we can immediately fulfill
-                            // now (because our obtainment tasks have obtained cores).
-                            var remainingUnfulfilledRequests = new List<IWorkerCoreRequest<TWorkerCore>>();
-                            foreach (var request in initiallyUnfulfilledRequests)
+                            int differenceCores;
+                            await using (var initiallyUnfulfilledRequests = await _requestCollection.GetAllUnfulfilledRequestsAsync(
+                                _fulfillsLocalRequests,
+                                _disposedCts.Token))
                             {
-                            retryCore:
-                                var coreAvailableToFulfillRequest = _currentProviders.Values.FirstOrDefault(x => x.HasObtainedCore);
-                                if (coreAvailableToFulfillRequest == null)
+                                // Step 2: Fulfill any unfulfilled requests that we can immediately fulfill
+                                // now (because our obtainment tasks have obtained cores).
+                                var remainingUnfulfilledRequests = new List<IWorkerCoreRequest<TWorkerCore>>();
+                                foreach (var request in initiallyUnfulfilledRequests.Requests)
                                 {
-                                    // No more cores immediately available.
-                                    remainingUnfulfilledRequests.Add(request);
-                                }
-                                else
-                                {
-                                    // Fulfill the request.
-                                    var core = coreAvailableToFulfillRequest.TakeObtainedCore();
-                                    if (core is IWorkerCoreWithLiveness coreWithLiveness &&
-                                        !(await coreWithLiveness.IsAliveAsync(_disposedCts.Token)))
+                                retryCore:
+                                    var coreAvailableToFulfillRequest = _currentProviders.Values.FirstOrDefault(x => x.HasObtainedCore);
+                                    if (coreAvailableToFulfillRequest == null)
                                     {
-                                        // This core is dead. Do not use it.
-                                        await core.DisposeAsync();
-                                        goto retryCore;
+                                        // No more cores immediately available.
+                                        remainingUnfulfilledRequests.Add(request.Request);
                                     }
                                     else
                                     {
-                                        // Assign the core.
-                                        await request.FulfillRequestAsync(core);
+                                        // Fulfill the request.
+                                        var core = coreAvailableToFulfillRequest.TakeObtainedCore();
+                                        if (core is IWorkerCoreWithLiveness coreWithLiveness &&
+                                            !(await coreWithLiveness.IsAliveAsync(_disposedCts.Token)))
+                                        {
+                                            // This core is dead. Do not use it.
+                                            await core.DisposeAsync();
+                                            goto retryCore;
+                                        }
+                                        else
+                                        {
+                                            // Assign the core.
+                                            await request.FulfillRequestAsync(core);
+                                        }
                                     }
                                 }
+
+                                // Step 3: Calculate how many cores we will need based on pending requests.
+                                var desiredCores = remainingUnfulfilledRequests.Count;
+
+                                // Step 4: Figure out how many cores we should be trying to obtain in this moment.
+                                // We want more cores than the actual number of desired cores, so that if we only
+                                // need one core, we'll ask for a core from multiple providers (so that we don't
+                                // get blocked by the one random remote worker we picked being busy).
+                                var obtainmentTargetCores = desiredCores == 0 ? 0 : (desiredCores + 3);
+
+                                // Step 5: Calculate how many cores we're in the process of trying to fulfill
+                                // via obtainment tasks.
+                                var obtainmentCurrentCores = _currentProviders.Values.Count(x => x.IsObtainingCore);
+
+                                // Step 6: Figure out the difference between the number of cores we should be
+                                // obtaining, and the number of cores we're currently obtaining.
+                                differenceCores = obtainmentTargetCores - obtainmentCurrentCores;
                             }
-
-                            // Step 3: Calculate how many cores we will need based on pending requests.
-                            var desiredCores = remainingUnfulfilledRequests.Count;
-
-                            // Step 4: Figure out how many cores we should be trying to obtain in this moment.
-                            // We want more cores than the actual number of desired cores, so that if we only
-                            // need one core, we'll ask for a core from multiple providers (so that we don't
-                            // get blocked by the one random remote worker we picked being busy).
-                            var obtainmentTargetCores = desiredCores == 0 ? 0 : (desiredCores + 3);
-
-                            // Step 5: Calculate how many cores we're in the process of trying to fulfill
-                            // via obtainment tasks.
-                            var obtainmentCurrentCores = _currentProviders.Values.Count(x => x.IsObtainingCore);
-
-                            // Step 6: Figure out the difference between the number of cores we should be
-                            // obtaining, and the number of cores we're currently obtaining.
-                            var differenceCores = obtainmentTargetCores - obtainmentCurrentCores;
 
                             // Step 7: Either start obtaining more cores, or cancel obtaining cores that we no
                             // longer need.
