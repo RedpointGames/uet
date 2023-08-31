@@ -61,16 +61,14 @@
                     return 1;
                 }
 
-                string version;
-                string basePath;
-                string uetPath;
-                GetUetVersion(out version, out basePath, out uetPath);
+                var (shimVersionFolder, version, basePath, uetPath) = await GetUetVersion();
                 if (!File.Exists(uetPath))
                 {
                     _logger.LogError($"Expected UET to be installed globally at '{uetPath}'. Maybe you need to run 'uet upgrade' first?");
                 }
                 await ExtractXgConsoleShim(basePath);
-                await InstallOpenGEAgent();
+                var agentPath = await DownloadOpenGEAgent(version, basePath);
+                await InstallOpenGEAgent(agentPath);
                 SetUpXGERegistryDummyValues();
 
                 _logger.LogInformation("The OpenGE agent has been installed and started.");
@@ -88,7 +86,72 @@
                 }
             }
 
-            private async Task InstallOpenGEAgent()
+            private async Task<string> DownloadOpenGEAgent(string version, string basePath)
+            {
+                string downloadUrl;
+                string filename;
+                if (OperatingSystem.IsWindows())
+                {
+                    downloadUrl = $"https://github.com/RedpointGames/uet/releases/download/{version}/openge-agent.exe";
+                    filename = "openge-agent.exe";
+                }
+                else if (OperatingSystem.IsMacOS())
+                {
+                    downloadUrl = $"https://github.com/RedpointGames/uet/releases/download/{version}/openge-agent";
+                    filename = "openge-agent";
+                }
+                else
+                {
+                    throw new PlatformNotSupportedException();
+                }
+
+                if (!File.Exists(Path.Combine(basePath, filename)))
+                {
+                    _logger.LogInformation($"Downloading OpenGE agent for {version}...");
+                    using (var client = new HttpClient())
+                    {
+                        using (var target = new FileStream(Path.Combine(basePath, filename + ".tmp"), FileMode.Create, FileAccess.Write, FileShare.None))
+                        {
+                            var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                            response.EnsureSuccessStatusCode();
+                            using (var stream = new PositionAwareStream(
+                                await response.Content.ReadAsStreamAsync(),
+                                response.Content.Headers.ContentLength!.Value))
+                            {
+                                var cts = new CancellationTokenSource();
+                                var progress = _progressFactory.CreateProgressForStream(stream);
+                                var monitorTask = Task.Run(async () =>
+                                {
+                                    var monitor = _monitorFactory.CreateByteBasedMonitor();
+                                    await monitor.MonitorAsync(
+                                        progress,
+                                        SystemConsole.ConsoleInformation,
+                                        SystemConsole.WriteProgressToConsole,
+                                        cts.Token);
+                                });
+
+                                await stream.CopyToAsync(target);
+
+                                await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);
+                            }
+                        }
+                    }
+
+                    File.Move(Path.Combine(basePath, filename + ".tmp"), Path.Combine(basePath, filename), true);
+                    if (!OperatingSystem.IsWindows())
+                    {
+                        File.SetUnixFileMode(
+                            Path.Combine(basePath, filename),
+                            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute | UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute | UnixFileMode.OtherRead);
+                    }
+
+                    _logger.LogInformation($"OpenGE agent {version} has been downloaded successfully.");
+                }
+
+                return Path.Combine(basePath, filename);
+            }
+
+            private async Task InstallOpenGEAgent(string agentPath)
             {
                 // Re-install OpenGE agent.
                 var daemonName = true switch
@@ -117,7 +180,7 @@
                 await _serviceControl.InstallService(
                     daemonName,
                     "The OpenGE agent provides remote compilation services.",
-                    $@"""C:\Work\unreal-engine-tool\UET\Redpoint.OpenGE.Agent.Daemon\bin\Release\net7.0\win-x64\openge-agent.exe"" --service",
+                    $@"{agentPath} --service",
                     OperatingSystem.IsMacOS() ? "/Users/Shared/OpenGE/stdout.log" : null,
                     OperatingSystem.IsMacOS() ? "/Users/Shared/OpenGE/stderr.log" : null);
 
@@ -171,14 +234,14 @@
                 }
             }
 
-            private void GetUetVersion(out string version, out string basePath, out string uetPath)
+            private async Task<(string shimVersionFolder, string version, string basePath, string uetPath)> GetUetVersion()
             {
                 // Get the current version.
                 var currentVersionAttribute = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>();
                 if (currentVersionAttribute != null && !currentVersionAttribute.InformationalVersion.EndsWith("-pre"))
                 {
-                    version = currentVersionAttribute.InformationalVersion;
-                    basePath = true switch
+                    var version = currentVersionAttribute.InformationalVersion;
+                    var basePath = true switch
                     {
                         var v when v == OperatingSystem.IsWindows() => Path.Combine(
                             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
@@ -192,22 +255,38 @@
                         var v when v == OperatingSystem.IsWindows() => "uet.exe",
                         _ => "uet",
                     };
-                    uetPath = Path.Combine(basePath, uetName);
+                    var uetPath = Path.Combine(basePath, uetName);
+                    return (version, version, basePath, uetPath);
                 }
                 else
                 {
                     _logger.LogWarning("Unable to auto-detect running UET version; the xgConsole shim will be installed into the Current folder, even if the versions don't match.");
-                    version = "Current";
-                    basePath = true switch
+                    var shimVersionFolder = "Current";
+                    var basePath = true switch
                     {
                         var v when v == OperatingSystem.IsWindows() => Path.Combine(
                             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                             "UET",
-                            version),
-                        var v when v == OperatingSystem.IsMacOS() => $"/Users/Shared/UET/{version}",
+                            shimVersionFolder),
+                        var v when v == OperatingSystem.IsMacOS() => $"/Users/Shared/UET/{shimVersionFolder}",
                         _ => throw new PlatformNotSupportedException()
                     };
-                    uetPath = _selfLocation.GetUETLocalLocation();
+                    var uetPath = _selfLocation.GetUETLocalLocation();
+
+                    string version;
+                    const string latestUrl = "https://github.com/RedpointGames/uet/releases/download/latest/package.version";
+                    _logger.LogInformation("Checking for the latest version...");
+                    using (var client = new HttpClient())
+                    {
+                        version = (await client.GetStringAsync(latestUrl)).Trim();
+                    }
+
+                    if (string.IsNullOrWhiteSpace(version))
+                    {
+                        throw new InvalidOperationException("Unable to determine latest version!");
+                    }
+
+                    return (shimVersionFolder, version, basePath, uetPath);
                 }
             }
         }
