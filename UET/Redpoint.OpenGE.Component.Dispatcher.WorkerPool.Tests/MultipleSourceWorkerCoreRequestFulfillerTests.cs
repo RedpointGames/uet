@@ -220,14 +220,14 @@
                 providerCollection,
                 true))
             {
-                var coresFulfilled = 0;
+                long coresFulfilled = 0;
                 await Parallel.ForEachAsync(
                     Enumerable.Range(0, 200).ToAsyncEnumerable(),
                     async (index, _) =>
                     {
                         await using (var request = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                         {
-                            coresFulfilled++;
+                            Interlocked.Increment(ref coresFulfilled);
                         }
                     });
                 Assert.Equal(200, coresFulfilled);
@@ -258,14 +258,14 @@
                 providerCollection,
                 true))
             {
-                var coresFulfilled = 0;
+                long coresFulfilled = 0;
                 await Parallel.ForEachAsync(
                     Enumerable.Range(0, 200).ToAsyncEnumerable(),
                     async (index, _) =>
                     {
                         await using (var request = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                         {
-                            coresFulfilled++;
+                            Interlocked.Increment(ref coresFulfilled);
                         }
                     });
                 Assert.Equal(200, coresFulfilled);
