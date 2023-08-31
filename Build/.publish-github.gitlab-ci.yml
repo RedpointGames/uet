@@ -8,10 +8,12 @@
     - "Build Win UET Pass 2"
     - "Build Win UEFS Client"
     - "Build Win UEFS Daemon"
+    - "Build Win OpenGE Agent"
     - "Build Mac UET Shim"
     - "Build Mac UET Pass 2"
     - "Build Mac UEFS Client"
     - "Build Mac UEFS Daemon"
+    - "Build Mac OpenGE Agent"
     - job: "Test OpenGE Win"
       artifacts: false
     - job: "Test OpenGE Mac"
