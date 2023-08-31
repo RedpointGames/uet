@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
@@ -7,6 +7,7 @@
     <AssemblyName>Redpoint.AutoDiscovery.Win64</AssemblyName>
     <Platforms>x64</Platforms>
     <Platform>x64</Platform>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +23,9 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Windows.SDK.Win32Docs" Version="0.1.42-alpha" />
+    <PackageReference Include="Microsoft.Windows.SDK.Win32Metadata" Version="54.0.44-preview" />
+    <PackageReference Include="Microsoft.Windows.WDK.Win32Metadata" Version="0.8.2-experimental" />
   </ItemGroup>
 
 </Project>

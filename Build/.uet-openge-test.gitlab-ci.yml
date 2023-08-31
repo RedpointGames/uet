@@ -3,7 +3,7 @@
   tags:
     - redpoint-games-windows
   needs:
-    - "Build Win Pass 2"
+    - "Build Win UET Pass 2"
   interruptible: true
   script: |
     .\UET\uet\bin\Release\net7.0\win-x64\publish\uet.exe internal openge --task-file UET\Redpoint.OpenGE.Shim.Tests\Windows.xml
@@ -17,7 +17,7 @@
   tags:
     - redpoint-games-mac
   needs:
-    - "Build Mac Pass 2"
+    - "Build Mac UET Pass 2"
   interruptible: true
   script: |
     ./UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet internal openge --task-file UET/Redpoint.OpenGE.Shim.Tests/Mac.xml

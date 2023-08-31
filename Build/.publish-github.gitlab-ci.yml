@@ -4,12 +4,12 @@
     - redpoint-games-windows
   needs:
     - Timestamp
-    - "Build Win Shim"
-    - "Build Win Pass 2"
+    - "Build Win UET Shim"
+    - "Build Win UET Pass 2"
     - "Build Win UEFS Client"
     - "Build Win UEFS Daemon"
-    - "Build Mac Shim"
-    - "Build Mac Pass 2"
+    - "Build Mac UET Shim"
+    - "Build Mac UET Pass 2"
     - "Build Mac UEFS Client"
     - "Build Mac UEFS Daemon"
     - job: "Test OpenGE Win"

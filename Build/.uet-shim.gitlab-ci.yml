@@ -1,4 +1,4 @@
-"Build Win Shim":
+"Build Win UET Shim":
   stage: Build Pass 1
   tags:
     - redpoint-games-windows
@@ -16,7 +16,7 @@
     paths:
       - "UET/uet.shim/bin/Release/net7.0/win-x64/publish/uet.exe"
 
-"Build Mac Shim":
+"Build Mac UET Shim":
   stage: Build Pass 1
   tags:
     - redpoint-games-mac

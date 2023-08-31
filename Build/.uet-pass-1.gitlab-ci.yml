@@ -1,4 +1,4 @@
-"Build Win Pass 1":
+"Build Win UET Pass 1":
   stage: Build Pass 1
   tags:
     - redpoint-games-windows
@@ -21,7 +21,7 @@
     paths:
       - "UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe"
 
-"Build Mac Pass 1":
+"Build Mac UET Pass 1":
   stage: Build Pass 1
   tags:
     - redpoint-games-mac

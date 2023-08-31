@@ -1,4 +1,4 @@
-"Build Win Pass 2":
+"Build Win UET Pass 2":
   stage: Build Pass 2
   tags:
     - redpoint-games-windows
@@ -9,8 +9,8 @@
     - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
     - "Build AutoDiscovery"
-    - "Build Win Pass 1"
-    - "Build Mac Pass 1"
+    - "Build Win UET Pass 1"
+    - "Build Mac UET Pass 1"
     - job: "Build and Test Libraries on Windows"
       artifacts: false
   interruptible: true
@@ -25,7 +25,7 @@
     paths:
       - "UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe"
 
-"Build Mac Pass 2":
+"Build Mac UET Pass 2":
   stage: Build Pass 2
   tags:
     - redpoint-games-mac
@@ -36,8 +36,8 @@
     - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
     - "Build AutoDiscovery"
-    - "Build Win Pass 1"
-    - "Build Mac Pass 1"
+    - "Build Win UET Pass 1"
+    - "Build Mac UET Pass 1"
     - job: "Build and Test Libraries on macOS"
       artifacts: false
   interruptible: true
