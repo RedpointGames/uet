@@ -1,13 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.18-beta">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Windows.WDK.Win32Metadata" Version="0.8.2-experimental" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Redpoint.IO\Redpoint.IO.csproj" />
     <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
   </ItemGroup>
 

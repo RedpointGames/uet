@@ -23,6 +23,11 @@
             return _reservationManager.ReserveExactAsync(name, cancellationToken);
         }
 
+        public IReservation? TryReserveExact(string name)
+        {
+            return _reservationManager.TryReserveExact(name);
+        }
+
         public Task<IReservation?> TryReserveExactAsync(string name)
         {
             return _reservationManager.TryReserveExactAsync(name);

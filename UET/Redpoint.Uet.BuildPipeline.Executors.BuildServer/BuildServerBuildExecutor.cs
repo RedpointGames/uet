@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.IO;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Export;
@@ -11,7 +12,6 @@
     using Redpoint.Uet.Configuration.Engine;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
-    using Redpoint.Uet.Core;
     using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.Workspace.Descriptors;

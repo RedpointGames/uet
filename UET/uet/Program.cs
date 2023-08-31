@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using UET.Commands.Build;
 using UET.Commands.Internal;
 using UET.Commands.List;
+using UET.Commands.OpenGE;
 using UET.Commands.Storage;
 using UET.Commands.Test;
 using UET.Commands.Transfer;
@@ -34,6 +35,7 @@ rootCommand.AddCommand(ListCommand.CreateListCommand());
 rootCommand.AddCommand(UpgradeCommand.CreateUpgradeCommand(globalCommands));
 rootCommand.AddCommand(StorageCommand.CreateStorageCommand(globalCommands));
 rootCommand.AddCommand(UefsCommand.CreateUefsCommand());
+rootCommand.AddCommand(OpenGECommand.CreateOpenGECommand());
 rootCommand.AddCommand(TransferCommand.CreateTransferCommand());
 rootCommand.AddCommand(InternalCommand.CreateInternalCommand(globalCommands));
 

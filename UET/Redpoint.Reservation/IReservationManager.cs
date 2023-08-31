@@ -41,5 +41,13 @@
         /// <param name="name">The ID to reserve.</param>
         /// <returns>The reservation if it was made.</returns>
         Task<IReservation?> TryReserveExactAsync(string name);
+
+        /// <summary>
+        /// Try to reserve exactly the directory with the <paramref name="name"/>. If the directory is already
+        /// reserved, this returns null.
+        /// </summary>
+        /// <param name="name">The ID to reserve.</param>
+        /// <returns>The reservation if it was made.</returns>
+        IReservation? TryReserveExact(string name);
     }
 }

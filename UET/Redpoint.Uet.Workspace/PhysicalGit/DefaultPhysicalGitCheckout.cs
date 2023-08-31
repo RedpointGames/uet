@@ -2,10 +2,10 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.CredentialDiscovery;
+    using Redpoint.IO;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
-    using Redpoint.Uet.Core;
     using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.Workspace.Descriptors;
     using Redpoint.Uet.Workspace.Reservation;

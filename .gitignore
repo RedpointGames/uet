@@ -2,3 +2,4 @@
 *.csproj.user
 TestResults/
 UET/Redpoint.OpenGE.ProcessExecution/shim-bin/
+UET/Redpoint.UET.OpenGE/shim-bin/

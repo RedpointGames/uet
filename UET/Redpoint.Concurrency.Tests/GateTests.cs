@@ -28,7 +28,7 @@
             {
                 await Task.Delay(100);
                 isOpen = true;
-                gate.Unlock();
+                gate.Open();
             });
 
             await Task.WhenAll(task1, task2);

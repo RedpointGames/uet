@@ -89,7 +89,7 @@
                 new TestTransactionRequest { Success = success, Cancelled = cancelled, ResetEvent = resetEvent },
                 _ => Task.CompletedTask,
                 CancellationToken.None)!;
-            resetEvent.Unlock();
+            resetEvent.Open();
             await transaction1.WaitForCompletionAsync(CancellationToken.None);
 
             Assert.Equal(1, didSucceed);
@@ -117,7 +117,7 @@
                 _ => Task.CompletedTask,
                 CancellationToken.None)!;
             await transaction1.DisposeAsync();
-            resetEvent.Unlock();
+            resetEvent.Open();
 
             Assert.Equal(1, didCancel);
         }
@@ -148,7 +148,7 @@
                 new TestTransactionRequest { Success = success, Cancelled = cancelled, ResetEvent = resetEvent },
                 _ => Task.CompletedTask,
                 CancellationToken.None)!;
-            resetEvent.Unlock();
+            resetEvent.Open();
             await transaction1.DisposeAsync();
             await transaction2.WaitForCompletionAsync(CancellationToken.None);
 
@@ -181,7 +181,7 @@
                 new TestTransactionRequest { Success = success, Cancelled = cancelled, ResetEvent = resetEvent },
                 _ => Task.CompletedTask,
                 CancellationToken.None)!;
-            resetEvent.Unlock();
+            resetEvent.Open();
             await transaction2.DisposeAsync();
             await transaction1.WaitForCompletionAsync(CancellationToken.None);
 
@@ -216,7 +216,7 @@
                 CancellationToken.None)!;
             await transaction1.DisposeAsync();
             await transaction2.DisposeAsync();
-            resetEvent.Unlock();
+            resetEvent.Open();
 
             Assert.Equal(1, didCancel);
         }

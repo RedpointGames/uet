@@ -2,10 +2,6 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
 
-  <PropertyGroup>
-    <RestoreAdditionalProjectSources>$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin</RestoreAdditionalProjectSources>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.Logging.Mac\Redpoint.Logging.Mac.csproj" />
   </ItemGroup>

@@ -4,6 +4,8 @@
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+    <RestoreAdditionalProjectSources>$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin;$(MSBuildThisFileDirectory)../Redpoint.AutoDiscovery/bin/$(Configuration)</RestoreAdditionalProjectSources>
   </PropertyGroup>
 
   <PropertyGroup>

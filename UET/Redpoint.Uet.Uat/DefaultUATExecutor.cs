@@ -1,11 +1,11 @@
 ﻿namespace Redpoint.Uet.Uat
 {
     using Microsoft.Extensions.Logging;
-    using Redpoint.OpenGE;
+    using Redpoint.IO;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
-    using Redpoint.Uet.Core;
     using Redpoint.Uet.Core.Permissions;
+    using Redpoint.Uet.OpenGE;
     using Redpoint.Uet.Uat.Internal;
     using System.Text.Json;
     using System.Text.Json.Serialization;

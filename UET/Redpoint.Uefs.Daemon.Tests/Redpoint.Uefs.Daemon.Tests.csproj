@@ -3,7 +3,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
 
   <PropertyGroup>
-    <RestoreAdditionalProjectSources>$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin</RestoreAdditionalProjectSources>
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
   </PropertyGroup>
 
   <ItemGroup>

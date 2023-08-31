@@ -4,10 +4,6 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
 
   <PropertyGroup>
-    <RestoreAdditionalProjectSources>$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin</RestoreAdditionalProjectSources>
-  </PropertyGroup>
-
-  <PropertyGroup>
     <AssemblyName>uefs-daemon</AssemblyName>
     <Description>The UEFS daemon.</Description>
     <Product>UEFS Daemon</Product>

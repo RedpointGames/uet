@@ -1,0 +1,56 @@
+"Build Win OpenGE Agent":
+  stage: OpenGE
+  tags:
+    - redpoint-games-windows
+  needs:
+    - Timestamp
+    - "Build Mac Logging"
+    - "Build AutoDiscovery"
+  interruptible: true
+  script: |
+    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/Redpoint.OpenGE.Agent.Daemon/Redpoint.OpenGE.Agent.Daemon.csproj
+    if ($LastExitCode -ne 0) {
+      Write-Host "Publish win-x64 (Redpoint.OpenGE.Agent.Daemon.csproj) failed with exit code $LastExitCode"
+      exit $LastExitCode 
+    }
+  artifacts:
+    paths:
+      - "UET/Redpoint.OpenGE.Agent.Daemon/bin/Release/$FRAMEWORK_TARGET/win-x64/publish/openge-agent.exe"
+
+"Build Mac OpenGE Agent":
+  stage: OpenGE
+  tags:
+    - redpoint-games-mac
+  needs:
+    - Timestamp
+    - "Build Mac Logging"
+    - "Build AutoDiscovery"
+  interruptible: true
+  script: |
+    PACKAGE_VERSION=$(cat package.version | tr -d '\n')
+    echo "Package version: $PACKAGE_VERSION"
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION UET/Redpoint.OpenGE.Agent.Daemon/Redpoint.OpenGE.Agent.Daemon.csproj
+  artifacts:
+    paths:
+      - "UET/Redpoint.OpenGE.Agent.Daemon/bin/Release/$FRAMEWORK_TARGET/osx.11.0-arm64/publish/openge-agent"
+
+"Build Linux OpenGE Agent":
+  stage: OpenGE
+  tags:
+    - redpoint-games-windows
+  needs:
+    - Timestamp
+    - "Build Mac Logging"
+    - "Build AutoDiscovery"
+  interruptible: true
+  script: |
+    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=linux-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/Redpoint.OpenGE.Agent.Daemon/Redpoint.OpenGE.Agent.Daemon.csproj
+    if ($LastExitCode -ne 0) {
+      Write-Host "Publish linux-x64 (Redpoint.OpenGE.Agent.Daemon.csproj) failed with exit code $LastExitCode"
+      exit $LastExitCode 
+    }
+  artifacts:
+    paths:
+      - "UET/Redpoint.OpenGE.Agent.Daemon/bin/Release/$FRAMEWORK_TARGET/linux-x64/publish/openge-agent"

@@ -1,8 +1,8 @@
 ﻿namespace Redpoint.Uet.SdkManagement
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.IO;
     using Redpoint.ProcessExecution;
-    using Redpoint.Uet.Core;
     using System.Collections.Concurrent;
     using System.IO.Compression;
     using System.Reflection;

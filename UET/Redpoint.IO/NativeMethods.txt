@@ -1,0 +1,8 @@
+CreateFile
+DeviceIoControl
+IO_REPARSE_TAG_MOUNT_POINT
+FSCTL_SET_REPARSE_POINT
+CreateHardLink
+QueryDosDevice
+MAX_PATH
+WIN32_ERROR

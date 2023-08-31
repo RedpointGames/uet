@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package Redpoint.OpenGE.Protocol;
+
+message ProcessResponse {
+	oneof data {
+		string standardOutputLine = 1;
+		string standardErrorLine = 2;
+		// This will always be the last message from the response stream.
+		int32 exitCode = 3;
+	}
+}

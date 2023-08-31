@@ -244,7 +244,7 @@
 
                         // We are now ready to process tests.
                         _logger.LogTrace($"Ready to begin testing for descriptor {groupState.Descriptor.Platform}");
-                        groupState.ReadyForTesting.Unlock();
+                        groupState.ReadyForTesting.Open();
                     }
                     catch (Exception ex)
                     {
@@ -624,7 +624,7 @@
                         var ranAll = true;
                         foreach (var kv in _tests)
                         {
-                            if (!kv.Value.ReadyForTesting.Unlocked || kv.Value.RemainingTests > 0)
+                            if (!kv.Value.ReadyForTesting.Opened || kv.Value.RemainingTests > 0)
                             {
                                 ranAll = false;
                                 break;

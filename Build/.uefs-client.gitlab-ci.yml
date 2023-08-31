@@ -1,0 +1,38 @@
+"Build Win UEFS Client":
+  stage: Build Pass 1
+  tags:
+    - redpoint-games-windows
+  needs:
+    - Timestamp
+    - "Build Mac Logging"
+    - "Build AutoDiscovery"
+  interruptible: true
+  script: |
+    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:OpenGEShimRuntimeIdentifier=win-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion -p:OpenGEShimIsAlreadyBuilt=true UET/Redpoint.Uefs.Client/Redpoint.Uefs.Client.csproj
+    if ($LastExitCode -ne 0) {
+      Write-Host "Publish win-x64 (Redpoint.Uefs.Client.csproj) failed with exit code $LastExitCode"
+      exit $LastExitCode 
+    }
+  artifacts:
+    paths:
+      - "UET/Redpoint.Uefs.Client/bin/Release/net7.0/win-x64/publish/uefs.exe"
+
+"Build Mac UEFS Client":
+  stage: Build Pass 1
+  tags:
+    - redpoint-games-mac
+  needs:
+    - Timestamp
+    - "Build Mac Logging"
+    - "Build AutoDiscovery"
+  interruptible: true
+  script: |
+    PACKAGE_VERSION=$(cat package.version | tr -d '\n')
+    echo "Package version: $PACKAGE_VERSION"
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:OpenGEShimRuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION -p:OpenGEShimIsAlreadyBuilt=true UET/Redpoint.Uefs.Client/Redpoint.Uefs.Client.csproj
+    # Ensure the thing we built will actually run...
+    ./UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs --help
+  artifacts:
+    paths:
+      - "UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs"

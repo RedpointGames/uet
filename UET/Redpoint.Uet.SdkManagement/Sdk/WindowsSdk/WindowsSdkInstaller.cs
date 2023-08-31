@@ -1,8 +1,8 @@
 ﻿namespace Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.IO;
     using Redpoint.ProcessExecution;
-    using Redpoint.Uet.Core;
     using System;
     using System.Collections.Generic;
     using System.IO.Compression;

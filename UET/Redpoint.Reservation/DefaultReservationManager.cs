@@ -32,14 +32,33 @@
                     dividend = BigInteger.DivRem(dividend, alphabet.Length, out BigInteger remainder);
                     builder.Insert(0, alphabet[Math.Abs((int)remainder)]);
                 }
+                string target;
                 if (!length.HasValue)
                 {
-                    return builder.ToString().Trim('.');
+                    target = builder.ToString();
                 }
                 else
                 {
-                    return builder.ToString().Substring(0, length.Value).Trim('.');
+                    target = builder.ToString().Substring(0, length.Value);
                 }
+                var targetChars = target.ToCharArray();
+                // @note: We must replace . at the end of the string with _
+                // because Windows does not support trailing dots. However,
+                // we don't want to alter the length of the resulting string
+                // for OpenGE path length stability reasons, so we replace
+                // dots with underscores instead of trimming.
+                for (int d = targetChars.Length - 1; d >= 0; d--)
+                {
+                    if (targetChars[d] == '.')
+                    {
+                        targetChars[d] = '_';
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                return new string(targetChars);
             }
         }
 
@@ -105,9 +124,16 @@
         public Task<IReservation> ReserveAsync(string @namespace, params string[] parameters)
         {
             var id = GetStabilityHash($"{@namespace}:{string.Join("-", parameters)}", 14);
+            // @note: The upper bound here can not be changed without changing the
+            // target length of 'targetName' below.
             for (int i = 0; i < 1000; i++)
             {
-                var targetName = $"{id}-{i}";
+                if (id.Length != 14)
+                {
+                    throw new InvalidOperationException($"Expected stability hash '{id}' to be exactly 14 characters long.");
+                }
+                // @note: targetName will be the same length in all scenarios.
+                var targetName = $"{id}-{i:D3}";
                 if (_localReservations.TryAdd(targetName, true))
                 {
                     try
@@ -120,7 +146,7 @@
                             FileOptions.DeleteOnClose);
                         var reservedPath = Path.Combine(_rootPath, targetName);
                         Directory.CreateDirectory(reservedPath);
-                        _logger.LogInformation($"Reservation target '{targetName}' has been acquired in this process.");
+                        _logger.LogTrace($"Reservation target '{targetName}' has been acquired in this process.");
                         File.WriteAllLines(Path.Combine(_metaPath, "desc." + targetName), new[] { @namespace }.Concat(parameters));
                         File.WriteAllText(Path.Combine(_metaPath, "date." + targetName), DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
                         return Task.FromResult<IReservation>(new Reservation(
@@ -129,21 +155,21 @@
                             Path.Combine(_metaPath, "date." + targetName),
                             () =>
                             {
-                                _logger.LogInformation($"Reservation target '{targetName}' has been released in this process.");
+                                _logger.LogTrace($"Reservation target '{targetName}' has been released in this process.");
                                 _localReservations.Remove(targetName, out _);
                             }));
                     }
                     catch (IOException ex) when (ex.Message.Contains("another process"))
                     {
                         // Attempt the next reservation.
-                        _logger.LogInformation($"Reservation target '{targetName}' is in use by another process.");
+                        _logger.LogTrace($"Reservation target '{targetName}' is in use by another process.");
                         _localReservations.Remove(targetName, out _);
                         continue;
                     }
                 }
                 else
                 {
-                    _logger.LogInformation($"Reservation target '{targetName}' is internally used elsewhere in this process.");
+                    _logger.LogTrace($"Reservation target '{targetName}' is internally used elsewhere in this process.");
                 }
             }
 
@@ -166,6 +192,48 @@
                 true);
         }
 
+        public IReservation? TryReserveExact(string targetName)
+        {
+            if (_localReservations.TryAdd(targetName, true))
+            {
+                try
+                {
+                    var handle = File.OpenHandle(
+                        Path.Combine(_lockPath, targetName),
+                        FileMode.Create,
+                        FileAccess.ReadWrite,
+                        FileShare.None,
+                        FileOptions.DeleteOnClose);
+                    var reservedPath = Path.Combine(_rootPath, targetName);
+                    Directory.CreateDirectory(reservedPath);
+                    _logger.LogTrace($"Reservation target '{targetName}' has been acquired in this process.");
+                    File.WriteAllLines(Path.Combine(_metaPath, "desc." + targetName), new[] { targetName });
+                    File.WriteAllText(Path.Combine(_metaPath, "date." + targetName), DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
+                    return new Reservation(
+                        handle,
+                        reservedPath,
+                        Path.Combine(_metaPath, "date." + targetName),
+                        () =>
+                        {
+                            _logger.LogTrace($"Reservation target '{targetName}' has been released in this process.");
+                            _localReservations.Remove(targetName, out _);
+                        });
+                }
+                catch (IOException ex) when (ex.Message.Contains("another process"))
+                {
+                    // Attempt the next reservation.
+                    _logger.LogTrace($"Reservation target '{targetName}' is in use by another process.");
+                    _localReservations.Remove(targetName, out _);
+                    return null;
+                }
+            }
+            else
+            {
+                _logger.LogTrace($"Reservation target '{targetName}' is internally used elsewhere in this process.");
+                return null;
+            }
+        }
+
         private async Task<IReservation?> ReserveExactInternalAsync(string targetName, CancellationToken cancellationToken, bool allowFailure)
         {
             do
@@ -182,7 +250,7 @@
                             FileOptions.DeleteOnClose);
                         var reservedPath = Path.Combine(_rootPath, targetName);
                         Directory.CreateDirectory(reservedPath);
-                        _logger.LogInformation($"Reservation target '{targetName}' has been acquired in this process.");
+                        _logger.LogTrace($"Reservation target '{targetName}' has been acquired in this process.");
                         File.WriteAllLines(Path.Combine(_metaPath, "desc." + targetName), new[] { targetName });
                         File.WriteAllText(Path.Combine(_metaPath, "date." + targetName), DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
                         return new Reservation(
@@ -191,14 +259,14 @@
                             Path.Combine(_metaPath, "date." + targetName),
                             () =>
                             {
-                                _logger.LogInformation($"Reservation target '{targetName}' has been released in this process.");
+                                _logger.LogTrace($"Reservation target '{targetName}' has been released in this process.");
                                 _localReservations.Remove(targetName, out _);
                             });
                     }
                     catch (IOException ex) when (ex.Message.Contains("another process"))
                     {
                         // Attempt the next reservation.
-                        _logger.LogInformation($"Reservation target '{targetName}' is in use by another process.");
+                        _logger.LogTrace($"Reservation target '{targetName}' is in use by another process.");
                         _localReservations.Remove(targetName, out _);
                         if (allowFailure)
                         {
@@ -213,7 +281,7 @@
                 }
                 else
                 {
-                    _logger.LogInformation($"Reservation target '{targetName}' is internally used elsewhere in this process.");
+                    _logger.LogTrace($"Reservation target '{targetName}' is internally used elsewhere in this process.");
                     if (allowFailure)
                     {
                         return null;

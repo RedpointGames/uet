@@ -1,0 +1,36 @@
+"Publish to GitHub":
+  stage: Publish
+  tags:
+    - redpoint-games-windows
+  needs:
+    - Timestamp
+    - "Build Win UET Shim"
+    - "Build Win UET Pass 2"
+    - "Build Win UEFS Client"
+    - "Build Win UEFS Daemon"
+    - "Build Mac UET Shim"
+    - "Build Mac UET Pass 2"
+    - "Build Mac UEFS Client"
+    - "Build Mac UEFS Daemon"
+    - job: "Test OpenGE Win"
+      artifacts: false
+    - job: "Test OpenGE Mac"
+      artifacts: false
+  interruptible: false
+  script: |
+    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
+    UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe internal create-github-release `
+      --version $PackageVersion `
+      --file "uet.exe=UET for Windows=UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe" `
+      --file "uefs.exe=UEFS Client for Windows=UET/Redpoint.Uefs.Client/bin/Release/net7.0/win-x64/publish/uefs.exe" `
+      --file "uefs-daemon.exe=UEFS Daemon for Windows=UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/win-x64/publish/uefs-daemon.exe" `
+      --file "uet.shim.exe=UET Shim for Windows=UET/uet.shim/bin/Release/net7.0/win-x64/publish/uet.exe" `
+      --file "uet=UET for macOS=UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet" `
+      --file "uefs=UEFS Client for macOS=UET/Redpoint.Uefs.Client/bin/Release/net7.0/osx.11.0-arm64/publish/uefs" `
+      --file "uefs-daemon=UEFS Daemon for macOS=UET/Redpoint.Uefs.Daemon/bin/Release/net7.0/osx.11.0-arm64/publish/uefs-daemon" `
+      --file "uet.shim=UET Shim for macOS=UET/uet.shim/bin/Release/net7.0/osx.11.0-arm64/publish/uet" `
+      --file "package.version=Version File=package.version"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
