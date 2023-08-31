@@ -19,7 +19,8 @@
                 await request.AsyncSemaphore.WaitAsync(cancellationToken);
                 if (request.ResultException != null)
                 {
-                    throw request.ResultException;
+                    request.ResultException.Throw();
+                    throw new InvalidOperationException("Expected ExceptionDispatchInfo.Throw to work.");
                 }
                 NotifyDisposablesOfSuccessfulRequest(request.DisposablePtrs);
                 return request;

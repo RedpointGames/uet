@@ -5,6 +5,7 @@
     using System.ComponentModel;
     using System.Diagnostics;
     using System.Net.Sockets;
+    using System.Runtime.ExceptionServices;
     using System.Runtime.InteropServices;
     using System.Runtime.Versioning;
     using Redpoint.Concurrency;
@@ -82,7 +83,14 @@
             var stream = (TerminableAwaitableConcurrentQueue<NetworkService>)inflight.CustomData!;
             if (result == null)
             {
-                inflight.ResultException = new InvalidOperationException("Returned DNS_QUERY_RESULT is null.");
+                try
+                {
+                    throw new InvalidOperationException("Returned DNS_QUERY_RESULT is null.");
+                }
+                catch (Exception ex)
+                {
+                    inflight.ResultException = ExceptionDispatchInfo.Capture(ex);
+                }
                 PInvoke.DnsServiceBrowseCancel(inflight.CancellableRequest.Cancel);
                 stream.Terminate();
                 inflight.AsyncSemaphore.Open();
@@ -90,7 +98,14 @@
             }
             else if (result->QueryStatus != 0)
             {
-                inflight.ResultException = new Win32Exception(result->QueryStatus);
+                try
+                {
+                    throw new Win32Exception(result->QueryStatus);
+                }
+                catch (Exception ex)
+                {
+                    inflight.ResultException = ExceptionDispatchInfo.Capture(ex);
+                }
                 PInvoke.DnsServiceBrowseCancel(inflight.CancellableRequest.Cancel);
                 stream.Terminate();
                 inflight.AsyncSemaphore.Open();

@@ -2,8 +2,11 @@
 {
     using Grpc.Net.Client;
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.AutoDiscovery;
+    using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Protocol;
     using Redpoint.ProcessExecution;
+    using Redpoint.Reservation;
     using System.Text;
     using Xunit;
 
@@ -18,6 +21,9 @@
             services.AddLogging();
             services.AddOpenGEComponentWorker();
             services.AddProcessExecution();
+            services.AddOpenGECore();
+            services.AddReservation();
+            services.AddAutoDiscovery();
             var sp = services.BuildServiceProvider();
 
             var factory = sp.GetRequiredService<IWorkerComponentFactory>();

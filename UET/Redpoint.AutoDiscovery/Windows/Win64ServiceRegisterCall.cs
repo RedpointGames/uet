@@ -3,6 +3,7 @@
     extern alias SDWin64;
     using System;
     using System.ComponentModel;
+    using System.Runtime.ExceptionServices;
     using System.Runtime.Versioning;
     using SDWin64::Windows.Win32;
     using SDWin64::Windows.Win32.Foundation;
@@ -77,7 +78,14 @@
             var inflight = _calls[(nint)queryContext];
             if (status != (uint)WIN32_ERROR.ERROR_SUCCESS)
             {
-                inflight.ResultException = new Win32Exception((int)status);
+                try
+                {
+                    throw new Win32Exception((int)status);
+                }
+                catch (Exception ex)
+                {
+                    inflight.ResultException = ExceptionDispatchInfo.Capture(ex);
+                }
             }
             inflight.AsyncSemaphore.Open();
         }

@@ -4,6 +4,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Runtime.ExceptionServices;
     using System.Runtime.InteropServices;
     using System.Text;
     using System.Threading.Tasks;
@@ -16,7 +17,7 @@
         public readonly TRequest Request;
         public readonly nint[] HGlobalPtrs;
         public readonly IDisposable[] DisposablePtrs;
-        public Exception? ResultException;
+        public ExceptionDispatchInfo? ResultException;
         public object? CustomData;
 
         public WindowsNativeRequest(
@@ -37,7 +38,14 @@
                 cancel =>
                 {
                     cancelHandler(cancel);
-                    ResultException = new OperationCanceledException(cancellationToken);
+                    try
+                    {
+                        throw new OperationCanceledException(cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        ResultException = ExceptionDispatchInfo.Capture(ex);
+                    }
                     AsyncSemaphore.Open();
                 });
         }

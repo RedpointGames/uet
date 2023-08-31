@@ -3,6 +3,7 @@
     using Grpc.Core;
     using Grpc.Net.Client;
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.AutoDiscovery;
     using Redpoint.GrpcPipes;
     using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
@@ -44,6 +45,7 @@
             services.AddOpenGEComponentPreprocessorCache();
             services.AddProcessExecution();
             services.AddReservation();
+            services.AddAutoDiscovery();
             services.AddSingleton<IPreprocessorCacheAccessor, TestPreprocessorCacheAccessor>();
             // @note: We should really have an "InMemory" cache for unit tests like this, 
             // but we know this will never actually get used at runtime.
