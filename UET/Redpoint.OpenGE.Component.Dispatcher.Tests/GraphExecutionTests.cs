@@ -33,9 +33,11 @@
             }
         }
 
-        [Fact]
+        [SkippableFact]
         public async Task ExecutionGraphBasicTest()
         {
+            Skip.IfNot(OperatingSystem.IsWindows());
+
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddGrpcPipes();
