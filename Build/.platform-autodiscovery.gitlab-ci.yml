@@ -7,10 +7,10 @@
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    dotnet msbuild -restore -p:RuntimeIdentifier=win-x64 -p:Configuration=Debug -p:Platform=x64 -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/Redpoint.AutoDiscovery.Windows/Redpoint.AutoDiscovery.Win64.csproj
+    dotnet msbuild -restore -p:RuntimeIdentifier=win-x64 -p:Configuration=Debug -p:Platform=x64 -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/Redpoint.AutoDiscovery.Win64/Redpoint.AutoDiscovery.Win64.csproj
   artifacts:
     paths:
-      - "UET/Redpoint.AutoDiscovery.Windows/bin/x64/Debug/$FRAMEWORK_TARGET/"
+      - "UET/Redpoint.AutoDiscovery.Win64/bin/x64/Debug/$FRAMEWORK_TARGET/"
 
 "Build AutoDiscovery Win Debug x86":
   stage: "Platform Specific"
@@ -21,10 +21,10 @@
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    dotnet msbuild -restore -p:RuntimeIdentifier=win-x86 -p:Configuration=Debug -p:Platform=x86 -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/Redpoint.AutoDiscovery.Windows/Redpoint.AutoDiscovery.Win32.csproj
+    dotnet msbuild -restore -p:RuntimeIdentifier=win-x86 -p:Configuration=Debug -p:Platform=x86 -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/Redpoint.AutoDiscovery.Win32/Redpoint.AutoDiscovery.Win32.csproj
   artifacts:
     paths:
-      - "UET/Redpoint.AutoDiscovery.Windows/bin/x86/Debug/$FRAMEWORK_TARGET/"
+      - "UET/Redpoint.AutoDiscovery.Win32/bin/x86/Debug/$FRAMEWORK_TARGET/"
 
 "Build AutoDiscovery Win Release x64":
   stage: "Platform Specific"
@@ -35,10 +35,10 @@
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    dotnet msbuild -restore -p:RuntimeIdentifier=win-x64 -p:Configuration=Release -p:Platform=x64 -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/Redpoint.AutoDiscovery.Windows/Redpoint.AutoDiscovery.Win64.csproj
+    dotnet msbuild -restore -p:RuntimeIdentifier=win-x64 -p:Configuration=Release -p:Platform=x64 -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/Redpoint.AutoDiscovery.Win64/Redpoint.AutoDiscovery.Win64.csproj
   artifacts:
     paths:
-      - "UET/Redpoint.AutoDiscovery.Windows/bin/x64/Release/$FRAMEWORK_TARGET/"
+      - "UET/Redpoint.AutoDiscovery.Win64/bin/x64/Release/$FRAMEWORK_TARGET/"
 
 "Build AutoDiscovery Win Release x86":
   stage: "Platform Specific"
@@ -49,10 +49,10 @@
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    dotnet msbuild -restore -p:RuntimeIdentifier=win-x86 -p:Configuration=Release -p:Platform=x86 -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/Redpoint.AutoDiscovery.Windows/Redpoint.AutoDiscovery.Win32.csproj
+    dotnet msbuild -restore -p:RuntimeIdentifier=win-x86 -p:Configuration=Release -p:Platform=x86 -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/Redpoint.AutoDiscovery.Win32/Redpoint.AutoDiscovery.Win32.csproj
   artifacts:
     paths:
-      - "UET/Redpoint.AutoDiscovery.Windows/bin/x86/Release/$FRAMEWORK_TARGET/"
+      - "UET/Redpoint.AutoDiscovery.Win32/bin/x86/Release/$FRAMEWORK_TARGET/"
 
 "Build AutoDiscovery":
   stage: "Platform Specific"

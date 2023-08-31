@@ -271,10 +271,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.IO", "Redpoint.IO\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.AutoDiscovery", "Redpoint.AutoDiscovery\Redpoint.AutoDiscovery.csproj", "{F1AA2392-EC8D-4A7F-A6BB-E2125D668FDC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.AutoDiscovery.Win32", "Redpoint.AutoDiscovery.Windows\Redpoint.AutoDiscovery.Win32.csproj", "{085777EC-DE74-4605-BA0B-A9152A8CE085}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.AutoDiscovery.Win64", "Redpoint.AutoDiscovery.Windows\Redpoint.AutoDiscovery.Win64.csproj", "{8260715A-94D8-4F29-B81D-2F7FD56B80FC}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.AutoDiscovery.Tests", "Redpoint.AutoDiscovery.Tests\Redpoint.AutoDiscovery.Tests.csproj", "{A60B5F84-4B02-438F-8500-9DF59428764C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Redpoint.Git", "Redpoint.Git", "{489584A0-3479-40D5-8F74-8D11C3265975}"
@@ -293,9 +289,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Redpoint.Unreal", "Redpoint
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Redpoint.Windows", "Redpoint.Windows", "{0BF83468-3C95-4B7E-AE5A-01E54464DC93}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.Component.Dispatcher.WorkerPool", "Redpoint.OpenGE.Component.Dispatcher.WorkerPool\Redpoint.OpenGE.Component.Dispatcher.WorkerPool.csproj", "{718AAA09-8135-436A-ABDE-C7FB76D0FF31}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Component.Dispatcher.WorkerPool", "Redpoint.OpenGE.Component.Dispatcher.WorkerPool\Redpoint.OpenGE.Component.Dispatcher.WorkerPool.csproj", "{718AAA09-8135-436A-ABDE-C7FB76D0FF31}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.Component.Dispatcher.WorkerPool.Tests", "Redpoint.OpenGE.Component.Dispatcher.WorkerPool.Tests\Redpoint.OpenGE.Component.Dispatcher.WorkerPool.Tests.csproj", "{77E01BF6-2ABE-4B85-B57C-1C9B340C8362}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.Component.Dispatcher.WorkerPool.Tests", "Redpoint.OpenGE.Component.Dispatcher.WorkerPool.Tests\Redpoint.OpenGE.Component.Dispatcher.WorkerPool.Tests.csproj", "{77E01BF6-2ABE-4B85-B57C-1C9B340C8362}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.AutoDiscovery.Win32", "Redpoint.AutoDiscovery.Win32\Redpoint.AutoDiscovery.Win32.csproj", "{8698C501-2B45-47BE-B1DD-4766BEB65AB0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.AutoDiscovery.Win64", "Redpoint.AutoDiscovery.Win64\Redpoint.AutoDiscovery.Win64.csproj", "{CB1C52D0-C27E-46EB-A9BA-54478A50B6C5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1867,30 +1867,6 @@ Global
 		{F1AA2392-EC8D-4A7F-A6BB-E2125D668FDC}.Release|x64.Build.0 = Release|Any CPU
 		{F1AA2392-EC8D-4A7F-A6BB-E2125D668FDC}.Release|x86.ActiveCfg = Release|Any CPU
 		{F1AA2392-EC8D-4A7F-A6BB-E2125D668FDC}.Release|x86.Build.0 = Release|Any CPU
-		{085777EC-DE74-4605-BA0B-A9152A8CE085}.Debug|Any CPU.ActiveCfg = Debug|x86
-		{085777EC-DE74-4605-BA0B-A9152A8CE085}.Debug|Any CPU.Build.0 = Debug|x86
-		{085777EC-DE74-4605-BA0B-A9152A8CE085}.Debug|x64.ActiveCfg = Debug|x86
-		{085777EC-DE74-4605-BA0B-A9152A8CE085}.Debug|x64.Build.0 = Debug|x86
-		{085777EC-DE74-4605-BA0B-A9152A8CE085}.Debug|x86.ActiveCfg = Debug|x86
-		{085777EC-DE74-4605-BA0B-A9152A8CE085}.Debug|x86.Build.0 = Debug|x86
-		{085777EC-DE74-4605-BA0B-A9152A8CE085}.Release|Any CPU.ActiveCfg = Release|x86
-		{085777EC-DE74-4605-BA0B-A9152A8CE085}.Release|Any CPU.Build.0 = Release|x86
-		{085777EC-DE74-4605-BA0B-A9152A8CE085}.Release|x64.ActiveCfg = Release|x86
-		{085777EC-DE74-4605-BA0B-A9152A8CE085}.Release|x64.Build.0 = Release|x86
-		{085777EC-DE74-4605-BA0B-A9152A8CE085}.Release|x86.ActiveCfg = Release|x86
-		{085777EC-DE74-4605-BA0B-A9152A8CE085}.Release|x86.Build.0 = Release|x86
-		{8260715A-94D8-4F29-B81D-2F7FD56B80FC}.Debug|Any CPU.ActiveCfg = Debug|x64
-		{8260715A-94D8-4F29-B81D-2F7FD56B80FC}.Debug|Any CPU.Build.0 = Debug|x64
-		{8260715A-94D8-4F29-B81D-2F7FD56B80FC}.Debug|x64.ActiveCfg = Debug|x64
-		{8260715A-94D8-4F29-B81D-2F7FD56B80FC}.Debug|x64.Build.0 = Debug|x64
-		{8260715A-94D8-4F29-B81D-2F7FD56B80FC}.Debug|x86.ActiveCfg = Debug|x64
-		{8260715A-94D8-4F29-B81D-2F7FD56B80FC}.Debug|x86.Build.0 = Debug|x64
-		{8260715A-94D8-4F29-B81D-2F7FD56B80FC}.Release|Any CPU.ActiveCfg = Release|x64
-		{8260715A-94D8-4F29-B81D-2F7FD56B80FC}.Release|Any CPU.Build.0 = Release|x64
-		{8260715A-94D8-4F29-B81D-2F7FD56B80FC}.Release|x64.ActiveCfg = Release|x64
-		{8260715A-94D8-4F29-B81D-2F7FD56B80FC}.Release|x64.Build.0 = Release|x64
-		{8260715A-94D8-4F29-B81D-2F7FD56B80FC}.Release|x86.ActiveCfg = Release|x64
-		{8260715A-94D8-4F29-B81D-2F7FD56B80FC}.Release|x86.Build.0 = Release|x64
 		{A60B5F84-4B02-438F-8500-9DF59428764C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A60B5F84-4B02-438F-8500-9DF59428764C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A60B5F84-4B02-438F-8500-9DF59428764C}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -1927,6 +1903,30 @@ Global
 		{77E01BF6-2ABE-4B85-B57C-1C9B340C8362}.Release|x64.Build.0 = Release|Any CPU
 		{77E01BF6-2ABE-4B85-B57C-1C9B340C8362}.Release|x86.ActiveCfg = Release|Any CPU
 		{77E01BF6-2ABE-4B85-B57C-1C9B340C8362}.Release|x86.Build.0 = Release|Any CPU
+		{8698C501-2B45-47BE-B1DD-4766BEB65AB0}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{8698C501-2B45-47BE-B1DD-4766BEB65AB0}.Debug|Any CPU.Build.0 = Debug|x86
+		{8698C501-2B45-47BE-B1DD-4766BEB65AB0}.Debug|x64.ActiveCfg = Debug|x86
+		{8698C501-2B45-47BE-B1DD-4766BEB65AB0}.Debug|x64.Build.0 = Debug|x86
+		{8698C501-2B45-47BE-B1DD-4766BEB65AB0}.Debug|x86.ActiveCfg = Debug|x86
+		{8698C501-2B45-47BE-B1DD-4766BEB65AB0}.Debug|x86.Build.0 = Debug|x86
+		{8698C501-2B45-47BE-B1DD-4766BEB65AB0}.Release|Any CPU.ActiveCfg = Release|x86
+		{8698C501-2B45-47BE-B1DD-4766BEB65AB0}.Release|Any CPU.Build.0 = Release|x86
+		{8698C501-2B45-47BE-B1DD-4766BEB65AB0}.Release|x64.ActiveCfg = Release|x86
+		{8698C501-2B45-47BE-B1DD-4766BEB65AB0}.Release|x64.Build.0 = Release|x86
+		{8698C501-2B45-47BE-B1DD-4766BEB65AB0}.Release|x86.ActiveCfg = Release|x86
+		{8698C501-2B45-47BE-B1DD-4766BEB65AB0}.Release|x86.Build.0 = Release|x86
+		{CB1C52D0-C27E-46EB-A9BA-54478A50B6C5}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{CB1C52D0-C27E-46EB-A9BA-54478A50B6C5}.Debug|Any CPU.Build.0 = Debug|x64
+		{CB1C52D0-C27E-46EB-A9BA-54478A50B6C5}.Debug|x64.ActiveCfg = Debug|x64
+		{CB1C52D0-C27E-46EB-A9BA-54478A50B6C5}.Debug|x64.Build.0 = Debug|x64
+		{CB1C52D0-C27E-46EB-A9BA-54478A50B6C5}.Debug|x86.ActiveCfg = Debug|x64
+		{CB1C52D0-C27E-46EB-A9BA-54478A50B6C5}.Debug|x86.Build.0 = Debug|x64
+		{CB1C52D0-C27E-46EB-A9BA-54478A50B6C5}.Release|Any CPU.ActiveCfg = Release|x64
+		{CB1C52D0-C27E-46EB-A9BA-54478A50B6C5}.Release|Any CPU.Build.0 = Release|x64
+		{CB1C52D0-C27E-46EB-A9BA-54478A50B6C5}.Release|x64.ActiveCfg = Release|x64
+		{CB1C52D0-C27E-46EB-A9BA-54478A50B6C5}.Release|x64.Build.0 = Release|x64
+		{CB1C52D0-C27E-46EB-A9BA-54478A50B6C5}.Release|x86.ActiveCfg = Release|x64
+		{CB1C52D0-C27E-46EB-A9BA-54478A50B6C5}.Release|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -2032,11 +2032,11 @@ Global
 		{0E00257D-D7B5-4A23-91D4-E6E2CB0C118D} = {638E6F6F-8E1A-4D41-B26D-4E21FC966FED}
 		{8CC0B4F3-D9FD-40A9-993C-58BB4B092FCC} = {638E6F6F-8E1A-4D41-B26D-4E21FC966FED}
 		{F1AA2392-EC8D-4A7F-A6BB-E2125D668FDC} = {345BF757-ABB7-4869-8797-B1E11A484650}
-		{085777EC-DE74-4605-BA0B-A9152A8CE085} = {345BF757-ABB7-4869-8797-B1E11A484650}
-		{8260715A-94D8-4F29-B81D-2F7FD56B80FC} = {345BF757-ABB7-4869-8797-B1E11A484650}
 		{A60B5F84-4B02-438F-8500-9DF59428764C} = {345BF757-ABB7-4869-8797-B1E11A484650}
 		{718AAA09-8135-436A-ABDE-C7FB76D0FF31} = {638E6F6F-8E1A-4D41-B26D-4E21FC966FED}
 		{77E01BF6-2ABE-4B85-B57C-1C9B340C8362} = {638E6F6F-8E1A-4D41-B26D-4E21FC966FED}
+		{8698C501-2B45-47BE-B1DD-4766BEB65AB0} = {345BF757-ABB7-4869-8797-B1E11A484650}
+		{CB1C52D0-C27E-46EB-A9BA-54478A50B6C5} = {345BF757-ABB7-4869-8797-B1E11A484650}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}
