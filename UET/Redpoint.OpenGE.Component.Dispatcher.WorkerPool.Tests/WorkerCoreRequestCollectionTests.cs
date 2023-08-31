@@ -29,7 +29,7 @@
                 Assert.Equal(0, stats.FulfilledRemotableRequests);
             }
 
-            await using (var localRequest = await collection.CreateUnfulfilledRequestAsync(true, cancellationToken))
+            await using (var localRequest = await collection.CreateUnfulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
             {
                 {
                     var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
@@ -39,7 +39,7 @@
                     Assert.Equal(0, stats.FulfilledRemotableRequests);
                 }
 
-                await using (var remoteRequest = await collection.CreateUnfulfilledRequestAsync(false, cancellationToken))
+                await using (var remoteRequest = await collection.CreateUnfulfilledRequestAsync(CoreAllocationPreference.PreferRemote, cancellationToken))
                 {
                     {
                         var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
@@ -106,7 +106,7 @@
 
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
             {
-                await collection.CreateFulfilledRequestAsync(true, new CancellationTokenSource(500).Token);
+                await collection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, new CancellationTokenSource(500).Token);
             });
 
             {
@@ -136,7 +136,7 @@
             cts.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
             {
-                await collection.CreateFulfilledRequestAsync(true, cts.Token);
+                await collection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cts.Token);
             });
 
             {

@@ -32,7 +32,7 @@
                 providerCollection,
                 true))
             {
-                await using (var request = await requestCollection.CreateFulfilledRequestAsync(true, cancellationToken))
+                await using (var request = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                 {
                 }
             }
@@ -59,9 +59,9 @@
                 providerCollection,
                 true))
             {
-                await using (var request1 = await requestCollection.CreateFulfilledRequestAsync(true, cancellationToken))
+                await using (var request1 = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                 {
-                    await using (var request2 = await requestCollection.CreateFulfilledRequestAsync(true, cancellationToken))
+                    await using (var request2 = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                     {
                     }
                 }
@@ -89,11 +89,11 @@
                 providerCollection,
                 true))
             {
-                await using (var request1 = await requestCollection.CreateFulfilledRequestAsync(true, cancellationToken))
+                await using (var request1 = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                 {
                 }
 
-                await using (var request2 = await requestCollection.CreateFulfilledRequestAsync(true, cancellationToken))
+                await using (var request2 = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                 {
                 }
             }
@@ -122,9 +122,9 @@
                 providerCollection,
                 true))
             {
-                await using (var request1 = await requestCollection.CreateFulfilledRequestAsync(true, cancellationToken))
+                await using (var request1 = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                 {
-                    await using (var request2 = await requestCollection.CreateFulfilledRequestAsync(true, cancellationToken))
+                    await using (var request2 = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                     {
                     }
                 }
@@ -154,9 +154,9 @@
                 providerCollection,
                 true))
             {
-                await using (var request1 = await requestCollection.CreateFulfilledRequestAsync(true, cancellationToken))
+                await using (var request1 = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                 {
-                    await using (var request2 = await requestCollection.CreateFulfilledRequestAsync(true, cancellationToken))
+                    await using (var request2 = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                     {
                     }
                 }
@@ -186,11 +186,11 @@
                 providerCollection,
                 true))
             {
-                await using (var request1 = await requestCollection.CreateFulfilledRequestAsync(true, cancellationToken))
+                await using (var request1 = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                 {
                 }
 
-                await using (var request2 = await requestCollection.CreateFulfilledRequestAsync(true, cancellationToken))
+                await using (var request2 = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                 {
                 }
             }
@@ -225,7 +225,7 @@
                     Enumerable.Range(0, 200).ToAsyncEnumerable(),
                     async (index, _) =>
                     {
-                        await using (var request = await requestCollection.CreateFulfilledRequestAsync(true, cancellationToken))
+                        await using (var request = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                         {
                             coresFulfilled++;
                         }
@@ -263,7 +263,7 @@
                     Enumerable.Range(0, 200).ToAsyncEnumerable(),
                     async (index, _) =>
                     {
-                        await using (var request = await requestCollection.CreateFulfilledRequestAsync(true, cancellationToken))
+                        await using (var request = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                         {
                             coresFulfilled++;
                         }

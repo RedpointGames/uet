@@ -79,8 +79,7 @@
                     {
                         await _processRequestsSemaphore.WaitAsync(_disposedCts.Token);
 
-                        var nextUnfulfilledRequest = await _requestCollection.GetNextUnfulfilledRequestAsync(_fulfillsLocalRequests, _disposedCts.Token);
-                        if (nextUnfulfilledRequest != null)
+                        async Task FulfillRequest(IWorkerCoreRequestLock<TWorkerCore> nextUnfulfilledRequest)
                         {
                             await using (nextUnfulfilledRequest)
                             {
@@ -107,6 +106,35 @@
                                     _processRequestsSemaphore.Release();
                                 }
                             }
+                        }
+
+                        if (_fulfillsLocalRequests)
+                        {
+                            // Try to get local only requests first.
+                            var nextUnfulfilledLocalOnlyRequest = await _requestCollection.GetNextUnfulfilledRequestAsync(
+                                CoreFulfillerConstraint.LocalRequiredAndPreferred,
+                                _disposedCts.Token);
+                            if (nextUnfulfilledLocalOnlyRequest != null)
+                            {
+                                await FulfillRequest(nextUnfulfilledLocalOnlyRequest);
+                                continue;
+                            }
+                            else
+                            {
+                                // We don't have a local only request. Wait a little bit to allow other fulfillers
+                                // to pick up remotable requests (since we'd prefer to run them not on the local core).
+                                await Task.Delay(100);
+                            }
+                        }
+
+                        // Get any unfulfilled request.
+                        var nextUnfulfilledRequest = await _requestCollection.GetNextUnfulfilledRequestAsync(
+                            _fulfillsLocalRequests ? CoreFulfillerConstraint.All : CoreFulfillerConstraint.LocalPreferredAndRemote,
+                            _disposedCts.Token);
+                        if (nextUnfulfilledRequest != null)
+                        {
+                            await FulfillRequest(nextUnfulfilledRequest);
+                            continue;
                         }
                     }
 

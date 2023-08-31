@@ -187,7 +187,7 @@
                                     try
                                     {
                                         localCoreRequest = await instance.WorkerPool.ReserveCoreAsync(
-                                            true,
+                                            CoreAllocationPreference.RequireLocal,
                                             localCoreTimeout.Token);
                                         _logger.LogInformation("Obtained a local core.");
                                     }
@@ -351,7 +351,9 @@
                                                         throw new InvalidOperationException("UseFastLocalExecution must not be set if we're not using a local core!");
                                                     }
                                                     coreRequest = await instance.WorkerPool.ReserveCoreAsync(
-                                                        taskDescriptor.DescriptorCase != TaskDescriptor.DescriptorOneofCase.Remote,
+                                                        taskDescriptor.DescriptorCase != TaskDescriptor.DescriptorOneofCase.Remote
+                                                            ? CoreAllocationPreference.RequireLocal
+                                                            : CoreAllocationPreference.PreferRemote,
                                                         instance.CancellationToken);
                                                 }
                                                 await using (coreRequest)

@@ -259,7 +259,7 @@
                             // Step 1: Get the list of requests we haven't fulfilled yet.
                             int differenceCores;
                             await using (var initiallyUnfulfilledRequests = await _requestCollection.GetAllUnfulfilledRequestsAsync(
-                                _fulfillsLocalRequests,
+                                _fulfillsLocalRequests ? CoreFulfillerConstraint.All : CoreFulfillerConstraint.LocalPreferredAndRemote,
                                 _disposedCts.Token))
                             {
                                 // Step 2: Fulfill any unfulfilled requests that we can immediately fulfill

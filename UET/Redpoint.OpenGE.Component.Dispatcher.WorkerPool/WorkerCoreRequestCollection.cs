@@ -27,7 +27,7 @@
             var fulfilledRemotableRequests = 0;
             foreach (var request in _requests)
             {
-                if (request.RequireLocal)
+                if (request.CorePreference == CoreAllocationPreference.RequireLocal)
                 {
                     if (request.AssignedCore == null)
                     {
@@ -67,16 +67,42 @@
             return ObtainStatisticsWithinLock();
         }
 
+        private Func<WorkerCoreRequest, bool> GetFilterForConstraint(CoreFulfillerConstraint fulfillerConstraint)
+        {
+            switch (fulfillerConstraint)
+            {
+                case CoreFulfillerConstraint.All:
+                    return x =>
+                        x.AssignedCore == null &&
+                        !x.LockAcquired;
+                case CoreFulfillerConstraint.LocalRequiredOnly:
+                    return x =>
+                        x.CorePreference == CoreAllocationPreference.RequireLocal &&
+                        x.AssignedCore == null &&
+                        !x.LockAcquired;
+                case CoreFulfillerConstraint.LocalRequiredAndPreferred:
+                    return x =>
+                        (x.CorePreference == CoreAllocationPreference.RequireLocal ||
+                         x.CorePreference == CoreAllocationPreference.PreferLocal) &&
+                        x.AssignedCore == null &&
+                        !x.LockAcquired;
+                case CoreFulfillerConstraint.LocalPreferredAndRemote:
+                    return x =>
+                        x.CorePreference == CoreAllocationPreference.PreferRemote &&
+                        x.AssignedCore == null &&
+                        !x.LockAcquired;
+                default:
+                    throw new NotImplementedException($"Fulfiller constraint {fulfillerConstraint} not implemented");
+            }
+        }
+
         public async Task<IWorkerCoreRequestLock<TWorkerCore>?> GetNextUnfulfilledRequestAsync(
-            bool includeLocal,
+            CoreFulfillerConstraint fulfillerConstraint,
             CancellationToken cancellationToken)
         {
             using var _ = await _requestLock.WaitAsync(cancellationToken);
 
-            var nextRequest = _requests.FirstOrDefault(x =>
-                (includeLocal || !x.RequireLocal) &&
-                x.AssignedCore == null &&
-                !x.LockAcquired);
+            var nextRequest = _requests.FirstOrDefault(GetFilterForConstraint(fulfillerConstraint));
             if (nextRequest == null)
             {
                 return null;
@@ -86,7 +112,7 @@
         }
 
         public async Task<IWorkerCoreRequestCollectionLock<TWorkerCore>> GetAllUnfulfilledRequestsAsync(
-            bool includeLocal,
+            CoreFulfillerConstraint fulfillerConstraint,
             CancellationToken cancellationToken)
         {
             var @lock = await _requestLock.WaitAsync(cancellationToken);
@@ -94,10 +120,7 @@
             try
             {
                 var requests = _requests
-                    .Where(x =>
-                        (includeLocal || !x.RequireLocal) &&
-                        x.AssignedCore == null &&
-                        !x.LockAcquired)
+                    .Where(GetFilterForConstraint(fulfillerConstraint))
                     .ToList();
                 var result = new WorkerCoreRequestCollectionLock(@lock, requests);
                 handedOverLock = true;
@@ -113,11 +136,11 @@
         }
 
         public async Task<IWorkerCoreRequest<TWorkerCore>> CreateFulfilledRequestAsync(
-            bool requireLocal,
+            CoreAllocationPreference corePreference,
             CancellationToken cancellationToken)
         {
             var didFulfill = false;
-            var request = await CreateUnfulfilledRequestAsync(requireLocal, cancellationToken);
+            var request = await CreateUnfulfilledRequestAsync(corePreference, cancellationToken);
             try
             {
                 await request.WaitForCoreAsync(cancellationToken);
@@ -134,12 +157,12 @@
         }
 
         public async Task<IWorkerCoreRequest<TWorkerCore>> CreateUnfulfilledRequestAsync(
-            bool requireLocal,
+            CoreAllocationPreference corePreference,
             CancellationToken cancellationToken)
         {
             using var _ = await _requestLock.WaitAsync(cancellationToken);
 
-            var newRequest = new WorkerCoreRequest(this, requireLocal);
+            var newRequest = new WorkerCoreRequest(this, corePreference);
             _requests.Add(newRequest);
             try
             {

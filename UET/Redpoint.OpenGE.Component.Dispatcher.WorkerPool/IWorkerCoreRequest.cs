@@ -5,7 +5,7 @@
 
     public interface IWorkerCoreRequest<TWorkerCore> : IAsyncDisposable where TWorkerCore : IAsyncDisposable
     {
-        bool RequireLocal { get; }
+        CoreAllocationPreference CorePreference { get; }
 
         Task<TWorkerCore> WaitForCoreAsync(CancellationToken cancellationToken);
     }

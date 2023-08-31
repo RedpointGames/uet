@@ -14,14 +14,14 @@
 
             public WorkerCoreRequest(
                 WorkerCoreRequestCollection<TWorkerCore> collection,
-                bool requireLocal)
+                CoreAllocationPreference corePreference)
             {
                 _requestCompleted = new Gate();
                 _collection = collection;
-                RequireLocal = requireLocal;
+                CorePreference = corePreference;
             }
 
-            public bool RequireLocal { get; }
+            public CoreAllocationPreference CorePreference { get; }
 
             public bool LockAcquired { get; set; }
 

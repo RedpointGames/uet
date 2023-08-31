@@ -101,22 +101,6 @@
         {
         }
 
-        /*
-        int IRefComparer<long>.Compare(in long x, in long y)
-        {
-            return x.CompareTo(y);
-        }
-
-        long ISerializer<long>.Deserialize(byte[] bytes)
-        {
-            return BitConverter.ToInt64(bytes);
-        }
-
-        byte[] ISerializer<long>.Serialize(in long entry)
-        {
-            return BitConverter.GetBytes(entry);
-        }*/
-
         public async ValueTask DisposeAsync()
         {
             _disk?.Dispose();

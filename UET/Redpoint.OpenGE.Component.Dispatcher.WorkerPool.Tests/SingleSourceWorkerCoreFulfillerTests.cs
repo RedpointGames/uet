@@ -39,7 +39,7 @@
                     Assert.Equal(0, stats.FulfilledRemotableRequests);
                 }
 
-                await using (var localRequest = await collection.CreateUnfulfilledRequestAsync(true, cancellationToken))
+                await using (var localRequest = await collection.CreateUnfulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                 {
                     {
                         var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
@@ -96,7 +96,7 @@
                     Assert.Equal(0, stats.FulfilledRemotableRequests);
                 }
 
-                await using (var localRequest = await collection.CreateUnfulfilledRequestAsync(true, cancellationToken))
+                await using (var localRequest = await collection.CreateUnfulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                 {
                     {
                         var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
@@ -149,7 +149,7 @@
 
                 var fulfilledRequest = Task.Run(async () =>
                 {
-                    return await collection.CreateFulfilledRequestAsync(true, cancellationToken);
+                    return await collection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken);
                 });
                 testProvider.ReleaseCore();
                 await using (var request = await fulfilledRequest)
@@ -196,7 +196,7 @@
                     Enumerable.Range(0, 24).ToAsyncEnumerable(),
                     async (index, _) =>
                     {
-                        await using (var request = await collection.CreateFulfilledRequestAsync(true, cancellationToken))
+                        await using (var request = await collection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
                         {
                             Interlocked.Increment(ref coresFulfilled);
                         }

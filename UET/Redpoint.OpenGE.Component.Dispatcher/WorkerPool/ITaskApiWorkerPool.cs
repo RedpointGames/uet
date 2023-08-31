@@ -7,6 +7,8 @@
 
     public interface ITaskApiWorkerPool : IAsyncDisposable
     {
-        Task<IWorkerCoreRequest<ITaskApiWorkerCore>> ReserveCoreAsync(bool requireLocal, CancellationToken cancellationToken);
+        Task<IWorkerCoreRequest<ITaskApiWorkerCore>> ReserveCoreAsync(
+            CoreAllocationPreference corePreference,
+            CancellationToken cancellationToken);
     }
 }

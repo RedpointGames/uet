@@ -167,10 +167,12 @@
             await _remoteWorkerCoreProviderCollection!.RemoveAsync(provider);
         }
 
-        public Task<IWorkerCoreRequest<ITaskApiWorkerCore>> ReserveCoreAsync(bool requireLocal, CancellationToken cancellationToken)
+        public Task<IWorkerCoreRequest<ITaskApiWorkerCore>> ReserveCoreAsync(
+            CoreAllocationPreference corePreference,
+            CancellationToken cancellationToken)
         {
             return _requestCollection.CreateFulfilledRequestAsync(
-                requireLocal,
+                corePreference,
                 cancellationToken);
         }
 

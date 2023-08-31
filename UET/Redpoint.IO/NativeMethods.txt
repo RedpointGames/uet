@@ -5,3 +5,4 @@ FSCTL_SET_REPARSE_POINT
 CreateHardLink
 QueryDosDevice
 MAX_PATH
+WIN32_ERROR
