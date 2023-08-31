@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+    <RestoreAdditionalProjectSources Condition="Exists('$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin')">$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin;$(RestoreAdditionalProjectSources)</RestoreAdditionalProjectSources>
+    <RestoreAdditionalProjectSources Condition="Exists('$(MSBuildThisFileDirectory)../Redpoint.AutoDiscovery/bin/$(Configuration)')">$(MSBuildThisFileDirectory)../Redpoint.AutoDiscovery/bin/$(Configuration);$(RestoreAdditionalProjectSources)</RestoreAdditionalProjectSources>
   </PropertyGroup>
 
   <PropertyGroup>
