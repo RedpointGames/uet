@@ -89,7 +89,7 @@ rootCommand.SetHandler(async (InvocationContext context) =>
             var remainingTasks = tasksTotal - tasksComplete;
             var percent = (1.0 - (tasksTotal == 0 ? 0.0 : ((double)remainingTasks / tasksTotal))) * 100.0;
             var tasksTotalLength = tasksTotal.ToString().Length;
-            var line = $"[{percent,3:0}%, {tasksComplete.ToString().PadLeft(tasksTotalLength)}/{tasksTotal}] {message}";
+            var line = $"[{percent,3:0}%, {tasksInFlight.ToString().PadLeft(tasksTotalLength)}/{tasksComplete.ToString().PadLeft(tasksTotalLength)}/{tasksTotal}] {message}";
             Console.WriteLine(line);
         }
         try
