@@ -226,7 +226,7 @@
             {
                 while (!_cancellationTokenSource.IsCancellationRequested)
                 {
-                    var nextOperation = await _pendingOperations.Dequeue(_cancellationTokenSource.Token);
+                    var nextOperation = await _pendingOperations.DequeueAsync(_cancellationTokenSource.Token);
 
                     try
                     {

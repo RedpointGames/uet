@@ -85,17 +85,17 @@
                         switch (taskCompleted.Status)
                         {
                             case TaskCompletionStatus.TaskCompletionSuccess:
-                                _logger.LogInformation($"{GetBuildStatusLogPrefix()} {response.TaskCompleted.DisplayName} {Bright.Green($"[success in {taskCompleted.TotalSeconds:F2} secs]")}");
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix()} {taskCompleted.DisplayName} {Bright.Green($"[success in {taskCompleted.TotalSeconds:F2} secs]")}");
                                 break;
                             case TaskCompletionStatus.TaskCompletionException:
-                                _logger.LogInformation($"{GetBuildStatusLogPrefix()} {response.TaskCompleted.DisplayName} {Bright.Red($"[exception in {taskCompleted.TotalSeconds:F2} secs]")}");
-                                _logger.LogInformation($"{GetBuildStatusLogPrefix()} {response.TaskCompleted.DisplayName} Exception propagated from OpenGE executor: " + taskCompleted.ExceptionMessage);
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix()} {taskCompleted.DisplayName} {Bright.Red($"[exception in {taskCompleted.TotalSeconds:F2} secs]")}");
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix()} {taskCompleted.DisplayName} Exception propagated from OpenGE executor: " + taskCompleted.ExceptionMessage);
                                 break;
                             case TaskCompletionStatus.TaskCompletionFailure:
-                                _logger.LogInformation($"{GetBuildStatusLogPrefix()} {response.TaskCompleted.DisplayName} {taskCompleted.DisplayName} {Bright.Red($"[failed in {taskCompleted.TotalSeconds:F2} secs; exit code {taskCompleted.ExitCode}]")}");
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix()} {taskCompleted.DisplayName} {Bright.Red($"[failed in {taskCompleted.TotalSeconds:F2} secs; exit code {taskCompleted.ExitCode}]")}");
                                 break;
                             case TaskCompletionStatus.TaskCompletionCancelled:
-                                _logger.LogInformation($"{GetBuildStatusLogPrefix()} {response.TaskCompleted.DisplayName} {taskCompleted.DisplayName} {Bright.Yellow($"[cancelled in {taskCompleted.TotalSeconds:F2} secs]")}");
+                                _logger.LogInformation($"{GetBuildStatusLogPrefix()} {taskCompleted.DisplayName} {Bright.Yellow($"[cancelled in {taskCompleted.TotalSeconds:F2} secs]")}");
                                 break;
                         }
                         break;

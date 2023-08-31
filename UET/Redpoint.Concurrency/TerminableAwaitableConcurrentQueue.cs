@@ -33,7 +33,7 @@
 
         /// <summary>
         /// Terminates the queue, meaning that no further items can be dequeued
-        /// from it. Once this is called, <see cref="Dequeue(CancellationToken)"/>
+        /// from it. Once this is called, <see cref="DequeueAsync(CancellationToken)"/>
         /// will throw <see cref="OperationCanceledException"/>, and enumerables from
         /// <see cref="GetAsyncEnumerator(CancellationToken)"/> will stop enumerating
         /// normally.
@@ -57,7 +57,7 @@
         /// </summary>
         /// <param name="cancellationToken">The cancellation token to cancel the dequeue operation.</param>
         /// <returns>The item that was dequeued.</returns>
-        public async ValueTask<T> Dequeue(CancellationToken cancellationToken)
+        public async ValueTask<T> DequeueAsync(CancellationToken cancellationToken)
         {
             await _ready.WaitAsync(cancellationToken);
             if (!_queue.TryDequeue(out var result))
@@ -73,6 +73,30 @@
                 }
             }
             return result!;
+        }
+
+        /// <summary>
+        /// Tries to dequeue and item from the queue, returning either the next item or an indicator that the
+        /// queue has been terminated and all items consumed.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token to cancel the dequeue operation.</param>
+        /// <returns>The item that was dequeued.</returns>
+        public async ValueTask<(T? item, bool terminated)> TryDequeueAsync(CancellationToken cancellationToken)
+        {
+            await _ready.WaitAsync(cancellationToken);
+            if (!_queue.TryDequeue(out var result))
+            {
+                if (_terminated)
+                {
+                    _ready.Release();
+                    return (default, true);
+                }
+                else
+                {
+                    throw new InvalidOperationException("Dequeue failed to pull item off queue. This is an internal bug.");
+                }
+            }
+            return (result!, false);
         }
 
         /// <inheritdoc />

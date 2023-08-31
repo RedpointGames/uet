@@ -96,7 +96,7 @@
 
         public async ValueTask<TResponse> GetNextAsync(CancellationToken cancellationToken = default)
         {
-            var result = await _queue.Dequeue(cancellationToken);
+            var result = await _queue.DequeueAsync(cancellationToken);
             if (result.response != null)
             {
                 return result.response;

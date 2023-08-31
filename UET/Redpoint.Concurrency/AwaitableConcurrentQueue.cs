@@ -39,7 +39,7 @@
         /// </summary>
         /// <param name="cancellationToken">The cancellation token to cancel the dequeue operation.</param>
         /// <returns>The item that was dequeued.</returns>
-        public async ValueTask<T> Dequeue(CancellationToken cancellationToken)
+        public async ValueTask<T> DequeueAsync(CancellationToken cancellationToken)
         {
             await _ready.WaitAsync(cancellationToken);
             if (!_queue.TryDequeue(out var result))
@@ -83,7 +83,7 @@
 
             public async ValueTask<bool> MoveNextAsync()
             {
-                _current = await _queue.Dequeue(_cancellationToken);
+                _current = await _queue.DequeueAsync(_cancellationToken);
                 _currentSet = true;
                 return true;
             }
