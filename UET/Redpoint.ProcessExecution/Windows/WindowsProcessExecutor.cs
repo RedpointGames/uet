@@ -465,6 +465,7 @@
                     if (!hasExited)
                     {
                         // We can't get the return code for this process.
+                        cancellationToken.ThrowIfCancellationRequested();
                         return int.MaxValue;
                     }
                 }
@@ -484,6 +485,7 @@
                     }
                     catch { }
                 }
+                cancellationToken.ThrowIfCancellationRequested();
                 return unchecked((int)exitCode);
             }
             finally

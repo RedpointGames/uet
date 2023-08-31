@@ -186,6 +186,7 @@
                     if (!process.HasExited)
                     {
                         // We can't get the return code for this process.
+                        cancellationToken.ThrowIfCancellationRequested();
                         return int.MaxValue;
                     }
                 }
@@ -205,6 +206,7 @@
                     }
                     catch { }
                 }
+                cancellationToken.ThrowIfCancellationRequested();
                 return process.ExitCode;
             }
             finally
@@ -217,7 +219,7 @@
         }
 
         public IAsyncEnumerable<ProcessResponse> ExecuteAsync(
-            ProcessSpecification processSpecification, 
+            ProcessSpecification processSpecification,
             CancellationToken cancellationToken)
         {
             return new ProcessExecutionEnumerable(

@@ -61,53 +61,72 @@
                     return 1;
                 }
 
-
-                // Get the current version.
                 string version;
                 string basePath;
                 string uetPath;
-                var currentVersionAttribute = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-                if (currentVersionAttribute != null && !currentVersionAttribute.InformationalVersion.EndsWith("-pre"))
-                {
-                    version = currentVersionAttribute.InformationalVersion;
-                    basePath = true switch
-                    {
-                        var v when v == OperatingSystem.IsWindows() => Path.Combine(
-                            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                            "UET",
-                            version),
-                        var v when v == OperatingSystem.IsMacOS() => $"/Users/Shared/UET/{version}",
-                        _ => throw new PlatformNotSupportedException()
-                    };
-                    var uetName = true switch
-                    {
-                        var v when v == OperatingSystem.IsWindows() => "uet.exe",
-                        _ => "uet",
-                    };
-                    uetPath = Path.Combine(basePath, uetName);
-                }
-                else
-                {
-                    _logger.LogWarning("Unable to auto-detect running UET version; the xgConsole shim will be installed into the Current folder, even if the versions don't match.");
-                    version = "Current";
-                    basePath = true switch
-                    {
-                        var v when v == OperatingSystem.IsWindows() => Path.Combine(
-                            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                            "UET",
-                            version),
-                        var v when v == OperatingSystem.IsMacOS() => $"/Users/Shared/UET/{version}",
-                        _ => throw new PlatformNotSupportedException()
-                    };
-                    uetPath = _selfLocation.GetUETLocalLocation();
-                }
-
-                // Ensure UET is installed globally.
+                GetUetVersion(out version, out basePath, out uetPath);
                 if (!File.Exists(uetPath))
                 {
                     _logger.LogError($"Expected UET to be installed globally at '{uetPath}'. Maybe you need to run 'uet upgrade' first?");
                 }
+                await ExtractXgConsoleShim(basePath);
+                await InstallOpenGEAgent();
+                SetUpXGERegistryDummyValues();
 
+                _logger.LogInformation("The OpenGE agent has been installed and started.");
+                return 0;
+            }
+
+            private void SetUpXGERegistryDummyValues()
+            {
+                // Set 'SOFTWARE\Xoreax\IncrediBuild\BuildService' value 'CoordHost' to '127.0.0.1'.
+                if (OperatingSystem.IsWindows())
+                {
+                    _logger.LogInformation("Set Incredibuild coordinator to 127.0.0.1 for UBT tooling...");
+                    var stack = RegistryStack.OpenPath(@"HKCU:\SOFTWARE\Xoreax\IncrediBuild\BuildService", true, true);
+                    stack.Key.SetValue("CoordHost", "127.0.0.1");
+                }
+            }
+
+            private async Task InstallOpenGEAgent()
+            {
+                // Re-install OpenGE agent.
+                var daemonName = true switch
+                {
+                    var v when v == OperatingSystem.IsWindows() => "Incredibuild Agent",
+                    var v when v == OperatingSystem.IsMacOS() => "openge-agent",
+                    var v when v == OperatingSystem.IsLinux() => "openge-agent",
+                    _ => throw new PlatformNotSupportedException(),
+                };
+                if (await _serviceControl.IsServiceInstalled(daemonName))
+                {
+                    if (await _serviceControl.IsServiceRunning(daemonName))
+                    {
+                        _logger.LogInformation("Stopping OpenGE agent...");
+                        await _serviceControl.StopService(daemonName);
+                    }
+
+                    _logger.LogInformation("Uninstalling OpenGE agent...");
+                    await _serviceControl.UninstallService(daemonName);
+                }
+                _logger.LogInformation("Installing OpenGE agent...");
+                if (OperatingSystem.IsMacOS())
+                {
+                    Directory.CreateDirectory("/Users/Shared/OpenGE");
+                }
+                await _serviceControl.InstallService(
+                    daemonName,
+                    "The OpenGE agent provides remote compilation services.",
+                    $@"""C:\Work\unreal-engine-tool\UET\Redpoint.OpenGE.Agent.Daemon\bin\Release\net7.0\win-x64\openge-agent.exe"" --service",
+                    OperatingSystem.IsMacOS() ? "/Users/Shared/OpenGE/stdout.log" : null,
+                    OperatingSystem.IsMacOS() ? "/Users/Shared/OpenGE/stderr.log" : null);
+
+                _logger.LogInformation("Starting OpenGE agent...");
+                await _serviceControl.StartService(daemonName);
+            }
+
+            private async Task ExtractXgConsoleShim(string basePath)
+            {
                 // Extract xgConsole shim.
                 var shimName = true switch
                 {
@@ -150,52 +169,46 @@
                     File.Move(xgeShimPath + ".tmp", xgeShimPath, true);
                     _logger.LogTrace("Extracted XGE shim to: " + xgeShimPath);
                 }
+            }
 
-                // Re-install OpenGE agent.
-                var daemonName = true switch
+            private void GetUetVersion(out string version, out string basePath, out string uetPath)
+            {
+                // Get the current version.
+                var currentVersionAttribute = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+                if (currentVersionAttribute != null && !currentVersionAttribute.InformationalVersion.EndsWith("-pre"))
                 {
-                    var v when v == OperatingSystem.IsWindows() => "Incredibuild Agent",
-                    var v when v == OperatingSystem.IsMacOS() => "openge-agent",
-                    var v when v == OperatingSystem.IsLinux() => "openge-agent",
-                    _ => throw new PlatformNotSupportedException(),
-                };
-                if (await _serviceControl.IsServiceInstalled(daemonName))
-                {
-                    if (await _serviceControl.IsServiceRunning(daemonName))
+                    version = currentVersionAttribute.InformationalVersion;
+                    basePath = true switch
                     {
-                        _logger.LogInformation("Stopping OpenGE agent...");
-                        await _serviceControl.StopService(daemonName);
-                    }
-
-                    _logger.LogInformation("Uninstalling OpenGE agent...");
-                    await _serviceControl.UninstallService(daemonName);
+                        var v when v == OperatingSystem.IsWindows() => Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                            "UET",
+                            version),
+                        var v when v == OperatingSystem.IsMacOS() => $"/Users/Shared/UET/{version}",
+                        _ => throw new PlatformNotSupportedException()
+                    };
+                    var uetName = true switch
+                    {
+                        var v when v == OperatingSystem.IsWindows() => "uet.exe",
+                        _ => "uet",
+                    };
+                    uetPath = Path.Combine(basePath, uetName);
                 }
-                _logger.LogInformation("Installing OpenGE agent...");
-                if (OperatingSystem.IsMacOS())
+                else
                 {
-                    Directory.CreateDirectory("/Users/Shared/OpenGE");
+                    _logger.LogWarning("Unable to auto-detect running UET version; the xgConsole shim will be installed into the Current folder, even if the versions don't match.");
+                    version = "Current";
+                    basePath = true switch
+                    {
+                        var v when v == OperatingSystem.IsWindows() => Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                            "UET",
+                            version),
+                        var v when v == OperatingSystem.IsMacOS() => $"/Users/Shared/UET/{version}",
+                        _ => throw new PlatformNotSupportedException()
+                    };
+                    uetPath = _selfLocation.GetUETLocalLocation();
                 }
-                await _serviceControl.InstallService(
-                    daemonName,
-                    "The OpenGE agent provides remote compilation services.",
-                    $@"""C:\Work\unreal-engine-tool\UET\Redpoint.OpenGE.Agent.Daemon\bin\Release\net7.0\win-x64\openge-agent.exe"" --service",
-                    OperatingSystem.IsMacOS() ? "/Users/Shared/OpenGE/stdout.log" : null,
-                    OperatingSystem.IsMacOS() ? "/Users/Shared/OpenGE/stderr.log" : null);
-
-                _logger.LogInformation("Starting OpenGE agent...");
-                await _serviceControl.StartService(daemonName);
-
-                // Set 'SOFTWARE\Xoreax\IncrediBuild\BuildService' value 'CoordHost' to '127.0.0.1'.
-                if (OperatingSystem.IsWindows())
-                {
-                    _logger.LogInformation("Set Incredibuild coordinator to 127.0.0.1 for UBT tooling...");
-                    var stack = RegistryStack.OpenPath(@"HKCU:\SOFTWARE\Xoreax\IncrediBuild\BuildService", true, true);
-                    stack.Key.SetValue("CoordHost", "127.0.0.1");
-                }
-
-                _logger.LogInformation("The OpenGE agent has been installed and started.");
-                return 0;
-                // @todo: Handle '/Command=Unused /nowait /silent' arguments in shim as UBT uses it to test if another build is running.
             }
         }
     }
