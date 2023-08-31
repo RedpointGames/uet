@@ -31,7 +31,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.B2Net\Redpoint.ThirdParty.B2Net.csproj" />
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
-    <ProjectReference Include="..\Redpoint.AutoDiscovery\Redpoint.AutoDiscovery.csproj" />
     <ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />
     <ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Agent\Redpoint.OpenGE.Agent.csproj" />
@@ -59,6 +58,14 @@
     <ProjectReference Include="..\Redpoint.Unreal.TcpMessaging\Redpoint.Unreal.TcpMessaging.csproj" />
     <ProjectReference Include="..\Redpoint.Windows.HandleManagement\Redpoint.Windows.HandleManagement.csproj" />
     <ProjectReference Include="..\Redpoint.Windows.VolumeManagement\Redpoint.Windows.VolumeManagement.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(UET_BUILDING_ON_BUILD_SERVER) != 'true'">
+    <ProjectReference Include="..\Redpoint.AutoDiscovery\Redpoint.AutoDiscovery.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(UET_BUILDING_ON_BUILD_SERVER) == 'true'">
+    <PackageReference Include="Redpoint.AutoDiscovery" Version="$(PackageVersion)" />
   </ItemGroup>
 
   <ItemGroup>

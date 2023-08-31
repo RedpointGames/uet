@@ -22,15 +22,22 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.ApplicationLifecycle\Redpoint.ApplicationLifecycle.csproj" />
-    <ProjectReference Include="..\Redpoint.AutoDiscovery\Redpoint.AutoDiscovery.csproj" />
     <ProjectReference Include="..\Redpoint.IO\Redpoint.IO.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Core\Redpoint.OpenGE.Core.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Protocol\Redpoint.OpenGE.Protocol.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.Reservation\Redpoint.Reservation.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(UET_BUILDING_ON_BUILD_SERVER) != 'true'">
+    <ProjectReference Include="..\Redpoint.AutoDiscovery\Redpoint.AutoDiscovery.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(UET_BUILDING_ON_BUILD_SERVER) == 'true'">
+    <PackageReference Include="Redpoint.AutoDiscovery" Version="$(PackageVersion)" />
   </ItemGroup>
 
 </Project>

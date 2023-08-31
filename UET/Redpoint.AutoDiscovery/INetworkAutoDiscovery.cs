@@ -2,6 +2,9 @@
 {
     using System.Runtime.CompilerServices;
 
+    /// <summary>
+    /// Provides APIs for registering and discovering network services.
+    /// </summary>
     public interface INetworkAutoDiscovery
     {
         /// <summary>

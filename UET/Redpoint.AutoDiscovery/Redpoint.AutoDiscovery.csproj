@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
 
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -12,13 +13,34 @@
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(UET_BUILDING_ON_BUILD_SERVER)' != 'true'">
     <ProjectReference Include="..\Redpoint.AutoDiscovery.Windows\Redpoint.AutoDiscovery.Win32.csproj">
       <Aliases>SDWin32</Aliases>
     </ProjectReference>
     <ProjectReference Include="..\Redpoint.AutoDiscovery.Windows\Redpoint.AutoDiscovery.Win64.csproj">
       <Aliases>SDWin64</Aliases>
     </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UET_BUILDING_ON_BUILD_SERVER)' == 'true'">
+    <Reference Include="Redpoint.AutoDiscovery.Win32">
+      <HintPath>..\Redpoint.AutoDiscovery.Windows\bin\x86\$(Configuration)\$(TargetFramework)\win-x86\Redpoint.AutoDiscovery.Win32.dll</HintPath>
+      <Aliases>SDWin32</Aliases>
+    </Reference>
+    <Reference Include="Redpoint.AutoDiscovery.Win64">
+      <HintPath>..\Redpoint.AutoDiscovery.Windows\bin\x64\$(Configuration)\$(TargetFramework)\win-x64\Redpoint.AutoDiscovery.Win64.dll</HintPath>
+      <Aliases>SDWin64</Aliases>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UET_BUILDING_ON_BUILD_SERVER)' == 'true'">
+    <None Include="..\Redpoint.AutoDiscovery.Windows\bin\x86\$(Configuration)\$(TargetFramework)\win-x86\Redpoint.AutoDiscovery.Win32.dll" Pack="True" PackagePath="lib\$(TargetFramework)">
+    </None>
+    <None Include="..\Redpoint.AutoDiscovery.Windows\bin\x64\$(Configuration)\$(TargetFramework)\win-x64\Redpoint.AutoDiscovery.Win64.dll" Pack="True" PackagePath="lib\$(TargetFramework)">
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
   </ItemGroup>
 

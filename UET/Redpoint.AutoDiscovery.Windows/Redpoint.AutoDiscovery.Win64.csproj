@@ -6,6 +6,7 @@
     <RootNamespace>Redpoint.AutoDiscovery.Win64</RootNamespace>
     <AssemblyName>Redpoint.AutoDiscovery.Win64</AssemblyName>
     <Platforms>x64</Platforms>
+    <Platform>x64</Platform>
   </PropertyGroup>
 
   <ItemGroup>

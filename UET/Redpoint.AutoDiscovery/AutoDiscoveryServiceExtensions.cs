@@ -8,8 +8,15 @@
     using System.Text;
     using System.Threading.Tasks;
 
+    /// <summary>
+    /// Provides dependency injection registration APIs for network auto-discovery.
+    /// </summary>
     public static class AutoDiscoveryServiceExtensions
     {
+        /// <summary>
+        /// Registers the <see cref="INetworkAutoDiscovery"/> service with dependency injection.
+        /// </summary>
+        /// <param name="services"></param>
         public static void AddAutoDiscovery(this IServiceCollection services)
         {
             if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 10240))

@@ -4,10 +4,6 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
 
   <PropertyGroup>
-    <RestoreAdditionalProjectSources>$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin</RestoreAdditionalProjectSources>
-  </PropertyGroup>
-
-  <PropertyGroup>
     <AssemblyName>openge-agent</AssemblyName>
     <Description>The OpenGE agent daemon.</Description>
     <Product>OpenGE Agent</Product>
