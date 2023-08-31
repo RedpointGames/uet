@@ -8,6 +8,7 @@
     - "Build Mac OpenGE Shim"
     - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
+    - "Build AutoDiscovery"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -37,6 +38,7 @@
     - "Build Mac OpenGE Shim"
     - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
+    - "Build AutoDiscovery"
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')

@@ -4,6 +4,8 @@
     - redpoint-games-windows
   needs:
     - Timestamp
+    - "Build Mac Logging"
+    - "Build AutoDiscovery"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -22,6 +24,8 @@
     - redpoint-games-mac
   needs:
     - Timestamp
+    - "Build Mac Logging"
+    - "Build AutoDiscovery"
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
@@ -37,6 +41,8 @@
     - redpoint-games-windows
   needs:
     - Timestamp
+    - "Build Mac Logging"
+    - "Build AutoDiscovery"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()

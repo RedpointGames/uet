@@ -8,9 +8,9 @@
     - "Build Mac OpenGE Shim"
     - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
+    - "Build AutoDiscovery"
     - "Build Win Pass 1"
     - "Build Mac Pass 1"
-    - "Build AutoDiscovery"
     - job: "Build and Test Libraries on Windows"
       artifacts: false
   interruptible: true
@@ -35,9 +35,9 @@
     - "Build Mac OpenGE Shim"
     - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
+    - "Build AutoDiscovery"
     - "Build Win Pass 1"
     - "Build Mac Pass 1"
-    - "Build AutoDiscovery"
     - job: "Build and Test Libraries on macOS"
       artifacts: false
   interruptible: true
