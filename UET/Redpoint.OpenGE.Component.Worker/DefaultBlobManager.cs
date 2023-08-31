@@ -51,7 +51,19 @@
 
         public string ConvertAbsolutePathToBuildDirectoryPath(string targetDirectory, string absolutePath)
         {
-            var remotifiedPath = absolutePath[0] + absolutePath.Substring(2);
+            string? remotifiedPath;
+            if (absolutePath == null || absolutePath.Length < 3)
+            {
+                throw new InvalidOperationException($"Absolute path for ConvertAbsolutePathToBuildDirectoryPath was an empty string.");
+            }
+            else if (absolutePath.Length == 3)
+            {
+                remotifiedPath = absolutePath[0].ToString();
+            }
+            else
+            {
+                remotifiedPath = absolutePath[0] + absolutePath.Substring(2);
+            }
             if (remotifiedPath == null)
             {
                 throw new InvalidOperationException($"Expected path '{absolutePath}' to be rooted and not a UNC path.");

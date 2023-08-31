@@ -213,7 +213,8 @@
                 }
                 foreach (var key in _knownDirectoryEnvironmentVariables)
                 {
-                    if (effectiveEnvironmentVariables.ContainsKey(key))
+                    if (effectiveEnvironmentVariables.ContainsKey(key) &&
+                        !string.IsNullOrWhiteSpace(effectiveEnvironmentVariables[key]))
                     {
                         var targetPath = _blobManager.ConvertAbsolutePathToBuildDirectoryPath(
                             reservation.ReservedPath,
@@ -226,12 +227,15 @@
                 }
                 foreach (var path in _knownDirectorySpecialFolders)
                 {
-                    var targetPath = _blobManager.ConvertAbsolutePathToBuildDirectoryPath(
-                        reservation.ReservedPath,
-                        path);
-                    if (!Path.Exists(targetPath))
+                    if (!string.IsNullOrWhiteSpace(path))
                     {
-                        Directory.CreateDirectory(targetPath);
+                        var targetPath = _blobManager.ConvertAbsolutePathToBuildDirectoryPath(
+                            reservation.ReservedPath,
+                            path);
+                        if (!Path.Exists(targetPath))
+                        {
+                            Directory.CreateDirectory(targetPath);
+                        }
                     }
                 }
 
