@@ -1,4 +1,32 @@
-"Build AutoDiscovery Win x64":
+"Build AutoDiscovery Win Debug x64":
+  stage: "Platform Specific"
+  tags:
+    - redpoint-games-windows
+  needs:
+    - Timestamp
+  interruptible: true
+  script: |
+    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
+    dotnet msbuild -restore -p:RuntimeIdentifier=win-x64 -p:Configuration=Debug -p:Platform=x64 -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/Redpoint.AutoDiscovery.Windows/Redpoint.AutoDiscovery.Win64.csproj
+  artifacts:
+    paths:
+      - "UET/Redpoint.AutoDiscovery.Windows/bin/x64/Debug/$FRAMEWORK_TARGET/"
+
+"Build AutoDiscovery Win Debug x86":
+  stage: "Platform Specific"
+  tags:
+    - redpoint-games-windows
+  needs:
+    - Timestamp
+  interruptible: true
+  script: |
+    $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
+    dotnet msbuild -restore -p:RuntimeIdentifier=win-x86 -p:Configuration=Debug -p:Platform=x86 -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/Redpoint.AutoDiscovery.Windows/Redpoint.AutoDiscovery.Win32.csproj
+  artifacts:
+    paths:
+      - "UET/Redpoint.AutoDiscovery.Windows/bin/x86/Debug/$FRAMEWORK_TARGET/"
+
+"Build AutoDiscovery Win Release x64":
   stage: "Platform Specific"
   tags:
     - redpoint-games-windows
@@ -12,7 +40,7 @@
     paths:
       - "UET/Redpoint.AutoDiscovery.Windows/bin/x64/Release/$FRAMEWORK_TARGET/"
 
-"Build AutoDiscovery Win x86":
+"Build AutoDiscovery Win Release x86":
   stage: "Platform Specific"
   tags:
     - redpoint-games-windows
@@ -32,8 +60,8 @@
     - redpoint-games-windows
   needs:
     - Timestamp
-    - "Build AutoDiscovery Win x64"
-    - "Build AutoDiscovery Win x86"
+    - "Build AutoDiscovery Win Release x64"
+    - "Build AutoDiscovery Win Release x86"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
