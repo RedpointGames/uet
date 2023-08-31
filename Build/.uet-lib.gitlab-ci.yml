@@ -12,6 +12,7 @@
     - "Build AutoDiscovery Win Release x64"
     - "Build AutoDiscovery Win Debug x86"
     - "Build AutoDiscovery Win Debug x64"
+    - "Build AutoDiscovery"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -45,6 +46,7 @@
     - "Build AutoDiscovery Win Release x64"
     - "Build AutoDiscovery Win Debug x86"
     - "Build AutoDiscovery Win Debug x64"
+    - "Build AutoDiscovery"
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
