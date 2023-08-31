@@ -84,7 +84,7 @@
             RemoteTaskDescriptor descriptor,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Executing remote task with local execution strategy.");
+            _logger.LogTrace("Executing remote task with local execution strategy.");
 
             // Set up the environment variable dictionary.
             Dictionary<string, string>? environmentVariables = null;
@@ -123,7 +123,7 @@
                         };
                         break;
                     case StandardOutputResponse standardOutput:
-                        _logger.LogInformation(standardOutput.Data);
+                        _logger.LogTrace(standardOutput.Data);
                         yield return new ExecuteTaskResponse
                         {
                             Response = new Protocol.ProcessResponse
@@ -133,7 +133,7 @@
                         };
                         break;
                     case StandardErrorResponse standardError:
-                        _logger.LogInformation(standardError.Data);
+                        _logger.LogTrace(standardError.Data);
                         yield return new ExecuteTaskResponse
                         {
                             Response = new Protocol.ProcessResponse
@@ -157,7 +157,7 @@
                 throw new InvalidOperationException("Remoting tasks can't run on non-Windows platforms yet.");
             }
 
-            _logger.LogInformation("Executing remote task with remote execution strategy.");
+            _logger.LogTrace("Executing remote task with remote execution strategy.");
 
             // Get a workspace to work in.
             await using (var reservation = await _reservationManagerForOpenGE.ReservationManager.ReserveAsync(
@@ -170,7 +170,7 @@
                     descriptor.ToolExecutionInfo.ToolXxHash64,
                     descriptor.ToolExecutionInfo.ToolExecutableName,
                     cancellationToken);
-                _logger.LogInformation($"Tool path obtained in: {st.Elapsed}");
+                _logger.LogTrace($"Tool path obtained in: {st.Elapsed}");
                 st.Restart();
 
                 // Ask the blob manager to lay out all of the files in the reservation
@@ -179,7 +179,7 @@
                     reservation.ReservedPath,
                     descriptor.InputsByBlobXxHash64,
                     cancellationToken);
-                _logger.LogInformation($"Laid out build directory in: {st.Elapsed}");
+                _logger.LogTrace($"Laid out build directory in: {st.Elapsed}");
                 st.Restart();
 
                 // Inside our reservation directory, we need to create a junction
@@ -270,23 +270,23 @@
                 }
 
                 // Execute the process in the virtual root.
-                _logger.LogInformation($"File path: {toolPath}");
-                _logger.LogInformation($"Arguments: {string.Join(" ", descriptor.Arguments)}");
-                _logger.LogInformation($"Working directory: {descriptor.WorkingDirectoryAbsolutePath}");
+                _logger.LogTrace($"File path: {toolPath}");
+                _logger.LogTrace($"Arguments: {string.Join(" ", descriptor.Arguments)}");
+                _logger.LogTrace($"Working directory: {descriptor.WorkingDirectoryAbsolutePath}");
                 if (processSpecification.PerProcessDriveMappings != null)
                 {
                     foreach (var mapping in processSpecification.PerProcessDriveMappings)
                     {
-                        _logger.LogInformation($"Drive mapping: '{mapping.Key}:\\' -> '{mapping.Value}'");
+                        _logger.LogTrace($"Drive mapping: '{mapping.Key}:\\' -> '{mapping.Value}'");
                     }
                     if (processSpecification.PerProcessDriveMappings.Count == 0)
                     {
-                        _logger.LogInformation($"No drive mappings are being applied (empty).");
+                        _logger.LogTrace($"No drive mappings are being applied (empty).");
                     }
                 }
                 else
                 {
-                    _logger.LogInformation($"No drive mappings are being applied (not configured).");
+                    _logger.LogTrace($"No drive mappings are being applied (not configured).");
                 }
                 await foreach (var response in _processExecutor.ExecuteAsync(
                     processSpecification,
@@ -309,7 +309,7 @@
                             };
                             break;
                         case StandardOutputResponse standardOutput:
-                            _logger.LogInformation(standardOutput.Data);
+                            _logger.LogTrace(standardOutput.Data);
                             yield return new ExecuteTaskResponse
                             {
                                 Response = new Protocol.ProcessResponse
@@ -319,7 +319,7 @@
                             };
                             break;
                         case StandardErrorResponse standardError:
-                            _logger.LogInformation(standardError.Data);
+                            _logger.LogTrace(standardError.Data);
                             yield return new ExecuteTaskResponse
                             {
                                 Response = new Protocol.ProcessResponse

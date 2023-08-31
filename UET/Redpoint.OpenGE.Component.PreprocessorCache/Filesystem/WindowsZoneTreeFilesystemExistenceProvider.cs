@@ -56,7 +56,7 @@
                 }
                 _disk = factory.Create();
             }
-            logger.LogInformation($"Filesystem existence cache initialized in {st.Elapsed.TotalSeconds:F2} seconds.");
+            logger.LogTrace($"Filesystem existence cache initialized in {st.Elapsed.TotalSeconds:F2} seconds.");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

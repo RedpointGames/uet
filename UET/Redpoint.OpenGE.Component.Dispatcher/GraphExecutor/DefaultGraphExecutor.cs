@@ -172,15 +172,15 @@
                                 IWorkerCoreRequest<ITaskApiWorkerCore>? localCoreRequest = null;
                                 if (buildBehaviour != null && buildBehaviour.ForceRemotingForLocalWorker)
                                 {
-                                    _logger.LogInformation("Skipping fast local execution because this job requested forced remoting.");
+                                    _logger.LogTrace("Skipping fast local execution because this job requested forced remoting.");
                                 }
                                 else if (Debugger.IsAttached)
                                 {
-                                    _logger.LogInformation("Skipping fast local execution because a debugger is attached.");
+                                    _logger.LogTrace("Skipping fast local execution because a debugger is attached.");
                                 }
                                 else
                                 {
-                                    _logger.LogInformation("Trying to get a local core...");
+                                    _logger.LogTrace("Trying to get a local core...");
                                     var localCoreTimeout = CancellationTokenSource.CreateLinkedTokenSource(
                                         new CancellationTokenSource(250).Token,
                                         instance.CancellationToken);
@@ -189,12 +189,12 @@
                                         localCoreRequest = await instance.WorkerPool.ReserveCoreAsync(
                                             CoreAllocationPreference.RequireLocal,
                                             localCoreTimeout.Token);
-                                        _logger.LogInformation("Obtained a local core.");
+                                        _logger.LogTrace("Obtained a local core.");
                                     }
                                     catch (OperationCanceledException)
                                     {
                                         // Could not get a local core fast enough.
-                                        _logger.LogInformation("Unable to get a local core, potentially remoting instead.");
+                                        _logger.LogTrace("Unable to get a local core, potentially remoting instead.");
                                     }
                                 }
                                 try
@@ -336,7 +336,7 @@
                                         case IRemotableGraphTask remotableGraphTask:
                                             {
                                                 // Reserve a core from somewhere...
-                                                _logger.LogInformation("Waiting for core reservation for task...");
+                                                _logger.LogTrace("Waiting for core reservation for task...");
                                                 IWorkerCoreRequest<ITaskApiWorkerCore> coreRequest;
                                                 if (localCoreRequest != null)
                                                 {
@@ -360,7 +360,7 @@
                                                 {
                                                     // We're now going to start doing the work for this task.
                                                     var core = await coreRequest.WaitForCoreAsync(CancellationToken.None);
-                                                    _logger.LogInformation($"Got core reservation from: {core.WorkerMachineName} {core.WorkerCoreNumber}");
+                                                    _logger.LogTrace($"Got core reservation from: {core.WorkerMachineName} {core.WorkerCoreNumber}");
                                                     taskStopwatch.Start();
                                                     currentPhaseStopwatch.Start();
                                                     currentPhase = (
@@ -388,7 +388,7 @@
                                                     {
                                                         // Synchronise the tool and determine the hash to
                                                         // use for the actual request.
-                                                        _logger.LogInformation($"{core.WorkerCoreUniqueAssignmentId}: Synchronising tool...");
+                                                        _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Synchronising tool...");
                                                         var toolExecutionInfo = await _toolSynchroniser.SynchroniseToolAndGetXxHash64Async(
                                                             core,
                                                             remotableGraphTask.ToolHashingResult!,
@@ -396,7 +396,7 @@
                                                         taskDescriptor.Remote.ToolExecutionInfo = toolExecutionInfo;
 
                                                         // Notify the client we're changing phases.
-                                                        _logger.LogInformation($"{core.WorkerCoreUniqueAssignmentId}: Sending phase change to client...");
+                                                        _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Sending phase change to client...");
                                                         await SendPhaseChangeAsync(
                                                             TaskPhase.RemoteInputBlobSynchronisation,
                                                             new Dictionary<string, string>
@@ -406,7 +406,7 @@
                                                             });
 
                                                         // Synchronise all of the input blobs.
-                                                        _logger.LogInformation($"{core.WorkerCoreUniqueAssignmentId}: Synchronising {remotableGraphTask.BlobHashingResult!.ContentHashesToContent.Count} blobs...");
+                                                        _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Synchronising {remotableGraphTask.BlobHashingResult!.ContentHashesToContent.Count} blobs...");
                                                         var inputBlobSynchronisation = await _blobSynchroniser.SynchroniseInputBlobsAsync(
                                                             core,
                                                             remotableGraphTask.BlobHashingResult!,
@@ -414,7 +414,7 @@
                                                         taskDescriptor.Remote.InputsByBlobXxHash64 = inputBlobSynchronisation.Result;
 
                                                         // Notify the client we're changing phases.
-                                                        _logger.LogInformation($"{core.WorkerCoreUniqueAssignmentId}: Sending phase change to client...");
+                                                        _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Sending phase change to client...");
                                                         await SendPhaseChangeAsync(
                                                             TaskPhase.TaskExecution,
                                                             new Dictionary<string, string>
@@ -439,7 +439,7 @@
                                                     }
 
                                                     // Execute the task on the core.
-                                                    _logger.LogInformation($"{core.WorkerCoreUniqueAssignmentId}: Executing task...");
+                                                    _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Executing task...");
                                                     var executeTaskRequest = new ExecuteTaskRequest
                                                     {
                                                         Descriptor_ = taskDescriptor,

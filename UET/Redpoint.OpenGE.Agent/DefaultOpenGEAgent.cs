@@ -67,7 +67,7 @@
 
             if (_runLocalWorker)
             {
-                _workerComponent = _workerComponentFactory.Create();
+                _workerComponent = _workerComponentFactory.Create(!_runAsSystemWideService);
                 await _workerComponent.StartAsync(_shutdownCancellationTokenSource.Token);
                 _localWorkerClient = new TaskApi.TaskApiClient(
                     GrpcChannel.ForAddress($"http://127.0.0.1:{_workerComponent.ListeningPort}"));
@@ -115,32 +115,32 @@
             _shutdownCancellationTokenSource = new CancellationTokenSource();
             if (_dispatcherComponent != null)
             {
-                _logger.LogInformation("Agent is stopping dispatcher component...");
+                _logger.LogTrace("Agent is stopping dispatcher component...");
                 await _dispatcherComponent.StopAsync();
                 _dispatcherComponent = null;
             }
             if (_taskApiWorkerPool != null)
             {
-                _logger.LogInformation("Agent is stopping worker pool...");
+                _logger.LogTrace("Agent is stopping worker pool...");
                 await _taskApiWorkerPool.DisposeAsync();
                 _taskApiWorkerPool = null;
             }
             _localWorkerClient = null;
             if (_workerComponent != null)
             {
-                _logger.LogInformation("Agent is stopping worker component...");
+                _logger.LogTrace("Agent is stopping worker component...");
                 await _workerComponent.StopAsync();
                 _workerComponent = null;
             }
             if (_preprocessorComponent != null)
             {
-                _logger.LogInformation("Agent is stopping preprocessor component...");
+                _logger.LogTrace("Agent is stopping preprocessor component...");
                 await _preprocessorComponent.DisposeAsync();
                 _preprocessorComponent = null;
             }
             if (_preprocessorServer != null)
             {
-                _logger.LogInformation("Agent is stopping preprocessor server...");
+                _logger.LogTrace("Agent is stopping preprocessor server...");
                 await _preprocessorServer.StopAsync();
                 _preprocessorServer = null;
             }

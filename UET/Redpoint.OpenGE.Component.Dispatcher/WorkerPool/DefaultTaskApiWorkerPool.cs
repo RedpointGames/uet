@@ -138,7 +138,7 @@
                                 entry.TargetHostname);
                             await newProvider.OnTaskApiDisconnected.AddAsync(OnRemoteWorkerDisconnectedAsync);
                             await _remoteWorkerCoreProviderCollection.AddAsync(newProvider);
-                            _logger.LogInformation($"Discovered remote worker {entry.TargetHostname} at '{entry.ServiceName}'.");
+                            _logger.LogTrace($"Discovered remote worker {entry.TargetHostname} at '{entry.ServiceName}'.");
                         }
                         else
                         {
@@ -163,7 +163,7 @@
             CancellationToken token)
         {
             var castedProvider = (TaskApiWorkerCoreProvider)provider;
-            _logger.LogInformation($"Notified that remote worker {castedProvider.DisplayName} is going away.");
+            _logger.LogTrace($"Notified that remote worker {castedProvider.DisplayName} is going away.");
             await _remoteWorkerCoreProviderCollection!.RemoveAsync(provider);
         }
 
@@ -180,25 +180,25 @@
         {
             using var _ = await _disposing.WaitAsync();
 
-            _logger.LogInformation("Worker pool is now shutting down.");
+            _logger.LogTrace("Worker pool is now shutting down.");
 
             if (!_disposed)
             {
                 if (_localWorkerFulfiller != null)
                 {
-                    _logger.LogInformation("Waiting for local worker request fulfiller to dispose...");
+                    _logger.LogTrace("Waiting for local worker request fulfiller to dispose...");
                     await _localWorkerFulfiller.DisposeAsync();
                 }
                 if (_remoteWorkerFulfiller != null)
                 {
-                    _logger.LogInformation("Waiting for remote worker request fulfiller to dispose...");
+                    _logger.LogTrace("Waiting for remote worker request fulfiller to dispose...");
                     await _remoteWorkerFulfiller.DisposeAsync();
                 }
                 if (_remoteWorkerDiscoveryTask != null)
                 {
                     try
                     {
-                        _logger.LogInformation("Waiting for remote worker discovery task to complete...");
+                        _logger.LogTrace("Waiting for remote worker discovery task to complete...");
                         _disposedCancellationTokenSource.Cancel();
                         await _remoteWorkerDiscoveryTask;
                     }

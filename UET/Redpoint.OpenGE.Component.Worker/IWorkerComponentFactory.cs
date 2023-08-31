@@ -2,6 +2,6 @@
 {
     public interface IWorkerComponentFactory
     {
-        IWorkerComponent Create();
+        IWorkerComponent Create(bool localUseOnly);
     }
 }

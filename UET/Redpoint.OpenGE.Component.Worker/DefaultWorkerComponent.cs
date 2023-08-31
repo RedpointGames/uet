@@ -24,6 +24,7 @@
         private readonly IExecutionManager _executionManager;
         private readonly ILogger<DefaultWorkerComponent> _logger;
         private readonly INetworkAutoDiscovery _networkAutoDiscovery;
+        private readonly bool _localUseOnly;
         private readonly string _workerDisplayName;
         private readonly string _workerUniqueId;
         private readonly SemaphoreSlim _reservationSemaphore;
@@ -38,13 +39,15 @@
             IBlobManager blobManager,
             IExecutionManager executionManager,
             ILogger<DefaultWorkerComponent> logger,
-            INetworkAutoDiscovery networkAutoDiscovery)
+            INetworkAutoDiscovery networkAutoDiscovery,
+            bool localUseOnly)
         {
             _toolManager = toolManager;
             _blobManager = blobManager;
             _executionManager = executionManager;
             _logger = logger;
             _networkAutoDiscovery = networkAutoDiscovery;
+            _localUseOnly = localUseOnly;
             _workerDisplayName = Environment.MachineName;
             _workerUniqueId = Guid.NewGuid().ToString();
 
@@ -80,7 +83,7 @@
             builder.WebHost.ConfigureKestrel(serverOptions =>
             {
                 serverOptions.Listen(
-                    new IPEndPoint(IPAddress.Any, 0),
+                    new IPEndPoint(_localUseOnly ? IPAddress.Loopback : IPAddress.Any, 0),
                     listenOptions =>
                     {
                         listenOptions.Protocols = HttpProtocols.Http2;
@@ -100,12 +103,15 @@
 
             _app = app;
 
-            var autoDiscoveryName = $"{_workerUniqueId}._{WorkerDiscoveryConstants.OpenGEPlatformIdentifier}{WorkerDiscoveryConstants.OpenGEProtocolVersion}-openge._tcp.local";
-            _autoDiscoveryInstance = await _networkAutoDiscovery.RegisterServiceAsync(
-                autoDiscoveryName,
-                _listeningPort.Value,
-                shutdownCancellationToken);
-            _logger.LogInformation($"Worker advertising on auto-discovery name: {autoDiscoveryName}");
+            if (!_localUseOnly)
+            {
+                var autoDiscoveryName = $"{_workerUniqueId}._{WorkerDiscoveryConstants.OpenGEPlatformIdentifier}{WorkerDiscoveryConstants.OpenGEProtocolVersion}-openge._tcp.local";
+                _autoDiscoveryInstance = await _networkAutoDiscovery.RegisterServiceAsync(
+                    autoDiscoveryName,
+                    _listeningPort.Value,
+                    shutdownCancellationToken);
+                _logger.LogInformation($"Worker advertising on auto-discovery name: {autoDiscoveryName}");
+            }
         }
 
         public async Task StopAsync()
@@ -361,7 +367,8 @@
                 }
                 else if (connectionIdleTracker.CancellationToken.IsCancellationRequested)
                 {
-                    _logger.LogWarning($"{uniqueAssignmentId}: The entity calling ReserveCoreAndExecute RPC idled for too long, and the call was cancelled because the reservation was not being used. The last request was {lastRequest} approximately {(DateTimeOffset.UtcNow - lastRequestTime).TotalSeconds} seconds ago.");
+                    // @todo: This maybe should still be a warning, but we need to make sure it doesn't get emitted for in-process.
+                    _logger.LogTrace($"{uniqueAssignmentId}: The entity calling ReserveCoreAndExecute RPC idled for too long, and the call was cancelled because the reservation was not being used. The last request was {lastRequest} approximately {(DateTimeOffset.UtcNow - lastRequestTime).TotalSeconds} seconds ago.");
                     throw new RpcException(new Status(StatusCode.Cancelled, "Connection idled for too long, so the reservation was released."));
                 }
             }

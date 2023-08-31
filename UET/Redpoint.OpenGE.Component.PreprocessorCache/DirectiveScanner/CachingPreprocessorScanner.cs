@@ -50,7 +50,7 @@
             }
             _logger = logger;
             _onDiskPreprocessorScanner = onDiskPreprocessorScanner;
-            _logger.LogInformation($"Preprocessor directive cache initialized in {st.Elapsed.TotalSeconds:F2} seconds.");
+            _logger.LogTrace($"Preprocessor directive cache initialized in {st.Elapsed.TotalSeconds:F2} seconds.");
         }
 
         public void Dispose()

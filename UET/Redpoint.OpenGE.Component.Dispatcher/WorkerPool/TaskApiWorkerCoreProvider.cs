@@ -46,7 +46,7 @@
                 var request = _taskApiClient.ReserveCoreAndExecute(cancellationToken: cancellationToken);
 
                 // Send the request to reserve a core.
-                _logger.LogInformation($"Requesting a core from {_workerDisplayName}...");
+                _logger.LogTrace($"Requesting a core from {_workerDisplayName}...");
                 await request.RequestStream.WriteAsync(new ExecutionRequest
                 {
                     ReserveCore = new ReserveCoreRequest
@@ -68,7 +68,7 @@
                     // is unexpected and we have no recovery from this.
                     throw new RpcException(new Status(StatusCode.Unavailable, "The remote worker responded with a non-ReserveCore response."));
                 }
-                _logger.LogInformation($"Obtained a core from {_workerDisplayName}, pushing it to the queue.");
+                _logger.LogTrace($"Obtained a core from {_workerDisplayName}, pushing it to the queue.");
 
                 // Get information about the reservation.
                 var reservationInfo = request.ResponseStream.Current.ReserveCore;
@@ -120,7 +120,7 @@
 
             private Task OnTerminated(StatusCode statusCode, CancellationToken token)
             {
-                _logger.LogInformation($"Marking core as dead due to status code: {statusCode}");
+                _logger.LogTrace($"Marking core as dead due to status code: {statusCode}");
                 _alive = false;
                 return Task.CompletedTask;
             }

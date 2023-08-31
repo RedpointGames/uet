@@ -55,7 +55,7 @@
             var dispatcherFactory = provider.GetRequiredService<IDispatcherComponentFactory>();
             var workerPoolFactory = provider.GetRequiredService<ITaskApiWorkerPoolFactory>();
 
-            var worker = workerFactory.Create();
+            var worker = workerFactory.Create(true);
             await worker.StartAsync(CancellationToken.None);
             try
             {

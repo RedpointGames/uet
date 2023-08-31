@@ -15,14 +15,15 @@
             _serviceProvider = serviceProvider;
         }
 
-        public IWorkerComponent Create()
+        public IWorkerComponent Create(bool localUseOnly)
         {
             return new DefaultWorkerComponent(
                 _serviceProvider.GetRequiredService<IToolManager>(),
                 _serviceProvider.GetRequiredService<IBlobManager>(),
                 _serviceProvider.GetRequiredService<IExecutionManager>(),
                 _serviceProvider.GetRequiredService<ILogger<DefaultWorkerComponent>>(),
-                _serviceProvider.GetRequiredService<INetworkAutoDiscovery>());
+                _serviceProvider.GetRequiredService<INetworkAutoDiscovery>(),
+                localUseOnly);
         }
     }
 }

@@ -116,7 +116,7 @@
             if (response.QueryMissingBlobs.MissingBlobXxHash64.Count == 0)
             {
                 // We don't have any blobs to transfer.
-                _logger.LogInformation("Remote reports that it is not missing any blobs.");
+                _logger.LogTrace("Remote reports that it is not missing any blobs.");
                 return new BlobSynchronisationResult<InputFilesByBlobXxHash64>
                 {
                     ElapsedUtcTicksHashingInputFiles = hashingResult.ElapsedUtcTicksHashingInputFiles,
@@ -130,7 +130,7 @@
             // Create a stream from the content blobs, and then copy from that stream
             // through the compressor stream, and then read chunks from that stream
             // and send them to the server.
-            _logger.LogInformation($"Remote reports that it is missing {response.QueryMissingBlobs.MissingBlobXxHash64.Count} blobs.");
+            _logger.LogTrace($"Remote reports that it is missing {response.QueryMissingBlobs.MissingBlobXxHash64.Count} blobs.");
             stopwatchSyncing.Start();
             await using (var destination = new SendCompressedBlobsWritableBinaryChunkStream(
                 workerCore.Request.RequestStream))

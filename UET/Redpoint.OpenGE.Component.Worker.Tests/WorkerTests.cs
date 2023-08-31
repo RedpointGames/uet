@@ -21,7 +21,7 @@
             var sp = services.BuildServiceProvider();
 
             var factory = sp.GetRequiredService<IWorkerComponentFactory>();
-            var worker = factory.Create();
+            var worker = factory.Create(true);
             await worker.StartAsync(CancellationToken.None);
             try
             {
@@ -73,7 +73,7 @@
                         ExecutionResponse.ResponseOneofCase.ExecuteTask,
                         duplex.ResponseStream.Current.ResponseCase);
                     switch (duplex.ResponseStream.Current.ExecuteTask.Response.DataCase)
-                    { 
+                    {
                         case ProcessResponse.DataOneofCase.StandardOutputLine:
                             stdout.AppendLine(duplex.ResponseStream.Current.ExecuteTask.Response.StandardOutputLine);
                             break;
