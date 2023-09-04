@@ -138,7 +138,7 @@
                                 entry.TargetHostname);
                             await newProvider.OnTaskApiDisconnected.AddAsync(OnRemoteWorkerDisconnectedAsync);
                             await _remoteWorkerCoreProviderCollection.AddAsync(newProvider);
-                            _logger.LogTrace($"Discovered remote worker {entry.TargetHostname} at '{entry.ServiceName}'.");
+                            _logger.LogInformation($"Discovered remote worker {entry.TargetHostname} at '{entry.ServiceName}'.");
                         }
                         else
                         {
