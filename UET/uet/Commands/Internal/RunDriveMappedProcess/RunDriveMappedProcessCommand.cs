@@ -91,7 +91,8 @@
                         var c = mapping.Split('=', 2, StringSplitOptions.TrimEntries);
                         spec.PerProcessDriveMappings[c[0][0]] = c[1];
 
-                        if (c[0].ToUpperInvariant()[0] == 'C')
+                        if (c[0].ToUpperInvariant()[0] == 'C' &&
+                            !Directory.Exists(Path.Combine(c[1], "Windows")))
                         {
                             var systemRoot = Environment.GetEnvironmentVariable("SYSTEMROOT")!;
                             if (Directory.Exists(systemRoot))

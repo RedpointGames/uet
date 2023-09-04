@@ -4,6 +4,7 @@
     using UET.Commands.Internal.CIBuild;
     using UET.Commands.Internal.CopyAndMutateBuildCs;
     using UET.Commands.Internal.CreateGitHubRelease;
+    using UET.Commands.Internal.CreateJunction;
     using UET.Commands.Internal.DynamicReentrantTask;
     using UET.Commands.Internal.GenerateJsonSchema;
     using UET.Commands.Internal.InstallPlatformSdk;
@@ -47,6 +48,7 @@
                 OpenGEPreprocessorCacheCommand.CreateOpenGEPreprocessorCacheCommand(),
                 OpenGEPreprocessorCacheClientCommand.CreateOpenGEPreprocessorCacheClientCommand(),
                 RunDriveMappedProcessCommand.CreateRunDriveMappedProcessCommand(),
+                CreateJunctionCommand.CreateCreateJunctionCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
