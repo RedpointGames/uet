@@ -253,44 +253,65 @@
                                     localCoreRequest != null &&
                                     downstreamTasks.Count == 1;
                                 Stopwatch? prepareStopwatch = null;
-                                if (!string.IsNullOrWhiteSpace(describingGraphTask.TaskDescriptorFactory.PreparationOperationDescription) &&
-                                    !isLocalCoreCandidateThatCanRunLocally)
+                                IWorkerCoreRequest<ITaskApiWorkerCore>? describingCoreRequest = null;
+                                try
                                 {
-                                    prepareStopwatch = Stopwatch.StartNew();
-                                    await responseStream.WriteAsync(new JobResponse
+                                    if (!string.IsNullOrWhiteSpace(describingGraphTask.TaskDescriptorFactory.PreparationOperationDescription) &&
+                                        !isLocalCoreCandidateThatCanRunLocally)
                                     {
-                                        TaskPreparing = new TaskPreparingResponse
+                                        // We need to allocate a core for this local work, since it might be
+                                        // long running.
+                                        describingCoreRequest = await instance.WorkerPool.ReserveCoreAsync(
+                                            CoreAllocationPreference.RequireLocal,
+                                            instance.CancellationToken);
+
+                                        // Notify the client where we're preparing the descriptor.
+                                        var describingCore = await describingCoreRequest.WaitForCoreAsync(CancellationToken.None);
+                                        prepareStopwatch = Stopwatch.StartNew();
+                                        await responseStream.WriteAsync(new JobResponse
                                         {
-                                            Id = describingGraphTask.GraphTaskSpec.Task.Name,
-                                            DisplayName = describingGraphTask.GraphTaskSpec.Task.Caption,
-                                            OperationDescription = describingGraphTask.TaskDescriptorFactory.PreparationOperationDescription,
-                                        }
-                                    });
+                                            TaskPreparing = new TaskPreparingResponse
+                                            {
+                                                Id = describingGraphTask.GraphTaskSpec.Task.Name,
+                                                DisplayName = describingGraphTask.GraphTaskSpec.Task.Caption,
+                                                OperationDescription = describingGraphTask.TaskDescriptorFactory.PreparationOperationDescription,
+                                                WorkerMachineName = describingCore.WorkerMachineName,
+                                                WorkerCoreNumber = describingCore.WorkerCoreNumber,
+                                            }
+                                        });
+                                    }
+                                    describingGraphTask.TaskDescriptor = taskDescriptor = await describingGraphTask.TaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
+                                        task.GraphTaskSpec,
+                                        isLocalCoreCandidateThatCanRunLocally,
+                                        instance.CancellationToken);
+                                    if (describingGraphTask.TaskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote &&
+                                        !taskDescriptor.Remote.UseFastLocalExecution)
+                                    {
+                                        // We must hash the tools and blobs ahead of time while we don't
+                                        // hold a reservation on a remote worker. We can't spend time hashing
+                                        // data with a reservation open because remote workers will kick us for
+                                        // being idle.
+                                        await Task.WhenAll(
+                                            Task.Run(async () =>
+                                            {
+                                                describingGraphTask.ToolHashingResult = await _toolSynchroniser.HashToolAsync(
+                                                    describingGraphTask.TaskDescriptor.Remote,
+                                                    instance.CancellationToken);
+                                            }),
+                                            Task.Run(async () =>
+                                            {
+                                                describingGraphTask.BlobHashingResult = await _blobSynchroniser.HashInputBlobsAsync(
+                                                    describingGraphTask.TaskDescriptor.Remote,
+                                                    instance.CancellationToken);
+                                            }));
+                                    }
                                 }
-                                describingGraphTask.TaskDescriptor = taskDescriptor = await describingGraphTask.TaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
-                                    task.GraphTaskSpec,
-                                    isLocalCoreCandidateThatCanRunLocally,
-                                    instance.CancellationToken);
-                                if (describingGraphTask.TaskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote &&
-                                    !taskDescriptor.Remote.UseFastLocalExecution)
+                                finally
                                 {
-                                    // We must hash the tools and blobs ahead of time while we don't
-                                    // hold a reservation on a remote worker. We can't spend time hashing
-                                    // data with a reservation open because remote workers will kick us for
-                                    // being idle.
-                                    await Task.WhenAll(
-                                        Task.Run(async () =>
-                                        {
-                                            describingGraphTask.ToolHashingResult = await _toolSynchroniser.HashToolAsync(
-                                                describingGraphTask.TaskDescriptor.Remote,
-                                                instance.CancellationToken);
-                                        }),
-                                        Task.Run(async () =>
-                                        {
-                                            describingGraphTask.BlobHashingResult = await _blobSynchroniser.HashInputBlobsAsync(
-                                                describingGraphTask.TaskDescriptor.Remote,
-                                                instance.CancellationToken);
-                                        }));
+                                    if (describingCoreRequest != null)
+                                    {
+                                        await describingCoreRequest.DisposeAsync();
+                                    }
                                 }
                                 if (prepareStopwatch != null &&
                                     !isLocalCoreCandidateThatCanRunLocally)
