@@ -19,6 +19,7 @@
             services.AddSingleton<ITaskDescriptorFactory, RemoteClangTaskDescriptorFactory>();
 
             services.AddSingleton<IMsvcResponseFileParser, DefaultMsvcResponseFileParser>();
+            services.AddSingleton<ICommonPlatformDefines, DefaultCommonPlatformDefines>();
 
             services.AddSingleton<IGraphGenerator, DefaultGraphGenerator>();
             services.AddSingleton<IGraphExecutor, DefaultGraphExecutor>();

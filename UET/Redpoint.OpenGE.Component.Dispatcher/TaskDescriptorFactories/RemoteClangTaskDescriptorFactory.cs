@@ -14,15 +14,18 @@
         private readonly ILogger<RemoteClangTaskDescriptorFactory> _logger;
         private readonly LocalTaskDescriptorFactory _localTaskDescriptorFactory;
         private readonly IMsvcResponseFileParser _msvcResponseFileParser;
+        private readonly ICommonPlatformDefines _commonPlatformDefines;
 
         public RemoteClangTaskDescriptorFactory(
             ILogger<RemoteClangTaskDescriptorFactory> logger,
             LocalTaskDescriptorFactory localTaskDescriptorFactory,
-            IMsvcResponseFileParser msvcResponseFileParser)
+            IMsvcResponseFileParser msvcResponseFileParser,
+            ICommonPlatformDefines commonPlatformDefines)
         {
             _logger = logger;
             _localTaskDescriptorFactory = localTaskDescriptorFactory;
             _msvcResponseFileParser = msvcResponseFileParser;
+            _commonPlatformDefines = commonPlatformDefines;
         }
 
         public override string PreparationOperationDescription => "parsing headers";
@@ -159,33 +162,9 @@
                     PatchVersion = 7,
                     EmulatedMsvcVersion = 1935 /* 2022 17.5 */,
                     EmulatedMsvcFullVersion = 193599999 /* Latest 2022 17.5 */,
-                },
-                TargetPlatformNumericDefines =
-                {
-                    { "__x86_64__", 1 },
-                    { "_WIN32", 1 },
-                    { "_WIN64", 1 },
-                    { "_WIN32_WINNT", 0x0601 /* Windows 7 */ },
-                    { "_WIN32_WINNT_WIN10_TH2", 0x0A01 },
-                    { "_WIN32_WINNT_WIN10_RS1", 0x0A02 },
-                    { "_WIN32_WINNT_WIN10_RS2", 0x0A03 },
-                    { "_WIN32_WINNT_WIN10_RS3", 0x0A04 },
-                    { "_WIN32_WINNT_WIN10_RS4", 0x0A05 },
-                    { "_NT_TARGET_VERSION_WIN10_RS4", 0x0A05 },
-                    { "_WIN32_WINNT_WIN10_RS5", 0x0A06 },
-                    { "_M_X64", 1 },
-                    { "_VCRT_COMPILER_PREPROCESSOR", 1 },
-                    /*
-                     * Some undocumented define that the Windows headers rely on 
-                     * for Compiled Hybrid Portable Executable (CHPE) support, 
-                     * which is for x86 binaries that include ARM code. This
-                     * undocumented feature has since been replaced with ARM64EC,
-                     * so we don't need to actually support this; we just need the
-                     * define so the headers work.
-                     */
-                    { "_M_HYBRID", 0 },
                 }
             };
+            _commonPlatformDefines.ApplyDefines("Win64", compilerArchitype);
             foreach (var arg in commandArguments.Where(x => x.StartsWith("/D")))
             {
                 var define = arg.Substring(2).Split('=', 2);
