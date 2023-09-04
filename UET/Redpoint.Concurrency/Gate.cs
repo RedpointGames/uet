@@ -73,5 +73,23 @@
             _semaphore.Wait();
             _semaphore.Release();
         }
+
+        /// <summary>
+        /// Wait synchronously until the gate is opened or the elapsed milliseconds have passed.
+        /// </summary>
+        public bool TryWait(int elapsedMilliseconds)
+        {
+            if (_opened)
+            {
+                return true;
+            }
+
+            if (!_semaphore.Wait(elapsedMilliseconds))
+            {
+                return false;
+            }
+            _semaphore.Release();
+            return true;
+        }
     }
 }
