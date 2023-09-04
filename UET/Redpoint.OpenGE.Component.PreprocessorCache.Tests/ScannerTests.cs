@@ -17,6 +17,17 @@
         }
 
         [SkippableFact]
+        public void ScanWindowsHeaderShellAPI()
+        {
+            var path = @"C:\Program Files (x86)\Windows Kits\10\include\10.0.22000.0\um\ShellAPI.h";
+            Skip.IfNot(File.Exists(path), "Requires Windows SDK to be present at a specific path.");
+            var lines = File.ReadAllLines(path);
+
+            // @note: We just want to make sure this gets parsed correctly.
+            _ = PreprocessorScanner.Scan(lines);
+        }
+
+        [SkippableFact]
         public void ScanWindowsHeader()
         {
             var path = @"C:\ProgramData\UET\SDKs\AutoSDK-j1pdvjgatfleort-x.8l\HostWin64\Win64\Windows Kits\10\include\10.0.18362.0\um\Windows.h";
@@ -24,6 +35,20 @@
             var lines = File.ReadAllLines(path);
 
             // @note: We just want to make sure this gets parsed correctly.
+            _ = PreprocessorScanner.Scan(lines);
+        }
+
+        [Fact]
+        public void ScanBoostWorkaround()
+        {
+            var lines = new[]
+            {
+                @"#define BOOST_WORKAROUND(symbol, test)                \",
+                @"       ((symbol ## _WORKAROUND_GUARD + 0 == 0) &&     \",
+                @"       (symbol != 0) && (1 % (( (symbol test) ) + 1)))",
+            };
+
+            // @note: This should work.
             _ = PreprocessorScanner.Scan(lines);
         }
 

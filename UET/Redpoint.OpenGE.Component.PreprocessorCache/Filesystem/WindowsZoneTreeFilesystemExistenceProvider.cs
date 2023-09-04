@@ -18,7 +18,7 @@
     using static Windows.Win32.PInvoke;
 
     [SupportedOSPlatform("windows5.2")]
-    internal class WindowsZoneTreeFilesystemExistenceProvider : IFilesystemExistenceProvider, IAsyncDisposable
+    internal class WindowsZoneTreeFilesystemExistenceProvider : IFilesystemExistenceProvider, IAsyncDisposable, IRefComparer<long>
     {
         private readonly IZoneTree<long, FilesystemExistenceEntry>? _disk;
         private readonly ConcurrentDictionary<long, (bool exists, long lastCheckTicks)>? _inMemoryFallback;
@@ -38,6 +38,7 @@
             var st = Stopwatch.StartNew();
             var factory = new ZoneTreeFactory<long, FilesystemExistenceEntry>()
                 .SetDataDirectory(_reservation.ReservedPath)
+                .SetComparer(this)
                 .SetDiskSegmentCompression(false)
                 .SetValueSerializer(new ProtobufZoneTreeSerializer<FilesystemExistenceEntry>());
             try
@@ -108,6 +109,11 @@
             {
                 await _reservation.DisposeAsync();
             }
+        }
+
+        int IRefComparer<long>.Compare(in long x, in long y)
+        {
+            return x.CompareTo(y);
         }
     }
 }

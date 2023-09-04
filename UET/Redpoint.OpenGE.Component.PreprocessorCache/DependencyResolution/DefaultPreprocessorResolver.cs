@@ -45,6 +45,7 @@
             public required string Path;
             public required string[] IncludeParentPaths;
             public readonly Gate Completed = new Gate();
+            public readonly Gate Started = new Gate();
             public bool Cancelled;
             public string? FoundPath;
             public string? SearchValue;
@@ -108,6 +109,7 @@
 
                     try
                     {
+                        request.Started.Open();
                         request.FoundPath = ResolveIncludeDirective(
                             request.State,
                             request.Directive,
@@ -432,7 +434,9 @@
                         case PreprocessorExpressionToken.DataOneofCase.Identifier:
                             if (!state.CurrentDefinitions.ContainsKey(condition.Token.Identifier))
                             {
-                                throw new PreprocessorIdentifierNotDefinedException($"Macro identifier '{condition.Token.Identifier}' is not defined during condition.");
+                                // The C/C++ standard says that undefined preprocessor identifiers
+                                // evaluate to 0 by default.
+                                return 0;
                             }
 
                             // Expand the identifier, then re-parse and evaluate
@@ -506,9 +510,9 @@
                         case PreprocessorExpressionTokenType.Multiply:
                             return lhs * rhs;
                         case PreprocessorExpressionTokenType.Divide:
-                            return lhs / rhs;
+                            return rhs == 0 ? 0 : (lhs / rhs);
                         case PreprocessorExpressionTokenType.Modulus:
-                            return lhs % rhs;
+                            return rhs == 0 ? 0 : (lhs % rhs);
                         case PreprocessorExpressionTokenType.Add:
                             return lhs + rhs;
                         case PreprocessorExpressionTokenType.Subtract:
@@ -551,6 +555,35 @@
             }
         }
 
+        private static PreprocessorExpression EvaluateNonrecursiveExpansion(
+            PreprocessorState state,
+            PreprocessorExpression original,
+            Dictionary<string, PreprocessorExpression> replacements)
+        {
+            switch (original.ExprCase)
+            {
+                case PreprocessorExpression.ExprOneofCase.Unary:
+                    return new PreprocessorExpression
+                    {
+                        Unary = new PreprocessorExpressionUnary
+                        {
+                            Type = original.Unary.Type,
+                            Expression = EvaluateNonrecursiveExpansion(state, original.Unary.Expression, replacements)
+                        }
+                    };
+                case PreprocessorExpression.ExprOneofCase.Whitespace:
+                case PreprocessorExpression.ExprOneofCase.Defined:
+                case PreprocessorExpression.ExprOneofCase.HasInclude:
+                    return original;
+                case PreprocessorExpression.ExprOneofCase.Invoke:
+                    break;
+                    // @todo: Finish this function. It needs to expand arguments without 
+                    // resolving tokens.
+            }
+
+            throw new NotImplementedException();
+        }
+
         private static Dictionary<string, PreprocessorExpression> ComputeReplacements(
             PreprocessorState state,
             PreprocessorExpressionInvoke invoke,
@@ -577,12 +610,10 @@
                             });
                         }
                         chain.Expressions.Add(
-                            PreprocessorExpressionParser.ParseExpansion(
-                                PreprocessorExpressionLexer.Lex(
-                                    EvaluateExpansion(
-                                    state,
-                                    invoke.Arguments[a],
-                                    upstreamReplacements))));
+                            EvaluateNonrecursiveExpansion(
+                                state,
+                                invoke.Arguments[a],
+                                upstreamReplacements));
                     }
                     replacements.Add("__VA_ARGS__", new PreprocessorExpression { Chain = chain });
                 }
@@ -590,12 +621,10 @@
                 {
                     replacements.Add(
                         parameter,
-                        PreprocessorExpressionParser.ParseExpansion(
-                            PreprocessorExpressionLexer.Lex(
-                                EvaluateExpansion(
-                                state,
-                                invoke.Arguments[i],
-                                upstreamReplacements))));
+                        EvaluateNonrecursiveExpansion(
+                            state,
+                            invoke.Arguments[i],
+                            upstreamReplacements));
                 }
                 else
                 {
@@ -976,9 +1005,33 @@
                         forwardScannerLookup.ContainsKey(directive.Include.DirectiveId) &&
                         ForwardIncludeScanner.TryPullRequest(forwardScannerLookup[directive.Include.DirectiveId], out var request))
                     {
-                        request.Completed.Wait();
-                        foundPath = request.FoundPath;
-                        searchValue = request.SearchValue;
+                        if (request.Completed.TryWait(0))
+                        {
+                            foundPath = request.FoundPath;
+                            searchValue = request.SearchValue;
+                        }
+                        else if (request.Started.TryWait(0))
+                        {
+                            // The forward scanner has started doing the work (i.e. it's not
+                            // still in the request queue), so actually just wait for it to be
+                            // done.
+                            request.Completed.Wait();
+                            foundPath = request.FoundPath;
+                            searchValue = request.SearchValue;
+                        }
+                        else
+                        {
+                            // Cancel the request.
+                            request.Cancelled = true;
+
+                            // Do the work ourselves.
+                            foundPath = ResolveIncludeDirective(
+                                state,
+                                directive.Include,
+                                path,
+                                includeParentPaths,
+                                out searchValue);
+                        }
                     }
                     else
                     {
@@ -1047,16 +1100,16 @@
                     var expandedInclude = EvaluateExpansion(
                         state,
                         directive.Expansion,
-                        new Dictionary<string, PreprocessorExpression>());
+                        new Dictionary<string, PreprocessorExpression>()).Trim();
                     if (expandedInclude.StartsWith('"'))
                     {
                         effectiveCase = PreprocessorDirectiveInclude.IncludeOneofCase.Normal;
-                        effectiveValue = expandedInclude.Trim('"');
+                        effectiveValue = expandedInclude.Trim('"').Trim();
                     }
                     else if (expandedInclude.StartsWith('<'))
                     {
                         effectiveCase = PreprocessorDirectiveInclude.IncludeOneofCase.System;
-                        effectiveValue = expandedInclude.TrimStart('<').TrimEnd('>');
+                        effectiveValue = expandedInclude.TrimStart('<').TrimEnd('>').Trim();
                     }
                     else
                     {
