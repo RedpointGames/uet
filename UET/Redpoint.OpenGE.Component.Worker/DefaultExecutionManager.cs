@@ -4,6 +4,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Component.Worker.TaskDescriptorExecutors;
     using Redpoint.OpenGE.Protocol;
+    using System.Net;
     using System.Threading.Tasks;
 
     internal class DefaultExecutionManager : IExecutionManager
@@ -26,7 +27,8 @@
         }
 
         public async Task ExecuteTaskAsync(
-            ExecuteTaskRequest request, 
+            IPAddress peerAddress,
+            ExecuteTaskRequest request,
             IServerStreamWriter<ExecutionResponse> responseStream,
             CancellationToken cancellationToken)
         {
@@ -59,7 +61,8 @@
                 {
                     shouldRestart = false;
                     var processResponseStream = GetProcessResponseStreamFromRequest(
-                        request, 
+                        peerAddress,
+                        request,
                         restartingCancellationTokenSource.Token);
                     var didGetExitCode = false;
                     await foreach (var response in processResponseStream)
@@ -160,23 +163,29 @@
             }
         }
 
-        private IAsyncEnumerable<ExecuteTaskResponse> GetProcessResponseStreamFromRequest(ExecuteTaskRequest request, CancellationToken cancellationToken)
+        private IAsyncEnumerable<ExecuteTaskResponse> GetProcessResponseStreamFromRequest(
+            IPAddress peerAddress,
+            ExecuteTaskRequest request,
+            CancellationToken cancellationToken)
         {
             IAsyncEnumerable<ExecuteTaskResponse> processResponseStream;
             switch (request.Descriptor_.DescriptorCase)
             {
                 case TaskDescriptor.DescriptorOneofCase.Local:
                     processResponseStream = _localTaskExecutor.ExecuteAsync(
+                        peerAddress,
                         request.Descriptor_.Local,
                         cancellationToken);
                     break;
                 case TaskDescriptor.DescriptorOneofCase.Copy:
                     processResponseStream = _copyTaskExecutor.ExecuteAsync(
+                        peerAddress,
                         request.Descriptor_.Copy,
                         cancellationToken);
                     break;
                 case TaskDescriptor.DescriptorOneofCase.Remote:
                     processResponseStream = _remoteTaskExecutor.ExecuteAsync(
+                        peerAddress,
                         request.Descriptor_.Remote,
                         cancellationToken);
                     break;

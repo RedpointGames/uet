@@ -17,6 +17,7 @@
             services.AddSingleton<ITaskDescriptorFactory>(sp => sp.GetRequiredService<LocalTaskDescriptorFactory>());
             services.AddSingleton<ITaskDescriptorFactory, RemoteMsvcClTaskDescriptorFactory>();
             services.AddSingleton<ITaskDescriptorFactory, RemoteClangTaskDescriptorFactory>();
+            services.AddSingleton<ITaskDescriptorFactory, RemoteGenericTaskDescriptorFactory>();
 
             services.AddSingleton<IMsvcResponseFileParser, DefaultMsvcResponseFileParser>();
             services.AddSingleton<ICommonPlatformDefines, DefaultCommonPlatformDefines>();
@@ -30,6 +31,7 @@
 
             services.AddSingleton<IToolSynchroniser, DefaultToolSynchroniser>();
             services.AddSingleton<IBlobSynchroniser, DefaultBlobSynchroniser>();
+            services.AddSingleton<IRemoteFsManager, DefaultRemoteFsManager>();
         }
     }
 }

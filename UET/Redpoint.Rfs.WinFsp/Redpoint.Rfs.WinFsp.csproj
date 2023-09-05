@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.WinFsp\Redpoint.ThirdParty.WinFsp.csproj" />
+    <ProjectReference Include="..\Redpoint.IO\Redpoint.IO.csproj" />
   </ItemGroup>
 
   <ItemGroup>

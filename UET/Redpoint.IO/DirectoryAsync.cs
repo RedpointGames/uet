@@ -19,7 +19,7 @@
                         new EnumerationOptions
                         {
                             AttributesToSkip = FileAttributes.System,
-                            RecurseSubdirectories = true
+                            RecurseSubdirectories = true,
                         }))
                     {
                         var attrs = File.GetAttributes(entry);

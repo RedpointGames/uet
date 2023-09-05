@@ -53,9 +53,9 @@
             "WT_SESSION",
         };
 
-        public abstract string PreparationOperationDescription { get; }
+        public abstract string? PreparationOperationDescription { get; }
 
-        public abstract string PreparationOperationCompletedDescription { get; }
+        public abstract string? PreparationOperationCompletedDescription { get; }
 
         public abstract int ScoreTaskSpec(GraphTaskSpec spec);
 

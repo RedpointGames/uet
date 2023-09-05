@@ -5,12 +5,9 @@
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
-    using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
-    using Redpoint.OpenGE.Core;
     using System.IO;
     using System.Threading;
-    using Tenray.ZoneTree.Logger;
     using Redpoint.OpenGE.Component.Dispatcher.TaskDescriptorFactories.Msvc;
 
     internal class RemoteMsvcClTaskDescriptorFactory : RemoteTaskDescriptorFactory
@@ -115,15 +112,16 @@
             inputsByPathOrContent.AbsolutePaths.AddRange(msvcParsedResponseFile.DependentFiles.DependsOnPaths);
             inputsByPathOrContent.AbsolutePaths.Add(msvcParsedResponseFile.ResponseFilePath);
             inputsByPathOrContent.AbsolutePaths.Add(msvcParsedResponseFile.InputFile.FullName);
-            descriptor.InputsByPathOrContent = inputsByPathOrContent;
-            descriptor.OutputAbsolutePaths.Add(msvcParsedResponseFile.OutputFile.FullName);
+            descriptor.TransferringStorageLayer = new TransferringStorageLayer();
+            descriptor.TransferringStorageLayer.InputsByPathOrContent = inputsByPathOrContent;
+            descriptor.TransferringStorageLayer.OutputAbsolutePaths.Add(msvcParsedResponseFile.OutputFile.FullName);
             if (msvcParsedResponseFile.SourceDependencies != null)
             {
-                descriptor.OutputAbsolutePaths.Add(msvcParsedResponseFile.SourceDependencies.FullName);
+                descriptor.TransferringStorageLayer.OutputAbsolutePaths.Add(msvcParsedResponseFile.SourceDependencies.FullName);
             }
             if (msvcParsedResponseFile.PchCacheFile != null && msvcParsedResponseFile.IsCreatingPch)
             {
-                descriptor.OutputAbsolutePaths.Add(msvcParsedResponseFile.PchCacheFile.FullName);
+                descriptor.TransferringStorageLayer.OutputAbsolutePaths.Add(msvcParsedResponseFile.PchCacheFile.FullName);
             }
 
             return new TaskDescriptor { Remote = descriptor };

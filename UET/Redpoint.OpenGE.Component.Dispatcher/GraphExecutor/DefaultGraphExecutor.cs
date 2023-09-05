@@ -17,15 +17,18 @@
         private readonly ILogger<DefaultGraphExecutor> _logger;
         private readonly IToolSynchroniser _toolSynchroniser;
         private readonly IBlobSynchroniser _blobSynchroniser;
+        private readonly IRemoteFsManager _remoteFsManager;
 
         public DefaultGraphExecutor(
             ILogger<DefaultGraphExecutor> logger,
             IToolSynchroniser toolSynchroniser,
-            IBlobSynchroniser blobSynchroniser)
+            IBlobSynchroniser blobSynchroniser,
+            IRemoteFsManager remoteFsManager)
         {
             _logger = logger;
             _toolSynchroniser = toolSynchroniser;
             _blobSynchroniser = blobSynchroniser;
+            _remoteFsManager = remoteFsManager;
         }
 
         public async Task ExecuteGraphAsync(
@@ -466,19 +469,17 @@
                                                     { "tool.executableName", taskDescriptor.Remote.ToolExecutionInfo.ToolExecutableName },
                                                 });
 
-                                            // Synchronise all of the input blobs.
-                                            _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Synchronising {remotableGraphTask.BlobHashingResult!.ContentHashesToContent.Count} blobs...");
-                                            var inputBlobSynchronisation = await _blobSynchroniser.SynchroniseInputBlobsAsync(
-                                                core,
-                                                remotableGraphTask.BlobHashingResult!,
-                                                instance.CancellationToken);
-                                            taskDescriptor.Remote.InputsByBlobXxHash64 = inputBlobSynchronisation.Result;
-
-                                            // Notify the client we're changing phases.
-                                            _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Sending phase change to client...");
-                                            await SendPhaseChangeAsync(
-                                                TaskPhase.TaskExecution,
-                                                new Dictionary<string, string>
+                                            // Synchronise all of the input blobs if needed.
+                                            Dictionary<string, string> syncPhaseStats;
+                                            if (taskDescriptor.Remote.StorageLayerCase == RemoteTaskDescriptor.StorageLayerOneofCase.TransferringStorageLayer)
+                                            {
+                                                _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Synchronising {remotableGraphTask.BlobHashingResult!.ContentHashesToContent.Count} blobs...");
+                                                var inputBlobSynchronisation = await _blobSynchroniser.SynchroniseInputBlobsAsync(
+                                                    core,
+                                                    remotableGraphTask.BlobHashingResult!,
+                                                    instance.CancellationToken);
+                                                taskDescriptor.Remote.TransferringStorageLayer.InputsByBlobXxHash64 = inputBlobSynchronisation.Result;
+                                                syncPhaseStats = new Dictionary<string, string>
                                                 {
                                                     {
                                                         "inputBlobSync.elapsedUtcTicksHashingInputFiles",
@@ -496,7 +497,24 @@
                                                         "inputBlobSync.compressedDataTransferLength",
                                                         inputBlobSynchronisation.CompressedDataTransferLength.ToString(CultureInfo.InvariantCulture)
                                                     },
-                                                });
+                                                };
+                                            }
+                                            else
+                                            {
+                                                syncPhaseStats = new Dictionary<string, string>();
+                                            }
+
+                                            // Set up the remote FS port if that is the storage layer we're using.
+                                            if (taskDescriptor.Remote.StorageLayerCase == RemoteTaskDescriptor.StorageLayerOneofCase.RemoteFsStorageLayer)
+                                            {
+                                                taskDescriptor.Remote.RemoteFsStorageLayer.RemotePort = await _remoteFsManager.StartRemoteFsIfNeededAsync();
+                                            }
+
+                                            // Notify the client we're changing phases.
+                                            _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Sending phase change to client...");
+                                            await SendPhaseChangeAsync(
+                                                TaskPhase.TaskExecution,
+                                                syncPhaseStats);
                                         }
 
                                         // Execute the task on the core.
@@ -573,6 +591,7 @@
 
                                         // If we were successful, synchronise the output blobs back.
                                         if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote &&
+                                            taskDescriptor.Remote.StorageLayerCase == RemoteTaskDescriptor.StorageLayerOneofCase.TransferringStorageLayer &&
                                             status == TaskCompletionStatus.TaskCompletionSuccess &&
                                             finalExecuteTaskResponse.OutputAbsolutePathsToBlobXxHash64 != null &&
                                             !taskDescriptor.Remote.UseFastLocalExecution)

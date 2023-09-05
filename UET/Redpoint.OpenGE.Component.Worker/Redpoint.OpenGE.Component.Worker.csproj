@@ -24,12 +24,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.WinFsp\Redpoint.ThirdParty.WinFsp.csproj" />
     <ProjectReference Include="..\Redpoint.ApplicationLifecycle\Redpoint.ApplicationLifecycle.csproj" />
     <ProjectReference Include="..\Redpoint.IO\Redpoint.IO.csproj" />
+    <ProjectReference Include="..\Redpoint.Logging\Redpoint.Logging.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Core\Redpoint.OpenGE.Core.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Protocol\Redpoint.OpenGE.Protocol.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.Reservation\Redpoint.Reservation.csproj" />
+    <ProjectReference Include="..\Redpoint.Rfs.WinFsp\Redpoint.Rfs.WinFsp.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="$(UET_BUILDING_ON_BUILD_SERVER) != 'true'">

@@ -16,6 +16,7 @@
     using Google.Protobuf;
     using Redpoint.OpenGE.Core;
     using Redpoint.AutoDiscovery;
+    using Redpoint.Logging;
 
     internal class DefaultWorkerComponent : TaskApi.TaskApiBase, IWorkerComponent
     {
@@ -323,6 +324,7 @@
                             try
                             {
                                 await _executionManager.ExecuteTaskAsync(
+                                    GrpcPeerParser.ParsePeer(context).Address,
                                     requestStream.Current.ExecuteTask,
                                     responseStream,
                                     context.CancellationToken);

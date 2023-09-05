@@ -248,23 +248,24 @@
             inputsByPathOrContent.AbsolutePaths.Add(compileCommandDatabase);
             inputsByPathOrContent.AbsolutePaths.Add(msvcParsedResponseFile.ResponseFilePath);
             inputsByPathOrContent.AbsolutePaths.Add(msvcParsedResponseFile.InputFile.FullName);
-            descriptor.InputsByPathOrContent = inputsByPathOrContent;
-            descriptor.OutputAbsolutePaths.Add(msvcParsedResponseFile.OutputFile.FullName);
+            descriptor.TransferringStorageLayer = new TransferringStorageLayer();
+            descriptor.TransferringStorageLayer.InputsByPathOrContent = inputsByPathOrContent;
+            descriptor.TransferringStorageLayer.OutputAbsolutePaths.Add(msvcParsedResponseFile.OutputFile.FullName);
             if (msvcParsedResponseFile.SourceDependencies != null)
             {
-                descriptor.OutputAbsolutePaths.Add(msvcParsedResponseFile.SourceDependencies.FullName);
+                descriptor.TransferringStorageLayer.OutputAbsolutePaths.Add(msvcParsedResponseFile.SourceDependencies.FullName);
             }
             if (msvcParsedResponseFile.ClangDepfile != null)
             {
-                descriptor.OutputAbsolutePaths.Add(msvcParsedResponseFile.ClangDepfile.FullName);
+                descriptor.TransferringStorageLayer.OutputAbsolutePaths.Add(msvcParsedResponseFile.ClangDepfile.FullName);
             }
             if (msvcParsedResponseFile.PchCacheFile != null && msvcParsedResponseFile.IsCreatingPch)
             {
-                descriptor.OutputAbsolutePaths.Add(msvcParsedResponseFile.PchCacheFile.FullName);
+                descriptor.TransferringStorageLayer.OutputAbsolutePaths.Add(msvcParsedResponseFile.PchCacheFile.FullName);
             }
             if (touchPathFile != null)
             {
-                descriptor.OutputAbsolutePaths.Add(touchPathFile);
+                descriptor.TransferringStorageLayer.OutputAbsolutePaths.Add(touchPathFile);
             }
 
             return new TaskDescriptor { Remote = descriptor };

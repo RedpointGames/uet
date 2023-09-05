@@ -144,7 +144,10 @@ message FlushResponse {
 }
 
 message GetFileInfoRequest {
-    int64 handle = 1;
+    oneof type {
+        int64 handle = 1;
+        string fileName = 2;
+    }
 }
 
 message GetFileInfoResponse {
@@ -224,6 +227,8 @@ message ReadDirectoryRequest {
     string pattern = 3;
     bool hasMarker = 4;
     string marker = 5;
+    repeated string additionalSubdirectories = 6;
+    repeated string additionalJunctions = 7;
 }
 
 message ReadDirectoryEntryResponse {

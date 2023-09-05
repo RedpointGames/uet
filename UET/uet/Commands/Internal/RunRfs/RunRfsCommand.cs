@@ -8,6 +8,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
+    using Redpoint.Logging;
     using Redpoint.Rfs.WinFsp;
     using System;
     using System.Collections.Generic;
@@ -26,6 +27,7 @@
             public Option<string?> Path = new Option<string?>("--path", "The path to serve the remote filesystem from.");
             public Option<string?> ConnectTo = new Option<string?>("--connect-to", "The address of the RFS host to connect to.");
             public Option<int?> ServingPort = new Option<int?>("--serving-port", "The port to serve RFS on this machine.");
+            public Option<string[]> Junctions = new Option<string[]>("--junction", "An additional path to junction to the local machine.");
         }
 
         public static Command CreateRunRfsCommand()
@@ -60,6 +62,7 @@
                 var path = context.ParseResult.GetValueForOption(_options.Path);
                 var connectTo = context.ParseResult.GetValueForOption(_options.ConnectTo);
                 var servingPort = context.ParseResult.GetValueForOption(_options.ServingPort);
+                var junctions = context.ParseResult.GetValueForOption(_options.Junctions) ?? Array.Empty<string>();
 
                 WebApplication? app = null;
                 if (servingPort != null || (connectTo == null && path != null))
@@ -112,12 +115,14 @@
                     fs = new WindowsRfsClient(
                         new WindowsRfs.WindowsRfsClient(
                             GrpcChannel.ForAddress(connectTo!)));
+                    fs.AddAdditionalReparsePoints(junctions);
                     host = new FileSystemHost(fs);
                     var mountResult = host.Mount(Path.GetFullPath(path));
                     if (mountResult < 0)
                     {
                         _logger.LogError($"Failed to mount WinFsp filesystem: 0x{mountResult:X}");
                     }
+                    _logger.LogInformation($"WinFsp mounted RFS to: {Path.GetFullPath(path)}");
                 }
 
                 try
@@ -140,54 +145,6 @@
                 }
 
                 return 0;
-            }
-        }
-
-        private class ForwardingLoggerProvider : ILoggerProvider
-        {
-            private readonly ILogger _logger;
-
-            private class ForwardingLogger : ILogger
-            {
-                private readonly ILogger _logger;
-
-                public ForwardingLogger(ILogger logger)
-                {
-                    _logger = logger;
-                }
-
-                public IDisposable? BeginScope<TState>(TState state) where TState : notnull
-                {
-                    return _logger.BeginScope(state);
-                }
-
-                public bool IsEnabled(LogLevel logLevel)
-                {
-                    return _logger.IsEnabled(logLevel);
-                }
-
-                public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-                {
-                    if (logLevel == LogLevel.Information)
-                    {
-                        logLevel = LogLevel.Trace;
-                    }
-                    _logger.Log(logLevel, eventId, state, exception, formatter);
-                }
-            }
-
-            public ForwardingLoggerProvider(ILogger logger)
-            {
-                _logger = logger;
-            }
-
-            public ILogger CreateLogger(string categoryName)
-            {
-                return new ForwardingLogger(_logger);
-            }
-
-            public void Dispose()
-            {
             }
         }
     }

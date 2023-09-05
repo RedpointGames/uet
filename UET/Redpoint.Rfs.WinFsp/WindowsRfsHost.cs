@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Rfs.WinFsp
 {
     using Fsp;
+    using Fsp.Interop;
     using Google.Protobuf;
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
@@ -23,16 +24,6 @@
         private long _nextHandle = 1000;
         private static DirectoryEntryComparer _directoryEntryComparer =
             new DirectoryEntryComparer();
-
-        private class DirectoryEntryComparer : IComparer
-        {
-            public int Compare(object? x, object? y)
-            {
-                return String.Compare(
-                    (String)((DictionaryEntry)x!).Key,
-                    (String)((DictionaryEntry)y!).Key);
-            }
-        }
 
         public WindowsRfsHost(ILogger logger)
         {
@@ -158,7 +149,7 @@
                 else if (request.FileName.Length == 2)
                 {
                     var fileName = RealPath(request.FileName);
-                    var info = new FileInfo(fileName);
+                    var info = new System.IO.FileInfo(fileName);
                     var result = new GetSecurityByNameResponse
                     {
                         FileAttributes = (uint)info.Attributes,
@@ -173,7 +164,7 @@
                 else
                 {
                     var fileName = RealPath(request.FileName);
-                    var info = new FileInfo(fileName);
+                    var info = new System.IO.FileInfo(fileName);
                     var result = new GetSecurityByNameResponse
                     {
                         FileAttributes = (uint)info.Attributes,
@@ -599,24 +590,60 @@
         {
             try
             {
-                WindowsFileDesc fileDesc = _openHandles[request.Handle];
-                var result = fileDesc.GetFileInfo(out var fileInfo);
-                if (result == FileSystemBase.STATUS_SUCCESS)
+                if (request.TypeCase == GetFileInfoRequest.TypeOneofCase.Handle)
                 {
-                    return Task.FromResult(new GetFileInfoResponse
+                    WindowsFileDesc fileDesc = _openHandles[request.Handle];
+                    var result = fileDesc.GetFileInfo(out var fileInfo);
+                    if (result == FileSystemBase.STATUS_SUCCESS)
                     {
-                        Success = true,
-                        FileInfo = ConvertFileInfo(fileInfo),
-                        Result = result,
-                    });
+                        return Task.FromResult(new GetFileInfoResponse
+                        {
+                            Success = true,
+                            FileInfo = ConvertFileInfo(fileInfo),
+                            Result = result,
+                        });
+                    }
+                    else
+                    {
+                        return Task.FromResult(new GetFileInfoResponse
+                        {
+                            Success = false,
+                            Result = result,
+                        });
+                    }
                 }
                 else
                 {
-                    return Task.FromResult(new GetFileInfoResponse
+                    var realName = RealPath(request.FileName);
+                    FspFileInfo fileInfo;
+                    if (Directory.Exists(realName))
                     {
-                        Success = false,
-                        Result = result,
-                    });
+                        WindowsFileDesc.GetFileInfoFromFileSystemInfo(new DirectoryInfo(realName), out fileInfo);
+                        return Task.FromResult(new GetFileInfoResponse
+                        {
+                            Success = true,
+                            FileInfo = ConvertFileInfo(fileInfo),
+                            Result = FileSystemBase.STATUS_SUCCESS,
+                        });
+                    }
+                    else if (File.Exists(realName))
+                    {
+                        WindowsFileDesc.GetFileInfoFromFileSystemInfo(new System.IO.FileInfo(realName), out fileInfo);
+                        return Task.FromResult(new GetFileInfoResponse
+                        {
+                            Success = true,
+                            FileInfo = ConvertFileInfo(fileInfo),
+                            Result = FileSystemBase.STATUS_SUCCESS,
+                        });
+                    }
+                    else
+                    {
+                        return Task.FromResult(new GetFileInfoResponse
+                        {
+                            Success = false,
+                            Result = FileSystemBase.STATUS_NOT_FOUND,
+                        });
+                    }
                 }
             }
             catch (Exception ex)
@@ -837,6 +864,29 @@
                             list.CopyTo(fileDesc.FileSystemInfos, 0);
                         }
                     }
+                    var fsInfos = fileDesc.FileSystemInfos;
+                    if (request.AdditionalSubdirectories.Count > 0 || request.AdditionalJunctions.Count > 0)
+                    {
+                        // If we have dynamic additions, we can't use the cached filesystem infos.
+                        var list = new SortedList();
+                        foreach (var fsInfo in fsInfos)
+                        {
+                            list.Add(fsInfo.Key, fsInfo.Value);
+                        }
+                        foreach (var entry in request.AdditionalSubdirectories)
+                        {
+                            if (!list.ContainsKey(entry))
+                            {
+                                list.Add(entry, "subdir");
+                            }
+                        }
+                        foreach (var entry in request.AdditionalJunctions)
+                        {
+                            list[entry] = "junction";
+                        }
+                        fsInfos = new DictionaryEntry[list.Count];
+                        list.CopyTo(fsInfos, 0);
+                    }
                     if (!hasStarted)
                     {
                         index = 0;
@@ -844,7 +894,7 @@
                         if (request.HasMarker)
                         {
                             index = Array.BinarySearch(
-                                fileDesc.FileSystemInfos,
+                                fsInfos,
                                 new DictionaryEntry(request.Marker, null),
                                 _directoryEntryComparer);
                             if (0 <= index)
@@ -853,15 +903,49 @@
                                 index = ~index;
                         }
                     }
-                    if (fileDesc.FileSystemInfos.Length > index)
+                    if (fsInfos.Length > index)
                     {
-                        var fileName = (String)fileDesc.FileSystemInfos[index].Key;
+                        var fileName = (String)fsInfos[index].Key;
                         FspFileInfo fileInfo;
                         if (fileDesc!.FileSystemInfos[index].Value is FileSystemInfo fsi)
                         {
                             WindowsFileDesc.GetFileInfoFromFileSystemInfo(
                                 fsi,
                                 out fileInfo);
+                        }
+                        else if (fileDesc!.FileSystemInfos[index].Value is string k)
+                        {
+                            if (k == "subdir")
+                            {
+                                fileInfo = new FspFileInfo
+                                {
+                                    FileAttributes = (uint)FileAttributes.Directory,
+                                    FileSize = 0,
+                                    AllocationSize = 0,
+                                    CreationTime = (ulong)_rootCreationTime.ToFileTime(),
+                                    ChangeTime = (ulong)_rootCreationTime.ToFileTime(),
+                                    LastAccessTime = (ulong)_rootCreationTime.ToFileTime(),
+                                    LastWriteTime = (ulong)_rootCreationTime.ToFileTime(),
+                                };
+                            }
+                            else if (k == "junction")
+                            {
+                                fileInfo = new FspFileInfo
+                                {
+                                    FileAttributes = (uint)FileAttributes.ReparsePoint,
+                                    FileSize = 0,
+                                    AllocationSize = 0,
+                                    CreationTime = (ulong)_rootCreationTime.ToFileTime(),
+                                    ChangeTime = (ulong)_rootCreationTime.ToFileTime(),
+                                    LastAccessTime = (ulong)_rootCreationTime.ToFileTime(),
+                                    LastWriteTime = (ulong)_rootCreationTime.ToFileTime(),
+                                };
+                            }
+                            else
+                            {
+                                index = index + 1;
+                                continue;
+                            }
                         }
                         else
                         {
