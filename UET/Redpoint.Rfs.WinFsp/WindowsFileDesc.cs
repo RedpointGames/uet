@@ -32,15 +32,21 @@
         public FileStream? Stream;
         public DirectoryInfo? DirInfo;
         public DictionaryEntry[]? FileSystemInfos;
+        public DriveInfo[]? Drives;
+
+        public WindowsFileDesc(DriveInfo[] drives)
+        {
+            Drives = drives;
+        }
 
         public WindowsFileDesc(FileStream stream)
         {
-            this.Stream = stream;
+            Stream = stream;
         }
 
         public WindowsFileDesc(DirectoryInfo dirInfo)
         {
-            this.DirInfo = dirInfo;
+            DirInfo = dirInfo;
         }
 
         public static void GetFileInfoFromFileSystemInfo(
@@ -63,7 +69,20 @@
 
         public int GetFileInfo(out FileInfo fileInfo)
         {
-            if (null != Stream)
+            if (Drives != null)
+            {
+                fileInfo = new FileInfo
+                {
+                    FileAttributes = (uint)FileAttributes.Directory,
+                    FileSize = 0,
+                    AllocationSize = 0,
+                    CreationTime = (ulong)WindowsRfsHost._rootCreationTime.ToFileTime(),
+                    ChangeTime = (ulong)WindowsRfsHost._rootCreationTime.ToFileTime(),
+                    LastAccessTime = (ulong)WindowsRfsHost._rootCreationTime.ToFileTime(),
+                    LastWriteTime = (ulong)WindowsRfsHost._rootCreationTime.ToFileTime(),
+                };
+            }
+            else if (null != Stream)
             {
                 BY_HANDLE_FILE_INFORMATION info;
                 if (!GetFileInformationByHandle(Stream.SafeFileHandle.DangerousGetHandle(),
@@ -82,7 +101,9 @@
                 fileInfo.HardLinks = 0;
             }
             else
+            {
                 GetFileInfoFromFileSystemInfo(DirInfo!, out fileInfo);
+            }
             return FileSystemBase.STATUS_SUCCESS;
         }
 

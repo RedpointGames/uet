@@ -16,9 +16,10 @@
     [SupportedOSPlatform("windows6.2")]
     public class WindowsRfsHost : WindowsRfs.WindowsRfsBase
     {
-        private readonly DateTimeOffset _rootCreationTime;
+        internal static readonly DateTimeOffset _rootCreationTime = DateTimeOffset.UtcNow;
         private readonly ConcurrentDictionary<long, WindowsFileDesc> _openHandles;
         private readonly ILogger _logger;
+        private readonly byte[] _rootSecurityDescriptor;
         private long _nextHandle = 1000;
         private static DirectoryEntryComparer _directoryEntryComparer =
             new DirectoryEntryComparer();
@@ -35,14 +36,27 @@
 
         public WindowsRfsHost(ILogger logger)
         {
-            _rootCreationTime = DateTimeOffset.UtcNow;
             _openHandles = new ConcurrentDictionary<long, WindowsFileDesc>();
             _logger = logger;
+            var securityDescriptor = new RawSecurityDescriptor("O:WDG:WDD:PAI(A;;FA;;;WD)");
+            _rootSecurityDescriptor = new byte[securityDescriptor.BinaryLength];
+            securityDescriptor.GetBinaryForm(_rootSecurityDescriptor, 0);
+        }
+
+        private static bool IsRealPath(string fullPath)
+        {
+            return !(fullPath.Length < 2 ||
+                fullPath[0] != '\\' ||
+                (fullPath.Length > 2 && fullPath[2] != '\\'));
         }
 
         private static string RealPath(string fullPath)
         {
-            return Path.Combine(@"C:\", fullPath);
+            if (!IsRealPath(fullPath))
+            {
+                throw new InvalidOperationException("RealPath can only be used with paths underneath a drive letter.");
+            }
+            return @$"{fullPath[1]}:{fullPath.Substring(2)}";
         }
 
         private static FileAccess ConvertAccess(FileSystemRights rights)
@@ -118,18 +132,59 @@
         {
             try
             {
-                var fileName = RealPath(request.FileName);
-                var info = new FileInfo(fileName);
-                var result = new GetSecurityByNameResponse
+                if (request.FileName.Length == 0)
                 {
-                    FileAttributes = (uint)info.Attributes,
-                    Result = FileSystemBase.STATUS_SUCCESS,
-                };
-                if (request.IncludeSecurityDescriptor)
-                {
-                    result.SecurityDescriptor = ByteString.CopyFrom(info.GetAccessControl().GetSecurityDescriptorBinaryForm());
+                    return Task.FromResult(new GetSecurityByNameResponse
+                    {
+                        Result = FileSystemBase.STATUS_NOT_FOUND,
+                    });
                 }
-                return Task.FromResult(result);
+                else if (request.FileName == "\\")
+                {
+                    return Task.FromResult(new GetSecurityByNameResponse
+                    {
+                        Result = FileSystemBase.STATUS_SUCCESS,
+                        SecurityDescriptor = request.IncludeSecurityDescriptor ? ByteString.CopyFrom(_rootSecurityDescriptor) : ByteString.Empty,
+                        FileAttributes = (uint)FileAttributes.Directory,
+                    });
+                }
+                else if (!IsRealPath(request.FileName))
+                {
+                    return Task.FromResult(new GetSecurityByNameResponse
+                    {
+                        Result = FileSystemBase.STATUS_NOT_FOUND,
+                    });
+                }
+                else if (request.FileName.Length == 2)
+                {
+                    var fileName = RealPath(request.FileName);
+                    var info = new FileInfo(fileName);
+                    var result = new GetSecurityByNameResponse
+                    {
+                        FileAttributes = (uint)info.Attributes,
+                        Result = FileSystemBase.STATUS_SUCCESS,
+                    };
+                    if (request.IncludeSecurityDescriptor)
+                    {
+                        result.SecurityDescriptor = ByteString.CopyFrom(_rootSecurityDescriptor);
+                    }
+                    return Task.FromResult(result);
+                }
+                else
+                {
+                    var fileName = RealPath(request.FileName);
+                    var info = new FileInfo(fileName);
+                    var result = new GetSecurityByNameResponse
+                    {
+                        FileAttributes = (uint)info.Attributes,
+                        Result = FileSystemBase.STATUS_SUCCESS,
+                    };
+                    if (request.IncludeSecurityDescriptor)
+                    {
+                        result.SecurityDescriptor = ByteString.CopyFrom(info.GetAccessControl().GetSecurityDescriptorBinaryForm());
+                    }
+                    return Task.FromResult(result);
+                }
             }
             catch (Exception ex)
             {
@@ -250,22 +305,33 @@
                 WindowsFileDesc? fileDesc = null;
                 try
                 {
-                    var fileName = RealPath(request.FileName);
-                    if (!Directory.Exists(request.FileName))
+                    if (request.FileName == "\\")
                     {
-                        fileDesc = new WindowsFileDesc(
-                            new FileStream(
-                                fileName,
-                                FileMode.Open,
-                                ConvertAccess((FileSystemRights)request.GrantedAccess),
-                                FileShare.Read | FileShare.Write | FileShare.Delete,
-                                4096,
-                                0));
+                        fileDesc = new WindowsFileDesc(DriveInfo.GetDrives());
+                    }
+                    else if (request.FileName.Length == 2)
+                    {
+                        fileDesc = new WindowsFileDesc(new DirectoryInfo($"{request.FileName[1]}:\\"));
                     }
                     else
                     {
-                        fileDesc = new WindowsFileDesc(
-                            new DirectoryInfo(fileName));
+                        var fileName = RealPath(request.FileName);
+                        if (!Directory.Exists(fileName))
+                        {
+                            fileDesc = new WindowsFileDesc(
+                                new FileStream(
+                                    fileName,
+                                    FileMode.Open,
+                                    ConvertAccess((FileSystemRights)request.GrantedAccess),
+                                    FileShare.Read | FileShare.Write | FileShare.Delete,
+                                    4096,
+                                    0));
+                        }
+                        else
+                        {
+                            fileDesc = new WindowsFileDesc(
+                                new DirectoryInfo(fileName));
+                        }
                     }
 
                     FspFileInfo fileInfo;
@@ -744,17 +810,32 @@
                             pattern = request.Pattern.Replace('<', '*').Replace('>', '?').Replace('"', '.');
                         else
                             pattern = "*";
-                        IEnumerable @enum = fileDesc.DirInfo!.EnumerateFileSystemInfos(pattern);
-                        SortedList list = new SortedList();
-                        if (null != fileDesc.DirInfo && null != fileDesc.DirInfo.Parent)
+                        if (fileDesc.Drives == null)
                         {
-                            list.Add(".", fileDesc.DirInfo);
-                            list.Add("..", fileDesc.DirInfo.Parent);
+                            var @enum = fileDesc.DirInfo!.EnumerateFileSystemInfos(pattern);
+                            SortedList list = new SortedList();
+                            if (null != fileDesc.DirInfo && null != fileDesc.DirInfo.Parent)
+                            {
+                                list.Add(".", fileDesc.DirInfo);
+                                list.Add("..", fileDesc.DirInfo.Parent);
+                            }
+                            foreach (FileSystemInfo Info in @enum)
+                            {
+                                list.Add(Info.Name, Info);
+                            }
+                            fileDesc.FileSystemInfos = new DictionaryEntry[list.Count];
+                            list.CopyTo(fileDesc.FileSystemInfos, 0);
                         }
-                        foreach (FileSystemInfo Info in @enum)
-                            list.Add(Info.Name, Info);
-                        fileDesc.FileSystemInfos = new DictionaryEntry[list.Count];
-                        list.CopyTo(fileDesc.FileSystemInfos, 0);
+                        else
+                        {
+                            SortedList list = new SortedList();
+                            foreach (var drive in fileDesc.Drives)
+                            {
+                                list.Add(drive.Name[0].ToString(), drive);
+                            }
+                            fileDesc.FileSystemInfos = new DictionaryEntry[list.Count];
+                            list.CopyTo(fileDesc.FileSystemInfos, 0);
+                        }
                     }
                     if (!hasStarted)
                     {
@@ -762,7 +843,8 @@
                         hasStarted = true;
                         if (request.HasMarker)
                         {
-                            index = Array.BinarySearch(fileDesc.FileSystemInfos,
+                            index = Array.BinarySearch(
+                                fileDesc.FileSystemInfos,
                                 new DictionaryEntry(request.Marker, null),
                                 _directoryEntryComparer);
                             if (0 <= index)
@@ -774,9 +856,26 @@
                     if (fileDesc.FileSystemInfos.Length > index)
                     {
                         var fileName = (String)fileDesc.FileSystemInfos[index].Key;
-                        WindowsFileDesc.GetFileInfoFromFileSystemInfo(
-                            (FileSystemInfo)fileDesc!.FileSystemInfos[index].Value!,
-                            out var fileInfo);
+                        FspFileInfo fileInfo;
+                        if (fileDesc!.FileSystemInfos[index].Value is FileSystemInfo fsi)
+                        {
+                            WindowsFileDesc.GetFileInfoFromFileSystemInfo(
+                                fsi,
+                                out fileInfo);
+                        }
+                        else
+                        {
+                            fileInfo = new FspFileInfo
+                            {
+                                FileAttributes = (uint)FileAttributes.Directory,
+                                FileSize = 0,
+                                AllocationSize = 0,
+                                CreationTime = (ulong)_rootCreationTime.ToFileTime(),
+                                ChangeTime = (ulong)_rootCreationTime.ToFileTime(),
+                                LastAccessTime = (ulong)_rootCreationTime.ToFileTime(),
+                                LastWriteTime = (ulong)_rootCreationTime.ToFileTime(),
+                            };
+                        }
                         await responseStream.WriteAsync(new ReadDirectoryResponse
                         {
                             Entry = new ReadDirectoryEntryResponse
