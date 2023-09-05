@@ -260,19 +260,19 @@ namespace Fsp.Interop
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal struct DirInfo
+    public struct DirInfo
     {
         internal const int FileNameBufSize = 255;
         internal static int FileNameBufOffset =
             (int)Marshal.OffsetOf(typeof(DirInfo), "FileNameBuf");
 
         internal UInt16 Size;
-        internal FileInfo FileInfo;
+        public FileInfo FileInfo;
         internal unsafe fixed Byte Padding[24];
         //internal unsafe fixed UInt16 FileNameBuf[];
         internal unsafe fixed UInt16 FileNameBuf[FileNameBufSize];
 
-        internal unsafe void SetFileNameBuf(String Value)
+        public unsafe void SetFileNameBuf(String Value)
         {
             fixed (UInt16* P = FileNameBuf)
             {
@@ -792,7 +792,7 @@ namespace Fsp.Interop
 
     [SuppressUnmanagedCodeSecurity]
     [SupportedOSPlatform("windows6.2")]
-    internal static class Api
+    public static class Api
     {
         internal struct Proto
         {
@@ -1100,7 +1100,7 @@ namespace Fsp.Interop
         {
             return FspFileSystemGetOperationContext()->Request->Hint;
         }
-        internal static unsafe Boolean FspFileSystemAddDirInfo(
+        public static unsafe Boolean FspFileSystemAddDirInfo(
             ref DirInfo DirInfo,
             IntPtr Buffer,
             UInt32 Length,
@@ -1109,7 +1109,7 @@ namespace Fsp.Interop
             fixed (DirInfo* P = &DirInfo)
                 return _FspFileSystemAddDirInfo((IntPtr)P, Buffer, Length, out PBytesTransferred);
         }
-        internal static unsafe Boolean FspFileSystemEndDirInfo(
+        public static unsafe Boolean FspFileSystemEndDirInfo(
             IntPtr Buffer,
             UInt32 Length,
             out UInt32 PBytesTransferred)

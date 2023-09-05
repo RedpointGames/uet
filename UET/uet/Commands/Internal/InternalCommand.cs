@@ -14,6 +14,7 @@
     using UET.Commands.Internal.RunDownstreamTest;
     using UET.Commands.Internal.RunDriveMappedProcess;
     using UET.Commands.Internal.RunGauntletTestFromBuildGraph;
+    using UET.Commands.Internal.RunRfs;
     using UET.Commands.Internal.SetFilterFile;
     using UET.Commands.Internal.TestAutoDiscovery;
     using UET.Commands.Internal.TestGrpcPipes;
@@ -49,6 +50,7 @@
                 OpenGEPreprocessorCacheClientCommand.CreateOpenGEPreprocessorCacheClientCommand(),
                 RunDriveMappedProcessCommand.CreateRunDriveMappedProcessCommand(),
                 CreateJunctionCommand.CreateCreateJunctionCommand(),
+                RunRfsCommand.CreateRunRfsCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");

@@ -1336,55 +1336,6 @@ namespace Fsp
             }
             return STATUS_SUCCESS;
         }
-        public Int32 BufferedReadDirectory(
-            DirectoryBuffer DirectoryBuffer,
-            Object FileNode,
-            Object FileDesc,
-            String Pattern,
-            String Marker,
-            IntPtr Buffer,
-            UInt32 Length,
-            out UInt32 BytesTransferred)
-        {
-            Object Context = null;
-            DirInfo DirInfo = default(DirInfo);
-            Int32 DirBufferResult = STATUS_SUCCESS;
-            UInt32 BytesTransferredOuter = default(UInt32);
-            if (Api.FspFileSystemAcquireDirectoryBuffer(ref DirectoryBuffer.DirBuffer, null == Marker,
-                out DirBufferResult))
-                try
-                {
-                    ReadDirectoryEntries(
-                        FileNode,
-                        FileDesc,
-                        Pattern,
-                        Marker,
-                        ref Context,
-                        (FileName, FileInfo) =>
-                        {
-                            DirInfo.FileInfo = FileInfo;
-                            DirInfo.SetFileNameBuf(FileName);
-                            UInt32 BytesTransferredLocal = BytesTransferredOuter;
-                            var Result = Api.FspFileSystemFillDirectoryBuffer(
-                                ref DirectoryBuffer.DirBuffer, ref DirInfo, out DirBufferResult);
-                            BytesTransferredOuter = BytesTransferredLocal;
-                            return Result;
-                        });
-                }
-                finally
-                {
-                    Api.FspFileSystemReleaseDirectoryBuffer(ref DirectoryBuffer.DirBuffer);
-                }
-            BytesTransferred = BytesTransferredOuter;
-            if (0 > DirBufferResult)
-            {
-                BytesTransferred = default(UInt32);
-                return DirBufferResult;
-            }
-            Api.FspFileSystemReadDirectoryBuffer(ref DirectoryBuffer.DirBuffer,
-                Marker, Buffer, Length, out BytesTransferred);
-            return STATUS_SUCCESS;
-        }
 
         /// <summary>
         /// Finds a reparse point in file name.
