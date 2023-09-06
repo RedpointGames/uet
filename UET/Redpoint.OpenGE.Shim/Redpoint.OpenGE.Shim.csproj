@@ -52,6 +52,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.GrpcPipes\Redpoint.GrpcPipes.csproj" />
+    <ProjectReference Include="..\Redpoint.Logging\Redpoint.Logging.csproj" />
   </ItemGroup>
 
   <ItemGroup>

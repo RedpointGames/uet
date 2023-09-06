@@ -28,6 +28,8 @@ message TaskPreparingResponse {
 	string id = 1;
 	string displayName = 2;
 	string operationDescription = 3;
+	string workerMachineName = 4;
+	int32 workerCoreNumber = 5;
 }
 
 message TaskPreparedResponse {

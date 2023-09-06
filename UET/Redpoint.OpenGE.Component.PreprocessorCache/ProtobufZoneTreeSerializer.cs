@@ -9,7 +9,15 @@
 
         public T Deserialize(byte[] bytes)
         {
-            return (T)_t.Descriptor.Parser.ParseFrom(bytes);
+            if (bytes.Length > 32 * 1024)
+            {
+                var stream = CodedInputStream.CreateWithLimits(new MemoryStream(bytes), int.MaxValue, int.MaxValue);
+                return (T)_t.Descriptor.Parser.ParseFrom(stream);
+            }
+            else
+            {
+                return (T)_t.Descriptor.Parser.ParseFrom(bytes);
+            }
         }
 
         public byte[] Serialize(in T entry)

@@ -45,6 +45,20 @@ namespace Redpoint.OpenGE.Component.PreprocessorCache.Tests
         }
 
         [Fact]
+        public void LexUnsignedLongExpression()
+        {
+            var results = PreprocessorExpressionLexer.Lex("0xFFFFFFFFUL").ToArray();
+            Assert.Single(results);
+            AssertNumber(results[0], unchecked((long)0xFFFFFFFFUL));
+        }
+
+        [Fact]
+        public void LexIntelExpression()
+        {
+            var results = PreprocessorExpressionLexer.Lex("(__INTEL_COMPILER && (__INTEL_COMPILER < 1500 || __INTEL_COMPILER == 1500 && __INTEL_COMPILER_UPDATE <= 1))").ToArray();
+        }
+
+        [Fact]
         public void LexInvocationExpression()
         {
             var results = PreprocessorExpressionLexer.Lex("PREPROCESSOR_TO_STRING(PREPROCESSOR_JOIN(PLATFORM_HEADER_NAME/PLATFORM_HEADER_NAME, Suffix))").ToArray();

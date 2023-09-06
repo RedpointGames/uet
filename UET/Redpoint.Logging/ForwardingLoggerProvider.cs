@@ -1,9 +1,11 @@
-﻿namespace Redpoint.OpenGE.Component.Worker
+﻿namespace Redpoint.Logging
 {
     using Microsoft.Extensions.Logging;
-    using System;
 
-    internal class ForwardingLoggerProvider : ILoggerProvider
+    /// <summary>
+    /// Forwards logs from one service collection to an existing <see cref="ILogger"/> instance.
+    /// </summary>
+    public class ForwardingLoggerProvider : ILoggerProvider
     {
         private readonly ILogger _logger;
 

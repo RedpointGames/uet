@@ -34,6 +34,18 @@ message ToolExecutionInfo {
 	string toolExecutableName = 2;
 }
 
+message TransferringStorageLayer {
+	oneof inputs {
+		InputFilesByPathOrContent inputsByPathOrContent = 1;
+		InputFilesByBlobXxHash64 inputsByBlobXxHash64 = 2;
+	}
+	repeated string outputAbsolutePaths = 3;
+}
+
+message RemoteFsStorageLayer {
+	int32 remotePort = 1;
+}
+
 message RemoteTaskDescriptor {
 	oneof tool {
 		ToolExecutionInfo toolExecutionInfo = 1;
@@ -42,12 +54,12 @@ message RemoteTaskDescriptor {
 	repeated string arguments = 3;
 	map<string, string> environmentVariables = 4;
 	string workingDirectoryAbsolutePath = 5;
-	oneof inputs {
-		InputFilesByPathOrContent inputsByPathOrContent = 6;
-		InputFilesByBlobXxHash64 inputsByBlobXxHash64 = 7;
-	}
-	repeated string outputAbsolutePaths = 8;
+	// @note: Storage related fields moved to storage layers.
 	bool useFastLocalExecution = 9;
+	oneof storageLayer {
+		TransferringStorageLayer transferringStorageLayer = 10;
+		RemoteFsStorageLayer remoteFsStorageLayer = 11;
+	}
 }
 
 message CopyTaskDescriptor {

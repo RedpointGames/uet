@@ -15,10 +15,14 @@
             services.AddSingleton<ITaskDescriptorFactory, FileCopyTaskDescriptorFactory>();
             services.AddSingleton<LocalTaskDescriptorFactory, LocalTaskDescriptorFactory>();
             services.AddSingleton<ITaskDescriptorFactory>(sp => sp.GetRequiredService<LocalTaskDescriptorFactory>());
-            services.AddSingleton<ITaskDescriptorFactory, RemoteMsvcClTaskDescriptorFactory>();
-            services.AddSingleton<ITaskDescriptorFactory, RemoteClangTaskDescriptorFactory>();
+
+            // @note: Remote task executors are currently turned off because they don't work fully.
+            //services.AddSingleton<ITaskDescriptorFactory, RemoteMsvcClTaskDescriptorFactory>();
+            //services.AddSingleton<ITaskDescriptorFactory, RemoteClangTaskDescriptorFactory>();
+            //services.AddSingleton<ITaskDescriptorFactory, RemoteGenericTaskDescriptorFactory>();
 
             services.AddSingleton<IMsvcResponseFileParser, DefaultMsvcResponseFileParser>();
+            services.AddSingleton<ICommonPlatformDefines, DefaultCommonPlatformDefines>();
 
             services.AddSingleton<IGraphGenerator, DefaultGraphGenerator>();
             services.AddSingleton<IGraphExecutor, DefaultGraphExecutor>();
@@ -29,6 +33,7 @@
 
             services.AddSingleton<IToolSynchroniser, DefaultToolSynchroniser>();
             services.AddSingleton<IBlobSynchroniser, DefaultBlobSynchroniser>();
+            services.AddSingleton<IRemoteFsManager, DefaultRemoteFsManager>();
         }
     }
 }

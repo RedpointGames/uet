@@ -4,6 +4,7 @@
     using Redpoint.ProcessExecution;
     using Redpoint.ProcessExecution.Enumerable;
     using System.Collections.Generic;
+    using System.Net;
     using System.Runtime.CompilerServices;
 
     internal class LocalTaskDescriptorExecutor : ITaskDescriptorExecutor<LocalTaskDescriptor>
@@ -17,19 +18,20 @@
         }
 
         public async IAsyncEnumerable<ExecuteTaskResponse> ExecuteAsync(
-            LocalTaskDescriptor descriptor, 
+            IPAddress peerAddress,
+            LocalTaskDescriptor descriptor,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var response in _processExecutor.ExecuteAsync(new ProcessSpecification
-                {
-                    FilePath = descriptor.Path,
-                    Arguments = descriptor.Arguments,
-                    EnvironmentVariables = descriptor.EnvironmentVariables.Count > 0 
-                        ? descriptor.EnvironmentVariables 
-                        : null,
-                    WorkingDirectory = descriptor.WorkingDirectory,
-                },
-                cancellationToken))
+            {
+                FilePath = descriptor.Path,
+                Arguments = descriptor.Arguments,
+                EnvironmentVariables = descriptor.EnvironmentVariables.Count > 0
+                                    ? descriptor.EnvironmentVariables
+                                    : null,
+                WorkingDirectory = descriptor.WorkingDirectory,
+            },
+            cancellationToken))
             {
                 yield return new ExecuteTaskResponse
                 {

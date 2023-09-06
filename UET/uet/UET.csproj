@@ -31,6 +31,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.B2Net\Redpoint.ThirdParty.B2Net.csproj" />
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.WinFsp\Redpoint.ThirdParty.WinFsp.csproj" />
     <ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />
     <ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Agent\Redpoint.OpenGE.Agent.csproj" />
@@ -39,6 +40,7 @@
     <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
+    <ProjectReference Include="..\Redpoint.Rfs.WinFsp\Redpoint.Rfs.WinFsp.csproj" />
     <ProjectReference Include="..\Redpoint.ServiceControl\Redpoint.ServiceControl.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Commands\Redpoint.Uefs.Commands.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.Automation\Redpoint.Uet.Automation.csproj" />

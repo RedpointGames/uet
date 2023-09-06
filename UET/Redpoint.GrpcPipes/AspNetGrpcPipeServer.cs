@@ -6,6 +6,7 @@
     using Microsoft.AspNetCore.Server.Kestrel.Core;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Logging;
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.Net;
@@ -18,54 +19,6 @@
         private readonly ILogger<AspNetGrpcPipeServer<T>> _logger;
         private WebApplication? _app;
         private FileStream? _pipePointerStream;
-
-        private class ForwardingLoggerProvider : ILoggerProvider
-        {
-            private readonly ILogger _logger;
-
-            private class ForwardingLogger : ILogger
-            {
-                private readonly ILogger _logger;
-
-                public ForwardingLogger(ILogger logger)
-                {
-                    _logger = logger;
-                }
-
-                public IDisposable? BeginScope<TState>(TState state) where TState : notnull
-                {
-                    return _logger.BeginScope(state);
-                }
-
-                public bool IsEnabled(LogLevel logLevel)
-                {
-                    return _logger.IsEnabled(logLevel);
-                }
-
-                public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-                {
-                    if (logLevel == LogLevel.Information)
-                    {
-                        logLevel = LogLevel.Trace;
-                    }
-                    _logger.Log(logLevel, eventId, state, exception, formatter);
-                }
-            }
-
-            public ForwardingLoggerProvider(ILogger logger)
-            {
-                _logger = logger;
-            }
-
-            public ILogger CreateLogger(string categoryName)
-            {
-                return new ForwardingLogger(_logger);
-            }
-
-            public void Dispose()
-            {
-            }
-        }
 
         public AspNetGrpcPipeServer(
             ILogger<AspNetGrpcPipeServer<T>> logger,

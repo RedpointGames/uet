@@ -34,7 +34,7 @@
             var pathsToLastModifiedUtcTicks = new ConcurrentDictionary<string, long>();
             var contentHashesToContent = new ConcurrentDictionary<long, BlobInfo>();
             await Parallel.ForEachAsync(
-                remoteTaskDescriptor.InputsByPathOrContent.AbsolutePaths.ToAsyncEnumerable(),
+                remoteTaskDescriptor.TransferringStorageLayer.InputsByPathOrContent.AbsolutePaths.ToAsyncEnumerable(),
                 cancellationToken,
                 async (absolutePath, cancellationToken) =>
                 {
@@ -48,7 +48,7 @@
                         ByteLength = contentLengthBytes,
                     };
                 });
-            foreach (var entry in remoteTaskDescriptor.InputsByPathOrContent.AbsolutePathsToVirtualContent)
+            foreach (var entry in remoteTaskDescriptor.TransferringStorageLayer.InputsByPathOrContent.AbsolutePathsToVirtualContent)
             {
                 var (contentHash, contentLengthBytes) = XxHash64Helpers.HashString(entry.Value);
                 pathsToContentHashes[entry.Key] = contentHash;
@@ -186,7 +186,7 @@
             var hashesToPull = new ConcurrentDictionary<long, bool>();
             var filesToPull = new ConcurrentDictionary<string, long>();
             await Parallel.ForEachAsync(
-                remoteTaskDescriptor.OutputAbsolutePaths.ToAsyncEnumerable(),
+                remoteTaskDescriptor.TransferringStorageLayer.OutputAbsolutePaths.ToAsyncEnumerable(),
                 cancellationToken,
                 async (absolutePath, cancellationToken) =>
                 {

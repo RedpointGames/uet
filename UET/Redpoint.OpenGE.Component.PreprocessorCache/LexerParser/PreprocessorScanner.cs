@@ -320,6 +320,8 @@
                 case PreprocessorExpression.ExprOneofCase.Defined:
                     identifiers.Add(expression.Defined);
                     return;
+                case PreprocessorExpression.ExprOneofCase.HasInclude:
+                    return;
                 default:
                     throw new NotSupportedException($"GetUniqueIdentifiers ExprCase = {expression.ExprCase}");
             }
@@ -354,6 +356,9 @@
             var previousDirectiveLine = string.Empty;
             var targetBlocks = new Stack<PreprocessorDirective>();
             long directiveId = 2000;
+#if DEBUG
+            var trackedLines = new List<string>();
+#endif
             while (enumerator.MoveNext())
             {
                 lineNumber++;
@@ -382,27 +387,6 @@
                             line = line.Substring(commentBlockEndIndex + 2);
                             inBlockComment = false;
                         }
-                    }
-                }
-
-                // Is this a directive at all?
-                if (!continuingPreviousDirectiveLine && !line.StartsWith('#'))
-                {
-                    continue;
-                }
-
-                string? directive = null;
-                if (!continuingPreviousDirectiveLine)
-                {
-                    // Strip all whitespace between the '#' and first non-whitespace
-                    // character to allow for directives like "#  if".
-                    line = '#' + line.Substring(1).TrimStart();
-
-                    // Is it a directive we care about?
-                    directive = _directives.FirstOrDefault(x => line.StartsWith(x));
-                    if (directive == null)
-                    {
-                        continue;
                     }
                 }
 
@@ -443,6 +427,33 @@
                     }
                 }
 
+                // Is this a directive at all?
+                if (!continuingPreviousDirectiveLine && !line.StartsWith('#'))
+                {
+#if DEBUG
+                    trackedLines.Add("[1 ignore] " + line);
+#endif
+                    continue;
+                }
+
+                string? directive = null;
+                if (!continuingPreviousDirectiveLine)
+                {
+                    // Strip all whitespace between the '#' and first non-whitespace
+                    // character to allow for directives like "#  if".
+                    line = '#' + line.Substring(1).TrimStart();
+
+                    // Is it a directive we care about?
+                    directive = _directives.FirstOrDefault(x => line.StartsWith(x));
+                    if (directive == null)
+                    {
+#if DEBUG
+                        trackedLines.Add("[2 ignore] " + line);
+#endif
+                        continue;
+                    }
+                }
+
                 // If the line ends in \, we need to grab more lines to generate the full directive value.
                 if (line.TrimEnd().EndsWith('\\'))
                 {
@@ -474,8 +485,15 @@
                 var components = line.Split(new[] { ' ', '\t' }, 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 if (directive != components[0])
                 {
+#if DEBUG
+                    trackedLines.Add("[3 ignore] " + line);
+#endif
                     continue;
                 }
+
+#if DEBUG
+                trackedLines.Add("[not igno] " + line);
+#endif
 
                 // Determine the value associated with the directive.
                 string value = string.Empty;

@@ -1,0 +1,272 @@
+syntax = "proto3";
+
+package Redpoint.Rfs.WinFsp;
+
+message GetRootCreationTimeRequest {
+}
+
+message GetRootCreationTimeResponse {
+    uint64 fileTime = 1;
+}
+
+message GetVolumeInfoRequest {
+}
+
+message GetVolumeInfoResponse {
+    uint64 totalSize = 1;
+    uint64 totalFreeSpace = 2;
+}
+
+message GetSecurityByNameRequest {
+    string fileName = 1;
+    bool includeSecurityDescriptor = 2;
+}
+
+message GetSecurityByNameResponse {
+    uint32 fileAttributes = 1;
+    bytes securityDescriptor = 2;
+    int32 result = 3;
+}
+
+message RfsFileInfo {
+    uint32 fileAttributes = 1;
+    uint32 reparseTag = 2;
+    uint64 allocationSize = 3;
+    uint64 fileSize = 4;
+    uint64 creationTime = 5;
+    uint64 lastAccessTime = 6;
+    uint64 lastWriteTime = 7;
+    uint64 changeTime = 8;
+    uint64 indexNumber = 9;
+    uint32 hardLinks = 10;
+}
+
+message OpenRequest {
+    string fileName = 1;
+    uint32 createOptions = 2;
+    uint32 grantedAccess = 3;
+}
+
+message OpenResponse {
+    bool success = 1;
+    int64 handle = 2;
+    RfsFileInfo fileInfo = 3;
+    bool hasNormalizedName = 4;
+    string normalizedName = 5;
+    int32 result = 6;
+}
+
+message CreateRequest {
+    string fileName = 1;
+    uint32 createOptions = 2;
+    uint32 grantedAccess = 3;
+    uint32 fileAttributes = 4;
+    bool hasSecurityDescriptor = 5;
+    bytes securityDescriptor = 6;
+    uint64 allocationSize = 7;
+}
+
+message CreateResponse {
+    bool success = 1;
+    int64 handle = 2;
+    RfsFileInfo fileInfo = 3;
+    bool hasNormalizedName = 4;
+    string normalizedName = 5;
+    int32 result = 6;
+}
+
+message OverwriteRequest {
+    int64 handle = 1;
+    uint32 fileAttributes = 2;
+    bool replaceFileAttributes = 3;
+    uint64 allocationSize = 4;
+}
+
+message OverwriteResponse {
+    bool success = 1;
+    RfsFileInfo fileInfo = 2;
+    int32 result = 3;
+}
+
+message CleanupRequest {
+    int64 handle = 1;
+    string fileName = 2;
+    uint32 flags = 3;
+}
+
+message CleanupResponse {
+}
+
+message CloseRequest {
+    int64 handle = 1;
+}
+
+message CloseResponse {
+}
+
+message ReadRequest {
+    int64 handle = 1;
+    uint64 offset = 2;
+    uint32 length = 3;
+}
+
+message ReadResponse {
+    bool success = 1;
+    bytes buffer = 2;
+    uint32 bytesTransferred = 3;
+    int32 result = 4;
+}
+
+message WriteRequest {
+    int64 handle = 1;
+    bytes buffer = 2;
+    uint64 offset = 3;
+    uint32 length = 4;
+    bool writeToEndOfFile = 5;
+    bool constrainedIo = 6;
+}
+
+message WriteResponse {
+    bool success = 1;
+    uint32 bytesTransferred = 2;
+    RfsFileInfo fileInfo = 3;
+    int32 result = 4;
+}
+
+message FlushRequest {
+    int64 handle = 1;
+}
+
+message FlushResponse {
+    bool success = 1;
+    RfsFileInfo fileInfo = 2;
+    int32 result = 3;
+}
+
+message GetFileInfoRequest {
+    oneof type {
+        int64 handle = 1;
+        string fileName = 2;
+    }
+}
+
+message GetFileInfoResponse {
+    bool success = 1;
+    RfsFileInfo fileInfo = 2;
+    int32 result = 3;
+}
+
+message SetBasicInfoRequest {
+    int64 handle = 1;
+    uint32 fileAttributes = 2;
+    uint64 creationTime = 3;
+    uint64 lastAccessTime = 4;
+    uint64 lastWriteTime = 5;
+    uint64 changeTime = 6;
+}
+
+message SetBasicInfoResponse {
+    bool success = 1;
+    RfsFileInfo fileInfo = 2;
+    int32 result = 3;
+}
+
+message SetFileSizeRequest {
+    int64 handle = 1;
+    uint64 newSize = 2;
+    bool setAllocationSize = 3;
+}
+
+message SetFileSizeResponse {
+    bool success = 1;
+    RfsFileInfo fileInfo = 2;
+    int32 result = 3;
+}
+
+message CanDeleteRequest {
+    int64 handle = 1;
+}
+
+message CanDeleteResponse {
+    int32 result = 1;
+}
+
+message RenameRequest {
+    string fileName = 1;
+    string newFileName = 2;
+    bool replaceIfExists = 3;
+}
+
+message RenameResponse {
+    int32 result = 1;
+}
+
+message GetSecurityRequest {
+    int64 handle = 1;
+}
+
+message GetSecurityResponse {
+    bool success = 1;
+    bytes securityDescriptor = 2;
+    int32 result = 3;
+}
+
+message SetSecurityRequest {
+    int64 handle = 1;
+    int32 sections = 2;
+    bytes securityDescriptor = 3;
+}
+
+message SetSecurityResponse {
+    int32 result = 1;
+}
+
+message ReadDirectoryVirtualEntry {
+    string name = 1;
+    bool isDirectory = 2;
+    uint64 creationTime = 3;
+    uint64 changeTime = 4;
+    uint64 lastAccessTime = 5;
+    uint64 lastWriteTime = 6;
+}
+
+message ReadDirectoryRequest {
+    int64 handle = 1;
+    bool hasPattern = 2;
+    string pattern = 3;
+    bool hasMarker = 4;
+    string marker = 5;
+    repeated ReadDirectoryVirtualEntry additionalEntries = 6;
+}
+
+message ReadDirectoryEntryResponse {
+    string fileName = 1;
+    RfsFileInfo fileInfo = 2;
+}
+
+message ReadDirectoryResponse {
+    repeated ReadDirectoryEntryResponse entries = 1;
+    int32 result = 2;
+}
+
+service WindowsRfs {
+    rpc GetRootCreationTime(GetRootCreationTimeRequest) returns (GetRootCreationTimeResponse) {}
+    rpc GetVolumeInfo(GetVolumeInfoRequest) returns (GetVolumeInfoResponse) {}
+    rpc GetSecurityByName(GetSecurityByNameRequest) returns (GetSecurityByNameResponse) {}
+    rpc Open(OpenRequest) returns (OpenResponse) {}
+    rpc Create(CreateRequest) returns (CreateResponse) {}
+    rpc Overwrite(OverwriteRequest) returns (OverwriteResponse) {}
+    rpc Cleanup(CleanupRequest) returns (CleanupResponse) {}
+    rpc Close(CloseRequest) returns (CloseResponse) {}
+    rpc Read(ReadRequest) returns (ReadResponse) {}
+    rpc Write(WriteRequest) returns (WriteResponse) {}
+    rpc Flush(FlushRequest) returns (FlushResponse) {}
+    rpc GetFileInfo(GetFileInfoRequest) returns (GetFileInfoResponse) {}
+    rpc SetBasicInfo(SetBasicInfoRequest) returns (SetBasicInfoResponse) {}
+    rpc SetFileSize(SetFileSizeRequest) returns (SetFileSizeResponse) {}
+    rpc CanDelete(CanDeleteRequest) returns (CanDeleteResponse) {}
+    rpc Rename(RenameRequest) returns (RenameResponse) {}
+    rpc GetSecurity(GetSecurityRequest) returns (GetSecurityResponse) {}
+    rpc SetSecurity(SetSecurityRequest) returns (SetSecurityResponse) {}
+    rpc ReadDirectory(ReadDirectoryRequest) returns (ReadDirectoryResponse) {}
+}

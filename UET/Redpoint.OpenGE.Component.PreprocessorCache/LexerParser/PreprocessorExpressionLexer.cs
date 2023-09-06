@@ -197,6 +197,7 @@
                                 position++;
                             }
                         }
+                        var isUnsigned = false;
                         for (; position < expression.Length; position++)
                         {
                             current = expression[position];
@@ -209,11 +210,16 @@
                             {
                                 buffer.Append(current);
                             }
+                            else if (current == 'u' || current == 'U')
+                            {
+                                // "unsigned long" indicator; we just want it gone.
+                                isUnsigned = true;
+                                position++;
+                            }
                             else if (current == 'l' || current == 'L')
                             {
                                 // "long" indicator; we just want it gone.
                                 position++;
-                                break;
                             }
                             else
                             {
@@ -226,7 +232,9 @@
                         long value;
                         try
                         {
-                            value = Convert.ToInt64(buffer.ToString(), @base);
+                            value = isUnsigned
+                                ? unchecked((long)Convert.ToUInt64(buffer.ToString(), @base))
+                                : Convert.ToInt64(buffer.ToString(), @base);
                         }
                         catch
                         {

@@ -30,9 +30,7 @@
         {
             foreach (var kv in perProcessDriveMappings)
             {
-                if (!Path.IsPathFullyQualified(kv.Value) ||
-                    Path.GetPathRoot(kv.Value) == null ||
-                    Path.GetPathRoot(kv.Value)!.Length != 3)
+                if (!Path.IsPathFullyQualified(kv.Value))
                 {
                     throw new InvalidOperationException($"'{kv.Value}' must be an absolute path for drive mappings.");
                 }

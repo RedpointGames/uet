@@ -12,12 +12,13 @@
     using System.Collections.Generic;
     using System.IO.Compression;
     using System.IO.Hashing;
+    using System.Net;
     using System.Threading.Tasks;
 
     internal class DefaultBlobManager : IBlobManager, IAsyncDisposable
     {
         private readonly IReservationManagerForOpenGE _reservationManagerForOpenGE;
-        private readonly ConcurrentDictionary<string, ServerCallContext> _remoteHostLocks;
+        private readonly ConcurrentDictionary<IPEndPoint, ServerCallContext> _remoteHostLocks;
         private readonly SemaphoreSlim _blobsReservationSemaphore;
         private IReservation? _blobsReservation;
         private bool _disposed;
@@ -26,20 +27,15 @@
             IReservationManagerForOpenGE reservationManagerForOpenGE)
         {
             _reservationManagerForOpenGE = reservationManagerForOpenGE;
-            _remoteHostLocks = new ConcurrentDictionary<string, ServerCallContext>();
+            _remoteHostLocks = new ConcurrentDictionary<IPEndPoint, ServerCallContext>();
             _blobsReservationSemaphore = new SemaphoreSlim(1);
             _blobsReservation = null;
             _disposed = false;
         }
 
-        private string ParsePeer(string peer)
-        {
-            return peer.Substring(0, peer.LastIndexOf(':'));
-        }
-
         public void NotifyServerCallEnded(ServerCallContext context)
         {
-            var peerHost = ParsePeer(context.Peer);
+            var peerHost = GrpcPeerParser.ParsePeer(context);
             if (_remoteHostLocks.TryGetValue(peerHost, out var compareContext))
             {
                 if (context == compareContext)
@@ -164,7 +160,7 @@
 
         public bool IsTransferringFromPeer(ServerCallContext context)
         {
-            var peerHost = ParsePeer(context.Peer);
+            var peerHost = GrpcPeerParser.ParsePeer(context);
             return _remoteHostLocks.TryGetValue(peerHost, out _);
         }
 
@@ -184,7 +180,7 @@
             // - When the client disconnects for any reason, which is tracked
             //   on the ServerCallContext object and notified via
             //   NotifyServerCallEndedAsync.
-            var peerHost = ParsePeer(context.Peer);
+            var peerHost = GrpcPeerParser.ParsePeer(context);
             while (!_remoteHostLocks.TryAdd(peerHost, context))
             {
                 await Task.Delay(200 * Random.Shared.Next(1, 5), cancellationToken);
@@ -235,7 +231,7 @@
             IServerStreamWriter<ExecutionResponse> responseStream,
             CancellationToken cancellationToken)
         {
-            var peerHost = ParsePeer(context.Peer);
+            var peerHost = GrpcPeerParser.ParsePeer(context);
             if (!_remoteHostLocks.TryGetValue(peerHost, out var currentContext) ||
                 currentContext != context)
             {

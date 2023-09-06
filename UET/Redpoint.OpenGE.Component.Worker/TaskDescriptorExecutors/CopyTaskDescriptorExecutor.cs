@@ -2,10 +2,12 @@
 {
     using Redpoint.OpenGE.Protocol;
     using System.Collections.Generic;
+    using System.Net;
 
     internal class CopyTaskDescriptorExecutor : ITaskDescriptorExecutor<CopyTaskDescriptor>
     {
         public IAsyncEnumerable<ExecuteTaskResponse> ExecuteAsync(
+            IPAddress peerAddress,
             CopyTaskDescriptor descriptor,
             CancellationToken cancellationToken)
         {

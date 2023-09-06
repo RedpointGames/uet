@@ -14,6 +14,13 @@
     using System.Diagnostics;
     using System.Runtime.Versioning;
     using Redpoint.IO;
+    using Redpoint.Rfs.WinFsp;
+    using Fsp;
+    using Grpc.Net.Client;
+    using System.Net;
+    using System.Net.Sockets;
+    using Redpoint.OpenGE.Component.Worker.PeerRemoteFs;
+    using Redpoint.Reservation;
 
     internal class RemoteTaskDescriptorExecutor : ITaskDescriptorExecutor<RemoteTaskDescriptor>
     {
@@ -22,7 +29,7 @@
         private readonly IToolManager _toolManager;
         private readonly IBlobManager _blobManager;
         private readonly IProcessExecutor _processExecutor;
-
+        private readonly IPeerRemoteFsManager _peerRemoteFsManager;
         private static HashSet<string> _knownDirectoryEnvironmentVariables = new HashSet<string>
         {
             "ALLUSERSPROFILE",
@@ -56,16 +63,19 @@
             IReservationManagerForOpenGE reservationManagerForOpenGE,
             IToolManager toolManager,
             IBlobManager blobManager,
-            IProcessExecutor processExecutor)
+            IProcessExecutor processExecutor,
+            IPeerRemoteFsManager peerRemoteFsManager)
         {
             _logger = logger;
             _reservationManagerForOpenGE = reservationManagerForOpenGE;
             _toolManager = toolManager;
             _blobManager = blobManager;
             _processExecutor = processExecutor;
+            _peerRemoteFsManager = peerRemoteFsManager;
         }
 
         public IAsyncEnumerable<ExecuteTaskResponse> ExecuteAsync(
+            IPAddress peerAddress,
             RemoteTaskDescriptor descriptor,
             CancellationToken cancellationToken)
         {
@@ -73,9 +83,17 @@
             {
                 return ExecuteLocalAsync(descriptor, cancellationToken);
             }
+            else if (descriptor.StorageLayerCase == RemoteTaskDescriptor.StorageLayerOneofCase.TransferringStorageLayer && OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
+            {
+                return ExecuteTransferringRemoteAsync(descriptor, cancellationToken);
+            }
+            else if (descriptor.StorageLayerCase == RemoteTaskDescriptor.StorageLayerOneofCase.RemoteFsStorageLayer && OperatingSystem.IsWindowsVersionAtLeast(6, 2))
+            {
+                return ExecuteRemoteFsRemoteAsync(peerAddress, descriptor, cancellationToken);
+            }
             else
             {
-                return ExecuteRemoteAsync(descriptor, cancellationToken);
+                throw new NotSupportedException("This remote descriptor can't be executed on this machine.");
             }
         }
 
@@ -148,15 +166,11 @@
             }
         }
 
-        private async IAsyncEnumerable<ExecuteTaskResponse> ExecuteRemoteAsync(
+        [SupportedOSPlatform("windows5.1.2600")]
+        private async IAsyncEnumerable<ExecuteTaskResponse> ExecuteTransferringRemoteAsync(
             RemoteTaskDescriptor descriptor,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            if (!OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
-            {
-                throw new InvalidOperationException("Remoting tasks can't run on non-Windows platforms yet.");
-            }
-
             _logger.LogTrace("Executing remote task with remote execution strategy.");
 
             // Get a workspace to work in.
@@ -177,7 +191,7 @@
                 // based on the input files.
                 await _blobManager.LayoutBuildDirectoryAsync(
                     reservation.ReservedPath,
-                    descriptor.InputsByBlobXxHash64,
+                    descriptor.TransferringStorageLayer.InputsByBlobXxHash64,
                     cancellationToken);
                 _logger.LogTrace($"Laid out build directory in: {st.Elapsed}");
                 st.Restart();
@@ -301,7 +315,7 @@
                         case ExitCodeResponse exitCode:
                             var outputBlobs = await _blobManager.CaptureOutputBlobsFromBuildDirectoryAsync(
                                 reservation.ReservedPath,
-                                descriptor.OutputAbsolutePaths,
+                                descriptor.TransferringStorageLayer.OutputAbsolutePaths,
                                 cancellationToken);
                             yield return new ExecuteTaskResponse
                             {
@@ -310,6 +324,125 @@
                                     ExitCode = exitCode.ExitCode,
                                 },
                                 OutputAbsolutePathsToBlobXxHash64 = outputBlobs,
+                            };
+                            break;
+                        case StandardOutputResponse standardOutput:
+                            _logger.LogTrace(standardOutput.Data);
+                            yield return new ExecuteTaskResponse
+                            {
+                                Response = new Protocol.ProcessResponse
+                                {
+                                    StandardOutputLine = standardOutput.Data,
+                                },
+                            };
+                            break;
+                        case StandardErrorResponse standardError:
+                            _logger.LogTrace(standardError.Data);
+                            yield return new ExecuteTaskResponse
+                            {
+                                Response = new Protocol.ProcessResponse
+                                {
+                                    StandardOutputLine = standardError.Data,
+                                },
+                            };
+                            break;
+                        default:
+                            throw new InvalidOperationException("Received unexpected ProcessResponse type from IProcessExecutor!");
+                    };
+                }
+            }
+        }
+
+        [SupportedOSPlatform("windows6.2")]
+        private async IAsyncEnumerable<ExecuteTaskResponse> ExecuteRemoteFsRemoteAsync(
+            IPAddress peerAddress,
+            RemoteTaskDescriptor descriptor,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            // Ask the tool manager where our tool is located.
+            var toolPath = await _toolManager.GetToolPathAsync(
+                descriptor.ToolExecutionInfo.ToolXxHash64,
+                descriptor.ToolExecutionInfo.ToolExecutableName,
+                cancellationToken);
+
+            // Compute the list of junctions.
+            var junctions = new List<string>
+            {
+                // Environment.GetEnvironmentVariable("SYSTEMROOT")! ?? @"C:\Windows",
+                // Path.GetDirectoryName(toolPath)!
+            };
+
+            // Request a workspace that maps the remote FS.
+            await using (var handle = await _peerRemoteFsManager.AcquirePeerRemoteFs(
+                peerAddress,
+                descriptor.RemoteFsStorageLayer.RemotePort,
+                junctions.ToArray()))
+            {
+                // Set up the environment variable dictionary.
+                Dictionary<string, string> environmentVariables = new Dictionary<string, string>();
+                foreach (string key in Environment.GetEnvironmentVariables().Keys)
+                {
+                    environmentVariables[key] = Environment.GetEnvironmentVariable(key)!;
+                }
+                if (descriptor.EnvironmentVariables.Count > 0)
+                {
+                    foreach (var kv in descriptor.EnvironmentVariables)
+                    {
+                        environmentVariables[kv.Key] = kv.Value;
+                    }
+                }
+
+                // Set up the process specification.
+                var processSpecification = new ProcessSpecification
+                {
+                    FilePath = toolPath,
+                    Arguments = descriptor.Arguments,
+                    EnvironmentVariables = environmentVariables,
+                    WorkingDirectory = descriptor.WorkingDirectoryAbsolutePath,
+                };
+                if (OperatingSystem.IsWindows())
+                {
+                    processSpecification.PerProcessDriveMappings = DriveInfo
+                        .GetDrives()
+                            .Where(x => Path.Exists(Path.Combine(handle.Path, x.Name[0].ToString())))
+                            .ToDictionary(
+                                k => k.Name[0],
+                                        v => Path.Combine(handle.Path, v.Name[0].ToString()));
+                }
+
+                // Execute the process in the virtual root.
+                _logger.LogInformation($"File path: {toolPath}");
+                _logger.LogInformation($"Arguments: {string.Join(" ", descriptor.Arguments)}");
+                _logger.LogInformation($"Working directory: {descriptor.WorkingDirectoryAbsolutePath}");
+                if (processSpecification.PerProcessDriveMappings != null)
+                {
+                    foreach (var mapping in processSpecification.PerProcessDriveMappings)
+                    {
+                        _logger.LogInformation($"Drive mapping: '{mapping.Key}:\\' -> '{mapping.Value}'");
+                    }
+                    if (processSpecification.PerProcessDriveMappings.Count == 0)
+                    {
+                        _logger.LogInformation($"No drive mappings are being applied (empty).");
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation($"No drive mappings are being applied (not configured).");
+                }
+                await Task.Delay(10000);
+                await foreach (var response in _processExecutor.ExecuteAsync(
+                    processSpecification,
+                    cancellationToken))
+                {
+                    switch (response)
+                    {
+                        case ExitCodeResponse exitCode:
+                            yield return new ExecuteTaskResponse
+                            {
+                                Response = new Protocol.ProcessResponse
+                                {
+                                    ExitCode = exitCode.ExitCode,
+                                },
                             };
                             break;
                         case StandardOutputResponse standardOutput:
