@@ -338,6 +338,7 @@
                     },
                     async response =>
                     {
+                        lastPollingResponse = response;
                         await responseStream.WriteAsync(new VerifyResponse
                         {
                             PollingResponse = lastPollingResponse,
