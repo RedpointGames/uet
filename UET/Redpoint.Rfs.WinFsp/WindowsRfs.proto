@@ -221,14 +221,22 @@ message SetSecurityResponse {
     int32 result = 1;
 }
 
+message ReadDirectoryVirtualEntry {
+    string name = 1;
+    bool isDirectory = 2;
+    uint64 creationTime = 3;
+    uint64 changeTime = 4;
+    uint64 lastAccessTime = 5;
+    uint64 lastWriteTime = 6;
+}
+
 message ReadDirectoryRequest {
     int64 handle = 1;
     bool hasPattern = 2;
     string pattern = 3;
     bool hasMarker = 4;
     string marker = 5;
-    repeated string additionalSubdirectories = 6;
-    repeated string additionalJunctions = 7;
+    repeated ReadDirectoryVirtualEntry additionalEntries = 6;
 }
 
 message ReadDirectoryEntryResponse {

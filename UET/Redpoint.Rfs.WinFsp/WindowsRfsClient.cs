@@ -19,26 +19,6 @@
     public class WindowsRfsClient : FileSystemBase
     {
         private static readonly DateTimeOffset _rootCreationTime = DateTimeOffset.UtcNow;
-        private static readonly FspFileInfo _defaultVirtualDirectory = new FspFileInfo
-        {
-            FileAttributes = (uint)FileAttributes.Directory,
-            FileSize = 0,
-            AllocationSize = 0,
-            CreationTime = (ulong)_rootCreationTime.ToFileTime(),
-            ChangeTime = (ulong)_rootCreationTime.ToFileTime(),
-            LastAccessTime = (ulong)_rootCreationTime.ToFileTime(),
-            LastWriteTime = (ulong)_rootCreationTime.ToFileTime(),
-        };
-        private static readonly FspFileInfo _defaultVirtualJunction = new FspFileInfo
-        {
-            FileAttributes = (uint)(FileAttributes.ReparsePoint | FileAttributes.Directory),
-            FileSize = 0,
-            AllocationSize = 0,
-            CreationTime = (ulong)_rootCreationTime.ToFileTime(),
-            ChangeTime = (ulong)_rootCreationTime.ToFileTime(),
-            LastAccessTime = (ulong)_rootCreationTime.ToFileTime(),
-            LastWriteTime = (ulong)_rootCreationTime.ToFileTime(),
-        };
         private static DirectoryEntryComparer _directoryEntryComparer =
             new DirectoryEntryComparer();
         private readonly WindowsRfs.WindowsRfsClient _client;
@@ -143,7 +123,7 @@
 
         private class VirtualFileNode
         {
-            public required string FileName;
+            public required DirectoryInfo DirectoryInfo;
             public required HashSet<string> Subdirectories { get; set; }
             public required Dictionary<string, string> Junctions { get; set; }
         }
@@ -186,28 +166,16 @@
             return STATUS_SUCCESS;
         }
 
-        [StructLayout(LayoutKind.Sequential)]
-        private unsafe struct REPARSE_DATA_BUFFER
-        {
-            public uint ReparseTag;
-            public ushort ReparseDataLength;
-            public ushort Reserved;
-            public ushort SubstituteNameOffset;
-            public ushort SubstituteNameLength;
-            public ushort PrintNameOffset;
-            public ushort PrintNameLength;
-            public fixed char PathBuffer[8192];
-        }
-
         public override int GetReparsePointByName(string fileName, bool isDirectory, ref byte[] reparseData)
         {
             var junctions = _additionalJunctions;
             if (junctions.ContainsKey(fileName))
             {
+                var target = junctions[fileName];
+                var targetByteLength = (ushort)(target.Length * 2);
+
                 using (var memory = new MemoryStream())
                 {
-                    var target = junctions[fileName];
-                    var targetByteLength = (ushort)(target.Length * 2);
                     memory.Write(BitConverter.GetBytes((uint)2684354563U));
                     memory.Write(BitConverter.GetBytes((ushort)(targetByteLength + 12)));
                     memory.Write(BitConverter.GetBytes((ushort)0));
@@ -217,9 +185,11 @@
                     memory.Write(BitConverter.GetBytes((ushort)0));
                     memory.Write(Encoding.Unicode.GetBytes(target));
                     memory.Write(new byte[] { 0, 0 });
+                    memory.Write(new byte[] { 0, 0 });
                     reparseData = memory.ToArray();
-                    return STATUS_SUCCESS;
                 }
+
+                return STATUS_SUCCESS;
             }
             else
             {
@@ -341,12 +311,12 @@
                 // This is an entirely client-side directory.
                 fileNode = new VirtualFileNode
                 {
-                    FileName = fileName,
+                    DirectoryInfo = new DirectoryInfo(WindowsRfsUtil.RealPath(fileName)),
                     Subdirectories = _additionalSubdirectoryEntries.ContainsKey(fileName) ? _additionalSubdirectoryEntries[fileName] : new HashSet<string>(),
                     Junctions = _additionalJunctionEntries.ContainsKey(fileName) ? _additionalJunctionEntries[fileName] : new Dictionary<string, string>(),
                 };
                 fileDesc = default!;
-                fileInfo = _defaultVirtualDirectory;
+                fileInfo = WindowsRfsVirtual.GetVirtualDirectoryOnClient(WindowsRfsUtil.RealPath(fileName));
                 normalizedName = default!;
                 return STATUS_SUCCESS;
             }
@@ -387,9 +357,14 @@
                 }
                 return response.Result;
             }
+            else if (fileNode is VirtualFileNode virtualFileNode)
+            {
+                fileInfo = WindowsRfsVirtual.GetVirtualDirectoryOnClient(virtualFileNode.DirectoryInfo.FullName);
+                return STATUS_ACCESS_DENIED;
+            }
             else
             {
-                fileInfo = _defaultVirtualDirectory;
+                fileInfo = default;
                 return STATUS_ACCESS_DENIED;
             }
         }
@@ -543,10 +518,16 @@
                 fileInfo = default;
                 return STATUS_PENDING;
             }
+            else if (fileNode is VirtualFileNode virtualFileNode)
+            {
+                bytesTransferred = 0;
+                fileInfo = WindowsRfsVirtual.GetVirtualDirectoryOnClient(virtualFileNode.DirectoryInfo.FullName);
+                return STATUS_ACCESS_DENIED;
+            }
             else
             {
                 bytesTransferred = 0;
-                fileInfo = _defaultVirtualDirectory;
+                fileInfo = default;
                 return STATUS_ACCESS_DENIED;
             }
         }
@@ -580,7 +561,7 @@
             }
             else if (fileNode is VirtualFileNode virtualFileNode)
             {
-                fileInfo = _defaultVirtualDirectory;
+                fileInfo = WindowsRfsVirtual.GetVirtualDirectoryOnClient(virtualFileNode.DirectoryInfo.FullName);
                 return STATUS_SUCCESS;
             }
             else
@@ -613,7 +594,7 @@
             }
             else if (fileNode is VirtualFileNode virtualFileNode)
             {
-                fileInfo = _defaultVirtualDirectory;
+                fileInfo = WindowsRfsVirtual.GetVirtualDirectoryOnClient(virtualFileNode.DirectoryInfo.FullName);
                 return STATUS_SUCCESS;
             }
             else
@@ -656,7 +637,7 @@
             }
             else if (fileNode is VirtualFileNode virtualFileNode)
             {
-                fileInfo = _defaultVirtualDirectory;
+                fileInfo = WindowsRfsVirtual.GetVirtualDirectoryOnClient(virtualFileNode.DirectoryInfo.FullName);
                 return STATUS_SUCCESS;
             }
             else
@@ -693,7 +674,7 @@
             }
             else if (fileNode is VirtualFileNode virtualFileNode)
             {
-                fileInfo = _defaultVirtualDirectory;
+                fileInfo = WindowsRfsVirtual.GetVirtualDirectoryOnClient(virtualFileNode.DirectoryInfo.FullName);
                 return STATUS_SUCCESS;
             }
             else
@@ -716,7 +697,7 @@
                 });
                 return result.Result;
             }
-            else if (fileNode is VirtualFileNode virtualFileNode)
+            else if (fileNode is VirtualFileNode)
             {
                 return STATUS_SUCCESS;
             }
@@ -759,7 +740,7 @@
                 }
                 return result.Result;
             }
-            else if (fileNode is VirtualFileNode virtualFileNode)
+            else if (fileNode is VirtualFileNode)
             {
                 return STATUS_SUCCESS;
             }
@@ -785,7 +766,7 @@
                 });
                 return result.Result;
             }
-            else if (fileNode is VirtualFileNode virtualFileNode)
+            else if (fileNode is VirtualFileNode)
             {
                 return STATUS_SUCCESS;
             }
@@ -817,11 +798,39 @@
                 };
                 if (_additionalSubdirectoryEntries.ContainsKey(handleFileNode.FileName))
                 {
-                    request.AdditionalSubdirectories.AddRange(_additionalSubdirectoryEntries[handleFileNode.FileName]);
+                    foreach (var entry in _additionalSubdirectoryEntries[handleFileNode.FileName])
+                    {
+                        WindowsFileDesc.GetFileInfoFromFileSystemInfo(
+                            new DirectoryInfo(Path.Combine(WindowsRfsUtil.RealPath(handleFileNode.FileName), entry)),
+                            out var fileInfo);
+                        request.AdditionalEntries.Add(new ReadDirectoryVirtualEntry
+                        {
+                            Name = entry,
+                            IsDirectory = true,
+                            CreationTime = fileInfo.CreationTime,
+                            ChangeTime = fileInfo.ChangeTime,
+                            LastAccessTime = fileInfo.LastAccessTime,
+                            LastWriteTime = fileInfo.LastWriteTime,
+                        });
+                    }
                 }
                 if (_additionalJunctionEntries.ContainsKey(handleFileNode.FileName))
                 {
-                    request.AdditionalJunctions.AddRange(_additionalJunctionEntries[handleFileNode.FileName].Keys);
+                    foreach (var entry in _additionalJunctionEntries[handleFileNode.FileName].Keys)
+                    {
+                        WindowsFileDesc.GetFileInfoFromFileSystemInfo(
+                            new DirectoryInfo(Path.Combine(WindowsRfsUtil.RealPath(handleFileNode.FileName), entry)),
+                            out var fileInfo);
+                        request.AdditionalEntries.Add(new ReadDirectoryVirtualEntry
+                        {
+                            Name = entry,
+                            IsDirectory = true,
+                            CreationTime = fileInfo.CreationTime,
+                            ChangeTime = fileInfo.ChangeTime,
+                            LastAccessTime = fileInfo.LastAccessTime,
+                            LastWriteTime = fileInfo.LastWriteTime,
+                        });
+                    }
                 }
                 var stream = _client.ReadDirectory(request);
                 _ = Task.Run(async () =>
@@ -927,35 +936,19 @@
                     {
                         if (k == "subdir")
                         {
-                            fileInfo = new FspFileInfo
-                            {
-                                FileAttributes = (uint)FileAttributes.Directory,
-                                FileSize = 0,
-                                AllocationSize = 0,
-                                CreationTime = (ulong)_rootCreationTime.ToFileTime(),
-                                ChangeTime = (ulong)_rootCreationTime.ToFileTime(),
-                                LastAccessTime = (ulong)_rootCreationTime.ToFileTime(),
-                                LastWriteTime = (ulong)_rootCreationTime.ToFileTime(),
-                            };
+                            fileInfo = WindowsRfsVirtual.GetVirtualDirectoryOnClient(
+                                Path.Combine(virtualFileNode.DirectoryInfo.FullName, fileName));
                         }
                         else if (k == "junction")
                         {
-                            fileInfo = new FspFileInfo
-                            {
-                                FileAttributes = (uint)FileAttributes.ReparsePoint,
-                                FileSize = 0,
-                                AllocationSize = 0,
-                                CreationTime = (ulong)_rootCreationTime.ToFileTime(),
-                                ChangeTime = (ulong)_rootCreationTime.ToFileTime(),
-                                LastAccessTime = (ulong)_rootCreationTime.ToFileTime(),
-                                LastWriteTime = (ulong)_rootCreationTime.ToFileTime(),
-                            };
+                            fileInfo = WindowsRfsVirtual.GetVirtualJunctionOnClient(
+                                Path.Combine(virtualFileNode.DirectoryInfo.FullName, fileName));
                         }
                         else if (k == "parent")
                         {
                             var parentResult = _client.GetFileInfo(new GetFileInfoRequest
                             {
-                                FileName = Path.Combine(virtualFileNode.FileName, fileName)
+                                FileName = Path.Combine(virtualFileNode.DirectoryInfo.FullName, fileName)
                             });
                             if (parentResult.Success)
                             {
@@ -965,7 +958,7 @@
                             else
                             {
                                 // The parent is also virtualised.
-                                fileInfo = _defaultVirtualDirectory;
+                                fileInfo = WindowsRfsVirtual.GetVirtualDirectoryOnClient(virtualFileNode.DirectoryInfo.Parent!.FullName);
                             }
                         }
                         else

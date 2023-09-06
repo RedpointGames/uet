@@ -34,22 +34,6 @@
             securityDescriptor.GetBinaryForm(_rootSecurityDescriptor, 0);
         }
 
-        private static bool IsRealPath(string fullPath)
-        {
-            return !(fullPath.Length < 2 ||
-                fullPath[0] != '\\' ||
-                (fullPath.Length > 2 && fullPath[2] != '\\'));
-        }
-
-        private static string RealPath(string fullPath)
-        {
-            if (!IsRealPath(fullPath))
-            {
-                throw new InvalidOperationException("RealPath can only be used with paths underneath a drive letter.");
-            }
-            return @$"{fullPath[1]}:{fullPath.Substring(2)}";
-        }
-
         private static FileAccess ConvertAccess(FileSystemRights rights)
         {
             var access = (FileAccess)0;
@@ -69,6 +53,7 @@
             var hresult = ex.HResult;
             if (0x80070000 == (hresult & 0xFFFF0000))
             {
+                _logger.LogError(ex, ex.Message);
                 return FileSystemBase.NtStatusFromWin32((UInt32)hresult & 0xFFFF);
             }
             else
@@ -139,7 +124,7 @@
                         FileAttributes = (uint)FileAttributes.Directory,
                     });
                 }
-                else if (!IsRealPath(request.FileName))
+                else if (!WindowsRfsUtil.IsRealPath(request.FileName))
                 {
                     return Task.FromResult(new GetSecurityByNameResponse
                     {
@@ -148,7 +133,7 @@
                 }
                 else if (request.FileName.Length == 2)
                 {
-                    var fileName = RealPath(request.FileName);
+                    var fileName = WindowsRfsUtil.RealPath(request.FileName);
                     var info = new System.IO.FileInfo(fileName);
                     var result = new GetSecurityByNameResponse
                     {
@@ -163,7 +148,7 @@
                 }
                 else
                 {
-                    var fileName = RealPath(request.FileName);
+                    var fileName = WindowsRfsUtil.RealPath(request.FileName);
                     var info = new System.IO.FileInfo(fileName);
                     var result = new GetSecurityByNameResponse
                     {
@@ -196,7 +181,7 @@
                 WindowsFileDesc? fileDesc = null;
                 try
                 {
-                    var fileName = RealPath(request.FileName);
+                    var fileName = WindowsRfsUtil.RealPath(request.FileName);
                     if (0 == (request.CreateOptions & FileSystemBase.FILE_DIRECTORY_FILE))
                     {
                         FileSecurity? security = null;
@@ -306,7 +291,7 @@
                     }
                     else
                     {
-                        var fileName = RealPath(request.FileName);
+                        var fileName = WindowsRfsUtil.RealPath(request.FileName);
                         if (!Directory.Exists(fileName))
                         {
                             fileDesc = new WindowsFileDesc(
@@ -614,7 +599,7 @@
                 }
                 else
                 {
-                    var realName = RealPath(request.FileName);
+                    var realName = WindowsRfsUtil.RealPath(request.FileName);
                     FspFileInfo fileInfo;
                     if (Directory.Exists(realName))
                     {
@@ -757,8 +742,8 @@
         {
             try
             {
-                var fileName = RealPath(request.FileName);
-                var newFileName = RealPath(request.NewFileName);
+                var fileName = WindowsRfsUtil.RealPath(request.FileName);
+                var newFileName = WindowsRfsUtil.RealPath(request.NewFileName);
                 WindowsFileDesc.Rename(fileName, newFileName, request.ReplaceIfExists);
                 return Task.FromResult(new RenameResponse
                 {
@@ -865,7 +850,7 @@
                         }
                     }
                     var fsInfos = fileDesc.FileSystemInfos;
-                    if (request.AdditionalSubdirectories.Count > 0 || request.AdditionalJunctions.Count > 0)
+                    if (request.AdditionalEntries.Count > 0)
                     {
                         // If we have dynamic additions, we can't use the cached filesystem infos.
                         var list = new SortedList();
@@ -873,16 +858,12 @@
                         {
                             list.Add(fsInfo.Key, fsInfo.Value);
                         }
-                        foreach (var entry in request.AdditionalSubdirectories)
+                        foreach (var entry in request.AdditionalEntries)
                         {
-                            if (!list.ContainsKey(entry))
+                            if (!list.ContainsKey(entry.Name) || !entry.IsDirectory)
                             {
-                                list.Add(entry, "subdir");
+                                list[entry.Name] = entry;
                             }
-                        }
-                        foreach (var entry in request.AdditionalJunctions)
-                        {
-                            list[entry] = "junction";
                         }
                         fsInfos = new DictionaryEntry[list.Count];
                         list.CopyTo(fsInfos, 0);
@@ -907,58 +888,30 @@
                     {
                         var fileName = (String)fsInfos[index].Key;
                         FspFileInfo fileInfo;
-                        if (fileDesc!.FileSystemInfos[index].Value is FileSystemInfo fsi)
+                        if (fsInfos[index].Value is FileSystemInfo fsi)
                         {
                             WindowsFileDesc.GetFileInfoFromFileSystemInfo(
                                 fsi,
                                 out fileInfo);
                         }
-                        else if (fileDesc!.FileSystemInfos[index].Value is string k)
+                        else if (fsInfos[index].Value is ReadDirectoryVirtualEntry v)
                         {
-                            if (k == "subdir")
+                            if (v.IsDirectory)
                             {
-                                fileInfo = new FspFileInfo
-                                {
-                                    FileAttributes = (uint)FileAttributes.Directory,
-                                    FileSize = 0,
-                                    AllocationSize = 0,
-                                    CreationTime = (ulong)_rootCreationTime.ToFileTime(),
-                                    ChangeTime = (ulong)_rootCreationTime.ToFileTime(),
-                                    LastAccessTime = (ulong)_rootCreationTime.ToFileTime(),
-                                    LastWriteTime = (ulong)_rootCreationTime.ToFileTime(),
-                                };
-                            }
-                            else if (k == "junction")
-                            {
-                                fileInfo = new FspFileInfo
-                                {
-                                    FileAttributes = (uint)FileAttributes.ReparsePoint,
-                                    FileSize = 0,
-                                    AllocationSize = 0,
-                                    CreationTime = (ulong)_rootCreationTime.ToFileTime(),
-                                    ChangeTime = (ulong)_rootCreationTime.ToFileTime(),
-                                    LastAccessTime = (ulong)_rootCreationTime.ToFileTime(),
-                                    LastWriteTime = (ulong)_rootCreationTime.ToFileTime(),
-                                };
+                                fileInfo = WindowsRfsVirtual.GetVirtualDirectoryOnHost(v.CreationTime, v.ChangeTime, v.LastAccessTime, v.LastWriteTime);
                             }
                             else
                             {
-                                index = index + 1;
-                                continue;
+                                fileInfo = WindowsRfsVirtual.GetVirtualJunctionOnHost(v.CreationTime, v.ChangeTime, v.LastAccessTime, v.LastWriteTime);
                             }
                         }
                         else
                         {
-                            fileInfo = new FspFileInfo
-                            {
-                                FileAttributes = (uint)FileAttributes.Directory,
-                                FileSize = 0,
-                                AllocationSize = 0,
-                                CreationTime = (ulong)_rootCreationTime.ToFileTime(),
-                                ChangeTime = (ulong)_rootCreationTime.ToFileTime(),
-                                LastAccessTime = (ulong)_rootCreationTime.ToFileTime(),
-                                LastWriteTime = (ulong)_rootCreationTime.ToFileTime(),
-                            };
+                            fileInfo = WindowsRfsVirtual.GetVirtualDirectoryOnHost(
+                                (ulong)_rootCreationTime.ToFileTime(),
+                                (ulong)_rootCreationTime.ToFileTime(),
+                                (ulong)_rootCreationTime.ToFileTime(),
+                                (ulong)_rootCreationTime.ToFileTime());
                         }
                         await responseStream.WriteAsync(new ReadDirectoryResponse
                         {
