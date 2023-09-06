@@ -73,7 +73,7 @@
                     GrpcChannel.ForAddress($"http://127.0.0.1:{_workerComponent.ListeningPort}"));
                 _taskApiWorkerPool = _taskApiWorkerPoolFactory.CreateWorkerPool(new TaskApiWorkerPoolConfiguration
                 {
-                    EnableNetworkAutoDiscovery = true,
+                    EnableNetworkAutoDiscovery = Environment.GetEnvironmentVariable("OPENGE_ENABLE_NETWORK_AUTODISCOVERY") == "1",
                     LocalWorker = new TaskApiWorkerPoolConfigurationLocalWorker
                     {
                         DisplayName = _workerComponent.WorkerDisplayName,
@@ -86,7 +86,7 @@
             {
                 _taskApiWorkerPool = _taskApiWorkerPoolFactory.CreateWorkerPool(new TaskApiWorkerPoolConfiguration
                 {
-                    EnableNetworkAutoDiscovery = true,
+                    EnableNetworkAutoDiscovery = Environment.GetEnvironmentVariable("OPENGE_ENABLE_NETWORK_AUTODISCOVERY") == "1",
                     LocalWorker = null,
                 });
             }

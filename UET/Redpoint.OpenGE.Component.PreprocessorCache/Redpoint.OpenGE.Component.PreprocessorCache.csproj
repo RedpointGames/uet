@@ -4,7 +4,7 @@
 
   <PropertyGroup>
     <!-- Always optimize this assembly, as the performance hit in Debug without it is too great. -->
-    <!--<Optimize>True</Optimize>-->
+    <Optimize>True</Optimize>
   </PropertyGroup>
 
   <ItemGroup>
