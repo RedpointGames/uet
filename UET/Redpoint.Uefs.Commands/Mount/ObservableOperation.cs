@@ -136,6 +136,11 @@
                 {
                     var pollingResponse = _getPollingResponse(entry);
 
+                    if (pollingResponse == null)
+                    {
+                        continue;
+                    }
+
                     if (!string.IsNullOrWhiteSpace(pollingResponse.Err))
                     {
                         throw new InvalidOperationException($"Failed to mount via UEFS: {pollingResponse.Err}");
