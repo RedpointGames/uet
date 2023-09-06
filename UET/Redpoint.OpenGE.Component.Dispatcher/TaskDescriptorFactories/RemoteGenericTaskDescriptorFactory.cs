@@ -15,8 +15,6 @@
         private ISet<string> _recognisedTools = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase)
         {
             "cl.exe",
-            "clang-tidy.exe",
-            "clang-cl.exe",
         };
 
         public override string? PreparationOperationDescription => null;

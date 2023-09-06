@@ -3,6 +3,7 @@
     using Fsp;
     using Fsp.Interop;
     using Google.Protobuf;
+    using Microsoft.Extensions.Logging;
     using Redpoint.IO;
     using System;
     using System.Collections;
@@ -21,6 +22,7 @@
         private static readonly DateTimeOffset _rootCreationTime = DateTimeOffset.UtcNow;
         private static DirectoryEntryComparer _directoryEntryComparer =
             new DirectoryEntryComparer();
+        private readonly ILogger _logger;
         private readonly WindowsRfs.WindowsRfsClient _client;
         private readonly Dictionary<string, int> _reparsePoints;
         private readonly byte[] _rootSecurityDescriptor;
@@ -31,8 +33,10 @@
         private FileSystemHost? _host;
 
         public WindowsRfsClient(
+            ILogger logger,
             WindowsRfs.WindowsRfsClient client)
         {
+            _logger = logger;
             _client = client;
             _reparsePoints = new Dictionary<string, int>(StringComparer.InvariantCultureIgnoreCase);
             _additionalSubdirectories = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
@@ -145,6 +149,21 @@
             };
         }
 
+        public override int ExceptionHandler(Exception ex)
+        {
+            var hresult = ex.HResult;
+            if (0x80070000 == (hresult & 0xFFFF0000))
+            {
+                // _logger.LogError(ex, ex.Message);
+                return FileSystemBase.NtStatusFromWin32((UInt32)hresult & 0xFFFF);
+            }
+            else
+            {
+                _logger.LogError(ex, ex.Message);
+                return FileSystemBase.STATUS_UNEXPECTED_IO_ERROR;
+            }
+        }
+
         public override int Init(object host)
         {
             _host = (FileSystemHost)host;
@@ -168,6 +187,8 @@
 
         public override int GetReparsePointByName(string fileName, bool isDirectory, ref byte[] reparseData)
         {
+            // _logger.LogInformation($"GetReparsePointByName: {fileName}");
+
             var junctions = _additionalJunctions;
             if (junctions.ContainsKey(fileName))
             {
@@ -199,6 +220,8 @@
 
         public override int GetVolumeInfo(out VolumeInfo volumeInfo)
         {
+            // _logger.LogInformation($"GetVolumeInfo");
+
             volumeInfo = default;
             var result = _client.GetVolumeInfo(new GetVolumeInfoRequest());
             volumeInfo.TotalSize = result.TotalSize;
@@ -215,6 +238,7 @@
             {
                 fileAttributes = (uint)FileAttributes.Directory;
                 securityDescriptor = _rootSecurityDescriptor;
+                // _logger.LogInformation($"GetSecurityByName: {fileName} = STATUS_SUCCESS");
                 return STATUS_SUCCESS;
             }
 
@@ -222,7 +246,16 @@
             {
                 fileAttributes = (uint)(FileAttributes.ReparsePoint | FileAttributes.Directory);
                 securityDescriptor = _rootSecurityDescriptor;
+                // _logger.LogInformation($"GetSecurityByName: {fileName} = STATUS_SUCCESS");
                 return STATUS_SUCCESS;
+            }
+
+            if (_additionalJunctions.Any(x => fileName.StartsWith(x.Key + "\\")))
+            {
+                fileAttributes = 0;
+                securityDescriptor = _rootSecurityDescriptor;
+                // _logger.LogInformation($"GetSecurityByName: {fileName} = STATUS_REPARSE");
+                return STATUS_REPARSE;
             }
 
             var response = _client.GetSecurityByName(new GetSecurityByNameRequest
@@ -235,6 +268,7 @@
             {
                 securityDescriptor = response.SecurityDescriptor.ToByteArray();
             }
+            // _logger.LogInformation($"GetSecurityByName: {fileName} = {response.Result:X}");
             return response.Result;
         }
 
@@ -269,6 +303,7 @@
                 fileDesc = default!;
                 fileInfo = ConvertFileInfo(response.FileInfo);
                 normalizedName = response.NormalizedName;
+                // _logger.LogInformation($"Create: {fileName} (normalized name: {response.NormalizedName})");
             }
             else
             {
@@ -277,6 +312,7 @@
                 fileInfo = default!;
                 normalizedName = default!;
             }
+            // _logger.LogInformation($"Create: {fileName} = {response.Result:X}");
             return response.Result;
         }
 
@@ -305,6 +341,7 @@
                 fileDesc = default!;
                 fileInfo = ConvertFileInfo(response.FileInfo);
                 normalizedName = response.NormalizedName;
+                // _logger.LogInformation($"Open: {fileName} (normalized name: {response.NormalizedName})");
             }
             else if (_additionalSubdirectories.Contains(fileName))
             {
@@ -318,6 +355,7 @@
                 fileDesc = default!;
                 fileInfo = WindowsRfsVirtual.GetVirtualDirectoryOnClient(WindowsRfsUtil.RealPath(fileName));
                 normalizedName = default!;
+                // _logger.LogInformation($"Open: {fileName} = STATUS_SUCCESS");
                 return STATUS_SUCCESS;
             }
             else
@@ -327,6 +365,7 @@
                 fileInfo = default!;
                 normalizedName = default!;
             }
+            // _logger.LogInformation($"Open: {fileName} = {response.Result:X}");
             return response.Result;
         }
 
@@ -372,7 +411,7 @@
         public override void Cleanup(
             object fileNode,
             object fileDesc,
-            string fileName,
+            string? fileName,
             uint flags)
         {
             if (fileNode is HandleFileNode handleFileNode)
@@ -380,7 +419,7 @@
                 _client.Cleanup(new CleanupRequest
                 {
                     Handle = handleFileNode.Handle,
-                    FileName = fileName,
+                    FileName = fileName ?? string.Empty,
                     Flags = flags,
                 });
             }
@@ -409,6 +448,7 @@
         {
             if (fileNode is HandleFileNode handleFileNode)
             {
+#if ASYNC
                 ulong operationHint = _host!.GetOperationRequestHint();
                 _ = Task.Run(async () =>
                 {
@@ -447,6 +487,23 @@
                 });
                 bytesTransferred = 0;
                 return STATUS_PENDING;
+#else
+                var result = _client.Read(new ReadRequest
+                {
+                    Handle = handleFileNode.Handle,
+                    Offset = offset,
+                    Length = length,
+                });
+                if (result.Success)
+                {
+                    unsafe
+                    {
+                        result.Buffer.Span.CopyTo(new Span<byte>((void*)buffer, unchecked((int)length)));
+                    }
+                }
+                bytesTransferred = result.BytesTransferred;
+                return result.Result;
+#endif
             }
             else
             {
@@ -468,6 +525,7 @@
         {
             if (fileNode is HandleFileNode handleFileNode)
             {
+#if ASYNC
                 ulong operationHint = _host!.GetOperationRequestHint();
                 _ = Task.Run(async () =>
                 {
@@ -517,6 +575,30 @@
                 bytesTransferred = 0;
                 fileInfo = default;
                 return STATUS_PENDING;
+#else
+                ByteString data;
+                unsafe
+                {
+                    data = ByteString.CopyFrom(new ReadOnlySpan<byte>((void*)buffer, unchecked((int)length)));
+                }
+                var result = _client.Write(new WriteRequest
+                {
+                    Handle = handleFileNode.Handle,
+                    Offset = offset,
+                    Length = length,
+                    Buffer = data,
+                });
+                bytesTransferred = result.BytesTransferred;
+                if (result.Success)
+                {
+                    fileInfo = ConvertFileInfo(result.FileInfo);
+                }
+                else
+                {
+                    fileInfo = default;
+                }
+                return result.Result;
+#endif
             }
             else if (fileNode is VirtualFileNode virtualFileNode)
             {
@@ -787,7 +869,9 @@
         {
             if (fileNode is HandleFileNode handleFileNode)
             {
+#if ASYNC
                 ulong operationHint = _host!.GetOperationRequestHint();
+#endif
                 var request = new ReadDirectoryRequest
                 {
                     Handle = handleFileNode.Handle,
@@ -796,7 +880,8 @@
                     HasMarker = marker != null,
                     Marker = marker ?? string.Empty,
                 };
-                if (_additionalSubdirectoryEntries.ContainsKey(handleFileNode.FileName))
+                if (_additionalSubdirectoryEntries.ContainsKey(handleFileNode.FileName) &&
+                    WindowsRfsUtil.IsRealPath(handleFileNode.FileName))
                 {
                     foreach (var entry in _additionalSubdirectoryEntries[handleFileNode.FileName])
                     {
@@ -814,7 +899,8 @@
                         });
                     }
                 }
-                if (_additionalJunctionEntries.ContainsKey(handleFileNode.FileName))
+                if (_additionalJunctionEntries.ContainsKey(handleFileNode.FileName) &&
+                    WindowsRfsUtil.IsRealPath(handleFileNode.FileName))
                 {
                     foreach (var entry in _additionalJunctionEntries[handleFileNode.FileName].Keys)
                     {
@@ -832,6 +918,7 @@
                         });
                     }
                 }
+#if ASYNC
                 var stream = _client.ReadDirectory(request);
                 _ = Task.Run(async () =>
                 {
@@ -891,6 +978,31 @@
                 });
                 bytesTransferred = 0;
                 return STATUS_PENDING;
+#else
+                var result = _client.ReadDirectory(request);
+                var iterationEndedDueToFullBuffer = false;
+                bytesTransferred = 0;
+                foreach (var entry in result.Entries)
+                {
+                    var dirInfo = default(DirInfo);
+                    dirInfo.FileInfo = ConvertFileInfo(entry.FileInfo);
+                    dirInfo.SetFileNameBuf(entry.FileName);
+                    var localResult = Fsp.Interop.Api.FspFileSystemAddDirInfo(
+                        ref dirInfo,
+                        buffer,
+                        length,
+                        out bytesTransferred);
+                    if (!localResult)
+                    {
+                        iterationEndedDueToFullBuffer = true;
+                    }
+                }
+                if (!iterationEndedDueToFullBuffer)
+                {
+                    Api.FspFileSystemEndDirInfo(buffer, length, out bytesTransferred);
+                }
+                return result.Result;
+#endif
             }
             else if (fileNode is VirtualFileNode virtualFileNode)
             {

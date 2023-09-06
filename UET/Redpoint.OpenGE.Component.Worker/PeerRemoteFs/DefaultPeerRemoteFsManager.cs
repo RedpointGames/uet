@@ -2,6 +2,7 @@
 {
     using Fsp;
     using Grpc.Net.Client;
+    using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
     using Redpoint.OpenGE.Core;
     using Redpoint.Reservation;
@@ -18,6 +19,7 @@
 
     internal class DefaultPeerRemoteFsManager : IPeerRemoteFsManager
     {
+        private readonly ILogger<DefaultPeerRemoteFsManager> _logger;
         private readonly IReservationManagerForOpenGE _reservationManagerForOpenGE;
         private readonly Dictionary<IPEndPoint, PeerRemoteFsState> _currentPeerRemoteFs;
         private readonly MutexSlim _currentPeerRemoteFsLock;
@@ -68,8 +70,11 @@
             }
         }
 
-        public DefaultPeerRemoteFsManager(IReservationManagerForOpenGE reservationManagerForOpenGE)
+        public DefaultPeerRemoteFsManager(
+            ILogger<DefaultPeerRemoteFsManager> logger,
+            IReservationManagerForOpenGE reservationManagerForOpenGE)
         {
+            _logger = logger;
             _reservationManagerForOpenGE = reservationManagerForOpenGE;
             _currentPeerRemoteFs = new Dictionary<IPEndPoint, PeerRemoteFsState>();
             _currentPeerRemoteFsLock = new MutexSlim();
@@ -100,10 +105,11 @@
                     {
                         var fsClient = new WindowsRfs.WindowsRfsClient(
                             GrpcChannel.ForAddress($"http://{(ipAddress.AddressFamily == AddressFamily.InterNetworkV6 ? $"[{ipAddress}]" : ipAddress)}:{port}"));
-                        var fs = new WindowsRfsClient(fsClient);
+                        var fs = new WindowsRfsClient(_logger, fsClient);
                         var fsHost = new FileSystemHost(fs);
                         try
                         {
+                            Directory.Delete(reservation.ReservedPath);
                             var mountResult = fsHost.Mount(reservation.ReservedPath);
                             if (mountResult < 0)
                             {

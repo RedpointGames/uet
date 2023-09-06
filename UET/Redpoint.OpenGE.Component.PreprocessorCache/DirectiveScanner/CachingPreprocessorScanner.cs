@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.OpenGE.Component.PreprocessorCache.DirectiveScanner
 {
+    using Google.Protobuf;
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Protocol;
     using System;
@@ -37,6 +38,18 @@
                 _disk = factory.OpenOrCreate();
             }
             catch (WriteAheadLogCorruptionException)
+            {
+                if (Directory.Exists(dataDirectory))
+                {
+                    try
+                    {
+                        Directory.Delete(dataDirectory, true);
+                    }
+                    catch { }
+                }
+                _disk = factory.Create();
+            }
+            catch (InvalidProtocolBufferException)
             {
                 if (Directory.Exists(dataDirectory))
                 {

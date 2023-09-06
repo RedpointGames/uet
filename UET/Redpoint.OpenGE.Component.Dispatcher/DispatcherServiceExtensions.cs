@@ -15,8 +15,8 @@
             services.AddSingleton<ITaskDescriptorFactory, FileCopyTaskDescriptorFactory>();
             services.AddSingleton<LocalTaskDescriptorFactory, LocalTaskDescriptorFactory>();
             services.AddSingleton<ITaskDescriptorFactory>(sp => sp.GetRequiredService<LocalTaskDescriptorFactory>());
-            services.AddSingleton<ITaskDescriptorFactory, RemoteMsvcClTaskDescriptorFactory>();
-            services.AddSingleton<ITaskDescriptorFactory, RemoteClangTaskDescriptorFactory>();
+            //services.AddSingleton<ITaskDescriptorFactory, RemoteMsvcClTaskDescriptorFactory>();
+            //services.AddSingleton<ITaskDescriptorFactory, RemoteClangTaskDescriptorFactory>();
             services.AddSingleton<ITaskDescriptorFactory, RemoteGenericTaskDescriptorFactory>();
 
             services.AddSingleton<IMsvcResponseFileParser, DefaultMsvcResponseFileParser>();

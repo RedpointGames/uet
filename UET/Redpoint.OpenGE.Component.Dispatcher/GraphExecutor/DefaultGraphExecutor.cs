@@ -361,9 +361,12 @@
                                         }),
                                         Task.Run(async () =>
                                         {
-                                            fastExecutableGraphTask.BlobHashingResult = await _blobSynchroniser.HashInputBlobsAsync(
-                                                taskDescriptor.Remote,
-                                                instance.CancellationToken);
+                                            if (taskDescriptor.Remote.StorageLayerCase == RemoteTaskDescriptor.StorageLayerOneofCase.TransferringStorageLayer)
+                                            {
+                                                fastExecutableGraphTask.BlobHashingResult = await _blobSynchroniser.HashInputBlobsAsync(
+                                                    taskDescriptor.Remote,
+                                                    instance.CancellationToken);
+                                            }
                                         }));
                                 }
                                 break;

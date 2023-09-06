@@ -113,6 +113,7 @@
                 if (path != null)
                 {
                     fs = new WindowsRfsClient(
+                        _logger,
                         new WindowsRfs.WindowsRfsClient(
                             GrpcChannel.ForAddress(connectTo!)));
                     fs.AddAdditionalReparsePoints(junctions);

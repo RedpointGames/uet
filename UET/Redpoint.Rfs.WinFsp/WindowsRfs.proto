@@ -245,10 +245,8 @@ message ReadDirectoryEntryResponse {
 }
 
 message ReadDirectoryResponse {
-    oneof response {
-        ReadDirectoryEntryResponse entry = 1;
-        int32 result = 2;
-    }
+    repeated ReadDirectoryEntryResponse entries = 1;
+    int32 result = 2;
 }
 
 service WindowsRfs {
@@ -270,5 +268,5 @@ service WindowsRfs {
     rpc Rename(RenameRequest) returns (RenameResponse) {}
     rpc GetSecurity(GetSecurityRequest) returns (GetSecurityResponse) {}
     rpc SetSecurity(SetSecurityRequest) returns (SetSecurityResponse) {}
-    rpc ReadDirectory(ReadDirectoryRequest) returns (stream ReadDirectoryResponse) {}
+    rpc ReadDirectory(ReadDirectoryRequest) returns (ReadDirectoryResponse) {}
 }

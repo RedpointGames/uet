@@ -365,17 +365,25 @@
                 descriptor.ToolExecutionInfo.ToolExecutableName,
                 cancellationToken);
 
+            // Compute the list of junctions.
+            var junctions = new List<string>
+            {
+                // Environment.GetEnvironmentVariable("SYSTEMROOT")! ?? @"C:\Windows",
+                // Path.GetDirectoryName(toolPath)!
+            };
+
             // Request a workspace that maps the remote FS.
             await using (var handle = await _peerRemoteFsManager.AcquirePeerRemoteFs(
                 peerAddress,
                 descriptor.RemoteFsStorageLayer.RemotePort,
-                new[]
-                {
-                    Path.GetDirectoryName(toolPath)!
-                }))
+                junctions.ToArray()))
             {
                 // Set up the environment variable dictionary.
                 Dictionary<string, string> environmentVariables = new Dictionary<string, string>();
+                foreach (string key in Environment.GetEnvironmentVariables().Keys)
+                {
+                    environmentVariables[key] = Environment.GetEnvironmentVariable(key)!;
+                }
                 if (descriptor.EnvironmentVariables.Count > 0)
                 {
                     foreach (var kv in descriptor.EnvironmentVariables)
@@ -403,24 +411,25 @@
                 }
 
                 // Execute the process in the virtual root.
-                _logger.LogTrace($"File path: {toolPath}");
-                _logger.LogTrace($"Arguments: {string.Join(" ", descriptor.Arguments)}");
-                _logger.LogTrace($"Working directory: {descriptor.WorkingDirectoryAbsolutePath}");
+                _logger.LogInformation($"File path: {toolPath}");
+                _logger.LogInformation($"Arguments: {string.Join(" ", descriptor.Arguments)}");
+                _logger.LogInformation($"Working directory: {descriptor.WorkingDirectoryAbsolutePath}");
                 if (processSpecification.PerProcessDriveMappings != null)
                 {
                     foreach (var mapping in processSpecification.PerProcessDriveMappings)
                     {
-                        _logger.LogTrace($"Drive mapping: '{mapping.Key}:\\' -> '{mapping.Value}'");
+                        _logger.LogInformation($"Drive mapping: '{mapping.Key}:\\' -> '{mapping.Value}'");
                     }
                     if (processSpecification.PerProcessDriveMappings.Count == 0)
                     {
-                        _logger.LogTrace($"No drive mappings are being applied (empty).");
+                        _logger.LogInformation($"No drive mappings are being applied (empty).");
                     }
                 }
                 else
                 {
-                    _logger.LogTrace($"No drive mappings are being applied (not configured).");
+                    _logger.LogInformation($"No drive mappings are being applied (not configured).");
                 }
+                await Task.Delay(10000);
                 await foreach (var response in _processExecutor.ExecuteAsync(
                     processSpecification,
                     cancellationToken))

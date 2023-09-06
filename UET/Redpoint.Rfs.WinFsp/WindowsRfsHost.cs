@@ -53,7 +53,6 @@
             var hresult = ex.HResult;
             if (0x80070000 == (hresult & 0xFFFF0000))
             {
-                _logger.LogError(ex, ex.Message);
                 return FileSystemBase.NtStatusFromWin32((UInt32)hresult & 0xFFFF);
             }
             else
@@ -803,11 +802,17 @@
             }
         }
 
+#if ASYNC
         public async override Task ReadDirectory(
             ReadDirectoryRequest request,
             IServerStreamWriter<ReadDirectoryResponse> responseStream,
             ServerCallContext context)
         {
+#else
+        public override Task<ReadDirectoryResponse> ReadDirectory(ReadDirectoryRequest request, ServerCallContext context)
+        {
+            var result = new ReadDirectoryResponse();
+#endif
             try
             {
                 WindowsFileDesc fileDesc = _openHandles[request.Handle];
@@ -913,6 +918,7 @@
                                 (ulong)_rootCreationTime.ToFileTime(),
                                 (ulong)_rootCreationTime.ToFileTime());
                         }
+#if ASYNC
                         await responseStream.WriteAsync(new ReadDirectoryResponse
                         {
                             Entry = new ReadDirectoryEntryResponse
@@ -921,24 +927,41 @@
                                 FileInfo = ConvertFileInfo(fileInfo),
                             }
                         });
+#else
+                        result.Entries.Add(new ReadDirectoryEntryResponse
+                        {
+                            FileName = fileName,
+                            FileInfo = ConvertFileInfo(fileInfo),
+                        });
+#endif
                         index = index + 1;
                     }
                     else
                     {
+#if ASYNC
                         await responseStream.WriteAsync(new ReadDirectoryResponse
                         {
                             Result = FileSystemBase.STATUS_SUCCESS,
                         });
                         break;
+#else
+                        result.Result = FileSystemBase.STATUS_SUCCESS;
+                        return Task.FromResult(result);
+#endif
                     }
                 }
             }
             catch (Exception ex)
             {
+#if ASYNC
                 await responseStream.WriteAsync(new ReadDirectoryResponse
                 {
                     Result = GetResultForException(ex),
                 });
+#else
+                result.Result = GetResultForException(ex);
+                return Task.FromResult(result);
+#endif
             }
         }
     }

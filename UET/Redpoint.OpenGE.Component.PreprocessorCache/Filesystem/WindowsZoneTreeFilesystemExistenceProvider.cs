@@ -57,6 +57,18 @@
                 }
                 _disk = factory.Create();
             }
+            catch (TreeComparerMismatchException)
+            {
+                if (Directory.Exists(_reservation.ReservedPath))
+                {
+                    try
+                    {
+                        Directory.Delete(_reservation.ReservedPath, true);
+                    }
+                    catch { }
+                }
+                _disk = factory.Create();
+            }
             logger.LogTrace($"Filesystem existence cache initialized in {st.Elapsed.TotalSeconds:F2} seconds.");
         }
 
