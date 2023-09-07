@@ -166,6 +166,11 @@
                 CreateNoWindow = true,
                 UseShellExecute = false,
             })!.WaitForExitAsync();
+
+            while (await IsServiceInstalled(name))
+            {
+                await Task.Delay(1000);
+            }
         }
     }
 
