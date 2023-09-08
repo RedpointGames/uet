@@ -89,18 +89,22 @@
         internal static void AddServicedOptionsHandler<
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TCommand,
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] TOptions
-            >(this Command command, Action<IServiceCollection>? extraServices = null) where TCommand : class, ICommandInstance where TOptions : class
+            >(this Command command, Action<IServiceCollection>? extraServices = null, Action<IServiceCollection>? extraParsingServices = null) where TCommand : class, ICommandInstance where TOptions : class
         {
             // We need a service provider for distribution option parsing, omitting services that are post-parsing specific.
             var parsingServices = new ServiceCollection();
             AddGeneralServices(parsingServices, LogLevel.Information);
             parsingServices.AddTransient<TOptions, TOptions>();
+            if (extraParsingServices != null)
+            {
+                extraParsingServices(parsingServices);
+            }
             var minimalServiceProvider = parsingServices.BuildServiceProvider();
 
             // Get the options instance from the minimal service provider.
             var options = minimalServiceProvider.GetRequiredService<TOptions>();
             command.AddAllOptions(options);
-            command.AddCommonHandler<TCommand>(options, extraServices);
+            command.AddCommonHandler<TCommand>(options, extraServices, extraParsingServices);
         }
 
         internal static void AddAllOptions<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] TOptions>(this Command command, TOptions options)
@@ -147,7 +151,7 @@
             public string[] GlobalArgsArray { get; }
         }
 
-        internal static void AddCommonHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TCommand>(this Command command, object options, Action<IServiceCollection>? extraServices = null) where TCommand : class, ICommandInstance
+        internal static void AddCommonHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TCommand>(this Command command, object options, Action<IServiceCollection>? extraServices = null, Action<IServiceCollection>? extraParsingServices = null) where TCommand : class, ICommandInstance
         {
             command.SetHandler(async (context) =>
             {
@@ -167,6 +171,10 @@
                 if (extraServices != null)
                 {
                     extraServices(services);
+                }
+                if (extraParsingServices != null)
+                {
+                    extraParsingServices(services);
                 }
                 services.AddSingleton<IOpenGEProvider, DefaultOpenGEProvider>();
                 services.AddSingleton<IApplicationLifecycle>(sp => sp.GetRequiredService<IOpenGEProvider>());
