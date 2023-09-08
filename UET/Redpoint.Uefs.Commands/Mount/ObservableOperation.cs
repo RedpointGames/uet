@@ -146,7 +146,8 @@
                         throw new InvalidOperationException($"Failed to mount via UEFS: {pollingResponse.Err}");
                     }
 
-                    if (pollingResponse.Status == PollingResponseStatus.Pulling)
+                    if (pollingResponse.Status == PollingResponseStatus.Pulling ||
+                        pollingResponse.Status == PollingResponseStatus.Verifying)
                     {
                         switch (pollingResponse.Type)
                         {

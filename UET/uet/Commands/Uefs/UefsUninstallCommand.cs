@@ -18,7 +18,7 @@
         public static Command CreateUninstallCommand()
         {
             var options = new Options();
-            var command = new Command("install", "Uninstall the UEFS daemon on this machine.");
+            var command = new Command("uninstall", "Uninstall the UEFS daemon on this machine.");
             command.AddAllOptions(options);
             command.AddCommonHandler<UefsUninstallCommandInstance>(
                 options,
