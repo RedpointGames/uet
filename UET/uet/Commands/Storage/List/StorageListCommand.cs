@@ -167,6 +167,10 @@
                                     }
                                 }
                             }
+                            catch (DirectoryNotFoundException)
+                            {
+                                size = ulong.MaxValue;
+                            }
                             catch (UnauthorizedAccessException)
                             {
                                 size = ulong.MaxValue;
