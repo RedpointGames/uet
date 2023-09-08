@@ -34,6 +34,11 @@
                         didReleaseSemaphore = true;
                     },
                     context.UpdatePollingResponse);
+
+                context.UpdatePollingResponse(x =>
+                {
+                    x.CompleteForVerifying();
+                });
             }
             finally
             {

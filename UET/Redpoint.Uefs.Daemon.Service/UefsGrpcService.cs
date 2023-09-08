@@ -354,14 +354,18 @@
                         await transaction.WaitForCompletionAsync(context.CancellationToken);
                     }
 
-                    if (lastPollingResponse == null || !lastPollingResponse.Complete)
+                    if (!request.NoWait && lastPollingResponse == null)
                     {
-                        throw new InvalidOperationException();
+                        _logger.LogError("Verification transaction finished without any polling response!");
+                        lastPollingResponse = new PollingResponse
+                        {
+                            Type = PollingResponseType.Immediate,
+                        };
                     }
 
                     await responseStream.WriteAsync(new VerifyResponse
                     {
-                        PollingResponse = lastPollingResponse,
+                        PollingResponse = lastPollingResponse ?? new PollingResponse(),
                         OperationId = transactionId ?? string.Empty,
                     });
                 }
