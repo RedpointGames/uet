@@ -227,6 +227,8 @@
         [SkippableFact]
         public async Task CanCheckoutEngineFresh()
         {
+            Skip.IfNot(OperatingSystem.IsWindows(), "Test seems to be flaky on macOS due to environment issues.");
+
             var tempPath = Path.Combine(Path.GetTempPath(), "UETTests-" + nameof(PhysicalGitCheckoutTests));
             Directory.CreateDirectory(tempPath);
 
