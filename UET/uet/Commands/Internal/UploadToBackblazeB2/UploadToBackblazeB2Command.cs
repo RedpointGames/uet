@@ -132,7 +132,7 @@
                                 context.GetCancellationToken());
                             break;
                         }
-                        catch (B2Exception ex) when (ex.Message.Contains("no tomes available"))
+                        catch (B2Exception ex) when (ex.Message.Contains("no tomes available") || ex.Message.Contains("incident id"))
                         {
                             if (SystemConsole.ConsoleWidth.HasValue)
                             {
