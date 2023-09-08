@@ -18,6 +18,7 @@
         {
             var rootCommand = new Command("uefs", "Run a UEFS command from UET.");
             rootCommand.AddCommand(UefsInstallCommand.CreateInstallCommand());
+            rootCommand.AddCommand(UefsUninstallCommand.CreateUninstallCommand());
             rootCommand.AddCommand(BuildCommand.CreateBuildCommand());
             rootCommand.AddCommand(MountCommand.CreateMountCommand());
             rootCommand.AddCommand(UnmountCommand.CreateUnmountCommand());
