@@ -48,7 +48,7 @@
             var graphStopwatch = Stopwatch.StartNew();
 
             // Track the state of this graph execution.
-            var instance = new GraphExecutionInstance(_logger, graph, cancellationToken)
+            var instance = new GraphExecutionInstance(graph, cancellationToken)
             {
                 WorkerPool = workerPool,
             };
