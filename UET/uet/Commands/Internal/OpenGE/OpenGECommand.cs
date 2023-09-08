@@ -63,12 +63,12 @@
                                 FilePath = "__openge__",
                                 Arguments = new[]
                                 {
-                                taskFile.FullName,
-                                "/Rebuild",
-                                "/NoLogo",
-                                "/ShowAgent",
-                                "/ShowTime",
-                                "/Title=UET OpenGE"
+                                    taskFile.FullName,
+                                    "/Rebuild",
+                                    "/NoLogo",
+                                    "/ShowAgent",
+                                    "/ShowTime",
+                                    "/Title=UET OpenGE"
                                 },
                                 DisableOpenGE = false,
                             },

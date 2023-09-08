@@ -48,7 +48,7 @@
             var graphStopwatch = Stopwatch.StartNew();
 
             // Track the state of this graph execution.
-            var instance = new GraphExecutionInstance(graph, cancellationToken)
+            var instance = new GraphExecutionInstance(_logger, graph, cancellationToken)
             {
                 WorkerPool = workerPool,
             };
@@ -520,7 +520,8 @@
                                                 syncPhaseStats);
                                         }
 
-                                        // Execute the task on the core.
+                                    // Execute the task on the core.
+                                    restartExecutionOnPartialCompletion:
                                         _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Executing task...");
                                         var executeTaskRequest = new ExecuteTaskRequest
                                         {
@@ -539,54 +540,63 @@
                                         }, instance.CancellationToken);
 
                                         // Stream the results until we get an exit code.
-                                        await using var enumerable = core.Request.GetAsyncEnumerator(instance.CancellationToken);
                                         ExecuteTaskResponse? finalExecuteTaskResponse = null;
-                                        while (!didComplete && await enumerable.MoveNextAsync(instance.CancellationToken))
+                                        await using (var enumerable = core.Request.GetAsyncEnumerator(instance.CancellationToken))
                                         {
-                                            var current = enumerable.Current;
-                                            if (current.ResponseCase != ExecutionResponse.ResponseOneofCase.ExecuteTask)
+                                            while (!didComplete && await enumerable.MoveNextAsync(instance.CancellationToken))
                                             {
-                                                throw new RpcException(new Status(
-                                                    StatusCode.InvalidArgument,
-                                                    "Unexpected task execution response from worker RPC."));
-                                            }
-                                            switch (current.ExecuteTask.Response.DataCase)
-                                            {
-                                                case ProcessResponse.DataOneofCase.StandardOutputLine:
-                                                    await responseStream.WriteAsync(new JobResponse
-                                                    {
-                                                        TaskOutput = new TaskOutputResponse
+                                                var current = enumerable.Current;
+                                                if (current.ResponseCase != ExecutionResponse.ResponseOneofCase.ExecuteTask)
+                                                {
+                                                    throw new RpcException(new Status(
+                                                        StatusCode.InvalidArgument,
+                                                        "Unexpected task execution response from worker RPC."));
+                                                }
+                                                switch (current.ExecuteTask.Response.DataCase)
+                                                {
+                                                    case ProcessResponse.DataOneofCase.StandardOutputLine:
+                                                        await responseStream.WriteAsync(new JobResponse
                                                         {
-                                                            Id = task.GraphTaskSpec.Task.Name,
-                                                            StandardOutputLine = current.ExecuteTask.Response.StandardOutputLine,
-                                                        }
-                                                    });
-                                                    break;
-                                                case ProcessResponse.DataOneofCase.StandardErrorLine:
-                                                    await responseStream.WriteAsync(new JobResponse
-                                                    {
-                                                        TaskOutput = new TaskOutputResponse
+                                                            TaskOutput = new TaskOutputResponse
+                                                            {
+                                                                Id = task.GraphTaskSpec.Task.Name,
+                                                                StandardOutputLine = current.ExecuteTask.Response.StandardOutputLine,
+                                                            }
+                                                        });
+                                                        break;
+                                                    case ProcessResponse.DataOneofCase.StandardErrorLine:
+                                                        await responseStream.WriteAsync(new JobResponse
                                                         {
-                                                            Id = task.GraphTaskSpec.Task.Name,
-                                                            StandardErrorLine = current.ExecuteTask.Response.StandardErrorLine,
-                                                        }
-                                                    });
-                                                    break;
-                                                case ProcessResponse.DataOneofCase.ExitCode:
-                                                    exitCode = current.ExecuteTask.Response.ExitCode;
-                                                    finalExecuteTaskResponse = current.ExecuteTask;
-                                                    status = exitCode == 0
-                                                        ? TaskCompletionStatus.TaskCompletionSuccess
-                                                        : TaskCompletionStatus.TaskCompletionFailure;
-                                                    didComplete = true;
-                                                    break;
+                                                            TaskOutput = new TaskOutputResponse
+                                                            {
+                                                                Id = task.GraphTaskSpec.Task.Name,
+                                                                StandardErrorLine = current.ExecuteTask.Response.StandardErrorLine,
+                                                            }
+                                                        });
+                                                        break;
+                                                    case ProcessResponse.DataOneofCase.ExitCode:
+                                                        exitCode = current.ExecuteTask.Response.ExitCode;
+                                                        finalExecuteTaskResponse = current.ExecuteTask;
+                                                        status = exitCode == 0
+                                                            ? TaskCompletionStatus.TaskCompletionSuccess
+                                                            : TaskCompletionStatus.TaskCompletionFailure;
+                                                        didComplete = true;
+                                                        break;
+                                                }
                                             }
+                                        }
+
+                                        if (!didComplete)
+                                        {
+                                            // The remote worker gracefully closed the connection without actually running.
+                                            _logger.LogWarning("Worker gracefully closed connection without providing an exit code for the task. Automatically restarting the task execution.");
+                                            goto restartExecutionOnPartialCompletion;
                                         }
 
                                         if (finalExecuteTaskResponse == null)
                                         {
                                             // This should never be null since we break the loop on ExitCode.
-                                            throw new InvalidOperationException();
+                                            throw new InvalidOperationException("Final execute task response was null, but we should not exit the loop without a final result.");
                                         }
 
                                         // Attach any metadata from the task execution.

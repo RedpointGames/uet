@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.OpenGE.Component.Dispatcher.GraphExecutor
 {
+    using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
@@ -7,12 +8,16 @@
     using System.Collections.Concurrent;
     using System.Threading.Tasks;
 
-    internal class GraphExecutionInstance
+    internal class GraphExecutionInstance : IDisposable
     {
+        private readonly ILogger _logger;
         private readonly Graph _graph;
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly Dictionary<GraphTask, GraphTaskStatus> _taskStatuses;
+        private readonly Task _stallChecker;
         private readonly MutexSlim _taskStatusesLock = new MutexSlim();
+        private bool _disposed = false;
+        private DateTimeOffset _lastMadeProgress = DateTimeOffset.UtcNow;
 
         public required ITaskApiWorkerPool WorkerPool;
         public readonly TerminableAwaitableConcurrentQueue<GraphTask> QueuedTasksForScheduling = new TerminableAwaitableConcurrentQueue<GraphTask>();
@@ -22,15 +27,38 @@
         public string? ExceptionMessage { get; private set; }
 
         public GraphExecutionInstance(
+            ILogger logger,
             Graph graph,
             CancellationToken cancellationToken)
         {
+            _logger = logger;
             _graph = graph;
             _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken);
             _taskStatuses = graph.Tasks.ToDictionary(
                 k => k.Value,
                 v => GraphTaskStatus.Pending);
+            _stallChecker = Task.Run(WatchForStallsAsync);
+        }
+
+        public void Dispose()
+        {
+            _disposed = true;
+        }
+
+        private async Task WatchForStallsAsync()
+        {
+            while (!_cancellationTokenSource.IsCancellationRequested && !_disposed)
+            {
+                await Task.Delay(10 * 10000, _cancellationTokenSource.Token);
+                if ((DateTimeOffset.UtcNow - _lastMadeProgress) > TimeSpan.FromMinutes(10))
+                {
+                    _logger.LogWarning("Detected stall in OpenGE graph processing! This is a bug in OpenGE. Stopping the build.");
+                    IsCancelledDueToException = true;
+                    ExceptionMessage = "Detected stall in OpenGE graph processing! This is a bug in OpenGE. Stopping the build.";
+                    _cancellationTokenSource.Cancel();
+                }
+            }
         }
 
         internal async ValueTask<bool> DidAllTasksCompleteSuccessfullyAsync()
@@ -70,6 +98,7 @@
                         QueuedTasksForScheduling.Enqueue(taskKv.Value);
                     }
                 }
+                _lastMadeProgress = DateTimeOffset.UtcNow;
             }
         }
 
@@ -77,6 +106,7 @@
         {
             using (await _taskStatusesLock.WaitAsync())
             {
+                _lastMadeProgress = DateTimeOffset.UtcNow;
                 if (status == TaskCompletionStatus.TaskCompletionSuccess)
                 {
                     // This task succeeded, queue up downstream tasks for scheduling.
