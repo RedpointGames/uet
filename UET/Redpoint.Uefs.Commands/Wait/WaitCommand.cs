@@ -54,7 +54,7 @@
                     var response = await _retryableGrpc.RetryableGrpcAsync(
                         _uefsClient.GetInProgressOperationsAsync,
                         new GetInProgressOperationsRequest(),
-                        new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromSeconds(60) },
+                        new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
                         context.GetCancellationToken());
                     if (response.OperationId.Count == 0)
                     {
@@ -70,7 +70,7 @@
                             _uefsClient.Wait,
                             wait => wait.PollingResponse,
                             new WaitRequest { OperationId = operationId },
-                            TimeSpan.FromSeconds(60),
+                            TimeSpan.FromMinutes(60),
                             context.GetCancellationToken());
                         await operation.RunAndWaitForCompleteAsync();
                     }

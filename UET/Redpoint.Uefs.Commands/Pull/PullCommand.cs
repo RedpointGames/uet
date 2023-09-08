@@ -64,7 +64,7 @@
                     call,
                     response => response.PollingResponse,
                     request,
-                    TimeSpan.FromSeconds(60),
+                    TimeSpan.FromMinutes(60),
                     cancellationToken);
                 return await operation.RunAndWaitForCompleteAsync();
             }

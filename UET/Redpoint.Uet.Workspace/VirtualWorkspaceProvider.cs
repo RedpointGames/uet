@@ -98,7 +98,7 @@
             var response = await _retryableGrpc.RetryableGrpcAsync(
                 _uefsClient.ListAsync,
                 new ListRequest(),
-                new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromSeconds(60) },
+                new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
                 cancellationToken);
             return response.Mounts.FirstOrDefault(x => x.MountPath.Equals(mountPath, StringComparison.InvariantCultureIgnoreCase));
         }
@@ -113,7 +113,7 @@
                 _monitorFactory,
                 call,
                 request,
-                TimeSpan.FromSeconds(60),
+                TimeSpan.FromMinutes(60),
                 cancellationToken);
             return await operation.RunAndWaitForMountIdAsync();
         }

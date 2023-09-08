@@ -67,7 +67,7 @@
                         Fix = fix,
                         NoWait = noWait,
                     },
-                    TimeSpan.FromSeconds(60),
+                    TimeSpan.FromMinutes(60),
                     context.GetCancellationToken());
                 var response = await operation.RunAndWaitForCompleteAsync();
                 if (response.PollingResponse.Type == PollingResponseType.Backgrounded)

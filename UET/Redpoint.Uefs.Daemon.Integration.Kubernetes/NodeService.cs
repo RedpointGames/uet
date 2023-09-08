@@ -101,7 +101,7 @@
                                 Password = pullSecretForTag.Password,
                             }
                         },
-                        new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromSeconds(60) },
+                        new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
                         context.CancellationToken))
                     {
                         if (!string.IsNullOrWhiteSpace(entry.PollingResponse.Err))
@@ -168,7 +168,7 @@
                                 SshPrivateKeyAsPem = request.Secrets[request.VolumeContext["gitSecretPrivatePropertyName"]],
                             }
                         },
-                        new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromSeconds(60) },
+                        new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
                         context.CancellationToken))
                     {
                         if (!string.IsNullOrWhiteSpace(entry.PollingResponse.Err))
@@ -217,7 +217,7 @@
                     {
                         MountId = $"kube:{request.VolumeId}"
                     },
-                    new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromSeconds(60) },
+                    new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
                     CancellationToken.None);
                 return new NodeUnpublishVolumeResponse();
             }

@@ -52,7 +52,7 @@
                 var response = await _retryableGrpc.RetryableGrpcAsync(
                     _uefsClient.ListAsync,
                     new ListRequest(),
-                    new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromSeconds(60) },
+                    new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
                     context.GetCancellationToken());
 
                 if (all)
@@ -65,7 +65,7 @@
                             {
                                 MountId = mount.Id,
                             },
-                            new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromSeconds(60) },
+                            new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
                             context.GetCancellationToken());
                         Console.WriteLine($"successfully unmounted: {mount.MountPath}");
                     }
@@ -87,7 +87,7 @@
                         {
                             MountId = mount.Id,
                         },
-                        new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromSeconds(60) },
+                        new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
                         context.GetCancellationToken());
                     Console.WriteLine($"successfully unmounted: {mount.MountPath}");
                     return 0;
@@ -107,7 +107,7 @@
                         {
                             MountId = mount.Id,
                         },
-                        new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromSeconds(60) },
+                        new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
                         context.GetCancellationToken());
                     Console.WriteLine($"successfully unmounted: {mount.MountPath}");
                     return 0;
