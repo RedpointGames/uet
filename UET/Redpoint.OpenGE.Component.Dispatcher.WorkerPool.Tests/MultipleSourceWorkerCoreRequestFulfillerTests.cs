@@ -102,31 +102,47 @@
         [Fact]
         public async Task MultipleSourceCanFulfillTwoParallelRequestsTwoWorkers()
         {
-            var cancellationToken = new CancellationTokenSource(5000).Token;
-
-            var services = new ServiceCollection();
-            services.AddLogging();
-            var sp = services.BuildServiceProvider();
-            var logger = sp.GetRequiredService<ILogger<MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
-
-            var requestCollection = new WorkerCoreRequestCollection<IWorkerCore>();
-            var providerCollection = new WorkerCoreProviderCollection<IWorkerCore>();
-            var provider1 = new DynamicCoreProvider(1);
-            await providerCollection.AddAsync(provider1);
-            var provider2 = new DynamicCoreProvider(1);
-            await providerCollection.AddAsync(provider2);
-
-            await using (var fulfiller = new MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
-                logger,
-                requestCollection,
-                providerCollection,
-                true))
+            for (int i = 0; i < 1000; i++)
             {
-                await using (var request1 = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
+                var tracer = new WorkerPoolTracer();
+                try
                 {
-                    await using (var request2 = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
+                    var cancellationToken = new CancellationTokenSource(5000).Token;
+
+                    var services = new ServiceCollection();
+                    services.AddLogging();
+                    var sp = services.BuildServiceProvider();
+                    var logger = sp.GetRequiredService<ILogger<MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
+
+                    var requestCollection = new WorkerCoreRequestCollection<IWorkerCore>();
+                    requestCollection.SetTracer(tracer);
+                    var providerCollection = new WorkerCoreProviderCollection<IWorkerCore>();
+                    providerCollection.SetTracer(tracer);
+                    var provider1 = new DynamicCoreProvider(1);
+                    await providerCollection.AddAsync(provider1);
+                    var provider2 = new DynamicCoreProvider(1);
+                    await providerCollection.AddAsync(provider2);
+
+                    await using (var fulfiller = new MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
+                        logger,
+                        requestCollection,
+                        providerCollection,
+                        true))
                     {
+                        fulfiller.SetTracer(tracer);
+                        await using (var request1 = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
+                        {
+                            await using (var request2 = await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
+                            {
+                            }
+                        }
                     }
+                }
+                catch
+                {
+                    var messages = tracer.DumpAllMessages();
+                    Assert.True(false, string.Join("\n", messages));
+                    throw;
                 }
             }
         }

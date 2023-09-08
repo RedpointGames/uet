@@ -33,5 +33,16 @@
 
             await Task.WhenAll(task1, task2);
         }
+
+        [Fact]
+        public async Task GateHighIterationTest()
+        {
+            for (int i = 0; i < 10000; i++)
+            {
+                var gate = new Gate();
+                gate.Open();
+                await gate.WaitAsync(new CancellationTokenSource(TimeSpan.FromMilliseconds(10)).Token);
+            }
+        }
     }
 }

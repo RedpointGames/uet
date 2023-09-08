@@ -3,20 +3,27 @@
     using Redpoint.Concurrency;
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Threading;
     using System.Threading.Tasks;
 
-    public partial class WorkerCoreRequestCollection<TWorkerCore> where TWorkerCore : IAsyncDisposable
+    public partial class WorkerCoreRequestCollection<TWorkerCore> : IWorkerPoolTracerAssignable where TWorkerCore : IAsyncDisposable
     {
         private readonly List<WorkerCoreRequest> _requests;
         private readonly MutexSlim _requestLock;
         private readonly AsyncEvent<WorkerCoreRequestStatistics> _onRequestsChanged;
+        private WorkerPoolTracer? _tracer;
 
         public WorkerCoreRequestCollection()
         {
             _requests = new List<WorkerCoreRequest>();
             _requestLock = new MutexSlim();
             _onRequestsChanged = new AsyncEvent<WorkerCoreRequestStatistics>();
+        }
+
+        public void SetTracer(WorkerPoolTracer tracer)
+        {
+            _tracer = tracer;
         }
 
         private WorkerCoreRequestStatistics ObtainStatisticsWithinLock()
@@ -102,12 +109,15 @@
         {
             using var _ = await _requestLock.WaitAsync(cancellationToken);
 
+            _tracer?.AddTracingMessage("Getting next unfulfilled request.");
             var nextRequest = _requests.FirstOrDefault(GetFilterForConstraint(fulfillerConstraint));
             if (nextRequest == null)
             {
+                _tracer?.AddTracingMessage("No unfulfilled request was present based on constraints.");
                 return null;
             }
             nextRequest.LockAcquired = true;
+            _tracer?.AddTracingMessage("Acquired lock on next request.");
             return new WorkerCoreRequestLock(this, nextRequest);
         }
 
@@ -116,6 +126,8 @@
             CancellationToken cancellationToken)
         {
             var @lock = await _requestLock.WaitAsync(cancellationToken);
+
+            _tracer?.AddTracingMessage("Getting all unfulfilled requests.");
             var handedOverLock = false;
             try
             {
@@ -130,6 +142,7 @@
             {
                 if (!handedOverLock)
                 {
+                    _tracer?.AddTracingMessage("Did not acquire lock on enumerable, releasing.");
                     @lock.Dispose();
                 }
             }
@@ -139,10 +152,12 @@
             CoreAllocationPreference corePreference,
             CancellationToken cancellationToken)
         {
+            _tracer?.AddTracingMessage("Creating an unfulfilled request so we can wait on it.");
             var didFulfill = false;
             var request = await CreateUnfulfilledRequestAsync(corePreference, cancellationToken);
             try
             {
+                _tracer?.AddTracingMessage("Waiting for the request to be fulfilled.");
                 await request.WaitForCoreAsync(cancellationToken);
                 didFulfill = true;
                 return request;
@@ -162,10 +177,12 @@
         {
             using var _ = await _requestLock.WaitAsync(cancellationToken);
 
+            _tracer?.AddTracingMessage("Creating new unfulfilled request and adding to dictionary.");
             var newRequest = new WorkerCoreRequest(this, corePreference);
             _requests.Add(newRequest);
             try
             {
+                _tracer?.AddTracingMessage("Broadcasting that the list of requests has changed.");
                 await _onRequestsChanged.BroadcastAsync(
                     ObtainStatisticsWithinLock(),
                     cancellationToken);

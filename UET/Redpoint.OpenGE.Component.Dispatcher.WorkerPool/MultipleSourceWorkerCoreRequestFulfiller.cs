@@ -8,7 +8,7 @@
     using Redpoint.Collections;
     using Redpoint.Concurrency;
 
-    public class MultipleSourceWorkerCoreRequestFulfiller<TWorkerCore> : IAsyncDisposable where TWorkerCore : IAsyncDisposable
+    public class MultipleSourceWorkerCoreRequestFulfiller<TWorkerCore> : IAsyncDisposable, IWorkerPoolTracerAssignable where TWorkerCore : IAsyncDisposable
     {
         private readonly ILogger _logger;
         private readonly WorkerCoreRequestCollection<TWorkerCore> _requestCollection;
@@ -19,10 +19,13 @@
         private readonly Dictionary<IWorkerCoreProvider<TWorkerCore>, WorkerCoreObtainmentState> _currentProviders;
         private readonly MutexSlim _currentProvidersLock;
         private readonly Task _backgroundTask;
+        private WorkerPoolTracer? _tracer;
 
         private class WorkerCoreObtainmentState
         {
+            private readonly MultipleSourceWorkerCoreRequestFulfiller<TWorkerCore> _owner;
             private readonly ILogger _logger;
+            private readonly string _uniqueId;
             private readonly CancellationToken _disposedCancellationToken;
             private bool _isObtainingCore;
             private CancellationTokenSource _obtainmentCancellationTokenSource;
@@ -33,11 +36,22 @@
 
             public bool HasObtainedCore => _isObtainingCore && _obtainedCore != null;
 
-            public WorkerCoreObtainmentState(ILogger logger, CancellationToken disposedCancellationToken)
+            public WorkerCoreObtainmentState(
+                MultipleSourceWorkerCoreRequestFulfiller<TWorkerCore> owner,
+                ILogger logger,
+                string uniqueId,
+                CancellationToken disposedCancellationToken)
             {
+                _owner = owner;
                 _logger = logger;
+                _uniqueId = uniqueId;
                 _disposedCancellationToken = disposedCancellationToken;
                 _obtainmentCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_disposedCancellationToken);
+            }
+
+            public override string ToString()
+            {
+                return _uniqueId;
             }
 
             public void StartObtainingCore(Func<CancellationToken, Task> task)
@@ -61,12 +75,14 @@
                     throw new InvalidOperationException("AcceptObtainedCore called on WorkerCoreObtainmentState that was not obtaining a core.");
                 }
                 _obtainedCore = core;
+                _owner._tracer?.AddTracingMessage($"AcceptObtainedCore: {core}");
             }
 
             public async Task CancelObtainingCoreAsync()
             {
                 if (_obtainedCore != null)
                 {
+                    _owner._tracer?.AddTracingMessage($"CancelObtainingCoreAsync: {_obtainedCore}");
                     await _obtainedCore.DisposeAsync();
                 }
                 _obtainmentCancellationTokenSource.Cancel();
@@ -74,6 +90,7 @@
                 _obtainmentBackgroundTask = null;
                 _obtainedCore = default;
                 _isObtainingCore = false;
+                _owner._tracer?.AddTracingMessage($"CancelObtainingCoreAsync: [cancelled]");
             }
 
             public void IndicateObtainmentFailed()
@@ -86,6 +103,7 @@
                 _obtainmentCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_disposedCancellationToken);
                 _obtainmentBackgroundTask = null;
                 _obtainedCore = default;
+                _owner._tracer?.AddTracingMessage($"IndicateObtainmentFailed: [obtainment failed]");
             }
 
             public TWorkerCore TakeObtainedCore()
@@ -99,11 +117,13 @@
                 _isObtainingCore = false;
                 _obtainmentCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_disposedCancellationToken);
                 _obtainmentBackgroundTask = null;
+                _owner._tracer?.AddTracingMessage($"TakeObtainedCore: {core}");
                 return core!;
             }
 
             public async Task CancelObtainmentIfRunningAsync()
             {
+                _owner._tracer?.AddTracingMessage($"CancelObtainmentIfRunningAsync");
                 _obtainmentCancellationTokenSource.Cancel();
                 if (_obtainmentBackgroundTask != null)
                 {
@@ -139,6 +159,11 @@
             _backgroundTask = Task.Run(RunAsync);
         }
 
+        public void SetTracer(WorkerPoolTracer tracer)
+        {
+            _tracer = tracer;
+        }
+
         public async ValueTask DisposeAsync()
         {
             _disposedCts.Cancel();
@@ -154,19 +179,22 @@
 
         private Task OnNotifiedRequestsChanged(WorkerCoreRequestStatistics statistics, CancellationToken token)
         {
+            _tracer?.AddTracingMessage("Notified that requests have changed.");
             _processRequestsSemaphore.Release();
             return Task.CompletedTask;
         }
 
         private async Task OnNotifiedProvidersChanged(WorkerCoreProviderCollectionChanged<TWorkerCore> providersInfo, CancellationToken token)
         {
+            _tracer?.AddTracingMessage("Notified that providers have changed.");
+
             using var _ = await _currentProvidersLock.WaitAsync(token);
 
             if (providersInfo.AddedProvider != null)
             {
                 if (!_currentProviders.ContainsKey(providersInfo.AddedProvider))
                 {
-                    _currentProviders.Add(providersInfo.AddedProvider, new WorkerCoreObtainmentState(_logger, _disposedCts.Token));
+                    _currentProviders.Add(providersInfo.AddedProvider, new WorkerCoreObtainmentState(this, _logger, Guid.NewGuid().ToString(), _disposedCts.Token));
                 }
             }
             if (providersInfo.RemovedProvider != null)
@@ -229,7 +257,7 @@
                     {
                         foreach (var provider in await _providerCollection.GetProvidersAsync())
                         {
-                            _currentProviders.Add(provider, new WorkerCoreObtainmentState(_logger, _disposedCts.Token));
+                            _currentProviders.Add(provider, new WorkerCoreObtainmentState(this, _logger, Guid.NewGuid().ToString(), _disposedCts.Token));
                         }
                         break;
                     }
@@ -252,8 +280,10 @@
                 {
                     while (!_disposedCts.IsCancellationRequested)
                     {
+                        _tracer?.AddTracingMessage("Waiting to be notified that requests have changed.");
                         await _processRequestsSemaphore.WaitAsync(_disposedCts.Token);
 
+                        _tracer?.AddTracingMessage("Waiting to obtain the provider lock.");
                         using (await _currentProvidersLock.WaitAsync(_disposedCts.Token))
                         {
                             // Step 1: Get the list of requests we haven't fulfilled yet.
@@ -311,6 +341,8 @@
                                 differenceCores = obtainmentTargetCores - obtainmentCurrentCores;
                             }
 
+                            _tracer?.AddTracingMessage($"Determined that the difference in cores is {differenceCores}.");
+
                             // Step 7: Either start obtaining more cores, or cancel obtaining cores that we no
                             // longer need.
                             if (differenceCores > 0)
@@ -323,40 +355,73 @@
                                     var provider = idleProviders[i];
                                     provider.Value.StartObtainingCore(async cancellationToken =>
                                     {
+                                        _tracer?.AddTracingMessage($"{provider.Value}: Starting obtainment of core.");
+
+                                        // Try to obtain the core.
                                         var didAssignObtainedCore = false;
+                                        TWorkerCore? obtainedCore = default;
                                         try
                                         {
-                                            var obtainedCore = await provider.Key.RequestCoreAsync(cancellationToken);
-                                            try
+                                            obtainedCore = await provider.Key.RequestCoreAsync(cancellationToken);
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _tracer?.AddTracingMessage($"{provider.Value}: Exception during RequestCoreAsync: {ex}");
+                                        }
+
+                                        // Evaluate whether or not the obtainment was successful inside the lock
+                                        // to prevent weird states emerging as request notifications come in at
+                                        // various points.
+                                        //
+                                        // @note: We use CancellationToken.None here because we need to obtain the
+                                        // lock even to do cleanup operations without the state getting weird.
+                                        using (await _currentProvidersLock.WaitAsync(CancellationToken.None))
+                                        {
+                                            if (cancellationToken.IsCancellationRequested)
                                             {
-                                                using (await _currentProvidersLock.WaitAsync(cancellationToken))
-                                                {
-                                                    provider.Value.AcceptObtainedCore(obtainedCore);
-                                                    didAssignObtainedCore = true;
-                                                }
-                                            }
-                                            finally
-                                            {
-                                                if (!didAssignObtainedCore)
+                                                if (obtainedCore != null)
                                                 {
                                                     await obtainedCore.DisposeAsync();
                                                 }
+                                                cancellationToken.ThrowIfCancellationRequested();
                                             }
-                                        }
-                                        finally
-                                        {
-                                            if (!didAssignObtainedCore && provider.Value.IsObtainingCore)
+                                            else
                                             {
-                                                using (await _currentProvidersLock.WaitAsync(CancellationToken.None))
+                                                if (obtainedCore == null)
                                                 {
+                                                    _tracer?.AddTracingMessage($"{provider.Value}: Failed to obtain core.");
+                                                    _tracer?.AddTracingMessage($"{provider.Value}: Indicating obtainment failed.");
                                                     provider.Value.IndicateObtainmentFailed();
+                                                    _tracer?.AddTracingMessage($"{provider.Value}: Indicated obtainment failed.");
+                                                }
+                                                else
+                                                {
+                                                    _tracer?.AddTracingMessage($"{provider.Value}: Obtained core {obtainedCore}, but yet to accept.");
+                                                    try
+                                                    {
+                                                        _tracer?.AddTracingMessage($"{provider.Value}: Accepting obtained core {obtainedCore}.");
+                                                        provider.Value.AcceptObtainedCore(obtainedCore);
+                                                        didAssignObtainedCore = true;
+                                                        _tracer?.AddTracingMessage($"{provider.Value}: Accepted obtained core {obtainedCore}.");
+                                                    }
+                                                    finally
+                                                    {
+                                                        if (!didAssignObtainedCore)
+                                                        {
+                                                            await obtainedCore.DisposeAsync();
+
+                                                            _tracer?.AddTracingMessage($"{provider.Value}: Indicating obtainment failed.");
+                                                            provider.Value.IndicateObtainmentFailed();
+                                                            _tracer?.AddTracingMessage($"{provider.Value}: Indicated obtainment failed.");
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
-                                        if (didAssignObtainedCore)
-                                        {
-                                            _processRequestsSemaphore.Release();
-                                        }
+
+                                        // Reprocess requests regardless of whether we succeed to ensure that the 
+                                        // state stabilises.
+                                        _processRequestsSemaphore.Release();
                                     });
                                 }
                             }
@@ -367,6 +432,7 @@
                                 workingProviders.Shuffle();
                                 for (int i = 0; i < -differenceCores && i < workingProviders.Count; i++)
                                 {
+                                    _tracer?.AddTracingMessage("Cancelling core obtainment.");
                                     var provider = workingProviders[i];
                                     await provider.Value.CancelObtainingCoreAsync();
                                 }

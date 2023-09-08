@@ -7,11 +7,12 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    public class WorkerCoreProviderCollection<TWorkerCore> where TWorkerCore : IAsyncDisposable
+    public class WorkerCoreProviderCollection<TWorkerCore> : IWorkerPoolTracerAssignable where TWorkerCore : IAsyncDisposable
     {
         private readonly Dictionary<string, IWorkerCoreProvider<TWorkerCore>> _providers;
         private readonly MutexSlim _providerLock;
         private readonly AsyncEvent<WorkerCoreProviderCollectionChanged<TWorkerCore>> _onProvidersChanged;
+        private WorkerPoolTracer? _tracer;
 
         public WorkerCoreProviderCollection()
         {
@@ -20,11 +21,17 @@
             _onProvidersChanged = new AsyncEvent<WorkerCoreProviderCollectionChanged<TWorkerCore>>();
         }
 
+        public void SetTracer(WorkerPoolTracer tracer)
+        {
+            _tracer = tracer;
+        }
+
         public IAsyncEvent<WorkerCoreProviderCollectionChanged<TWorkerCore>> OnProvidersChanged => _onProvidersChanged;
 
         public async Task<IReadOnlyList<IWorkerCoreProvider<TWorkerCore>>> GetProvidersAsync()
         {
             using var _ = await _providerLock.WaitAsync(CancellationToken.None);
+            _tracer?.AddTracingMessage($"Returning registered {_providers.Values.Count} providers.");
             return new List<IWorkerCoreProvider<TWorkerCore>>(_providers.Values);
         }
 
@@ -42,9 +49,11 @@
             {
                 return;
             }
+            _tracer?.AddTracingMessage($"Adding new provider to provider collection.");
             _providers.Add(provider.Id, provider);
             try
             {
+                _tracer?.AddTracingMessage($"Broadcasting that the list of providers has changed.");
                 await _onProvidersChanged.BroadcastAsync(new WorkerCoreProviderCollectionChanged<TWorkerCore>
                 {
                     CurrentProviders = new List<IWorkerCoreProvider<TWorkerCore>>(_providers.Values),
@@ -63,9 +72,11 @@
 
             if (_providers.ContainsKey(provider.Id))
             {
+                _tracer?.AddTracingMessage($"Removing provider from provider collection.");
                 _providers.Remove(provider.Id);
                 try
                 {
+                    _tracer?.AddTracingMessage($"Broadcasting that the list of providers has changed.");
                     await _onProvidersChanged.BroadcastAsync(new WorkerCoreProviderCollectionChanged<TWorkerCore>
                     {
                         CurrentProviders = new List<IWorkerCoreProvider<TWorkerCore>>(_providers.Values),
