@@ -11,6 +11,7 @@
     <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
     <ProjectReference Include="..\Redpoint.Git.Managed.Packfile\Redpoint.Git.Managed.Packfile.csproj" />
     <ProjectReference Include="..\Redpoint.Numerics\Redpoint.Numerics.csproj" />
+    <ProjectReference Include="..\Redpoint.Tasks\Redpoint.Tasks.csproj" />
   </ItemGroup>
 
 </Project>

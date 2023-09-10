@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.AutoDiscovery.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.Tasks;
     using Xunit;
 
     public class DiscoveryTests
@@ -12,6 +13,7 @@
 
             var services = new ServiceCollection();
             services.AddAutoDiscovery();
+            services.AddTasks();
 
             var sp = services.BuildServiceProvider();
 

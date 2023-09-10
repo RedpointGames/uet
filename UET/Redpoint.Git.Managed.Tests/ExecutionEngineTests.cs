@@ -5,6 +5,7 @@ namespace Redpoint.Git.Managed.Tests
     using Redpoint.Git.Managed.Operation;
     using Redpoint.Git.Managed.Packfile;
     using Redpoint.Numerics;
+    using Redpoint.Tasks;
     using System.Diagnostics;
 
     public class ExecutionEngineTests
@@ -28,10 +29,12 @@ namespace Redpoint.Git.Managed.Tests
 
             var services = new ServiceCollection();
             services.AddLogging();
+            services.AddTasks();
             var sp = services.BuildServiceProvider();
 
             var engine = new GitExecutionEngine(
-                sp.GetRequiredService<ILogger<GitExecutionEngine>>())
+                sp.GetRequiredService<ILogger<GitExecutionEngine>>(),
+                sp.GetRequiredService<ITaskScheduler>())
             {
                 OnInternalException = ex =>
                 {

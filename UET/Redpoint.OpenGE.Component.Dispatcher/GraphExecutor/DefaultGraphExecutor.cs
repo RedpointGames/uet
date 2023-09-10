@@ -8,6 +8,7 @@
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Protocol;
+    using Redpoint.Tasks;
     using System.Diagnostics;
     using System.Globalization;
     using System.Threading.Tasks;
@@ -18,17 +19,20 @@
         private readonly IToolSynchroniser _toolSynchroniser;
         private readonly IBlobSynchroniser _blobSynchroniser;
         private readonly IRemoteFsManager _remoteFsManager;
+        private readonly ITaskScheduler _taskScheduler;
 
         public DefaultGraphExecutor(
             ILogger<DefaultGraphExecutor> logger,
             IToolSynchroniser toolSynchroniser,
             IBlobSynchroniser blobSynchroniser,
-            IRemoteFsManager remoteFsManager)
+            IRemoteFsManager remoteFsManager,
+            ITaskScheduler taskScheduler)
         {
             _logger = logger;
             _toolSynchroniser = toolSynchroniser;
             _blobSynchroniser = blobSynchroniser;
             _remoteFsManager = remoteFsManager;
+            _taskScheduler = taskScheduler;
         }
 
         public async Task ExecuteGraphAsync(
@@ -46,6 +50,9 @@
             }
 
             var graphStopwatch = Stopwatch.StartNew();
+
+            // Create a task scheduler scope for running our tasks on.
+            await using var schedulerScope = _taskScheduler.CreateSchedulerScope($"ExecuteGraphAsync", cancellationToken);
 
             // Track the state of this graph execution.
             var instance = new GraphExecutionInstance(graph, cancellationToken)
@@ -80,13 +87,20 @@
                     }
 
                     // Schedule the task to run on the thread pool.
-                    instance.ScheduledExecutions.Add(Task.Run(async () => await ExecuteTaskAsync(
-                        instance,
-                        graph,
-                        task!,
-                        buildBehaviour,
-                        responseStream,
-                        cancellationToken)));
+                    instance.ScheduledExecutions.Add(schedulerScope.RunAsync(
+                        task!.GraphTaskSpec.Task.Name,
+                        cancellationToken,
+                        async (cancellationToken) =>
+                        {
+                            await ExecuteTaskAsync(
+                                schedulerScope,
+                                instance,
+                                graph,
+                                task!,
+                                buildBehaviour,
+                                responseStream,
+                                cancellationToken);
+                        }));
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
@@ -168,6 +182,7 @@
         }
 
         private async Task ExecuteTaskAsync(
+            ITaskSchedulerScope schedulerScope,
             GraphExecutionInstance instance,
             Graph graph,
             GraphTask task,
@@ -295,17 +310,17 @@
                                         // data with a reservation open because remote workers will kick us for
                                         // being idle.
                                         await Task.WhenAll(
-                                            Task.Run(async () =>
+                                            schedulerScope.RunAsync($"{task.GraphTaskSpec.Task.Name}:HashTool", instance.CancellationToken, async (cancellationToken) =>
                                             {
                                                 describingGraphTask.ToolHashingResult = await _toolSynchroniser.HashToolAsync(
                                                     describingGraphTask.TaskDescriptor.Remote,
-                                                    instance.CancellationToken);
+                                                    cancellationToken);
                                             }),
-                                            Task.Run(async () =>
+                                            schedulerScope.RunAsync($"{task.GraphTaskSpec.Task.Name}:HashInputBlobs", instance.CancellationToken, async (cancellationToken) =>
                                             {
                                                 describingGraphTask.BlobHashingResult = await _blobSynchroniser.HashInputBlobsAsync(
                                                     describingGraphTask.TaskDescriptor.Remote,
-                                                    instance.CancellationToken);
+                                                    cancellationToken);
                                             }));
                                     }
                                 }
@@ -353,19 +368,19 @@
                                     // data with a reservation open because remote workers will kick us for
                                     // being idle.
                                     await Task.WhenAll(
-                                        Task.Run(async () =>
+                                        schedulerScope.RunAsync($"{task.GraphTaskSpec.Task.Name}:HashTool", instance.CancellationToken, async (cancellationToken) =>
                                         {
                                             fastExecutableGraphTask.ToolHashingResult = await _toolSynchroniser.HashToolAsync(
                                                 taskDescriptor.Remote,
-                                                instance.CancellationToken);
+                                                cancellationToken);
                                         }),
-                                        Task.Run(async () =>
+                                        schedulerScope.RunAsync($"{task.GraphTaskSpec.Task.Name}:HashInputBlobs", instance.CancellationToken, async (cancellationToken) =>
                                         {
                                             if (taskDescriptor.Remote.StorageLayerCase == RemoteTaskDescriptor.StorageLayerOneofCase.TransferringStorageLayer)
                                             {
                                                 fastExecutableGraphTask.BlobHashingResult = await _blobSynchroniser.HashInputBlobsAsync(
                                                     taskDescriptor.Remote,
-                                                    instance.CancellationToken);
+                                                    cancellationToken);
                                             }
                                         }));
                                 }

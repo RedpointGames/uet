@@ -14,6 +14,7 @@
     using Redpoint.OpenGE.Protocol;
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
+    using Redpoint.Tasks;
     using Xunit;
 
     public class GraphExecutionTests
@@ -39,6 +40,7 @@
             Skip.IfNot(OperatingSystem.IsWindows());
 
             var services = new ServiceCollection();
+            services.AddTasks();
             services.AddLogging();
             services.AddGrpcPipes();
             services.AddOpenGECore();

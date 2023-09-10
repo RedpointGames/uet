@@ -9,11 +9,11 @@
     using BitFaster.Caching;
     using System.Text;
     using System.IO.Compression;
+    using Redpoint.Tasks;
 
     internal class GitExecutionEngine : IDisposable
     {
         private readonly AwaitableConcurrentQueue<GitOperation> _pendingOperations;
-        private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly ILogger<GitExecutionEngine> _logger;
         // @bug: I'm pretty sure this can dispose the packfiles while we still
         // have streams open. Packfile needs to be updated to defer it's actual
@@ -22,13 +22,14 @@
         private readonly ICache<string, PackfileIndex> _packfileIndexCache;
         private readonly ICache<string, bool> _looseObjectExistenceCache;
         private readonly ICache<string, FileInfo[]> _packfileListingCache;
+        private readonly ITaskSchedulerScope _operationTasksScope;
         private readonly Task[] _operationTasks;
 
         public GitExecutionEngine(
-            ILogger<GitExecutionEngine> logger)
+            ILogger<GitExecutionEngine> logger,
+            ITaskScheduler taskScheduler)
         {
             _pendingOperations = new AwaitableConcurrentQueue<GitOperation>();
-            _cancellationTokenSource = new CancellationTokenSource();
             _logger = logger;
             _packfileCache = new ConcurrentLruBuilder<string, Packfile.Packfile>()
                 .WithExpireAfterWrite(TimeSpan.FromMinutes(1))
@@ -50,7 +51,10 @@
                 .WithCapacity(20)
                 .WithAtomicGetOrAdd()
                 .Build();
-            _operationTasks = Enumerable.Range(0, Math.Max(4, Environment.ProcessorCount)).Select(x => Task.Run(RunAsync)).ToArray();
+            _operationTasksScope = taskScheduler.CreateSchedulerScope("GitExecutionEngine", CancellationToken.None);
+            _operationTasks = Enumerable.Range(0, Math.Max(4, Environment.ProcessorCount))
+                .Select(x => _operationTasksScope.RunAsync($"Core{x}", CancellationToken.None, RunAsync))
+                .ToArray();
         }
 
         public Action<Exception>? OnInternalException { get; set; }
@@ -212,7 +216,7 @@
 
         public void Dispose()
         {
-            _cancellationTokenSource.Cancel();
+            _operationTasksScope.Dispose();
         }
 
         internal void EnqueueOperation(GitOperation operation)
@@ -220,19 +224,19 @@
             _pendingOperations.Enqueue(operation);
         }
 
-        private async Task RunAsync()
+        private async Task RunAsync(CancellationToken cancellationToken)
         {
             try
             {
-                while (!_cancellationTokenSource.IsCancellationRequested)
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    var nextOperation = await _pendingOperations.DequeueAsync(_cancellationTokenSource.Token);
+                    var nextOperation = await _pendingOperations.DequeueAsync(cancellationToken);
 
                     try
                     {
-                        await RunOperationAsync(nextOperation, _cancellationTokenSource.Token);
+                        await RunOperationAsync(nextOperation, cancellationToken);
                     }
-                    catch (OperationCanceledException) when (_cancellationTokenSource.IsCancellationRequested)
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {
                         return;
                     }
@@ -243,7 +247,7 @@
                     }
                 }
             }
-            catch (OperationCanceledException) when (_cancellationTokenSource.IsCancellationRequested)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 // Expected.
             }

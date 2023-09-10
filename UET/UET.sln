@@ -301,7 +301,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Redpoint.Rfs", "Redpoint.Rf
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Rfs.WinFsp", "Redpoint.Rfs.WinFsp\Redpoint.Rfs.WinFsp.csproj", "{AAB64112-C522-4FD2-8A28-84E7B17EFE92}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Logging", "Redpoint.Logging\Redpoint.Logging.csproj", "{19CBD6A9-7EEA-4DF9-8FEE-C5C6E5481745}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Logging", "Redpoint.Logging\Redpoint.Logging.csproj", "{19CBD6A9-7EEA-4DF9-8FEE-C5C6E5481745}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Tasks", "Redpoint.Tasks\Redpoint.Tasks.csproj", "{12E6E565-DADA-472C-A4C6-F817988E16FA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1957,6 +1959,18 @@ Global
 		{19CBD6A9-7EEA-4DF9-8FEE-C5C6E5481745}.Release|x64.Build.0 = Release|Any CPU
 		{19CBD6A9-7EEA-4DF9-8FEE-C5C6E5481745}.Release|x86.ActiveCfg = Release|Any CPU
 		{19CBD6A9-7EEA-4DF9-8FEE-C5C6E5481745}.Release|x86.Build.0 = Release|Any CPU
+		{12E6E565-DADA-472C-A4C6-F817988E16FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12E6E565-DADA-472C-A4C6-F817988E16FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12E6E565-DADA-472C-A4C6-F817988E16FA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{12E6E565-DADA-472C-A4C6-F817988E16FA}.Debug|x64.Build.0 = Debug|Any CPU
+		{12E6E565-DADA-472C-A4C6-F817988E16FA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{12E6E565-DADA-472C-A4C6-F817988E16FA}.Debug|x86.Build.0 = Debug|Any CPU
+		{12E6E565-DADA-472C-A4C6-F817988E16FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12E6E565-DADA-472C-A4C6-F817988E16FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{12E6E565-DADA-472C-A4C6-F817988E16FA}.Release|x64.ActiveCfg = Release|Any CPU
+		{12E6E565-DADA-472C-A4C6-F817988E16FA}.Release|x64.Build.0 = Release|Any CPU
+		{12E6E565-DADA-472C-A4C6-F817988E16FA}.Release|x86.ActiveCfg = Release|Any CPU
+		{12E6E565-DADA-472C-A4C6-F817988E16FA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

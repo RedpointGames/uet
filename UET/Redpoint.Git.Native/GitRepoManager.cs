@@ -3,6 +3,7 @@
     using LibGit2Sharp;
     using LibGit2Sharp.Handlers;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Tasks;
     using System;
     using System.Diagnostics;
     using System.Linq;
@@ -19,6 +20,7 @@
         private readonly string _gitRepoPath;
         private readonly Repository _repository;
         private readonly ILogger<GitRepoManager> _logger;
+        private readonly ITaskScheduler _taskScheduler;
         private readonly List<Process> _processes;
         private readonly SemaphoreSlim _processSemaphore;
 
@@ -36,6 +38,7 @@
 
         public GitRepoManager(
             ILogger<GitRepoManager> logger,
+            ITaskScheduler taskScheduler,
             string gitRepoPath)
         {
             _gitRepoPath = gitRepoPath;
@@ -107,6 +110,7 @@
             }
 
             _logger = logger;
+            _taskScheduler = taskScheduler;
             _processes = new List<Process>();
             _processSemaphore = new SemaphoreSlim(1);
         }
@@ -139,7 +143,8 @@
             string privateKeyFile,
             Action<GitFetchProgressInfo> onProgress)
         {
-            await Task.Run(() =>
+            await using var scope = _taskScheduler.CreateSchedulerScope("GitRepoManager", CancellationToken.None);
+            await scope.RunAsync($"Fetch:{url}", CancellationToken.None, async (cancellationToken) =>
             {
                 string hash;
                 using (var sha = SHA1.Create())
@@ -283,7 +288,7 @@
                     {
                         throw new InvalidOperationException("Failed to start Git process for performing fast fetch.");
                     }
-                    _processSemaphore.WaitAsync();
+                    await _processSemaphore.WaitAsync();
                     try
                     {
                         _processes.Add(git);
@@ -415,7 +420,7 @@
                     }
                     finally
                     {
-                        _processSemaphore.WaitAsync();
+                        await _processSemaphore.WaitAsync();
                         try
                         {
                             _processes.Remove(git);
@@ -491,7 +496,7 @@
 
         public void StopProcesses()
         {
-            _processSemaphore.WaitAsync();
+            _processSemaphore.Wait();
             try
             {
                 foreach (var process in _processes)

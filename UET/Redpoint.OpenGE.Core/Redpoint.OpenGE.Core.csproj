@@ -17,6 +17,7 @@
     <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Protocol\Redpoint.OpenGE.Protocol.csproj" />
     <ProjectReference Include="..\Redpoint.Reservation\Redpoint.Reservation.csproj" />
+    <ProjectReference Include="..\Redpoint.Tasks\Redpoint.Tasks.csproj" />
   </ItemGroup>
   
 </Project>

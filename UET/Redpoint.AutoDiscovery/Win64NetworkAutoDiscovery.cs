@@ -4,6 +4,7 @@
 
     using Redpoint.AutoDiscovery.Windows;
     using Redpoint.Concurrency;
+    using Redpoint.Tasks;
     using System.Runtime.CompilerServices;
     using System.Runtime.Versioning;
     using System.Threading;
@@ -11,6 +12,14 @@
     [SupportedOSPlatform("windows10.0.10240")]
     internal class Win64NetworkAutoDiscovery : INetworkAutoDiscovery
     {
+        private readonly ITaskScheduler _taskScheduler;
+
+        public Win64NetworkAutoDiscovery(
+            ITaskScheduler taskScheduler)
+        {
+            _taskScheduler = taskScheduler;
+        }
+
         private class DnsDeregisterAsyncDisposable : IAsyncDisposable
         {
             private readonly Win64ServiceInstance _serviceInstance;
@@ -42,9 +51,10 @@
             string query,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
+            await using var scope = _taskScheduler.CreateSchedulerScope("Win64NetworkDiscovery", cancellationToken);
             var stream = new TerminableAwaitableConcurrentQueue<NetworkService>();
             var request = new Win64ServiceBrowseCall(query, stream);
-            var task = Task.Run(async () =>
+            var task = scope.RunAsync("BrowseCall", cancellationToken, async (cancellationToken) =>
             {
                 try
                 {

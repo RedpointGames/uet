@@ -25,6 +25,7 @@
     using Redpoint.Uefs.Package.SparseImage;
     using Redpoint.Logging.Mac;
     using Redpoint.Vfs.LocalIo;
+    using Redpoint.Tasks;
 
     public static class Program
     {
@@ -100,6 +101,7 @@
             {
                 services.AddWinFspVfsDriver();
             }
+            services.AddTasks();
             services.AddGitLayerFactory();
             services.AddGitDependenciesLayerFactory();
             services.AddFolderLayerFactory();

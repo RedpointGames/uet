@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Xunit;
+    using Redpoint.Tasks;
 
     public class RegistrationTests
     {
@@ -12,6 +13,7 @@
 
             var services = new ServiceCollection();
             services.AddAutoDiscovery();
+            services.AddTasks();
 
             var sp = services.BuildServiceProvider();
 

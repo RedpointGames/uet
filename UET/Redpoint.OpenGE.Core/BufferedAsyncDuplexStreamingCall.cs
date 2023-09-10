@@ -3,6 +3,7 @@
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
+    using Redpoint.Tasks;
     using System.Runtime.ExceptionServices;
     using System.Threading;
     using System.Threading.Tasks;
@@ -10,22 +11,23 @@
     public class BufferedAsyncDuplexStreamingCall<TRequest, TResponse> : IAsyncEnumerable<TResponse>, IAsyncDisposable where TResponse : class
     {
         private readonly ILogger _logger;
+        private readonly ITaskSchedulerScope _taskSchedulerScope;
         private readonly AsyncDuplexStreamingCall<TRequest, TResponse> _call;
         private Task? _bgTask;
         private readonly TerminableAwaitableConcurrentQueue<(TResponse? response, ExceptionDispatchInfo? ex)> _queue;
-        private readonly CancellationTokenSource _cancellationTokenSource;
         private ExceptionDispatchInfo? _exception;
         private AsyncEvent<Exception> _onException;
         private AsyncEvent<StatusCode> _onTerminated;
 
         public BufferedAsyncDuplexStreamingCall(
             ILogger logger,
+            ITaskScheduler taskScheduler,
             AsyncDuplexStreamingCall<TRequest, TResponse> underlyingCall)
         {
             _logger = logger;
+            _taskSchedulerScope = taskScheduler.CreateSchedulerScope("BufferedAsyncDuplexStreamingCall", CancellationToken.None);
             _call = underlyingCall;
             _queue = new TerminableAwaitableConcurrentQueue<(TResponse? response, ExceptionDispatchInfo? ex)>();
-            _cancellationTokenSource = new CancellationTokenSource();
             _exception = null;
             _onException = new AsyncEvent<Exception>();
             _onTerminated = new AsyncEvent<StatusCode>();
@@ -35,7 +37,7 @@
         {
             if (_bgTask == null)
             {
-                _bgTask = Task.Run(ProcessResponseStreamAsync);
+                _bgTask = _taskSchedulerScope.RunAsync("ProcessResponseStream", CancellationToken.None, ProcessResponseStreamAsync);
             }
         }
 
@@ -47,12 +49,12 @@
 
         public IClientStreamWriter<TRequest> RequestStream => _call.RequestStream;
 
-        private async Task ProcessResponseStreamAsync()
+        private async Task ProcessResponseStreamAsync(CancellationToken cancellationToken)
         {
             _logger.LogTrace("Starting observation of AsyncDuplexStreamingCall");
             try
             {
-                while (await _call.ResponseStream.MoveNext(_cancellationTokenSource.Token))
+                while (await _call.ResponseStream.MoveNext(cancellationToken))
                 {
                     var current = _call.ResponseStream.Current;
                     _logger.LogTrace($"Enqueuing AsyncDuplexStreamingCall: {current}");
@@ -68,7 +70,7 @@
                 _queue.Terminate();
                 await _onTerminated.BroadcastAsync(StatusCode.Cancelled, CancellationToken.None);
             }
-            catch (OperationCanceledException) when (_cancellationTokenSource.IsCancellationRequested)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _logger.LogTrace($"Terminating AsyncDuplexStreamingCall due to cancellation token");
                 _queue.Terminate();
@@ -135,14 +137,10 @@
             _logger.LogTrace($"AsyncDuplexStreamingCall enumeration ending");
         }
 
-        public ValueTask DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
-            if (!_cancellationTokenSource.IsCancellationRequested)
-            {
-                _logger.LogTrace($"AsyncDuplexStreamingCall being disposed");
-                _cancellationTokenSource.Cancel();
-            }
-            return ValueTask.CompletedTask;
+            _logger.LogTrace($"AsyncDuplexStreamingCall being disposed");
+            await _taskSchedulerScope.DisposeAsync();
         }
     }
 }

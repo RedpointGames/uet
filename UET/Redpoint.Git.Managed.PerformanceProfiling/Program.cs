@@ -6,6 +6,7 @@ using Redpoint.Git.Managed.Operation;
 using Microsoft.Extensions.Logging;
 using Redpoint.Logging.SingleLine;
 using System.Diagnostics;
+using Redpoint.Tasks;
 
 var entries = new (UInt160 sha, GitObjectType type, ulong size)[]
 {
@@ -27,12 +28,14 @@ services.AddLogging(builder =>
     builder.AddSingleLineConsoleFormatter();
     builder.AddSingleLineConsole();
 });
+services.AddTasks();
 var sp = services.BuildServiceProvider();
 
 var logger = sp.GetRequiredService<ILogger<Program>>();
 
 var engine = new GitExecutionEngine(
-    sp.GetRequiredService<ILogger<GitExecutionEngine>>())
+    sp.GetRequiredService<ILogger<GitExecutionEngine>>(),
+    sp.GetRequiredService<ITaskScheduler>())
 {
     OnInternalException = ex =>
     {

@@ -7,6 +7,7 @@
     using Redpoint.OpenGE.Protocol;
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
+    using Redpoint.Tasks;
     using System.Text;
     using Xunit;
 
@@ -18,6 +19,7 @@
             Skip.IfNot(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var services = new ServiceCollection();
+            services.AddTasks();
             services.AddLogging();
             services.AddOpenGEComponentWorker();
             services.AddProcessExecution();

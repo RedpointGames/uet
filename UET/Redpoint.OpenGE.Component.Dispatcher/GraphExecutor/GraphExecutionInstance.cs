@@ -5,6 +5,7 @@
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
     using Redpoint.OpenGE.Protocol;
+    using Redpoint.Tasks;
     using System.Collections.Concurrent;
     using System.Threading.Tasks;
 

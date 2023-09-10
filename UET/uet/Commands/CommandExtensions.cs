@@ -3,6 +3,7 @@
     using Redpoint.AutoDiscovery;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Tasks;
     using Redpoint.MSBuildResolution;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
@@ -58,6 +59,7 @@
             services.AddReservation();
             services.AddProcessExecution();
             services.AddProgressMonitor();
+            services.AddTasks();
             if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
             {
                 services.AddServiceControl();

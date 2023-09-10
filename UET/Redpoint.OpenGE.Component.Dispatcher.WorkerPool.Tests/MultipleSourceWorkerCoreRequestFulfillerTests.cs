@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Tasks;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -11,14 +12,20 @@
 
     public class MultipleSourceWorkerCoreRequestFulfillerTests
     {
+        private IServiceProvider BuildServiceProvider()
+        {
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddTasks();
+            return services.BuildServiceProvider();
+        }
+
         [Fact]
         public async Task MultipleSourceCanFulfillSingleRequest()
         {
             var cancellationToken = new CancellationTokenSource(5000).Token;
 
-            var services = new ServiceCollection();
-            services.AddLogging();
-            var sp = services.BuildServiceProvider();
+            var sp = BuildServiceProvider();
             var logger = sp.GetRequiredService<ILogger<MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
 
             var requestCollection = new WorkerCoreRequestCollection<IWorkerCore>();
@@ -28,6 +35,7 @@
 
             await using (var fulfiller = new MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                 logger,
+                sp.GetRequiredService<ITaskScheduler>(),
                 requestCollection,
                 providerCollection,
                 true))
@@ -43,9 +51,7 @@
         {
             var cancellationToken = new CancellationTokenSource(5000).Token;
 
-            var services = new ServiceCollection();
-            services.AddLogging();
-            var sp = services.BuildServiceProvider();
+            var sp = BuildServiceProvider();
             var logger = sp.GetRequiredService<ILogger<MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
 
             var requestCollection = new WorkerCoreRequestCollection<IWorkerCore>();
@@ -55,6 +61,7 @@
 
             await using (var fulfiller = new MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                 logger,
+                sp.GetRequiredService<ITaskScheduler>(),
                 requestCollection,
                 providerCollection,
                 true))
@@ -73,9 +80,7 @@
         {
             var cancellationToken = new CancellationTokenSource(5000).Token;
 
-            var services = new ServiceCollection();
-            services.AddLogging();
-            var sp = services.BuildServiceProvider();
+            var sp = BuildServiceProvider();
             var logger = sp.GetRequiredService<ILogger<MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
 
             var requestCollection = new WorkerCoreRequestCollection<IWorkerCore>();
@@ -85,6 +90,7 @@
 
             await using (var fulfiller = new MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                 logger,
+                sp.GetRequiredService<ITaskScheduler>(),
                 requestCollection,
                 providerCollection,
                 true))
@@ -109,9 +115,7 @@
                 {
                     var cancellationToken = new CancellationTokenSource(5000).Token;
 
-                    var services = new ServiceCollection();
-                    services.AddLogging();
-                    var sp = services.BuildServiceProvider();
+                    var sp = BuildServiceProvider();
                     var logger = sp.GetRequiredService<ILogger<MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
 
                     var requestCollection = new WorkerCoreRequestCollection<IWorkerCore>();
@@ -125,6 +129,7 @@
 
                     await using (var fulfiller = new MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                         logger,
+                        sp.GetRequiredService<ITaskScheduler>(),
                         requestCollection,
                         providerCollection,
                         true))
@@ -152,9 +157,7 @@
         {
             var cancellationToken = new CancellationTokenSource(5000).Token;
 
-            var services = new ServiceCollection();
-            services.AddLogging();
-            var sp = services.BuildServiceProvider();
+            var sp = BuildServiceProvider();
             var logger = sp.GetRequiredService<ILogger<MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
 
             var requestCollection = new WorkerCoreRequestCollection<IWorkerCore>();
@@ -166,6 +169,7 @@
 
             await using (var fulfiller = new MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                 logger,
+                sp.GetRequiredService<ITaskScheduler>(),
                 requestCollection,
                 providerCollection,
                 true))
@@ -184,9 +188,7 @@
         {
             var cancellationToken = new CancellationTokenSource(5000).Token;
 
-            var services = new ServiceCollection();
-            services.AddLogging();
-            var sp = services.BuildServiceProvider();
+            var sp = BuildServiceProvider();
             var logger = sp.GetRequiredService<ILogger<MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
 
             var requestCollection = new WorkerCoreRequestCollection<IWorkerCore>();
@@ -198,6 +200,7 @@
 
             await using (var fulfiller = new MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                 logger,
+                sp.GetRequiredService<ITaskScheduler>(),
                 requestCollection,
                 providerCollection,
                 true))
@@ -217,9 +220,7 @@
         {
             var cancellationToken = new CancellationTokenSource(5000).Token;
 
-            var services = new ServiceCollection();
-            services.AddLogging();
-            var sp = services.BuildServiceProvider();
+            var sp = BuildServiceProvider();
             var logger = sp.GetRequiredService<ILogger<MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
 
             var requestCollection = new WorkerCoreRequestCollection<IWorkerCore>();
@@ -232,6 +233,7 @@
 
             await using (var fulfiller = new MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                 logger,
+                sp.GetRequiredService<ITaskScheduler>(),
                 requestCollection,
                 providerCollection,
                 true))
@@ -255,9 +257,7 @@
         {
             var cancellationToken = new CancellationTokenSource(5000).Token;
 
-            var services = new ServiceCollection();
-            services.AddLogging();
-            var sp = services.BuildServiceProvider();
+            var sp = BuildServiceProvider();
             var logger = sp.GetRequiredService<ILogger<MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
 
             var requestCollection = new WorkerCoreRequestCollection<IWorkerCore>();
@@ -270,6 +270,7 @@
 
             await using (var fulfiller = new MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                 logger,
+                sp.GetRequiredService<ITaskScheduler>(),
                 requestCollection,
                 providerCollection,
                 true))

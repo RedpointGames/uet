@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Redpoint.ProcessExecution;
+using Redpoint.Tasks;
 using Redpoint.Uet.Core;
 using System.CommandLine;
 using System.CommandLine.Parsing;
@@ -68,6 +69,7 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
 
         var services = new ServiceCollection();
         services.AddUETCore();
+        services.AddTasks();
         services.AddProcessExecution();
         var sp = services.BuildServiceProvider();
         var logger = sp.GetRequiredService<ILogger<Program>>();

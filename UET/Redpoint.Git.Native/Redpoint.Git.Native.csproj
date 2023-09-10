@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.Git.Abstractions\Redpoint.Git.Abstractions.csproj" />
+    <ProjectReference Include="..\Redpoint.Tasks\Redpoint.Tasks.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -42,6 +42,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
+    <ProjectReference Include="..\Redpoint.Tasks\Redpoint.Tasks.csproj" />
   </ItemGroup>
 
 </Project>

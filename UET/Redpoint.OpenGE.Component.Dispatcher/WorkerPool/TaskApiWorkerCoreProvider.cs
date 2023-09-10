@@ -5,6 +5,7 @@
     using Redpoint.Concurrency;
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Protocol;
+    using Redpoint.Tasks;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -15,17 +16,20 @@
     internal class TaskApiWorkerCoreProvider : IWorkerCoreProvider<ITaskApiWorkerCore>
     {
         private readonly ILogger _logger;
+        private readonly ITaskScheduler _taskScheduler;
         private readonly TaskApi.TaskApiClient _taskApiClient;
         private readonly string _workerDisplayName;
         private readonly AsyncEvent<IWorkerCoreProvider<ITaskApiWorkerCore>> _onTaskApiDisconnected;
 
         public TaskApiWorkerCoreProvider(
             ILogger logger,
+            ITaskScheduler taskScheduler,
             TaskApi.TaskApiClient taskApiClient,
             string workerUniqueId,
             string workerDisplayName)
         {
             _logger = logger;
+            _taskScheduler = taskScheduler;
             _taskApiClient = taskApiClient;
             Id = workerUniqueId;
             _workerDisplayName = workerDisplayName;
@@ -74,6 +78,7 @@
                 var reservationInfo = request.ResponseStream.Current.ReserveCore;
                 return new TaskApiWorkerCore(
                     _logger,
+                    _taskScheduler,
                     reservationInfo.WorkerMachineName,
                     reservationInfo.WorkerCoreNumber,
                     reservationInfo.WorkerCoreUniqueAssignmentId,
@@ -93,6 +98,7 @@
 
             public TaskApiWorkerCore(
                 ILogger logger,
+                ITaskScheduler taskScheduler,
                 string workerMachineName,
                 int workerCoreNumber,
                 string workerCoreUniqueAssignmentId,
@@ -105,6 +111,7 @@
                 WorkerCoreUniqueAssignmentId = workerCoreUniqueAssignmentId;
                 Request = new BufferedAsyncDuplexStreamingCall<ExecutionRequest, ExecutionResponse>(
                     logger,
+                    taskScheduler,
                     call);
                 Request.OnTerminated.Add(OnTerminated);
                 Request.StartObserving();

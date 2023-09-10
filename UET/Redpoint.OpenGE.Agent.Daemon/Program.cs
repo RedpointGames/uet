@@ -3,6 +3,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Tasks;
     using Redpoint.GrpcPipes;
     using Redpoint.Logging.Mac;
     using Redpoint.Logging.SingleLine;
@@ -70,6 +71,7 @@
             });
 
             services.AddAutoDiscovery();
+            services.AddTasks();
             services.AddGrpcPipes();
             services.AddProcessExecution();
             services.AddPathResolution();

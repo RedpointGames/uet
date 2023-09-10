@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Tasks;
     using System;
 
     /// <summary>
@@ -29,6 +30,7 @@
         {
             return new GitRepoManager(
                 _serviceProvider.GetRequiredService<ILogger<GitRepoManager>>(),
+                _serviceProvider.GetRequiredService<ITaskScheduler>(),
                 gitRepoPath);
         }
     }

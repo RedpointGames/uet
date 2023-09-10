@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.OpenGE.Component.Dispatcher.WorkerPool
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Tasks;
     using System;
     using System.Linq;
     using System.Threading.Tasks;
@@ -8,31 +9,32 @@
     public class SingleSourceWorkerCoreRequestFulfiller<TWorkerCore> : IAsyncDisposable where TWorkerCore : IAsyncDisposable
     {
         private readonly ILogger _logger;
+        private readonly ITaskSchedulerScope _taskSchedulerScope;
         private readonly WorkerCoreRequestCollection<TWorkerCore> _requestCollection;
         private readonly IWorkerCoreProvider<TWorkerCore> _coreProvider;
         private readonly bool _fulfillsLocalRequests;
         private readonly SemaphoreSlim _processRequestsSemaphore;
         private readonly Task _backgroundTask;
-        private readonly CancellationTokenSource _disposedCts;
 
         public SingleSourceWorkerCoreRequestFulfiller(
             ILogger logger,
+            ITaskScheduler taskScheduler,
             WorkerCoreRequestCollection<TWorkerCore> requestCollection,
             IWorkerCoreProvider<TWorkerCore> coreProvider,
             bool canFulfillLocalRequests)
         {
             _logger = logger;
+            _taskSchedulerScope = taskScheduler.CreateSchedulerScope("SingleSourceWorkerCoreRequestFulfiller", CancellationToken.None);
             _requestCollection = requestCollection;
             _coreProvider = coreProvider;
             _fulfillsLocalRequests = canFulfillLocalRequests;
-            _disposedCts = new CancellationTokenSource();
             _processRequestsSemaphore = new SemaphoreSlim(1);
-            _backgroundTask = Task.Run(RunAsync);
+            _backgroundTask = _taskSchedulerScope.RunAsync("BackgroundTask", CancellationToken.None, RunAsync);
         }
 
         public async ValueTask DisposeAsync()
         {
-            _disposedCts.Cancel();
+            await _taskSchedulerScope.DisposeAsync();
             await _requestCollection.OnRequestsChanged.RemoveAsync(OnNotifiedRequestsChanged);
             try
             {
@@ -49,7 +51,7 @@
             return Task.CompletedTask;
         }
 
-        private async Task RunAsync()
+        private async Task RunAsync(CancellationToken cancellationToken)
         {
             // Set up our events.
             while (true)
@@ -59,7 +61,7 @@
                     await _requestCollection.OnRequestsChanged.AddAsync(OnNotifiedRequestsChanged);
                     break;
                 }
-                catch (OperationCanceledException) when (_disposedCts.IsCancellationRequested)
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     return;
                 }
@@ -75,9 +77,9 @@
             {
                 try
                 {
-                    while (!_disposedCts.IsCancellationRequested)
+                    while (!cancellationToken.IsCancellationRequested)
                     {
-                        await _processRequestsSemaphore.WaitAsync(_disposedCts.Token);
+                        await _processRequestsSemaphore.WaitAsync(cancellationToken);
 
                         async Task FulfillRequest(IWorkerCoreRequestLock<TWorkerCore> nextUnfulfilledRequest)
                         {
@@ -85,7 +87,7 @@
                             {
                                 try
                                 {
-                                    var nextAvailableCore = await _coreProvider.RequestCoreAsync(_disposedCts.Token);
+                                    var nextAvailableCore = await _coreProvider.RequestCoreAsync(cancellationToken);
                                     var didFulfill = false;
                                     try
                                     {
@@ -113,7 +115,7 @@
                             // Try to get local only requests first.
                             var nextUnfulfilledLocalOnlyRequest = await _requestCollection.GetNextUnfulfilledRequestAsync(
                                 CoreFulfillerConstraint.LocalRequiredAndPreferred,
-                                _disposedCts.Token);
+                                cancellationToken);
                             if (nextUnfulfilledLocalOnlyRequest != null)
                             {
                                 await FulfillRequest(nextUnfulfilledLocalOnlyRequest);
@@ -130,7 +132,7 @@
                         // Get any unfulfilled request.
                         var nextUnfulfilledRequest = await _requestCollection.GetNextUnfulfilledRequestAsync(
                             _fulfillsLocalRequests ? CoreFulfillerConstraint.All : CoreFulfillerConstraint.LocalPreferredAndRemote,
-                            _disposedCts.Token);
+                            cancellationToken);
                         if (nextUnfulfilledRequest != null)
                         {
                             await FulfillRequest(nextUnfulfilledRequest);
@@ -140,7 +142,7 @@
 
                     return;
                 }
-                catch (OperationCanceledException) when (_disposedCts.IsCancellationRequested)
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     return;
                 }

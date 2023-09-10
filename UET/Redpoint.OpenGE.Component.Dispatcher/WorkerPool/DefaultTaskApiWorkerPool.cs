@@ -13,15 +13,17 @@
     using Redpoint.OpenGE.Protocol;
     using System.Threading.Tasks;
     using static Grpc.Core.Metadata;
+    using Redpoint.Tasks;
 
     internal class DefaultTaskApiWorkerPool : ITaskApiWorkerPool
     {
         private readonly ILogger<DefaultTaskApiWorkerPool> _logger;
         private readonly INetworkAutoDiscovery _networkAutoDiscovery;
+        private readonly ITaskScheduler _taskScheduler;
         private readonly WorkerCoreRequestCollection<ITaskApiWorkerCore> _requestCollection;
         private readonly MutexSlim _disposing;
-        private readonly CancellationTokenSource _disposedCancellationTokenSource;
         private bool _disposed;
+        private readonly ITaskSchedulerScope _taskSchedulerScope;
         private readonly string? _localWorkerUniqueId;
         private readonly TaskApiWorkerCoreProvider? _localWorkerCoreProvider;
         private readonly SingleSourceWorkerCoreRequestFulfiller<ITaskApiWorkerCore>? _localWorkerFulfiller;
@@ -32,25 +34,29 @@
         public DefaultTaskApiWorkerPool(
             ILogger<DefaultTaskApiWorkerPool> logger,
             INetworkAutoDiscovery networkAutoDiscovery,
+            ITaskScheduler taskScheduler,
             TaskApiWorkerPoolConfiguration poolConfiguration)
         {
             _logger = logger;
             _networkAutoDiscovery = networkAutoDiscovery;
+            _taskScheduler = taskScheduler;
             _requestCollection = new WorkerCoreRequestCollection<ITaskApiWorkerCore>();
             _disposing = new MutexSlim();
-            _disposedCancellationTokenSource = new CancellationTokenSource();
             _disposed = false;
+            _taskSchedulerScope = taskScheduler.CreateSchedulerScope("TaskApiWorkerPool", CancellationToken.None);
 
             if (poolConfiguration.LocalWorker != null)
             {
                 _localWorkerUniqueId = poolConfiguration.LocalWorker.UniqueId;
                 _localWorkerCoreProvider = new TaskApiWorkerCoreProvider(
                     _logger,
+                    taskScheduler,
                     poolConfiguration.LocalWorker.Client,
                     poolConfiguration.LocalWorker.UniqueId,
                     poolConfiguration.LocalWorker.DisplayName);
                 _localWorkerFulfiller = new SingleSourceWorkerCoreRequestFulfiller<ITaskApiWorkerCore>(
                     _logger,
+                    taskScheduler,
                     _requestCollection,
                     _localWorkerCoreProvider,
                     true);
@@ -61,22 +67,23 @@
                 _remoteWorkerCoreProviderCollection = new WorkerCoreProviderCollection<ITaskApiWorkerCore>();
                 _remoteWorkerFulfiller = new MultipleSourceWorkerCoreRequestFulfiller<ITaskApiWorkerCore>(
                     _logger,
+                    taskScheduler,
                     _requestCollection,
                     _remoteWorkerCoreProviderCollection,
                     false);
-                _remoteWorkerDiscoveryTask = Task.Run(DiscoverRemoteWorkersAsync);
+                _remoteWorkerDiscoveryTask = _taskSchedulerScope.RunAsync("DiscoverRemoteWorkers", CancellationToken.None, DiscoverRemoteWorkersAsync);
             }
         }
 
-        private async Task DiscoverRemoteWorkersAsync()
+        private async Task DiscoverRemoteWorkersAsync(CancellationToken cancellationToken)
         {
-            while (!_disposedCancellationTokenSource.IsCancellationRequested)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
                     await foreach (var entry in _networkAutoDiscovery.DiscoverServicesAsync(
                         $"_{WorkerDiscoveryConstants.OpenGEPlatformIdentifier}{WorkerDiscoveryConstants.OpenGEProtocolVersion}-openge._tcp.local",
-                        _disposedCancellationTokenSource.Token))
+                        cancellationToken))
                     {
                         var workerUniqueId = entry.ServiceName.Split('.')[0];
                         if (_localWorkerUniqueId == workerUniqueId)
@@ -133,6 +140,7 @@
                         {
                             var newProvider = new TaskApiWorkerCoreProvider(
                                 _logger,
+                                _taskScheduler,
                                 taskApi,
                                 workerUniqueId,
                                 entry.TargetHostname);
@@ -146,7 +154,7 @@
                         }
                     }
                 }
-                catch (OperationCanceledException) when (_disposedCancellationTokenSource.IsCancellationRequested)
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     return;
                 }
@@ -199,8 +207,7 @@
                     try
                     {
                         _logger.LogTrace("Waiting for remote worker discovery task to complete...");
-                        _disposedCancellationTokenSource.Cancel();
-                        await _remoteWorkerDiscoveryTask;
+                        await _taskSchedulerScope.DisposeAsync();
                     }
                     catch (OperationCanceledException)
                     {
