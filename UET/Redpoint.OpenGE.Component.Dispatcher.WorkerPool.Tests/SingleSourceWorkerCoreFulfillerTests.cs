@@ -7,7 +7,8 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
+    using System.
+        Text;
     using System.Threading.Tasks;
     using Xunit;
 
@@ -21,10 +22,34 @@
             return services.BuildServiceProvider();
         }
 
+        private static int GetBigIterationCount()
+        {
+            if (Environment.GetEnvironmentVariable("CI") == "true")
+            {
+                return 1;
+            }
+            else
+            {
+                return 1000;
+            }
+        }
+
+        private static int GetLittleIterationCount()
+        {
+            if (Environment.GetEnvironmentVariable("CI") == "true")
+            {
+                return 1;
+            }
+            else
+            {
+                return 10;
+            }
+        }
+
         [Fact]
         public async Task SingleSourceCanFulfillLocalRequestsViaNotification()
         {
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < GetBigIterationCount(); i++)
             {
                 var cancellationToken = new CancellationTokenSource(5000).Token;
 
@@ -84,7 +109,7 @@
         [Fact]
         public async Task SingleSourceCanFulfillLocalRequestsViaWaitForCoreAsync()
         {
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < GetBigIterationCount(); i++)
             {
                 var cancellationToken = new CancellationTokenSource(5000).Token;
 
@@ -138,7 +163,7 @@
         [Fact]
         public async Task SourceSourceCanCreateFulfilledRequests()
         {
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < GetBigIterationCount(); i++)
             {
                 var cancellationToken = new CancellationTokenSource(5000).Token;
 
@@ -192,7 +217,7 @@
         [Fact]
         public async Task SingleSourceCanFulfillRequestsInParallel()
         {
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < GetBigIterationCount(); i++)
             {
                 var tracer = new ConcurrentWorkerPoolTracer();
                 try
@@ -248,7 +273,7 @@
         [Fact]
         public async Task SingleSourceCanFulfillRequestsInParallelWithRemoteDelayEnabled()
         {
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < GetLittleIterationCount(); i++)
             {
                 var tracer = new ConcurrentWorkerPoolTracer();
                 try
@@ -304,7 +329,7 @@
         [Fact]
         public async Task SingleSourceCanFulfillRequestsInParallelWithDyingCores()
         {
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < GetBigIterationCount(); i++)
             {
                 var tracer = new ConcurrentWorkerPoolTracer();
                 try

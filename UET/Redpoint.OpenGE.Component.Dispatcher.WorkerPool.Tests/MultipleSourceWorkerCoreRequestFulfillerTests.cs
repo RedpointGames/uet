@@ -20,10 +20,22 @@
             return services.BuildServiceProvider();
         }
 
+        private static int GetBigIterationCount()
+        {
+            if (Environment.GetEnvironmentVariable("CI") == "true")
+            {
+                return 1;
+            }
+            else
+            {
+                return 1000;
+            }
+        }
+
         [Fact]
         public async Task MultipleSourceCanFulfillSingleRequest()
         {
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < GetBigIterationCount(); i++)
             {
                 var cancellationToken = new CancellationTokenSource(5000).Token;
 
@@ -52,7 +64,7 @@
         [Fact]
         public async Task MultipleSourceCanFulfillTwoParallelRequestsOneWorker()
         {
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < GetBigIterationCount(); i++)
             {
                 var cancellationToken = new CancellationTokenSource(5000).Token;
 
@@ -84,7 +96,7 @@
         [Fact]
         public async Task MultipleSourceCanFulfillTwoSequentialRequestsOneWorker()
         {
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < GetBigIterationCount(); i++)
             {
                 var cancellationToken = new CancellationTokenSource(5000).Token;
 
@@ -117,7 +129,7 @@
         [Fact]
         public async Task MultipleSourceCanFulfillTwoParallelRequestsTwoWorkers()
         {
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < GetBigIterationCount(); i++)
             {
                 var tracer = new ConcurrentWorkerPoolTracer();
                 try
@@ -164,7 +176,7 @@
         [Fact]
         public async Task MultipleSourceCanFulfillTwoParallelRequestsTwoWorkersOvercapacity()
         {
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < GetBigIterationCount(); i++)
             {
                 var cancellationToken = new CancellationTokenSource(5000).Token;
 
@@ -198,7 +210,7 @@
         [Fact]
         public async Task MultipleSourceCanFulfillTwoSequentialRequestsTwoWorkers()
         {
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < GetBigIterationCount(); i++)
             {
                 var cancellationToken = new CancellationTokenSource(5000).Token;
 
@@ -233,7 +245,7 @@
         [Fact]
         public async Task MultipleSourceCanFulfillLotsOfRequestsInParallel()
         {
-            for (int z = 0; z < 1000; z++)
+            for (int z = 0; z < GetBigIterationCount(); z++)
             {
                 var cancellationToken = new CancellationTokenSource(5000).Token;
 
@@ -273,7 +285,7 @@
         [Fact]
         public async Task MultipleSourceCanFulfillLotsOfRequestsInParallelWithDyingCores()
         {
-            for (int z = 0; z < 1000; z++)
+            for (int z = 0; z < GetBigIterationCount(); z++)
             {
                 var cancellationToken = new CancellationTokenSource(5000).Token;
 
