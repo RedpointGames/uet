@@ -367,6 +367,11 @@
                     }
                     return;
                 }
+                else if (_shutdownCancellationTokenSource!.IsCancellationRequested)
+                {
+                    _logger.LogTrace($"{uniqueAssignmentId}: The reservation was cancelled because the worker is shutting down.");
+                    throw new RpcException(new Status(StatusCode.Cancelled, "Worker is shutting down, so the reservation was released."));
+                }
                 else if (connectionIdleTracker.CancellationToken.IsCancellationRequested)
                 {
                     // @todo: This maybe should still be a warning, but we need to make sure it doesn't get emitted for in-process.
