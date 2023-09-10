@@ -16,7 +16,7 @@
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    dotnet build -c Debug /p:PackageVersion=$PackageVersion /p:OpenGEShimRuntimeIdentifier=all /p:OpenGEShimIsAlreadyBuilt=true UET/UET.sln
+    dotnet build -c Debug /p:PackageVersion=$PackageVersion /p:OpenGEConfiguration=Release /p:OpenGEShimRuntimeIdentifier=all /p:OpenGEShimIsAlreadyBuilt=true UET/UET.sln
     if ($LastExitCode -ne 0) {
       Write-Host "dotnet build (UET.sln) failed with exit code $LastExitCode"
       exit $LastExitCode 
@@ -51,7 +51,7 @@
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
     echo "Package version: $PACKAGE_VERSION"
-    dotnet build -c Debug /p:PackageVersion=$PACKAGE_VERSION /p:OpenGEShimRuntimeIdentifier=all /p:OpenGEShimIsAlreadyBuilt=true UET/UET.sln
+    dotnet build -c Debug /p:PackageVersion=$PACKAGE_VERSION /p:OpenGEConfiguration=Release /p:OpenGEShimRuntimeIdentifier=all /p:OpenGEShimIsAlreadyBuilt=true UET/UET.sln
     dotnet test --no-build --logger:"console" --logger:"junit;LogFilePath=$(pwd)/TestResults/{assembly}.test-result.xml" -c Debug /p:PackageVersion=$PackageVersion UET/UET.sln
   artifacts:
     reports:
