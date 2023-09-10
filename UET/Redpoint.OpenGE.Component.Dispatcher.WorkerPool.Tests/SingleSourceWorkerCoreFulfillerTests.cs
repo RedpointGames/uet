@@ -194,7 +194,7 @@
         {
             for (int i = 0; i < 1000; i++)
             {
-                var tracer = new WorkerPoolTracer();
+                var tracer = new ConcurrentWorkerPoolTracer();
                 try
                 {
                     var cancellationToken = new CancellationTokenSource(5000).Token;
@@ -250,7 +250,7 @@
         {
             for (int i = 0; i < 10; i++)
             {
-                var tracer = new WorkerPoolTracer();
+                var tracer = new ConcurrentWorkerPoolTracer();
                 try
                 {
                     var cancellationToken = new CancellationTokenSource(5000).Token;
@@ -306,7 +306,7 @@
         {
             for (int i = 0; i < 1000; i++)
             {
-                var tracer = new WorkerPoolTracer();
+                var tracer = new ConcurrentWorkerPoolTracer();
                 try
                 {
                     var cancellationToken = new CancellationTokenSource(5000).Token;

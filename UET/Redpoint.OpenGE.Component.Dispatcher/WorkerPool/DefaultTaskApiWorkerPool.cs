@@ -76,6 +76,12 @@
             }
         }
 
+        public void SetTracer(WorkerPoolTracer tracer)
+        {
+            _localWorkerFulfiller?.SetTracer(tracer);
+            _remoteWorkerFulfiller?.SetTracer(tracer);
+        }
+
         private async Task DiscoverRemoteWorkersAsync(CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested)

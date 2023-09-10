@@ -5,7 +5,7 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    public interface ITaskApiWorkerPool : IAsyncDisposable
+    public interface ITaskApiWorkerPool : IAsyncDisposable, IWorkerPoolTracerAssignable
     {
         Task<IWorkerCoreRequest<ITaskApiWorkerCore>> ReserveCoreAsync(
             CoreAllocationPreference corePreference,

@@ -324,6 +324,7 @@
                         Client = workerClient,
                     }
                 });
+                workerPool.SetTracer(new LoggingWorkerPoolTracer(logger));
 
                 var nullResponseStream = new NullGuardedResponseStream<JobResponse>();
                 var graph = CreateGraphForJobCount(
