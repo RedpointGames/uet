@@ -82,7 +82,7 @@
 
             var didSucceed = 0;
             Action success = () => { didSucceed++; };
-            Action cancelled = () => { Assert.False(true, "Transaction should not be cancelled"); };
+            Action cancelled = () => { Assert.Fail("Transaction should not be cancelled"); };
 
             var resetEvent = new Gate();
             var transaction1 = await database.BeginTransactionAsync(
@@ -108,7 +108,7 @@
             var database = factory.CreateTransactionalDatabase();
 
             var didCancel = 0;
-            Action success = () => { Assert.False(true, "Transaction should not succeed"); };
+            Action success = () => { Assert.Fail("Transaction should not succeed"); };
             Action cancelled = () => { didCancel++; };
 
             var resetEvent = new Gate();
@@ -137,7 +137,7 @@
 
             var didSucceed = 0;
             Action success = () => { didSucceed++; };
-            Action cancelled = () => { Assert.False(true, "Transaction should not be cancelled"); };
+            Action cancelled = () => { Assert.Fail("Transaction should not be cancelled"); };
 
             var resetEvent = new Gate();
             var transaction1 = await database.BeginTransactionAsync(
@@ -170,7 +170,7 @@
 
             var didSucceed = 0;
             Action success = () => { didSucceed++; };
-            Action cancelled = () => { Assert.False(true, "Transaction should not be cancelled"); };
+            Action cancelled = () => { Assert.Fail("Transaction should not be cancelled"); };
 
             var resetEvent = new Gate();
             var transaction1 = await database.BeginTransactionAsync(
@@ -202,7 +202,7 @@
             var database = factory.CreateTransactionalDatabase();
 
             var didCancel = 0;
-            Action success = () => { Assert.False(true, "Transaction should not succeed"); };
+            Action success = () => { Assert.Fail("Transaction should not succeed"); };
             Action cancelled = () => { didCancel++; };
 
             var resetEvent = new Gate();

@@ -264,7 +264,7 @@
                 catch
                 {
                     var messages = tracer.DumpAllMessages();
-                    Assert.True(false, string.Join("\n", messages));
+                    Assert.Fail(string.Join("\n", messages));
                     throw;
                 }
             }
@@ -320,7 +320,7 @@
                 catch
                 {
                     var messages = tracer.DumpAllMessages();
-                    Assert.True(false, string.Join("\n", messages));
+                    Assert.Fail(string.Join("\n", messages));
                     throw;
                 }
             }
@@ -375,7 +375,7 @@
                 catch
                 {
                     var messages = tracer.DumpAllMessages();
-                    Assert.True(false, string.Join("\n", messages));
+                    Assert.Fail(string.Join("\n", messages));
                     throw;
                 }
             }

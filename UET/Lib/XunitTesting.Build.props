@@ -17,19 +17,32 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
     <ProjectReference Include="$(MSBuildThisFileDirectory)Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
-    <PackageReference Include="xunit" Version="2.4.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
+    <PackageReference Include="xunit" Version="2.5.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="coverlet.collector" Version="3.2.0">
+    <PackageReference Include="coverlet.collector" Version="6.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Xunit.SkippableFact" Version="1.4.13" />
-    <PackageReference Include="JunitXml.TestLogger" Version="3.0.124" />
+    <PackageReference Include="JunitXml.TestLogger" Version="3.0.134" />
     <PackageReference Include="MartinCostello.Logging.XUnit" Version="0.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../Redpoint.XunitFramework/Redpoint.XunitFramework.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)../Redpoint.XunitFramework/xunit.runner.json" CopyToOutputDirectory="PreserveNewest">
+      <Link>xunit.runner.json</Link>
+    </None>
+    <Compile Include="$(MSBuildThisFileDirectory)../Redpoint.XunitFramework/UseRedpointTestFramework.cs">
+      <Link>UseRedpointTestFramework.cs</Link>
+    </Compile>
   </ItemGroup>
 
 </Project>
