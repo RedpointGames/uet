@@ -80,45 +80,23 @@
             {
                 case CoreFulfillerConstraint.All:
                     return x =>
-                        x.AssignedCore == null &&
-                        !x.LockAcquired;
+                        x.AssignedCore == null;
                 case CoreFulfillerConstraint.LocalRequiredOnly:
                     return x =>
                         x.CorePreference == CoreAllocationPreference.RequireLocal &&
-                        x.AssignedCore == null &&
-                        !x.LockAcquired;
+                        x.AssignedCore == null;
                 case CoreFulfillerConstraint.LocalRequiredAndPreferred:
                     return x =>
                         (x.CorePreference == CoreAllocationPreference.RequireLocal ||
                          x.CorePreference == CoreAllocationPreference.PreferLocal) &&
-                        x.AssignedCore == null &&
-                        !x.LockAcquired;
+                        x.AssignedCore == null;
                 case CoreFulfillerConstraint.LocalPreferredAndRemote:
                     return x =>
                         x.CorePreference == CoreAllocationPreference.PreferRemote &&
-                        x.AssignedCore == null &&
-                        !x.LockAcquired;
+                        x.AssignedCore == null;
                 default:
                     throw new NotImplementedException($"Fulfiller constraint {fulfillerConstraint} not implemented");
             }
-        }
-
-        public async Task<IWorkerCoreRequestLock<TWorkerCore>?> GetNextUnfulfilledRequestAsync(
-            CoreFulfillerConstraint fulfillerConstraint,
-            CancellationToken cancellationToken)
-        {
-            using var _ = await _requestLock.WaitAsync(cancellationToken);
-
-            _tracer?.AddTracingMessage("Getting next unfulfilled request.");
-            var nextRequest = _requests.FirstOrDefault(GetFilterForConstraint(fulfillerConstraint));
-            if (nextRequest == null)
-            {
-                _tracer?.AddTracingMessage("No unfulfilled request was present based on constraints.");
-                return null;
-            }
-            nextRequest.LockAcquired = true;
-            _tracer?.AddTracingMessage("Acquired lock on next request.");
-            return new WorkerCoreRequestLock(this, nextRequest);
         }
 
         public async Task<IWorkerCoreRequestCollectionLock<TWorkerCore>> GetAllUnfulfilledRequestsAsync(

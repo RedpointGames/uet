@@ -72,7 +72,7 @@
                     // is unexpected and we have no recovery from this.
                     throw new RpcException(new Status(StatusCode.Unavailable, "The remote worker responded with a non-ReserveCore response."));
                 }
-                _logger.LogTrace($"Obtained a core from {_workerDisplayName}, pushing it to the queue.");
+                _logger.LogTrace($"{request.ResponseStream.Current.ReserveCore.WorkerCoreUniqueAssignmentId}: Obtained a core from {_workerDisplayName}, pushing it to the queue.");
 
                 // Get information about the reservation.
                 var reservationInfo = request.ResponseStream.Current.ReserveCore;
@@ -149,6 +149,11 @@
             public ValueTask<bool> IsAliveAsync(CancellationToken cancellationToken)
             {
                 return ValueTask.FromResult(_alive);
+            }
+
+            public override string ToString()
+            {
+                return WorkerCoreUniqueAssignmentId;
             }
         }
     }

@@ -10,6 +10,7 @@
         {
             private readonly Gate _requestCompleted;
             private readonly WorkerCoreRequestCollection<TWorkerCore> _collection;
+            private readonly DateTime _dateRequestedUtc;
             private TWorkerCore? _assignedCore;
 
             public WorkerCoreRequest(
@@ -18,14 +19,15 @@
             {
                 _requestCompleted = new Gate();
                 _collection = collection;
+                _dateRequestedUtc = DateTime.UtcNow;
                 CorePreference = corePreference;
             }
 
             public CoreAllocationPreference CorePreference { get; }
 
-            public bool LockAcquired { get; set; }
-
             public TWorkerCore? AssignedCore => _assignedCore;
+
+            public DateTime DateRequestedUtc => _dateRequestedUtc;
 
             internal async Task FulfillRequestWithinLockAsync(TWorkerCore core)
             {

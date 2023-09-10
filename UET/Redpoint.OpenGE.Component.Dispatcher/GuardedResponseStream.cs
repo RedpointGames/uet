@@ -3,7 +3,7 @@
     using Grpc.Core;
     using System.Threading.Tasks;
 
-    internal class GuardedResponseStream<T>
+    internal class GuardedResponseStream<T> : IGuardedResponseStream<T>
     {
         private readonly IServerStreamWriter<T> _responseStream;
         private readonly SemaphoreSlim _semaphore;

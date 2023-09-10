@@ -12,7 +12,7 @@
             ITaskApiWorkerPool workerPool,
             Graph graph,
             JobBuildBehaviour buildBehaviour,
-            GuardedResponseStream<JobResponse> responseStream,
+            IGuardedResponseStream<JobResponse> responseStream,
             CancellationToken cancellationToken);
     }
 }

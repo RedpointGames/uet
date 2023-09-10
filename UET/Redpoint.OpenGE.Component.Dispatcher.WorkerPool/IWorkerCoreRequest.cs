@@ -5,6 +5,8 @@
 
     public interface IWorkerCoreRequest<TWorkerCore> : IAsyncDisposable where TWorkerCore : IAsyncDisposable
     {
+        DateTime DateRequestedUtc { get; }
+
         CoreAllocationPreference CorePreference { get; }
 
         Task<TWorkerCore> WaitForCoreAsync(CancellationToken cancellationToken);

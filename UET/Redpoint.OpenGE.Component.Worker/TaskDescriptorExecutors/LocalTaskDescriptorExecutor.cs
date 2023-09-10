@@ -22,6 +22,18 @@
             LocalTaskDescriptor descriptor,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
+            if (descriptor.Path == "__openge_unit_testing__")
+            {
+                yield return new ExecuteTaskResponse
+                {
+                    Response = new Protocol.ProcessResponse
+                    {
+                        ExitCode = 0,
+                    }
+                };
+                yield break;
+            }
+
             await foreach (var response in _processExecutor.ExecuteAsync(new ProcessSpecification
             {
                 FilePath = descriptor.Path,

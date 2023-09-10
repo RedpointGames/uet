@@ -75,6 +75,18 @@
             }
         }
 
+        internal async ValueTask SetTaskStatusAsync(GraphTask task, GraphTaskStatus status)
+        {
+            if (status > GraphTaskStatus.Scheduled &&
+                status < GraphTaskStatus.CompletedSuccessfully)
+            {
+                using (await _taskStatusesLock.WaitAsync(_cancellationTokenSource.Token))
+                {
+                    _taskStatuses[task] = status;
+                }
+            }
+        }
+
         internal async ValueTask FinishTaskAsync(GraphTask task, TaskCompletionStatus status, GraphExecutionDownstreamScheduling schedulingBehaviour)
         {
             using (await _taskStatusesLock.WaitAsync())
@@ -144,7 +156,7 @@
                 }
 
                 // If we have no more schedulable tasks, terminate.
-                if (!_taskStatuses.Any(kv => kv.Value == GraphTaskStatus.Pending || kv.Value == GraphTaskStatus.Scheduled))
+                if (!_taskStatuses.Any(kv => kv.Value < GraphTaskStatus.CompletedSuccessfully))
                 {
                     QueuedTasksForScheduling.Terminate();
                 }

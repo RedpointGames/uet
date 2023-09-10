@@ -39,7 +39,7 @@
             ITaskApiWorkerPool workerPool,
             Graph graph,
             JobBuildBehaviour buildBehaviour,
-            GuardedResponseStream<JobResponse> responseStream,
+            IGuardedResponseStream<JobResponse> responseStream,
             CancellationToken cancellationToken)
         {
             // Make sure there's at least one task. Empty graphs should not be passed
@@ -187,7 +187,7 @@
             Graph graph,
             GraphTask task,
             JobBuildBehaviour buildBehaviour,
-            GuardedResponseStream<JobResponse> responseStream,
+            IGuardedResponseStream<JobResponse> responseStream,
             CancellationToken cancellationToken)
         {
             var status = TaskCompletionStatus.TaskCompletionException;
@@ -223,6 +223,7 @@
                     TaskPhaseChange = phaseChange,
                 });
             }
+            await instance.SetTaskStatusAsync(task, GraphTaskStatus.Starting);
             try
             {
                 try
@@ -246,6 +247,7 @@
                             instance.CancellationToken);
                         try
                         {
+                            await instance.SetTaskStatusAsync(task, GraphTaskStatus.WaitingForFastLocalCore);
                             localCoreRequest = await instance.WorkerPool.ReserveCoreAsync(
                                 CoreAllocationPreference.RequireLocal,
                                 localCoreTimeout.Token);
@@ -260,6 +262,7 @@
                     try
                     {
                         // Do descriptor generation based on the task.
+                        await instance.SetTaskStatusAsync(task, GraphTaskStatus.ComputingTaskDescriptor);
                         TaskDescriptor taskDescriptor;
                         switch (task)
                         {
@@ -432,12 +435,14 @@
                                         {
                                             throw new InvalidOperationException("UseFastLocalExecution must not be set if we're not using a local core!");
                                         }
+                                        await instance.SetTaskStatusAsync(task, GraphTaskStatus.WaitingForCore);
                                         coreRequest = await instance.WorkerPool.ReserveCoreAsync(
                                             taskDescriptor.DescriptorCase != TaskDescriptor.DescriptorOneofCase.Remote
                                                 ? CoreAllocationPreference.RequireLocal
                                                 : CoreAllocationPreference.PreferRemote,
                                             instance.CancellationToken);
                                     }
+                                    await instance.SetTaskStatusAsync(task, GraphTaskStatus.ExecutingTaskDescriptor);
                                     await using (coreRequest)
                                     {
                                         // We're now going to start doing the work for this task.

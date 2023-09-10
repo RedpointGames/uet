@@ -221,12 +221,130 @@
                             Enumerable.Range(0, 24).ToAsyncEnumerable(),
                             async (index, _) =>
                             {
-                                await using (var request = await collection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
+                                await using (var request = await collection.CreateFulfilledRequestAsync(
+                                    Random.Shared.Next(0, 3) switch
+                                    {
+                                        0 => CoreAllocationPreference.RequireLocal,
+                                        1 => CoreAllocationPreference.PreferLocal,
+                                        _ => CoreAllocationPreference.PreferRemote,
+                                    },
+                                    cancellationToken))
                                 {
                                     Interlocked.Increment(ref coresFulfilled);
                                 }
                             });
                         Assert.Equal(24, coresFulfilled);
+                    }
+                }
+                catch
+                {
+                    var messages = tracer.DumpAllMessages();
+                    Assert.True(false, string.Join("\n", messages));
+                    throw;
+                }
+            }
+        }
+
+        [Fact]
+        public async Task SingleSourceCanFulfillRequestsInParallelWithRemoteDelayEnabled()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                var tracer = new WorkerPoolTracer();
+                try
+                {
+                    var cancellationToken = new CancellationTokenSource(5000).Token;
+
+                    var sp = BuildServiceProvider();
+                    var logger = sp.GetRequiredService<ILogger<SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
+
+                    var testProvider = new ManualCoreProvider();
+                    testProvider.ReleaseCores(24);
+
+                    var collection = new WorkerCoreRequestCollection<IWorkerCore>();
+                    collection.SetTracer(tracer);
+                    await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
+                        logger,
+                        sp.GetRequiredService<ITaskScheduler>(),
+                        collection,
+                        testProvider,
+                        true,
+                        100))
+                    {
+                        fulfiller.SetTracer(tracer);
+                        long coresFulfilled = 0;
+                        await Parallel.ForEachAsync(
+                            Enumerable.Range(0, 24).ToAsyncEnumerable(),
+                            async (index, _) =>
+                            {
+                                await using (var request = await collection.CreateFulfilledRequestAsync(
+                                    Random.Shared.Next(0, 3) switch
+                                    {
+                                        0 => CoreAllocationPreference.RequireLocal,
+                                        1 => CoreAllocationPreference.PreferLocal,
+                                        _ => CoreAllocationPreference.PreferRemote,
+                                    },
+                                    cancellationToken))
+                                {
+                                    Interlocked.Increment(ref coresFulfilled);
+                                }
+                            });
+                        Assert.Equal(24, coresFulfilled);
+                    }
+                }
+                catch
+                {
+                    var messages = tracer.DumpAllMessages();
+                    Assert.True(false, string.Join("\n", messages));
+                    throw;
+                }
+            }
+        }
+
+        [Fact]
+        public async Task SingleSourceCanFulfillRequestsInParallelWithDyingCores()
+        {
+            for (int i = 0; i < 1000; i++)
+            {
+                var tracer = new WorkerPoolTracer();
+                try
+                {
+                    var cancellationToken = new CancellationTokenSource(5000).Token;
+
+                    var sp = BuildServiceProvider();
+                    var logger = sp.GetRequiredService<ILogger<SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>>>();
+
+                    var testProvider = new DyingDynamicCoreProvider(24);
+
+                    var collection = new WorkerCoreRequestCollection<IWorkerCore>();
+                    collection.SetTracer(tracer);
+                    await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
+                        logger,
+                        sp.GetRequiredService<ITaskScheduler>(),
+                        collection,
+                        testProvider,
+                        true,
+                        0))
+                    {
+                        fulfiller.SetTracer(tracer);
+                        long coresFulfilled = 0;
+                        await Parallel.ForEachAsync(
+                            Enumerable.Range(0, 200).ToAsyncEnumerable(),
+                            async (index, _) =>
+                            {
+                                await using (var request = await collection.CreateFulfilledRequestAsync(
+                                    Random.Shared.Next(0, 3) switch
+                                    {
+                                        0 => CoreAllocationPreference.RequireLocal,
+                                        1 => CoreAllocationPreference.PreferLocal,
+                                        _ => CoreAllocationPreference.PreferRemote,
+                                    },
+                                    cancellationToken))
+                                {
+                                    Interlocked.Increment(ref coresFulfilled);
+                                }
+                            });
+                        Assert.Equal(200, coresFulfilled);
                     }
                 }
                 catch
