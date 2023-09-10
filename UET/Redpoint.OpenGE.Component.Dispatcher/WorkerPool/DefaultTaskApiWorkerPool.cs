@@ -59,7 +59,8 @@
                     taskScheduler,
                     _requestCollection,
                     _localWorkerCoreProvider,
-                    true);
+                    true,
+                    100);
             }
 
             if (poolConfiguration.EnableNetworkAutoDiscovery)
