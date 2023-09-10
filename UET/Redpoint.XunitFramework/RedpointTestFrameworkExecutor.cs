@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Reflection;
     using Xunit.Abstractions;
+    using System.Diagnostics;
 
     internal class RedpointTestFrameworkExecutor : XunitTestFrameworkExecutor
     {
@@ -32,7 +33,7 @@
                 DiagnosticMessageSink,
                 executionMessageSink,
                 executionOptions);
-            _diagnosticMessageSink.OnMessage(new DiagnosticMessage($"RUN STARTED: Redpoint.XunitFramework has been asked to run {testCasesList.Count} test cases..."));
+            _diagnosticMessageSink.OnMessage(new DiagnosticMessage($"RUN STARTED: Redpoint.XunitFramework has been asked to run {testCasesList.Count} test cases in process ID {Process.GetCurrentProcess().Id}..."));
             await assemblyRunner.RunAsync();
             _diagnosticMessageSink.OnMessage(new DiagnosticMessage($"RUN STARTED: Redpoint.XunitFramework has finished running all test cases."));
         }
