@@ -8,7 +8,7 @@
     {
         public RedpointTestFramework(Xunit.Abstractions.IMessageSink messageSink) : base(messageSink)
         {
-            messageSink.OnMessage(new DiagnosticMessage("Using Redpoint.Xunit testing framework."));
+            messageSink.OnMessage(new DiagnosticMessage("Using Redpoint.XunitFramework testing framework."));
         }
 
         protected override ITestFrameworkExecutor CreateExecutor(

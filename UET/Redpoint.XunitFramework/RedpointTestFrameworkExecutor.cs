@@ -3,9 +3,12 @@
     using Xunit.Sdk;
     using System.Collections.Generic;
     using System.Reflection;
+    using Xunit.Abstractions;
 
     internal class RedpointTestFrameworkExecutor : XunitTestFrameworkExecutor
     {
+        private readonly IMessageSink _diagnosticMessageSink;
+
         public RedpointTestFrameworkExecutor(
             AssemblyName assemblyName,
             Xunit.Abstractions.ISourceInformationProvider sourceInformationProvider,
@@ -14,6 +17,7 @@
                 sourceInformationProvider,
                 diagnosticMessageSink)
         {
+            _diagnosticMessageSink = diagnosticMessageSink;
         }
 
         protected override async void RunTestCases(
@@ -21,13 +25,16 @@
             Xunit.Abstractions.IMessageSink executionMessageSink,
             Xunit.Abstractions.ITestFrameworkExecutionOptions executionOptions)
         {
+            var testCasesList = testCases.ToList();
             using var assemblyRunner = new RedpointTestAssemblyRunner(
                 TestAssembly,
-                testCases,
+                testCasesList,
                 DiagnosticMessageSink,
                 executionMessageSink,
                 executionOptions);
+            _diagnosticMessageSink.OnMessage(new DiagnosticMessage($"RUN STARTED: Redpoint.XunitFramework has been asked to run {testCasesList.Count} test cases..."));
             await assemblyRunner.RunAsync();
+            _diagnosticMessageSink.OnMessage(new DiagnosticMessage($"RUN STARTED: Redpoint.XunitFramework has finished running all test cases."));
         }
     }
 }
