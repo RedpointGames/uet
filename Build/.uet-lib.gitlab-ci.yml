@@ -21,7 +21,7 @@
       Write-Host "dotnet build (UET.sln) failed with exit code $LastExitCode"
       exit $LastExitCode 
     }
-    dotnet test --no-build --logger:"console" --logger:"junit;LogFilePath=$((Get-Location).Path)\TestResults\{assembly}.test-result.xml" -c Debug /p:PackageVersion=$PackageVersion UET/UET.sln
+    dotnet test --no-build --logger:"console;verbosity=detailed" --logger:"junit;LogFilePath=$((Get-Location).Path)\TestResults\{assembly}.test-result.xml" -c Debug /p:PackageVersion=$PackageVersion UET/UET.sln
     if ($LastExitCode -ne 0) {
       Write-Host "dotnet test (UET.sln) failed with exit code $LastExitCode"
       exit $LastExitCode 
