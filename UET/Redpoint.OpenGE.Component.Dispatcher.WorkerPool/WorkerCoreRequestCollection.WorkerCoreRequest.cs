@@ -6,7 +6,7 @@
 
     public partial class WorkerCoreRequestCollection<TWorkerCore>
     {
-        internal class WorkerCoreRequest : IWorkerCoreRequest<TWorkerCore>
+        public class WorkerCoreRequest : IWorkerCoreRequest<TWorkerCore>
         {
             private readonly Gate _requestCompleted;
             private readonly WorkerCoreRequestCollection<TWorkerCore> _collection;

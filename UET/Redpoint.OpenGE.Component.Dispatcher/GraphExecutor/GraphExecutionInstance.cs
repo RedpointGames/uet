@@ -3,6 +3,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
+    using Redpoint.OpenGE.Component.Dispatcher.StallDiagnostics;
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
     using Redpoint.OpenGE.Protocol;
     using Redpoint.Tasks;
@@ -22,6 +23,7 @@
         public readonly List<Task> ScheduledExecutions = new List<Task>();
         public bool IsCancelledDueToException { get; private set; }
         public string? ExceptionMessage { get; private set; }
+        public IStallMonitor? StallMonitor { get; set; }
 
         public GraphExecutionInstance(
             Graph graph,
@@ -33,6 +35,14 @@
             _taskStatuses = graph.Tasks.ToDictionary(
                 k => k.Value,
                 v => GraphTaskStatus.Pending);
+        }
+
+        internal async ValueTask<IReadOnlyDictionary<GraphTask, GraphTaskStatus>> GetTaskStatusesAsync()
+        {
+            using (await _taskStatusesLock.WaitAsync(CancellationToken.None))
+            {
+                return _taskStatuses.ToDictionary(k => k.Key, v => v.Value);
+            }
         }
 
         internal async ValueTask<bool> DidAllTasksCompleteSuccessfullyAsync()
@@ -70,6 +80,7 @@
                     {
                         _taskStatuses[taskKv.Value] = GraphTaskStatus.Scheduled;
                         QueuedTasksForScheduling.Enqueue(taskKv.Value);
+                        StallMonitor?.MadeProgress();
                     }
                 }
             }
@@ -80,6 +91,7 @@
             if (status > GraphTaskStatus.Scheduled &&
                 status < GraphTaskStatus.CompletedSuccessfully)
             {
+                StallMonitor?.MadeProgress();
                 using (await _taskStatusesLock.WaitAsync(_cancellationTokenSource.Token))
                 {
                     _taskStatuses[task] = status;
@@ -89,6 +101,7 @@
 
         internal async ValueTask FinishTaskAsync(GraphTask task, TaskCompletionStatus status, GraphExecutionDownstreamScheduling schedulingBehaviour)
         {
+            StallMonitor?.MadeProgress();
             using (await _taskStatusesLock.WaitAsync())
             {
                 if (status == TaskCompletionStatus.TaskCompletionSuccess)
@@ -123,6 +136,7 @@
                             {
                                 // This task is now ready to schedule.
                                 QueuedTasksForScheduling.Enqueue(depend);
+                                StallMonitor?.MadeProgress();
                                 _taskStatuses[depend] = GraphTaskStatus.Scheduled;
                             }
                         }

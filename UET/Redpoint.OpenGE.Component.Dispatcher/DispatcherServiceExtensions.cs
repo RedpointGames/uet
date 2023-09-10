@@ -4,6 +4,7 @@
     using Redpoint.OpenGE.Component.Dispatcher.GraphExecutor;
     using Redpoint.OpenGE.Component.Dispatcher.GraphGenerator;
     using Redpoint.OpenGE.Component.Dispatcher.Remoting;
+    using Redpoint.OpenGE.Component.Dispatcher.StallDiagnostics;
     using Redpoint.OpenGE.Component.Dispatcher.TaskDescriptorFactories;
     using Redpoint.OpenGE.Component.Dispatcher.TaskDescriptorFactories.Msvc;
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
@@ -26,6 +27,9 @@
 
             services.AddSingleton<IGraphGenerator, DefaultGraphGenerator>();
             services.AddSingleton<IGraphExecutor, DefaultGraphExecutor>();
+
+            services.AddSingleton<IStallMonitorFactory, DefaultStallMonitorFactory>();
+            services.AddSingleton<IStallDiagnostics, DefaultStallDiagnostics>();
 
             services.AddSingleton<IDispatcherComponentFactory, DefaultDispatcherComponentFactory>();
 

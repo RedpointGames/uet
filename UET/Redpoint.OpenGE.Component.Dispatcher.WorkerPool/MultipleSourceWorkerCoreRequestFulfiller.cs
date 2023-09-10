@@ -22,15 +22,45 @@
         private readonly Task _backgroundTask;
         private WorkerPoolTracer? _tracer;
 
+        public class Statistics
+        {
+            public required IReadOnlyDictionary<IWorkerCoreProvider<TWorkerCore>, WorkerCoreStatistics> Providers;
+        }
+
+        public class WorkerCoreStatistics
+        {
+            public required string UniqueId;
+            public required bool IsObtainingCore;
+            public required TWorkerCore? ObtainedCore;
+        }
+
+        public Statistics GetStatistics()
+        {
+            using (_currentProvidersLock.Wait())
+            {
+                return new Statistics
+                {
+                    Providers = _currentProviders.ToDictionary(
+                        k => k.Key,
+                        v => new WorkerCoreStatistics
+                        {
+                            UniqueId = v.Value._uniqueId,
+                            IsObtainingCore = v.Value._isObtainingCore,
+                            ObtainedCore = v.Value._obtainedCore,
+                        }),
+                };
+            }
+        }
+
         private class WorkerCoreObtainmentState
         {
             private readonly MultipleSourceWorkerCoreRequestFulfiller<TWorkerCore> _owner;
             private readonly ILogger _logger;
-            private readonly string _uniqueId;
-            private bool _isObtainingCore;
+            internal readonly string _uniqueId;
+            internal bool _isObtainingCore;
             private CancellationTokenSource _obtainmentCancellationTokenSource;
             private Task? _obtainmentBackgroundTask;
-            private TWorkerCore? _obtainedCore;
+            internal TWorkerCore? _obtainedCore;
 
             public bool IsObtainingCore => _isObtainingCore;
 

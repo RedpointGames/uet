@@ -45,6 +45,23 @@
             _backgroundTask = _taskSchedulerScope.RunAsync("BackgroundTask", CancellationToken.None, RunAsync);
         }
 
+        public class Statistics
+        {
+            public required long CoreAcquiringCount;
+            public required int CoresCurrentlyAcquiredCount;
+            public required TWorkerCore[] CoresCurrentlyAcquired;
+        }
+
+        public Statistics GetStatistics()
+        {
+            return new Statistics
+            {
+                CoreAcquiringCount = (int)Interlocked.Read(ref _coreAcquiringCount),
+                CoresCurrentlyAcquiredCount = _coresAcquired.Count,
+                CoresCurrentlyAcquired = _coresAcquired.ToArray(),
+            };
+        }
+
         public void SetTracer(WorkerPoolTracer tracer)
         {
             _tracer = tracer;

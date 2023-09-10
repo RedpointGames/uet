@@ -5,6 +5,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
     using Redpoint.OpenGE.Component.Dispatcher.Remoting;
+    using Redpoint.OpenGE.Component.Dispatcher.StallDiagnostics;
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Protocol;
@@ -20,19 +21,22 @@
         private readonly IBlobSynchroniser _blobSynchroniser;
         private readonly IRemoteFsManager _remoteFsManager;
         private readonly ITaskScheduler _taskScheduler;
+        private readonly IStallMonitorFactory _stallMonitorFactory;
 
         public DefaultGraphExecutor(
             ILogger<DefaultGraphExecutor> logger,
             IToolSynchroniser toolSynchroniser,
             IBlobSynchroniser blobSynchroniser,
             IRemoteFsManager remoteFsManager,
-            ITaskScheduler taskScheduler)
+            ITaskScheduler taskScheduler,
+            IStallMonitorFactory stallMonitorFactory)
         {
             _logger = logger;
             _toolSynchroniser = toolSynchroniser;
             _blobSynchroniser = blobSynchroniser;
             _remoteFsManager = remoteFsManager;
             _taskScheduler = taskScheduler;
+            _stallMonitorFactory = stallMonitorFactory;
         }
 
         public async Task ExecuteGraphAsync(
@@ -59,6 +63,12 @@
             {
                 WorkerPool = workerPool,
             };
+
+            // Create a stall monitor which dumps information if the execution stops making progress.
+            await using var stallMonitor = _stallMonitorFactory.CreateStallMonitor(
+                schedulerScope,
+                instance);
+            instance.StallMonitor = stallMonitor;
 
             // Schedule up all of the tasks that can be immediately scheduled.
             await instance.ScheduleInitialTasksAsync();

@@ -21,6 +21,14 @@
             _onRequestsChanged = new AsyncEvent<WorkerCoreRequestStatistics>();
         }
 
+        public async Task<WorkerCoreRequest[]> GetAllRequestsAsync()
+        {
+            using (await _requestLock.WaitAsync())
+            {
+                return _requests.ToArray();
+            }
+        }
+
         public void SetTracer(WorkerPoolTracer tracer)
         {
             _tracer = tracer;

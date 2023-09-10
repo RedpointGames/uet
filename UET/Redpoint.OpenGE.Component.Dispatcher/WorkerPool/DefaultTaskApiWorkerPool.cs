@@ -20,15 +20,15 @@
         private readonly ILogger<DefaultTaskApiWorkerPool> _logger;
         private readonly INetworkAutoDiscovery _networkAutoDiscovery;
         private readonly ITaskScheduler _taskScheduler;
-        private readonly WorkerCoreRequestCollection<ITaskApiWorkerCore> _requestCollection;
+        internal readonly WorkerCoreRequestCollection<ITaskApiWorkerCore> _requestCollection;
         private readonly MutexSlim _disposing;
         private bool _disposed;
         private readonly ITaskSchedulerScope _taskSchedulerScope;
         private readonly string? _localWorkerUniqueId;
         private readonly TaskApiWorkerCoreProvider? _localWorkerCoreProvider;
-        private readonly SingleSourceWorkerCoreRequestFulfiller<ITaskApiWorkerCore>? _localWorkerFulfiller;
+        internal readonly SingleSourceWorkerCoreRequestFulfiller<ITaskApiWorkerCore>? _localWorkerFulfiller;
         private readonly WorkerCoreProviderCollection<ITaskApiWorkerCore>? _remoteWorkerCoreProviderCollection;
-        private readonly MultipleSourceWorkerCoreRequestFulfiller<ITaskApiWorkerCore>? _remoteWorkerFulfiller;
+        internal readonly MultipleSourceWorkerCoreRequestFulfiller<ITaskApiWorkerCore>? _remoteWorkerFulfiller;
         private readonly Task? _remoteWorkerDiscoveryTask;
 
         public DefaultTaskApiWorkerPool(
