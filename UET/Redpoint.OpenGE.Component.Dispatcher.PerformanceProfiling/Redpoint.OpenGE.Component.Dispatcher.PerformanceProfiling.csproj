@@ -13,12 +13,10 @@
     <ProjectReference Include="..\Redpoint.OpenGE.Component.Dispatcher\Redpoint.OpenGE.Component.Dispatcher.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Component.PreprocessorCache\Redpoint.OpenGE.Component.PreprocessorCache.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Component.Worker\Redpoint.OpenGE.Component.Worker.csproj" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
     <ProjectReference Include="..\Redpoint.OpenGE.Core\Redpoint.OpenGE.Core.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.Reservation\Redpoint.Reservation.csproj" />
     <ProjectReference Include="..\Redpoint.Tasks\Redpoint.Tasks.csproj" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
   </ItemGroup>
 
 </Project>
