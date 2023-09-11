@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class PackageStorageTag
+    internal sealed class PackageStorageTag
     {
         /// <summary>
         /// The full tag. The filename of the .tag file that this is stored in is

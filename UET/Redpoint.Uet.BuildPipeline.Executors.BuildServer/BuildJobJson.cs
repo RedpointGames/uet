@@ -4,6 +4,7 @@
     using Redpoint.Uet.Configuration.Engine;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
     public class BuildJobJson
@@ -36,9 +37,11 @@
         public string BuildGraphScriptName { get; set; } = string.Empty;
 
         [JsonPropertyName("PreparePlugin"), JsonRequired]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>[]? PreparePlugin { get; set; }
 
         [JsonPropertyName("PrepareProject"), JsonRequired]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>[]? PrepareProject { get; set; }
 
         [JsonPropertyName("GlobalEnvironmentVariables"), JsonRequired]
@@ -54,6 +57,7 @@
         public bool UseStorageVirtualisation { get; set; } = false;
 
         [JsonPropertyName("MobileProvisions"), JsonRequired]
-        public BuildConfigMobileProvision[] MobileProvisions { get; set; } = new BuildConfigMobileProvision[0];
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        public BuildConfigMobileProvision[] MobileProvisions { get; set; } = Array.Empty<BuildConfigMobileProvision>();
     }
 }

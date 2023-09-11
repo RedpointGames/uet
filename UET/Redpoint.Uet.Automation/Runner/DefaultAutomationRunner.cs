@@ -19,7 +19,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DefaultAutomationRunner : IAutomationRunner
+    internal sealed class DefaultAutomationRunner : IAutomationRunner
     {
         private readonly ILogger<DefaultAutomationRunner> _logger;
         private readonly IWorkerPoolFactory _workerPoolFactory;
@@ -35,7 +35,7 @@
         private readonly Task _runTask;
         private IWorkerPool? _workerPool;
 
-        private class WorkerState
+        private sealed class WorkerState
         {
             public required TcpMessageTransportConnection TransportConnection { get; set; }
 
@@ -54,7 +54,7 @@
             public required Stopwatch StartupStopwatch { get; set; }
         }
 
-        private class WorkerGroupState
+        private sealed class WorkerGroupState
         {
             public required DesiredWorkerDescriptor Descriptor { get; set; }
 
@@ -89,16 +89,16 @@
             _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _tests = new ConcurrentDictionary<DesiredWorkerDescriptor, WorkerGroupState>();
             _workers = new Dictionary<IWorker, WorkerState>();
-            _timeoutTask = Task.Run(TimeoutAsync);
-            _runTask = Task.Run(RunAsync);
+            _timeoutTask = Task.Run(TimeoutAsync, cancellationToken);
+            _runTask = Task.Run(RunAsync, cancellationToken);
         }
 
         private async Task TimeoutAsync()
         {
             if (_configuration.TestRunTimeout.HasValue && _configuration.TestRunTimeout.Value != TimeSpan.MaxValue)
             {
-                await Task.Delay((int)_configuration.TestRunTimeout.Value.TotalMilliseconds, _cancellationTokenSource.Token);
-                await _testLogger.LogTestRunTimedOut(_configuration.TestRunTimeout.Value);
+                await Task.Delay((int)_configuration.TestRunTimeout.Value.TotalMilliseconds, _cancellationTokenSource.Token).ConfigureAwait(false);
+                await _testLogger.LogTestRunTimedOut(_configuration.TestRunTimeout.Value).ConfigureAwait(false);
                 _cancellationTokenSource.Cancel();
             }
         }
@@ -127,7 +127,7 @@
                 workerState = new WorkerState
                 {
                     StartupStopwatch = stopwatch,
-                    Handle = await _workerPool!.ReserveAsync(worker),
+                    Handle = await _workerPool!.ReserveAsync(worker).ConfigureAwait(false),
                     CancellationTokenSource = cts,
                     TransportConnection = await TcpMessageTransportConnection.CreateAsync(async () =>
                     {
@@ -139,7 +139,7 @@
                             tcpClient = new TcpClient();
                             var connectionCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
                             var connectionTask = tcpClient.ConnectAsync(worker.EndPoint, connectionCts.Token).AsTask();
-                            await Task.WhenAny(connectionTask, Task.Delay(1000));
+                            await Task.WhenAny(connectionTask, Task.Delay(1000)).ConfigureAwait(false);
                             if (!tcpClient.Connected)
                             {
                                 _logger.LogTrace($"Failed to connect to worker {worker.Id} on endpoint {worker.EndPoint} with 1 seconds, retrying");
@@ -151,7 +151,7 @@
                         cts.Token.ThrowIfCancellationRequested();
                         _logger.LogTrace($"Successfully connected to worker {worker.Id} on endpoint {worker.EndPoint}");
                         return tcpClient;
-                    }, _logger),
+                    }, _logger).ConfigureAwait(false),
                     CurrentTest = null,
                 };
             }
@@ -175,12 +175,12 @@
             {
                 // Negotiate with the worker connection so we can start sending messages to it.
                 _logger.LogTrace($"Starting negotiation with worker {worker.Id}");
-                await NegotiateWithWorkerAsync(worker);
+                await NegotiateWithWorkerAsync(worker).ConfigureAwait(false);
 
                 // We intentionally don't emit the LogWorkerStarted until now, because there can be quite
                 // some time between making the TCP connection and actually being able to communicate.
                 workerState.StartupStopwatch.Stop();
-                await _testLogger.LogWorkerStarted(worker, worker.StartupDuration + workerState.StartupStopwatch.Elapsed);
+                await _testLogger.LogWorkerStarted(worker, worker.StartupDuration + workerState.StartupStopwatch.Elapsed).ConfigureAwait(false);
 
                 // If this is the first worker for this descriptor, get the list of tests from it.
                 var groupState = new WorkerGroupState
@@ -213,12 +213,12 @@
                             }
 
                             return Task.FromResult(false);
-                        }, CancellationToken.None);
+                        }, CancellationToken.None).ConfigureAwait(false);
                         _logger.LogTrace($"Received {discoveredTests.Tests.Count} tests");
 
                         // Generate all of the pending tests.
                         groupState.AllTests = discoveredTests.Tests
-                            .Where(x => x.FullTestPath.StartsWith(_configuration.TestPrefix))
+                            .Where(x => x.FullTestPath.StartsWith(_configuration.TestPrefix, StringComparison.Ordinal))
                             .Select(x => new TestResult
                             {
                                 Platform = worker.Descriptor.Platform,
@@ -229,7 +229,7 @@
                                 DateStarted = DateTimeOffset.MinValue,
                                 DateFinished = DateTimeOffset.MaxValue,
                                 Duration = TimeSpan.Zero,
-                                Entries = new TestResultEntry[0],
+                                Entries = Array.Empty<TestResultEntry>(),
                             }).ToList();
                         foreach (var testToProcess in groupState.AllTests)
                         {
@@ -239,7 +239,7 @@
                         }
                         foreach (var testToProcess in groupState.AllTests)
                         {
-                            await _testLogger.LogDiscovered(worker, GetProgressionInfo(), testToProcess);
+                            await _testLogger.LogDiscovered(worker, GetProgressionInfo(), testToProcess).ConfigureAwait(false);
                         }
 
                         // We are now ready to process tests.
@@ -260,7 +260,7 @@
                 _logger.LogTrace($"Starting testing task for worker {worker.Id}");
                 workerState.TestingTask = Task.Run(async () =>
                 {
-                    await RunWorkerAsync(worker);
+                    await RunWorkerAsync(worker).ConfigureAwait(false);
                 });
             }
             catch (OperationCanceledException) when (_cancellationTokenSource.IsCancellationRequested)
@@ -271,7 +271,7 @@
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Unexpected exception during worker startup: {ex.Message}");
-                await workerState.Handle.DisposeAsync();
+                await workerState.Handle.DisposeAsync().ConfigureAwait(false);
                 throw;
             }
         }
@@ -286,7 +286,7 @@
             try
             {
                 _logger.LogTrace($"Waiting for testing to be ready...");
-                await workerGroupState.ReadyForTesting.WaitAsync(workerCancellationToken);
+                await workerGroupState.ReadyForTesting.WaitAsync(workerCancellationToken).ConfigureAwait(false);
 
                 _logger.LogTrace($"Testing loop for worker {worker.Id} is now starting...");
 
@@ -311,7 +311,7 @@
                     nextTest.TestStatus = TestResultStatus.InProgress;
                     nextTest.AttemptCount++;
                     workerState.CurrentTest = nextTest;
-                    await _testLogger.LogStarted(worker, GetProgressionInfo(), nextTest);
+                    await _testLogger.LogStarted(worker, GetProgressionInfo(), nextTest).ConfigureAwait(false);
                     _notification.TestStarted(nextTest);
                     try
                     {
@@ -406,7 +406,7 @@
                                 {
                                     // Let things know that this test failed, so they don't count
                                     // it as running anymore.
-                                    await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
+                                    await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest).ConfigureAwait(false);
                                     _notification.TestFinished(nextTest);
 
                                     // This test needs to go back in the queue.
@@ -417,7 +417,7 @@
                                     // This test is done.
                                     workerGroupState.RemainingTests--;
                                     workerGroupState.ProcessedTests.Add(nextTest);
-                                    await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
+                                    await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest).ConfigureAwait(false);
                                     _notification.TestFinished(nextTest);
                                 }
 
@@ -425,7 +425,7 @@
                             }
 
                             return false;
-                        }, tokenWithTimeout);
+                        }, tokenWithTimeout).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException) when (!workerCancellationToken.IsCancellationRequested)
                     {
@@ -439,7 +439,7 @@
                             nextTest.AttemptCount < _configuration.TestAttemptCount.Value)
                         {
                             // This test needs to go back in the queue.
-                            await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
+                            await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest).ConfigureAwait(false);
                             _notification.TestFinished(nextTest);
                             workerGroupState.QueuedTests.Enqueue(nextTest);
                         }
@@ -448,7 +448,7 @@
                             // This test has permanently timed out.
                             workerGroupState.RemainingTests--;
                             workerGroupState.ProcessedTests.Add(nextTest);
-                            await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
+                            await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest).ConfigureAwait(false);
                             _notification.TestFinished(nextTest);
                         }
 
@@ -471,7 +471,7 @@
                             nextTest.Duration = nextTest.DateFinished - nextTest.DateStarted;
                             workerGroupState.RemainingTests--;
                             workerGroupState.ProcessedTests.Add(nextTest);
-                            await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
+                            await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest).ConfigureAwait(false);
                             _notification.TestFinished(nextTest);
                         }
 
@@ -487,9 +487,9 @@
                         nextTest.Duration = nextTest.DateFinished - nextTest.DateStarted;
                         workerGroupState.RemainingTests--;
                         workerGroupState.ProcessedTests.Add(nextTest);
-                        await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest);
+                        await _testLogger.LogFinished(worker, GetProgressionInfo(), nextTest).ConfigureAwait(false);
                         _notification.TestFinished(nextTest);
-                        await _testLogger.LogException(worker, GetProgressionInfo(), ex, "Automation runner exception");
+                        await _testLogger.LogException(worker, GetProgressionInfo(), ex, "Automation runner exception").ConfigureAwait(false);
 
                         // @note: We continue attempting more tests after this.
                     }
@@ -510,7 +510,7 @@
             }
             finally
             {
-                await workerState.Handle.DisposeAsync();
+                await workerState.Handle.DisposeAsync().ConfigureAwait(false);
             }
         }
 
@@ -523,7 +523,7 @@
             _logger.LogTrace("Waiting for the connection to be ready...");
             while (connection.RemoteSessionId == null)
             {
-                await Task.Delay(500, workerState.CancellationTokenSource.Token);
+                await Task.Delay(500, workerState.CancellationTokenSource.Token).ConfigureAwait(false);
             }
             workerState.NegotiatedSessionId = connection.RemoteSessionId.Value;
 
@@ -549,14 +549,14 @@
                 }
 
                 return Task.FromResult(false);
-            }, workerState.CancellationTokenSource.Token);
+            }, workerState.CancellationTokenSource.Token).ConfigureAwait(false);
         }
 
         private async Task WorkerRemovedFromPoolAsync(IWorker worker, int exitCode, IWorkerCrashData? crashData)
         {
-            if (_workers.ContainsKey(worker))
+            if (_workers.TryGetValue(worker, out var workerState))
             {
-                var currentTest = _workers[worker].CurrentTest;
+                var currentTest = workerState.CurrentTest;
                 if (currentTest != null)
                 {
                     if (crashData != null)
@@ -572,11 +572,11 @@
                     var workerGroupState = _tests[worker.Descriptor];
                     workerGroupState.RemainingTests--;
                     workerGroupState.ProcessedTests.Add(currentTest);
-                    await _testLogger.LogFinished(worker, GetProgressionInfo(), currentTest);
+                    await _testLogger.LogFinished(worker, GetProgressionInfo(), currentTest).ConfigureAwait(false);
                     _notification.TestFinished(currentTest);
                 }
-                _workers[worker].CancellationTokenSource.Cancel();
-                await _workers[worker].TransportConnection.DisposeAsync();
+                workerState.CancellationTokenSource.Cancel();
+                await workerState.TransportConnection.DisposeAsync().ConfigureAwait(false);
                 _workers.Remove(worker);
             }
         }
@@ -599,7 +599,7 @@
                     WorkerAddedToPoolAsync,
                     WorkerRemovedFromPoolAsync,
                     WorkerPoolFailureAsync,
-                    _cancellationTokenSource.Token))
+                    _cancellationTokenSource.Token).ConfigureAwait(false))
                 {
                     while (!_cancellationTokenSource.IsCancellationRequested)
                     {
@@ -616,7 +616,7 @@
                         if (!foundAll)
                         {
                             _logger.LogTrace("Still waiting for all tests to be discovered...");
-                            await Task.Delay(1000, _cancellationTokenSource.Token);
+                            await Task.Delay(1000, _cancellationTokenSource.Token).ConfigureAwait(false);
                             continue;
                         }
 
@@ -633,7 +633,7 @@
                         if (!ranAll)
                         {
                             _logger.LogTrace($"Still waiting for all tests to run ({_tests.Values.Sum(x => x.RemainingTests)} to go)...");
-                            await Task.Delay(1000, _cancellationTokenSource.Token);
+                            await Task.Delay(1000, _cancellationTokenSource.Token).ConfigureAwait(false);
                             continue;
                         }
 
@@ -646,7 +646,7 @@
             {
                 // Flush all of the data to the notification service.
                 _logger.LogTrace("Flushing results to the notification service, as testing has finished...");
-                await _notification.FlushAsync();
+                await _notification.FlushAsync().ConfigureAwait(false);
                 _logger.LogTrace("Flushed results to the notification service, as testing has finished.");
 
                 // Go through all the test results and report them.
@@ -655,7 +655,7 @@
                     _configuration.ProjectName,
                     _tests.Values.SelectMany(x => x.AllTests).ToArray(),
                     st.Elapsed,
-                    _configuration.FilenamePrefixToCut);
+                    _configuration.FilenamePrefixToCut).ConfigureAwait(false);
                 _logger.LogTrace("Finished reporting test results to reporter.");
             }
         }
@@ -667,14 +667,14 @@
                 _cancellationTokenSource.Cancel();
                 try
                 {
-                    await _timeoutTask;
+                    await _timeoutTask.ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
                 }
                 try
                 {
-                    await _runTask;
+                    await _runTask.ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -684,19 +684,20 @@
             {
                 if (_workerPool != null)
                 {
-                    await _workerPool.DisposeAsync();
+                    await _workerPool.DisposeAsync().ConfigureAwait(false);
                 }
 
                 foreach (var kv in _workers)
                 {
-                    await kv.Value.TransportConnection.DisposeAsync();
+                    await kv.Value.TransportConnection.DisposeAsync().ConfigureAwait(false);
                 }
             }
+            _cancellationTokenSource.Dispose();
         }
 
         public async Task<TestResult[]> WaitForResultsAsync()
         {
-            await _runTask;
+            await _runTask.ConfigureAwait(false);
             return _tests.Values.SelectMany(x => x.AllTests).ToArray();
         }
     }

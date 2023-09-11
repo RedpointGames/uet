@@ -33,7 +33,7 @@
                     // Now try to delete again.
                     Directory.Delete(path, recursive);
                 }
-            });
+            }).ConfigureAwait(false);
         }
 
         public static async Task MoveAsync(string source, string target)
@@ -41,7 +41,7 @@
             await Task.Run(() =>
             {
                 Directory.Move(source, target);
-            });
+            }).ConfigureAwait(false);
         }
 
         public static async Task CopyAsync(string source, string target, bool recursive)
@@ -65,10 +65,10 @@
                     foreach (var sd in dirs)
                     {
                         var targetPath = Path.Combine(target, sd.Name);
-                        await CopyAsync(sd.FullName, targetPath, true);
+                        await CopyAsync(sd.FullName, targetPath, true).ConfigureAwait(false);
                     }
                 }
-            });
+            }).ConfigureAwait(false);
         }
     }
 }

@@ -6,17 +6,17 @@
     /// An implementation of a mutex that returns a disposable <see cref="IAcquiredLock"/> when the
     /// lock is acquired, providing a mutex that is usable with the <c>using</c> construct.
     /// </summary>
-    public class MutexSlim
+    public class Mutex
     {
-        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
+        private readonly Semaphore _semaphore = new(1);
 
         /// <summary>
         /// Wait indefinitely to acquire the mutex in a blocking manner.
         /// </summary>
         /// <returns>The acquired lock, which must be disposed when no longer needed.</returns>
-        public IAcquiredLock Wait()
+        public IAcquiredLock Wait(CancellationToken cancellationToken)
         {
-            _semaphore.Wait();
+            _semaphore.Wait(cancellationToken);
             return new MutexAcquiredLock(_semaphore);
         }
 
@@ -25,18 +25,18 @@
         /// </summary>
         /// <param name="cancellationToken">The cancellation token to cancel the wait operation.</param>
         /// <returns>The acquired lock, which must be disposed when no longer needed.</returns>
-        public async Task<IAcquiredLock> WaitAsync(CancellationToken cancellationToken = default)
+        public async Task<IAcquiredLock> WaitAsync(CancellationToken cancellationToken)
         {
-            await _semaphore.WaitAsync(cancellationToken);
+            await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             return new MutexAcquiredLock(_semaphore);
         }
 
-        private class MutexAcquiredLock : IAcquiredLock
+        private sealed class MutexAcquiredLock : IAcquiredLock
         {
-            private readonly SemaphoreSlim _semaphore;
-            private bool _disposed = false;
+            private readonly Semaphore _semaphore;
+            private bool _disposed;
 
-            public MutexAcquiredLock(SemaphoreSlim semaphore)
+            public MutexAcquiredLock(Semaphore semaphore)
             {
                 _semaphore = semaphore;
             }

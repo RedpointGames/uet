@@ -3,7 +3,7 @@
     using System;
     using System.CommandLine.Parsing;
 
-    internal class PathSpec
+    internal sealed class PathSpec
     {
         private PathSpec()
         {
@@ -110,7 +110,7 @@
             {
                 var info = new FileInfo(path);
 
-                if (info.Name.Equals("BuildConfig.json", StringComparison.InvariantCultureIgnoreCase) && !ignoreBuildJson)
+                if (info.Name.Equals("BuildConfig.json", StringComparison.OrdinalIgnoreCase) && !ignoreBuildJson)
                 {
                     return new PathSpec
                     {
@@ -119,7 +119,7 @@
                     };
                 }
 
-                if (info.Name.EndsWith(".uproject"))
+                if (info.Name.EndsWith(".uproject", StringComparison.OrdinalIgnoreCase))
                 {
                     return new PathSpec
                     {
@@ -129,7 +129,7 @@
                     };
                 }
 
-                if (info.Name.EndsWith(".uplugin"))
+                if (info.Name.EndsWith(".uplugin", StringComparison.OrdinalIgnoreCase))
                 {
                     return new PathSpec
                     {

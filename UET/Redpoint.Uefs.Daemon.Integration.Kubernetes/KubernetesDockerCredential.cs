@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class KubernetesDockerCredential
+    internal sealed class KubernetesDockerCredential
     {
         [JsonPropertyName("username")]
         public string Username { get; set; } = string.Empty;

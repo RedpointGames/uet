@@ -2,6 +2,7 @@
 {
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Hashing;
     using Redpoint.GrpcPipes;
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
     using Redpoint.OpenGE.Component.Dispatcher.GraphExecutor;
@@ -20,7 +21,7 @@
     {
         private readonly string _pipeName;
         private readonly GrpcPipeNamespace _pipeNamespace;
-        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
+        private readonly Concurrency.Semaphore _semaphore = new Concurrency.Semaphore(1);
         private readonly ILogger<DefaultDispatcherComponent> _logger;
         private readonly IGraphGenerator _graphGenerator;
         private readonly IGraphExecutor _graphExecutor;
@@ -31,8 +32,8 @@
         private long _inflightJobs = 0;
         private bool _isShuttingDown = false;
         private CancellationToken _shutdownCancellationToken;
-        private readonly SemaphoreSlim _inflightJobCountSemaphore = new SemaphoreSlim(1);
-        private readonly SemaphoreSlim _allInflightJobsAreComplete = new SemaphoreSlim(0);
+        private readonly Concurrency.Semaphore _inflightJobCountSemaphore = new Concurrency.Semaphore(1);
+        private readonly Concurrency.Semaphore _allInflightJobsAreComplete = new Concurrency.Semaphore(0);
 
         public DefaultDispatcherComponent(
             ILogger<DefaultDispatcherComponent> logger,
@@ -47,7 +48,7 @@
             _graphExecutor = graphExecutor;
             _grpcPipeFactory = grpcPipeFactory;
             _workerPool = workerPool;
-            _pipeName = pipeName ?? $"OpenGE-{BitConverter.ToString(Guid.NewGuid().ToByteArray()).Replace("-", "").ToLowerInvariant()}";
+            _pipeName = pipeName ?? $"OpenGE-{Hash.GuidAsHexString(Guid.NewGuid())}";
             _pipeNamespace = pipeName == null ? GrpcPipeNamespace.User : GrpcPipeNamespace.Computer;
         }
 
@@ -56,7 +57,7 @@
         public async Task StartAsync(CancellationToken shutdownCancellationToken)
         {
             _shutdownCancellationToken = shutdownCancellationToken;
-            await _semaphore.WaitAsync(shutdownCancellationToken);
+            await _semaphore.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
             try
             {
                 if (_hasStarted)
@@ -69,7 +70,7 @@
                     _pipeName,
                     _pipeNamespace,
                     this);
-                await _pipeServer.StartAsync();
+                await _pipeServer.StartAsync().ConfigureAwait(false);
                 _hasStarted = true;
                 _logger.LogTrace($"Started OpenGE daemon on pipe: {_pipeName}");
             }
@@ -92,7 +93,7 @@
 
         private async Task<long> GetInflightJobCount()
         {
-            await _inflightJobCountSemaphore.WaitAsync();
+            await _inflightJobCountSemaphore.WaitAsync(_shutdownCancellationToken).ConfigureAwait(false);
             try
             {
                 return _inflightJobs;
@@ -105,7 +106,7 @@
 
         public async Task StopAsync()
         {
-            await _semaphore.WaitAsync(CancellationToken.None);
+            await _semaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 _logger.LogTrace("OpenGE in-flight: Starting shutdown");
@@ -113,17 +114,17 @@
 
                 if (_hasStarted)
                 {
-                    var inFlightCount = await GetInflightJobCount();
+                    var inFlightCount = await GetInflightJobCount().ConfigureAwait(false);
                     _logger.LogTrace($"OpenGE in-flight: There are {inFlightCount} jobs in-flight");
                     if (inFlightCount > 0)
                     {
                         _logger.LogTrace("OpenGE in-flight: Waiting for in-flight OpenGE jobs to terminate...");
-                        await _allInflightJobsAreComplete.WaitAsync();
+                        await _allInflightJobsAreComplete.WaitAsync(_shutdownCancellationToken).ConfigureAwait(false);
                         _logger.LogTrace($"OpenGE in-flight: There are now no jobs in-flight");
                     }
 
                     _logger.LogTrace($"Stopped OpenGE daemon on pipe: {_pipeName}");
-                    await _pipeServer!.StopAsync();
+                    await _pipeServer!.StopAsync().ConfigureAwait(false);
                     _hasStarted = false;
                 }
             }
@@ -154,7 +155,7 @@
                 }
 
                 // Increment the current job count.
-                await _inflightJobCountSemaphore.WaitAsync();
+                await _inflightJobCountSemaphore.WaitAsync(_shutdownCancellationToken).ConfigureAwait(false);
                 try
                 {
                     if (_isShuttingDown)
@@ -203,7 +204,7 @@
                                     WorkingDirectory = request.WorkingDirectory,
                                     BuildStartTicks = DateTimeOffset.UtcNow.Ticks,
                                 },
-                                globalCts.Token);
+                                globalCts.Token).ConfigureAwait(false);
                         }
 
                         // Tell the client how many tasks we're about to run.
@@ -213,7 +214,7 @@
                             {
                                 TotalTasks = graph.Tasks.Count(x => x.Value is not DescribingGraphTask),
                             }
-                        });
+                        }).ConfigureAwait(false);
 
                         // If there are no tasks, finish immediately.
                         if (graph.Tasks.Count == 0)
@@ -225,7 +226,7 @@
                                     Status = JobCompletionStatus.JobCompletionSuccess,
                                     TotalSeconds = 0,
                                 }
-                            });
+                            }).ConfigureAwait(false);
                             return;
                         }
 
@@ -235,7 +236,7 @@
                             graph,
                             request.BuildBehaviour,
                             responseStream,
-                            context.CancellationToken);
+                            context.CancellationToken).ConfigureAwait(false);
                         _logger.LogTrace("Graph execution completed without throwing an exception");
                     }
                     catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
@@ -261,7 +262,7 @@
                 finally
                 {
                     // Decrement the job count.
-                    await _inflightJobCountSemaphore.WaitAsync();
+                    await _inflightJobCountSemaphore.WaitAsync(_shutdownCancellationToken).ConfigureAwait(false);
                     try
                     {
                         _inflightJobs--;

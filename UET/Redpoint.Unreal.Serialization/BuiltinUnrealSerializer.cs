@@ -5,7 +5,7 @@
     [SerializerRegistryAddSerializable(typeof(UnrealString))]
     [SerializerRegistryAddSerializable(typeof(Name))]
     [SerializerRegistryAddSerializable(typeof(TopLevelAssetPath))]
-    internal partial class BuiltinUnrealSerializerRegistry : ISerializerRegistry
+    internal sealed partial class BuiltinUnrealSerializerRegistry : ISerializerRegistry
     {
     }
 }

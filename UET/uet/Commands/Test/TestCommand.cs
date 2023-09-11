@@ -19,9 +19,9 @@
     using UET.Commands.EngineSpec;
     using static Crayon.Output;
 
-    internal class TestCommand
+    internal sealed class TestCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<EngineSpec> Engine;
             public Option<PathSpec> Path;
@@ -63,7 +63,7 @@
             return command;
         }
 
-        private class TestCommandInstance : ICommandInstance
+        private sealed class TestCommandInstance : ICommandInstance
         {
             private readonly ILogger<TestCommandInstance> _logger;
             private readonly Options _options;
@@ -171,9 +171,9 @@
                             if (Directory.Exists(Path.Combine(path.DirectoryPath, "Source")))
                             {
                                 var files = Directory.GetFiles(Path.Combine(path.DirectoryPath, "Source"), "*.Target.cs");
-                                editorTarget = files.Where(x => x.EndsWith("Editor.Target.cs")).Select(x => Path.GetFileName(x)).First();
-                                editorTarget = editorTarget.Substring(0, editorTarget.LastIndexOf(".Target.cs"));
-                                gameTarget = editorTarget.Substring(0, editorTarget.LastIndexOf("Editor"));
+                                editorTarget = files.Where(x => x.EndsWith("Editor.Target.cs", StringComparison.Ordinal)).Select(x => Path.GetFileName(x)).First();
+                                editorTarget = editorTarget[..editorTarget.LastIndexOf(".Target.cs", StringComparison.Ordinal)];
+                                gameTarget = editorTarget[..editorTarget.LastIndexOf("Editor", StringComparison.Ordinal)];
                             }
                             else
                             {
@@ -223,7 +223,7 @@
                                 executeTests: true,
                                 executeDeployment: false,
                                 strictIncludes: false,
-                                localExecutor: true);
+                                localExecutor: true).ConfigureAwait(false);
                             break;
                         case PathSpecType.UPlugin:
                             var buildConfigPlugin = new BuildConfigPlugin
@@ -283,7 +283,7 @@
                                 localExecutor: true,
                                 isPluginRooted: true,
                                 commandlinePluginVersionName: null,
-                                commandlinePluginVersionNumber: null);
+                                commandlinePluginVersionNumber: null).ConfigureAwait(false);
                             break;
                         default:
                             throw new NotSupportedException();
@@ -304,7 +304,7 @@
                         null,
                         executionEvents,
                         CaptureSpecification.Passthrough,
-                        context.GetCancellationToken());
+                        context.GetCancellationToken()).ConfigureAwait(false);
                     if (buildResult == 0)
                     {
                         _logger.LogInformation($"All build jobs {Bright.Green("passed successfully")}.");
@@ -333,7 +333,7 @@
                     }
                     return buildResult;
                 }
-                catch (BuildPipelineExecutionFailure ex)
+                catch (BuildPipelineExecutionFailureException ex)
                 {
                     _logger.LogError(ex.Message);
                     return 1;

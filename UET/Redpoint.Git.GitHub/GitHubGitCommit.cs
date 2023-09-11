@@ -6,7 +6,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class GitHubGitCommit : IGitCommit
+    internal sealed class GitHubGitCommit : IGitCommit
     {
         private GitHubClient _client;
         private string _owner;

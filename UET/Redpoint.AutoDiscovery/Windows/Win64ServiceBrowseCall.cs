@@ -14,7 +14,7 @@
     using SDWin64::Windows.Win32.NetworkManagement.Dns;
 
     [SupportedOSPlatform("windows10.0.10240")]
-    internal unsafe class Win64ServiceBrowseCall : WindowsNativeRequestCall<DNS_SERVICE_BROWSE_REQUEST, DNS_SERVICE_CANCEL>
+    internal unsafe sealed class Win64ServiceBrowseCall : WindowsNativeRequestCall<DNS_SERVICE_BROWSE_REQUEST, DNS_SERVICE_CANCEL>
     {
         private readonly string _query;
         private readonly TerminableAwaitableConcurrentQueue<NetworkService> _resultStream;
@@ -57,7 +57,7 @@
 
         protected override void CancelRequest(DNS_SERVICE_CANCEL* cancel)
         {
-            PInvoke.DnsServiceBrowseCancel(cancel);
+            _ = PInvoke.DnsServiceBrowseCancel(cancel);
             _resultStream.Terminate();
         }
 
@@ -91,7 +91,7 @@
                 {
                     inflight.ResultException = ExceptionDispatchInfo.Capture(ex);
                 }
-                PInvoke.DnsServiceBrowseCancel(inflight.CancellableRequest.Cancel);
+                _ = PInvoke.DnsServiceBrowseCancel(inflight.CancellableRequest.Cancel);
                 stream.Terminate();
                 inflight.AsyncSemaphore.Open();
                 return;
@@ -106,7 +106,7 @@
                 {
                     inflight.ResultException = ExceptionDispatchInfo.Capture(ex);
                 }
-                PInvoke.DnsServiceBrowseCancel(inflight.CancellableRequest.Cancel);
+                _ = PInvoke.DnsServiceBrowseCancel(inflight.CancellableRequest.Cancel);
                 stream.Terminate();
                 inflight.AsyncSemaphore.Open();
                 return;

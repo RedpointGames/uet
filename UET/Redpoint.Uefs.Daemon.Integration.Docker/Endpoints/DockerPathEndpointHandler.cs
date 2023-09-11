@@ -7,7 +7,7 @@
 
     [SupportedOSPlatform("windows")]
     [Endpoint("/VolumeDriver.Path")]
-    internal class DockerPathEndpointHandler : IEndpointHandler<DockerPathRequest, DockerPathResponse>
+    internal sealed class DockerPathEndpointHandler : IEndpointHandler<DockerPathRequest, DockerPathResponse>
     {
         public ValueTask<DockerPathResponse> HandleAsync(IUefsDaemon plugin, DockerPathRequest request)
         {

@@ -66,20 +66,20 @@
                         inputFile = new FileInfo(path.Path);
                     }
                 }
-                else if (line.StartsWith("/D"))
+                else if (line.StartsWith("/D", StringComparison.Ordinal))
                 {
-                    var define = line.Substring("/D".Length).Split('=', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    var define = line["/D".Length..].Split('=', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                     globalDefinitions[define[0]] = define.Length >= 2 ? define[1] : "1";
                 }
-                else if (line.StartsWith("/I") ||
-                    line.StartsWith("/external:I"))
+                else if (line.StartsWith("/I", StringComparison.Ordinal) ||
+                    line.StartsWith("/external:I", StringComparison.Ordinal))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring(line.StartsWith("/I") ? "/I ".Length : "/external:I ".Length));
+                    var path = new PotentiallyQuotedPath(line[(line.StartsWith("/I", StringComparison.Ordinal) ? "/I ".Length : "/external:I ".Length)..]);
                     path.MakeAbsolutePath(workingDirectory);
                     var info = new DirectoryInfo(path.Path);
                     if (info.Exists)
                     {
-                        if (line.StartsWith("/I"))
+                        if (line.StartsWith("/I", StringComparison.Ordinal))
                         {
                             includeDirectories.Add(info);
                         }
@@ -93,47 +93,47 @@
                         _logger.LogWarning($"'{path}' does not exist.");
                     }
                 }
-                else if (line.StartsWith("/FI"))
+                else if (line.StartsWith("/FI", StringComparison.Ordinal))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring("/FI".Length));
+                    var path = new PotentiallyQuotedPath(line["/FI".Length..]);
                     path.MakeAbsolutePath(workingDirectory);
                     var fi = new FileInfo(path.Path);
                     forceIncludeFiles.Add(fi);
                 }
-                else if (line.StartsWith("/Yu"))
+                else if (line.StartsWith("/Yu", StringComparison.Ordinal))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring("/Yu".Length));
+                    var path = new PotentiallyQuotedPath(line["/Yu".Length..]);
                     path.MakeAbsolutePath(workingDirectory);
                     pchInputFile = new FileInfo(path.Path);
                 }
-                else if (line.StartsWith("/Yc"))
+                else if (line.StartsWith("/Yc", StringComparison.Ordinal))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring("/Yc".Length));
+                    var path = new PotentiallyQuotedPath(line["/Yc".Length..]);
                     path.MakeAbsolutePath(workingDirectory);
                     pchInputFile = new FileInfo(path.Path);
                     isCreatingPch = true;
                 }
-                else if (line.StartsWith("/Fp"))
+                else if (line.StartsWith("/Fp", StringComparison.Ordinal))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring("/Fp".Length));
+                    var path = new PotentiallyQuotedPath(line["/Fp".Length..]);
                     path.MakeAbsolutePath(workingDirectory);
                     pchCacheFile = new FileInfo(path.Path);
                 }
-                else if (line.StartsWith("/Fo"))
+                else if (line.StartsWith("/Fo", StringComparison.Ordinal))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring("/Fo".Length));
+                    var path = new PotentiallyQuotedPath(line["/Fo".Length..]);
                     path.MakeAbsolutePath(workingDirectory);
                     outputFile = new FileInfo(path.Path);
                 }
-                else if (line.StartsWith("/sourceDependencies "))
+                else if (line.StartsWith("/sourceDependencies ", StringComparison.Ordinal))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring("/sourceDependencies ".Length));
+                    var path = new PotentiallyQuotedPath(line["/sourceDependencies ".Length..]);
                     path.MakeAbsolutePath(workingDirectory);
                     sourceDependencies = new FileInfo(path.Path);
                 }
-                else if (line.StartsWith("/clang:-MF"))
+                else if (line.StartsWith("/clang:-MF", StringComparison.Ordinal))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring("/clang:-MF".Length));
+                    var path = new PotentiallyQuotedPath(line["/clang:-MF".Length..]);
                     path.MakeAbsolutePath(workingDirectory);
                     clangDepfile = new FileInfo(path.Path);
                 }
@@ -147,7 +147,7 @@
             }
 
             // Determine the dependent header files.
-            var preprocessorCache = await _preprocessorCacheAccessor.GetPreprocessorCacheAsync();
+            var preprocessorCache = await _preprocessorCacheAccessor.GetPreprocessorCacheAsync().ConfigureAwait(false);
             PreprocessorResolutionResultWithTimingMetadata dependentFiles;
             if (!guaranteedToExecuteLocally)
             {
@@ -160,7 +160,7 @@
                         globalDefinitions,
                         buildStartTicks,
                         architype,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
                 catch (RpcException ex) when (ex.StatusCode == StatusCode.InvalidArgument)
                 {

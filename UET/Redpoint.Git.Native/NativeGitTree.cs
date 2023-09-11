@@ -8,7 +8,7 @@
     using Redpoint.Git.Abstractions;
     using static Redpoint.Git.Abstractions.IGitTree;
 
-    internal class NativeGitTree : IGitTree
+    internal sealed class NativeGitTree : IGitTree
     {
         private readonly Repository _repository;
         private readonly Tree _tree;

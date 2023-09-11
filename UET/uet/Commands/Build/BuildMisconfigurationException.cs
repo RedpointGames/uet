@@ -1,10 +1,11 @@
 ﻿namespace UET.Commands.Build
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Runtime.Serialization;
 
-    [Serializable]
-    internal class BuildMisconfigurationException : Exception
+    [SuppressMessage("Design", "CA1064:Exceptions should be public", Justification = "This exception is only used internally.")]
+    internal sealed class BuildMisconfigurationException : Exception
     {
         public BuildMisconfigurationException()
         {
@@ -15,10 +16,6 @@
         }
 
         public BuildMisconfigurationException(string? message, Exception? innerException) : base(message, innerException)
-        {
-        }
-
-        protected BuildMisconfigurationException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
     }

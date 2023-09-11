@@ -5,28 +5,7 @@
     using UET.Commands.Storage.List;
     using UET.Commands.Storage.Purge;
 
-    internal enum StorageEntryType
-    {
-        Generic,
-        WriteScratchLayer,
-        ExtractedConsoleZip,
-        UefsGitSharedBlobs,
-        UefsGitSharedDependencies,
-        UefsGitSharedIndexCache,
-        UefsGitSharedRepository,
-        UefsHostPackagesCache,
-    }
-
-    internal class StorageEntry
-    {
-        public required string Id;
-        public required string Path;
-        public required StorageEntryType Type;
-        public required DateTimeOffset LastUsed;
-        public required ulong DiskSpaceConsumed;
-    }
-
-    internal class StorageCommand
+    internal sealed class StorageCommand
     {
         public static Command CreateStorageCommand(HashSet<Command> globalCommands)
         {

@@ -4,9 +4,10 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Component.Dispatcher.GraphExecutor;
     using Redpoint.Tasks;
+    using System.Diagnostics;
     using System.Threading.Tasks;
 
-    internal class DefaultStallMonitorFactory : IStallMonitorFactory
+    internal partial class DefaultStallMonitorFactory : IStallMonitorFactory
     {
         private readonly IServiceProvider _serviceProvider;
 
@@ -27,13 +28,18 @@
                 instance);
         }
 
-        internal class DefaultStallMonitor : IStallMonitor
+        internal partial class DefaultStallMonitor : IStallMonitor
         {
             private readonly ILogger<DefaultStallMonitor> _logger;
             private readonly IStallDiagnostics _stallDiagnostics;
             private readonly GraphExecutionInstance _instance;
             private readonly CancellationTokenSource _cancellationTokenSource;
             private DateTime _lastMadeProgress;
+
+            [LoggerMessage(
+                Level = LogLevel.Warning,
+                Message = "STALL DETECTED! DIAGNOSTICS:\n{diagnostics}")]
+            static partial void LogStallDiagnostics(ILogger logger, string diagnostics);
 
             public DefaultStallMonitor(
                 ILogger<DefaultStallMonitor> logger,
@@ -48,21 +54,21 @@
                 _cancellationTokenSource = new CancellationTokenSource();
                 _ = taskSchedulerScope.RunAsync(
                     "StallMonitor",
-                    _cancellationTokenSource.Token,
                     async (cancellationToken) =>
                     {
                         while (!cancellationToken.IsCancellationRequested)
                         {
-                            await Task.Delay(1000);
+                            await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                             if ((DateTime.UtcNow - _lastMadeProgress).TotalSeconds > 120)
                             {
                                 var diagnostics = await _stallDiagnostics.CaptureStallInformationAsync(
-                                    instance);
-                                _logger.LogWarning("STALL DETECTED! DIAGNOSTICS:\n" + diagnostics);
+                                    instance).ConfigureAwait(false);
+                                LogStallDiagnostics(_logger, diagnostics);
                                 instance.CancelEntireBuildDueToException(new InvalidOperationException("STALL DETECTED!"));
                             }
                         }
-                    });
+                    },
+                    _cancellationTokenSource.Token);
             }
 
             public void MadeProgress()
@@ -73,6 +79,7 @@
             public ValueTask DisposeAsync()
             {
                 _cancellationTokenSource.Cancel();
+                _cancellationTokenSource.Dispose();
                 return ValueTask.CompletedTask;
             }
         }

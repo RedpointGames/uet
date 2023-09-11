@@ -76,7 +76,7 @@
             if (equalPos < 1)
                 throw new FormatException("No '=' found.");
 
-            return pair.Substring(0, equalPos);
+            return pair[..equalPos];
         }
 
         private static string GetValue(string pair)
@@ -86,12 +86,12 @@
             if (equalPos < 1)
                 throw new FormatException("No '=' found.");
 
-            string value = pair.Substring(equalPos + 1).Trim();
+            string value = pair[(equalPos + 1)..].Trim();
 
             //Trim quotes
             if (value.StartsWith("\"") && value.EndsWith("\""))
             {
-                value = value.Substring(1, value.Length - 2);
+                value = value[1..^1];
             }
 
             return value;

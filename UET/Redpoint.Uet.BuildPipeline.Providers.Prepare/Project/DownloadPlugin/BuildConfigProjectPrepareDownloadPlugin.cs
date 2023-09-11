@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class BuildConfigProjectPrepareDownloadPlugin
+    internal sealed class BuildConfigProjectPrepareDownloadPlugin
     {
         /// <summary>
         /// An ordered list of sources that the plugin should be obtained from. Only the

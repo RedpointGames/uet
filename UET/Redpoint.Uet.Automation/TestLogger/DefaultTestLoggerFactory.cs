@@ -4,7 +4,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.Uet.Automation.TestLogger;
 
-    internal class DefaultTestLoggerFactory : ITestLoggerFactory
+    internal sealed class DefaultTestLoggerFactory : ITestLoggerFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

@@ -4,7 +4,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DefaultTaskBasedMonitor : ITaskBasedMonitor
+    internal sealed class DefaultTaskBasedMonitor : ITaskBasedMonitor
     {
         public string ComputeProgressMessage(ITaskBasedProgress progress, int? widthHint, DateTimeOffset startTime)
         {
@@ -38,7 +38,7 @@
             return message;
         }
 
-        public async Task MonitorAsync(ITaskBasedProgress progress, IConsoleInformation? consoleInfo, ProgressEmitDelegate onProgressEmit, CancellationToken ct)
+        public async Task MonitorAsync(ITaskBasedProgress progress, IConsoleInformation? consoleInfo, ProgressEmit onProgressEmit, CancellationToken ct)
         {
             var startTime = DateTimeOffset.UtcNow;
             int count = 0;
@@ -65,7 +65,7 @@
 
                 try
                 {
-                    await Task.Delay(100, ct);
+                    await Task.Delay(100, ct).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {

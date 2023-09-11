@@ -62,7 +62,7 @@
                 foreach (var scriptModuleFullName in Directory.GetFiles(scriptModulesPath, "*.json"))
                 {
                     var json = JsonSerializer.Deserialize<ScriptModuleJson>(
-                        await File.ReadAllTextAsync(scriptModuleFullName, cancellationToken),
+                        await File.ReadAllTextAsync(scriptModuleFullName, cancellationToken).ConfigureAwait(false),
                         ScriptModuleJsonSourceGenerationContext.Default.ScriptModuleJson);
                     if (json == null || string.IsNullOrWhiteSpace(json.ProjectPath) || string.IsNullOrWhiteSpace(json.TargetPath))
                     {
@@ -93,7 +93,7 @@
             var doScriptWorkaround = false;
             foreach (var arg in uatSpecification.Arguments)
             {
-                if (uatSpecification.Command == "BuildGraph" && arg.StartsWith("-Script=") && arg.EndsWith("Engine\\Build\\InstalledEngineBuild.xml"))
+                if (uatSpecification.Command == "BuildGraph" && arg.StartsWith("-Script=", StringComparison.Ordinal) && arg.EndsWith("Engine\\Build\\InstalledEngineBuild.xml", StringComparison.Ordinal))
                 {
                     // Hack for UE5 engine builds that don't include console platforms properly
                     // if the script is an absolute path.
@@ -115,13 +115,13 @@
             {
                 foreach (var arg in finalArgs)
                 {
-                    if (arg.StartsWith("-SingleNode="))
+                    if (arg.StartsWith("-SingleNode=", StringComparison.Ordinal))
                     {
-                        singleNodeName = arg.Substring("-SingleNode=".Length).Replace("\"", "");
+                        singleNodeName = arg["-SingleNode=".Length..].Replace("\"", "", StringComparison.Ordinal);
                     }
-                    else if (arg.StartsWith("-SharedStorageDir="))
+                    else if (arg.StartsWith("-SharedStorageDir=", StringComparison.Ordinal))
                     {
-                        sharedStorageDir = arg.Substring("-SharedStorageDir=".Length).Replace("\"", "");
+                        sharedStorageDir = arg["-SharedStorageDir=".Length..].Replace("\"", "", StringComparison.Ordinal);
                     }
                 }
                 if (!string.IsNullOrWhiteSpace(singleNodeName) && !string.IsNullOrWhiteSpace(sharedStorageDir))
@@ -131,7 +131,7 @@
                 if (OperatingSystem.IsWindows())
                 {
                     if (!string.IsNullOrWhiteSpace(singleNodeName) && !string.IsNullOrWhiteSpace(sharedStorageDir) &&
-                        !sharedStorageDir.StartsWith($"{Environment.GetEnvironmentVariable("SYSTEMDRIVE")}\\"))
+                        !sharedStorageDir.StartsWith($"{Environment.GetEnvironmentVariable("SYSTEMDRIVE")}\\", StringComparison.Ordinal))
                     {
                         requireLostHandleDetection = true;
                     }
@@ -153,7 +153,7 @@
             }
 
             // Execute UAT, automatically handling retries as needed.
-            var didMutateBuildConfiguration = await _buildConfigurationManager.PushBuildConfiguration();
+            var didMutateBuildConfiguration = await _buildConfigurationManager.PushBuildConfiguration().ConfigureAwait(false);
             try
             {
                 int reportedExitCode = -1;
@@ -176,15 +176,15 @@
                                         _logger.LogWarning($"Detected existing local output directory at '{localOutputPath}'. Deleting contents...");
                                         try
                                         {
-                                            await DirectoryAsync.DeleteAsync(localOutputPath, true);
+                                            await DirectoryAsync.DeleteAsync(localOutputPath, true).ConfigureAwait(false);
                                         }
                                         catch
                                         {
                                             _logger.LogWarning($"Failed to delete '{localOutputPath}'. Forcibly closing handles...");
-                                            await _localHandleCloser.CloseLocalHandles(localOutputPath);
+                                            await _localHandleCloser.CloseLocalHandles(localOutputPath).ConfigureAwait(false);
 
                                             _logger.LogWarning($"Handles closed for '{localOutputPath}'. Trying to delete again...");
-                                            await DirectoryAsync.DeleteAsync(localOutputPath, true);
+                                            await DirectoryAsync.DeleteAsync(localOutputPath, true).ConfigureAwait(false);
                                         }
                                     }
                                 }
@@ -195,28 +195,28 @@
                                     _logger.LogWarning($"Detected existing output directory at '{targetPath}'. Deleting contents...");
                                     try
                                     {
-                                        await DirectoryAsync.DeleteAsync(targetPath, true);
+                                        await DirectoryAsync.DeleteAsync(targetPath, true).ConfigureAwait(false);
                                     }
                                     catch
                                     {
                                         _logger.LogWarning($"Failed to delete '{targetPath}'. Forcibly closing handles...");
-                                        await _remoteHandleCloser.CloseRemoteHandles(targetPath);
-                                        await _localHandleCloser.CloseLocalHandles(targetPath);
+                                        await _remoteHandleCloser.CloseRemoteHandles(targetPath).ConfigureAwait(false);
+                                        await _localHandleCloser.CloseLocalHandles(targetPath).ConfigureAwait(false);
 
                                         _logger.LogWarning($"Handles closed for '{targetPath}'. Trying to delete again...");
-                                        await DirectoryAsync.DeleteAsync(targetPath, true);
+                                        await DirectoryAsync.DeleteAsync(targetPath, true).ConfigureAwait(false);
                                     }
                                     Directory.CreateDirectory(targetPath);
-                                    await _worldPermissionApplier.GrantEveryonePermissionAsync(targetPath, CancellationToken.None);
+                                    await _worldPermissionApplier.GrantEveryonePermissionAsync(targetPath, CancellationToken.None).ConfigureAwait(false);
                                 }
                                 break;
                             }
                             catch (Exception ex)
                             {
-                                if (ex.Message.Contains("used by another process") || ex.Message.Contains("is denied"))
+                                if (ex.Message.Contains("used by another process", StringComparison.Ordinal) || ex.Message.Contains("is denied", StringComparison.Ordinal))
                                 {
                                     _logger.LogWarning("File lock still present for one or more files...");
-                                    await Task.Delay(2000);
+                                    await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
                                     continue;
                                 }
                                 else
@@ -272,7 +272,7 @@
                     reportedExitCode = await _processExecutor.ExecuteAsync(
                         processSpecification,
                         retryCaptureSpecification,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
 
                     // We need to check if BuildGraph didn't release file handles properly. When this happens, Windows holds open
                     // the file handle on the remote machine that the share is mapped to, and this causes failures on downstream
@@ -281,7 +281,7 @@
                     // delete the output directory on the shared drive, and then run this build again.
                     if (requireLostHandleDetection)
                     {
-                        if (await _remoteHandleCloser.CloseRemoteHandles(Path.Combine(sharedStorageDir, singleNodeName)))
+                        if (await _remoteHandleCloser.CloseRemoteHandles(Path.Combine(sharedStorageDir, singleNodeName)).ConfigureAwait(false))
                         {
                             _logger.LogWarning("Detected lost file handles for output. Automatically retrying...");
                             continue;
@@ -305,7 +305,7 @@
             {
                 if (didMutateBuildConfiguration)
                 {
-                    await _buildConfigurationManager.PopBuildConfiguration();
+                    await _buildConfigurationManager.PopBuildConfiguration().ConfigureAwait(false);
                 }
             }
         }

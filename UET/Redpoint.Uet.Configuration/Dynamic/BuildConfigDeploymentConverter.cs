@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.Uet.Configuration.Dynamic
 {
-    internal class BuildConfigDeploymentConverter<TDistribution> : BuildConfigDynamicConverter<TDistribution, IDeploymentProvider>
+    internal sealed class BuildConfigDeploymentConverter<TDistribution> : BuildConfigDynamicConverter<TDistribution, IDeploymentProvider>
     {
         public BuildConfigDeploymentConverter(IServiceProvider serviceProvider) : base(serviceProvider)
         {

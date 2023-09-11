@@ -21,7 +21,7 @@
         private bool _finished;
         private long _globalPosition;
 
-        public GrpcReadableBinaryChunkStream(
+        protected GrpcReadableBinaryChunkStream(
             BufferedAsyncDuplexStreamingCall<TInbound, TOutbound> stream)
         {
             _bufferedStream = stream;
@@ -33,7 +33,7 @@
             _finished = false;
         }
 
-        public GrpcReadableBinaryChunkStream(
+        protected GrpcReadableBinaryChunkStream(
             TOutbound initial,
             IAsyncStreamReader<TOutbound> receivingStream)
         {
@@ -60,7 +60,7 @@
 
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            return await ReadAsync(new Memory<byte>(buffer, offset, count), cancellationToken);
+            return await ReadAsync(new Memory<byte>(buffer, offset, count), cancellationToken).ConfigureAwait(false);
         }
 
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
@@ -77,11 +77,11 @@
                 {
                     if (_bufferedStream != null)
                     {
-                        _current = await _bufferedStream.GetNextAsync(cancellationToken);
+                        _current = await _bufferedStream.GetNextAsync(cancellationToken).ConfigureAwait(false);
                     }
                     else
                     {
-                        if (!await _receivingStream!.MoveNext(cancellationToken))
+                        if (!await _receivingStream!.MoveNext(cancellationToken).ConfigureAwait(false))
                         {
                             // The stream is closed.
                             _finished = true;

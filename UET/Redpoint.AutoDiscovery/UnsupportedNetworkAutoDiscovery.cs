@@ -7,7 +7,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class UnsupportedNetworkAutoDiscovery : INetworkAutoDiscovery
+    internal sealed class UnsupportedNetworkAutoDiscovery : INetworkAutoDiscovery
     {
         private readonly ILogger<UnsupportedNetworkAutoDiscovery> _logger;
 
@@ -29,7 +29,7 @@
             return Task.FromResult<IAsyncDisposable>(new NullDisposable());
         }
 
-        private class NullDisposable : IAsyncDisposable
+        private sealed class NullDisposable : IAsyncDisposable
         {
             public ValueTask DisposeAsync()
             {

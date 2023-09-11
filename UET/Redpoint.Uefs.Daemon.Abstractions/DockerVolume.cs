@@ -4,7 +4,7 @@
 
     public class DockerVolume
     {
-        public SemaphoreSlim Mutex = new SemaphoreSlim(1);
+        public Concurrency.Semaphore Mutex = new Concurrency.Semaphore(1);
         public string Name = string.Empty;
         public string FilePath = string.Empty;
         public string? ContainerID;

@@ -5,9 +5,9 @@
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal class RunGauntletTestFromBuildGraphCommand
+    internal sealed class RunGauntletTestFromBuildGraphCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> EnginePath;
             public Option<string> Distribution;
@@ -30,7 +30,7 @@
             return command;
         }
 
-        private class RunGauntletCommandInstance : ICommandInstance
+        private sealed class RunGauntletCommandInstance : ICommandInstance
         {
             private readonly ILogger<RunGauntletCommandInstance> _logger;
 

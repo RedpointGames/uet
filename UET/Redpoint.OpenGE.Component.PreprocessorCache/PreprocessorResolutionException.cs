@@ -2,7 +2,7 @@
 {
     using System;
 
-    internal class PreprocessorResolutionException : Exception
+    public class PreprocessorResolutionException : Exception
     {
         private string[] _sourceFiles;
 

@@ -22,7 +22,7 @@
         private readonly ILogger<DefaultPeerRemoteFsManager> _logger;
         private readonly IReservationManagerForOpenGE _reservationManagerForOpenGE;
         private readonly Dictionary<IPEndPoint, PeerRemoteFsState> _currentPeerRemoteFs;
-        private readonly MutexSlim _currentPeerRemoteFsLock;
+        private readonly Mutex _currentPeerRemoteFsLock;
 
         private class PeerRemoteFsState
         {
@@ -56,14 +56,14 @@
 
             public async ValueTask DisposeAsync()
             {
-                using (await _manager._currentPeerRemoteFsLock.WaitAsync())
+                using (await _manager._currentPeerRemoteFsLock.WaitAsync(CancellationToken.None).ConfigureAwait(false))
                 {
                     _state.Fs.RemoveAdditionalReparsePoints(_additionalReparsePoints);
                     _state.HandleCount--;
                     if (_state.HandleCount == 0)
                     {
                         _state.FsHost.Dispose();
-                        await _state.Reservation.DisposeAsync();
+                        await _state.Reservation.DisposeAsync().ConfigureAwait(false);
                         _manager._currentPeerRemoteFs.Remove(_state.EndPoint);
                     }
                 }
@@ -77,30 +77,31 @@
             _logger = logger;
             _reservationManagerForOpenGE = reservationManagerForOpenGE;
             _currentPeerRemoteFs = new Dictionary<IPEndPoint, PeerRemoteFsState>();
-            _currentPeerRemoteFsLock = new MutexSlim();
+            _currentPeerRemoteFsLock = new Mutex();
         }
 
         public async ValueTask<IPeerRemoteFsHandle> AcquirePeerRemoteFs(
             IPAddress ipAddress,
             int port,
-            string[] additionalReparsePoints)
+            string[] additionalReparsePoints,
+            CancellationToken cancellationToken)
         {
             if (!OperatingSystem.IsWindowsVersionAtLeast(6, 2))
             {
                 throw new PlatformNotSupportedException("AcquirePeerRemoteFs can not be called on this platform.");
             }
 
-            using (await _currentPeerRemoteFsLock.WaitAsync())
+            using (await _currentPeerRemoteFsLock.WaitAsync(cancellationToken).ConfigureAwait(false))
             {
                 var endpoint = new IPEndPoint(ipAddress, port);
-                if (_currentPeerRemoteFs.ContainsKey(endpoint))
+                if (_currentPeerRemoteFs.TryGetValue(endpoint, out var value))
                 {
-                    return new PeerRemoteFsStateHandle(this, _currentPeerRemoteFs[endpoint], additionalReparsePoints);
+                    return new PeerRemoteFsStateHandle(this, value, additionalReparsePoints);
                 }
                 else
                 {
                     var didSetup = false;
-                    var reservation = await _reservationManagerForOpenGE.ReservationManager.ReserveAsync("OpenGERemoteFs", endpoint.ToString());
+                    var reservation = await _reservationManagerForOpenGE.ReservationManager.ReserveAsync("OpenGERemoteFs", endpoint.ToString()).ConfigureAwait(false);
                     try
                     {
                         var fsClient = new WindowsRfs.WindowsRfsClient(
@@ -138,7 +139,7 @@
                     {
                         if (!didSetup)
                         {
-                            await reservation.DisposeAsync();
+                            await reservation.DisposeAsync().ConfigureAwait(false);
                         }
                     }
                 }

@@ -6,7 +6,7 @@
     using System.Text.RegularExpressions;
 
     [SupportedOSPlatform("windows")]
-    internal class WindowsServiceControl : IServiceControl
+    internal sealed class WindowsServiceControl : IServiceControl
     {
         public bool HasPermissionToInstall
         {
@@ -36,7 +36,7 @@
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
             })!;
-            await process.WaitForExitAsync();
+            await process.WaitForExitAsync().ConfigureAwait(false);
             return process.ExitCode == 0;
         }
 
@@ -55,9 +55,9 @@
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
             })!;
-            var scOutput = await binPathDetectProcess.StandardOutput.ReadToEndAsync();
+            var scOutput = await binPathDetectProcess.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
             var binPath = binPathRegex.Match(scOutput).Groups[1].Value;
-            await binPathDetectProcess.WaitForExitAsync();
+            await binPathDetectProcess.WaitForExitAsync().ConfigureAwait(false);
             return binPath.Trim();
         }
 
@@ -75,9 +75,9 @@
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
             })!;
-            var output = await process.StandardOutput.ReadToEndAsync();
-            await process.WaitForExitAsync();
-            return output.Contains("RUNNING");
+            var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+            await process.WaitForExitAsync().ConfigureAwait(false);
+            return output.Contains("RUNNING", StringComparison.Ordinal);
         }
 
         public async Task InstallService(string name, string description, string executableAndArguments, string? stdoutLogPath, string? stderrLogPath)
@@ -95,7 +95,7 @@
                     },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync();
+            })!.WaitForExitAsync().ConfigureAwait(false);
             await Process.Start(new ProcessStartInfo
             {
                 FileName = Path.Combine(Environment.GetEnvironmentVariable("SYSTEMROOT")!, "system32", "sc.exe"),
@@ -108,7 +108,7 @@
                     },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync();
+            })!.WaitForExitAsync().ConfigureAwait(false);
             await Process.Start(new ProcessStartInfo
             {
                 FileName = Path.Combine(Environment.GetEnvironmentVariable("SYSTEMROOT")!, "system32", "sc.exe"),
@@ -120,7 +120,7 @@
                     },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync();
+            })!.WaitForExitAsync().ConfigureAwait(false);
         }
 
         public async Task StartService(string name)
@@ -135,7 +135,7 @@
                 },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync();
+            })!.WaitForExitAsync().ConfigureAwait(false);
         }
 
         public async Task StopService(string name)
@@ -150,7 +150,7 @@
                 },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync();
+            })!.WaitForExitAsync().ConfigureAwait(false);
         }
 
         public async Task UninstallService(string name)
@@ -165,11 +165,11 @@
                 },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync();
+            })!.WaitForExitAsync().ConfigureAwait(false);
 
-            while (await IsServiceInstalled(name))
+            while (await IsServiceInstalled(name).ConfigureAwait(false))
             {
-                await Task.Delay(1000);
+                await Task.Delay(1000).ConfigureAwait(false);
             }
         }
     }

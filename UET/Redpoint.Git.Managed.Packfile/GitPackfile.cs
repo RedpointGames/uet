@@ -13,9 +13,8 @@
     /// <summary>
     /// Represents a Git packfile.
     /// </summary>
-    public class Packfile : IDisposable
+    public sealed class GitPackfile : IDisposable
     {
-        private static readonly byte[] _header = { (byte)'P', (byte)'A', (byte)'C', (byte)'K' };
         private readonly MemoryMappedFile _file;
         private readonly MemoryMappedViewAccessor _viewAccessor;
         private readonly uint _version;
@@ -23,10 +22,10 @@
         private bool _disposed = false;
 
         /// <summary>
-        /// Constructs a new <see cref="Packfile"/> instance by memory mapping the file at the specified path.
+        /// Constructs a new <see cref="GitPackfile"/> instance by memory mapping the file at the specified path.
         /// </summary>
         /// <param name="path"></param>
-        public Packfile(string path)
+        public GitPackfile(string path)
         {
             _file = MemoryMappedFile.CreateFromFile
                 (path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
@@ -65,12 +64,14 @@
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
         public bool GetRawPackfileEntry(
-            PackfileIndex index,
+            GitPackfileIndex index,
             UInt160 sha,
             out GitObjectType type,
             out ulong size,
             out Stream? data)
         {
+            if (index == null) throw new ArgumentNullException(nameof(index));
+
             // Locate the object index in the index file based on the SHA-1 hash.
             if (!index.GetObjectIndexForObjectSha(sha, out var objectIndex))
             {
@@ -126,14 +127,12 @@
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (_disposed)
+            if (!_disposed)
             {
-                throw new ObjectDisposedException(nameof(PackfileIndex));
+                _disposed = true;
+                _viewAccessor.Dispose();
+                _file.Dispose();
             }
-
-            _disposed = true;
-            _viewAccessor.Dispose();
-            _file.Dispose();
         }
     }
 }

@@ -13,9 +13,10 @@
     using Redpoint.Uefs.Protocol;
     using Redpoint.Windows.VolumeManagement;
     using Redpoint.Uefs.Package;
+    using System.Globalization;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class VhdPackageMounter : IPackageMounter
+    internal sealed class VhdPackageMounter : IPackageMounter
     {
         private readonly ILogger? _logger;
         private SafeFileHandle? _vhd;
@@ -190,7 +191,7 @@
                 {
                     throw new InvalidOperationException($"Failed to physical path of attached disk: {getDiskResult}");
                 }
-                var physicalPathDiskNumber = uint.Parse(physicalPathStr.Substring("\\\\.\\PhysicalDrive".Length));
+                var physicalPathDiskNumber = uint.Parse(physicalPathStr["\\\\.\\PhysicalDrive".Length..], CultureInfo.InvariantCulture);
 
                 // Iterate through all of the volumes on the system until we find the one
                 // that matches our physical disk number.
@@ -320,7 +321,7 @@
         public Task<(string packagePath, string mountPath, IPackageMounter mounter)[]> ImportExistingMountsAtStartupAsync()
         {
             // @todo: Not yet implemented on Windows.
-            return Task.FromResult(new (string packagePath, string mountPath, IPackageMounter mounter)[0]);
+            return Task.FromResult(Array.Empty<(string packagePath, string mountPath, IPackageMounter mounter)>());
         }
     }
 }

@@ -25,16 +25,16 @@
 
         public async Task DownloadAndCopyToStreamAsync(
             HttpClient client,
-            string downloadUrl,
+            Uri downloadUrl,
             Func<Stream, Task> copier,
             CancellationToken cancellationToken)
         {
-            var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             using (var stream = new PositionAwareStream(
-                await response.Content.ReadAsStreamAsync(),
+                await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false),
                 response.Content.Headers.ContentLength!.Value))
             {
-                var cts = new CancellationTokenSource();
+                using var cts = new CancellationTokenSource();
                 var progress = _progressFactory.CreateProgressForStream(stream);
                 var outputTrack = new DidOutput();
                 var monitorTask = Task.Run(async () =>
@@ -63,15 +63,15 @@
                                 outputTrack.Did = true;
                             }
                         },
-                        cts.Token);
-                });
+                        cts.Token).ConfigureAwait(false);
+                }, cts.Token);
 
-                await copier(stream);
+                await copier(stream).ConfigureAwait(false);
 
                 cts.Cancel();
                 try
                 {
-                    await monitorTask;
+                    await monitorTask.ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {

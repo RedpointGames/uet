@@ -20,7 +20,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class DownloadPluginProjectPrepareProvider : IProjectPrepareProvider, IDynamicReentrantExecutor<BuildConfigProjectDistribution, BuildConfigProjectPrepareDownloadPlugin>
+    internal sealed class DownloadPluginProjectPrepareProvider : IProjectPrepareProvider, IDynamicReentrantExecutor<BuildConfigProjectDistribution, BuildConfigProjectPrepareDownloadPlugin>
     {
         private readonly ILogger<DownloadPluginProjectPrepareProvider> _logger;
         private readonly IPhysicalGitCheckout _physicalGitCheckout;
@@ -73,20 +73,20 @@
                             BuildConfigProjectPrepareDownloadPlugin>(
                             this,
                             context,
-                            $"DownloadPlugin.{entry.name}".Replace(" ", "."),
+                            $"DownloadPlugin.{entry.name}".Replace(" ", ".", StringComparison.Ordinal),
                             entry.settings,
                             new Dictionary<string, string>
                             {
                                 { "RepositoryRoot", "$(RepositoryRoot)" },
                                 { "ProjectRoot", "$(ProjectRoot)" },
-                            });
-                    });
+                            }).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
                 await writer.WritePropertyAsync(
                     new PropertyElementProperties
                     {
                         Name = "DynamicBeforeCompileMacros",
                         Value = $"$(DynamicBeforeCompileMacros)DownloadPluginOnCompile-{entry.name};",
-                    });
+                    }).ConfigureAwait(false);
             }
         }
 
@@ -165,7 +165,7 @@
                     WindowsSharedGitCachePath = null,
                     MacSharedGitCachePath = null,
                 },
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("Plugin has now been checked out.");
             return 0;

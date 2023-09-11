@@ -154,7 +154,7 @@
 
 
                         return ValueTask.CompletedTask;
-                    });
+                    }).ConfigureAwait(false);
 
                 foreach (var depKv in deps)
                 {

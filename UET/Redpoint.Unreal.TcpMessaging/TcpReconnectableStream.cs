@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
@@ -10,7 +11,7 @@
     {
         private readonly ILogger? _logger;
         private TcpClient _client;
-        private readonly SemaphoreSlim _reconnectionLock;
+        private readonly Concurrency.Semaphore _reconnectionLock;
         private readonly Func<Task<TcpClient>> _reconnectionFactory;
         private readonly Func<TcpClient, Task> _initialNegotiation;
         private bool _canAutoReconnect;
@@ -21,8 +22,8 @@
             Func<Task<TcpClient>> connectionFactory,
             Func<TcpClient, Task> initialNegotiation)
         {
-            var client = await connectionFactory();
-            await initialNegotiation(client);
+            var client = await connectionFactory().ConfigureAwait(false);
+            await initialNegotiation(client).ConfigureAwait(false);
             return new TcpReconnectableStream(logger, client, connectionFactory, initialNegotiation);
         }
 
@@ -34,7 +35,7 @@
         {
             _logger = logger;
             _client = initialClient;
-            _reconnectionLock = new SemaphoreSlim(1);
+            _reconnectionLock = new Concurrency.Semaphore(1);
             _reconnectionFactory = reconnectionFactory;
             _initialNegotiation = initialNegotiation;
             _canAutoReconnect = true;
@@ -56,12 +57,12 @@
 
         public async Task ReconnectAsync()
         {
-            await ReconnectInternalAsync(_client);
+            await ReconnectInternalAsync(_client).ConfigureAwait(false);
         }
 
         private async Task ReconnectInternalAsync(TcpClient brokenClient)
         {
-            await _reconnectionLock.WaitAsync();
+            await _reconnectionLock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (_client != brokenClient)
@@ -72,12 +73,12 @@
 
                 _logger?.LogTrace("Disconnected from remote endpoint, reconnecting...");
 
-                _client = await _reconnectionFactory();
+                _client = await _reconnectionFactory().ConfigureAwait(false);
                 if (!_client.Connected)
                 {
                     throw new InvalidOperationException();
                 }
-                await _initialNegotiation(_client);
+                await _initialNegotiation(_client).ConfigureAwait(false);
                 _isBroken = false;
                 _canAutoReconnect = true;
             }
@@ -87,7 +88,7 @@
             }
         }
 
-        private bool IsExceptionDisconnection(Exception ex)
+        private static bool IsExceptionDisconnection(Exception ex)
         {
             switch (ex)
             {
@@ -117,7 +118,7 @@
                 var client = _client;
                 try
                 {
-                    await operation(client);
+                    await operation(client).ConfigureAwait(false);
                     _canAutoReconnect = false;
                     break;
                 }
@@ -125,7 +126,7 @@
                 {
                     if (_canAutoReconnect)
                     {
-                        await ReconnectInternalAsync(client);
+                        await ReconnectInternalAsync(client).ConfigureAwait(false);
                         continue;
                     }
                     else
@@ -149,7 +150,7 @@
                 var client = _client;
                 try
                 {
-                    var result = await operation(client);
+                    var result = await operation(client).ConfigureAwait(false);
                     _canAutoReconnect = false;
                     return result;
                 }
@@ -157,7 +158,7 @@
                 {
                     if (_canAutoReconnect)
                     {
-                        await ReconnectInternalAsync(client);
+                        await ReconnectInternalAsync(client).ConfigureAwait(false);
                         continue;
                     }
                     else
@@ -185,11 +186,11 @@
 
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
-            return await DoReconnectableOperationAsync<int>(async client =>
+            return await DoReconnectableOperationAsync(async client =>
             {
                 _logger?.LogTrace($"Reading {buffer.Length} bytes from stream.");
-                return await client.GetStream().ReadAsync(buffer, cancellationToken);
-            });
+                return await client.GetStream().ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            }).ConfigureAwait(false);
         }
 
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
@@ -204,8 +205,8 @@
         {
             await DoReconnectableOperationAsync(async client =>
             {
-                await client.GetStream().WriteAsync(buffer, cancellationToken);
-            });
+                await client.GetStream().WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+            }).ConfigureAwait(false);
         }
 
         public override Task FlushAsync(CancellationToken cancellationToken)
@@ -216,14 +217,15 @@
             });
         }
 
+        [SuppressMessage("Usage", "CA2215:Dispose methods should call base class dispose", Justification = "Stream.DisposeAsync calls into the synchronise Dispose method.")]
         public override async ValueTask DisposeAsync()
         {
             var client = _client;
             try
             {
-                await client.GetStream().DisposeAsync();
+                await client.GetStream().DisposeAsync().ConfigureAwait(false);
             }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("The operation is not allowed on non-connected sockets"))
+            catch (InvalidOperationException ex) when (ex.Message.Contains("The operation is not allowed on non-connected sockets", StringComparison.Ordinal))
             {
                 // This is fine.
             }

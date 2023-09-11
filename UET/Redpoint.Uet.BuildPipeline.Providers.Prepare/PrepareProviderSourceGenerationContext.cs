@@ -10,7 +10,7 @@
     [JsonSerializable(typeof(BuildConfigPluginPrepareCustom))]
     [JsonSerializable(typeof(BuildConfigProjectPrepareCustom))]
     [JsonSerializable(typeof(BuildConfigProjectPrepareDownloadPlugin))]
-    internal partial class PrepareProviderSourceGenerationContext : JsonSerializerContext
+    internal sealed partial class PrepareProviderSourceGenerationContext : JsonSerializerContext
     {
         public static PrepareProviderSourceGenerationContext WithStringEnum { get; } = new PrepareProviderSourceGenerationContext(new JsonSerializerOptions
         {

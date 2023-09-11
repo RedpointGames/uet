@@ -12,7 +12,7 @@
     /// <summary>
     /// Provides access to a GitHub repository.
     /// </summary>
-    public class GitHubGitRepository : IGitRepository
+    public sealed class GitHubGitRepository : IGitRepository
     {
         private readonly GitHubClient _client;
         private readonly string _owner;
@@ -46,14 +46,14 @@
             {
                 return @ref;
             }
-            var resolvedRef = await _client.Git.Reference.Get(_owner, _repo, @ref);
+            var resolvedRef = await _client.Git.Reference.Get(_owner, _repo, @ref).ConfigureAwait(false);
             return resolvedRef.Object.Sha;
         }
 
         /// <inheritdoc />
         public async Task<IGitCommit> GetCommitByShaAsync(string sha, CancellationToken cancellationToken)
         {
-            var commit = await _client.Git.Commit.Get(_owner, _repo, sha);
+            var commit = await _client.Git.Commit.Get(_owner, _repo, sha).ConfigureAwait(false);
             return new GitHubGitCommit(_client, _owner, _repo, commit);
         }
 
@@ -68,27 +68,27 @@
                 client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
 
                 var url = $"https://api.github.com/repos/{_owner}/{_repo}/git/blobs/{sha}";
-                var response = await client.GetAsync(url);
+                var response = await client.GetAsync(new Uri(url), cancellationToken).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
-                    var message = await response.Content.ReadAsStringAsync();
+                    var message = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
                 }
 
-                using (var stream = await response.Content.ReadAsStreamAsync())
+                using (var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
                 {
                     if (contentAdjust != null)
                     {
                         using (var memory = new MemoryStream())
                         {
-                            await stream.CopyToAsync(memory);
+                            await stream.CopyToAsync(memory, cancellationToken).ConfigureAwait(false);
                             var b = new byte[memory.Position];
                             memory.Seek(0, SeekOrigin.Begin);
                             memory.Read(b);
 
                             using (var writer = new StreamWriter(new FileStream(destinationPath, System.IO.FileMode.Create, FileAccess.Write, FileShare.None)))
                             {
-                                await writer.WriteAsync(contentAdjust(Encoding.UTF8.GetString(b)));
+                                await writer.WriteAsync(contentAdjust(Encoding.UTF8.GetString(b))).ConfigureAwait(false);
                             }
                         }
                     }
@@ -96,7 +96,7 @@
                     {
                         using (var writer = new FileStream(destinationPath, System.IO.FileMode.Create, FileAccess.Write, FileShare.None))
                         {
-                            await stream.CopyToAsync(writer);
+                            await stream.CopyToAsync(writer, cancellationToken).ConfigureAwait(false);
                         }
                     }
                     return stream.Length;

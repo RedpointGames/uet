@@ -19,8 +19,11 @@
 
         public static async Task Serialize(Archive ar, Store<TopLevelAssetPath> value)
         {
-            await ar.Serialize(value.V.PackageName);
-            await ar.Serialize(value.V.AssetName);
+            if (ar == null) throw new ArgumentNullException(nameof(ar));
+            if (value == null) throw new ArgumentNullException(nameof(value));
+
+            await ar.Serialize(value.V.PackageName).ConfigureAwait(false);
+            await ar.Serialize(value.V.AssetName).ConfigureAwait(false);
         }
 
         public override string ToString()
@@ -31,8 +34,8 @@
         public bool Is(string packageName, string assetName)
         {
             return (PackageName.V.StringName.V == packageName ||
-                packageName == string.Empty ||
-                PackageName.V.StringName.V == string.Empty) &&
+                string.IsNullOrEmpty(packageName) ||
+                string.IsNullOrEmpty(PackageName.V.StringName.V)) &&
                 AssetName.V.StringName.V == assetName;
         }
     }

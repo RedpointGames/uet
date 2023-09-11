@@ -4,7 +4,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class IwyuBooleanConfigSetting : IBooleanConfigSetting
+    internal sealed class IwyuBooleanConfigSetting : IBooleanConfigSetting
     {
         public string Name => "iwyu";
 
@@ -16,7 +16,7 @@
             "UnrealBuildTool",
             "BuildConfiguration.xml");
 
-        private static readonly string _ns = "https://www.unrealengine.com/BuildConfiguration";
+        private const string _ns = "https://www.unrealengine.com/BuildConfiguration";
 
         public Task<bool> GetValueAsync(CancellationToken cancellationToken)
         {

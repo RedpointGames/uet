@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -11,11 +12,12 @@
     /// downstream enumerations.
     /// </summary>
     /// <typeparam name="T">The element in the queue.</typeparam>
+    [SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix", Justification = "This class implements a queue.")]
     public class TerminableAwaitableConcurrentQueue<T> : IAsyncEnumerable<T>
     {
-        private readonly SemaphoreSlim _ready = new SemaphoreSlim(0);
+        private readonly Semaphore _ready = new Semaphore(0);
         private readonly ConcurrentQueue<T> _queue = new ConcurrentQueue<T>();
-        private bool _terminated = false;
+        private bool _terminated;
 
         /// <summary>
         /// Enqueue an item into the queue.
@@ -59,7 +61,7 @@
         /// <returns>The item that was dequeued.</returns>
         public async ValueTask<T> DequeueAsync(CancellationToken cancellationToken)
         {
-            await _ready.WaitAsync(cancellationToken);
+            await _ready.WaitAsync(cancellationToken).ConfigureAwait(false);
             if (!_queue.TryDequeue(out var result))
             {
                 if (_terminated)
@@ -83,7 +85,7 @@
         /// <returns>The item that was dequeued.</returns>
         public async ValueTask<(T? item, bool terminated)> TryDequeueAsync(CancellationToken cancellationToken)
         {
-            await _ready.WaitAsync(cancellationToken);
+            await _ready.WaitAsync(cancellationToken).ConfigureAwait(false);
             if (!_queue.TryDequeue(out var result))
             {
                 if (_terminated)
@@ -105,7 +107,7 @@
             return new AsyncEnumerator(this, cancellationToken);
         }
 
-        private class AsyncEnumerator : IAsyncEnumerator<T>
+        private sealed class AsyncEnumerator : IAsyncEnumerator<T>
         {
             private readonly TerminableAwaitableConcurrentQueue<T> _queue;
             private readonly CancellationToken _cancellationToken;
@@ -133,7 +135,7 @@
 
             public async ValueTask<bool> MoveNextAsync()
             {
-                await _queue._ready.WaitAsync(_cancellationToken);
+                await _queue._ready.WaitAsync(_cancellationToken).ConfigureAwait(false);
                 if (!_queue._queue.TryDequeue(out var result))
                 {
                     if (_queue._terminated)

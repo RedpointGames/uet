@@ -45,11 +45,11 @@
 
         private string EscapeArgumentForLogging(string argument)
         {
-            if (!argument.Contains(" "))
+            if (!argument.Contains(' ', StringComparison.Ordinal))
             {
                 return argument;
             }
-            return $"\"{argument.Replace("\\", "\\\\")}\"";
+            return $"\"{argument.Replace("\\", "\\\\", StringComparison.Ordinal)}\"";
         }
 
         public Task<int> ExecuteAsync(
@@ -81,7 +81,7 @@
             var disposables = new List<IAsyncDisposable>();
             foreach (var hook in _serviceProvider.GetServices<IProcessExecutorHook>())
             {
-                var disposable = await hook.ModifyProcessSpecificationWithCleanupAsync(processSpecification, cancellationToken);
+                var disposable = await hook.ModifyProcessSpecificationWithCleanupAsync(processSpecification, cancellationToken).ConfigureAwait(false);
                 if (disposable != null)
                 {
                     disposables.Add(disposable);
@@ -274,7 +274,7 @@
                                         _logger.LogTrace("WindowsProcessExecutor: Resuming thread.");
                                         WindowsChroot.ResumeThread(ref processInfo);
                                     }
-                                    catch (InvalidOperationException ex) when (ex.Message.Contains("Got NTSTATUS C0000008 when setting information process ProcessDeviceMap"))
+                                    catch (InvalidOperationException ex) when (ex.Message.Contains("Got NTSTATUS C0000008 when setting information process ProcessDeviceMap", StringComparison.Ordinal))
                                     {
                                         // This randomly seems to happen. Just retry creating the process.
                                         PInvoke.TerminateProcess(processInfo.hProcess, unchecked((uint)-1));
@@ -368,13 +368,13 @@
                     {
                         while (!standardOutput!.EndOfStream)
                         {
-                            var line = (await standardOutput.ReadLineAsync())?.TrimEnd();
+                            var line = (await standardOutput.ReadLineAsync().ConfigureAwait(false))?.TrimEnd();
                             if (!string.IsNullOrWhiteSpace(line))
                             {
                                 captureSpecification.OnReceiveStandardOutput(line);
                             }
                         }
-                    });
+                    }, cancellationToken);
                 }
                 if (redirectStandardError)
                 {
@@ -382,13 +382,13 @@
                     {
                         while (!standardError!.EndOfStream)
                         {
-                            var line = (await standardError.ReadLineAsync())?.TrimEnd();
+                            var line = (await standardError.ReadLineAsync().ConfigureAwait(false))?.TrimEnd();
                             if (!string.IsNullOrWhiteSpace(line))
                             {
                                 captureSpecification.OnReceiveStandardError(line);
                             }
                         }
-                    });
+                    }, cancellationToken);
                 }
 
                 var hasExited = false;
@@ -429,7 +429,7 @@
                     }
 
                     // Wait for the process to exit or until cancellation.
-                    await exitSemaphore.WaitAsync(cancellationToken);
+                    await exitSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -461,7 +461,7 @@
                 {
                     // Give the process one last chance to exit normally
                     // so we can try to get the exit code.
-                    await Task.Delay(1000);
+                    await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                     if (!hasExited)
                     {
                         // We can't get the return code for this process.
@@ -473,7 +473,7 @@
                 {
                     try
                     {
-                        await outputReadingTask;
+                        await outputReadingTask.ConfigureAwait(false);
                     }
                     catch { }
                 }
@@ -481,7 +481,7 @@
                 {
                     try
                     {
-                        await errorReadingTask;
+                        await errorReadingTask.ConfigureAwait(false);
                     }
                     catch { }
                 }
@@ -496,7 +496,7 @@
                 }
                 foreach (var disposable in disposables)
                 {
-                    await disposable.DisposeAsync();
+                    await disposable.DisposeAsync().ConfigureAwait(false);
                 }
             }
         }

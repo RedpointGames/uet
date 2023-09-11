@@ -15,7 +15,7 @@
         private readonly Graph _graph;
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly Dictionary<GraphTask, GraphTaskStatus> _taskStatuses;
-        private readonly MutexSlim _taskStatusesLock = new MutexSlim();
+        private readonly Mutex _taskStatusesLock = new Mutex();
 
         public required ITaskApiWorkerPool WorkerPool;
         public readonly TerminableAwaitableConcurrentQueue<GraphTask> QueuedTasksForScheduling = new TerminableAwaitableConcurrentQueue<GraphTask>();
@@ -39,7 +39,7 @@
 
         internal async ValueTask<IReadOnlyDictionary<GraphTask, GraphTaskStatus>> GetTaskStatusesAsync()
         {
-            using (await _taskStatusesLock.WaitAsync(CancellationToken.None))
+            using (await _taskStatusesLock.WaitAsync(CancellationToken.None).ConfigureAwait(false))
             {
                 return _taskStatuses.ToDictionary(k => k.Key, v => v.Value);
             }
@@ -47,7 +47,7 @@
 
         internal async ValueTask<bool> DidAllTasksCompleteSuccessfullyAsync()
         {
-            using (await _taskStatusesLock.WaitAsync(_cancellationTokenSource.Token))
+            using (await _taskStatusesLock.WaitAsync(_cancellationTokenSource.Token).ConfigureAwait(false))
             {
                 foreach (var kv in _taskStatuses)
                 {
@@ -62,7 +62,7 @@
 
         internal async ValueTask<bool> AreAnyTasksScheduledAsync()
         {
-            using (await _taskStatusesLock.WaitAsync(_cancellationTokenSource.Token))
+            using (await _taskStatusesLock.WaitAsync(_cancellationTokenSource.Token).ConfigureAwait(false))
             {
                 return _taskStatuses.Any(kv => kv.Value == GraphTaskStatus.Scheduled);
             }
@@ -70,7 +70,7 @@
 
         internal async ValueTask ScheduleInitialTasksAsync()
         {
-            using (await _taskStatusesLock.WaitAsync(_cancellationTokenSource.Token))
+            using (await _taskStatusesLock.WaitAsync(_cancellationTokenSource.Token).ConfigureAwait(false))
             {
                 // Schedule up all of the tasks that can be immediately
                 // scheduled.
@@ -92,7 +92,7 @@
                 status < GraphTaskStatus.CompletedSuccessfully)
             {
                 StallMonitor?.MadeProgress();
-                using (await _taskStatusesLock.WaitAsync(_cancellationTokenSource.Token))
+                using (await _taskStatusesLock.WaitAsync(_cancellationTokenSource.Token).ConfigureAwait(false))
                 {
                     _taskStatuses[task] = status;
                 }
@@ -102,7 +102,7 @@
         internal async ValueTask FinishTaskAsync(GraphTask task, TaskCompletionStatus status, GraphExecutionDownstreamScheduling schedulingBehaviour)
         {
             StallMonitor?.MadeProgress();
-            using (await _taskStatusesLock.WaitAsync())
+            using (await _taskStatusesLock.WaitAsync(_cancellationTokenSource.Token).ConfigureAwait(false))
             {
                 if (status == TaskCompletionStatus.TaskCompletionSuccess)
                 {

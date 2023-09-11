@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Concurrency;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Export;
@@ -17,7 +18,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class LocalBuildExecutor : IBuildExecutor
+    internal sealed class LocalBuildExecutor : IBuildExecutor
     {
         private readonly ILogger<LocalBuildExecutor> _logger;
         private readonly IBuildGraphExecutor _buildGraphExecutor;
@@ -49,7 +50,7 @@
             return string.Empty;
         }
 
-        private class DAGNode
+        private sealed class DAGNode
         {
             public required BuildGraphExportNode Node { get; set; }
 
@@ -60,7 +61,7 @@
             public DAGDependency[]? DependsTasks { get; set; }
         }
 
-        private class DAGDependency
+        private sealed class DAGDependency
         {
             public required DAGNode Node { get; set; }
         }
@@ -77,7 +78,7 @@
                         SourcePath = buildGraphRepositoryRoot,
                         WorkspaceDisambiguators = new[] { nodeName },
                     },
-                    CancellationToken.None);
+                    CancellationToken.None).ConfigureAwait(false);
             }
             else
             {
@@ -86,7 +87,7 @@
                     {
                         AliasedPath = buildGraphRepositoryRoot
                     },
-                    CancellationToken.None);
+                    CancellationToken.None).ConfigureAwait(false);
             }
         }
 
@@ -103,7 +104,7 @@
         {
             if (node.DependsTasks != null)
             {
-                var dependencyResults = await Task.WhenAll(node.DependsTasks.Select(x => x.Node.ThisTask!.Value));
+                var dependencyResults = await Task.WhenAll(node.DependsTasks.Select(x => x.Node.ThisTask!.Value)).ConfigureAwait(false);
                 if (!dependencyResults.All(x => x == BuildResultStatus.Success))
                 {
                     _logger.LogTrace($"Skipped: {node.Node.Name} = NotRun");
@@ -115,7 +116,7 @@
 
             if (blockingSemaphore != null)
             {
-                await blockingSemaphore.WaitAsync(cancellationToken);
+                await blockingSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
             try
             {
@@ -141,25 +142,25 @@
                     // This is a special node that is used in our built-in BuildGraphs
                     // to combine all of the required steps together. We don't actually
                     // need to run anything for it though.
-                    await buildExecutionEvents.OnNodeStarted(node.Node.Name);
-                    await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Success);
+                    await buildExecutionEvents.OnNodeStarted(node.Node.Name).ConfigureAwait(false);
+                    await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Success).ConfigureAwait(false);
                     return BuildResultStatus.Success;
                 }
 
-                await buildExecutionEvents.OnNodeStarted(node.Node.Name);
+                await buildExecutionEvents.OnNodeStarted(node.Node.Name).ConfigureAwait(false);
                 try
                 {
-                    await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
+                    await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
                         buildSpecification.Engine,
                         string.Empty,
-                        cancellationToken))
+                        cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engineWorkspace).ConfigureAwait(false))
                     {
                         var globalEnvironmentVariablesWithSdk = await _sdkSetupForBuildExecutor.SetupForBuildAsync(
                             buildSpecification,
                             node.Node.Name,
                             engineWorkspace.Path,
                             globalEnvironmentVariables,
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
 
                         async Task<int> ExecuteBuildInWorkspaceAsync(string targetWorkspacePath)
                         {
@@ -175,7 +176,7 @@
                                     await provider.RunBeforeBuildGraphAsync(
                                         byType,
                                         targetWorkspacePath,
-                                        cancellationToken);
+                                        cancellationToken).ConfigureAwait(false);
                                 }
                             }
 
@@ -191,7 +192,7 @@
                                     await provider.RunBeforeBuildGraphAsync(
                                         byType,
                                         targetWorkspacePath,
-                                        cancellationToken);
+                                        cancellationToken).ConfigureAwait(false);
                                 }
                             }
 
@@ -222,33 +223,33 @@
                                         return false;
                                     },
                                 }),
-                                cancellationToken);
+                                cancellationToken).ConfigureAwait(false);
                         }
 
                         int exitCode;
                         if (buildSpecification.Engine.IsEngineBuild)
                         {
-                            exitCode = await ExecuteBuildInWorkspaceAsync(engineWorkspace.Path);
+                            exitCode = await ExecuteBuildInWorkspaceAsync(engineWorkspace.Path).ConfigureAwait(false);
                         }
                         else
                         {
-                            await using (var targetWorkspace = await GetFolderWorkspaceAsync(
+                            await using ((await GetFolderWorkspaceAsync(
                                 buildSpecification.BuildGraphRepositoryRoot,
-                                node.Node.Name))
+                                node.Node.Name).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
                             {
-                                exitCode = await ExecuteBuildInWorkspaceAsync(targetWorkspace.Path);
+                                exitCode = await ExecuteBuildInWorkspaceAsync(targetWorkspace.Path).ConfigureAwait(false);
                             }
                         }
                         if (exitCode == 0)
                         {
                             _logger.LogTrace($"Finished: {node.Node.Name} = Success");
-                            await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Success);
+                            await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Success).ConfigureAwait(false);
                             return BuildResultStatus.Success;
                         }
                         else
                         {
                             _logger.LogTrace($"Finished: {node.Node.Name} = Failed");
-                            await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Failed);
+                            await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Failed).ConfigureAwait(false);
                             return BuildResultStatus.Failed;
                         }
                     }
@@ -257,13 +258,13 @@
                 {
                     // The build was cancelled.
                     _logger.LogTrace($"Finished: {node.Node.Name} = Cancelled");
-                    await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Cancelled);
+                    await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Cancelled).ConfigureAwait(false);
                     return BuildResultStatus.Cancelled;
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, $"Internal exception while running build job {node.Node.Name}: {ex.Message}");
-                    await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Failed);
+                    await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Failed).ConfigureAwait(false);
                     return BuildResultStatus.Failed;
                 }
             }
@@ -285,14 +286,14 @@
             CancellationToken cancellationToken)
         {
             BuildGraphExport buildGraph;
-            await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
+            await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
                 buildSpecification.Engine,
                 string.Empty,
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engineWorkspace).ConfigureAwait(false))
             {
-                await using (var targetWorkspace = await GetFolderWorkspaceAsync(
+                await using ((await GetFolderWorkspaceAsync(
                     buildSpecification.BuildGraphRepositoryRoot,
-                    "Generate BuildGraph JSON"))
+                    "Generate BuildGraph JSON").ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
                 {
                     _logger.LogInformation("Generating BuildGraph JSON based on settings...");
                     buildGraph = await _buildGraphExecutor.GenerateGraphAsync(
@@ -308,7 +309,7 @@
                         buildSpecification.BuildGraphSettings,
                         buildSpecification.BuildGraphSettingReplacements,
                         generationCaptureSpecification,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
             }
 
@@ -368,7 +369,7 @@
                             nodeCopy,
                             blockingSemaphore,
                             allTasks,
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
                     }));
                     allTasks.Add(task);
                     node.ThisTask = task;
@@ -389,7 +390,7 @@
                 }
             }
 
-            var allResults = await Task.WhenAll(allTasks.Select(x => x.Value));
+            var allResults = await Task.WhenAll(allTasks.Select(x => x.Value)).ConfigureAwait(false);
 
             return allResults.All(x => x == BuildResultStatus.Success) ? 0 : 1;
         }

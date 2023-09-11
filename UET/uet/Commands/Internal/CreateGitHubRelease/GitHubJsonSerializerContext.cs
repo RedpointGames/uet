@@ -14,7 +14,7 @@
     [JsonSerializable(typeof(GitHubNewTree))]
     [JsonSerializable(typeof(GitHubNewCommit))]
     [JsonSerializable(typeof(GitHubUpdateRef))]
-    internal partial class GitHubJsonSerializerContext : JsonSerializerContext
+    internal sealed partial class GitHubJsonSerializerContext : JsonSerializerContext
     {
     }
 }

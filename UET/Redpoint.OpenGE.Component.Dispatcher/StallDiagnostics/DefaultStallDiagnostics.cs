@@ -6,6 +6,7 @@
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
@@ -29,52 +30,52 @@
             var remoteWorkerFulfiller = workerPool._remoteWorkerFulfiller;
 
             _logger.LogInformation("Capturing stall diagnostics: Task statuses...");
-            var statuses = await instance.GetTaskStatusesAsync();
+            var statuses = await instance.GetTaskStatusesAsync().ConfigureAwait(false);
 
             _logger.LogInformation("Capturing stall diagnostics: Request collection...");
-            WorkerCoreRequestCollection<ITaskApiWorkerCore>.WorkerCoreRequest[] requests;
+            WorkerCoreRequest<ITaskApiWorkerCore>[] requests;
             if (requestCollection != null)
             {
-                requests = await requestCollection.GetAllRequestsAsync();
+                requests = await requestCollection.GetAllRequestsAsync().ConfigureAwait(false);
             }
             else
             {
-                requests = Array.Empty<WorkerCoreRequestCollection<ITaskApiWorkerCore>.WorkerCoreRequest>();
+                requests = Array.Empty<WorkerCoreRequest<ITaskApiWorkerCore>>();
             }
 
             _logger.LogInformation("Capturing stall diagnostics: Local worker fulfiller...");
-            SingleSourceWorkerCoreRequestFulfiller<ITaskApiWorkerCore>.Statistics? localStatistics = null;
+            SingleSourceWorkerCoreRequestFulfillerStatistics<ITaskApiWorkerCore>? localStatistics = null;
             if (localWorkerFulfiller != null)
             {
                 localStatistics = localWorkerFulfiller.GetStatistics();
             }
 
             _logger.LogInformation("Capturing stall diagnostics: Remote worker fulfiller...");
-            MultipleSourceWorkerCoreRequestFulfiller<ITaskApiWorkerCore>.Statistics? remoteStatistics = null;
+            MultipleSourceWorkerCoreRequestFulfillerStatistics<ITaskApiWorkerCore>? remoteStatistics = null;
             if (remoteWorkerFulfiller != null)
             {
                 remoteStatistics = remoteWorkerFulfiller.GetStatistics();
             }
 
             var sb = new StringBuilder();
-            sb.AppendLine($"{statuses.Count} task statuses:");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"{statuses.Count} task statuses:");
             foreach (var status in statuses)
             {
-                sb.AppendLine($"  - {status.Key.GraphTaskSpec.Task.Name} = {status.Value}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"  - {status.Key.GraphTaskSpec.Task.Name} = {status.Value}");
             }
-            sb.AppendLine($"{requests.Length} requests:");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"{requests.Length} requests:");
             foreach (var request in requests)
             {
-                sb.AppendLine($"  - requested = {request.DateRequestedUtc}, preference = {request.CorePreference}, assigned = {request.AssignedCore}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"  - requested = {request.DateRequestedUtc}, preference = {request.CorePreference}, assigned = {request.AssignedCore}");
             }
             if (localStatistics != null)
             {
                 sb.AppendLine("local statistics:");
-                sb.AppendLine($"{localStatistics.CoreAcquiringCount} cores being acquired");
-                sb.AppendLine($"{localStatistics.CoresCurrentlyAcquiredCount} cores currently acquired:");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"{localStatistics.CoreAcquiringCount} cores being acquired");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"{localStatistics.CoresCurrentlyAcquiredCount} cores currently acquired:");
                 foreach (var core in localStatistics.CoresCurrentlyAcquired)
                 {
-                    sb.AppendLine($"  - {core}");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"  - {core}");
                 }
             }
             else
@@ -84,10 +85,10 @@
             if (remoteStatistics != null)
             {
                 sb.AppendLine("remote statistics:");
-                sb.AppendLine($"{remoteStatistics.Providers.Count} providers connected");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"{remoteStatistics.Providers.Count} providers connected");
                 foreach (var kv in remoteStatistics.Providers)
                 {
-                    sb.AppendLine($"  - id = {kv.Key.Id}, unique id = {kv.Value.UniqueId}, is obtaining core = {kv.Value.IsObtainingCore}, obtained core number = {kv.Value.ObtainedCore?.WorkerCoreNumber}, obtained core machine name = {kv.Value.ObtainedCore?.WorkerMachineName}, obtained core unique assignment id = {kv.Value.ObtainedCore?.WorkerCoreUniqueAssignmentId}");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"  - id = {kv.Key.Id}, unique id = {kv.Value.UniqueId}, is obtaining core = {kv.Value.IsObtainingCore}, obtained core number = {kv.Value.ObtainedCore?.WorkerCoreNumber}, obtained core machine name = {kv.Value.ObtainedCore?.WorkerMachineName}, obtained core unique assignment id = {kv.Value.ObtainedCore?.WorkerCoreUniqueAssignmentId}");
                 }
             }
             else

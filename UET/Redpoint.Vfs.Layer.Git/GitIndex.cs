@@ -24,7 +24,7 @@
             _paths = new Dictionary<string, VfsEntry>();
         }
 
-        internal async Task InitializeFromTreeAsync(IGitTree tree, IGitTree.GitTreeEnumerationMetrics metrics, CancellationToken cancellationToken)
+        internal async Task InitializeFromTreeAsync(IGitTree tree, GitTreeEnumerationMetrics metrics, CancellationToken cancellationToken)
         {
             var directoriesUnsorted = new Dictionary<string, List<VfsEntry>>();
             await foreach (var entry in tree.EnumerateRecursivelyAsync(metrics, cancellationToken))

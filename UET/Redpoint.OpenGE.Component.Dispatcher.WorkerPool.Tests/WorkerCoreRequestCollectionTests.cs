@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Concurrency;
     using System.Threading;
     using Xunit;
 
@@ -21,50 +22,50 @@
                 {
                     notificationCount++;
                     return Task.CompletedTask;
-                });
+                }).ConfigureAwait(false);
 
                 {
-                    var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                    var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                     Assert.Equal(0, stats.UnfulfilledLocalRequests);
                     Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                     Assert.Equal(0, stats.FulfilledLocalRequests);
                     Assert.Equal(0, stats.FulfilledRemotableRequests);
                 }
 
-                await using (var localRequest = await collection.CreateUnfulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
+                await using ((await collection.CreateUnfulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var localRequest).ConfigureAwait(false))
                 {
                     {
-                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                         Assert.Equal(1, stats.UnfulfilledLocalRequests);
                         Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                         Assert.Equal(0, stats.FulfilledLocalRequests);
                         Assert.Equal(0, stats.FulfilledRemotableRequests);
                     }
 
-                    await using (var remoteRequest = await collection.CreateUnfulfilledRequestAsync(CoreAllocationPreference.PreferRemote, cancellationToken))
+                    await using ((await collection.CreateUnfulfilledRequestAsync(CoreAllocationPreference.PreferRemote, cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var remoteRequest).ConfigureAwait(false))
                     {
                         {
-                            var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                            var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                             Assert.Equal(1, stats.UnfulfilledLocalRequests);
                             Assert.Equal(1, stats.UnfulfilledRemotableRequests);
                             Assert.Equal(0, stats.FulfilledLocalRequests);
                             Assert.Equal(0, stats.FulfilledRemotableRequests);
                         }
 
-                        await ((WorkerCoreRequestCollection<CollectionTestingWorkerCore>.WorkerCoreRequest)localRequest).FulfillRequestWithinLockAsync(new CollectionTestingWorkerCore());
+                        await ((WorkerCoreRequest<CollectionTestingWorkerCore>)localRequest).FulfillRequestWithinLockAsync(new CollectionTestingWorkerCore()).ConfigureAwait(false);
 
                         {
-                            var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                            var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                             Assert.Equal(0, stats.UnfulfilledLocalRequests);
                             Assert.Equal(1, stats.UnfulfilledRemotableRequests);
                             Assert.Equal(1, stats.FulfilledLocalRequests);
                             Assert.Equal(0, stats.FulfilledRemotableRequests);
                         }
 
-                        await ((WorkerCoreRequestCollection<CollectionTestingWorkerCore>.WorkerCoreRequest)remoteRequest).FulfillRequestWithinLockAsync(new CollectionTestingWorkerCore());
+                        await ((WorkerCoreRequest<CollectionTestingWorkerCore>)remoteRequest).FulfillRequestWithinLockAsync(new CollectionTestingWorkerCore()).ConfigureAwait(false);
 
                         {
-                            var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                            var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                             Assert.Equal(0, stats.UnfulfilledLocalRequests);
                             Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                             Assert.Equal(1, stats.FulfilledLocalRequests);
@@ -73,7 +74,7 @@
                     }
 
                     {
-                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                         Assert.Equal(0, stats.UnfulfilledLocalRequests);
                         Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                         Assert.Equal(1, stats.FulfilledLocalRequests);
@@ -82,7 +83,7 @@
                 }
 
                 {
-                    var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                    var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                     Assert.Equal(0, stats.UnfulfilledLocalRequests);
                     Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                     Assert.Equal(0, stats.FulfilledLocalRequests);
@@ -100,7 +101,7 @@
 
             var collection = new WorkerCoreRequestCollection<CollectionTestingWorkerCore>();
             {
-                var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                 Assert.Equal(0, stats.UnfulfilledLocalRequests);
                 Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                 Assert.Equal(0, stats.FulfilledLocalRequests);
@@ -109,11 +110,11 @@
 
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
             {
-                await collection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, new CancellationTokenSource(500).Token);
-            });
+                await collection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, new CancellationTokenSource(500).Token).ConfigureAwait(false);
+            }).ConfigureAwait(false);
 
             {
-                var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                 Assert.Equal(0, stats.UnfulfilledLocalRequests);
                 Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                 Assert.Equal(0, stats.FulfilledLocalRequests);
@@ -130,7 +131,7 @@
 
                 var collection = new WorkerCoreRequestCollection<CollectionTestingWorkerCore>();
                 {
-                    var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                    var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                     Assert.Equal(0, stats.UnfulfilledLocalRequests);
                     Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                     Assert.Equal(0, stats.FulfilledLocalRequests);
@@ -141,11 +142,11 @@
                 cts.Cancel();
                 await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
                 {
-                    await collection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cts.Token);
-                });
+                    await collection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cts.Token).ConfigureAwait(false);
+                }).ConfigureAwait(false);
 
                 {
-                    var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                    var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                     Assert.Equal(0, stats.UnfulfilledLocalRequests);
                     Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                     Assert.Equal(0, stats.FulfilledLocalRequests);

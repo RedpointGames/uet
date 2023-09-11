@@ -6,14 +6,14 @@
     using System.Text.RegularExpressions;
     using Redpoint.ThirdParty.CredentialManagement;
 
-    internal class DefaultCredentialDiscovery : ICredentialDiscovery
+    internal sealed class DefaultCredentialDiscovery : ICredentialDiscovery
     {
         private static readonly Regex _tagRegex = new Regex("^(?<host>[a-z\\.\\:0-9]+)/(?<path>[a-z\\./0-9-_]+):?(?<label>[a-z\\.0-9-_]+)?$");
 
         public GitCredential GetGitCredential(string repositoryUrl)
         {
             var shortSshUrlRegex = new Regex("^(.+@)*([\\w\\d\\.]+):(.*)$");
-            if (!repositoryUrl.Contains("://"))
+            if (!repositoryUrl.Contains("://", StringComparison.Ordinal))
             {
                 var shortSshUrlMatch = shortSshUrlRegex.Match(repositoryUrl);
                 if (shortSshUrlMatch.Success)
@@ -24,7 +24,7 @@
 
             var repositoryUri = new Uri(repositoryUrl);
 
-            var hostForEnvVar = repositoryUri.Host.Replace(".", "_"); // @note: GitLab doesn't permit environment variables with dots.
+            var hostForEnvVar = repositoryUri.Host.Replace(".", "_", StringComparison.Ordinal); // @note: GitLab doesn't permit environment variables with dots.
             var envVarHttpUsername = $"REDPOINT_CREDENTIAL_DISCOVERY_USERNAME_{hostForEnvVar}";
             var envVarHttpPassword = $"REDPOINT_CREDENTIAL_DISCOVERY_PASSWORD_{hostForEnvVar}";
             var envVarSshPrivateKeyPath = $"REDPOINT_CREDENTIAL_DISCOVERY_SSH_PRIVATE_KEY_PATH_{hostForEnvVar}";
@@ -32,8 +32,8 @@
             var envVarSshPrivateKey = $"REDPOINT_CREDENTIAL_DISCOVERY_SSH_PRIVATE_KEY_{hostForEnvVar}";
             var envVarSshPublicKey = $"REDPOINT_CREDENTIAL_DISCOVERY_SSH_PUBLIC_KEY_{hostForEnvVar}";
 
-            if (repositoryUri.Scheme.Equals("http", StringComparison.InvariantCultureIgnoreCase) ||
-                repositoryUri.Scheme.Equals("https", StringComparison.InvariantCultureIgnoreCase))
+            if (repositoryUri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) ||
+                repositoryUri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase))
             {
                 if (!string.IsNullOrWhiteSpace(repositoryUri.UserInfo))
                 {
@@ -56,7 +56,7 @@
                     throw new UnableToDiscoverCredentialException($"The HTTP/S URL for Git did not contain a username and password, and the environment variables '{envVarHttpUsername}' / '{envVarHttpPassword}' were not set.");
                 }
             }
-            else if (repositoryUri.Scheme.Equals("ssh", StringComparison.InvariantCultureIgnoreCase))
+            else if (repositoryUri.Scheme.Equals("ssh", StringComparison.OrdinalIgnoreCase))
             {
                 var envPrivateKeyPath = Environment.GetEnvironmentVariable(envVarSshPrivateKeyPath);
                 var envPublicKeyPath = Environment.GetEnvironmentVariable(envVarSshPublicKeyPath);
@@ -120,7 +120,7 @@
 
             if (!string.IsNullOrWhiteSpace(ciRegistry) && !string.IsNullOrWhiteSpace(ciRegistryUser) && !string.IsNullOrWhiteSpace(ciRegistryPassword))
             {
-                if (string.Compare(ciRegistry, host, true) == 0)
+                if (string.Equals(ciRegistry, host, StringComparison.OrdinalIgnoreCase))
                 {
                     // If the GitLab CI variables are for this registry host, just use the environment variables directly.
                     // This saves you from having to run `docker login` (which is known to have issues if run concurrently

@@ -1,20 +1,19 @@
-﻿namespace Redpoint.OpenGE.Component.Dispatcher.WorkerPool.Tests
+﻿#pragma warning disable CA5394 // Do not use insecure randomness
+
+namespace Redpoint.OpenGE.Component.Dispatcher.WorkerPool.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
     using Redpoint.Tasks;
     using System;
-    using System.Collections.Generic;
     using System.Linq;
-    using System.
-        Text;
     using System.Threading.Tasks;
     using Xunit;
 
     public class SingleSourceWorkerCoreFulfillerTests
     {
-        private IServiceProvider BuildServiceProvider()
+        private static IServiceProvider BuildServiceProvider()
         {
             var services = new ServiceCollection();
             services.AddLogging();
@@ -65,20 +64,20 @@
                     collection,
                     testProvider,
                     true,
-                    0))
+                    0).ConfigureAwait(false))
                 {
                     {
-                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                         Assert.Equal(0, stats.UnfulfilledLocalRequests);
                         Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                         Assert.Equal(0, stats.FulfilledLocalRequests);
                         Assert.Equal(0, stats.FulfilledRemotableRequests);
                     }
 
-                    await using (var localRequest = await collection.CreateUnfulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
+                    await using (var localRequest = (await collection.CreateUnfulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken).ConfigureAwait(false)).ConfigureAwait(false))
                     {
                         {
-                            var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                            var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                             Assert.Equal(1, stats.UnfulfilledLocalRequests);
                             Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                             Assert.Equal(0, stats.FulfilledLocalRequests);
@@ -90,12 +89,12 @@
                         {
                             gate.Open();
                             return Task.CompletedTask;
-                        });
+                        }).ConfigureAwait(false);
                         testProvider.ReleaseCore();
-                        await gate.WaitAsync();
+                        await gate.WaitAsync().ConfigureAwait(false);
 
                         {
-                            var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                            var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                             Assert.Equal(0, stats.UnfulfilledLocalRequests);
                             Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                             Assert.Equal(1, stats.FulfilledLocalRequests);
@@ -125,20 +124,20 @@
                     collection,
                     testProvider,
                     true,
-                    0))
+                    0).ConfigureAwait(false))
                 {
                     {
-                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                         Assert.Equal(0, stats.UnfulfilledLocalRequests);
                         Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                         Assert.Equal(0, stats.FulfilledLocalRequests);
                         Assert.Equal(0, stats.FulfilledRemotableRequests);
                     }
 
-                    await using (var localRequest = await collection.CreateUnfulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken))
+                    await using ((await collection.CreateUnfulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var localRequest).ConfigureAwait(false))
                     {
                         {
-                            var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                            var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                             Assert.Equal(1, stats.UnfulfilledLocalRequests);
                             Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                             Assert.Equal(0, stats.FulfilledLocalRequests);
@@ -146,10 +145,10 @@
                         }
 
                         testProvider.ReleaseCore();
-                        await localRequest.WaitForCoreAsync(cancellationToken);
+                        await localRequest.WaitForCoreAsync(cancellationToken).ConfigureAwait(false);
 
                         {
-                            var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                            var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                             Assert.Equal(0, stats.UnfulfilledLocalRequests);
                             Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                             Assert.Equal(1, stats.FulfilledLocalRequests);
@@ -179,10 +178,10 @@
                     collection,
                     testProvider,
                     true,
-                    0))
+                    0).ConfigureAwait(false))
                 {
                     {
-                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                         Assert.Equal(0, stats.UnfulfilledLocalRequests);
                         Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                         Assert.Equal(0, stats.FulfilledLocalRequests);
@@ -191,12 +190,12 @@
 
                     var fulfilledRequest = Task.Run(async () =>
                     {
-                        return await collection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken);
+                        return await collection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken).ConfigureAwait(false);
                     });
                     testProvider.ReleaseCore();
-                    await using (var request = await fulfilledRequest)
+                    await using (var request = (await fulfilledRequest.ConfigureAwait(false)).ConfigureAwait(false))
                     {
-                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                         Assert.Equal(0, stats.UnfulfilledLocalRequests);
                         Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                         Assert.Equal(1, stats.FulfilledLocalRequests);
@@ -204,7 +203,7 @@
                     }
 
                     {
-                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken);
+                        var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
                         Assert.Equal(0, stats.UnfulfilledLocalRequests);
                         Assert.Equal(0, stats.UnfulfilledRemotableRequests);
                         Assert.Equal(0, stats.FulfilledLocalRequests);
@@ -232,13 +231,13 @@
 
                     var collection = new WorkerCoreRequestCollection<IWorkerCore>();
                     collection.SetTracer(tracer);
-                    await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
+                    await using (new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                         logger,
                         sp.GetRequiredService<ITaskScheduler>(),
                         collection,
                         testProvider,
                         true,
-                        0))
+                        0).AsAsyncDisposable(out var fulfiller).ConfigureAwait(false))
                     {
                         fulfiller.SetTracer(tracer);
                         long coresFulfilled = 0;
@@ -246,18 +245,18 @@
                             Enumerable.Range(0, 24).ToAsyncEnumerable(),
                             async (index, _) =>
                             {
-                                await using (var request = await collection.CreateFulfilledRequestAsync(
+                                await using (var request = (await collection.CreateFulfilledRequestAsync(
                                     Random.Shared.Next(0, 3) switch
                                     {
                                         0 => CoreAllocationPreference.RequireLocal,
                                         1 => CoreAllocationPreference.PreferLocal,
                                         _ => CoreAllocationPreference.PreferRemote,
                                     },
-                                    cancellationToken))
+                                    cancellationToken).ConfigureAwait(false)).ConfigureAwait(false))
                                 {
                                     Interlocked.Increment(ref coresFulfilled);
                                 }
-                            });
+                            }).ConfigureAwait(false);
                         Assert.Equal(24, coresFulfilled);
                     }
                 }
@@ -288,13 +287,13 @@
 
                     var collection = new WorkerCoreRequestCollection<IWorkerCore>();
                     collection.SetTracer(tracer);
-                    await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
+                    await using (new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                         logger,
                         sp.GetRequiredService<ITaskScheduler>(),
                         collection,
                         testProvider,
                         true,
-                        100))
+                        100).AsAsyncDisposable(out var fulfiller).ConfigureAwait(false))
                     {
                         fulfiller.SetTracer(tracer);
                         long coresFulfilled = 0;
@@ -302,18 +301,18 @@
                             Enumerable.Range(0, 24).ToAsyncEnumerable(),
                             async (index, _) =>
                             {
-                                await using (var request = await collection.CreateFulfilledRequestAsync(
+                                await using (var request = (await collection.CreateFulfilledRequestAsync(
                                     Random.Shared.Next(0, 3) switch
                                     {
                                         0 => CoreAllocationPreference.RequireLocal,
                                         1 => CoreAllocationPreference.PreferLocal,
                                         _ => CoreAllocationPreference.PreferRemote,
                                     },
-                                    cancellationToken))
+                                    cancellationToken).ConfigureAwait(false)).ConfigureAwait(false))
                                 {
                                     Interlocked.Increment(ref coresFulfilled);
                                 }
-                            });
+                            }).ConfigureAwait(false);
                         Assert.Equal(24, coresFulfilled);
                     }
                 }
@@ -343,13 +342,13 @@
 
                     var collection = new WorkerCoreRequestCollection<IWorkerCore>();
                     collection.SetTracer(tracer);
-                    await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
+                    await using (new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                         logger,
                         sp.GetRequiredService<ITaskScheduler>(),
                         collection,
                         testProvider,
                         true,
-                        0))
+                        0).AsAsyncDisposable(out var fulfiller).ConfigureAwait(false))
                     {
                         fulfiller.SetTracer(tracer);
                         long coresFulfilled = 0;
@@ -357,18 +356,18 @@
                             Enumerable.Range(0, 200).ToAsyncEnumerable(),
                             async (index, _) =>
                             {
-                                await using (var request = await collection.CreateFulfilledRequestAsync(
+                                await using (var request = (await collection.CreateFulfilledRequestAsync(
                                     Random.Shared.Next(0, 3) switch
                                     {
                                         0 => CoreAllocationPreference.RequireLocal,
                                         1 => CoreAllocationPreference.PreferLocal,
                                         _ => CoreAllocationPreference.PreferRemote,
                                     },
-                                    cancellationToken))
+                                    cancellationToken).ConfigureAwait(false)).ConfigureAwait(false))
                                 {
                                     Interlocked.Increment(ref coresFulfilled);
                                 }
-                            });
+                            }).ConfigureAwait(false);
                         Assert.Equal(200, coresFulfilled);
                     }
                 }

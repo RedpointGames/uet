@@ -66,24 +66,24 @@
 
             // Parse the response file.
             var msvcParsedResponseFile = await _msvcResponseFileParser.ParseResponseFileAsync(
-                spec.Arguments[0].Substring(1),
+                spec.Arguments[0][1..],
                 spec.WorkingDirectory,
                 guaranteedToExecuteLocally,
                 spec.ExecutionEnvironment.BuildStartTicks,
                 compilerArchitype,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             if (msvcParsedResponseFile == null)
             {
                 // Delegate to the local executor.
                 return await _localTaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
                     spec,
                     guaranteedToExecuteLocally,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
 
             // Compute the environment variables, excluding any environment variables we
             // know to be per-machine.
-            var environmentVariables = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+            var environmentVariables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var kv in spec.ExecutionEnvironment.EnvironmentVariables)
             {
                 environmentVariables[kv.Key] = kv.Value;

@@ -18,16 +18,19 @@
 
         public static async Task Serialize(Archive ar, Store<Name> value)
         {
+            if (ar == null) throw new ArgumentNullException(nameof(ar));
+            if (value == null) throw new ArgumentNullException(nameof(value));
+
             if (ar.IsLoading)
             {
                 var data = new Store<string>(string.Empty);
-                await ar.Serialize(data);
+                await ar.Serialize(data).ConfigureAwait(false);
                 value.V = new Name(data);
             }
             else
             {
                 var data = value.V.StringName;
-                await ar.Serialize(data, encodeAsASCII: true);
+                await ar.Serialize(data, encodeAsASCII: true).ConfigureAwait(false);
             }
         }
 

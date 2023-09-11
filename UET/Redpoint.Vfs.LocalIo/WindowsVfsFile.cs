@@ -8,7 +8,7 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class WindowsVfsFile : IVfsFile, IVfsFileHandle<IVfsFile>, IAsyncIoHandle
+    internal sealed class WindowsVfsFile : IVfsFile, IVfsFileHandle<IVfsFile>, IAsyncIoHandle
     {
         private readonly ILogger _logger;
         private readonly IVfsFileWriteCallbacks? _callbacks;
@@ -248,11 +248,11 @@
         {
             unsafe
             {
-                NativeMethods.NativeFileEndOfFileInfo eof = new NativeMethods.NativeFileEndOfFileInfo
+                NativeFileEndOfFileInfo eof = new NativeFileEndOfFileInfo
                 {
                     EndOfFile = length,
                 };
-                if (!NativeMethods.SetFileInformationByHandle(_handle, NativeMethods.FileInformationClass_FileEndOfFileInfo, eof, sizeof(NativeMethods.NativeFileEndOfFileInfo)))
+                if (!NativeMethods.SetFileInformationByHandle(_handle, NativeMethods.FileInformationClassFileEndOfFileInfo, eof, sizeof(NativeFileEndOfFileInfo)))
                 {
                     return Marshal.GetHRForLastWin32Error();
                 }

@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.Uefs.Package
 {
-    internal class DefaultPackageManifestAssembler : IPackageManifestAssembler
+    internal sealed class DefaultPackageManifestAssembler : IPackageManifestAssembler
     {
         public PackageManifest CreateManifestFromSourceDirectory(IPackageWriter packageWriter, string path)
         {
@@ -36,7 +36,7 @@
                     .Select(x => (entry: (FileSystemInfo)x, isDir: false))))
             {
                 if (e.entry.Name == "." || e.entry.Name == ".." || e.entry.Name == ".stfolder" || e.entry.Name == ".egstore" ||
-                    e.entry.Name.StartsWith("$") || e.entry.Name == "System Volume Information")
+                    e.entry.Name.StartsWith("$", StringComparison.Ordinal) || e.entry.Name == "System Volume Information")
                 {
                     continue;
                 }

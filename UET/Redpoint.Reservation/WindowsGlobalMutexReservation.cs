@@ -4,7 +4,7 @@
     using System.Threading.Tasks;
 
     [SupportedOSPlatform("windows")]
-    internal class WindowsGlobalMutexReservation : IGlobalMutexReservation
+    internal sealed class WindowsGlobalMutexReservation : IGlobalMutexReservation
     {
         private readonly Semaphore _semaphore;
 

@@ -6,7 +6,7 @@
 
     [JsonSerializable(typeof(PackageStorageTag))]
     [JsonSerializable(typeof(CachingInfoJson))]
-    internal partial class PackageFsInternalJsonSerializerContext : JsonSerializerContext
+    internal sealed partial class PackageFsInternalJsonSerializerContext : JsonSerializerContext
     {
     }
 }

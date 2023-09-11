@@ -11,9 +11,9 @@
     using UET.Commands.EngineSpec;
     using UET.BuildConfig;
 
-    internal class ListCommand
+    internal sealed class ListCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<PathSpec> Path;
 
@@ -42,7 +42,7 @@
             return command;
         }
 
-        private class ListCommandInstance : ICommandInstance
+        private sealed class ListCommandInstance : ICommandInstance
         {
             private readonly IServiceProvider _serviceProvider;
             private readonly ILogger<ListCommandInstance> _logger;

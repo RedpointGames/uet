@@ -5,7 +5,7 @@
     using Redpoint.Vfs.Layer.Git;
     using Redpoint.Vfs.LocalIo;
 
-    internal class GitDependenciesVfsLayerFactory : IGitDependenciesVfsLayerFactory
+    internal sealed class GitDependenciesVfsLayerFactory : IGitDependenciesVfsLayerFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

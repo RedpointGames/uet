@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.ProgressMonitor.Implementations
 {
-    internal class ChunkedStreamByteBasedProgress : IByteBasedProgress
+    internal sealed class ChunkedStreamByteBasedProgress : IByteBasedProgress
     {
         private ChunkedStreamProgress _chunkedStreamProgress;
 

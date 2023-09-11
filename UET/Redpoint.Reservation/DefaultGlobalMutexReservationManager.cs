@@ -4,8 +4,9 @@
     using System.Security.Cryptography;
     using System.Text;
     using System.Threading.Tasks;
+    using Redpoint.Hashing;
 
-    internal class DefaultGlobalMutexReservationManager : IGlobalMutexReservationManager
+    internal sealed class DefaultGlobalMutexReservationManager : IGlobalMutexReservationManager
     {
         [SupportedOSPlatform("macos")]
         [SupportedOSPlatform("linux")]
@@ -27,14 +28,9 @@
         /// global mutex names so we can be sure they'll work regardless of the underlying
         /// implementation.
         /// </remarks>
-        private string HashedName(string name)
+        private static string HashedName(string name)
         {
-            using (var sha = SHA1.Create())
-            {
-                return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(name)))
-                    .Replace("-", "")
-                    .ToLowerInvariant();
-            }
+            return Hash.Sha1AsHexString(name, Encoding.UTF8);
         }
 
         public async ValueTask<IGlobalMutexReservation> ReserveExactAsync(string name, CancellationToken cancellationToken)
@@ -54,7 +50,7 @@
             else if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
             {
                 return new UnixGlobalMutexReservation(
-                    await _reservationManager!.ReserveExactAsync(name, cancellationToken));
+                    await _reservationManager!.ReserveExactAsync(name, cancellationToken).ConfigureAwait(false));
             }
 
             throw new PlatformNotSupportedException();
@@ -75,7 +71,7 @@
             }
             else if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
             {
-                var reservation = await _reservationManager!.TryReserveExactAsync(name);
+                var reservation = await _reservationManager!.TryReserveExactAsync(name).ConfigureAwait(false);
                 if (reservation == null)
                 {
                     return null;

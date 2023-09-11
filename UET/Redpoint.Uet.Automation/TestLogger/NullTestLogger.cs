@@ -4,7 +4,7 @@
     using Redpoint.Uet.Automation.Worker;
     using System;
 
-    internal class NullTestLogger : ITestLogger
+    internal sealed class NullTestLogger : ITestLogger
     {
         public Task LogWorkerStarting(IWorker worker)
         {

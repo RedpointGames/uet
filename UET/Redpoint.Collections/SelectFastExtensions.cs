@@ -1,4 +1,7 @@
-﻿namespace Redpoint.Collections
+﻿#pragma warning disable CA1849
+#pragma warning disable CA1508
+
+namespace Redpoint.Collections
 {
     /// <summary>
     /// Provides extension methods to <see cref="IAsyncEnumerable{T}"/> that allow you to select values in parallel.
@@ -45,7 +48,7 @@
                 selector);
         }
 
-        private class SelectFastEnumerator<TSource, TResult> : IAsyncEnumerator<TResult>
+        private sealed class SelectFastEnumerator<TSource, TResult> : IAsyncEnumerator<TResult>
         {
             private readonly IAsyncEnumerator<TSource> _source;
             private readonly Func<TSource, ValueTask<TResult>> _selector;
@@ -108,7 +111,7 @@
                         {
                             // Before we can queue up the selector for the result, we *must*
                             // wait for an existing in flight task to complete.
-                            var completedTask = await Task.WhenAny(_inFlight);
+                            var completedTask = await Task.WhenAny(_inFlight).ConfigureAwait(false);
                             _inFlight.Remove(completedTask);
                             Current = completedTask.Result;
 
@@ -149,7 +152,7 @@
                         {
                             _movingTask = _source.MoveNextAsync().AsTask();
                         }
-                        var completed = await Task.WhenAny(_inFlight.Cast<Task>().Concat(new[] { _movingTask }));
+                        var completed = await Task.WhenAny(_inFlight.Cast<Task>().Concat(new[] { _movingTask })).ConfigureAwait(false);
                         if (completed == _movingTask)
                         {
                             // We moved to the next position before any of the current pending
@@ -197,7 +200,7 @@
                         }
 
                         // Just wait out our in-flight tasks.
-                        completedInFlightTask = await Task.WhenAny(_inFlight);
+                        completedInFlightTask = await Task.WhenAny(_inFlight).ConfigureAwait(false);
                         if (completedInFlightTask == null)
                         {
                             throw new InvalidOperationException("Task.WhenAny returned a null task.");
@@ -223,14 +226,14 @@
 
                 // Can't queue up more in-flight tasks due to parallelisation limit. Just
                 // wait for the first in-flight task and return it.
-                var completedInFlightMaxParallelTask = await Task.WhenAny(_inFlight);
+                var completedInFlightMaxParallelTask = await Task.WhenAny(_inFlight).ConfigureAwait(false);
                 _inFlight.Remove(completedInFlightMaxParallelTask);
                 Current = completedInFlightMaxParallelTask.Result;
                 return true;
             }
         }
 
-        private class SelectFastEnumerable<TSource, TResult> : IAsyncEnumerable<TResult>
+        private sealed class SelectFastEnumerable<TSource, TResult> : IAsyncEnumerable<TResult>
         {
             private readonly IAsyncEnumerable<TSource> _source;
             private readonly Func<TSource, ValueTask<TResult>> _selector;
@@ -250,7 +253,7 @@
                 CancellationToken cancellationToken = default)
             {
                 return new SelectFastEnumerator<TSource, TResult>(
-                    _source.GetAsyncEnumerator(),
+                    _source.GetAsyncEnumerator(cancellationToken),
                     _selector,
                     _maximumParallelisation,
                     cancellationToken);

@@ -11,18 +11,19 @@
 
         public IRemoteStorageBlobFactory GetFactory(RegistryReferenceInfo reference)
         {
+            if (reference == null) throw new ArgumentNullException(nameof(reference));
             return new ReferenceRemoteStorageBlobFactory(reference.Location);
         }
 
-        private class ReferenceRemoteStorageBlobFactory : IRemoteStorageBlobFactory
+        private sealed class ReferenceRemoteStorageBlobFactory : IRemoteStorageBlobFactory
         {
             private readonly FileStreamPool _pool;
             private readonly SafeFileHandlePool _sfPool;
 
             public ReferenceRemoteStorageBlobFactory(string path)
             {
-                if (OperatingSystem.IsWindows() && path.StartsWith("\\\\") ||
-                    OperatingSystem.IsMacOS() && path.StartsWith("/"))
+                if (OperatingSystem.IsWindows() && path.StartsWith("\\\\", StringComparison.Ordinal) ||
+                    OperatingSystem.IsMacOS() && path.StartsWith("/", StringComparison.Ordinal))
                 {
                     _pool = new FileStreamPool(path, FileAccess.Read, FileShare.Read);
                     _sfPool = new SafeFileHandlePool(path, FileAccess.Read, FileShare.Read);
@@ -49,7 +50,7 @@
             }
         }
 
-        internal class ReferenceRemoteStorageBlob : IRemoteStorageBlob
+        internal sealed class ReferenceRemoteStorageBlob : IRemoteStorageBlob
         {
             private IFileStreamPoolAllocation _allocation;
 
@@ -82,7 +83,7 @@
             }
         }
 
-        internal class ReferenceRemoteStorageBlobUnsafe : IRemoteStorageBlobUnsafe
+        internal sealed class ReferenceRemoteStorageBlobUnsafe : IRemoteStorageBlobUnsafe
         {
             private ISafeFileHandlePoolAllocation _allocation;
 

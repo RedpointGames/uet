@@ -3,7 +3,7 @@
     using System;
     using System.Threading.Tasks;
 
-    internal class NullSystemResources : ISystemResources
+    internal sealed class NullSystemResources : ISystemResources
     {
         public bool CanQuerySystemResources => false;
 

@@ -2,7 +2,7 @@
 {
     using System.CommandLine;
 
-    internal class OpenGECommand
+    internal sealed class OpenGECommand
     {
         public static Command CreateOpenGECommand()
         {

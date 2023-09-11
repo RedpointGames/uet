@@ -7,7 +7,7 @@
 
     [SupportedOSPlatform("windows")]
     [Endpoint("/VolumeDriver.Create")]
-    internal class DockerCreateEndpointHandler : IEndpointHandler<DockerCreateRequest, DockerCreateResponse>
+    internal sealed class DockerCreateEndpointHandler : IEndpointHandler<DockerCreateRequest, DockerCreateResponse>
     {
         public ValueTask<DockerCreateResponse> HandleAsync(IUefsDaemon plugin, DockerCreateRequest request)
         {
@@ -27,7 +27,7 @@
                 });
             }
 
-            if (!request.Opts["path"].ToLowerInvariant().StartsWith("c:\\"))
+            if (!request.Opts["path"].StartsWith("c:\\", StringComparison.OrdinalIgnoreCase))
             {
                 throw new EndpointException<DockerCreateResponse>(409, new DockerCreateResponse
                 {

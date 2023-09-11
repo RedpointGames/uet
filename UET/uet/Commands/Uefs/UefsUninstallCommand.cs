@@ -9,9 +9,9 @@
     using System.Reflection;
     using System.Threading.Tasks;
 
-    internal class UefsUninstallCommand
+    internal sealed class UefsUninstallCommand
     {
-        internal class Options
+        internal sealed class Options
         {
         }
 
@@ -28,7 +28,7 @@
             return command;
         }
 
-        private class UefsUninstallCommandInstance : ICommandInstance
+        private sealed class UefsUninstallCommandInstance : ICommandInstance
         {
             private readonly ILogger<UefsUninstallCommandInstance> _logger;
             private readonly IServiceControl _serviceControl;
@@ -69,16 +69,16 @@
                     throw new PlatformNotSupportedException();
                 }
 
-                if (await _serviceControl.IsServiceInstalled(daemonName))
+                if (await _serviceControl.IsServiceInstalled(daemonName).ConfigureAwait(false))
                 {
-                    if (await _serviceControl.IsServiceRunning(daemonName))
+                    if (await _serviceControl.IsServiceRunning(daemonName).ConfigureAwait(false))
                     {
                         _logger.LogInformation("Stopping UEFS daemon...");
-                        await _serviceControl.StopService(daemonName);
+                        await _serviceControl.StopService(daemonName).ConfigureAwait(false);
                     }
 
                     _logger.LogInformation("Uninstalling UEFS daemon...");
-                    await _serviceControl.UninstallService(daemonName);
+                    await _serviceControl.UninstallService(daemonName).ConfigureAwait(false);
                 }
 
                 _logger.LogInformation("The UEFS service has been uninstalled.");

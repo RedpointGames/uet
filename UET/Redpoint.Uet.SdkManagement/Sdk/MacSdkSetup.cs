@@ -29,7 +29,7 @@
             _monitorFactory = monitorFactory;
         }
 
-        public string[] PlatformNames => new[] { "Mac", "IOS" };
+        public IReadOnlyList<string> PlatformNames => new[] { "Mac", "IOS" };
 
         public string CommonPlatformNameForPackageId => "Mac";
 
@@ -45,7 +45,7 @@
             throw new InvalidOperationException("Unable to find Clang version in ApplePlatformSDK.Versions.cs");
         }
 
-        private async Task<string> GetXcodeVersion(string unrealEnginePath)
+        private static async Task<string> GetXcodeVersion(string unrealEnginePath)
         {
             var applePlatformSdk = await File.ReadAllTextAsync(Path.Combine(
                 unrealEnginePath,
@@ -55,13 +55,13 @@
                 "UnrealBuildTool",
                 "Platform",
                 "Mac",
-                "ApplePlatformSDK.Versions.cs"));
-            return await ParseXcodeVersion(applePlatformSdk);
+                "ApplePlatformSDK.Versions.cs")).ConfigureAwait(false);
+            return await ParseXcodeVersion(applePlatformSdk).ConfigureAwait(false);
         }
 
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
-            return await GetXcodeVersion(unrealEnginePath);
+            return await GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
         }
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
@@ -73,7 +73,7 @@
                 throw new SdkSetupMissingAuthenticationException("You must set the UET_APPLE_XCODE_STORAGE_PATH environment variable, which is the path to the mounted network share where Xcode .xip files are being stored after you have manually downloaded them from the Apple Developer portal.");
             }
 
-            var xcodeVersion = await GetXcodeVersion(unrealEnginePath);
+            var xcodeVersion = await GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
             var xipSourcePath = Path.Combine(appleXcodeStoragePath, $"Xcode_{xcodeVersion}.xip");
             if (!File.Exists(xipSourcePath))
             {
@@ -92,7 +92,7 @@
                     }
                 },
                 CaptureSpecification.Passthrough,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             if (exitCode != 0)
             {
                 throw new SdkSetupMissingAuthenticationException($"This machine is not configured to allow 'sudo' without a password. Use 'sudo visudo' and add '{Environment.GetEnvironmentVariable("USERNAME")} ALL=(ALL) NOPASSWD: ALL' as the final line of that file.");
@@ -102,11 +102,11 @@
             if (!File.Exists("/opt/homebrew/bin/brew"))
             {
                 _logger.LogInformation("Installing Homebrew...");
-                var homebrewScriptPath = $"/tmp/homebrew-install-{Process.GetCurrentProcess().Id}.sh";
+                var homebrewScriptPath = $"/tmp/homebrew-install-{Environment.ProcessId}.sh";
                 using (var client = new HttpClient())
                 {
-                    var homebrewScript = await client.GetStringAsync("https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh");
-                    await File.WriteAllTextAsync(homebrewScriptPath, homebrewScript.Replace("\r\n", "\n"));
+                    var homebrewScript = await client.GetStringAsync(new Uri("https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"), cancellationToken).ConfigureAwait(false);
+                    await File.WriteAllTextAsync(homebrewScriptPath, homebrewScript.Replace("\r\n", "\n", StringComparison.Ordinal), cancellationToken).ConfigureAwait(false);
                     File.SetUnixFileMode(homebrewScriptPath,
                         UnixFileMode.UserRead |
                         UnixFileMode.UserWrite |
@@ -123,7 +123,7 @@
                         }
                     },
                     CaptureSpecification.Passthrough,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
                     throw new SdkSetupPackageGenerationFailedException("Failed to install Homebrew.");
@@ -145,7 +145,7 @@
                         }
                     },
                     CaptureSpecification.Passthrough,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
                     throw new SdkSetupPackageGenerationFailedException("Homebrew was unable to install xcodes, which is required to automate the download and install of Xcode.");
@@ -167,7 +167,7 @@
                         }
                     },
                     CaptureSpecification.Passthrough,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
                     throw new SdkSetupPackageGenerationFailedException("Homebrew was unable to install aria2, which is required to automate the download and install of Xcode.");
@@ -194,14 +194,14 @@
                             progress,
                             SystemConsole.ConsoleInformation,
                             SystemConsole.WriteProgressToConsole,
-                            cts.Token);
-                    });
+                            cts.Token).ConfigureAwait(false);
+                    }, cts.Token);
 
                     // Copy the data.
-                    await source.CopyToAsync(destination, 2 * 1024 * 1024, cancellationToken);
+                    await source.CopyToAsync(destination, 2 * 1024 * 1024, cancellationToken).ConfigureAwait(false);
 
                     // Stop monitoring.
-                    await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);
+                    await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts).ConfigureAwait(false);
                 }
             }
             try
@@ -226,7 +226,7 @@
                         },
                     },
                     CaptureSpecification.Passthrough,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
                     throw new SdkSetupPackageGenerationFailedException("xcodes was unable to download and install Xcode to the SDK package directory.");
@@ -236,7 +236,7 @@
                 _logger.LogInformation($"Setting up symbolic link for Xcode.app...");
                 var xcodeDirectory = Directory.GetDirectories(sdkPackagePath)
                     .Select(x => Path.GetFileName(x))
-                    .Where(x => x.StartsWith("Xcode"))
+                    .Where(x => x.StartsWith("Xcode", StringComparison.Ordinal))
                     .First();
                 File.CreateSymbolicLink(
                     Path.Combine(sdkPackagePath, "Xcode.app"),
@@ -273,7 +273,7 @@
                     }
                 },
                 CaptureSpecification.Passthrough,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             // Emit the environment variable required to use Xcode from the package directory.
             var envs = new Dictionary<string, string>

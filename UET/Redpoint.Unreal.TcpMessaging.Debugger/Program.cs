@@ -10,9 +10,9 @@ var sessionId = Guid.NewGuid();
 var connection = await TcpMessageTransportConnection.CreateAsync(async () =>
 {
     var client = new TcpClient();
-    await client.ConnectAsync(new IPEndPoint(IPAddress.Loopback, 6666));
+    await client.ConnectAsync(new IPEndPoint(IPAddress.Loopback, 6666)).ConfigureAwait(false);
     return client;
-});
+}).ConfigureAwait(false);
 
 // Detect the remote's engine version so we can pretend to be the same.
 var engineVersion = 0;
@@ -38,7 +38,7 @@ await connection.ReceiveUntilAsync(message =>
     }
 
     return Task.FromResult(false);
-}, CancellationToken.None);
+}, CancellationToken.None).ConfigureAwait(false);
 
 // Ask the remote to send message logs.
 connection.Send(new SessionServiceLogSubscribe());
@@ -48,7 +48,7 @@ _ = Task.Run(async () =>
 {
     while (true)
     {
-        await Task.Delay(5000);
+        await Task.Delay(5000).ConfigureAwait(false);
 
         connection.Send(new EngineServicePing());
         connection.Send(new SessionServicePing { UserName = sessionOwner });
@@ -79,7 +79,7 @@ await connection.ReceiveUntilAsync(message =>
                 BuildDate = buildDate,
                 DeviceName = "DEBUG-CONTROL",
                 InstanceId = instanceId,
-                InstanceName = $"DEBUG-CONTROL-{Process.GetCurrentProcess().Id}",
+                InstanceName = $"DEBUG-CONTROL-{Environment.ProcessId}",
                 PlatformName = "WindowsEditor",
                 SessionId = sessionId,
                 SessionName = string.Empty,
@@ -91,7 +91,7 @@ await connection.ReceiveUntilAsync(message =>
             connection.Respond(message, new AutomationWorkerFindWorkersResponse
             {
                 DeviceName = "DEBUG-CONTROL",
-                InstanceName = $"DEBUG-CONTROL-{Process.GetCurrentProcess().Id}",
+                InstanceName = $"DEBUG-CONTROL-{Environment.ProcessId}",
                 Platform = "Windows",
                 OSVersionName = "Windows 11",
                 ModelName = string.Empty,
@@ -124,4 +124,4 @@ await connection.ReceiveUntilAsync(message =>
     }
 
     return Task.FromResult(false);
-}, CancellationToken.None);
+}, CancellationToken.None).ConfigureAwait(false);

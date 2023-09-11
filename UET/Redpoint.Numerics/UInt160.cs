@@ -13,7 +13,7 @@
     /// </summary>
     [StructLayout(LayoutKind.Explicit)]
     public unsafe struct UInt160 :
-        IComparable<UInt160>, 
+        IComparable<UInt160>,
         IEqualityOperators<UInt160, UInt160, bool>,
         IEqualityComparer<UInt160>,
         IEquatable<UInt160>
@@ -58,6 +58,7 @@
         /// </summary>
         /// <param name="index">The index from 0 to 19 inclusive.</param>
         /// <returns>The byte of the unsigned 160-bit integer.</returns>
+        [SuppressMessage("Design", "CA1043:Use Integral Or String Argument For Indexers", Justification = "This type choice for an indexer is intentional.")]
         public readonly byte this[byte index] => BitConverter.IsLittleEndian ? _bytes[index] : _bytes[19 - index];
 
         /// <summary>
@@ -142,38 +143,38 @@
             fixed (byte* b = _bytes)
             {
                 var reversed = CreateFromLittleEndian(b);
-                return Convert.ToHexString(new ReadOnlySpan<byte>(reversed._bytes, 20)).ToLowerInvariant();
+                return Hashing.Hash.HexString(new ReadOnlySpan<byte>(reversed._bytes, 20));
             }
         }
 
         /// <inheritdoc />
-        public unsafe int CompareTo(UInt160 right)
+        public unsafe int CompareTo(UInt160 other)
         {
-            if (_upper < right._upper)
+            if (_upper < other._upper)
             {
                 return -1;
             }
-            else if (_upper > right._upper)
+            else if (_upper > other._upper)
             {
                 return 1;
             }
             else
             {
-                if (_lowerHigh < right._lowerHigh)
+                if (_lowerHigh < other._lowerHigh)
                 {
                     return -1;
                 }
-                else if (_lowerHigh > right._lowerHigh)
+                else if (_lowerHigh > other._lowerHigh)
                 {
                     return 1;
                 }
                 else
                 {
-                    if (_lowerLow < right._lowerLow)
+                    if (_lowerLow < other._lowerLow)
                     {
                         return -1;
                     }
-                    else if (_lowerLow > right._lowerLow)
+                    else if (_lowerLow > other._lowerLow)
                     {
                         return 1;
                     }
@@ -227,7 +228,7 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe bool operator ==(UInt160 left, UInt160 right)
         {
-            return left._upper == right._upper && 
+            return left._upper == right._upper &&
                 Vector128.EqualsAll(left._lower, right._lower);
         }
 
@@ -235,7 +236,7 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe bool operator !=(UInt160 left, UInt160 right)
         {
-            return left._upper != right._upper || 
+            return left._upper != right._upper ||
                 !Vector128.EqualsAll(left._lower, right._lower);
         }
 
@@ -244,9 +245,9 @@
         public static unsafe bool operator <(UInt160 left, UInt160 right)
         {
             return left._upper < right._upper ||
-                (left._upper == right._upper && 
-                (left._lowerHigh < right._lowerHigh || 
-                (left._lowerHigh == right._lowerHigh && 
+                (left._upper == right._upper &&
+                (left._lowerHigh < right._lowerHigh ||
+                (left._lowerHigh == right._lowerHigh &&
                 left._lowerLow < right._lowerLow)));
         }
 

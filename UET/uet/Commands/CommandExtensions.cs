@@ -140,7 +140,7 @@
             }
         }
 
-        private class CommandUETGlobalArgsProvider : IGlobalArgsProvider
+        private sealed class CommandUETGlobalArgsProvider : IGlobalArgsProvider
         {
             public CommandUETGlobalArgsProvider(string globalArgsString, string[] globalArgsArray)
             {
@@ -150,7 +150,7 @@
 
             public string GlobalArgsString { get; }
 
-            public string[] GlobalArgsArray { get; }
+            public IReadOnlyList<string> GlobalArgsArray { get; }
         }
 
         internal static void AddCommonHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TCommand>(this Command command, object options, Action<IServiceCollection>? extraServices = null, Action<IServiceCollection>? extraParsingServices = null) where TCommand : class, ICommandInstance
@@ -168,7 +168,7 @@
                 }
                 else
                 {
-                    services.AddSingleton<IGlobalArgsProvider>(new CommandUETGlobalArgsProvider(string.Empty, new string[0]));
+                    services.AddSingleton<IGlobalArgsProvider>(new CommandUETGlobalArgsProvider(string.Empty, Array.Empty<string>()));
                 }
                 if (extraServices != null)
                 {
@@ -199,7 +199,7 @@
                     {
                         foreach (var lifecycle in lifecycles)
                         {
-                            await lifecycle.StartAsync(context.GetCancellationToken());
+                            await lifecycle.StartAsync(context.GetCancellationToken()).ConfigureAwait(false);
                             startedLifecycles.Add(lifecycle);
                         }
                     }
@@ -211,7 +211,7 @@
 
                     try
                     {
-                        context.ExitCode = await instance.ExecuteAsync(context);
+                        context.ExitCode = await instance.ExecuteAsync(context).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -225,12 +225,11 @@
                     {
                         try
                         {
-                            await lifecycle.StopAsync();
+                            await lifecycle.StopAsync().ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
                             logger.LogError(ex, $"Uncaught exception during application lifecycle shutdown: {ex}");
-                            throw;
                         }
                     }
                 }

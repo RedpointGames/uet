@@ -16,33 +16,21 @@
         private readonly WorkerCoreRequestCollection<TWorkerCore> _requestCollection;
         private readonly WorkerCoreProviderCollection<TWorkerCore> _providerCollection;
         private readonly bool _fulfillsLocalRequests;
-        private readonly SemaphoreSlim _processRequestsSemaphore;
+        private readonly Semaphore _processRequestsSemaphore;
         private readonly Dictionary<IWorkerCoreProvider<TWorkerCore>, WorkerCoreObtainmentState> _currentProviders;
-        private readonly MutexSlim _currentProvidersLock;
+        private readonly Mutex _currentProvidersLock;
         private readonly Task _backgroundTask;
         private WorkerPoolTracer? _tracer;
 
-        public class Statistics
+        public MultipleSourceWorkerCoreRequestFulfillerStatistics<TWorkerCore> GetStatistics()
         {
-            public required IReadOnlyDictionary<IWorkerCoreProvider<TWorkerCore>, WorkerCoreStatistics> Providers;
-        }
-
-        public class WorkerCoreStatistics
-        {
-            public required string UniqueId;
-            public required bool IsObtainingCore;
-            public required TWorkerCore? ObtainedCore;
-        }
-
-        public Statistics GetStatistics()
-        {
-            using (_currentProvidersLock.Wait())
+            using (_currentProvidersLock.Wait(CancellationToken.None))
             {
-                return new Statistics
+                return new MultipleSourceWorkerCoreRequestFulfillerStatistics<TWorkerCore>
                 {
                     Providers = _currentProviders.ToDictionary(
                         k => k.Key,
-                        v => new WorkerCoreStatistics
+                        v => new MultipleSourceWorkerCoreRequestFulfillerStatisticsForCore<TWorkerCore>
                         {
                             UniqueId = v.Value._uniqueId,
                             IsObtainingCore = v.Value._isObtainingCore,
@@ -52,7 +40,7 @@
             }
         }
 
-        private class WorkerCoreObtainmentState
+        private sealed class WorkerCoreObtainmentState : IDisposable
         {
             private readonly MultipleSourceWorkerCoreRequestFulfiller<TWorkerCore> _owner;
             private readonly ILogger _logger;
@@ -90,10 +78,10 @@
                 }
                 _isObtainingCore = true;
                 var cancellationTokenSource = _obtainmentCancellationTokenSource = new CancellationTokenSource();
-                _obtainmentBackgroundTask = _owner._taskSchedulerScope.RunAsync("StartObtainingCore", cancellationTokenSource.Token, async (cancellationToken) =>
+                _obtainmentBackgroundTask = _owner._taskSchedulerScope.RunAsync("StartObtainingCore", async (cancellationToken) =>
                 {
-                    await task(cancellationToken);
-                });
+                    await task(cancellationToken).ConfigureAwait(false);
+                }, cancellationTokenSource.Token);
             }
 
             public void AcceptObtainedCore(TWorkerCore core)
@@ -111,7 +99,7 @@
                 if (_obtainedCore != null)
                 {
                     _owner._tracer?.AddTracingMessage($"CancelObtainingCoreAsync: {_obtainedCore}");
-                    await _obtainedCore.DisposeAsync();
+                    await _obtainedCore.DisposeAsync().ConfigureAwait(false);
                 }
                 _obtainmentCancellationTokenSource.Cancel();
                 _obtainmentCancellationTokenSource = new CancellationTokenSource();
@@ -157,7 +145,7 @@
                 {
                     try
                     {
-                        await _obtainmentBackgroundTask;
+                        await _obtainmentBackgroundTask.ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
@@ -168,6 +156,11 @@
                     }
                 }
             }
+
+            public void Dispose()
+            {
+                _obtainmentCancellationTokenSource.Dispose();
+            }
         }
 
         public MultipleSourceWorkerCoreRequestFulfiller(
@@ -177,15 +170,17 @@
             WorkerCoreProviderCollection<TWorkerCore> providerCollection,
             bool canFulfillLocalRequests)
         {
+            if (taskScheduler == null) throw new ArgumentNullException(nameof(taskScheduler));
+
             _logger = logger;
             _taskSchedulerScope = taskScheduler.CreateSchedulerScope("MultipleSourceWorkerCoreRequestFulfiller", CancellationToken.None);
             _requestCollection = requestCollection;
             _providerCollection = providerCollection;
             _fulfillsLocalRequests = canFulfillLocalRequests;
-            _processRequestsSemaphore = new SemaphoreSlim(1);
+            _processRequestsSemaphore = new Semaphore(1);
             _currentProviders = new Dictionary<IWorkerCoreProvider<TWorkerCore>, WorkerCoreObtainmentState>();
-            _currentProvidersLock = new MutexSlim();
-            _backgroundTask = _taskSchedulerScope.RunAsync("BackgroundTask", CancellationToken.None, RunAsync);
+            _currentProvidersLock = new Mutex();
+            _backgroundTask = _taskSchedulerScope.RunAsync("BackgroundTask", RunAsync, CancellationToken.None);
         }
 
         public void SetTracer(WorkerPoolTracer tracer)
@@ -195,11 +190,12 @@
 
         public async ValueTask DisposeAsync()
         {
-            await _taskSchedulerScope.DisposeAsync();
-            await _requestCollection.OnRequestsChanged.RemoveAsync(OnNotifiedRequestsChanged);
+            GC.SuppressFinalize(this);
+            await _taskSchedulerScope.DisposeAsync().ConfigureAwait(false);
+            await _requestCollection.OnRequestsChanged.RemoveAsync(OnNotifiedRequestsChanged).ConfigureAwait(false);
             try
             {
-                await _backgroundTask;
+                await _backgroundTask.ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -217,7 +213,7 @@
         {
             _tracer?.AddTracingMessage("Notified that providers have changed.");
 
-            using var _ = await _currentProvidersLock.WaitAsync(token);
+            using var _ = await _currentProvidersLock.WaitAsync(token).ConfigureAwait(false);
 
             if (providersInfo.AddedProvider != null)
             {
@@ -228,10 +224,9 @@
             }
             if (providersInfo.RemovedProvider != null)
             {
-                if (_currentProviders.ContainsKey(providersInfo.RemovedProvider))
+                if (_currentProviders.TryGetValue(providersInfo.RemovedProvider, out var state))
                 {
-                    var state = _currentProviders[providersInfo.RemovedProvider];
-                    await state.CancelObtainmentIfRunningAsync();
+                    await state.CancelObtainmentIfRunningAsync().ConfigureAwait(false);
                     _currentProviders.Remove(providersInfo.RemovedProvider);
                 }
             }
@@ -246,7 +241,7 @@
             {
                 try
                 {
-                    await _requestCollection.OnRequestsChanged.AddAsync(OnNotifiedRequestsChanged);
+                    await _requestCollection.OnRequestsChanged.AddAsync(OnNotifiedRequestsChanged).ConfigureAwait(false);
                     break;
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -256,14 +251,14 @@
                 catch (Exception ex)
                 {
                     _logger.LogCritical(ex, ex.Message);
-                    await Task.Delay(1000);
+                    await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                 }
             }
             while (true)
             {
                 try
                 {
-                    await _providerCollection.OnProvidersChanged.AddAsync(OnNotifiedProvidersChanged);
+                    await _providerCollection.OnProvidersChanged.AddAsync(OnNotifiedProvidersChanged).ConfigureAwait(false);
                     break;
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -273,18 +268,18 @@
                 catch (Exception ex)
                 {
                     _logger.LogCritical(ex, ex.Message);
-                    await Task.Delay(1000);
+                    await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                 }
             }
 
             // Get the initial providers.
             while (true)
             {
-                using (await _currentProvidersLock.WaitAsync(cancellationToken))
+                using (await _currentProvidersLock.WaitAsync(cancellationToken).ConfigureAwait(false))
                 {
                     try
                     {
-                        foreach (var provider in await _providerCollection.GetProvidersAsync())
+                        foreach (var provider in await _providerCollection.GetProvidersAsync().ConfigureAwait(false))
                         {
                             _currentProviders.Add(provider, new WorkerCoreObtainmentState(this, _logger, Guid.NewGuid().ToString()));
                         }
@@ -297,7 +292,7 @@
                     catch (Exception ex)
                     {
                         _logger.LogCritical(ex, ex.Message);
-                        await Task.Delay(1000);
+                        await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                     }
                 }
             }
@@ -310,16 +305,16 @@
                     while (!cancellationToken.IsCancellationRequested)
                     {
                         _tracer?.AddTracingMessage("Waiting to be notified that requests have changed.");
-                        await _processRequestsSemaphore.WaitAsync(cancellationToken);
+                        await _processRequestsSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
                         _tracer?.AddTracingMessage("Waiting to obtain the provider lock.");
-                        using (await _currentProvidersLock.WaitAsync(cancellationToken))
+                        using (await _currentProvidersLock.WaitAsync(cancellationToken).ConfigureAwait(false))
                         {
                             // Step 1: Get the list of requests we haven't fulfilled yet.
                             int differenceCores;
-                            await using (var initiallyUnfulfilledRequests = await _requestCollection.GetAllUnfulfilledRequestsAsync(
+                            await using ((await _requestCollection.GetAllUnfulfilledRequestsAsync(
                                 _fulfillsLocalRequests ? CoreFulfillerConstraint.All : CoreFulfillerConstraint.LocalPreferredAndRemote,
-                                cancellationToken))
+                                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var initiallyUnfulfilledRequests).ConfigureAwait(false))
                             {
                                 // Step 2: Fulfill any unfulfilled requests that we can immediately fulfill
                                 // now (because our obtainment tasks have obtained cores).
@@ -338,16 +333,16 @@
                                         // Fulfill the request.
                                         var core = coreAvailableToFulfillRequest.TakeObtainedCore();
                                         if (core is IWorkerCoreWithLiveness coreWithLiveness &&
-                                            !(await coreWithLiveness.IsAliveAsync(cancellationToken)))
+                                            !(await coreWithLiveness.IsAliveAsync(cancellationToken).ConfigureAwait(false)))
                                         {
                                             // This core is dead. Do not use it.
-                                            await core.DisposeAsync();
+                                            await core.DisposeAsync().ConfigureAwait(false);
                                             goto retryCore;
                                         }
                                         else
                                         {
                                             // Assign the core.
-                                            await request.FulfillRequestAsync(core);
+                                            await request.FulfillRequestAsync(core).ConfigureAwait(false);
                                         }
                                     }
                                 }
@@ -391,7 +386,7 @@
                                         TWorkerCore? obtainedCore = default;
                                         try
                                         {
-                                            obtainedCore = await provider.Key.RequestCoreAsync(cancellationToken);
+                                            obtainedCore = await provider.Key.RequestCoreAsync(cancellationToken).ConfigureAwait(false);
                                         }
                                         catch (Exception ex)
                                         {
@@ -404,13 +399,13 @@
                                         //
                                         // @note: We use CancellationToken.None here because we need to obtain the
                                         // lock even to do cleanup operations without the state getting weird.
-                                        using (await _currentProvidersLock.WaitAsync(CancellationToken.None))
+                                        using (await _currentProvidersLock.WaitAsync(CancellationToken.None).ConfigureAwait(false))
                                         {
                                             if (cancellationToken.IsCancellationRequested)
                                             {
                                                 if (obtainedCore != null)
                                                 {
-                                                    await obtainedCore.DisposeAsync();
+                                                    await obtainedCore.DisposeAsync().ConfigureAwait(false);
                                                 }
                                                 cancellationToken.ThrowIfCancellationRequested();
                                             }
@@ -437,7 +432,7 @@
                                                     {
                                                         if (!didAssignObtainedCore)
                                                         {
-                                                            await obtainedCore.DisposeAsync();
+                                                            await obtainedCore.DisposeAsync().ConfigureAwait(false);
 
                                                             _tracer?.AddTracingMessage($"{provider.Value}: Indicating obtainment failed.");
                                                             provider.Value.IndicateObtainmentFailed();
@@ -463,7 +458,7 @@
                                 {
                                     _tracer?.AddTracingMessage("Cancelling core obtainment.");
                                     var provider = workingProviders[i];
-                                    await provider.Value.CancelObtainingCoreAsync();
+                                    await provider.Value.CancelObtainingCoreAsync().ConfigureAwait(false);
                                 }
                             }
                         }
@@ -478,7 +473,7 @@
                 catch (Exception ex)
                 {
                     _logger.LogCritical(ex, ex.Message);
-                    await Task.Delay(1000);
+                    await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                 }
             }
         }

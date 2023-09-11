@@ -15,7 +15,7 @@
         {
             var oldPath = _path;
             _path = System.IO.Path.IsPathRooted(_path) ? _path : System.IO.Path.Combine(workingDirectory, _path);
-            if (!oldPath.Contains(" ") && _path.Contains(" "))
+            if (!oldPath.Contains(' ', StringComparison.Ordinal) && _path.Contains(' ', StringComparison.Ordinal))
             {
                 // We just added a space into this path, so it probably needs to be quoted to get the right effect.
                 _quoted = true;

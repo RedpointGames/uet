@@ -15,7 +15,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class CommandletPluginTestProvider : IPluginTestProvider, IDynamicReentrantExecutor<BuildConfigPluginDistribution, BuildConfigPluginTestCommandlet>
+    internal sealed class CommandletPluginTestProvider : IPluginTestProvider, IDynamicReentrantExecutor<BuildConfigPluginDistribution, BuildConfigPluginTestCommandlet>
     {
         private readonly ILogger<CommandletPluginTestProvider> _logger;
         private readonly IScriptExecutor _scriptExecutor;
@@ -54,7 +54,7 @@
             // Ensure we have the test project available.
             await _pluginTestProjectEmitProvider.EnsureTestProjectNodesArePresentAsync(
                 context,
-                writer);
+                writer).ConfigureAwait(false);
 
             // Emit the nodes to run each test.
             var allPlatforms = castedSettings.SelectMany(x => x.settings.Platforms).Where(context.CanHostPlatformBeUsed).ToHashSet();
@@ -92,23 +92,23 @@
                                         BuildConfigPluginTestCommandlet>(
                                         this,
                                         context,
-                                        $"{platform}.{test.name}".Replace(" ", "."),
+                                        $"{platform}.{test.name}".Replace(" ", ".", StringComparison.Ordinal),
                                         test.settings,
                                         new Dictionary<string, string>
                                         {
                                             { "EnginePath", "$(EnginePath)" },
                                             { "TestProjectPath", _pluginTestProjectEmitProvider.GetTestProjectUProjectFilePath(platform) },
                                             { "RepositoryRoot", "$(ProjectRoot)" },
-                                        });
-                                });
+                                        }).ConfigureAwait(false);
+                                }).ConfigureAwait(false);
                             await writer.WriteDynamicNodeAppendAsync(
                                 new DynamicNodeAppendElementProperties
                                 {
                                     NodeName = nodeName,
                                     MustPassForLaterDeployment = true,
-                                });
+                                }).ConfigureAwait(false);
                         }
-                    });
+                    }).ConfigureAwait(false);
             }
         }
 
@@ -125,7 +125,7 @@
                 _logger.LogInformation($"Waiting to obtain global mutex '{config.GlobalMutexName}'...");
                 reservation = await _reservationManager.ReserveExactAsync(
                     config.GlobalMutexName,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
 
             try
@@ -152,7 +152,7 @@
                                 },
                             },
                             CaptureSpecification.Passthrough,
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
                         if (exitCode != 0)
                         {
                             if (lastAttempt)
@@ -175,7 +175,7 @@
                     {
                         _ = Task.Run(async () =>
                         {
-                            await Task.Delay(TimeSpan.FromMinutes(config.LogStartTimeoutMinutes.Value), timerCts.Token);
+                            await Task.Delay(TimeSpan.FromMinutes(config.LogStartTimeoutMinutes.Value), timerCts.Token).ConfigureAwait(false);
                             _logger.LogWarning("Commandlet is being cancelled because it timed out.");
                             commandletCts.Cancel();
                         }, timerCts.Token);
@@ -204,7 +204,7 @@
                                 {
                                     if (!string.IsNullOrWhiteSpace(config.LogStartSignal))
                                     {
-                                        if (line.Contains(config.LogStartSignal))
+                                        if (line.Contains(config.LogStartSignal, StringComparison.Ordinal))
                                         {
                                             // The commandlet is running because we got the signal.
                                             _logger.LogInformation("Detected that the commandlet has started based on LogStartSignal!");
@@ -214,7 +214,7 @@
                                     return true;
                                 },
                             }),
-                            commandletCts.Token);
+                            commandletCts.Token).ConfigureAwait(false);
                         if (exitCode != 0)
                         {
                             if (lastAttempt)
@@ -261,7 +261,7 @@
                                 },
                             },
                             CaptureSpecification.Passthrough,
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
                         if (exitCode != 0)
                         {
                             if (lastAttempt)
@@ -288,7 +288,7 @@
             {
                 if (reservation != null)
                 {
-                    await reservation.DisposeAsync();
+                    await reservation.DisposeAsync().ConfigureAwait(false);
                 }
             }
         }

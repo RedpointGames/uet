@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.Configuration.Engine
 {
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
     public class BuildConfigEngineSource
@@ -14,6 +15,7 @@
         public string Ref { get; set; } = "release";
 
         [JsonPropertyName("ConsoleZips")]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public string[]? ConsoleZips { get; set; }
     }
 }

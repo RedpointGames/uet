@@ -2,7 +2,7 @@
 {
     using System.Collections.Generic;
 
-    internal class BuildConfigLoadResult
+    internal sealed class BuildConfigLoadResult
     {
         public required bool Success { get; set; }
 

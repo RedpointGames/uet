@@ -12,7 +12,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class LocalGauntletWorker : LocalWorker, ICaptureSpecification
+    internal sealed class LocalGauntletWorker : LocalWorker, ICaptureSpecification
     {
         private readonly ILogger<LocalGauntletWorker> _logger;
         private readonly IProcessExecutor _processExecutor;
@@ -71,9 +71,9 @@
                 "-purgatorymallocproxy",
                 "-Messaging",
                 "-CrashForUAT",
-                $"-SessionId={Id.ToString().Replace("-", "").Replace("{", "").Replace("}", "").ToUpperInvariant()}",
+                $"-SessionId={Id.ToString().Replace("-", "", StringComparison.Ordinal).Replace("{", "", StringComparison.Ordinal).Replace("}", "", StringComparison.Ordinal).ToUpperInvariant()}",
                 $"-SessionName={DisplayName}",
-                $"-SessionOwner={(Environment.UserName.Contains("$") ? "SYSTEM" : Environment.UserName)}",
+                $"-SessionOwner={(Environment.UserName.Contains('$', StringComparison.Ordinal) ? "SYSTEM" : Environment.UserName)}",
                 // The engine will check for UObject leaks inside world memory and force a crash if it detects them. However, these are unrelated to
                 // automation tests (which don't operate in the world for the most part), so we want to avoid these crashes.
                 "-ini:Engine:[Core.Log]:LogEditorServer=NoLogging",
@@ -121,7 +121,7 @@
                     DisableOpenGE = true,
                 },
                 this,
-                _cancellationTokenSource.Token));
+                _cancellationTokenSource.Token).ConfigureAwait(false));
 
             var didFireExit = false;
             try
@@ -133,21 +133,21 @@
                     {
                         _logger.LogWarning($"[{Id}] Executable exited with no exit code information, because the task was cancelled");
                         didFireExit = true;
-                        await _onWorkerExited(this, int.MinValue, null);
+                        await _onWorkerExited(this, int.MinValue, null).ConfigureAwait(false);
                         return;
                     }
                     if (automationTask.IsFaulted)
                     {
                         _logger.LogError($"[{Id}] Executable exited with no exit code information, because the task fired an exception: {automationTask.Exception}");
                         didFireExit = true;
-                        await _onWorkerExited(this, int.MinValue, null);
+                        await _onWorkerExited(this, int.MinValue, null).ConfigureAwait(false);
                         return;
                     }
                     if (automationTask.IsCompletedSuccessfully)
                     {
                         _logger.LogWarning($"[{Id}] Executable exited unexpectedly with exit code {automationTask.Result}");
                         didFireExit = true;
-                        await _onWorkerExited(this, automationTask.Result, null);
+                        await _onWorkerExited(this, automationTask.Result, null).ConfigureAwait(false);
                         return;
                     }
 
@@ -162,7 +162,7 @@
                         _logger.LogTrace($"[{Id}] Still waiting to be able to connect...");
                         continue;
                     }
-                    catch (IOException ex) when (ex.Message.Contains("An existing connection was forcibly closed by the remote host."))
+                    catch (IOException ex) when (ex.Message.Contains("An existing connection was forcibly closed by the remote host.", StringComparison.OrdinalIgnoreCase))
                     {
                         _logger.LogTrace($"[{Id}] Connection was unexpectedly disconnected.");
                         continue;
@@ -174,13 +174,13 @@
                 st.Stop();
                 _startupDuration = st.Elapsed;
                 _logger.LogTrace($"[{Id}] Worker ready in {_startupDuration.TotalSeconds} secs.");
-                await _onWorkerStarted(this);
+                await _onWorkerStarted(this).ConfigureAwait(false);
 
                 // Wait until DisposeAsync is called.
                 while (!_cancellationTokenSource.IsCancellationRequested)
                 {
                     // @note: This will throw, but DisposeAsync will eat the exception.
-                    await Task.Delay(1000, _cancellationTokenSource.Token);
+                    await Task.Delay(1000, _cancellationTokenSource.Token).ConfigureAwait(false);
                 }
             }
             finally
@@ -191,7 +191,7 @@
                 }
                 try
                 {
-                    await automationTask;
+                    await automationTask.ConfigureAwait(false);
                 }
                 catch
                 {
@@ -201,17 +201,17 @@
                     if (automationTask.IsCanceled)
                     {
                         _logger.LogTrace($"[{Id}] Executable exited with no exit code information, because the task was cancelled");
-                        await _onWorkerExited(this, int.MinValue, null);
+                        await _onWorkerExited(this, int.MinValue, null).ConfigureAwait(false);
                     }
                     if (automationTask.IsFaulted)
                     {
                         _logger.LogError($"[{Id}] Executable exited with no exit code information, because the task fired an exception: {automationTask.Exception}");
-                        await _onWorkerExited(this, int.MinValue, null);
+                        await _onWorkerExited(this, int.MinValue, null).ConfigureAwait(false);
                     }
                     if (automationTask.IsCompletedSuccessfully)
                     {
                         _logger.LogTrace($"[{Id}] Executable exited with exit code {automationTask.Result}");
-                        await _onWorkerExited(this, automationTask.Result, null);
+                        await _onWorkerExited(this, automationTask.Result, null).ConfigureAwait(false);
                     }
                 }
             }
@@ -260,12 +260,13 @@
             {
                 try
                 {
-                    await _backgroundTask;
+                    await _backgroundTask.ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
                 }
             }
+            _cancellationTokenSource.Dispose();
         }
 
         bool ICaptureSpecification.InterceptStandardInput => true;

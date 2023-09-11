@@ -1,16 +1,19 @@
 ﻿namespace Redpoint.Uet.Workspace.Descriptors
 {
+    using System.Diagnostics.CodeAnalysis;
+
     public record class GitWorkspaceDescriptor : IWorkspaceDescriptor
     {
+        [SuppressMessage("Design", "CA1056:URI-like properties should not be strings", Justification = "Git URLs are not compatible with the Uri object.")]
         public required string RepositoryUrl { get; set; }
 
         public required string RepositoryCommitOrRef { get; set; }
 
-        public required string[] AdditionalFolderLayers { get; set; }
+        public required IReadOnlyList<string> AdditionalFolderLayers { get; set; }
 
-        public required string[] AdditionalFolderZips { get; set; }
+        public required IReadOnlyList<string> AdditionalFolderZips { get; set; }
 
-        public required string[] WorkspaceDisambiguators { get; set; }
+        public required IReadOnlyList<string> WorkspaceDisambiguators { get; set; }
 
         public required string? WindowsSharedGitCachePath { get; set; }
 

@@ -29,7 +29,7 @@
 
                         while (ni < name.Length)
                         {
-                            if (IsNameInExpression(expression.Substring(ei), name.Substring(ni), ignoreCase))
+                            if (IsNameInExpression(expression[ei..], name[ni..], ignoreCase))
                                 return true;
                             ni++;
                         }
@@ -46,7 +46,7 @@
 
                             if (!endReached)
                             {
-                                if (IsNameInExpression(expression.Substring(ei), name.Substring(ni), ignoreCase))
+                                if (IsNameInExpression(expression[ei..], name[ni..], ignoreCase))
                                     return true;
                                 ni++;
                             }
@@ -113,7 +113,7 @@
                 }
             }
 
-            var nextExpressionChars = expression.Substring(ei);
+            var nextExpressionChars = expression[ei..];
             var areNextExpressionCharsAllNullMatchers = expression.Any() && !string.IsNullOrEmpty(nextExpressionChars) && nextExpressionChars.All(x => _charsThatMatchEmptyStringsAtEnd.Contains(x));
             var isNameCurrentCharTheLast = ni == name.Length;
             if (ei == expression.Length && isNameCurrentCharTheLast || isNameCurrentCharTheLast && areNextExpressionCharsAllNullMatchers)

@@ -6,7 +6,7 @@
     using System.Threading.Tasks;
     using Redpoint.Uefs.Protocol;
 
-    internal class PullGitCommitTransactionExecutor : ITransactionExecutor<PullGitCommitTransactionRequest>
+    internal sealed class PullGitCommitTransactionExecutor : ITransactionExecutor<PullGitCommitTransactionRequest>
     {
         private readonly ILogger<PullGitCommitTransactionExecutor> _logger;
 
@@ -24,7 +24,7 @@
             // @todo: This should use the path of the Git repo as a uniqueness element
             // of the lock, but we never have multiple Git repos in UEFS at the moment
             // so it's not worth changing the API of IGitRepoManager for.
-            using (await context.ObtainLockAsync($"GitPull", cancellationToken))
+            using (await context.ObtainLockAsync($"GitPull", cancellationToken).ConfigureAwait(false))
             {
                 context.UpdatePollingResponse(x =>
                 {
@@ -65,7 +65,7 @@
                             {
                                 op.ReceiveGitUpdate(progress);
                             });
-                        });
+                        }).ConfigureAwait(false);
                 }
                 finally
                 {

@@ -3,7 +3,7 @@
     using Microsoft.CodeAnalysis;
     using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-    internal class RuntimeJsonSyntaxReceiver : ISyntaxContextReceiver
+    internal sealed class RuntimeJsonSyntaxReceiver : ISyntaxContextReceiver
     {
         public List<RuntimeJsonSerializerEntry> Entries = new List<RuntimeJsonSerializerEntry>();
 

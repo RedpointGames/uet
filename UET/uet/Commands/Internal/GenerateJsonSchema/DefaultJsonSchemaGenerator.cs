@@ -17,7 +17,7 @@
     using System.IO;
     using Microsoft.Extensions.Logging;
 
-    internal class DefaultJsonSchemaGenerator : IJsonSchemaGenerator
+    internal sealed class DefaultJsonSchemaGenerator : IJsonSchemaGenerator
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<DefaultJsonSchemaGenerator> _logger;
@@ -32,7 +32,7 @@
 
             _descriptionDocuments = Assembly.GetExecutingAssembly()
                 .GetManifestResourceNames()
-                .Where(x => x.EndsWith(".xml"))
+                .Where(x => x.EndsWith(".xml", StringComparison.Ordinal))
                 .Select(x =>
                 {
                     var doc = new XmlDocument();
@@ -76,7 +76,7 @@
                     sb.Append(text.InnerText);
                 }
             }
-            var lines = sb.ToString().Replace("\r", "").Replace("\t", "    ").Split('\n');
+            var lines = sb.ToString().Replace("\r", "", StringComparison.Ordinal).Replace("\t", "    ", StringComparison.Ordinal).Split('\n');
             var nsb = new StringBuilder();
             var hasContent = false;
             var indent = 0;
@@ -93,14 +93,14 @@
                 }
                 if (lines[i].Length > indent)
                 {
-                    nsb.AppendLine(lines[i].Substring(indent).TrimEnd());
+                    nsb.AppendLine(lines[i][indent..].TrimEnd());
                 }
                 else
                 {
                     nsb.AppendLine();
                 }
             }
-            return nsb.ToString().Trim().Replace("\r\n", "\n");
+            return nsb.ToString().Trim().Replace("\r\n", "\n", StringComparison.Ordinal);
         }
 
         private void GenerateSchemaForObject(Utf8JsonWriter writer, JsonTypeInfo jsonTypeInfo, JsonSerializerContext jsonTypeInfoResolver)

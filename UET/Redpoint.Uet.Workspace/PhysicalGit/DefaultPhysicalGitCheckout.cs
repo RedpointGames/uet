@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.Workspace.PhysicalGit
 {
+    using Redpoint.Concurrency;
     using Microsoft.Extensions.Logging;
     using Redpoint.CredentialDiscovery;
     using Redpoint.IO;
@@ -58,7 +59,7 @@
             public required bool ExcludeOnMac { get; set; }
         }
 
-        private async Task<IEnumerable<SubmoduleDescription>> ParseSubmodulesAsync(string path)
+        private static async Task<IEnumerable<SubmoduleDescription>> ParseSubmodulesAsync(string path)
         {
             var results = new List<SubmoduleDescription>();
             var submoduleGroupName = string.Empty;
@@ -70,9 +71,9 @@
             {
                 return results;
             }
-            foreach (var line in await File.ReadAllLinesAsync(gitmodulesPath))
+            foreach (var line in await File.ReadAllLinesAsync(gitmodulesPath).ConfigureAwait(false))
             {
-                if (line.StartsWith("[submodule \""))
+                if (line.StartsWith("[submodule \"", StringComparison.Ordinal))
                 {
                     if (!string.IsNullOrWhiteSpace(submoduleGroupName) &&
                         !string.IsNullOrWhiteSpace(submodulePath) &&
@@ -83,26 +84,26 @@
                             Id = submoduleGroupName,
                             Path = submodulePath,
                             Url = submoduleUrl,
-                            ExcludeOnMac = submoduleExcludeOnMac.Equals("true", StringComparison.InvariantCultureIgnoreCase),
+                            ExcludeOnMac = submoduleExcludeOnMac.Equals("true", StringComparison.OrdinalIgnoreCase),
                         });
                     }
-                    submoduleGroupName = line.Substring("[submodule \"".Length);
-                    submoduleGroupName = submoduleGroupName.Substring(0, submoduleGroupName.Length - 1);
+                    submoduleGroupName = line["[submodule \"".Length..];
+                    submoduleGroupName = submoduleGroupName[..^1];
                     submodulePath = string.Empty;
                     submoduleUrl = string.Empty;
                     submoduleExcludeOnMac = string.Empty;
                 }
-                else if (line.Trim().StartsWith("path = ") && !string.IsNullOrWhiteSpace(submoduleGroupName))
+                else if (line.Trim().StartsWith("path = ", StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(submoduleGroupName))
                 {
-                    submodulePath = line.Substring(line.IndexOf("path = ") + "path = ".Length).Trim();
+                    submodulePath = line[(line.IndexOf("path = ", StringComparison.Ordinal) + "path = ".Length)..].Trim();
                 }
-                else if (line.Trim().StartsWith("url = ") && !string.IsNullOrWhiteSpace(submoduleGroupName))
+                else if (line.Trim().StartsWith("url = ", StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(submoduleGroupName))
                 {
-                    submoduleUrl = line.Substring(line.IndexOf("url = ") + "url = ".Length).Trim();
+                    submoduleUrl = line[(line.IndexOf("url = ", StringComparison.Ordinal) + "url = ".Length)..].Trim();
                 }
-                else if (line.Trim().StartsWith("exclude-on-mac = ") && !string.IsNullOrWhiteSpace(submoduleGroupName))
+                else if (line.Trim().StartsWith("exclude-on-mac = ", StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(submoduleGroupName))
                 {
-                    submoduleExcludeOnMac = line.Substring(line.IndexOf("exclude-on-mac = ") + "exclude-on-mac = ".Length).Trim();
+                    submoduleExcludeOnMac = line[(line.IndexOf("exclude-on-mac = ", StringComparison.Ordinal) + "exclude-on-mac = ".Length)..].Trim();
                 }
             }
             if (!string.IsNullOrWhiteSpace(submoduleGroupName) &&
@@ -114,13 +115,13 @@
                     Id = submoduleGroupName,
                     Path = submodulePath,
                     Url = submoduleUrl,
-                    ExcludeOnMac = submoduleExcludeOnMac.Equals("true", StringComparison.InvariantCultureIgnoreCase),
+                    ExcludeOnMac = submoduleExcludeOnMac.Equals("true", StringComparison.OrdinalIgnoreCase),
                 });
             }
             return results;
         }
 
-        private IEnumerable<FileInfo> GetPluginAndProjectFiles(DirectoryInfo directory)
+        private static IEnumerable<FileInfo> GetPluginAndProjectFiles(DirectoryInfo directory)
         {
             foreach (var file in directory.GetFiles("*.uproject", new EnumerationOptions { RecurseSubdirectories = true }))
             {
@@ -132,7 +133,7 @@
             }
         }
 
-        private DirectoryInfo GetGitBaseDirectoryForPath(FileInfo cleanFile)
+        private static DirectoryInfo GetGitBaseDirectoryForPath(FileInfo cleanFile)
         {
             var directory = cleanFile.Directory;
             while (directory != null)
@@ -158,7 +159,7 @@
                 var exitCode = await _processExecutor.ExecuteAsync(
                     processSpecification,
                     captureSpecification,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 if (exitCode == 128 && attempts < 10)
                 {
                     // 'git fetch' returns exit code 128 when the remote host
@@ -166,7 +167,7 @@
                     // network connections by simply retrying the 'git fetch'
                     // operation.
                     _logger.LogWarning($"'git fetch' encountered a network error while fetching commits. Retrying the fetch operation in {backoff}ms...");
-                    await Task.Delay(backoff);
+                    await Task.Delay(backoff, cancellationToken).ConfigureAwait(false);
                     backoff *= 2;
                     if (backoff > 30000)
                     {
@@ -187,26 +188,26 @@
             } while (true);
         }
 
-        private async IAsyncEnumerable<(DirectoryInfo contentDirectory, SubmoduleDescription submodule, DirectoryInfo submoduleGitDirectory)> IterateContentBasedSubmodulesAsync(
+        private static async IAsyncEnumerable<(DirectoryInfo contentDirectory, SubmoduleDescription submodule, DirectoryInfo submoduleGitDirectory)> IterateContentBasedSubmodulesAsync(
             string repositoryPath,
             GitWorkspaceDescriptor descriptor)
         {
-            foreach (var topLevelSubmodule in await ParseSubmodulesAsync(repositoryPath))
+            foreach (var topLevelSubmodule in await ParseSubmodulesAsync(repositoryPath).ConfigureAwait(false))
             {
                 if (topLevelSubmodule.ExcludeOnMac && OperatingSystem.IsMacOS())
                 {
                     continue;
                 }
 
-                if (topLevelSubmodule.Path.Contains("/Source/") || (descriptor.ProjectFolderName != null && topLevelSubmodule.Path.StartsWith($"{descriptor.ProjectFolderName}/Plugins/")))
+                if (topLevelSubmodule.Path.Contains("/Source/", StringComparison.Ordinal) || (descriptor.ProjectFolderName != null && topLevelSubmodule.Path.StartsWith($"{descriptor.ProjectFolderName}/Plugins/", StringComparison.Ordinal)))
                 {
                     yield return (
                         new DirectoryInfo(repositoryPath),
                         topLevelSubmodule,
                         new DirectoryInfo($"{repositoryPath}/.git/modules/{topLevelSubmodule.Id}"));
-                    if (descriptor.ProjectFolderName != null && topLevelSubmodule.Path.StartsWith($"{descriptor.ProjectFolderName}/Plugins/"))
+                    if (descriptor.ProjectFolderName != null && topLevelSubmodule.Path.StartsWith($"{descriptor.ProjectFolderName}/Plugins/", StringComparison.Ordinal))
                     {
-                        foreach (var childSubmodule in await ParseSubmodulesAsync($"{repositoryPath}/{topLevelSubmodule.Path}"))
+                        foreach (var childSubmodule in await ParseSubmodulesAsync($"{repositoryPath}/{topLevelSubmodule.Path}").ConfigureAwait(false))
                         {
                             if (childSubmodule.ExcludeOnMac && OperatingSystem.IsMacOS())
                             {
@@ -245,7 +246,7 @@
                         submoduleContentPath,
                         submoduleGitDirectory.FullName);
                     _logger.LogInformation($"Attaching submodule {submodule.Path} to {relativeModulePath}...");
-                    await File.WriteAllTextAsync(submoduleGitIndicatorFile, relativeModulePath);
+                    await File.WriteAllTextAsync(submoduleGitIndicatorFile, relativeModulePath, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -264,7 +265,7 @@
                             EnvironmentVariables = gitEnvs,
                         },
                         CaptureSpecification.Sanitized,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                     if (exitCode != 0)
                     {
                         throw new InvalidOperationException($"'git init' inside {submoduleContentPath} exited with non-zero exit code {exitCode}");
@@ -291,7 +292,7 @@
                         EnvironmentVariables = gitEnvs,
                     },
                     CaptureSpecification.Sanitized,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
                     throw new InvalidOperationException($"'git submodule absorbgitdirs' for {submodule.Path} exited with non-zero exit code {exitCode}");
@@ -317,7 +318,7 @@
                     EnvironmentVariables = gitEnvs,
                 },
                 CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(submoduleStatusStringBuilder),
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             if (exitCode != 0)
             {
                 throw new InvalidOperationException($"'git ls-tree' for {submodule.Path} exited with non-zero exit code {exitCode}");
@@ -341,7 +342,7 @@
                 var assignedAbsolute = false;
                 for (int i = 0; i < relativePathComponents.Length; i++)
                 {
-                    if (i == 0 && relativePathComponents[i] == string.Empty)
+                    if (i == 0 && string.IsNullOrEmpty(relativePathComponents[i]))
                     {
                         // This is an absolute path reset, like "/a/b/c".
                         _logger.LogTrace($"Component {i} {relativePathComponents[i]}: absolute path reset");
@@ -387,14 +388,14 @@
                     EnvironmentVariables = gitEnvs,
                 },
                 CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(currentHeadStringBuilder),
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             var submoduleGitCheckoutPath = Path.Combine(submoduleContentPath, ".gitcheckout");
             if (currentHeadStringBuilder.ToString().Trim() == submoduleCommit)
             {
                 // We have our own .gitcheckout file which we write after we finish all submodule work. That way, we know the previous checkout completed successfully even if it failed during submodule work.
                 if (File.Exists(submoduleGitCheckoutPath))
                 {
-                    var lastSubmoduleCommit = (await File.ReadAllTextAsync(submoduleGitCheckoutPath)).Trim();
+                    var lastSubmoduleCommit = (await File.ReadAllTextAsync(submoduleGitCheckoutPath, cancellationToken).ConfigureAwait(false)).Trim();
                     if (lastSubmoduleCommit == submoduleCommit)
                     {
                         _logger.LogInformation($"Git submodule {submoduleContentPath} already up-to-date.");
@@ -436,7 +437,7 @@
                     EnvironmentVariables = gitEnvs,
                 },
                 CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitTypeStringBuilder),
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             var gitType = gitTypeStringBuilder.ToString().Trim();
             if (gitType != "commit")
             {
@@ -461,7 +462,7 @@
                             EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
                         CaptureSpecification.Sanitized,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
                 if (exitCode != 0)
                 {
@@ -489,14 +490,14 @@
                     EnvironmentVariables = gitEnvs,
                 },
                 CaptureSpecification.Sanitized,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             if (exitCode != 0)
             {
                 throw new InvalidOperationException($"'git checkout' for {submodule.Path} exited with non-zero exit code {exitCode}");
             }
 
             // Write our .gitcheckout file which tells subsequent calls that we're up-to-date.
-            await File.WriteAllTextAsync(submoduleGitCheckoutPath, submoduleCommit);
+            await File.WriteAllTextAsync(submoduleGitCheckoutPath, submoduleCommit, cancellationToken).ConfigureAwait(false);
         }
 
         private async Task PrepareNonEngineGitWorkspaceAsync(
@@ -504,7 +505,7 @@
             GitWorkspaceDescriptor descriptor,
             CancellationToken cancellationToken)
         {
-            var git = await _pathResolver.ResolveBinaryPath("git");
+            var git = await _pathResolver.ResolveBinaryPath("git").ConfigureAwait(false);
             var gitEnvs = new Dictionary<string, string>
             {
                 { "GIT_ASK_YESNO", "false" },
@@ -530,7 +531,7 @@
                         EnvironmentVariables = gitEnvs,
                     },
                     CaptureSpecification.Sanitized,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
                     throw new InvalidOperationException($"'git init' exited with non-zero exit code {exitCode}");
@@ -552,7 +553,7 @@
                         EnvironmentVariables = gitEnvs,
                     },
                     CaptureSpecification.Sanitized,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
                     throw new InvalidOperationException($"'git -C ... config core.symlinks true' exited with non-zero exit code {exitCode}");
@@ -583,7 +584,7 @@
                             EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
                         CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(resolvedRefStringBuilder),
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
                 if (exitCode != 0)
                 {
@@ -594,10 +595,10 @@
                     throw new InvalidOperationException($"'git ls-remote --exit-code ...' did not return any match refs for '{targetCommit}'");
                 }
                 string? resolvedRef = null;
-                foreach (var line in resolvedRefStringBuilder.ToString().Replace("\r\n", "\n").Split('\n'))
+                foreach (var line in resolvedRefStringBuilder.ToString().Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
                 {
-                    var component = line.Replace("\t", " ").Split(" ")[0];
-                    if (line.Contains("refs/tags/"))
+                    var component = line.Replace("\t", " ", StringComparison.Ordinal).Split(" ")[0];
+                    if (line.Contains("refs/tags/", StringComparison.Ordinal))
                     {
                         targetIsPotentialAnnotatedTag = true;
                     }
@@ -632,7 +633,7 @@
                     EnvironmentVariables = gitEnvs,
                 },
                 CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(currentHead),
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             if (currentHead.ToString().Trim() == targetCommit)
             {
                 // We have our own .gitcheckout file which we write after we finish all submodule work. That way, we know the previous checkout completed successfully even if it failed during submodule work.
@@ -688,7 +689,7 @@
                     EnvironmentVariables = gitEnvs,
                 },
                 CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitTypeBuilder),
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             var gitType = gitTypeBuilder.ToString().Trim();
 
             // If we know this is an annotated commit, resolve which commit it points to.
@@ -712,7 +713,7 @@
                         EnvironmentVariables = gitEnvs,
                     },
                     CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(targetCommitBuilder),
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 if (!string.IsNullOrWhiteSpace(targetCommitBuilder.ToString()))
                 {
                     targetCommit = targetCommitBuilder.ToString().Trim();
@@ -733,7 +734,7 @@
                             EnvironmentVariables = gitEnvs,
                         },
                         CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitTypeBuilder),
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                     gitType = gitTypeBuilder.ToString().Trim();
                 }
             }
@@ -769,7 +770,7 @@
                                     EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                                 },
                                 CaptureSpecification.Sanitized,
-                                cancellationToken);
+                                cancellationToken).ConfigureAwait(false);
                         }
                         // Now that we've fetched the potential tag, check if it really is a tag. If it is, resolve it to the commit hash instead.
                         gitTypeBuilder = new StringBuilder();
@@ -789,7 +790,7 @@
                                 EnvironmentVariables = gitEnvs,
                             },
                             CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitTypeBuilder),
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
                         gitType = gitTypeBuilder.ToString().Trim();
                         if (gitType == "tag")
                         {
@@ -811,7 +812,7 @@
                                     EnvironmentVariables = gitEnvs,
                                 },
                                 CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(targetCommitBuilder),
-                                cancellationToken);
+                                cancellationToken).ConfigureAwait(false);
                             targetCommit = targetCommitBuilder.ToString().Trim();
                         }
                     }
@@ -838,10 +839,10 @@
                                     EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                                 },
                                 CaptureSpecification.Sanitized,
-                                cancellationToken);
+                                cancellationToken).ConfigureAwait(false);
                         }
                     }
-                    if (fetchStringBuilder.ToString().Contains("fatal: early EOF"))
+                    if (fetchStringBuilder.ToString().Contains("fatal: early EOF", StringComparison.Ordinal))
                     {
                         // Temporary connection issue with Git server. Retry.
                         continue;
@@ -874,7 +875,7 @@
                             EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
                         CaptureSpecification.Sanitized,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
                 if (exitCode != 0)
                 {
@@ -902,7 +903,7 @@
                     EnvironmentVariables = gitEnvs,
                 },
                 CaptureSpecification.Sanitized,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             if (exitCode != 0)
             {
                 // Attempt to re-fetch LFS files, in case that was the error.
@@ -926,7 +927,7 @@
                             EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
                         CaptureSpecification.Sanitized,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
                 if (exitCode != 0)
                 {
@@ -953,7 +954,7 @@
                         EnvironmentVariables = gitEnvs,
                     },
                     CaptureSpecification.Sanitized,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
                     throw new InvalidOperationException($"'git checkout ...' exited with non-zero exit code {exitCode}");
@@ -968,8 +969,8 @@
                 foreach (var cleanFile in GetPluginAndProjectFiles(new DirectoryInfo(repositoryPath)))
                 {
                     var baseDirectory = GetGitBaseDirectoryForPath(cleanFile);
-                    var relativeBasePathToCleanDir = Path.GetRelativePath(baseDirectory.FullName, cleanFile.DirectoryName!).Replace("\\", "/").Trim('/');
-                    var relativeReservedPathToBase = Path.GetRelativePath(repositoryPath, baseDirectory.FullName).Replace("\\", "/").Trim('/');
+                    var relativeBasePathToCleanDir = Path.GetRelativePath(baseDirectory.FullName, cleanFile.DirectoryName!).Replace("\\", "/", StringComparison.Ordinal).Trim('/');
+                    var relativeReservedPathToBase = Path.GetRelativePath(repositoryPath, baseDirectory.FullName).Replace("\\", "/", StringComparison.Ordinal).Trim('/');
                     exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
@@ -986,7 +987,7 @@
                             EnvironmentVariables = gitEnvs,
                         },
                         CaptureSpecification.Silence,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                     if (exitCode != 0)
                     {
                         // This is not a tracked project/plugin, nuke the build sensitive folders directly and expect BuildGraph to either populate or download them.
@@ -996,7 +997,7 @@
                             if (Directory.Exists(sensitivePath))
                             {
                                 _logger.LogInformation($"Nuking: ({relativeReservedPathToBase}) {relativeBasePathToCleanDir}/{sensitiveDirectory}");
-                                await DirectoryAsync.DeleteAsync(sensitivePath, true);
+                                await DirectoryAsync.DeleteAsync(sensitivePath, true).ConfigureAwait(false);
                             }
                         }
                     }
@@ -1025,7 +1026,7 @@
                                         EnvironmentVariables = gitEnvs,
                                     },
                                     CaptureSpecification.Sanitized,
-                                    cancellationToken);
+                                    cancellationToken).ConfigureAwait(false);
                             }
                         }
                     }
@@ -1043,13 +1044,11 @@
                     iter.contentDirectory,
                     iter.submodule,
                     iter.submoduleGitDirectory,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
 
             // Write our .gitcheckout file which tells subsequent calls that we're up-to-date.
-            await File.WriteAllTextAsync(
-                Path.Combine(repositoryPath, ".gitcheckout"),
-                targetCommit);
+            await File.WriteAllTextAsync(Path.Combine(repositoryPath, ".gitcheckout"), targetCommit, cancellationToken).ConfigureAwait(false);
         }
 
         private async Task PrepareEngineGitWorkspaceAsync(
@@ -1057,7 +1056,7 @@
             GitWorkspaceDescriptor descriptor,
             CancellationToken cancellationToken)
         {
-            var git = await _pathResolver.ResolveBinaryPath("git");
+            var git = await _pathResolver.ResolveBinaryPath("git").ConfigureAwait(false);
             var gitEnvs = new Dictionary<string, string>
             {
                 { "GIT_ASK_YESNO", "false" },
@@ -1090,7 +1089,7 @@
                             EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
                         CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(resolvedRefStringBuilder),
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
                 if (exitCode != 0)
                 {
@@ -1101,10 +1100,10 @@
                     throw new InvalidOperationException($"'git ls-remote --exit-code ...' did not return any match refs for '{targetCommit}'");
                 }
                 string? resolvedRef = null;
-                foreach (var line in resolvedRefStringBuilder.ToString().Replace("\r\n", "\n").Split('\n'))
+                foreach (var line in resolvedRefStringBuilder.ToString().Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
                 {
-                    var component = line.Replace("\t", " ").Split(" ")[0];
-                    if (line.Contains("refs/tags/"))
+                    var component = line.Replace("\t", " ", StringComparison.Ordinal).Split(" ")[0];
+                    if (line.Contains("refs/tags/", StringComparison.Ordinal))
                     {
                         targetIsPotentialAnnotatedTag = true;
                     }
@@ -1138,7 +1137,7 @@
             // Because engines are very large, we want to clone/fetch into a single reservation for the
             // engine and then checkout the branch we need.
             string sharedBareRepoPath;
-            await using (var sharedBareRepo = await GetSharedGitRepoPath(descriptor, cancellationToken))
+            await using ((await GetSharedGitRepoPath(descriptor, cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var sharedBareRepo).ConfigureAwait(false))
             {
                 sharedBareRepoPath = sharedBareRepo.ReservedPath;
 
@@ -1160,7 +1159,7 @@
                             EnvironmentVariables = gitEnvs,
                         },
                         CaptureSpecification.Sanitized,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                     if (exitCode != 0)
                     {
                         throw new InvalidOperationException($"'git init' exited with non-zero exit code {exitCode}");
@@ -1182,7 +1181,7 @@
                             EnvironmentVariables = gitEnvs,
                         },
                         CaptureSpecification.Sanitized,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                     if (exitCode != 0)
                     {
                         throw new InvalidOperationException($"'git -C ... config core.symlinks true' exited with non-zero exit code {exitCode}");
@@ -1192,10 +1191,10 @@
                 // Make sure that we can use the shared Git repository if it's on a network share.
                 _logger.LogInformation("Marking the shared Git repository as safe...");
                 var gitSafeDirectoryPath = sharedBareRepo.ReservedPath;
-                if (OperatingSystem.IsWindows() && gitSafeDirectoryPath.StartsWith(@"\\"))
+                if (OperatingSystem.IsWindows() && gitSafeDirectoryPath.StartsWith(@"\\", StringComparison.Ordinal))
                 {
                     // Git has a very weird way of specifying safe directories for UNC paths.
-                    gitSafeDirectoryPath = $"%(prefix)/{gitSafeDirectoryPath.Replace(@"\", "/")}";
+                    gitSafeDirectoryPath = $"%(prefix)/{gitSafeDirectoryPath.Replace(@"\", "/", StringComparison.Ordinal)}";
                 }
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
@@ -1213,7 +1212,7 @@
                         EnvironmentVariables = gitEnvs,
                     },
                     CaptureSpecification.Sanitized,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
                     throw new InvalidOperationException($"'git config --global --add safe.directory ...' exited with non-zero exit code {exitCode}");
@@ -1237,7 +1236,7 @@
                         EnvironmentVariables = gitEnvs,
                     },
                     CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitTypeBuilder),
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 var gitType = gitTypeBuilder.ToString().Trim();
 
                 // If we know this is an annotated commit, resolve which commit it points to.
@@ -1261,7 +1260,7 @@
                             EnvironmentVariables = gitEnvs,
                         },
                         CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(targetCommitBuilder),
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                     if (!string.IsNullOrWhiteSpace(targetCommitBuilder.ToString()))
                     {
                         targetCommit = targetCommitBuilder.ToString().Trim();
@@ -1282,7 +1281,7 @@
                                 EnvironmentVariables = gitEnvs,
                             },
                             CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitTypeBuilder),
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
                         gitType = gitTypeBuilder.ToString().Trim();
                     }
                 }
@@ -1318,7 +1317,7 @@
                                         EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                                     },
                                     CaptureSpecification.Sanitized,
-                                    cancellationToken);
+                                    cancellationToken).ConfigureAwait(false);
                             }
                             // Now that we've fetched the potential tag, check if it really is a tag. If it is, resolve it to the commit hash instead.
                             gitTypeBuilder = new StringBuilder();
@@ -1338,7 +1337,7 @@
                                     EnvironmentVariables = gitEnvs,
                                 },
                                 CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitTypeBuilder),
-                                cancellationToken);
+                                cancellationToken).ConfigureAwait(false);
                             gitType = gitTypeBuilder.ToString().Trim();
                             if (gitType == "tag")
                             {
@@ -1360,7 +1359,7 @@
                                         EnvironmentVariables = gitEnvs,
                                     },
                                     CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(targetCommitBuilder),
-                                    cancellationToken);
+                                    cancellationToken).ConfigureAwait(false);
                                 targetCommit = targetCommitBuilder.ToString().Trim();
                             }
                         }
@@ -1387,10 +1386,10 @@
                                         EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                                     },
                                     CaptureSpecification.Sanitized,
-                                    cancellationToken);
+                                    cancellationToken).ConfigureAwait(false);
                             }
                         }
-                        if (fetchStringBuilder.ToString().Contains("fatal: early EOF"))
+                        if (fetchStringBuilder.ToString().Contains("fatal: early EOF", StringComparison.Ordinal))
                         {
                             // Temporary connection issue with Git server. Retry.
                             continue;
@@ -1424,7 +1423,7 @@
                                 EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                             },
                             CaptureSpecification.Sanitized,
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
                     }
                     if (exitCode != 0)
                     {
@@ -1435,7 +1434,7 @@
                 try
                 {
                     _logger.LogInformation("Granting everyone access to the shared Git repository...");
-                    await _worldPermissionApplier.GrantEveryonePermissionAsync(sharedBareRepo.ReservedPath, cancellationToken);
+                    await _worldPermissionApplier.GrantEveryonePermissionAsync(sharedBareRepo.ReservedPath, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -1453,7 +1452,7 @@
                     catch
                     {
                         _logger.LogWarning("Unable to remove index.lock (another process may be using it, even though we have the reservation). Retrying in 10 seconds...");
-                        await Task.Delay(10000);
+                        await Task.Delay(10000, cancellationToken).ConfigureAwait(false);
                         continue;
                     }
                 }
@@ -1480,7 +1479,7 @@
                         EnvironmentVariables = gitEnvs,
                     },
                     CaptureSpecification.Sanitized,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
                     throw new InvalidOperationException($"'git restore ...' exited with non-zero exit code {exitCode}");
@@ -1493,9 +1492,9 @@
                 var foldersToLayer = new List<string>(descriptor.AdditionalFolderLayers);
                 foreach (var consoleZip in descriptor.AdditionalFolderZips)
                 {
-                    await using (var reservation = await _reservationManagerForUet.ReserveAsync(
+                    await using ((await _reservationManagerForUet.ReserveAsync(
                         "ConsoleZip",
-                        consoleZip))
+                        consoleZip).ConfigureAwait(false)).AsAsyncDisposable(out var reservation).ConfigureAwait(false))
                     {
                         var extractPath = Path.Combine(reservation.ReservedPath, "extracted");
                         Directory.CreateDirectory(extractPath);
@@ -1522,7 +1521,7 @@
                         {
                             _logger.LogInformation($"Robocopy '{folder}' -> '{repositoryPath}': Started...");
                             var stopwatch = Stopwatch.StartNew();
-                            var robocopy = await _pathResolver.ResolveBinaryPath("robocopy");
+                            var robocopy = await _pathResolver.ResolveBinaryPath("robocopy").ConfigureAwait(false);
                             var exitCode = await _processExecutor.ExecuteAsync(
                                 new ProcessSpecification
                                 {
@@ -1543,7 +1542,7 @@
                                     WorkingDirectory = repositoryPath,
                                 },
                                 CaptureSpecification.Silence,
-                                ct);
+                                ct).ConfigureAwait(false);
                             stopwatch.Stop();
                             if (exitCode > 8)
                             {
@@ -1556,7 +1555,7 @@
                                 {
                                     var delay = (attempt * 10);
                                     _logger.LogWarning($"Robocopy '{folder}' -> '{repositoryPath}': Failed in {stopwatch.Elapsed.TotalSeconds,0} secs with exit code {exitCode}, retrying in {delay} seconds...");
-                                    await Task.Delay(delay * 1000);
+                                    await Task.Delay(delay * 1000, ct).ConfigureAwait(false);
                                     continue;
                                 }
                             }
@@ -1566,11 +1565,11 @@
                                 break;
                             }
                         }
-                    });
+                    }).ConfigureAwait(false);
             }
 
             // First run GitDependencies.exe to fetch all our binary dependencies into a shared cache.
-            await using (var gitDepsCache = await GetSharedGitDependenciesPath(descriptor, cancellationToken))
+            await using ((await GetSharedGitDependenciesPath(descriptor, cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var gitDepsCache).ConfigureAwait(false))
             {
                 var gitDependenciesRootPath = Path.Combine(repositoryPath, "Engine", "Binaries", "DotNET", "GitDependencies");
                 var gitDependenciesPath = true switch
@@ -1594,7 +1593,7 @@
                             }
                         },
                         CaptureSpecification.Passthrough,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                     if (exitCode != 0)
                     {
                         throw new InvalidOperationException($"'GitDependencies --all --force ...' exited with non-zero exit code {exitCode}");
@@ -1603,9 +1602,7 @@
             }
 
             // Write our .gitcheckout file which tells subsequent calls that we're up-to-date.
-            await File.WriteAllTextAsync(
-                Path.Combine(repositoryPath, ".gitcheckout"),
-                targetCommitForCommitStamp);
+            await File.WriteAllTextAsync(Path.Combine(repositoryPath, ".gitcheckout"), targetCommitForCommitStamp, cancellationToken).ConfigureAwait(false);
         }
 
         private IReservationManager GetSharedReservationManagerForPath(string sharedGitCachePath)
@@ -1618,16 +1615,16 @@
             if (OperatingSystem.IsWindows() && descriptor.WindowsSharedGitCachePath != null)
             {
                 var reservationManager = GetSharedReservationManagerForPath(descriptor.WindowsSharedGitCachePath);
-                return await reservationManager.ReserveExactAsync("Git", cancellationToken);
+                return await reservationManager.ReserveExactAsync("Git", cancellationToken).ConfigureAwait(false);
             }
             else if (OperatingSystem.IsMacOS() && descriptor.MacSharedGitCachePath != null)
             {
                 var reservationManager = GetSharedReservationManagerForPath(descriptor.MacSharedGitCachePath);
-                return await reservationManager.ReserveExactAsync("Git", cancellationToken);
+                return await reservationManager.ReserveExactAsync("Git", cancellationToken).ConfigureAwait(false);
             }
             else
             {
-                return await _reservationManagerForUet.ReserveExactAsync($"UnrealEngineGit", cancellationToken);
+                return await _reservationManagerForUet.ReserveExactAsync($"UnrealEngineGit", cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -1636,16 +1633,16 @@
             if (OperatingSystem.IsWindows() && descriptor.WindowsSharedGitCachePath != null)
             {
                 var reservationManager = GetSharedReservationManagerForPath(descriptor.WindowsSharedGitCachePath);
-                return await reservationManager.ReserveExactAsync("GitDeps", cancellationToken);
+                return await reservationManager.ReserveExactAsync("GitDeps", cancellationToken).ConfigureAwait(false);
             }
             else if (OperatingSystem.IsMacOS() && descriptor.MacSharedGitCachePath != null)
             {
                 var reservationManager = GetSharedReservationManagerForPath(descriptor.MacSharedGitCachePath);
-                return await reservationManager.ReserveExactAsync("GitDeps", cancellationToken);
+                return await reservationManager.ReserveExactAsync("GitDeps", cancellationToken).ConfigureAwait(false);
             }
             else
             {
-                return await _reservationManagerForUet.ReserveExactAsync($"UnrealEngineGitDeps", cancellationToken);
+                return await _reservationManagerForUet.ReserveExactAsync($"UnrealEngineGitDeps", cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -1669,7 +1666,7 @@
                 using (var stream = new StreamWriter(new FileStream(_path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)))
                 {
                     // @note: Private key content *must* have a newline at the end.
-                    stream.Write(privateKey.Replace("\r\n", "\n").Trim() + "\n");
+                    stream.Write(privateKey.Replace("\r\n", "\n", StringComparison.Ordinal).Trim() + "\n");
                 }
 
                 // @note: The identity file path format is extremely jank.
@@ -1678,10 +1675,10 @@
                 {
                     var root = Path.GetPathRoot(identityPath)!;
                     root = $"/{root[0].ToString().ToLowerInvariant()}";
-                    identityPath = identityPath.Substring(root.Length);
-                    identityPath = root + "/" + identityPath.Replace("\\", "/").TrimStart('/');
+                    identityPath = identityPath[root.Length..];
+                    identityPath = root + "/" + identityPath.Replace("\\", "/", StringComparison.Ordinal).TrimStart('/');
                 }
-                identityPath = identityPath.Replace(" ", "\\ ");
+                identityPath = identityPath.Replace(" ", "\\ ", StringComparison.Ordinal);
 
                 _envVars = new Dictionary<string, string>
                 {
@@ -1708,7 +1705,7 @@
             try
             {
                 var uriCredential = _credentialDiscovery.GetGitCredential(repositoryUrl);
-                if (uri.Scheme.Equals("ssh", StringComparison.InvariantCultureIgnoreCase))
+                if (uri.Scheme.Equals("ssh", StringComparison.OrdinalIgnoreCase))
                 {
                     if (!string.IsNullOrWhiteSpace(uriCredential.SshPrivateKeyAsPem))
                     {

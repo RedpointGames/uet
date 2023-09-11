@@ -11,7 +11,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DefaultAutomationRunnerFactory : IAutomationRunnerFactory
+    internal sealed class DefaultAutomationRunnerFactory : IAutomationRunnerFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

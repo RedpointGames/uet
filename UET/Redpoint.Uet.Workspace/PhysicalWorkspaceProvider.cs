@@ -43,13 +43,13 @@
                 case FolderAliasWorkspaceDescriptor descriptor:
                     return new LocalWorkspace(descriptor.AliasedPath);
                 case FolderSnapshotWorkspaceDescriptor descriptor:
-                    return await AllocateSnapshotAsync(descriptor, cancellationToken);
+                    return await AllocateSnapshotAsync(descriptor, cancellationToken).ConfigureAwait(false);
                 case TemporaryWorkspaceDescriptor descriptor:
-                    return await AllocateTemporaryAsync(descriptor, cancellationToken);
+                    return await AllocateTemporaryAsync(descriptor, cancellationToken).ConfigureAwait(false);
                 case GitWorkspaceDescriptor descriptor:
-                    return await AllocateGitAsync(descriptor, cancellationToken);
+                    return await AllocateGitAsync(descriptor, cancellationToken).ConfigureAwait(false);
                 case UefsPackageWorkspaceDescriptor descriptor:
-                    return await _virtualWorkspaceProvider.GetWorkspaceAsync(descriptor, cancellationToken);
+                    return await _virtualWorkspaceProvider.GetWorkspaceAsync(descriptor, cancellationToken).ConfigureAwait(false);
                 default:
                     throw new NotSupportedException();
             }
@@ -58,7 +58,7 @@
         private async Task<IWorkspace> AllocateSnapshotAsync(FolderSnapshotWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
         {
             var usingReservation = false;
-            var reservation = await _reservationManager.ReserveAsync("PhysicalSnapshot", new[] { descriptor.SourcePath.ToLowerInvariant() }.Concat(descriptor.WorkspaceDisambiguators).ToArray());
+            var reservation = await _reservationManager.ReserveAsync("PhysicalSnapshot", new[] { descriptor.SourcePath.ToLowerInvariant() }.Concat(descriptor.WorkspaceDisambiguators).ToArray()).ConfigureAwait(false);
             try
             {
                 _logger.LogInformation($"Creating physical snapshot workspace: {reservation.ReservedPath} (of {descriptor.SourcePath})");
@@ -81,7 +81,7 @@
                             "Engine/Saved/BuildGraph",
                         }
                     },
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 usingReservation = true;
                 return new ReservationWorkspace(reservation);
             }
@@ -89,7 +89,7 @@
             {
                 if (!usingReservation)
                 {
-                    await reservation.DisposeAsync();
+                    await reservation.DisposeAsync().ConfigureAwait(false);
                 }
             }
         }
@@ -97,7 +97,7 @@
         private async Task<IWorkspace> AllocateTemporaryAsync(TemporaryWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
         {
             var usingReservation = false;
-            var reservation = await _reservationManager.ReserveAsync("PhysicalTemp", descriptor.Name);
+            var reservation = await _reservationManager.ReserveAsync("PhysicalTemp", descriptor.Name).ConfigureAwait(false);
             try
             {
                 _logger.LogInformation($"Creating physical temporary workspace: {reservation.ReservedPath}");
@@ -107,7 +107,7 @@
             {
                 if (!usingReservation)
                 {
-                    await reservation.DisposeAsync();
+                    await reservation.DisposeAsync().ConfigureAwait(false);
                 }
             }
         }
@@ -115,11 +115,11 @@
         private async Task<IWorkspace> AllocateGitAsync(GitWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
         {
             var usingReservation = false;
-            var reservation = await _reservationManager.ReserveAsync("PhysicalGit", new[] { descriptor.RepositoryUrl, descriptor.RepositoryCommitOrRef });
+            var reservation = await _reservationManager.ReserveAsync("PhysicalGit", new[] { descriptor.RepositoryUrl, descriptor.RepositoryCommitOrRef }).ConfigureAwait(false);
             try
             {
                 _logger.LogInformation($"Creating physical Git workspace: {reservation.ReservedPath}");
-                await _physicalGitCheckout.PrepareGitWorkspaceAsync(reservation.ReservedPath, descriptor, cancellationToken);
+                await _physicalGitCheckout.PrepareGitWorkspaceAsync(reservation.ReservedPath, descriptor, cancellationToken).ConfigureAwait(false);
                 usingReservation = true;
                 return new ReservationWorkspace(reservation);
             }
@@ -127,7 +127,7 @@
             {
                 if (!usingReservation)
                 {
-                    await reservation.DisposeAsync();
+                    await reservation.DisposeAsync().ConfigureAwait(false);
                 }
             }
         }

@@ -13,7 +13,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class LocalWorkerPool : IWorkerPool
+    internal sealed class LocalWorkerPool : IWorkerPool
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<LocalWorkerPool> _logger;
@@ -55,7 +55,7 @@
             _reservedWorkers = new List<LocalWorker>();
             _descriptorsWindingDown = new HashSet<DesiredWorkerDescriptor>();
             _loopbackPortReservationManager = reservationManagerFactory.CreateLoopbackPortReservationManager();
-            _runLoopTask = Task.Run(RunLoopAsync);
+            _runLoopTask = Task.Run(RunLoopAsync, cancellationToken);
         }
 
         public Task<IAsyncDisposable> ReserveAsync(IWorker worker)
@@ -72,7 +72,7 @@
             return Task.FromResult<IAsyncDisposable>(new WorkerReservation(this, (LocalWorker)worker));
         }
 
-        private class WorkerReservation : IAsyncDisposable
+        private sealed class WorkerReservation : IAsyncDisposable
         {
             private readonly LocalWorkerPool _workerPool;
             private readonly LocalWorker _worker;
@@ -92,15 +92,15 @@
 
         private async Task OnInternalWorkerStarted(IWorker worker)
         {
-            await _onWorkerStarted(worker);
+            await _onWorkerStarted(worker).ConfigureAwait(false);
         }
 
         private async Task OnInternalWorkerExited(IWorker worker, int exitCode, IWorkerCrashData? crashData)
         {
             _currentWorkers.Remove((LocalWorker)worker);
             _reservedWorkers.Remove((LocalWorker)worker);
-            await _testLogger.LogWorkerStopped(worker, crashData);
-            await _onWorkedExited(worker, exitCode, crashData);
+            await _testLogger.LogWorkerStopped(worker, crashData).ConfigureAwait(false);
+            await _onWorkedExited(worker, exitCode, crashData).ConfigureAwait(false);
         }
 
         private async Task RunLoopAsync()
@@ -121,7 +121,7 @@
                         if (workerDescriptor.Platform == hostPlatform &&
                             _systemResources.CanQuerySystemResources)
                         {
-                            var (availableMemory, totalMemory) = await _systemResources.GetMemoryInfo();
+                            var (availableMemory, totalMemory) = await _systemResources.GetMemoryInfo().ConfigureAwait(false);
                             var unrealRequiredMemory = (16uL * 1024 * 1024 * 1024);
                             var consumedMemory = (uint)targetWorkerCount * unrealRequiredMemory;
                             var memoryBasedWorkerCount = targetWorkerCount;
@@ -143,16 +143,16 @@
                                 .Select(x => $"{workerDescriptor.Platform}.{x}")
                                 .First(x => !currentWorkers.Any(y => y.DisplayName == x));
 
-                            var portReservation = await _loopbackPortReservationManager.ReserveAsync();
+                            var portReservation = await _loopbackPortReservationManager.ReserveAsync().ConfigureAwait(false);
                             var didConsumePort = false;
                             try
                             {
                                 LocalWorker newWorker;
                                 if (workerDescriptor.IsEditor)
                                 {
-                                    if (!workerDescriptor.Platform.Equals(hostPlatform, StringComparison.InvariantCultureIgnoreCase))
+                                    if (!workerDescriptor.Platform.Equals(hostPlatform, StringComparison.OrdinalIgnoreCase))
                                     {
-                                        await _onWorkerPoolFailure("A worker descriptor was marked as IsEditor but the target platform does not match the host platform.");
+                                        await _onWorkerPoolFailure("A worker descriptor was marked as IsEditor but the target platform does not match the host platform.").ConfigureAwait(false);
                                         _cancellationTokenSource.Cancel();
                                         _cancellationTokenSource.Token.ThrowIfCancellationRequested();
                                     }
@@ -166,7 +166,7 @@
                                         workerDescriptor,
                                         OnInternalWorkerStarted,
                                         OnInternalWorkerExited);
-                                    await _testLogger.LogWorkerStarting(newWorker);
+                                    await _testLogger.LogWorkerStarting(newWorker).ConfigureAwait(false);
                                 }
                                 else
                                 {
@@ -180,7 +180,7 @@
                                         workerDescriptor,
                                         OnInternalWorkerStarted,
                                         OnInternalWorkerExited);
-                                    await _testLogger.LogWorkerStarting(newWorker);
+                                    await _testLogger.LogWorkerStarting(newWorker).ConfigureAwait(false);
                                 }
                                 _currentWorkers.Add(newWorker);
                                 didConsumePort = true;
@@ -190,14 +190,14 @@
                             {
                                 if (!didConsumePort)
                                 {
-                                    await portReservation.DisposeAsync();
+                                    await portReservation.DisposeAsync().ConfigureAwait(false);
                                 }
                             }
                         }
                     }
 
                     // Wait a little bit before checking again.
-                    await Task.Delay(1000, _cancellationTokenSource.Token);
+                    await Task.Delay(1000, _cancellationTokenSource.Token).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException)
@@ -205,7 +205,7 @@
             }
             catch (Exception ex)
             {
-                await _onWorkerPoolFailure($"Unexpected exception in worker pool background loop: {ex}");
+                await _onWorkerPoolFailure($"Unexpected exception in worker pool background loop: {ex}").ConfigureAwait(false);
             }
             finally
             {
@@ -213,7 +213,7 @@
                 foreach (var worker in _currentWorkers.ToArray())
                 {
                     _logger.LogTrace($"Waiting for worker {worker.Id} to stop...");
-                    await worker.DisposeAsync();
+                    await worker.DisposeAsync().ConfigureAwait(false);
                 }
                 _currentWorkers.Clear();
             }
@@ -224,12 +224,13 @@
             _cancellationTokenSource.Cancel();
             try
             {
-                await _runLoopTask;
+                await _runLoopTask.ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
                 // This is expected.
             }
+            _cancellationTokenSource.Dispose();
         }
 
         public void FinishedWithWorker(IWorker worker)
@@ -246,7 +247,9 @@
                 // @note: We don't wait for this to complete, because we just need to get the cancellation token cancelled.
                 // If this function was async and awaited this task, it would induce a deadlock if FinishedWithWorker was
                 // called from OnWorkerStarted.
+#pragma warning disable CA2012
                 _ = ((LocalWorker)worker).DisposeAsync();
+#pragma warning restore CA2012
             }
             else
             {
@@ -270,7 +273,9 @@
                     // @note: We don't wait for this to complete, because we just need to get the cancellation token cancelled.
                     // If this function was async and awaited this task, it would induce a deadlock if FinishedWithWorker was
                     // called from OnWorkerStarted.
+#pragma warning disable CA2012
                     _ = worker.DisposeAsync();
+#pragma warning restore CA2012
                 }
             }
         }
@@ -288,7 +293,9 @@
                 // @note: We don't wait for this to complete, because we just need to get the cancellation token cancelled.
                 // If this function was async and awaited this task, it would induce a deadlock if KillWorker was
                 // called from OnWorkerStarted.
+#pragma warning disable CA2012
                 _ = ((LocalWorker)worker).DisposeAsync();
+#pragma warning restore CA2012
             }
             else
             {

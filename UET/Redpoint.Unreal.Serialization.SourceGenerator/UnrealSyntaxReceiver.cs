@@ -3,7 +3,7 @@
     using Microsoft.CodeAnalysis;
     using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-    internal class UnrealSyntaxReceiver : ISyntaxContextReceiver
+    internal sealed class UnrealSyntaxReceiver : ISyntaxContextReceiver
     {
         public List<UnrealSerializerEntry> Entries = new List<UnrealSerializerEntry>();
 

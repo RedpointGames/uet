@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Project.Gauntlet
 {
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
     public class BuildConfigProjectTestGauntlet
@@ -8,6 +9,7 @@
         /// Specifies the configurations and platforms that the Gauntlet tests is dependent on.
         /// </summary>
         [JsonPropertyName("Requires")]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public BuildConfigProjectTestGauntletRequire[]? Requires { get; set; }
 
         /// <summary>

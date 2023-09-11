@@ -53,6 +53,8 @@
 
         public override void Write(Utf8JsonWriter writer, Guid value, JsonSerializerOptions options)
         {
+            if (writer == null) throw new ArgumentNullException(nameof(writer));
+
             var (a, b, c, d) = ArchiveGuid.IntsFromGuid(value);
 
             writer.WriteStartObject();

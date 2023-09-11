@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class BranchResponse
+    internal sealed class BranchResponse
     {
         [JsonPropertyName("commit")]
         public CommitPointer? Commit { get; set; }

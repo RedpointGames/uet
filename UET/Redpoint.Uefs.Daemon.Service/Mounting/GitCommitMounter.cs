@@ -11,8 +11,9 @@
     using Redpoint.Vfs.Driver;
     using Redpoint.Vfs.Layer.Git;
     using System.Threading.Tasks;
+    using Redpoint.Concurrency;
 
-    internal class GitCommitMounter : IMounter<MountGitCommitRequest>
+    internal sealed class GitCommitMounter : IMounter<MountGitCommitRequest>
     {
         private readonly ILogger<GitCommitMounter> _logger;
         private readonly IVfsDriverFactory? _vfsDriverFactory;
@@ -35,7 +36,7 @@
             IUefsDaemon daemon,
             MountContext context,
             MountGitCommitRequest request,
-            TransactionListenerDelegate onPollingResponse,
+            TransactionListener onPollingResponse,
             CancellationToken cancellationToken)
         {
             if (daemon.IsPathMountPath(request.MountRequest.MountPath))
@@ -49,7 +50,7 @@
             }
 
             // Run pull transaction in case we need to pull this Git commit.
-            await using (var transaction = await daemon.TransactionalDatabase.BeginTransactionAsync(
+            await using ((await daemon.TransactionalDatabase.BeginTransactionAsync(
                 new PullGitCommitTransactionRequest
                 {
                     GitRepoManager = daemon.PackageStorage.GitRepoManager,
@@ -63,16 +64,16 @@
                     // Don't propagate the completion status, because we still have the mount to do.
                     if (response.Status != PollingResponseStatus.Complete)
                     {
-                        await onPollingResponse(response);
+                        await onPollingResponse(response).ConfigureAwait(false);
                     }
                 },
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var transaction).ConfigureAwait(false))
             {
-                await transaction.WaitForCompletionAsync(cancellationToken);
+                await transaction.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
             }
 
             // Now run the mount transaction.
-            await using (var transaction = await daemon.TransactionalDatabase.BeginTransactionAsync(
+            await using ((await daemon.TransactionalDatabase.BeginTransactionAsync(
                 new AddMountTransactionRequest
                 {
                     MountId = context.MountId,
@@ -89,7 +90,7 @@
                             Path.Combine(daemon.StoragePath, "git-blob"),
                             Path.Combine(daemon.StoragePath, "git-index-cache"),
                             request.Commit);
-                        await gitLayer.InitAsync(CancellationToken.None);
+                        await gitLayer.InitAsync(CancellationToken.None).ConfigureAwait(false);
 
                         var (writeScratchPath, vfs) = await _gitVfsSetup.MountAsync(
                             daemon,
@@ -97,7 +98,7 @@
                             Path.Combine(daemon.StoragePath, "git-repo"),
                             request.FolderLayers.ToArray(),
                             gitLayer,
-                            "Git mount");
+                            "Git mount").ConfigureAwait(false);
 
                         return (
                             mount: new CurrentGitUefsMount(
@@ -121,9 +122,9 @@
                     },
                 },
                 onPollingResponse,
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var transaction).ConfigureAwait(false))
             {
-                await transaction.WaitForCompletionAsync(cancellationToken);
+                await transaction.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
             }
         }
     }

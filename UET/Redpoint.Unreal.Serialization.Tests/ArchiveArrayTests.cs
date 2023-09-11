@@ -15,7 +15,7 @@
                 await archive.Serialize(v);
 
                 Assert.NotNull(v.V.Data);
-                Assert.Equal(2, v.V.Data.Length);
+                Assert.Equal(2, v.V.Data.Count);
                 Assert.Equal("hello", v.V.Data[0]);
                 Assert.Equal("world", v.V.Data[1]);
             }
@@ -51,7 +51,7 @@
                 await archive.Serialize(v);
 
                 Assert.NotNull(v.V.Data);
-                Assert.Equal(2, v.V.Data.Length);
+                Assert.Equal(2, v.V.Data.Count);
                 Assert.Equal(5, v.V.Data[0]);
                 Assert.Equal(10, v.V.Data[1]);
             }

@@ -5,6 +5,6 @@
     public class DockerHandshakeResponse
     {
         [JsonPropertyName("Implements")]
-        public string[] Implements = new string[0];
+        public string[] Implements = Array.Empty<string>();
     }
 }

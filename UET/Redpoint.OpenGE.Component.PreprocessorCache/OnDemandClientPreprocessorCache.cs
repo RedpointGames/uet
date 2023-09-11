@@ -14,7 +14,7 @@
         private readonly IGrpcPipeFactory _grpcPipeFactory;
         private readonly IProcessExecutor _processExecutor;
         private readonly ProcessSpecification _daemonLaunchSpecification;
-        private readonly SemaphoreSlim _clientCreatingSemaphore;
+        private readonly Concurrency.Semaphore _clientCreatingSemaphore;
         private readonly CancellationTokenSource _daemonCancellationTokenSource;
         private PreprocessorCacheApi.PreprocessorCacheApiClient? _currentClient;
         private Task<int>? _daemonProcess;
@@ -29,7 +29,7 @@
             _grpcPipeFactory = grpcPipeFactory;
             _processExecutor = processExecutor;
             _daemonLaunchSpecification = daemonLaunchSpecification;
-            _clientCreatingSemaphore = new SemaphoreSlim(1);
+            _clientCreatingSemaphore = new Concurrency.Semaphore(1);
             _daemonCancellationTokenSource = new CancellationTokenSource();
             _currentClient = null;
             _daemonProcess = null;
@@ -37,7 +37,7 @@
 
         private async Task<PreprocessorCacheApi.PreprocessorCacheApiClient> GetClientAsync(bool spawn = false)
         {
-            await _clientCreatingSemaphore.WaitAsync();
+            await _clientCreatingSemaphore.WaitAsync(_daemonCancellationTokenSource.Token).ConfigureAwait(false);
             try
             {
                 if (spawn && (_daemonProcess == null || _daemonProcess.IsCompleted))
@@ -45,7 +45,7 @@
                     _daemonProcess = Task.Run(async () => await _processExecutor.ExecuteAsync(
                         _daemonLaunchSpecification,
                         CaptureSpecification.Passthrough,
-                        _daemonCancellationTokenSource.Token));
+                        _daemonCancellationTokenSource.Token).ConfigureAwait(false));
                 }
                 // @note: Do not re-use current client if we were just told to spawn daemon.
                 else if (!spawn && _currentClient != null)
@@ -56,7 +56,7 @@
                 if (spawn)
                 {
                     // @note: Pace the rate at which we re-create the client if we're trying to spawn the daemon.
-                    await Task.Delay(10);
+                    await Task.Delay(10).ConfigureAwait(false);
                 }
 
                 _currentClient = _grpcPipeFactory.CreateClient(
@@ -73,7 +73,7 @@
 
         public async Task EnsureAsync()
         {
-            var client = await GetClientAsync();
+            var client = await GetClientAsync().ConfigureAwait(false);
             do
             {
                 try
@@ -83,7 +83,7 @@
                 }
                 catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable)
                 {
-                    client = await GetClientAsync(true);
+                    client = await GetClientAsync(true).ConfigureAwait(false);
                     continue;
                 }
             } while (true);
@@ -93,7 +93,7 @@
             string filePath,
             CancellationToken cancellationToken)
         {
-            var client = await GetClientAsync();
+            var client = await GetClientAsync().ConfigureAwait(false);
             do
             {
                 try
@@ -107,7 +107,7 @@
                 }
                 catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable)
                 {
-                    client = await GetClientAsync(true);
+                    client = await GetClientAsync(true).ConfigureAwait(false);
                     continue;
                 }
             } while (true);
@@ -122,7 +122,7 @@
             CompilerArchitype architype,
             CancellationToken cancellationToken)
         {
-            var client = await GetClientAsync();
+            var client = await GetClientAsync().ConfigureAwait(false);
             do
             {
                 try
@@ -141,7 +141,7 @@
                 }
                 catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable)
                 {
-                    client = await GetClientAsync(true);
+                    client = await GetClientAsync(true).ConfigureAwait(false);
                     continue;
                 }
             } while (true);
@@ -154,12 +154,13 @@
             {
                 try
                 {
-                    await _daemonProcess;
+                    await _daemonProcess.ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
                 }
             }
+            _daemonCancellationTokenSource.Dispose();
         }
     }
 }

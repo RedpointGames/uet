@@ -2,7 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
 
-    internal class DefaultPackageMounterDetector : IPackageMounterDetector
+    internal sealed class DefaultPackageMounterDetector : IPackageMounterDetector
     {
         private readonly IServiceProvider _serviceProvider;
 
@@ -47,7 +47,7 @@
                     }
                 }
             }
-            catch (IOException ex) when (ex.Message.Contains("incorrect"))
+            catch (IOException ex) when (ex.Message.Contains("incorrect", StringComparison.Ordinal))
             {
                 // Bad filename.
                 return null;

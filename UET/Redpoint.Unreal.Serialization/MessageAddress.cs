@@ -16,7 +16,10 @@
 
         public static async Task Serialize(Archive ar, Store<MessageAddress> value)
         {
-            await ar.Serialize(value.V.UniqueId);
+            if (ar == null) throw new ArgumentNullException(nameof(ar));
+            if (value == null) throw new ArgumentNullException(nameof(value));
+
+            await ar.Serialize(value.V.UniqueId).ConfigureAwait(false);
         }
     }
 }

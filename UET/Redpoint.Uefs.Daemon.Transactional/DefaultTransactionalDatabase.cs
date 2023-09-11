@@ -7,14 +7,15 @@
     using System.Collections.Generic;
     using System.Runtime.ExceptionServices;
     using System.Threading.Tasks;
+    using Redpoint.Concurrency;
 
-    internal class DefaultTransactionalDatabase : ITransactionalDatabase
+    internal sealed class DefaultTransactionalDatabase : ITransactionalDatabase
     {
         private IServiceProvider _serviceProvider;
         private KeyedSemaphoresCollection<string> _semaphores;
         internal string? _currentMountOperation;
 
-        private readonly SemaphoreSlim _transactionListSemasphore;
+        private readonly Concurrency.Semaphore _transactionListSemasphore;
         private readonly Dictionary<string, IWaitableTransaction> _transactionList;
         private readonly Dictionary<string, Task> _transactionExecutorTasks;
 
@@ -24,19 +25,19 @@
             _serviceProvider = serviceProvider;
             _semaphores = new KeyedSemaphoresCollection<string>(1024);
 
-            _transactionListSemasphore = new SemaphoreSlim(1);
+            _transactionListSemasphore = new Concurrency.Semaphore(1);
             _transactionList = new Dictionary<string, IWaitableTransaction>();
             _transactionExecutorTasks = new Dictionary<string, Task>();
         }
 
         internal async ValueTask<IDisposable> GetInternalLockAsync(string key, CancellationToken cancellationToken)
         {
-            return await _semaphores.LockAsync(key, cancellationToken);
+            return await _semaphores.LockAsync(key, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task<ITransactionHandle> BeginTransactionAsync<TRequest>(
             TRequest transactionRequest,
-            TransactionListenerDelegate transactionListener,
+            TransactionListener transactionListener,
             CancellationToken cancellationToken) where TRequest : class, ITransactionRequest
         {
             var executor = _serviceProvider.GetRequiredService<ITransactionExecutor<TRequest>>();
@@ -44,7 +45,7 @@
 
             // We must check what transactions are currently in-progress, check if we can
             // deduplicate the current one, and if not, create a transaction for the request.
-            await _transactionListSemasphore.WaitAsync(cancellationToken);
+            await _transactionListSemasphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 DefaultTransaction<TRequest>? deduplicatedTransaction = null;
@@ -101,12 +102,12 @@
                     {
                         try
                         {
-                            await using (var context = new DefaultTransactionContext(this, transaction))
+                            await using (new DefaultTransactionContext(this, transaction).AsAsyncDisposable(out var context).ConfigureAwait(false))
                             {
                                 await executor.ExecuteTransactionAsync(
                                     context,
                                     transactionRequest,
-                                    cancellationTokenSource.Token);
+                                    cancellationTokenSource.Token).ConfigureAwait(false);
                             }
                         }
                         catch (Exception ex)
@@ -118,7 +119,7 @@
                         {
                             executorCompleteSemaphore.Release();
                         }
-                    }));
+                    }, CancellationToken.None));
                     return new DefaultTransactionHandle(
                         id,
                         transaction,
@@ -133,7 +134,7 @@
 
         public async Task<ITransactionHandle<TResult>> BeginTransactionAsync<TRequest, TResult>(
             TRequest transactionRequest,
-            TransactionListenerDelegate<TResult> transactionListener,
+            TransactionListener<TResult> transactionListener,
             CancellationToken cancellationToken) where TRequest : class, ITransactionRequest<TResult> where TResult : class
         {
             var executor = _serviceProvider.GetRequiredService<ITransactionExecutor<TRequest, TResult>>();
@@ -141,7 +142,7 @@
 
             // We must check what transactions are currently in-progress, check if we can
             // deduplicate the current one, and if not, create a transaction for the request.
-            await _transactionListSemasphore.WaitAsync(cancellationToken);
+            await _transactionListSemasphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 DefaultTransactionWithResult<TRequest, TResult>? deduplicatedTransaction = null;
@@ -198,12 +199,12 @@
                     {
                         try
                         {
-                            await using (var context = new DefaultTransactionContextWithResult<TResult>(this, transaction))
+                            await using (new DefaultTransactionContextWithResult<TResult>(this, transaction).AsAsyncDisposable(out var context).ConfigureAwait(false))
                             {
                                 var result = await executor.ExecuteTransactionAsync(
                                     context,
                                     transactionRequest,
-                                    cancellationTokenSource.Token);
+                                    cancellationTokenSource.Token).ConfigureAwait(false);
                                 transaction.Result = result;
                             }
                         }
@@ -216,7 +217,7 @@
                         {
                             executorCompleteSemaphore.Release();
                         }
-                    }));
+                    }, CancellationToken.None));
                     return new DefaultTransactionHandleWithResult<TResult>(
                         id,
                         transaction,
@@ -230,11 +231,11 @@
         }
 
         public async Task<ITransactionHandle?> AddListenerToExistingTransactionAsync(
-            string transactionId, 
-            TransactionListenerDelegate transactionListener,
+            string transactionId,
+            TransactionListener transactionListener,
             CancellationToken cancellationToken)
         {
-            await _transactionListSemasphore.WaitAsync(cancellationToken);
+            await _transactionListSemasphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 if (_transactionList.TryGetValue(transactionId, out var transaction))
@@ -254,11 +255,11 @@
         }
 
         public async Task<ITransactionHandle<TResult>?> AddListenerToExistingTransactionAsync<TResult>(
-            string transactionId, 
-            TransactionListenerDelegate<TResult> transactionListener,
+            string transactionId,
+            TransactionListener<TResult> transactionListener,
             CancellationToken cancellationToken) where TResult : class
         {
-            await _transactionListSemasphore.WaitAsync(cancellationToken);
+            await _transactionListSemasphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 if (_transactionList.TryGetValue(transactionId, out var transaction))

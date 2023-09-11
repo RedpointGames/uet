@@ -8,4 +8,8 @@
     <PackageTags>collections, linq, parallel, classification</PackageTags>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
+  </ItemGroup>
+
 </Project>

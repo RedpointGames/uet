@@ -58,7 +58,7 @@
                         }
                     },
                     CaptureSpecification.Passthrough,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
                     _logger.LogError($"Failed to unlock Keychain, which is required to install mobile provisioning certificates. 'security unlock-keychain' exited with exit code {exitCode}.");
@@ -91,7 +91,7 @@
                             }
                         },
                         CaptureSpecification.Passthrough,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                     if (exitCode != 0)
                     {
                         _logger.LogWarning($"Failed to import certificate/public key/private key '{import}' (exit code {exitCode})!");

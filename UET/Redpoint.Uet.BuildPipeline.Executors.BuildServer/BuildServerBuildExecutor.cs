@@ -4,6 +4,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.IO;
     using Redpoint.ProcessExecution;
+    using Redpoint.Concurrency;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Export;
     using Redpoint.Uet.BuildPipeline.Executors.Engine;
@@ -23,6 +24,7 @@
     using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
+    using Redpoint.Hashing;
 
     public abstract class BuildServerBuildExecutor : IBuildExecutor
     {
@@ -35,7 +37,7 @@
         private readonly string _buildServerOutputFilePath;
         private readonly BuildJobJsonSourceGenerationContext _buildJobJsonSourceGenerationContext;
 
-        public BuildServerBuildExecutor(
+        protected BuildServerBuildExecutor(
             IServiceProvider serviceProvider,
             string buildServerOutputFilePath)
         {
@@ -63,7 +65,7 @@
             string windowsSharedStoragePath,
             string? macSharedStoragePath,
             string? linuxSharedStoragePath,
-            BuildConfigMobileProvision[] mobileProvisions,
+            IReadOnlyList<BuildConfigMobileProvision> mobileProvisions,
             bool requiresCrossPlatformForBuild)
         {
             windowsSharedStoragePath = windowsSharedStoragePath.TrimEnd('\\');
@@ -107,7 +109,7 @@
                 {
                     var targetFolder = Path.Combine(localOsSharedStoragePath, targetFolderName);
                     Directory.CreateDirectory(targetFolder);
-                    await _worldPermissionApplier.GrantEveryonePermissionAsync(targetFolder, CancellationToken.None);
+                    await _worldPermissionApplier.GrantEveryonePermissionAsync(targetFolder, CancellationToken.None).ConfigureAwait(false);
 
                     if (requiresCrossPlatformForBuild)
                     {
@@ -115,15 +117,15 @@
                         var entryAssembly = Assembly.GetEntryAssembly()!;
                         var manifestNames = entryAssembly.GetManifestResourceNames();
                         if (!string.IsNullOrWhiteSpace(entryAssembly.Location) ||
-                            !manifestNames.Any(x => x.StartsWith("UET.Embedded.")))
+                            !manifestNames.Any(x => x.StartsWith("UET.Embedded.", StringComparison.Ordinal)))
                         {
-                            throw new BuildPipelineExecutionFailure("UET is not built as a self-contained cross-platform binary, and the build contains cross-platform targets. Create a version of UET with 'dotnet msbuild -restore -t:PublishAllRids' and use the resulting binary.");
+                            throw new BuildPipelineExecutionFailureException("UET is not built as a self-contained cross-platform binary, and the build contains cross-platform targets. Create a version of UET with 'dotnet msbuild -restore -t:PublishAllRids' and use the resulting binary.");
                         }
 
                         // Copy the binaries for other platforms from our embedded resources.
                         foreach (var manifestName in manifestNames)
                         {
-                            if (manifestName.StartsWith("UET.Embedded."))
+                            if (manifestName.StartsWith("UET.Embedded.", StringComparison.Ordinal))
                             {
                                 using (var stream = entryAssembly.GetManifestResourceStream(manifestName)!)
                                 {
@@ -136,12 +138,12 @@
                                     }
                                     else 
 #endif
-                                    if (manifestName.StartsWith("UET.Embedded.osx") && macSharedStoragePath != null)
+                                    if (manifestName.StartsWith("UET.Embedded.osx", StringComparison.Ordinal) && macSharedStoragePath != null)
                                     {
                                         targetName = "uet.osx";
                                         preparationInfo.MacPath = $"{macSharedStoragePath}/{targetFolderName}/uet.osx";
                                     }
-                                    else if (manifestName.StartsWith("UET.Embedded.win"))
+                                    else if (manifestName.StartsWith("UET.Embedded.win", StringComparison.Ordinal))
                                     {
                                         targetName = "uet.win.exe";
                                         preparationInfo.WindowsPath = $"{windowsSharedStoragePath}\\{targetFolderName}\\uet.win.exe";
@@ -152,9 +154,9 @@
                                     }
                                     using (var target = new FileStream(Path.Combine(targetFolder, targetName), FileMode.Create, FileAccess.Write, FileShare.None))
                                     {
-                                        await stream.CopyToAsync(target);
+                                        await stream.CopyToAsync(target).ConfigureAwait(false);
                                     }
-                                    await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(targetFolder, targetName), CancellationToken.None);
+                                    await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(targetFolder, targetName), CancellationToken.None).ConfigureAwait(false);
                                 }
                             }
                         }
@@ -190,8 +192,10 @@
                         {
                             throw new PlatformNotSupportedException();
                         }
+#pragma warning disable CA1839 // Use 'Environment.ProcessPath'
                         File.Copy(Process.GetCurrentProcess().MainModule!.FileName, selfTargetPath, true);
-                        await _worldPermissionApplier.GrantEveryonePermissionAsync(selfTargetPath, CancellationToken.None);
+#pragma warning restore CA1839 // Use 'Environment.ProcessPath'
+                        await _worldPermissionApplier.GrantEveryonePermissionAsync(selfTargetPath, CancellationToken.None).ConfigureAwait(false);
                     }
                     else
                     {
@@ -229,8 +233,10 @@
                             {
                                 throw new PlatformNotSupportedException();
                             }
+#pragma warning disable CA1839 // Use 'Environment.ProcessPath'
                             File.Copy(Process.GetCurrentProcess().MainModule!.FileName, selfTargetPath, true);
-                            await _worldPermissionApplier.GrantEveryonePermissionAsync(selfTargetPath, CancellationToken.None);
+#pragma warning restore CA1839 // Use 'Environment.ProcessPath'
+                            await _worldPermissionApplier.GrantEveryonePermissionAsync(selfTargetPath, CancellationToken.None).ConfigureAwait(false);
                         }
                         else
                         {
@@ -239,8 +245,8 @@
                             await DirectoryAsync.CopyAsync(
                                 AppContext.BaseDirectory,
                                 Path.Combine(localOsSharedStoragePath, targetFolderName),
-                                true);
-                            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(localOsSharedStoragePath, targetFolderName), CancellationToken.None);
+                                true).ConfigureAwait(false);
+                            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(localOsSharedStoragePath, targetFolderName), CancellationToken.None).ConfigureAwait(false);
                             if (OperatingSystem.IsWindows())
                             {
                                 preparationInfo.WindowsPath = $"{windowsSharedStoragePath}\\{targetFolderName}\\uet.exe";
@@ -271,7 +277,7 @@
                     }
                     break;
                 }
-                catch (IOException ex) when (ex.Message.Contains("being used by another process"))
+                catch (IOException ex) when (ex.Message.Contains("being used by another process", StringComparison.Ordinal))
                 {
                     // This can happen if you cancel a build job running UET (which doesn't terminate
                     // the UET process), and then re-run the build job that generates the downstream
@@ -320,7 +326,7 @@
             }
 #endif
 
-            if (mobileProvisions.Length > 0)
+            if (mobileProvisions.Count > 0)
             {
                 var mobileTargetFolderNumber = 1;
                 var mobileTargetFolderName = $"mobileprovision";
@@ -363,11 +369,7 @@
                                 string hash;
                                 using (var reader = new FileStream(file.value, FileMode.Open, FileAccess.Read, FileShare.Read))
                                 {
-                                    using (var sha = SHA1.Create())
-                                    {
-                                        var hashBytes = await sha.ComputeHashAsync(reader);
-                                        hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-                                    }
+                                    hash = await Hash.Sha1AsHexStringAsync(reader, CancellationToken.None).ConfigureAwait(false);
                                 }
 
                                 _logger.LogInformation($"Copying mobile provisioning file to shared storage: {file.value}");
@@ -388,7 +390,7 @@
                         preparationInfo.MacMobileProvisions = macMobileProvisions.ToArray();
                         break;
                     }
-                    catch (IOException ex) when (ex.Message.Contains("being used by another process"))
+                    catch (IOException ex) when (ex.Message.Contains("being used by another process", StringComparison.Ordinal))
                     {
                         _logger.LogWarning($"Detected that mobile provisioning files are still in-use at '{Path.Combine(localOsSharedStoragePath, mobileTargetFolderName)}', probably because there is a cancelled build job that left a stale UET process around. Picking a new directory name for staging mobile provisioning files onto shared storage...");
                         mobileTargetFolderNumber++;
@@ -416,22 +418,24 @@
             ICaptureSpecification generationCaptureSpecification,
             CancellationToken cancellationToken)
         {
+            if (buildSpecification == null) throw new ArgumentNullException(nameof(buildSpecification));
+
             if (string.IsNullOrWhiteSpace(_buildServerOutputFilePath))
             {
-                throw new BuildPipelineExecutionFailure("This build executor requires BuildServerOutputFilePath to be set.");
+                throw new BuildPipelineExecutionFailureException("This build executor requires BuildServerOutputFilePath to be set.");
             }
 
             BuildGraphExport buildGraph;
-            await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
+            await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
                 buildSpecification.Engine,
                 string.Empty,
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engineWorkspace).ConfigureAwait(false))
             {
                 // @note: Generating the BuildGraph doesn't require any files from the workspace, so we don't bother
                 // setting up a Git workspace for it.
-                await using (var temporaryWorkspace = await _workspaceProvider.GetWorkspaceAsync(
+                await using ((await _workspaceProvider.GetWorkspaceAsync(
                     new TemporaryWorkspaceDescriptor { Name = "Generate BuildGraph JSON" },
-                    cancellationToken))
+                    cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var temporaryWorkspace).ConfigureAwait(false))
                 {
                     _logger.LogInformation("Generating BuildGraph JSON based on settings...");
                     buildGraph = await _buildGraphExecutor.GenerateGraphAsync(
@@ -447,7 +451,7 @@
                         buildSpecification.BuildGraphSettings,
                         buildSpecification.BuildGraphSettingReplacements,
                         generationCaptureSpecification,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
             }
 
@@ -500,7 +504,7 @@
                 buildSpecification.BuildGraphEnvironment.Mac?.SharedStorageAbsolutePath,
                 null,
                 buildSpecification.MobileProvisions,
-                requiresCrossPlatformBuild);
+                requiresCrossPlatformBuild).ConfigureAwait(false);
 
             foreach (var group in buildGraph.Groups)
             {
@@ -528,10 +532,10 @@
                         Stage = group.Name,
                         Needs = needs.ToArray(),
                         Platform = agentTypeMapping[group.AgentTypes[0]],
-                        IsManual = group.AgentTypes[0].EndsWith("_Manual"),
+                        IsManual = group.AgentTypes[0].EndsWith("_Manual", StringComparison.Ordinal),
                     };
 
-                    if (node.Name.StartsWith("Automation "))
+                    if (node.Name.StartsWith("Automation ", StringComparison.Ordinal))
                     {
                         job.ArtifactPaths = new[]
                         {
@@ -563,7 +567,7 @@
                                     Settings = buildSpecification.BuildGraphSettings,
                                     ProjectFolderName = buildSpecification.ProjectFolderName,
                                     UseStorageVirtualisation = buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
-                                    MobileProvisions = preparationInfo.WindowsMobileProvisions ?? new BuildConfigMobileProvision[0],
+                                    MobileProvisions = preparationInfo.WindowsMobileProvisions ?? Array.Empty<BuildConfigMobileProvision>(),
                                 };
                                 job.EnvironmentVariables = new Dictionary<string, string>
                                 {
@@ -590,7 +594,7 @@
                                     Settings = buildSpecification.BuildGraphSettings,
                                     ProjectFolderName = buildSpecification.ProjectFolderName,
                                     UseStorageVirtualisation = buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
-                                    MobileProvisions = preparationInfo.MacMobileProvisions ?? new BuildConfigMobileProvision[0],
+                                    MobileProvisions = preparationInfo.MacMobileProvisions ?? Array.Empty<BuildConfigMobileProvision>(),
                                 };
                                 job.EnvironmentVariables = new Dictionary<string, string>
                                 {
@@ -612,11 +616,11 @@
             await EmitBuildServerSpecificFileAsync(
                 buildSpecification,
                 pipeline,
-                _buildServerOutputFilePath);
+                _buildServerOutputFilePath).ConfigureAwait(false);
             return 0;
         }
 
-        private Dictionary<string, BuildGraphExportNode> GetNodeMap(BuildGraphExport buildGraph)
+        private static Dictionary<string, BuildGraphExportNode> GetNodeMap(BuildGraphExport buildGraph)
         {
             return buildGraph.Groups.SelectMany(x => x.Nodes)
                 .ToDictionary(k => k.Name, v => v);
@@ -629,10 +633,10 @@
         {
             foreach (var dependency in node.DependsOn.Split(';'))
             {
-                if (nodeMap.ContainsKey(dependency))
+                if (nodeMap.TryGetValue(dependency, out var dependencyValue))
                 {
                     allDependencies.Add(dependency);
-                    GetFullDependenciesOfNode(nodeMap, nodeMap[dependency], allDependencies);
+                    GetFullDependenciesOfNode(nodeMap, dependencyValue, allDependencies);
                 }
             }
         }

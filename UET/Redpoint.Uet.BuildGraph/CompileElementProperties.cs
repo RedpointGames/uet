@@ -10,6 +10,6 @@
 
         public required string Tag { get; set; }
 
-        public required string[] Arguments { get; set; }
+        public required IReadOnlyCollection<string> Arguments { get; set; }
     }
 }

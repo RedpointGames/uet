@@ -35,6 +35,8 @@
             BuildServerPipeline buildServerPipeline,
             string buildServerOutputFilePath)
         {
+            if (buildServerPipeline == null) throw new ArgumentNullException(nameof(buildServerPipeline));
+
             _logger.LogInformation("Generating .gitlab-ci.yml content...");
 
             var file = new Dictionary<string, object>
@@ -101,7 +103,7 @@
                     job.Artifacts = new GitLabJobArtifacts
                     {
                         When = "always",
-                        Paths = sourceJob.ArtifactPaths,
+                        Paths = sourceJob.ArtifactPaths.ToArray(),
                     };
                     if (sourceJob.ArtifactJUnitReportPath != null)
                     {
@@ -115,7 +117,7 @@
                 job.Script = sourceJob.Script;
                 if (sourceJob.AfterScript != null)
                 {
-                    job.AfterScript = new[] { sourceJob.AfterScript.Trim().Replace("\r\n", "\n") };
+                    job.AfterScript = new[] { sourceJob.AfterScript.Trim().Replace("\r\n", "\n", StringComparison.Ordinal) };
                 }
 
                 file.Add(sourceJob.Name, job);
@@ -129,7 +131,7 @@
                     .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)
                     .Build();
                 var yaml = serializer.Serialize(file);
-                await stream.WriteLineAsync(yaml);
+                await stream.WriteLineAsync(yaml).ConfigureAwait(false);
             }
         }
     }

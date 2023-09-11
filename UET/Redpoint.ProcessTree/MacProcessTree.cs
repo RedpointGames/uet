@@ -5,7 +5,7 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("macos")]
-    internal partial class MacProcessTree : IProcessTree
+    internal sealed partial class MacProcessTree : IProcessTree
     {
         [LibraryImport("libc")]
         private static unsafe partial int sysctl(nint name, uint namelen, nint oldp, ref ulong oldlenp, nint newp, ulong newlenp);
@@ -78,7 +78,7 @@
 
         public Process? GetParentProcess()
         {
-            return GetParentProcess(Process.GetCurrentProcess().Id);
+            return GetParentProcess(Environment.ProcessId);
         }
 
         public Process? GetParentProcess(Process process)

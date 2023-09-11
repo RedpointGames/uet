@@ -1,12 +1,13 @@
 ﻿namespace Redpoint.Git.Native
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading.Tasks;
 
     /// <summary>
     /// Represents a local Git repository.
     /// </summary>
-    public interface IGitRepoManager
+    public interface IGitRepoManager : IDisposable
     {
         /// <summary>
         /// Returns if the repository has the specified commit.
@@ -24,6 +25,7 @@
         /// <param name="privateKeyFile">The path to the private key file.</param>
         /// <param name="onProgress">The callback when fetch progress is made.</param>
         /// <returns>An awaitable task that is complete when the fetch operation is complete.</returns>
+        [SuppressMessage("Design", "CA1054:URI-like parameters should not be strings", Justification = "Git URLs can be of a form that is not compatible with the Uri object.")]
         Task Fetch(
             string url,
             string commit,

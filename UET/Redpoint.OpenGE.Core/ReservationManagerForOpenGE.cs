@@ -3,7 +3,7 @@
     using Redpoint.Reservation;
     using System.Runtime.Versioning;
 
-    internal class ReservationManagerForOpenGE : IReservationManagerForOpenGE
+    internal sealed class ReservationManagerForOpenGE : IReservationManagerForOpenGE
     {
         private readonly string _rootDirectory;
         private readonly IReservationManager _reservationManager;

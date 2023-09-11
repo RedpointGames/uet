@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Automation
 {
+    using Redpoint.Concurrency;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.BuildGraph;
     using System.Threading.Tasks;
@@ -17,7 +18,7 @@
     using System.Text.Json.Serialization;
     using Redpoint.RuntimeJson;
 
-    internal class AutomationPluginTestProvider : IPluginTestProvider, IDynamicReentrantExecutor<BuildConfigPluginDistribution, BuildConfigPluginTestAutomation>
+    internal sealed class AutomationPluginTestProvider : IPluginTestProvider, IDynamicReentrantExecutor<BuildConfigPluginDistribution, BuildConfigPluginTestAutomation>
     {
         private readonly IPluginTestProjectEmitProvider _pluginTestProjectEmitProvider;
         private readonly IAutomationRunnerFactory _automationRunnerFactory;
@@ -56,7 +57,7 @@
             // Ensure we have the test project available.
             await _pluginTestProjectEmitProvider.EnsureTestProjectNodesArePresentAsync(
                 context,
-                writer);
+                writer).ConfigureAwait(false);
 
             // Emit the nodes to run each test.
             var allPlatforms = castedSettings.SelectMany(x => x.settings.Platforms).Where(context.CanHostPlatformBeUsed).ToHashSet();
@@ -88,7 +89,7 @@
                                 },
                                 async writer =>
                                 {
-                                    foreach (var configFile in test.settings.ConfigFiles ?? new string[0])
+                                    foreach (var configFile in test.settings.ConfigFiles ?? Array.Empty<string>())
                                     {
                                         await writer.WriteCopyAsync(
                                             new CopyElementProperties
@@ -96,7 +97,7 @@
                                                 Files = "...",
                                                 From = $"$(ProjectRoot)/{configFile}/",
                                                 To = $"{_pluginTestProjectEmitProvider.GetTestProjectDirectoryPath(platform)}/Config/",
-                                            });
+                                            }).ConfigureAwait(false);
                                     }
 
 
@@ -140,7 +141,7 @@
                                         BuildConfigPluginTestAutomation>(
                                         this,
                                         context,
-                                        $"{platform}.{test.name}".Replace(" ", "."),
+                                        $"{platform}.{test.name}".Replace(" ", ".", StringComparison.Ordinal),
                                         test.settings,
                                         new Dictionary<string, string>
                                         {
@@ -148,16 +149,16 @@
                                             { "TestProjectPath", _pluginTestProjectEmitProvider.GetTestProjectUProjectFilePath(platform) },
                                             { "TestResultsPath", $"$(ArtifactExportPath)/.uet/tmp/Automation{platform}/TestResults.xml" },
                                             { "WorkerLogsPath", $"$(ArtifactExportPath)/.uet/tmp/Automation{platform}" },
-                                        });
-                                });
+                                        }).ConfigureAwait(false);
+                                }).ConfigureAwait(false);
                             await writer.WriteDynamicNodeAppendAsync(
                                 new DynamicNodeAppendElementProperties
                                 {
                                     NodeName = nodeName,
                                     MustPassForLaterDeployment = true,
-                                });
+                                }).ConfigureAwait(false);
                         }
-                    });
+                    }).ConfigureAwait(false);
             }
         }
 
@@ -173,7 +174,7 @@
             var testResultsPath = runtimeSettings["TestResultsPath"];
             var workerLogsPath = runtimeSettings["WorkerLogsPath"];
 
-            await using (var automationRunner = await _automationRunnerFactory.CreateAndRunAsync(
+            await using ((await _automationRunnerFactory.CreateAndRunAsync(
                 _testLoggerFactory.CreateConsole(),
                 _testNotificationFactory.CreateIo(cancellationToken),
                 _testReporterFactory.CreateJunit(testResultsPath),
@@ -202,9 +203,9 @@
                     TestAttemptCount = config.TestAttemptCount.HasValue ? Math.Max(config.TestAttemptCount.Value, 1) : null,
                     FilenamePrefixToCut = Path.GetDirectoryName(testProjectPath)!,
                 },
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var automationRunner).ConfigureAwait(false))
             {
-                var testResults = await automationRunner.WaitForResultsAsync();
+                var testResults = await automationRunner.WaitForResultsAsync().ConfigureAwait(false);
                 if (testResults.Length == 0 ||
                     testResults.Any(x => x.TestStatus != TestResultStatus.Passed && x.TestStatus != TestResultStatus.Skipped))
                 {

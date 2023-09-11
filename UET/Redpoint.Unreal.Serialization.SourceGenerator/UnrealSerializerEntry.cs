@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.Unreal.Serialization.SourceCodeGenerator
 {
-    internal class UnrealSerializerEntry
+    internal sealed class UnrealSerializerEntry
     {
         public string? Namespace { get; set; }
         public string? Class { get; set; }

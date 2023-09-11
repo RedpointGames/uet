@@ -16,7 +16,7 @@
     {
         TRequest Request { get; }
 
-        IAsyncDisposable RegisterListener(TransactionListenerDelegate listenerDelegate);
+        IAsyncDisposable RegisterListener(TransactionListener listenerDelegate);
     }
 
     public interface ITransaction<TRequest, TResult> : ITransaction<TRequest> where TRequest : ITransactionRequest<TResult>
@@ -25,6 +25,6 @@
 
         void UpdatePollingResponse(PollingResponse pollingResponse, TResult? result);
 
-        IAsyncDisposable RegisterListener(TransactionListenerDelegate<TResult> listenerDelegate);
+        IAsyncDisposable RegisterListener(TransactionListener<TResult> listenerDelegate);
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.Vfs.Layer.GitDependencies
 {
-    internal class DependencyBlob
+    internal sealed class DependencyBlob
     {
         public string? Hash;
         public long Size;

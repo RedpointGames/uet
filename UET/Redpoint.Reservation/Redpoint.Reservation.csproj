@@ -13,4 +13,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Hashing\Redpoint.Hashing.csproj" />
+  </ItemGroup>
+
 </Project>

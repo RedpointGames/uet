@@ -7,9 +7,9 @@
     using System.Linq;
     using System.Threading.Tasks;
 
-    internal class UpdateCopyrightHeadersForMarketplaceCommand
+    internal sealed class UpdateCopyrightHeadersForMarketplaceCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> Path;
             public Option<string> CopyrightHeader;
@@ -32,7 +32,7 @@
             return command;
         }
 
-        private class UpdateCopyrightHeadersForMarketplaceCommandInstance : ICommandInstance
+        private sealed class UpdateCopyrightHeadersForMarketplaceCommandInstance : ICommandInstance
         {
             private readonly ILogger<UpdateCopyrightHeadersForMarketplaceCommandInstance> _logger;
             private readonly Options _options;
@@ -60,7 +60,7 @@
                 {
                     foreach (var excludePath in copyrightExcludes)
                     {
-                        if (targetPath.StartsWith(excludePath))
+                        if (targetPath.StartsWith(excludePath, StringComparison.Ordinal))
                         {
                             return true;
                         }
@@ -73,25 +73,25 @@
                     .Where(x =>
                         x != null &&
                         (
-                            x.Name.EndsWith(".h") ||
-                            x.Name.EndsWith(".hpp") ||
-                            x.Name.EndsWith(".cs") ||
-                            x.Name.EndsWith(".c") ||
-                            x.Name.EndsWith(".cpp")
+                            x.Name.EndsWith(".h", StringComparison.Ordinal) ||
+                            x.Name.EndsWith(".hpp", StringComparison.Ordinal) ||
+                            x.Name.EndsWith(".cs", StringComparison.Ordinal) ||
+                            x.Name.EndsWith(".c", StringComparison.Ordinal) ||
+                            x.Name.EndsWith(".cpp", StringComparison.Ordinal)
                         ) &&
                         !(
-                            x.FullName.Substring(path.Length).Contains("Binaries") ||
-                            x.FullName.Substring(path.Length).Contains("Intermediate") ||
-                            x.FullName.Substring(path.Length).Contains("BuildScripts") ||
-                            x.FullName.Substring(path.Length).Contains("Plugins") ||
+                            x.FullName[path.Length..].Contains("Binaries", StringComparison.Ordinal) ||
+                            x.FullName[path.Length..].Contains("Intermediate", StringComparison.Ordinal) ||
+                            x.FullName[path.Length..].Contains("BuildScripts", StringComparison.Ordinal) ||
+                            x.FullName[path.Length..].Contains("Plugins", StringComparison.Ordinal) ||
                             IsFileExcluded(x.FullName)
                         )))
                 {
                     _logger.LogInformation($"Updating {Path.GetRelativePath(path, file.FullName)}...");
 
-                    var content = (await File.ReadAllLinesAsync(file.FullName)).ToList();
+                    var content = (await File.ReadAllLinesAsync(file.FullName).ConfigureAwait(false)).ToList();
                     while (content.Count > 0 &&
-                        (content[0].StartsWith("// ") || string.IsNullOrWhiteSpace(content[0])))
+                        (content[0].StartsWith("// ", StringComparison.Ordinal) || string.IsNullOrWhiteSpace(content[0])))
                     {
                         content.RemoveAt(0);
                     }
@@ -103,13 +103,13 @@
                     }
                     for (int i = 0; i < content.Count; i++)
                     {
-                        content[i].TrimEnd();
+                        content[i] = content[i].TrimEnd();
                     }
                     var joinedContent = string.Join("\n", content);
 
                     try
                     {
-                        await File.WriteAllTextAsync(file.FullName, joinedContent);
+                        await File.WriteAllTextAsync(file.FullName, joinedContent).ConfigureAwait(false);
                     }
                     catch (UnauthorizedAccessException)
                     {

@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class GitHubNewTree
+    internal sealed class GitHubNewTree
     {
         [JsonPropertyName("base_tree")]
         public string? BaseTree { get; set; }

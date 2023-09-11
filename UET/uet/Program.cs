@@ -60,7 +60,7 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
     {
         try
         {
-            var document = JsonNode.Parse(await File.ReadAllTextAsync(currentBuildConfigPath));
+            var document = JsonNode.Parse(await File.ReadAllTextAsync(currentBuildConfigPath).ConfigureAwait(false));
             targetVersion = document!.AsObject()["UETVersion"]!.ToString();
         }
         catch
@@ -88,7 +88,7 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
             {
                 logger.LogWarning($"The BuildConfig.json file requested version {targetVersion}, but we are running under a debugger, so this is being ignored.");
             }
-            else if (currentVersionAttribute.InformationalVersion.EndsWith("-pre"))
+            else if (currentVersionAttribute.InformationalVersion.EndsWith("-pre", StringComparison.Ordinal))
             {
                 logger.LogWarning($"The BuildConfig.json file requested version {targetVersion}, but we are running a pre-release or development version of UET, so this is being ignored.");
             }
@@ -115,7 +115,7 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                         {
                             upgradeArgs = new[] { "upgrade", "--do-not-set-as-current" };
                         }
-                        var upgradeResult = await upgradeRootCommand.InvokeAsync(upgradeArgs);
+                        var upgradeResult = await upgradeRootCommand.InvokeAsync(upgradeArgs).ConfigureAwait(false);
                         if (upgradeResult != 0)
                         {
                             logger.LogError($"Failed to install the requested UET version {targetVersion}. See above for details.");
@@ -136,10 +136,10 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                             }
                         }
                     }
-                    catch (IOException ex) when (ex.Message.Contains("used by another process"))
+                    catch (IOException ex) when (ex.Message.Contains("used by another process", StringComparison.Ordinal))
                     {
                         logger.LogWarning($"Another UET instance is downloading {targetVersion}, checking if it is ready in another 2 seconds...");
-                        await Task.Delay(2000);
+                        await Task.Delay(2000).ConfigureAwait(false);
                         continue;
                     }
                     catch (Exception ex)
@@ -170,9 +170,9 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                             }
                         },
                         CaptureSpecification.Passthrough,
-                        cts.Token);
-                    await Console.Out.FlushAsync();
-                    await Console.Error.FlushAsync();
+                        cts.Token).ConfigureAwait(false);
+                    await Console.Out.FlushAsync().ConfigureAwait(false);
+                    await Console.Error.FlushAsync().ConfigureAwait(false);
                     Environment.Exit(nestedExitCode);
                     throw new BadImageFormatException();
                 }
@@ -212,7 +212,7 @@ if (OperatingSystem.IsMacOS())
                 }
             },
             CaptureSpecification.Passthrough,
-            CancellationToken.None);
+            CancellationToken.None).ConfigureAwait(false);
     }
 
     Environment.SetEnvironmentVariable("DEVELOPER_DIR", "/Library/Developer/CommandLineTools");
@@ -220,8 +220,8 @@ if (OperatingSystem.IsMacOS())
 
 // We didn't re-execute into a different version of UET. Invoke the originally requested command.
 // @note: We use Environment.Exit so fire-and-forget tasks that contain stallable code won't prevent the process from exiting.
-var exitCode = await rootCommand.InvokeAsync(args);
-await Console.Out.FlushAsync();
-await Console.Error.FlushAsync();
+var exitCode = await rootCommand.InvokeAsync(args).ConfigureAwait(false);
+await Console.Out.FlushAsync().ConfigureAwait(false);
+await Console.Error.FlushAsync().ConfigureAwait(false);
 Environment.Exit(exitCode);
 throw new BadImageFormatException();

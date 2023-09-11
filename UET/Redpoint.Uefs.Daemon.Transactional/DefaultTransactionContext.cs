@@ -31,7 +31,7 @@
             _disposed = false;
         }
 
-        private class LockWrapper : IDisposable
+        private sealed class LockWrapper : IDisposable
         {
             private readonly DefaultTransactionContext _context;
             private readonly string _key;
@@ -63,7 +63,7 @@
 
         public async Task<IDisposable> ObtainLockAsync(string key, CancellationToken cancellationToken)
         {
-            var @lock = await _database.GetInternalLockAsync(key, cancellationToken);
+            var @lock = await _database.GetInternalLockAsync(key, cancellationToken).ConfigureAwait(false);
             var lockWrapper = new LockWrapper(this, key, @lock);
             _obtainedLocks.Add(lockWrapper);
             return lockWrapper;

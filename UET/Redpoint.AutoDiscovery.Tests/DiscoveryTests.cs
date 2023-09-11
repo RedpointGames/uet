@@ -12,6 +12,7 @@
             Skip.IfNot(OperatingSystem.IsWindows());
 
             var services = new ServiceCollection();
+            services.AddLogging();
             services.AddAutoDiscovery();
             services.AddTasks();
 

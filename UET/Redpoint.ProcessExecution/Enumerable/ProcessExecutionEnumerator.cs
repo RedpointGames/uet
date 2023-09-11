@@ -4,8 +4,10 @@
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading.Tasks;
 
+    [SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable", Justification = "We don't use the unmanaged handle of ReaderWriterLockSlim.")]
     internal class ProcessExecutionEnumerable : IAsyncEnumerable<ProcessResponse>, ICaptureSpecification
     {
         private readonly IProcessExecutor _executor;
@@ -13,7 +15,7 @@
         private readonly CancellationTokenSource _processCancellationTokenSource;
         private readonly List<ResponseQueue> _connectedQueues;
         private readonly ReaderWriterLockSlim _connectedQueuesLock;
-        private readonly SemaphoreSlim _processStartSemaphore;
+        private readonly Redpoint.Concurrency.Semaphore _processStartSemaphore;
         private int _enumeratorCount;
         private Task? _executingProcess;
         private ExitCodeResponse? _exitResponse;
@@ -28,7 +30,7 @@
             _processCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(processCancellationToken);
             _connectedQueues = new List<ResponseQueue>();
             _connectedQueuesLock = new ReaderWriterLockSlim();
-            _processStartSemaphore = new SemaphoreSlim(1);
+            _processStartSemaphore = new Redpoint.Concurrency.Semaphore(1);
             _enumeratorCount = 0;
             _executingProcess = null;
             _exitResponse = null;
@@ -36,7 +38,7 @@
 
         private class ResponseQueue
         {
-            public SemaphoreSlim _responseAvailable = new SemaphoreSlim(0);
+            public Redpoint.Concurrency.Semaphore _responseAvailable = new Redpoint.Concurrency.Semaphore(0);
             public ConcurrentQueue<ProcessResponse> _responseQueue = new ConcurrentQueue<ProcessResponse>();
         }
 
@@ -67,7 +69,7 @@
                 return;
             }
 
-            await _processStartSemaphore.WaitAsync();
+            await _processStartSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (_executingProcess != null)
@@ -83,7 +85,7 @@
                         var exitCode = await _executor.ExecuteAsync(
                             _processSpecification,
                             this,
-                            _processCancellationTokenSource.Token);
+                            _processCancellationTokenSource.Token).ConfigureAwait(false);
                         await Task.Yield();
                         SendMessageToEnumerableQueues(new ExitCodeResponse
                         {
@@ -228,7 +230,7 @@
                 }
 
                 {
-                    await _queue._responseAvailable.WaitAsync(_cancellationToken);
+                    await _queue._responseAvailable.WaitAsync(_cancellationToken).ConfigureAwait(false);
                     if (!_queue._responseQueue.TryDequeue(out var result))
                     {
                         throw new InvalidOperationException("Expected to pull response from queue when semaphore indicates a message is available!");
@@ -258,7 +260,7 @@
                     _enumerable._processCancellationTokenSource.Cancel();
                     try
                     {
-                        await _enumerable._executingProcess;
+                        await _enumerable._executingProcess.ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {

@@ -12,7 +12,7 @@
     using Redpoint.Vfs.Layer.Scratch;
     using System.Threading.Tasks;
 
-    internal class DefaultGitVfsSetup : IGitVfsSetup
+    internal sealed class DefaultGitVfsSetup : IGitVfsSetup
     {
         private readonly ILogger<DefaultGitVfsSetup> _logger;
         private readonly IGitDependenciesVfsLayerFactory _gitDependenciesVfsLayerFactory;
@@ -49,7 +49,7 @@
             var gitDeps = _gitDependenciesVfsLayerFactory.CreateLayer(
                 Path.Combine(daemon.StoragePath, "git-deps"),
                 gitLayer);
-            await gitDeps.InitAsync(CancellationToken.None);
+            await gitDeps.InitAsync(CancellationToken.None).ConfigureAwait(false);
 
             // Add on console layers.
             IVfsLayer finalLayer = gitDeps;

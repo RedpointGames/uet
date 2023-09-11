@@ -8,7 +8,7 @@
     using Redpoint.OpenGE.Component.PreprocessorCache.OnDemand;
     using Redpoint.OpenGE.Component.Worker;
 
-    internal class DefaultOpenGEAgentFactory : IOpenGEAgentFactory
+    internal sealed class DefaultOpenGEAgentFactory : IOpenGEAgentFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

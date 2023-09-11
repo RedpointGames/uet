@@ -17,14 +17,14 @@
             foreach (var kv in arguments)
             {
                 var value = kv.Value;
-                value = value.Replace("__REPOSITORY_ROOT__", repositoryRoot);
-                value = value.Replace("__UET_PATH__", uetPath);
-                value = value.Replace("__ENGINE_PATH__", enginePath);
-                value = value.Replace("__SHARED_STORAGE_PATH__", sharedStoragePath);
-                value = value.Replace("__ARTIFACT_EXPORT_PATH__", artifactExportPath);
+                value = value.Replace("__REPOSITORY_ROOT__", repositoryRoot, StringComparison.Ordinal);
+                value = value.Replace("__UET_PATH__", uetPath, StringComparison.Ordinal);
+                value = value.Replace("__ENGINE_PATH__", enginePath, StringComparison.Ordinal);
+                value = value.Replace("__SHARED_STORAGE_PATH__", sharedStoragePath, StringComparison.Ordinal);
+                value = value.Replace("__ARTIFACT_EXPORT_PATH__", artifactExportPath, StringComparison.Ordinal);
                 foreach (var sr in replacements)
                 {
-                    value = value.Replace(sr.Key, sr.Value);
+                    value = value.Replace(sr.Key, sr.Value, StringComparison.Ordinal);
                 }
                 results.Add($"-set:{kv.Key}={value}");
             }

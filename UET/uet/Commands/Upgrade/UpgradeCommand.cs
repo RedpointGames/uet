@@ -8,9 +8,9 @@
     using System.Threading.Tasks;
     using UET.Commands.Build;
 
-    internal class UpgradeCommand
+    internal sealed class UpgradeCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string?> Version;
             public Option<bool> DoNotSetAsCurrent;
@@ -42,7 +42,7 @@
             return command;
         }
 
-        internal class UpgradeCommandInstance : ICommandInstance
+        internal sealed class UpgradeCommandInstance : ICommandInstance
         {
             private readonly Options _options;
             private readonly ILogger<UpgradeCommandInstance> _logger;
@@ -75,12 +75,12 @@
                             _logger,
                             version,
                             doNotSetAsCurrent,
-                            context.GetCancellationToken());
+                            context.GetCancellationToken()).ConfigureAwait(false);
                     }
-                    catch (IOException ex) when (ex.Message.Contains("used by another process"))
+                    catch (IOException ex) when (ex.Message.Contains("used by another process", StringComparison.Ordinal))
                     {
                         _logger.LogWarning($"Another UET shim instance is downloading this version, checking if it is ready in another 2 seconds...");
-                        await Task.Delay(2000);
+                        await Task.Delay(2000).ConfigureAwait(false);
                         continue;
                     }
                 }

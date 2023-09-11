@@ -6,7 +6,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class UefsHostedService : IHostedService
+    internal sealed class UefsHostedService : IHostedService
     {
         private readonly IUefsDaemon _uefsDaemon;
         private bool _disposed;
@@ -53,13 +53,13 @@
             }
 
             _inited = true;
-            await _uefsDaemon.StartAsync();
+            await _uefsDaemon.StartAsync().ConfigureAwait(false);
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
             _disposed = true;
-            await _uefsDaemon.DisposeAsync();
+            await _uefsDaemon.DisposeAsync().ConfigureAwait(false);
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.Configuration.Plugin
 {
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
     public class BuildConfigPluginIncludeFragment
@@ -8,6 +9,7 @@
         /// A list of distributions.
         /// </summary>
         [JsonPropertyName("Distributions"), JsonRequired]
-        public BuildConfigPluginDistribution[] Distributions { get; set; } = new BuildConfigPluginDistribution[0];
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        public BuildConfigPluginDistribution[] Distributions { get; set; } = Array.Empty<BuildConfigPluginDistribution>();
     }
 }

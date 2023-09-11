@@ -7,6 +7,8 @@ using Microsoft.Extensions.Logging;
 using Redpoint.Logging.SingleLine;
 using System.Diagnostics;
 using Redpoint.Tasks;
+using Redpoint.Concurrency;
+using Semaphore = Redpoint.Concurrency.Semaphore;
 
 var entries = new (UInt160 sha, GitObjectType type, ulong size)[]
 {
@@ -50,7 +52,7 @@ for (int i = 0; i < count; i++)
 {
     foreach (var entry in entries)
     {
-        var s = new SemaphoreSlim(0);
+        var s = new Semaphore(0);
         engine.EnqueueOperation(new GetObjectGitOperation
         {
             GitDirectory = new DirectoryInfo("git"),
@@ -68,7 +70,7 @@ for (int i = 0; i < count; i++)
                 return Task.CompletedTask;
             }
         });
-        await s.WaitAsync();
+        await s.WaitAsync(CancellationToken.None);
     }
 }
 logger.LogInformation("avg fetch ms: " + (st.ElapsedMilliseconds / entries.Length / (double)count));

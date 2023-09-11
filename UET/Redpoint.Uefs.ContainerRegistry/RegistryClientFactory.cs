@@ -29,7 +29,7 @@
 
             if (!string.IsNullOrWhiteSpace(ciRegistry) && !string.IsNullOrWhiteSpace(ciRegistryUser) && !string.IsNullOrWhiteSpace(ciRegistryPassword))
             {
-                if (string.Compare(ciRegistry, host, true) == 0)
+                if (string.Equals(ciRegistry, host, StringComparison.OrdinalIgnoreCase))
                 {
                     // If the GitLab CI variables are for this registry host, just use the environment variables directly.
                     // This saves you from having to run `docker login` (which is known to have issues if run concurrently
@@ -65,7 +65,7 @@
                     return null;
                 }
                 var password = Encoding.UTF8.GetString(Encoding.Unicode.GetBytes(credential.Password));
-                if (password.Contains("\0"))
+                if (password.Contains('\0', StringComparison.Ordinal))
                 {
                     // This was probably encoded by C# instead.
                     password = credential.Password;
@@ -99,6 +99,8 @@
         /// <returns>The new <see cref="IRegistryClient"/> instance.</returns>
         public static IRegistryClient GetRegistryClient(string host, RegistryCredential credential)
         {
+            if (credential == null) throw new ArgumentNullException(nameof(credential));
+
             var configuration = new RegistryClientConfiguration(host);
             return configuration.CreateClient(new GetPasswordOAuthAuthenticationProvider(credential.Username, credential.Password));
         }

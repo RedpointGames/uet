@@ -43,6 +43,8 @@
 
         public static BuildGraphScriptSpecification FromReparsableString(string input)
         {
+            if (input == null) throw new ArgumentNullException(nameof(input));
+
             if (input == "plugin")
             {
                 return ForPlugin();
@@ -51,7 +53,7 @@
             {
                 return ForProject();
             }
-            else if (input.StartsWith("engine"))
+            else if (input.StartsWith("engine", StringComparison.Ordinal))
             {
                 return ForEngine();
             }

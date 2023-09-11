@@ -11,9 +11,9 @@
 
         protected abstract string Noun { get; }
 
-        private string UpperNoun => Noun.Substring(0, 1).ToUpper() + Noun.Substring(1);
+        private string UpperNoun => Noun[..1].ToUpperInvariant() + Noun[1..];
 
-        public BuildConfigDynamicConverter(IServiceProvider serviceProvider)
+        protected BuildConfigDynamicConverter(IServiceProvider serviceProvider)
         {
             _providers = serviceProvider.GetServices<IDynamicProvider<TDistribution, TBaseClass>>().ToArray();
         }
@@ -162,6 +162,9 @@
             BuildConfigDynamic<TDistribution, TBaseClass> value,
             JsonSerializerOptions options)
         {
+            if (writer == null) throw new ArgumentNullException(nameof(writer));
+            if (value == null) throw new ArgumentNullException(nameof(value));
+
             var provider = _providers.First(x => x.Type == value.Type);
 
             writer.WriteStartObject();

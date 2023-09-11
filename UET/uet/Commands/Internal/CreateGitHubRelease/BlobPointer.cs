@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class BlobPointer
+    internal sealed class BlobPointer
     {
         [JsonPropertyName("sha")]
         public string? Sha { get; set; }

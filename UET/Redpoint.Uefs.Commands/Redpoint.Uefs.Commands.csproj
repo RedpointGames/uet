@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
     <ProjectReference Include="..\Redpoint.CredentialDiscovery\Redpoint.CredentialDiscovery.csproj" />
+    <ProjectReference Include="..\Redpoint.Hashing\Redpoint.Hashing.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Protocol\Redpoint.Uefs.Protocol.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.ContainerRegistry\Redpoint.Uefs.ContainerRegistry.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Package.SparseImage\Redpoint.Uefs.Package.SparseImage.csproj" />

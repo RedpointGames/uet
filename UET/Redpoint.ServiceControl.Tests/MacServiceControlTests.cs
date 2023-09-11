@@ -17,10 +17,10 @@ namespace Redpoint.ServiceControl.Tests
             var serviceControl = sp.GetRequiredService<IServiceControl>();
 
             Assert.True(
-                await serviceControl.IsServiceRunning("com.apple.lskdd"),
+                await serviceControl.IsServiceRunning("com.apple.lskdd").ConfigureAwait(false),
                 "Expected 'com.apple.lskdd' to be running.");
             Assert.False(
-                await serviceControl.IsServiceRunning("com.apple.afpfs_afpLoad"),
+                await serviceControl.IsServiceRunning("com.apple.afpfs_afpLoad").ConfigureAwait(false),
                 "Expected 'com.apple.afpfs_afpLoad' to not be running.");
         }
     }

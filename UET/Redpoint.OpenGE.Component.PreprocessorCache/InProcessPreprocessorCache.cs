@@ -19,7 +19,7 @@
         private readonly ICachingPreprocessorScannerFactory _cachingPreprocessorScannerFactory;
         private readonly IPreprocessorResolver _preprocessorResolver;
         private readonly IReservationManagerForOpenGE _openGEReservationManagerProvider;
-        private readonly SemaphoreSlim _initSemaphore = new SemaphoreSlim(1);
+        private readonly Concurrency.Semaphore _initSemaphore = new Concurrency.Semaphore(1);
         private ICachingPreprocessorScanner? _cachingScanner;
         private bool _inited = false;
         private bool _disposed = false;
@@ -43,7 +43,7 @@
             {
                 throw new ObjectDisposedException(nameof(InProcessPreprocessorCache));
             }
-            await _initSemaphore.WaitAsync();
+            await _initSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (_disposed)
@@ -62,7 +62,7 @@
                 }
                 if (_reservation != null)
                 {
-                    await _reservation.DisposeAsync();
+                    await _reservation.DisposeAsync().ConfigureAwait(false);
                     _reservation = null;
                 }
                 _disposed = true;
@@ -84,7 +84,7 @@
             {
                 return;
             }
-            await _initSemaphore.WaitAsync();
+            await _initSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (_disposed)
@@ -96,7 +96,7 @@
                     return;
                 }
 
-                _reservation = await _openGEReservationManagerProvider.ReservationManager.TryReserveExactAsync("Preprocessor");
+                _reservation = await _openGEReservationManagerProvider.ReservationManager.TryReserveExactAsync("Preprocessor").ConfigureAwait(false);
                 if (_reservation == null)
                 {
                     throw new PreprocessorCacheAlreadyRunningException();
@@ -113,15 +113,15 @@
         }
 
         public async override Task<PreprocessorResolutionResultWithTimingMetadata> GetResolvedDependenciesAsync(
-            string filePath, 
-            string[] forceIncludes, 
+            string filePath,
+            string[] forceIncludes,
             string[] includeDirectories,
             Dictionary<string, string> globalDefinitions,
             long buildStartTicks,
             CompilerArchitype architype,
             CancellationToken cancellationToken)
         {
-            await EnsureAsync();
+            await EnsureAsync().ConfigureAwait(false);
             return await _preprocessorResolver.ResolveAsync(
                 _cachingScanner!,
                 filePath,
@@ -130,14 +130,14 @@
                 globalDefinitions,
                 buildStartTicks,
                 architype,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
         }
 
         public async override Task<PreprocessorScanResultWithCacheMetadata> GetUnresolvedDependenciesAsync(
-            string filePath, 
+            string filePath,
             CancellationToken cancellationToken)
         {
-            await EnsureAsync();
+            await EnsureAsync().ConfigureAwait(false);
             return _cachingScanner!.ParseIncludes(filePath);
         }
 
@@ -175,7 +175,7 @@
                     request.GlobalDefinitions.ToDictionary(k => k.Key, v => v.Value),
                     request.BuildStartTicks,
                     request.Architype,
-                    context.CancellationToken);
+                    context.CancellationToken).ConfigureAwait(false);
                 LastGrpcRequestUtc = DateTimeOffset.UtcNow;
                 return new GetResolvedDependenciesResponse
                 {

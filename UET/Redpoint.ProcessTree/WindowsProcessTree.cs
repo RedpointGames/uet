@@ -6,7 +6,7 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("windows")]
-    internal partial class WindowsProcessTree : IProcessTree
+    internal sealed partial class WindowsProcessTree : IProcessTree
     {
         // These members must match PROCESS_BASIC_INFORMATION
         private struct ProcessBasicInformation
@@ -22,7 +22,7 @@
         [LibraryImport("ntdll.dll")]
         private static partial int NtQueryInformationProcess(IntPtr processHandle, int processInformationClass, ref ProcessBasicInformation processInformation, int processInformationLength, out int returnLength);
 
-        private Process? GetParentProcess(IntPtr handle)
+        private static Process? GetParentProcess(IntPtr handle)
         {
             ProcessBasicInformation pbi = new ProcessBasicInformation();
             int returnLength;

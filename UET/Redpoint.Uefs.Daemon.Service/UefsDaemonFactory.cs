@@ -9,7 +9,7 @@
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using Redpoint.Uefs.Protocol;
 
-    internal class UefsDaemonFactory : IUefsDaemonFactory
+    internal sealed class UefsDaemonFactory : IUefsDaemonFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

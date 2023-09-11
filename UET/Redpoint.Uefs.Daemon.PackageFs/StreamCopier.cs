@@ -1,15 +1,21 @@
 ﻿// #define ENABLE_TRACE
 // #define ENABLE_STALL_DEBUG
 
+using System;
+
 namespace Redpoint.Uefs.Daemon.PackageFs
 {
+    using Redpoint.Hashing;
     using Redpoint.Uefs.Daemon.RemoteStorage;
     using System.Security.Cryptography;
 
-    internal class StreamCopier : IDisposable
+    internal sealed class StreamCopier : IDisposable
     {
+        // This class does not own these disposable objects.
+#pragma warning disable CA2213
         private IRemoteStorageBlob _source;
         private Stream _target;
+#pragma warning restore CA2213
         private SHA256? _hasher;
 
         const int _ringBufferLength = 64;
@@ -58,7 +64,7 @@ namespace Redpoint.Uefs.Daemon.PackageFs
                     throw new InvalidOperationException("SHA256 hash can only be accessed after copy is complete!");
                 }
 
-                return BitConverter.ToString(_hasher.Hash!).Replace("-", "").ToLowerInvariant();
+                return Hash.HexString(_hasher.Hash!);
             }
         }
 
@@ -71,7 +77,7 @@ namespace Redpoint.Uefs.Daemon.PackageFs
             _started = true;
             await Task.WhenAll(
                 Task.Run(PerformReads),
-                Task.Run(PerformWrites));
+                Task.Run(PerformWrites)).ConfigureAwait(false);
             _complete = true;
         }
 
@@ -91,7 +97,7 @@ namespace Redpoint.Uefs.Daemon.PackageFs
                 var bytesRead = await _source.ReadAsync(
                     targetBuffer,
                     0,
-                    targetBuffer.Length);
+                    targetBuffer.Length).ConfigureAwait(false);
                 _bufferBytesRead[_readPosition] = bytesRead;
 #if ENABLE_TRACE
                 Console.WriteLine($"PerformReads:  Read into buffer {_readPosition}.");
@@ -149,10 +155,7 @@ namespace Redpoint.Uefs.Daemon.PackageFs
 #endif
                 var sourceBuffer = _bufferRings[_writePosition];
                 var sourceBufferLength = _bufferBytesRead[_writePosition];
-                await _target.WriteAsync(
-                    sourceBuffer,
-                    0,
-                    sourceBufferLength);
+                await _target.WriteAsync(sourceBuffer.AsMemory(0, sourceBufferLength)).ConfigureAwait(false);
 #if ENABLE_TRACE
                 Console.WriteLine($"PerformWrites: Wrote from buffer {_writePosition}.");
 #endif
@@ -192,7 +195,7 @@ namespace Redpoint.Uefs.Daemon.PackageFs
 #endif
                     if (_hasher != null)
                     {
-                        _hasher.TransformFinalBlock(new byte[0], 0, 0);
+                        _hasher.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
                     }
                     return;
                 }

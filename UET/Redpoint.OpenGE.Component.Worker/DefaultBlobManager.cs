@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.OpenGE.Component.Worker
 {
     using Grpc.Core;
+    using Redpoint.Concurrency;
     using Redpoint.IO;
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Core.ReadableStream;
@@ -10,6 +11,7 @@
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO.Compression;
     using System.IO.Hashing;
     using System.Net;
@@ -19,7 +21,7 @@
     {
         private readonly IReservationManagerForOpenGE _reservationManagerForOpenGE;
         private readonly ConcurrentDictionary<IPEndPoint, ServerCallContext> _remoteHostLocks;
-        private readonly SemaphoreSlim _blobsReservationSemaphore;
+        private readonly Concurrency.Semaphore _blobsReservationSemaphore;
         private IReservation? _blobsReservation;
         private bool _disposed;
 
@@ -28,7 +30,7 @@
         {
             _reservationManagerForOpenGE = reservationManagerForOpenGE;
             _remoteHostLocks = new ConcurrentDictionary<IPEndPoint, ServerCallContext>();
-            _blobsReservationSemaphore = new SemaphoreSlim(1);
+            _blobsReservationSemaphore = new Concurrency.Semaphore(1);
             _blobsReservation = null;
             _disposed = false;
         }
@@ -58,7 +60,7 @@
             }
             else
             {
-                remotifiedPath = absolutePath[0] + absolutePath.Substring(2);
+                remotifiedPath = absolutePath[0] + absolutePath[2..];
             }
             if (remotifiedPath == null)
             {
@@ -73,7 +75,7 @@
             InputFilesByBlobXxHash64 inputFiles,
             CancellationToken cancellationToken)
         {
-            var blobsPath = await GetBlobsPath();
+            var blobsPath = await GetBlobsPath().ConfigureAwait(false);
 
             // Figure out what files were previously created in this workspace,
             // so we can compute the different in files we have and the files
@@ -86,7 +88,7 @@
                 {
                     while (!reader.EndOfStream)
                     {
-                        var line = await reader.ReadLineAsync();
+                        var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
                         filesToDelete.Add(line!);
                     }
                 }
@@ -164,6 +166,7 @@
             return _remoteHostLocks.TryGetValue(peerHost, out _);
         }
 
+        [SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Random.Shared is not used for security-related purposes.")]
         public async Task QueryMissingBlobsAsync(
             ServerCallContext context,
             QueryMissingBlobsRequest request,
@@ -183,12 +186,12 @@
             var peerHost = GrpcPeerParser.ParsePeer(context);
             while (!_remoteHostLocks.TryAdd(peerHost, context))
             {
-                await Task.Delay(200 * Random.Shared.Next(1, 5), cancellationToken);
+                await Task.Delay(200 * Random.Shared.Next(1, 5), cancellationToken).ConfigureAwait(false);
             }
             var retainLock = false;
             try
             {
-                var blobsPath = await GetBlobsPath();
+                var blobsPath = await GetBlobsPath().ConfigureAwait(false);
 
                 var requested = new HashSet<long>(request.BlobXxHash64);
                 var exists = new HashSet<long>();
@@ -208,7 +211,7 @@
                 await responseStream.WriteAsync(new ExecutionResponse
                 {
                     QueryMissingBlobs = response,
-                });
+                }, cancellationToken).ConfigureAwait(false);
 
                 // @note: If we have no missing blobs, then the client will never call
                 // SendCompressedBlobsAsync and thus we should not retain the lock or
@@ -240,7 +243,7 @@
                     "You must not send SendCompressedBlobsRequest until QueryMissingBlobsResponse has arrived."));
             }
 
-            var blobsPath = await GetBlobsPath();
+            var blobsPath = await GetBlobsPath().ConfigureAwait(false);
 
             // At this point, we're in the lock for this peer, so we can safely
             // receive the data and stream it out.
@@ -250,7 +253,7 @@
             XxHash64? hash = null;
             try
             {
-                using (var destination = new SequentialVersion1Decoder(
+                using (var destination = new SequentialVersion1DecoderStream(
                     (blobHash, blobLength) =>
                     {
                         if (lockFile != null)
@@ -334,7 +337,7 @@
                     {
                         using (var decompressor = new BrotliStream(source, CompressionMode.Decompress))
                         {
-                            await decompressor.CopyToAsync(destination);
+                            await decompressor.CopyToAsync(destination, cancellationToken).ConfigureAwait(false);
                         }
                     }
                 }
@@ -342,7 +345,7 @@
                 await responseStream.WriteAsync(new ExecutionResponse
                 {
                     SendCompressedBlobs = new SendCompressedBlobsResponse(),
-                }, cancellationToken);
+                }, cancellationToken).ConfigureAwait(false);
             }
             finally
             {
@@ -373,7 +376,7 @@
             IEnumerable<string> outputAbsolutePaths,
             CancellationToken cancellationToken)
         {
-            var blobsPath = await GetBlobsPath();
+            var blobsPath = await GetBlobsPath().ConfigureAwait(false);
 
             var results = new ConcurrentDictionary<string, long>();
 
@@ -388,7 +391,7 @@
                         path);
                     if (File.Exists(targetPath))
                     {
-                        var fileHash = (await XxHash64Helpers.HashFile(targetPath, cancellationToken)).hash;
+                        var fileHash = (await XxHash64Helpers.HashFile(targetPath, cancellationToken).ConfigureAwait(false)).hash;
                         var blobPath = Path.Combine(blobsPath, fileHash.HexString());
                         results[path] = fileHash;
                         if (!File.Exists(blobPath))
@@ -423,7 +426,7 @@
                             }
                         }
                     }
-                });
+                }).ConfigureAwait(false);
 
             return new OutputFilesByBlobXxHash64
             {
@@ -437,7 +440,7 @@
             IServerStreamWriter<ExecutionResponse> responseStream,
             CancellationToken cancellationToken)
         {
-            var blobsPath = await GetBlobsPath();
+            var blobsPath = await GetBlobsPath().ConfigureAwait(false);
 
             var allEntriesByBlobHash = new ConcurrentDictionary<long, BlobInfo>();
             var requestedBlobHashes = request.ReceiveOutputBlobs.BlobXxHash64;
@@ -459,17 +462,17 @@
                         };
                     }
                     return ValueTask.CompletedTask;
-                });
+                }).ConfigureAwait(false);
 
-            await using (var destination = new ReceiveOutputBlobsWritableBinaryChunkStream(responseStream))
+            await using (new ReceiveOutputBlobsWritableBinaryChunkStream(responseStream).AsAsyncDisposable(out var destination).ConfigureAwait(false))
             {
-                await using (var compressor = new BrotliStream(destination, CompressionMode.Compress))
+                await using (new BrotliStream(destination, CompressionMode.Compress).AsAsyncDisposable(out var compressor).ConfigureAwait(false))
                 {
-                    using (var source = new SequentialVersion1Encoder(
+                    using (var source = new SequentialVersion1EncoderStream(
                         allEntriesByBlobHash,
                         requestedBlobHashes))
                     {
-                        await source.CopyToAsync(compressor, cancellationToken);
+                        await source.CopyToAsync(compressor, cancellationToken).ConfigureAwait(false);
                     }
                 }
             }
@@ -504,7 +507,7 @@
             {
                 return _blobsReservation.ReservedPath;
             }
-            await _blobsReservationSemaphore.WaitAsync();
+            await _blobsReservationSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (_disposed)
@@ -515,7 +518,7 @@
                 {
                     return _blobsReservation.ReservedPath;
                 }
-                _blobsReservation = await _reservationManagerForOpenGE.ReservationManager.ReserveAsync("Blobs");
+                _blobsReservation = await _reservationManagerForOpenGE.ReservationManager.ReserveAsync("Blobs").ConfigureAwait(false);
                 return _blobsReservation.ReservedPath;
             }
             finally
@@ -526,12 +529,12 @@
 
         public async ValueTask DisposeAsync()
         {
-            await _blobsReservationSemaphore.WaitAsync();
+            await _blobsReservationSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (_blobsReservation != null)
                 {
-                    await _blobsReservation.DisposeAsync();
+                    await _blobsReservation.DisposeAsync().ConfigureAwait(false);
                 }
                 _disposed = true;
             }

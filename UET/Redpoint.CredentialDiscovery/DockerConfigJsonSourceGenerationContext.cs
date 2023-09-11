@@ -4,7 +4,7 @@
 
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(DockerConfigJson))]
-    internal partial class DockerConfigJsonSourceGenerationContext : JsonSerializerContext
+    internal sealed partial class DockerConfigJsonSourceGenerationContext : JsonSerializerContext
     {
     }
 }

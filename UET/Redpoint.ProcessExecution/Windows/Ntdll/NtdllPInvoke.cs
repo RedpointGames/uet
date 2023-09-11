@@ -9,12 +9,14 @@
     internal static unsafe class NtdllPInvoke
     {
         [DllImport("ntdll.dll")]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static extern unsafe NTSTATUS NtCreateDirectoryObject(
             nint* Handle,
             ACCESS_MASK DesiredAccess,
             OBJECT_ATTRIBUTES* ObjectAttributes);
 
         [DllImport("ntdll.dll")]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static extern unsafe NTSTATUS NtSetInformationProcess(
             nint ProcessHandle,
             PROCESS_INFORMATION_CLASS ProcessInformationClass,
@@ -22,6 +24,7 @@
             int ProcessInformationSize);
 
         [DllImport("ntdll.dll")]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static extern unsafe NTSTATUS NtQueryInformationProcess(
             nint ProcessHandle,
             PROCESS_INFORMATION_CLASS ProcessInformationClass,
@@ -30,6 +33,7 @@
             uint* ProcessInformationReturnSize);
 
         [DllImport("ntdll.dll")]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static extern unsafe NTSTATUS NtCreateSymbolicLinkObject(
             nint* LinkHandle,
             ACCESS_MASK DesiredAccess,

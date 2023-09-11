@@ -13,7 +13,7 @@
             {
                 if (fileHandle.FilePath.StartsWith(localPath, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    await NativeHandles.ForciblyCloseHandleAsync(fileHandle, CancellationToken.None);
+                    await NativeHandles.ForciblyCloseHandleAsync(fileHandle, CancellationToken.None).ConfigureAwait(false);
                 }
             }
         }

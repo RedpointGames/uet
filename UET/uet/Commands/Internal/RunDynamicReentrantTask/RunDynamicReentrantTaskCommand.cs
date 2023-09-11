@@ -14,9 +14,9 @@
     using System.Text.Json.Serialization;
     using System.Threading.Tasks;
 
-    internal class RunDynamicReentrantTaskCommand
+    internal sealed class RunDynamicReentrantTaskCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> DistributionType;
             public Option<string> ReentrantExecutorCategory;
@@ -44,7 +44,7 @@
             return command;
         }
 
-        private class RunDynamicReentrantTaskCommandInstance : ICommandInstance
+        private sealed class RunDynamicReentrantTaskCommandInstance : ICommandInstance
         {
             private readonly ILogger<RunDynamicReentrantTaskCommandInstance> _logger;
             private readonly IServiceProvider _serviceProvider;
@@ -92,7 +92,7 @@
                 }
             }
 
-            private object DeserializeDynamicSettings<T>(IDynamicReentrantExecutor<T> reentrantExecutor, byte[] jsonBytes)
+            private static object DeserializeDynamicSettings<T>(IDynamicReentrantExecutor<T> reentrantExecutor, byte[] jsonBytes)
             {
                 var reader = new Utf8JsonReader(jsonBytes);
                 return reentrantExecutor.DynamicSettings.Deserialize(ref reader);
@@ -128,7 +128,7 @@
                 }
                 var reentrantExecutor = reentrantExecutors[0];
 
-                var jsonBytes = await File.ReadAllBytesAsync(taskJsonPath.FullName);
+                var jsonBytes = await File.ReadAllBytesAsync(taskJsonPath.FullName, cancellationToken).ConfigureAwait(false);
                 var config = DeserializeDynamicSettings(reentrantExecutor, jsonBytes);
 
                 var runtimeSettingsDictionary = new Dictionary<string, string>();
@@ -141,7 +141,7 @@
                 return await reentrantExecutor.ExecuteBuildGraphNodeAsync(
                     config,
                     runtimeSettingsDictionary,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
         }
     }

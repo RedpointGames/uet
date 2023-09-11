@@ -9,7 +9,7 @@
     [JsonSerializable(typeof(BuildConfigPluginDeploymentBackblazeB2))]
     [JsonSerializable(typeof(BuildConfigProjectDeploymentCustom))]
     [JsonSerializable(typeof(BuildConfigProjectDeploymentSteam))]
-    internal partial class DeploymentProviderSourceGenerationContext : JsonSerializerContext
+    internal sealed partial class DeploymentProviderSourceGenerationContext : JsonSerializerContext
     {
         public static DeploymentProviderSourceGenerationContext WithStringEnum { get; } = new DeploymentProviderSourceGenerationContext(new JsonSerializerOptions
         {

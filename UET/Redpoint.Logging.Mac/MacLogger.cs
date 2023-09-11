@@ -5,7 +5,7 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("macos")]
-    internal class MacLogger : ILogger
+    internal sealed class MacLogger : ILogger
     {
         private string _name;
         private MacLoggerOptions _options;

@@ -14,6 +14,6 @@
         public string SourcePath { get; }
         public long OffsetBytes { get; }
         public long LengthBytes { get; }
-        public bool IsDirectory => SourcePath == string.Empty;
+        public bool IsDirectory => string.IsNullOrEmpty(SourcePath);
     }
 }

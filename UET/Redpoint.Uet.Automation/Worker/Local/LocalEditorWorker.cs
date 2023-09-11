@@ -11,7 +11,7 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal class LocalEditorWorker : LocalWorker, ICaptureSpecification
+    internal sealed class LocalEditorWorker : LocalWorker, ICaptureSpecification
     {
         private readonly ILogger<LocalEditorWorker> _logger;
         private readonly IProcessExecutor _processExecutor;
@@ -85,8 +85,8 @@
                         }
                     },
                     CaptureSpecification.CreateFromStdoutStringBuilder(sb),
-                    _cancellationTokenSource.Token);
-                if (sb.ToString().Contains("no rules"))
+                    _cancellationTokenSource.Token).ConfigureAwait(false);
+                if (sb.ToString().Contains("no rules", StringComparison.Ordinal))
                 {
                     _logger.LogInformation($"Adding firewall rule to permit port {EndPoint.Port}...");
                     await _processExecutor.ExecuteAsync(
@@ -107,7 +107,7 @@
                             }
                         },
                         CaptureSpecification.Passthrough,
-                        _cancellationTokenSource.Token);
+                        _cancellationTokenSource.Token).ConfigureAwait(false);
                 }
             }
 
@@ -124,9 +124,9 @@
                 "-purgatorymallocproxy",
                 "-Messaging",
                 "-CrashForUAT",
-                $"-SessionId={Id.ToString().Replace("-", "").Replace("{", "").Replace("}", "").ToUpperInvariant()}",
+                $"-SessionId={Id.ToString().Replace("-", "", StringComparison.Ordinal).Replace("{", "", StringComparison.Ordinal).Replace("}", "", StringComparison.Ordinal).ToUpperInvariant()}",
                 $"-SessionName={DisplayName}",
-                $"-SessionOwner={(Environment.UserName.Contains("$") ? "SYSTEM" : Environment.UserName)}",
+                $"-SessionOwner={(Environment.UserName.Contains('$', StringComparison.Ordinal) ? "SYSTEM" : Environment.UserName)}",
                 $"-abslog={logPath}",
                 // The engine will check for UObject leaks inside world memory and force a crash if it detects them. However, these are unrelated to
                 // automation tests (which don't operate in the world for the most part), so we want to avoid these crashes.
@@ -162,7 +162,7 @@
                     WorkingDirectory = Descriptor.EnginePath,
                 },
                 this,
-                _cancellationTokenSource.Token));
+                _cancellationTokenSource.Token).ConfigureAwait(false));
 
             var didFireExit = false;
             try
@@ -174,21 +174,21 @@
                     {
                         _logger.LogWarning($"[{Id}] Executable exited with no exit code information, because the task was cancelled");
                         didFireExit = true;
-                        await _onWorkerExited(this, int.MinValue, null);
+                        await _onWorkerExited(this, int.MinValue, null).ConfigureAwait(false);
                         return;
                     }
                     if (automationTask.IsFaulted)
                     {
                         _logger.LogError($"[{Id}] Executable exited with no exit code information, because the task fired an exception: {automationTask.Exception}");
                         didFireExit = true;
-                        await _onWorkerExited(this, int.MinValue, null);
+                        await _onWorkerExited(this, int.MinValue, null).ConfigureAwait(false);
                         return;
                     }
                     if (automationTask.IsCompletedSuccessfully)
                     {
                         _logger.LogWarning($"[{Id}] Executable exited unexpectedly with exit code {automationTask.Result}");
                         didFireExit = true;
-                        await _onWorkerExited(this, automationTask.Result, await GrabCrashDataFromLogs(logPath));
+                        await _onWorkerExited(this, automationTask.Result, await GrabCrashDataFromLogs(logPath).ConfigureAwait(false)).ConfigureAwait(false);
                         return;
                     }
 
@@ -203,7 +203,7 @@
                         _logger.LogTrace($"[{Id}] Still waiting to be able to connect...");
                         continue;
                     }
-                    catch (IOException ex) when (ex.Message.Contains("An existing connection was forcibly closed by the remote host."))
+                    catch (IOException ex) when (ex.Message.Contains("An existing connection was forcibly closed by the remote host.", StringComparison.Ordinal))
                     {
                         _logger.LogTrace($"[{Id}] Connection was unexpectedly disconnected.");
                         continue;
@@ -215,14 +215,14 @@
                 st.Stop();
                 _startupDuration = st.Elapsed;
                 _logger.LogTrace($"[{Id}] Worker ready in {_startupDuration.TotalSeconds} secs.");
-                await _onWorkerStarted(this);
+                await _onWorkerStarted(this).ConfigureAwait(false);
 
                 // Wait until we are cancelled or the process exits.
                 while (!_cancellationTokenSource.IsCancellationRequested &&
                        !automationTask.IsCompleted)
                 {
                     // @note: This will throw, but DisposeAsync will eat the exception.
-                    await Task.Delay(500, _cancellationTokenSource.Token);
+                    await Task.Delay(500, _cancellationTokenSource.Token).ConfigureAwait(false);
                 }
             }
             finally
@@ -233,7 +233,7 @@
                 }
                 try
                 {
-                    await automationTask;
+                    await automationTask.ConfigureAwait(false);
                 }
                 catch
                 {
@@ -243,23 +243,23 @@
                     if (automationTask.IsCanceled)
                     {
                         _logger.LogTrace($"[{Id}] Executable exited with no exit code information, because the task was cancelled");
-                        await _onWorkerExited(this, int.MinValue, null);
+                        await _onWorkerExited(this, int.MinValue, null).ConfigureAwait(false);
                     }
                     if (automationTask.IsFaulted)
                     {
                         _logger.LogError($"[{Id}] Executable exited with no exit code information, because the task fired an exception: {automationTask.Exception}");
-                        await _onWorkerExited(this, int.MinValue, null);
+                        await _onWorkerExited(this, int.MinValue, null).ConfigureAwait(false);
                     }
                     if (automationTask.IsCompletedSuccessfully)
                     {
                         _logger.LogTrace($"[{Id}] Executable exited with exit code {automationTask.Result}");
-                        await _onWorkerExited(this, automationTask.Result, await GrabCrashDataFromLogs(logPath));
+                        await _onWorkerExited(this, automationTask.Result, await GrabCrashDataFromLogs(logPath).ConfigureAwait(false)).ConfigureAwait(false);
                     }
                 }
             }
         }
 
-        private async Task<IWorkerCrashData?> GrabCrashDataFromLogs(string logPath)
+        private static async Task<IWorkerCrashData?> GrabCrashDataFromLogs(string logPath)
         {
             do
             {
@@ -271,16 +271,16 @@
                     {
                         while (!reader.EndOfStream)
                         {
-                            var line = await reader.ReadLineAsync();
-                            if (line!.Contains("=== Critical error: ==="))
+                            var line = await reader.ReadLineAsync().ConfigureAwait(false);
+                            if (line!.Contains("=== Critical error: ===", StringComparison.Ordinal))
                             {
                                 foundCrash = true;
                             }
                             if (foundCrash)
                             {
-                                crashLines.Add(line.Substring(line.IndexOf("Error:") + "Error:".Length).Trim());
+                                crashLines.Add(line[(line.IndexOf("Error:", StringComparison.Ordinal) + "Error:".Length)..].Trim());
                             }
-                            if (line.Contains("end: stack for UAT"))
+                            if (line.Contains("end: stack for UAT", StringComparison.Ordinal))
                             {
                                 break;
                             }
@@ -292,10 +292,10 @@
                     }
                     return null;
                 }
-                catch (IOException ex) when (ex.Message.Contains("used by another process"))
+                catch (IOException ex) when (ex.Message.Contains("used by another process", StringComparison.Ordinal))
                 {
                     // Still waiting on Unreal to finish with the log file.
-                    await Task.Delay(500);
+                    await Task.Delay(500).ConfigureAwait(false);
                     continue;
                 }
             } while (true);
@@ -316,13 +316,14 @@
             {
                 try
                 {
-                    await _backgroundTask;
+                    await _backgroundTask.ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
                 }
             }
-            await _portReservation.DisposeAsync();
+            await _portReservation.DisposeAsync().ConfigureAwait(false);
+            _cancellationTokenSource.Dispose();
         }
 
         bool ICaptureSpecification.InterceptStandardInput => true;

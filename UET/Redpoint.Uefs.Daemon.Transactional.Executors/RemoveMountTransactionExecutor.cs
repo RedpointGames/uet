@@ -4,7 +4,7 @@
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using System.Threading.Tasks;
 
-    internal class RemoveMountTransactionExecutor : ITransactionExecutor<RemoveMountTransactionRequest>
+    internal sealed class RemoveMountTransactionExecutor : ITransactionExecutor<RemoveMountTransactionRequest>
     {
         private readonly IMountTracking _mountTracking;
         private readonly ILogger<RemoveMountTransactionExecutor> _logger;
@@ -28,7 +28,7 @@
             using (await _mountLockObtainer.ObtainLockAsync(
                 context,
                 "RemoveMountTransactionExecutor",
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false))
             {
                 if (_mountTracking.CurrentMounts.ContainsKey(transaction.MountId))
                 {
@@ -37,9 +37,9 @@
                     mount.DisposeUnderlying();
                     if (mount.MountPath != null)
                     {
-                        await _mountTracking.RemovePersistentMountAsync(mount.MountPath);
+                        await _mountTracking.RemovePersistentMountAsync(mount.MountPath).ConfigureAwait(false);
                     }
-                    await _mountTracking.RemoveCurrentMountAsync(transaction.MountId);
+                    await _mountTracking.RemoveCurrentMountAsync(transaction.MountId).ConfigureAwait(false);
                 }
             }
         }

@@ -8,9 +8,9 @@
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal class TestAutoDiscoveryCommand
+    internal sealed class TestAutoDiscoveryCommand
     {
-        internal class Options
+        internal sealed class Options
         {
         }
 
@@ -23,7 +23,7 @@
             return command;
         }
 
-        private class TestAutoDiscoveryCommandInstance : ICommandInstance
+        private sealed class TestAutoDiscoveryCommandInstance : ICommandInstance
         {
             private readonly ILogger<TestAutoDiscoveryCommandInstance> _logger;
             private readonly INetworkAutoDiscovery _networkAutoDiscovery;
@@ -41,7 +41,7 @@
                 await using (await _networkAutoDiscovery.RegisterServiceAsync(
                     $"{Environment.MachineName}._discoverytest._tcp.local",
                     10203,
-                    context.GetCancellationToken()))
+                    context.GetCancellationToken()).ConfigureAwait(false))
                 {
                     _logger.LogInformation("Auto-discovery service registered.");
                     var gate = new Gate();
@@ -49,7 +49,7 @@
                     {
                         gate.Open();
                     });
-                    await gate.WaitAsync(context.GetCancellationToken());
+                    await gate.WaitAsync(context.GetCancellationToken()).ConfigureAwait(false);
                     return 0;
                 }
             }

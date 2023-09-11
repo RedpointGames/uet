@@ -1,10 +1,11 @@
 ﻿namespace Redpoint.Git.Managed
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class OffsetStream : Stream
+    internal sealed class OffsetStream : Stream
     {
         private readonly Stream _stream;
         private readonly long _offset;
@@ -88,11 +89,13 @@
         protected override void Dispose(bool disposing)
         {
             _stream.Dispose();
+            base.Dispose(disposing);
         }
 
-        public override ValueTask DisposeAsync()
+        [SuppressMessage("Usage", "CA2215:Dispose methods should call base class dispose", Justification = "Stream.DisposeAsync calls into the synchronise Dispose method.")]
+        public override async ValueTask DisposeAsync()
         {
-            return _stream.DisposeAsync();
+            await _stream.DisposeAsync().ConfigureAwait(false);
         }
 
         public override int EndRead(IAsyncResult asyncResult)

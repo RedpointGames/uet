@@ -9,7 +9,7 @@
     using System.Security.AccessControl;
     using System.Security.Principal;
 
-    internal class AspNetGrpcPipeFactory : IGrpcPipeFactory
+    internal sealed class AspNetGrpcPipeFactory : IGrpcPipeFactory
     {
         private readonly IServiceProvider? _serviceProvider;
 
@@ -19,7 +19,7 @@
             _serviceProvider = serviceProvider;
         }
 
-        private string GetUserPipePath(string pipeName)
+        private static string GetUserPipePath(string pipeName)
         {
             if (OperatingSystem.IsWindows())
             {
@@ -48,7 +48,7 @@
             }
         }
 
-        private string GetComputerPipePath(string pipeName)
+        private static string GetComputerPipePath(string pipeName)
         {
             if (OperatingSystem.IsWindows())
             {
@@ -63,7 +63,7 @@
             }
         }
 
-        private string GetPipePath(string pipeName, GrpcPipeNamespace pipeNamespace)
+        private static string GetPipePath(string pipeName, GrpcPipeNamespace pipeNamespace)
         {
             if (pipeNamespace == GrpcPipeNamespace.User)
             {
@@ -75,7 +75,7 @@
             }
         }
 
-        private void CreateDirectoryWithPermissions(
+        private static void CreateDirectoryWithPermissions(
             string directoryPath,
             GrpcPipeNamespace pipeNamespace)
         {
@@ -196,7 +196,7 @@
                             ProtocolType.Unspecified);
                         await socket.ConnectAsync(
                             new UnixDomainSocketEndPoint(pipePath),
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
                         return new NetworkStream(socket, true);
                     }
                 };
@@ -225,12 +225,12 @@
                 {
                     pointerFileContent = reader.ReadToEnd().Trim();
                 }
-                if (!pointerFileContent.StartsWith("pointer: "))
+                if (!pointerFileContent.StartsWith("pointer: ", StringComparison.Ordinal))
                 {
                     throw new InvalidOperationException("Pointer file format is invalid!");
                 }
 
-                var pointer = pointerFileContent.Substring("pointer: ".Length).Trim();
+                var pointer = pointerFileContent["pointer: ".Length..].Trim();
 
                 logger?.LogTrace($"Creating gRPC channel with TCP socket from pointer file: {pointer}");
 

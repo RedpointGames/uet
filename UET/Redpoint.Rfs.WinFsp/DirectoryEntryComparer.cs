@@ -3,13 +3,13 @@
     using System;
     using System.Collections;
 
-    internal class DirectoryEntryComparer : IComparer
+    internal sealed class DirectoryEntryComparer : IComparer
     {
         public int Compare(object? x, object? y)
         {
             return String.Compare(
                 (String)((DictionaryEntry)x!).Key,
-                (String)((DictionaryEntry)y!).Key);
+                (String)((DictionaryEntry)y!).Key, StringComparison.Ordinal);
         }
     }
 }

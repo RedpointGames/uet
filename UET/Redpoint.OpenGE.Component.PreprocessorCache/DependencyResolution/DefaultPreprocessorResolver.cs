@@ -19,8 +19,8 @@
     internal class DefaultPreprocessorResolver : IPreprocessorResolver
     {
         private static readonly StringComparer _pathComparison = OperatingSystem.IsWindows()
-            ? StringComparer.InvariantCultureIgnoreCase
-            : StringComparer.InvariantCulture;
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
         private readonly IFilesystemExistenceProvider _filesystemExistenceProvider;
 
         public DefaultPreprocessorResolver(
@@ -53,13 +53,17 @@
 
         private static class ForwardIncludeScanner
         {
-            private readonly static ConcurrentDictionary<long, ForwardIncludeScanRequest> _forwardIncludeScanRequestsLookup = new ConcurrentDictionary<long, ForwardIncludeScanRequest>();
-            private readonly static TerminableConcurrentQueue<ForwardIncludeScanRequest> _forwardIncludeScanRequests = new TerminableConcurrentQueue<ForwardIncludeScanRequest>();
+            private readonly static ConcurrentDictionary<long, ForwardIncludeScanRequest> _forwardIncludeScanRequestsLookup;
+            private readonly static TerminableConcurrentQueue<ForwardIncludeScanRequest> _forwardIncludeScanRequests;
             private readonly static Thread[] _forwardIncludeScanThreads;
-            private static long _nextId = 1000;
+            private static long _nextId;
 
+            [SuppressMessage("Performance", "CA1810:Initialize reference type static fields inline", Justification = "Initialisation order must be explicit as threads as started by this constructor.")]
             static ForwardIncludeScanner()
             {
+                _forwardIncludeScanRequestsLookup = new ConcurrentDictionary<long, ForwardIncludeScanRequest>();
+                _forwardIncludeScanRequests = new TerminableConcurrentQueue<ForwardIncludeScanRequest>();
+                _nextId = 1000;
                 _forwardIncludeScanThreads = Enumerable.Range(0, 8).Select(x =>
                 {
                     var thread = new Thread(ForwardIncludeScanning);
@@ -300,7 +304,7 @@
             return Task.FromResult(result);
         }
 
-        private PreprocessorStateHasInclude HasIncludeWithStack(
+        private static PreprocessorStateHasInclude HasIncludeWithStack(
             PreprocessorState state,
             Stack<string> includeParentPaths)
         {
@@ -462,7 +466,7 @@
                             // @note: I guess this is truthy? What?
                             return 1;
                         default:
-                            throw new Exception($"Unsupported DataCase '{condition.Token.DataCase}'.");
+                            throw new InvalidOperationException($"Unsupported DataCase '{condition.Token.DataCase}'.");
                     }
                 case PreprocessorExpression.ExprOneofCase.Chain:
                     if (condition.Chain.Expressions.Count == 1)
@@ -471,7 +475,7 @@
                     }
                     else
                     {
-                        throw new Exception($"Chain in conditional expression contained more than one subexpression.");
+                        throw new InvalidOperationException($"Chain in conditional expression contained more than one subexpression.");
                     }
                 case PreprocessorExpression.ExprOneofCase.Unary:
                     switch (condition.Unary.Type)
@@ -750,10 +754,10 @@
                         case PreprocessorExpressionToken.DataOneofCase.Number:
                             return $"{expression.Token.Number}";
                         default:
-                            throw new Exception($"Unsupported DataCase '{expression.Token.DataCase}'.");
+                            throw new InvalidOperationException($"Unsupported DataCase '{expression.Token.DataCase}'.");
                     }
                 default:
-                    throw new Exception($"Unsupported ExprCase '{expression.ExprCase}'.");
+                    throw new InvalidOperationException($"Unsupported ExprCase '{expression.ExprCase}'.");
             }
         }
 
@@ -763,10 +767,9 @@
             HashSet<long> dependentConditions)
         {
             // Add immediate condition dependents.
-            if (state.ConditionDependentsOfIdentifiers.ContainsKey(identifier))
+            if (state.ConditionDependentsOfIdentifiers.TryGetValue(identifier, out var value))
             {
-                dependentConditions.UnionWith(
-                    state.ConditionDependentsOfIdentifiers[identifier]);
+                dependentConditions.UnionWith(value);
             }
 
             // If no definition depends on the value of this define, we only need
@@ -783,10 +786,9 @@
             foreach (var upstreamDefine in upstreamDefines)
             {
                 // Add upstream condition dependents.
-                if (state.ConditionDependentsOfIdentifiers.ContainsKey(upstreamDefine))
+                if (state.ConditionDependentsOfIdentifiers.TryGetValue(upstreamDefine, out var upstreamValue))
                 {
-                    dependentConditions.UnionWith(
-                        state.ConditionDependentsOfIdentifiers[upstreamDefine]);
+                    dependentConditions.UnionWith(upstreamValue);
                 }
             }
         }
@@ -925,7 +927,7 @@
                         var conditionState = state.ConditionStates[conditionHash];
                         if (conditionState == PreprocessorConditionState.Error)
                         {
-                            throw new Exception($"Preprocessor condition {conditionHash} depends on an undefined macro identifier for condition evaluation. The condition is: {state.Conditions[conditionHash].Condition}");
+                            throw new InvalidOperationException($"Preprocessor condition {conditionHash} depends on an undefined macro identifier for condition evaluation. The condition is: {state.Conditions[conditionHash].Condition}");
                         }
                         else if (conditionState == PreprocessorConditionState.True)
                         {
@@ -1002,20 +1004,20 @@
                     string? foundPath;
                     string? searchValue;
                     if (forwardScannerLookup != null &&
-                        forwardScannerLookup.ContainsKey(directive.Include.DirectiveId) &&
-                        ForwardIncludeScanner.TryPullRequest(forwardScannerLookup[directive.Include.DirectiveId], out var request))
+                        forwardScannerLookup.TryGetValue(directive.Include.DirectiveId, out var foundScanResult) &&
+                        ForwardIncludeScanner.TryPullRequest(foundScanResult, out var request))
                     {
-                        if (request.Completed.TryWait(0))
+                        if (request.Completed.TryWait(0, CancellationToken.None))
                         {
                             foundPath = request.FoundPath;
                             searchValue = request.SearchValue;
                         }
-                        else if (request.Started.TryWait(0))
+                        else if (request.Started.TryWait(0, CancellationToken.None))
                         {
                             // The forward scanner has started doing the work (i.e. it's not
                             // still in the request queue), so actually just wait for it to be
                             // done.
-                            request.Completed.Wait();
+                            request.Completed.Wait(CancellationToken.None);
                             foundPath = request.FoundPath;
                             searchValue = request.SearchValue;
                         }
@@ -1113,7 +1115,7 @@
                     }
                     else
                     {
-                        throw new Exception($"Include macro expanded into non-include value '{expandedInclude}' (it probably needs quotes)");
+                        throw new InvalidOperationException($"Include macro expanded into non-include value '{expandedInclude}' (it probably needs quotes)");
                     }
                     break;
                 default:

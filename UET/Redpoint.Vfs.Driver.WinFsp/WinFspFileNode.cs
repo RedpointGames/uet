@@ -26,7 +26,7 @@
                     AllocationSize = 0,
                     // @note: If we see weird behaviour with ISPC, we might need to
                     // make this "correct".
-                    IndexNumber = (ulong)path.ToLowerInvariant().GetHashCode(),
+                    IndexNumber = (ulong)path.GetHashCode(StringComparison.OrdinalIgnoreCase),
                 },
                 null);
         }
@@ -46,7 +46,7 @@
                     LastWriteTime = (ulong)metadata.LastWriteTime.ToFileTime(),
                     FileSize = 0,
                     AllocationSize = 0,
-                    IndexNumber = (ulong)path.ToLowerInvariant().GetHashCode(),
+                    IndexNumber = (ulong)path.GetHashCode(StringComparison.OrdinalIgnoreCase),
                 },
                 null);
         }
@@ -67,7 +67,7 @@
                     LastWriteTime = (ulong)metadata.LastWriteTime.ToFileTime(),
                     FileSize = (ulong)metadata.Size,
                     AllocationSize = WinFspVfsDriverImpl.GetAllocationSize((ulong)metadata.Size),
-                    IndexNumber = (ulong)path.ToLowerInvariant().GetHashCode(),
+                    IndexNumber = (ulong)path.GetHashCode(StringComparison.OrdinalIgnoreCase),
                 },
                 handle);
         }

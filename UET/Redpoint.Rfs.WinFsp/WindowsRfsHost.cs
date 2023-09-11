@@ -1,4 +1,7 @@
-﻿namespace Redpoint.Rfs.WinFsp
+﻿#pragma warning disable CA1849
+#pragma warning disable CA1062 // Validate arguments of public methods
+
+namespace Redpoint.Rfs.WinFsp
 {
     using Fsp;
     using Fsp.Interop;

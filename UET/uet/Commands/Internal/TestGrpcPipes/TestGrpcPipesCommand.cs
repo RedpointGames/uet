@@ -10,9 +10,9 @@
     using TestPipes;
     using static TestPipes.TestService;
 
-    internal class TestGrpcPipesCommand
+    internal sealed class TestGrpcPipesCommand
     {
-        internal class Options
+        internal sealed class Options
         {
         }
 
@@ -25,7 +25,7 @@
             return command;
         }
 
-        private class TestGrpcPipesCommandInstance : TestServiceBase, ICommandInstance
+        private sealed class TestGrpcPipesCommandInstance : TestServiceBase, ICommandInstance
         {
             private readonly IGrpcPipeFactory _grpcPipeFactory;
             private readonly ILogger<TestGrpcPipesCommandInstance> _logger;
@@ -41,13 +41,13 @@
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
-                var pipeName = $"test-grpc-pipes-{Process.GetCurrentProcess().Id}";
+                var pipeName = $"test-grpc-pipes-{Environment.ProcessId}";
 
                 var server = _grpcPipeFactory.CreateServer(
                     pipeName,
                     GrpcPipeNamespace.User,
                     this);
-                await server.StartAsync();
+                await server.StartAsync().ConfigureAwait(false);
 
                 var client = _grpcPipeFactory.CreateClient(
                     pipeName,
@@ -56,7 +56,7 @@
 
                 await client.TestMethodAsync(new TestRequest());
 
-                await server.StopAsync();
+                await server.StopAsync().ConfigureAwait(false);
 
                 if (_methodReceived)
                 {

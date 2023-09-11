@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class EngineBuildVersionJson
+    internal sealed class EngineBuildVersionJson
     {
         [JsonPropertyName("MajorVersion")]
         public int MajorVersion { get; set; }

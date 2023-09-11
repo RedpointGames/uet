@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class CommitPointer
+    internal sealed class CommitPointer
     {
         [JsonPropertyName("sha")]
         public string? Sha { get; set; }

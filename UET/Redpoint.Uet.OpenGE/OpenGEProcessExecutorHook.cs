@@ -12,7 +12,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class OpenGEProcessExecutorHook : IProcessExecutorHook
+    internal sealed class OpenGEProcessExecutorHook : IProcessExecutorHook
     {
         private readonly ILogger<OpenGEProcessExecutorHook> _logger;
         private readonly IOpenGEProvider _provider;
@@ -38,7 +38,7 @@
                 return null;
             }
 
-            var environmentInfo = await _provider.GetOpenGEEnvironmentInfo();
+            var environmentInfo = await _provider.GetOpenGEEnvironmentInfo().ConfigureAwait(false);
 
             if (!environmentInfo.ShouldUseOpenGE || openGEProcessSpecification.DisableOpenGE)
             {
@@ -60,10 +60,10 @@
                 _ => throw new PlatformNotSupportedException(),
             };
 
-            var xgeShimFolder = Path.Combine(Path.GetTempPath(), $"openge-shim-{Process.GetCurrentProcess().Id}");
+            var xgeShimFolder = Path.Combine(Path.GetTempPath(), $"openge-shim-{Environment.ProcessId}");
             var xgeShimPath = Path.Combine(xgeShimFolder, shimName);
 
-            await _semaphoreSlim.WaitAsync(cancellationToken);
+            await _semaphoreSlim.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 if (!File.Exists(xgeShimPath))
@@ -79,7 +79,7 @@
                     {
                         using (var target = new FileStream(xgeShimPath + ".tmp", FileMode.Create, FileAccess.Write, FileShare.None))
                         {
-                            await manifestStream!.CopyToAsync(target);
+                            await manifestStream!.CopyToAsync(target, cancellationToken).ConfigureAwait(false);
                         }
                     }
                     if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
@@ -144,11 +144,11 @@
                 processSpecification.FilePath = xgeShimPath;
             }
 
-            await logInterceptingServer.StartAsync();
+            await logInterceptingServer.StartAsync().ConfigureAwait(false);
             return new LogInterceptingServerStopper(logInterceptingServer);
         }
 
-        private class LogInterceptingServerStopper : IAsyncDisposable
+        private sealed class LogInterceptingServerStopper : IAsyncDisposable
         {
             private IGrpcPipeServer<LogInterceptingDispatcher> _logInterceptingServer;
 
@@ -160,7 +160,7 @@
 
             public async ValueTask DisposeAsync()
             {
-                await _logInterceptingServer.StopAsync();
+                await _logInterceptingServer.StopAsync().ConfigureAwait(false);
             }
         }
     }

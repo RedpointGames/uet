@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.ProcessExecution
 {
+    using System.Globalization;
     using System.Text;
 
     internal class SanitizedStringBuilderCaptureSpecification : ICaptureSpecification
@@ -25,14 +26,14 @@
                 var c = data[i];
                 if (c < ' ')
                 {
-                    sb.Append($"\\x{(int)c:X}");
+                    sb.Append(CultureInfo.InvariantCulture, $"\\x{(int)c:X}");
                 }
                 else
                 {
                     sb.Append(c);
                 }
             }
-            Console.Error.WriteLine(sb.ToString().Replace("\\x1B[K", string.Empty));
+            Console.Error.WriteLine(sb.ToString().Replace("\\x1B[K", string.Empty, StringComparison.Ordinal));
         }
 
         public void OnReceiveStandardOutput(string data)

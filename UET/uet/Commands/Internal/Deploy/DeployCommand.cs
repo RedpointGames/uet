@@ -5,9 +5,9 @@
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal class DeployCommand
+    internal sealed class DeployCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> Target;
             public Option<string> PackageType;
@@ -42,7 +42,7 @@
             return command;
         }
 
-        private class DeployCommandInstance : ICommandInstance
+        private sealed class DeployCommandInstance : ICommandInstance
         {
             private readonly ILogger<DeployCommandInstance> _logger;
 

@@ -4,7 +4,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class AutomationLogForwarderProcessExecutorHook : IProcessExecutorHook
+    internal sealed class AutomationLogForwarderProcessExecutorHook : IProcessExecutorHook
     {
         private readonly IAutomationLogForwarder _serverLifecycle;
 

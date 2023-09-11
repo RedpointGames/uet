@@ -6,7 +6,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class NativeGitCommit : IGitCommit
+    internal sealed class NativeGitCommit : IGitCommit
     {
         private readonly Repository _repository;
         private readonly Commit _commit;

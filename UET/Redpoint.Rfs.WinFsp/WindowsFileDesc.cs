@@ -10,21 +10,21 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class WindowsFileDesc
+    internal sealed class WindowsFileDesc
     {
-        protected const int _allocationUnit = 4096;
+        private const int _allocationUnit = 4096;
 
-        protected static void ThrowIoExceptionWithHResult(int hresult)
+        private static void ThrowIoExceptionWithHResult(int hresult)
         {
             throw new IOException(null, hresult);
         }
 
-        protected static void ThrowIoExceptionWithWin32(int error)
+        private static void ThrowIoExceptionWithWin32(int error)
         {
             ThrowIoExceptionWithHResult(unchecked((int)(0x80070000 | error)));
         }
 
-        protected static void ThrowIoExceptionWithNtStatus(int status)
+        private static void ThrowIoExceptionWithNtStatus(int status)
         {
             ThrowIoExceptionWithWin32((int)FileSystemBase.Win32FromNtStatus(status));
         }
@@ -252,32 +252,38 @@
             public bool DeleteFile;
         }
         [DllImport("kernel32.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         private static extern bool GetFileInformationByHandle(
             IntPtr hFile,
             out BY_HANDLE_FILE_INFORMATION lpFileInformation);
         [DllImport("kernel32.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         private static extern bool SetFileInformationByHandle(
             IntPtr hFile,
             int FileInformationClass,
             ref FILE_BASIC_INFO lpFileInformation,
             uint dwBufferSize);
         [DllImport("kernel32.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         private static extern bool SetFileInformationByHandle(
             IntPtr hFile,
             int FileInformationClass,
             ref FILE_DISPOSITION_INFO lpFileInformation,
             uint dwBufferSize);
         [DllImport("kernel32.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         private static extern bool MoveFileExW(
             [MarshalAs(UnmanagedType.LPWStr)] string lpExistingFileName,
             [MarshalAs(UnmanagedType.LPWStr)] string lpNewFileName,
             uint dwFlags);
         [DllImport("advapi32.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         private static extern bool SetFileSecurityW(
             [MarshalAs(UnmanagedType.LPWStr)] string FileName,
             int SecurityInformation,
             byte[] SecurityDescriptor);
         [DllImport("advapi32.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         private static extern bool SetKernelObjectSecurity(
             IntPtr Handle,
             int SecurityInformation,

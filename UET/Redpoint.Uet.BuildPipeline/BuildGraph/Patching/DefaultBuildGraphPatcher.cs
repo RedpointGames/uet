@@ -1,6 +1,10 @@
-﻿namespace Redpoint.Uet.BuildPipeline.BuildGraph.Patching
+﻿using System;
+
+namespace Redpoint.Uet.BuildPipeline.BuildGraph.Patching
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Concurrency;
+    using Redpoint.Hashing;
     using Redpoint.MSBuildResolution;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
@@ -38,10 +42,7 @@
             {
                 _patches = JsonSerializer.Deserialize<BuildGraphPatchSet[]>(stream!, BuildGraphSourceGenerationContext.Default.BuildGraphPatchSetArray)!;
                 stream!.Seek(0, SeekOrigin.Begin);
-                using (var sha = SHA1.Create())
-                {
-                    _patchHash = BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
-                }
+                _patchHash = Hash.Sha1AsHexString(stream);
             }
         }
 
@@ -53,7 +54,7 @@
                 {
                     subdirectory.Attributes = subdirectory.Attributes ^ FileAttributes.ReadOnly;
                 }
-                await MakeReadWriteAsync(subdirectory);
+                await MakeReadWriteAsync(subdirectory).ConfigureAwait(false);
             }
             foreach (var file in di.GetFiles())
             {
@@ -121,9 +122,9 @@
                 if (!File.Exists(target))
                 {
                     Stream sourceStream;
-                    if (source.StartsWith("stream:"))
+                    if (source.StartsWith("stream:", StringComparison.Ordinal))
                     {
-                        sourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(source.Substring("stream:".Length))!;
+                        sourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(source["stream:".Length..])!;
                     }
                     else
                     {
@@ -139,7 +140,7 @@
                         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                         using (var targetStream = new FileStream(target, FileMode.Create, FileAccess.Write, FileShare.None))
                         {
-                            await sourceStream.CopyToAsync(targetStream);
+                            await sourceStream.CopyToAsync(targetStream).ConfigureAwait(false);
                         }
                     }
                 }
@@ -162,7 +163,7 @@
 
             _logger.LogInformation($"BuildGraph patch version is {existingBuildGraphPatchLevel}, but the target patch version is {_patchHash}, applying patches...");
 
-            await MakeReadWriteAsync(new DirectoryInfo(Path.Combine(enginePath, "Engine", "Source", "Programs")));
+            await MakeReadWriteAsync(new DirectoryInfo(Path.Combine(enginePath, "Engine", "Source", "Programs"))).ConfigureAwait(false);
 
             foreach (var patchDefinition in _patches)
             {
@@ -171,19 +172,19 @@
                 var sourceFile = Path.Combine(enginePath, filename);
                 if (File.Exists(sourceFile))
                 {
-                    var content = await File.ReadAllTextAsync(sourceFile);
+                    var content = await File.ReadAllTextAsync(sourceFile).ConfigureAwait(false);
                     var originalContent = content;
                     for (int i = 0; i < patchDefinition.Patches.Length; i++)
                     {
                         var patch = patchDefinition.Patches[i];
                         if (patch.Mode == "Snip")
                         {
-                            if (content.Contains(patch.Contains!))
+                            if (content.Contains(patch.Contains!, StringComparison.Ordinal))
                             {
                                 _logger.LogTrace($"Patch {filename} #{i}: Applying...");
-                                var startIndex = content.IndexOf(patch.StartIndex!);
-                                var endIndex = content.IndexOf(patch.EndIndex!);
-                                content = content.Substring(0, startIndex) + content.Substring(endIndex);
+                                var startIndex = content.IndexOf(patch.StartIndex!, StringComparison.Ordinal);
+                                var endIndex = content.IndexOf(patch.EndIndex!, StringComparison.Ordinal);
+                                content = string.Concat(content.AsSpan(0, startIndex), content.AsSpan(endIndex));
                             }
                             else
                             {
@@ -194,12 +195,12 @@
                         {
                             if (patch.HandleWindowsNewLines)
                             {
-                                content = content.Replace("\r\n", "\n");
+                                content = content.Replace("\r\n", "\n", StringComparison.Ordinal);
                             }
-                            if (content.Contains(patch.Find!))
+                            if (content.Contains(patch.Find!, StringComparison.Ordinal))
                             {
                                 _logger.LogTrace($"Patch {filename} #{i}: Applying...");
-                                content = content.Replace(patch.Find!, patch.Replace!);
+                                content = content.Replace(patch.Find!, patch.Replace!, StringComparison.Ordinal);
                             }
                             else
                             {
@@ -209,7 +210,7 @@
                     }
                     if (content != originalContent)
                     {
-                        await File.WriteAllTextAsync(sourceFile, content);
+                        await File.WriteAllTextAsync(sourceFile, content).ConfigureAwait(false);
                     }
                 }
                 else
@@ -220,7 +221,7 @@
 
             // Check that we applied the minimum patches correctly.
             var buildGraphFile = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "BuildGraph", "BuildGraph.cs");
-            if (!File.Exists(buildGraphFile) || !File.ReadAllText(buildGraphFile).Contains("BUILD_GRAPH_PROJECT_ROOT"))
+            if (!File.Exists(buildGraphFile) || !File.ReadAllText(buildGraphFile).Contains("BUILD_GRAPH_PROJECT_ROOT", StringComparison.Ordinal))
             {
                 throw new InvalidOperationException("Patching process failed to produce BuildGraph.cs file that contains BUILD_GRAPH_PROJECT_ROOT. Turn on --trace to see logs about the patching process.");
             }
@@ -235,15 +236,15 @@
                 return;
             }
 
-            await CopyMissingEngineBitsAsync(enginePath);
+            await CopyMissingEngineBitsAsync(enginePath).ConfigureAwait(false);
 
             var epicGamesCoreProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "Shared", "EpicGames.Core", "EpicGames.Core.csproj");
             var epicGamesBuildProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "Shared", "EpicGames.Build", "EpicGames.Build.csproj");
             var unrealBuildToolProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "UnrealBuildTool", "UnrealBuildTool.csproj");
             var automationToolBuildGraphProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "BuildGraph", "BuildGraph.Automation.csproj");
             var automationToolProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "AutomationTool.csproj");
-            var (msBuildPath, msBuildExtraArgs) = await _msBuildPathResolver.ResolveMSBuildPath();
-            var dotnetPath = await _pathResolver.ResolveBinaryPath("dotnet");
+            var (msBuildPath, msBuildExtraArgs) = await _msBuildPathResolver.ResolveMSBuildPath().ConfigureAwait(false);
+            var dotnetPath = await _pathResolver.ResolveBinaryPath("dotnet").ConfigureAwait(false);
 
             var sb = new StringBuilder();
             await _processExecutor.ExecuteAsync(
@@ -258,8 +259,8 @@
                     }
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(sb),
-                CancellationToken.None);
-            if (!sb.ToString().Contains("https://api.nuget.org/v3/index.json"))
+                CancellationToken.None).ConfigureAwait(false);
+            if (!sb.ToString().Contains("https://api.nuget.org/v3/index.json", StringComparison.Ordinal))
             {
                 await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
@@ -276,13 +277,13 @@
                         }
                     },
                     CaptureSpecification.Passthrough,
-                    CancellationToken.None);
+                    CancellationToken.None).ConfigureAwait(false);
             }
 
-            await using (var nugetStoragePath = await _dynamicWorkspaceProvider.GetWorkspaceAsync(new TemporaryWorkspaceDescriptor
+            await using ((await _dynamicWorkspaceProvider.GetWorkspaceAsync(new TemporaryWorkspaceDescriptor
             {
                 Name = "NuGetPackages"
-            }, CancellationToken.None))
+            }, CancellationToken.None).ConfigureAwait(false)).AsAsyncDisposable(out var nugetStoragePath).ConfigureAwait(false))
             {
                 var projects = new[]
                 {
@@ -315,7 +316,7 @@
                             }
                         },
                         CaptureSpecification.Passthrough,
-                        CancellationToken.None);
+                        CancellationToken.None).ConfigureAwait(false);
                     if (exitCode != 0)
                     {
                         throw new InvalidOperationException($"Failed to rebuild BuildGraph (msbuild restore exited with exit code {exitCode})");
@@ -348,7 +349,7 @@
                             }
                         },
                         CaptureSpecification.Passthrough,
-                        CancellationToken.None);
+                        CancellationToken.None).ConfigureAwait(false);
                     if (exitCode != 0)
                     {
                         throw new InvalidOperationException($"Failed to rebuild BuildGraph (msbuild compile exited with exit code {exitCode})");

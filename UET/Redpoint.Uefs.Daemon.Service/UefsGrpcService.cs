@@ -12,8 +12,9 @@
     using System.Diagnostics;
     using System.Threading.Tasks;
     using static Redpoint.Uefs.Protocol.Uefs;
+    using Redpoint.Concurrency;
 
-    internal class UefsGrpcService : UefsBase
+    internal sealed class UefsGrpcService : UefsBase
     {
         private readonly ILogger<UefsGrpcService> _logger;
         private readonly IUefsDaemon _daemon;
@@ -92,7 +93,7 @@
         private async Task RunMountAsync(
             IServerStreamWriter<MountResponse> stream,
             MountContext mountContext,
-            Func<TransactionListenerDelegate, Task> operation)
+            Func<TransactionListener, Task> operation)
         {
             PollingResponse? lastPollingResponse = null;
             var streamClosed = false;
@@ -107,9 +108,9 @@
                         {
                             PollingResponse = response,
                             MountId = response.Complete && string.IsNullOrWhiteSpace(response.Err) ? mountContext.MountId : string.Empty,
-                        });
+                        }).ConfigureAwait(false);
                     }
-                });
+                }).ConfigureAwait(false);
                 if (lastPollingResponse == null)
                 {
                     lastPollingResponse = new PollingResponse
@@ -122,7 +123,7 @@
                 {
                     PollingResponse = lastPollingResponse,
                     MountId = mountContext.MountId,
-                });
+                }).ConfigureAwait(false);
                 streamClosed = true;
             }
             catch (Exception ex)
@@ -141,7 +142,7 @@
                     {
                         PollingResponse = lastPollingResponse,
                         MountId = string.Empty,
-                    });
+                    }).ConfigureAwait(false);
                 }
                 catch { }
                 _logger.LogError(ex, ex.Message);
@@ -161,8 +162,8 @@
                         mountContext,
                         request,
                         onPollingResponse,
-                        context.CancellationToken);
-                });
+                        context.CancellationToken).ConfigureAwait(false);
+                }).ConfigureAwait(false);
         }
 
         public override async Task MountPackageFile(MountPackageFileRequest request, IServerStreamWriter<MountResponse> responseStream, ServerCallContext context)
@@ -178,8 +179,8 @@
                         mountContext,
                         request,
                         onPollingResponse,
-                        context.CancellationToken);
-                });
+                        context.CancellationToken).ConfigureAwait(false);
+                }).ConfigureAwait(false);
         }
 
         public override async Task MountGitCommit(MountGitCommitRequest request, IServerStreamWriter<MountResponse> responseStream, ServerCallContext context)
@@ -195,8 +196,8 @@
                         mountContext,
                         request,
                         onPollingResponse,
-                        context.CancellationToken);
-                });
+                        context.CancellationToken).ConfigureAwait(false);
+                }).ConfigureAwait(false);
         }
 
         public override async Task MountGitHubCommit(MountGitHubCommitRequest request, IServerStreamWriter<MountResponse> responseStream, ServerCallContext context)
@@ -212,8 +213,8 @@
                         mountContext,
                         request,
                         onPollingResponse,
-                        context.CancellationToken);
-                });
+                        context.CancellationToken).ConfigureAwait(false);
+                }).ConfigureAwait(false);
         }
 
         public override async Task MountFolderSnapshot(MountFolderSnapshotRequest request, IServerStreamWriter<MountResponse> responseStream, ServerCallContext context)
@@ -229,13 +230,13 @@
                         mountContext,
                         request,
                         onPollingResponse,
-                        context.CancellationToken);
-                });
+                        context.CancellationToken).ConfigureAwait(false);
+                }).ConfigureAwait(false);
         }
 
         private async Task RunPullAsync(
             IServerStreamWriter<PullResponse> stream,
-            Func<TransactionListenerDelegate, Action<string>, Task> operation)
+            Func<TransactionListener, Action<string>, Task> operation)
         {
             string? transactionId = null;
             PollingResponse? lastPollingResponse = null;
@@ -252,13 +253,13 @@
                             {
                                 PollingResponse = response,
                                 OperationId = transactionId ?? string.Empty,
-                            });
+                            }).ConfigureAwait(false);
                         }
                     },
                     t =>
                     {
                         transactionId = t;
-                    });
+                    }).ConfigureAwait(false);
                 if (lastPollingResponse == null || !lastPollingResponse.Complete)
                 {
                     throw new InvalidOperationException();
@@ -267,7 +268,7 @@
                 {
                     PollingResponse = lastPollingResponse,
                     OperationId = transactionId ?? string.Empty,
-                });
+                }).ConfigureAwait(false);
                 streamClosed = true;
             }
             catch (Exception ex)
@@ -286,7 +287,7 @@
                     {
                         PollingResponse = lastPollingResponse,
                         OperationId = transactionId ?? string.Empty,
-                    });
+                    }).ConfigureAwait(false);
                 }
                 catch { }
                 _logger.LogError(ex, ex.Message);
@@ -303,9 +304,9 @@
                         _daemon,
                         request,
                         (response, _) => onPollingResponse(response),
-                        context.CancellationToken);
+                        context.CancellationToken).ConfigureAwait(false);
                     onTransactionId(pullResult.TransactionId);
-                });
+                }).ConfigureAwait(false);
         }
 
         public override async Task PullGitCommit(PullGitCommitRequest request, IServerStreamWriter<PullResponse> responseStream, ServerCallContext context)
@@ -318,9 +319,9 @@
                         _daemon,
                         request,
                         (response, _) => onPollingResponse(response),
-                        context.CancellationToken);
+                        context.CancellationToken).ConfigureAwait(false);
                     onTransactionId(pullResult.TransactionId);
-                });
+                }).ConfigureAwait(false);
         }
 
         public override async Task Verify(VerifyRequest request, IServerStreamWriter<VerifyResponse> responseStream, ServerCallContext context)
@@ -329,7 +330,7 @@
             PollingResponse? lastPollingResponse = null;
             try
             {
-                await using (var transaction = await _daemon.TransactionalDatabase.BeginTransactionAsync<VerifyPackagesTransactionRequest>(
+                await using ((await _daemon.TransactionalDatabase.BeginTransactionAsync(
                     new VerifyPackagesTransactionRequest
                     {
                         PackageFs = _daemon.PackageStorage.PackageFs,
@@ -343,15 +344,15 @@
                         {
                             PollingResponse = lastPollingResponse,
                             OperationId = transactionId ?? string.Empty,
-                        });
+                        }).ConfigureAwait(false);
                     },
-                    context.CancellationToken))
+                    context.CancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var transaction).ConfigureAwait(false))
                 {
                     transactionId = transaction.TransactionId;
 
                     if (!request.NoWait)
                     {
-                        await transaction.WaitForCompletionAsync(context.CancellationToken);
+                        await transaction.WaitForCompletionAsync(context.CancellationToken).ConfigureAwait(false);
                     }
 
                     if (!request.NoWait && lastPollingResponse == null)
@@ -367,7 +368,7 @@
                     {
                         PollingResponse = lastPollingResponse ?? new PollingResponse(),
                         OperationId = transactionId ?? string.Empty,
-                    });
+                    }).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -384,7 +385,7 @@
                 {
                     PollingResponse = lastPollingResponse,
                     OperationId = transactionId ?? string.Empty,
-                });
+                }).ConfigureAwait(false);
                 _logger.LogError(ex, ex.Message);
             }
         }
@@ -396,29 +397,29 @@
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "No such mount exists."));
             }
 
-            await using (var transaction = await _daemon.TransactionalDatabase.BeginTransactionAsync<RemoveMountTransactionRequest>(
+            await using ((await _daemon.TransactionalDatabase.BeginTransactionAsync(
                 new RemoveMountTransactionRequest
                 {
                     MountId = request.MountId,
                 },
                 _ => Task.CompletedTask,
-                context.CancellationToken))
+                context.CancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var transaction).ConfigureAwait(false))
             {
-                await transaction.WaitForCompletionAsync(context.CancellationToken);
+                await transaction.WaitForCompletionAsync(context.CancellationToken).ConfigureAwait(false);
                 return new UnmountResponse();
             }
         }
 
         public override async Task<ListResponse> List(ListRequest request, ServerCallContext context)
         {
-            await using (var transaction = await _daemon.TransactionalDatabase.BeginTransactionAsync<ListMountsTransactionRequest, ListResponse>(
+            await using ((await _daemon.TransactionalDatabase.BeginTransactionAsync<ListMountsTransactionRequest, ListResponse>(
                 new ListMountsTransactionRequest
                 {
                 },
                 (_, _) => Task.CompletedTask,
-                context.CancellationToken))
+                context.CancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var transaction).ConfigureAwait(false))
             {
-                return await transaction.WaitForCompletionAsync(context.CancellationToken);
+                return await transaction.WaitForCompletionAsync(context.CancellationToken).ConfigureAwait(false);
             }
         }
 

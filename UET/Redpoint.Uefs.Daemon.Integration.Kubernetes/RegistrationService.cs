@@ -5,7 +5,7 @@
     using Pluginregistration;
     using System.Threading.Tasks;
 
-    internal class RegistrationService : Registration.RegistrationBase
+    internal sealed class RegistrationService : Registration.RegistrationBase
     {
         private readonly ILogger _logger;
 

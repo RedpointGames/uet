@@ -12,9 +12,9 @@
     using System.Threading.Tasks;
     using UET.Services;
 
-    internal class OpenGEInstallCommand
+    internal sealed class OpenGEInstallCommand
     {
-        internal class Options
+        internal sealed class Options
         {
         }
 
@@ -31,7 +31,7 @@
             return command;
         }
 
-        private class OpenGEInstallCommandInstance : ICommandInstance
+        private sealed class OpenGEInstallCommandInstance : ICommandInstance
         {
             private readonly ILogger<OpenGEInstallCommandInstance> _logger;
             private readonly IServiceControl _serviceControl;
@@ -61,14 +61,14 @@
                     return 1;
                 }
 
-                var (shimVersionFolder, version, basePath, uetPath) = await GetUetVersion();
+                var (shimVersionFolder, version, basePath, uetPath) = await GetUetVersion().ConfigureAwait(false);
                 if (!File.Exists(uetPath))
                 {
                     _logger.LogError($"Expected UET to be installed globally at '{uetPath}'. Maybe you need to run 'uet upgrade' first?");
                 }
-                await ExtractXgConsoleShim(basePath);
-                var agentPath = await DownloadOpenGEAgent(version, basePath);
-                await InstallOpenGEAgent(agentPath);
+                await ExtractXgConsoleShim(basePath).ConfigureAwait(false);
+                var agentPath = await DownloadOpenGEAgent(version, basePath).ConfigureAwait(false);
+                await InstallOpenGEAgent(agentPath).ConfigureAwait(false);
                 SetUpXGERegistryDummyValues();
 
                 _logger.LogInformation("The OpenGE agent has been installed and started.");
@@ -112,10 +112,10 @@
                     {
                         using (var target = new FileStream(Path.Combine(basePath, filename + ".tmp"), FileMode.Create, FileAccess.Write, FileShare.None))
                         {
-                            var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                            var response = await client.GetAsync(new Uri(downloadUrl), HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
                             response.EnsureSuccessStatusCode();
                             using (var stream = new PositionAwareStream(
-                                await response.Content.ReadAsStreamAsync(),
+                                await response.Content.ReadAsStreamAsync().ConfigureAwait(false),
                                 response.Content.Headers.ContentLength!.Value))
                             {
                                 var cts = new CancellationTokenSource();
@@ -127,12 +127,12 @@
                                         progress,
                                         SystemConsole.ConsoleInformation,
                                         SystemConsole.WriteProgressToConsole,
-                                        cts.Token);
+                                        cts.Token).ConfigureAwait(false);
                                 });
 
-                                await stream.CopyToAsync(target);
+                                await stream.CopyToAsync(target).ConfigureAwait(false);
 
-                                await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);
+                                await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts).ConfigureAwait(false);
                             }
                         }
                     }
@@ -161,16 +161,16 @@
                     var v when v == OperatingSystem.IsLinux() => "openge-agent",
                     _ => throw new PlatformNotSupportedException(),
                 };
-                if (await _serviceControl.IsServiceInstalled(daemonName))
+                if (await _serviceControl.IsServiceInstalled(daemonName).ConfigureAwait(false))
                 {
-                    if (await _serviceControl.IsServiceRunning(daemonName))
+                    if (await _serviceControl.IsServiceRunning(daemonName).ConfigureAwait(false))
                     {
                         _logger.LogInformation("Stopping OpenGE agent...");
-                        await _serviceControl.StopService(daemonName);
+                        await _serviceControl.StopService(daemonName).ConfigureAwait(false);
                     }
 
                     _logger.LogInformation("Uninstalling OpenGE agent...");
-                    await _serviceControl.UninstallService(daemonName);
+                    await _serviceControl.UninstallService(daemonName).ConfigureAwait(false);
                 }
                 _logger.LogInformation("Installing OpenGE agent...");
                 if (OperatingSystem.IsMacOS())
@@ -182,10 +182,10 @@
                     "The OpenGE agent provides remote compilation services.",
                     $@"{agentPath} --service",
                     OperatingSystem.IsMacOS() ? "/Users/Shared/OpenGE/stdout.log" : null,
-                    OperatingSystem.IsMacOS() ? "/Users/Shared/OpenGE/stderr.log" : null);
+                    OperatingSystem.IsMacOS() ? "/Users/Shared/OpenGE/stderr.log" : null).ConfigureAwait(false);
 
                 _logger.LogInformation("Starting OpenGE agent...");
-                await _serviceControl.StartService(daemonName);
+                await _serviceControl.StartService(daemonName).ConfigureAwait(false);
             }
 
             private async Task ExtractXgConsoleShim(string basePath)
@@ -218,7 +218,7 @@
                     {
                         using (var target = new FileStream(xgeShimPath + ".tmp", FileMode.Create, FileAccess.Write, FileShare.None))
                         {
-                            await manifestStream!.CopyToAsync(target);
+                            await manifestStream!.CopyToAsync(target).ConfigureAwait(false);
                         }
                     }
                     if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
@@ -238,7 +238,7 @@
             {
                 // Get the current version.
                 var currentVersionAttribute = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-                if (currentVersionAttribute != null && !currentVersionAttribute.InformationalVersion.EndsWith("-pre"))
+                if (currentVersionAttribute != null && !currentVersionAttribute.InformationalVersion.EndsWith("-pre", StringComparison.Ordinal))
                 {
                     var version = currentVersionAttribute.InformationalVersion;
                     var basePath = true switch
@@ -278,7 +278,7 @@
                     _logger.LogInformation("Checking for the latest version...");
                     using (var client = new HttpClient())
                     {
-                        version = (await client.GetStringAsync(latestUrl)).Trim();
+                        version = (await client.GetStringAsync(new Uri(latestUrl)).ConfigureAwait(false)).Trim();
                     }
 
                     if (string.IsNullOrWhiteSpace(version))

@@ -330,11 +330,11 @@ namespace Redpoint.Windows.HandleManagement
                                         {
                                             if (objectPathLocal.StartsWith(kv.Key, StringComparison.InvariantCultureIgnoreCase))
                                             {
-                                                filePaths = kv.Value.Select(x => x + objectPathLocal.Substring(kv.Key.Length)).ToArray();
+                                                filePaths = kv.Value.Select(x => x + objectPathLocal[kv.Key.Length..]).ToArray();
                                                 return GetPathResultCode.Success;
                                             }
                                         }
-                                        filePaths = new string[0];
+                                        filePaths = Array.Empty<string>();
                                         return GetPathResultCode.Success;
                                     }
                                     else
@@ -401,7 +401,7 @@ namespace Redpoint.Windows.HandleManagement
                             }
                         }
                         return results;
-                    });
+                    }, cancellationToken).ConfigureAwait(false);
                 })
                 .SelectMany(x => x.ToAsyncEnumerable());
         }
@@ -447,7 +447,7 @@ namespace Redpoint.Windows.HandleManagement
                             }
                         }
                         return results;
-                    });
+                    }).ConfigureAwait(false);
                 })
                 .SelectMany(x => x.ToAsyncEnumerable());
         }
@@ -466,6 +466,8 @@ namespace Redpoint.Windows.HandleManagement
         /// <exception cref="NTSTATUSException">Thrown if the handle can not be forcibly closed.</exception>
         public static Task ForciblyCloseHandleAsync(INativeHandle nativeHandle, CancellationToken cancellationToken)
         {
+            if (nativeHandle == null) throw new ArgumentNullException(nameof(nativeHandle));
+
             INativeHandleInternal nativeHandleInternal = (INativeHandleInternal)nativeHandle;
 
             HANDLE targetProcessHandle =

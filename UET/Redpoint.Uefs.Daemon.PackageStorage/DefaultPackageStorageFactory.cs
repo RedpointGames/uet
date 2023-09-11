@@ -5,7 +5,7 @@
     using Redpoint.Git.Native;
     using Redpoint.Uefs.Daemon.PackageFs;
 
-    internal class DefaultPackageStorageFactory : IPackageStorageFactory
+    internal sealed class DefaultPackageStorageFactory : IPackageStorageFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

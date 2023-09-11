@@ -43,7 +43,7 @@
                     return (
                         200,
                         JsonSerializer.Serialize(
-                            await HandleAsync(plugin, (TRequest)(object)new EmptyRequest()),
+                            await HandleAsync(plugin, (TRequest)(object)new EmptyRequest()).ConfigureAwait(false),
                             responseTypeInfo)
                     );
                 }
@@ -60,7 +60,7 @@
                     return (
                         200, 
                         JsonSerializer.Serialize(
-                            await HandleAsync(plugin, requestObject),
+                            await HandleAsync(plugin, requestObject).ConfigureAwait(false),
                             responseTypeInfo)
                     );
                 }

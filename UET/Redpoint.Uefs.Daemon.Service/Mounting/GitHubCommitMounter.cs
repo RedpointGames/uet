@@ -12,8 +12,9 @@
     using Redpoint.Vfs.Layer.Git;
     using System.Threading;
     using System.Threading.Tasks;
+    using Redpoint.Concurrency;
 
-    internal class GitHubCommitMounter : IMounter<MountGitHubCommitRequest>
+    internal sealed class GitHubCommitMounter : IMounter<MountGitHubCommitRequest>
     {
         private readonly ILogger<GitHubCommitMounter> _logger;
         private readonly IGitVfsLayerFactory _gitVfsLayerFactory;
@@ -36,7 +37,7 @@
             IUefsDaemon daemon,
             MountContext context,
             MountGitHubCommitRequest request,
-            TransactionListenerDelegate onPollingResponse,
+            TransactionListener onPollingResponse,
             CancellationToken cancellationToken)
         {
             if (daemon.IsPathMountPath(request.MountRequest.MountPath))
@@ -50,7 +51,7 @@
             }
 
             // Run the mount transaction.
-            await using (var transaction = await daemon.TransactionalDatabase.BeginTransactionAsync(
+            await using ((await daemon.TransactionalDatabase.BeginTransactionAsync(
                 new AddMountTransactionRequest
                 {
                     MountId = context.MountId,
@@ -69,7 +70,7 @@
                             Path.Combine(daemon.StoragePath, "git-blob"),
                             Path.Combine(daemon.StoragePath, "git-index-cache"),
                             request.Commit);
-                        await gitLayer.InitAsync(CancellationToken.None);
+                        await gitLayer.InitAsync(CancellationToken.None).ConfigureAwait(false);
 
                         var (writeScratchPath, vfs) = await _gitVfsSetup.MountAsync(
                             daemon,
@@ -77,7 +78,7 @@
                             Path.Combine(daemon.StoragePath, "git-repo"),
                             request.FolderLayers.ToArray(),
                             gitLayer,
-                            "GitHub mount");
+                            "GitHub mount").ConfigureAwait(false);
 
                         return (
                             mount: new CurrentGitHubUefsMount(
@@ -104,9 +105,9 @@
                     },
                 },
                 onPollingResponse,
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var transaction).ConfigureAwait(false))
             {
-                await transaction.WaitForCompletionAsync(cancellationToken);
+                await transaction.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
             }
         }
     }

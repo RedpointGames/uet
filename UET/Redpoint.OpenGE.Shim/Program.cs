@@ -3,6 +3,7 @@ using Redpoint.GrpcPipes;
 using Redpoint.OpenGE.Protocol;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Globalization;
 
 // Ensure we do not re-use MSBuild processes, because our dotnet executables
 // will often be inside UEFS packages and mounts that might go away at any time.
@@ -63,7 +64,7 @@ rootCommand.SetHandler(async (InvocationContext context) =>
         var request = new SubmitJobRequest
         {
             BuildNodeName = Environment.GetEnvironmentVariable("UET_XGE_SHIM_BUILD_NODE_NAME") ?? context.ParseResult.GetValueForOption(titleOption) ?? string.Empty,
-            JobXml = await reader.ReadToEndAsync(),
+            JobXml = await reader.ReadToEndAsync().ConfigureAwait(false),
             WorkingDirectory = Environment.CurrentDirectory,
             BuildBehaviour = behaviour,
         };
@@ -88,13 +89,13 @@ rootCommand.SetHandler(async (InvocationContext context) =>
         {
             var remainingTasks = tasksTotal - tasksComplete;
             var percent = (1.0 - (tasksTotal == 0 ? 0.0 : ((double)remainingTasks / tasksTotal))) * 100.0;
-            var tasksTotalLength = tasksTotal.ToString().Length;
-            var line = $"[{percent,3:0}%, {tasksInFlight.ToString().PadLeft(tasksTotalLength)}->{tasksComplete.ToString().PadLeft(tasksTotalLength)}/{tasksTotal}] {message}";
+            var tasksTotalLength = tasksTotal.ToString(CultureInfo.InvariantCulture).Length;
+            var line = $"[{percent,3:0}%, {tasksInFlight.ToString(CultureInfo.InvariantCulture).PadLeft(tasksTotalLength)}->{tasksComplete.ToString(CultureInfo.InvariantCulture).PadLeft(tasksTotalLength)}/{tasksTotal}] {message}";
             Console.WriteLine(line);
         }
         try
         {
-            while (await response.ResponseStream.MoveNext(context.GetCancellationToken()))
+            while (await response.ResponseStream.MoveNext(context.GetCancellationToken()).ConfigureAwait(false))
             {
                 switch (response.ResponseStream.Current.ResponseCase)
                 {
@@ -184,4 +185,4 @@ rootCommand.SetHandler(async (InvocationContext context) =>
         }
     }
 });
-return await rootCommand.InvokeAsync(args);
+return await rootCommand.InvokeAsync(args).ConfigureAwait(false);

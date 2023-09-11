@@ -9,6 +9,9 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Hashing\Redpoint.Hashing.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <None Update="README.md">
       <Pack>True</Pack>
     </None>

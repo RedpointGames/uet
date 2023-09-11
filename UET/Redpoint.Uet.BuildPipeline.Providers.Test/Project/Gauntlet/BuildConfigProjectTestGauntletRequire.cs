@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Project.Gauntlet
 {
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
     public class BuildConfigProjectTestGauntletRequire
@@ -20,6 +21,7 @@
         /// The platforms to depend on.
         /// </summary>
         [JsonPropertyName("Platforms"), JsonRequired]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public string[]? Platforms { get; set; } = null;
 
         /// <summary>

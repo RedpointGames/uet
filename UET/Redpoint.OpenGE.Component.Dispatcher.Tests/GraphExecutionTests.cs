@@ -6,6 +6,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.AutoDiscovery;
     using Redpoint.Collections;
+    using Redpoint.Concurrency;
     using Redpoint.GrpcPipes;
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
     using Redpoint.OpenGE.Component.Dispatcher.GraphExecutor;
@@ -34,7 +35,7 @@
             _output = output;
         }
 
-        private class TestPreprocessorCacheAccessor : IPreprocessorCacheAccessor
+        private sealed class TestPreprocessorCacheAccessor : IPreprocessorCacheAccessor
         {
             private readonly IPreprocessorCache _preprocessorCache;
 
@@ -77,12 +78,12 @@
             var workerPoolFactory = provider.GetRequiredService<ITaskApiWorkerPoolFactory>();
 
             var worker = workerFactory.Create(true);
-            await worker.StartAsync(CancellationToken.None);
+            await worker.StartAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 var workerClient = new TaskApi.TaskApiClient(
                     GrpcChannel.ForAddress($"http://127.0.0.1:{worker.ListeningPort}"));
-                await using var workerPool = workerPoolFactory.CreateWorkerPool(new TaskApiWorkerPoolConfiguration
+                await using (workerPoolFactory.CreateWorkerPool(new TaskApiWorkerPoolConfiguration
                 {
                     EnableNetworkAutoDiscovery = false,
                     LocalWorker = new TaskApiWorkerPoolConfigurationLocalWorker
@@ -91,90 +92,92 @@
                         UniqueId = "1",
                         Client = workerClient,
                     }
-                });
-                var dispatcher = dispatcherFactory.Create(
-                    workerPool,
-                    null);
-                await dispatcher.StartAsync(CancellationToken.None);
-                try
+                }).AsAsyncDisposable(out var workerPool).ConfigureAwait(false))
                 {
-                    var dispatcherClient = grpcPipeFactory.CreateClient(
-                        dispatcher.GetConnectionString(),
-                        GrpcPipeNamespace.User,
-                        channel => new JobApi.JobApiClient(channel));
-                    var jobResults = dispatcherClient.SubmitJob(new SubmitJobRequest
+                    var dispatcher = dispatcherFactory.Create(
+                        workerPool,
+                        null);
+                    await dispatcher.StartAsync(CancellationToken.None).ConfigureAwait(false);
+                    try
                     {
-                        JobXml =
-                        """
-                        <BuildSet FormatVersion="1">
-                          <Environments>
-                            <Environment Name="Env_0">
-                              <Tools>
-                                <Tool Name="Tool1_0" AllowRemote="True" GroupPrefix="Test1" Params="/C echo ok1" Path="C:\Windows\system32\cmd.exe" />
-                                <Tool Name="Tool2_0" AllowRemote="True" GroupPrefix="Test2" Params="/C echo ok2" Path="C:\Windows\system32\cmd.exe" />
-                              </Tools>
-                            </Environment>
-                          </Environments>
-                          <Project Name="Env_0" Env="Env_0">
-                            <Task SourceFile="" Caption="Test1" Name="Action1_0" Tool="Tool1_0" WorkingDir="C:\Windows\system32" SkipIfProjectFailed="true" />
-                            <Task SourceFile="" Caption="Test2" Name="Action2_0" Tool="Tool2_0" WorkingDir="C:\Windows\system32" SkipIfProjectFailed="true" DependsOn="Action1_0" />
-                          </Project>
-                        </BuildSet>
-                        """,
-                        WorkingDirectory = @"C:\Windows\system32",
-                        BuildNodeName = "WorkerPoolTests",
-                    });
-                    var messages = new List<JobResponse>();
-                    await foreach (var message in jobResults.ResponseStream.ReadAllAsync())
-                    {
-                        messages.Add(message);
+                        var dispatcherClient = grpcPipeFactory.CreateClient(
+                            dispatcher.GetConnectionString(),
+                            GrpcPipeNamespace.User,
+                            channel => new JobApi.JobApiClient(channel));
+                        var jobResults = dispatcherClient.SubmitJob(new SubmitJobRequest
+                        {
+                            JobXml =
+                            """
+                            <BuildSet FormatVersion="1">
+                              <Environments>
+                                <Environment Name="Env_0">
+                                  <Tools>
+                                    <Tool Name="Tool1_0" AllowRemote="True" GroupPrefix="Test1" Params="/C echo ok1" Path="C:\Windows\system32\cmd.exe" />
+                                    <Tool Name="Tool2_0" AllowRemote="True" GroupPrefix="Test2" Params="/C echo ok2" Path="C:\Windows\system32\cmd.exe" />
+                                  </Tools>
+                                </Environment>
+                              </Environments>
+                              <Project Name="Env_0" Env="Env_0">
+                                <Task SourceFile="" Caption="Test1" Name="Action1_0" Tool="Tool1_0" WorkingDir="C:\Windows\system32" SkipIfProjectFailed="true" />
+                                <Task SourceFile="" Caption="Test2" Name="Action2_0" Tool="Tool2_0" WorkingDir="C:\Windows\system32" SkipIfProjectFailed="true" DependsOn="Action1_0" />
+                              </Project>
+                            </BuildSet>
+                            """,
+                            WorkingDirectory = @"C:\Windows\system32",
+                            BuildNodeName = "WorkerPoolTests",
+                        });
+                        var messages = new List<JobResponse>();
+                        await foreach (var message in jobResults.ResponseStream.ReadAllAsync())
+                        {
+                            messages.Add(message);
+                        }
+                        Assert.Contains(messages, x =>
+                            x.ResponseCase == JobResponse.ResponseOneofCase.JobParsed &&
+                            x.JobParsed.TotalTasks == 2);
+                        Assert.Contains(messages, x =>
+                            x.ResponseCase == JobResponse.ResponseOneofCase.TaskStarted &&
+                            x.TaskStarted.Id == "Action1_0");
+                        Assert.Contains(messages, x =>
+                            x.ResponseCase == JobResponse.ResponseOneofCase.TaskOutput &&
+                            x.TaskOutput.Id == "Action1_0" &&
+                            x.TaskOutput.OutputCase == TaskOutputResponse.OutputOneofCase.StandardOutputLine &&
+                            x.TaskOutput.StandardOutputLine.Trim() == "ok1");
+                        Assert.Contains(messages, x =>
+                            x.ResponseCase == JobResponse.ResponseOneofCase.TaskCompleted &&
+                            x.TaskCompleted.Id == "Action1_0" &&
+                            x.TaskCompleted.Status == TaskCompletionStatus.TaskCompletionSuccess &&
+                            x.TaskCompleted.ExitCode == 0);
+                        Assert.Contains(messages, x =>
+                            x.ResponseCase == JobResponse.ResponseOneofCase.TaskStarted &&
+                            x.TaskStarted.Id == "Action2_0");
+                        Assert.Contains(messages, x =>
+                            x.ResponseCase == JobResponse.ResponseOneofCase.TaskOutput &&
+                            x.TaskOutput.Id == "Action2_0" &&
+                            x.TaskOutput.OutputCase == TaskOutputResponse.OutputOneofCase.StandardOutputLine &&
+                            x.TaskOutput.StandardOutputLine.Trim() == "ok2");
+                        Assert.Contains(messages, x =>
+                            x.ResponseCase == JobResponse.ResponseOneofCase.TaskCompleted &&
+                            x.TaskCompleted.Id == "Action2_0" &&
+                            x.TaskCompleted.Status == TaskCompletionStatus.TaskCompletionSuccess &&
+                            x.TaskCompleted.ExitCode == 0);
+                        Assert.Contains(messages, x =>
+                            x.ResponseCase == JobResponse.ResponseOneofCase.JobComplete &&
+                            x.JobComplete.Status == JobCompletionStatus.JobCompletionSuccess);
+                        Assert.NotEmpty(messages);
                     }
-                    Assert.Contains(messages, x =>
-                        x.ResponseCase == JobResponse.ResponseOneofCase.JobParsed &&
-                        x.JobParsed.TotalTasks == 2);
-                    Assert.Contains(messages, x =>
-                        x.ResponseCase == JobResponse.ResponseOneofCase.TaskStarted &&
-                        x.TaskStarted.Id == "Action1_0");
-                    Assert.Contains(messages, x =>
-                        x.ResponseCase == JobResponse.ResponseOneofCase.TaskOutput &&
-                        x.TaskOutput.Id == "Action1_0" &&
-                        x.TaskOutput.OutputCase == TaskOutputResponse.OutputOneofCase.StandardOutputLine &&
-                        x.TaskOutput.StandardOutputLine.Trim() == "ok1");
-                    Assert.Contains(messages, x =>
-                        x.ResponseCase == JobResponse.ResponseOneofCase.TaskCompleted &&
-                        x.TaskCompleted.Id == "Action1_0" &&
-                        x.TaskCompleted.Status == TaskCompletionStatus.TaskCompletionSuccess &&
-                        x.TaskCompleted.ExitCode == 0);
-                    Assert.Contains(messages, x =>
-                        x.ResponseCase == JobResponse.ResponseOneofCase.TaskStarted &&
-                        x.TaskStarted.Id == "Action2_0");
-                    Assert.Contains(messages, x =>
-                        x.ResponseCase == JobResponse.ResponseOneofCase.TaskOutput &&
-                        x.TaskOutput.Id == "Action2_0" &&
-                        x.TaskOutput.OutputCase == TaskOutputResponse.OutputOneofCase.StandardOutputLine &&
-                        x.TaskOutput.StandardOutputLine.Trim() == "ok2");
-                    Assert.Contains(messages, x =>
-                        x.ResponseCase == JobResponse.ResponseOneofCase.TaskCompleted &&
-                        x.TaskCompleted.Id == "Action2_0" &&
-                        x.TaskCompleted.Status == TaskCompletionStatus.TaskCompletionSuccess &&
-                        x.TaskCompleted.ExitCode == 0);
-                    Assert.Contains(messages, x =>
-                        x.ResponseCase == JobResponse.ResponseOneofCase.JobComplete &&
-                        x.JobComplete.Status == JobCompletionStatus.JobCompletionSuccess);
-                    Assert.NotEmpty(messages);
-                }
-                finally
-                {
-                    await dispatcher.StopAsync();
+                    finally
+                    {
+                        await dispatcher.StopAsync().ConfigureAwait(false);
+                    }
                 }
             }
             finally
             {
-                await worker.StopAsync();
+                await worker.StopAsync().ConfigureAwait(false);
             }
         }
 
-        private Graph CreateGraphForJobCount(
+        private static Graph CreateGraphForJobCount(
             ITaskDescriptorFactory taskDescriptorFactory,
             int jobCount)
         {
@@ -313,7 +316,7 @@
             var logger = provider.GetRequiredService<ILogger<IGraphExecutor>>();
 
             var worker = workerFactory.Create(true);
-            await worker.StartAsync(cancellationToken);
+            await worker.StartAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 var workerClient = new TaskApi.TaskApiClient(
@@ -347,11 +350,11 @@
                         ForceRemotingForLocalWorker = false,
                     },
                     nullResponseStream,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
             finally
             {
-                await worker.StopAsync();
+                await worker.StopAsync().ConfigureAwait(false);
                 logger.LogInformation("Ending test.");
             }
         }
@@ -388,7 +391,7 @@
                     var taskDescriptorFactory = provider.GetRequiredService<LocalTaskDescriptorFactory>();
 
                     var worker = workerFactory.Create(true);
-                    await worker.StartAsync(cancellationToken);
+                    await worker.StartAsync(cancellationToken).ConfigureAwait(false);
                     try
                     {
                         var workerClient = new TaskApi.TaskApiClient(
@@ -418,11 +421,11 @@
                                 ForceRemotingForLocalWorker = false,
                             },
                             nullResponseStream,
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
                     }
                     finally
                     {
-                        await worker.StopAsync();
+                        await worker.StopAsync().ConfigureAwait(false);
                     }
                 }
                 catch (Exception ex)

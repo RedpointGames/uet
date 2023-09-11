@@ -6,8 +6,9 @@
     using Redpoint.Uefs.Protocol;
     using System.Diagnostics;
     using System.Threading.Tasks;
+    using Redpoint.Concurrency;
 
-    internal class AddMountTransactionExecutor : ITransactionExecutor<AddMountTransactionRequest>
+    internal sealed class AddMountTransactionExecutor : ITransactionExecutor<AddMountTransactionRequest>
     {
         private readonly IMountTracking _mountTracking;
         private readonly ILogger<AddMountTransactionExecutor> _logger;
@@ -31,7 +32,7 @@
             using (await _mountLockObtainer.ObtainLockAsync(
                 context,
                 $"AddMountTransactionExecutor:{transaction.MountTypeDebugValue}",
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false))
             {
                 Directory.CreateDirectory(transaction.MountRequest.MountPath);
 
@@ -46,7 +47,7 @@
                     }
                 }
 
-                var (mount, persistentMount) = await transaction.MountAsync(cancellationToken);
+                var (mount, persistentMount) = await transaction.MountAsync(cancellationToken).ConfigureAwait(false);
                 mount.WriteScratchPersistence = transaction.MountRequest.WriteScratchPersistence;
                 mount.StartupBehaviour = transaction.MountRequest.StartupBehaviour;
 
@@ -58,15 +59,15 @@
                     {
                         didRaceExit = true;
                         _logger.LogInformation($"Automatically unmounting {transaction.MountId} because PID {trackedPid.Id} has exited.");
-                        await using (var unmountTransaction = await context.Database.BeginTransactionAsync(
+                        await using ((await context.Database.BeginTransactionAsync(
                             new RemoveMountTransactionRequest
                             {
                                 MountId = transaction.MountId
                             },
                             _ => Task.CompletedTask,
-                            CancellationToken.None))
+                            CancellationToken.None).ConfigureAwait(false)).AsAsyncDisposable(out var unmountTransaction).ConfigureAwait(false))
                         {
-                            await unmountTransaction.WaitForCompletionAsync(CancellationToken.None);
+                            await unmountTransaction.WaitForCompletionAsync(CancellationToken.None).ConfigureAwait(false);
                         }
                     };
                     trackedPid.EnableRaisingEvents = true;
@@ -83,10 +84,10 @@
                 {
                     await _mountTracking.AddPersistentMountAsync(
                         transaction.MountRequest.MountPath,
-                        persistentMount);
+                        persistentMount).ConfigureAwait(false);
                 }
 
-                await _mountTracking.AddCurrentMountAsync(transaction.MountId, mount);
+                await _mountTracking.AddCurrentMountAsync(transaction.MountId, mount).ConfigureAwait(false);
             }
         }
     }

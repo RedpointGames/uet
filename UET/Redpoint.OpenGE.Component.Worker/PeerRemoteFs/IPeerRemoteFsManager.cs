@@ -8,6 +8,7 @@
         ValueTask<IPeerRemoteFsHandle> AcquirePeerRemoteFs(
             IPAddress ipAddress,
             int port,
-            string[] additionalReparsePoints);
+            string[] additionalReparsePoints,
+            CancellationToken cancellationToken);
     }
 }

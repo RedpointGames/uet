@@ -270,7 +270,7 @@ namespace DiscUtils.Vfs
             int streamSepPos = fileName.IndexOf(':');
             if (streamSepPos >= 0)
             {
-                attributeName = fileName.Substring(streamSepPos + 1);
+                attributeName = fileName[(streamSepPos + 1)..];
             }
 
             string dirName;

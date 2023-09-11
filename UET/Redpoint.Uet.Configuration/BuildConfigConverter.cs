@@ -16,7 +16,7 @@
             _basePathForIncludes = basePathForIncludes;
         }
 
-        private (List<string> includes, BuildConfigType type) ReadBase(ref Utf8JsonReader readerClone, JsonSerializerOptions options)
+        private static (List<string> includes, BuildConfigType type) ReadBase(ref Utf8JsonReader readerClone, JsonSerializerOptions options)
         {
             var includes = new List<string>();
             BuildConfigType? type = null;

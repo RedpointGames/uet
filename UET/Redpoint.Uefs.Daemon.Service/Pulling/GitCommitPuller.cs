@@ -6,17 +6,18 @@
     using Redpoint.Uefs.Protocol;
     using System.Threading;
     using System.Threading.Tasks;
+    using Redpoint.Concurrency;
 
-    internal class GitCommitPuller : IPuller<PullGitCommitRequest>
+    internal sealed class GitCommitPuller : IPuller<PullGitCommitRequest>
     {
         public async Task<PullResult> PullAsync(
             IUefsDaemon daemon,
             PullGitCommitRequest request,
-            TransactionListenerDelegate<FileInfo?> onPollingResponse,
+            TransactionListener<FileInfo?> onPollingResponse,
             CancellationToken cancellationToken)
         {
             // Run pull transaction in case we need to pull this Git commit.
-            await using (var transaction = await daemon.TransactionalDatabase.BeginTransactionAsync(
+            await using ((await daemon.TransactionalDatabase.BeginTransactionAsync(
                 new PullGitCommitTransactionRequest
                 {
                     GitRepoManager = daemon.PackageStorage.GitRepoManager,
@@ -26,7 +27,7 @@
                     NoWait = request.PullRequest.NoWait,
                 },
                 response => onPollingResponse(response, null),
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var transaction).ConfigureAwait(false))
             {
                 // If we're not waiting, go as soon as the operation ID is available.
                 if (request.PullRequest.NoWait)
@@ -34,7 +35,7 @@
                     return new PullResult(transaction.TransactionId, false);
                 }
 
-                await transaction.WaitForCompletionAsync(cancellationToken);
+                await transaction.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
                 return new PullResult(transaction.TransactionId, true);
             }
         }

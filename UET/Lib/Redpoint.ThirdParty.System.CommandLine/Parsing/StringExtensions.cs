@@ -28,7 +28,7 @@ namespace System.CommandLine.Parsing
         {
             int prefixLength = GetPrefixLength(alias);
             return prefixLength > 0 
-                       ? alias.Substring(prefixLength) 
+                       ? alias[prefixLength..] 
                        : alias;
         }
 
@@ -53,16 +53,16 @@ namespace System.CommandLine.Parsing
         {
             if (rawAlias[0] == '/')
             {
-                return ("/", rawAlias.Substring(1));
+                return ("/", rawAlias[1..]);
             }
             else if (rawAlias[0] == '-')
             {
                 if (rawAlias.Length > 1 && rawAlias[1] == '-')
                 {
-                    return ("--", rawAlias.Substring(2));
+                    return ("--", rawAlias[2..]);
                 }
 
-                return ("-", rawAlias.Substring(1));
+                return ("-", rawAlias[1..]);
             }
 
             return (null, rawAlias);
@@ -238,7 +238,7 @@ namespace System.CommandLine.Parsing
                         {
                             if (alias[i] == ':' || alias[i] == '=')
                             {
-                                tokenList.Add(new Token(alias.Slice(i + 1).ToString(), TokenType.Argument, default, argumentIndex));
+                                tokenList.Add(new Token(alias[(i + 1)..].ToString(), TokenType.Argument, default, argumentIndex));
                                 return true;
                             }
 
@@ -248,7 +248,7 @@ namespace System.CommandLine.Parsing
                                 if (tokensBefore != tokenList.Count && tokenList[tokenList.Count - 1].Type == TokenType.Option)
                                 {
                                     // Invalid_char_in_bundle_causes_rest_to_be_interpreted_as_value
-                                    tokenList.Add(new Token(alias.Slice(i).ToString(), TokenType.Argument, default, argumentIndex));
+                                    tokenList.Add(new Token(alias[i..].ToString(), TokenType.Argument, default, argumentIndex));
                                     return true;
                                 }
 
@@ -263,7 +263,7 @@ namespace System.CommandLine.Parsing
                                 {
                                     index++; // Last_bundled_option_can_accept_argument_with_colon_separator
                                 }
-                                tokenList.Add(new Token(alias.Slice(index).ToString(), TokenType.Argument, default, argumentIndex));
+                                tokenList.Add(new Token(alias[index..].ToString(), TokenType.Argument, default, argumentIndex));
                                 return true;
                             }
                         }
@@ -345,7 +345,7 @@ namespace System.CommandLine.Parsing
 
         private static string? GetReplaceableTokenValue(this string arg) =>
             arg.Length > 1 && arg[0] == '@'
-                ? arg.Substring(1)
+                ? arg[1..]
                 : null;
 
         internal static bool TrySplitIntoSubtokens(
@@ -357,8 +357,8 @@ namespace System.CommandLine.Parsing
 
             if (i >= 0)
             {
-                first = arg.Substring(0, i);
-                rest = arg.Substring(i + 1);
+                first = arg[..i];
+                rest = arg[(i + 1)..];
                 if (rest.Length == 0)
                 {
                     rest = null;

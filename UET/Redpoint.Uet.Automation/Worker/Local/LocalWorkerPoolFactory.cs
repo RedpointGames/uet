@@ -10,7 +10,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class LocalWorkerPoolFactory : IWorkerPoolFactory
+    internal sealed class LocalWorkerPoolFactory : IWorkerPoolFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

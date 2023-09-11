@@ -1,4 +1,7 @@
-﻿namespace Redpoint.Rfs.WinFsp
+﻿#pragma warning disable CA1725 // Parameter names should match base declaration
+#pragma warning disable CA1062 // Validate arguments of public methods
+
+namespace Redpoint.Rfs.WinFsp
 {
     using Fsp;
     using Fsp.Interop;
@@ -19,7 +22,6 @@
     [SupportedOSPlatform("windows6.2")]
     public class WindowsRfsClient : FileSystemBase
     {
-        private static readonly DateTimeOffset _rootCreationTime = DateTimeOffset.UtcNow;
         private static DirectoryEntryComparer _directoryEntryComparer =
             new DirectoryEntryComparer();
         private readonly ILogger _logger;
@@ -107,9 +109,9 @@
         {
             foreach (var reparsePoint in reparsePoints)
             {
-                if (_reparsePoints.ContainsKey(reparsePoint))
+                if (_reparsePoints.TryGetValue(reparsePoint, out var reparsePointValue))
                 {
-                    _reparsePoints[reparsePoint]--;
+                    _reparsePoints[reparsePoint] = reparsePointValue - 1;
                     if (_reparsePoints[reparsePoint] <= 0)
                     {
                         _reparsePoints.Remove(reparsePoint);
@@ -119,13 +121,13 @@
             RecomputeReparsePointIndex();
         }
 
-        private class HandleFileNode
+        private sealed class HandleFileNode
         {
             public required long Handle;
             public required string FileName;
         }
 
-        private class VirtualFileNode
+        private sealed class VirtualFileNode
         {
             public required DirectoryInfo DirectoryInfo;
             public required HashSet<string> Subdirectories { get; set; }
@@ -190,9 +192,8 @@
             // _logger.LogInformation($"GetReparsePointByName: {fileName}");
 
             var junctions = _additionalJunctions;
-            if (junctions.ContainsKey(fileName))
+            if (junctions.TryGetValue(fileName, out var target))
             {
-                var target = junctions[fileName];
                 var targetByteLength = (ushort)(target.Length * 2);
 
                 using (var memory = new MemoryStream())
@@ -250,7 +251,7 @@
                 return STATUS_SUCCESS;
             }
 
-            if (_additionalJunctions.Any(x => fileName.StartsWith(x.Key + "\\")))
+            if (_additionalJunctions.Any(x => fileName.StartsWith(x.Key + "\\", StringComparison.OrdinalIgnoreCase)))
             {
                 fileAttributes = 0;
                 securityDescriptor = _rootSecurityDescriptor;
@@ -349,8 +350,8 @@
                 fileNode = new VirtualFileNode
                 {
                     DirectoryInfo = new DirectoryInfo(WindowsRfsUtil.RealPath(fileName)),
-                    Subdirectories = _additionalSubdirectoryEntries.ContainsKey(fileName) ? _additionalSubdirectoryEntries[fileName] : new HashSet<string>(),
-                    Junctions = _additionalJunctionEntries.ContainsKey(fileName) ? _additionalJunctionEntries[fileName] : new Dictionary<string, string>(),
+                    Subdirectories = _additionalSubdirectoryEntries.TryGetValue(fileName, out var subdirectoryValue) ? subdirectoryValue : new HashSet<string>(),
+                    Junctions = _additionalJunctionEntries.TryGetValue(fileName, out var junctionValue) ? junctionValue : new Dictionary<string, string>(),
                 };
                 fileDesc = default!;
                 fileInfo = WindowsRfsVirtual.GetVirtualDirectoryOnClient(WindowsRfsUtil.RealPath(fileName));
@@ -880,10 +881,10 @@
                     HasMarker = marker != null,
                     Marker = marker ?? string.Empty,
                 };
-                if (_additionalSubdirectoryEntries.ContainsKey(handleFileNode.FileName) &&
+                if (_additionalSubdirectoryEntries.TryGetValue(handleFileNode.FileName, out var subdirectoryEntries) &&
                     WindowsRfsUtil.IsRealPath(handleFileNode.FileName))
                 {
-                    foreach (var entry in _additionalSubdirectoryEntries[handleFileNode.FileName])
+                    foreach (var entry in subdirectoryEntries)
                     {
                         WindowsFileDesc.GetFileInfoFromFileSystemInfo(
                             new DirectoryInfo(Path.Combine(WindowsRfsUtil.RealPath(handleFileNode.FileName), entry)),
@@ -899,10 +900,10 @@
                         });
                     }
                 }
-                if (_additionalJunctionEntries.ContainsKey(handleFileNode.FileName) &&
+                if (_additionalJunctionEntries.TryGetValue(handleFileNode.FileName, out var junctionEntries) &&
                     WindowsRfsUtil.IsRealPath(handleFileNode.FileName))
                 {
-                    foreach (var entry in _additionalJunctionEntries[handleFileNode.FileName].Keys)
+                    foreach (var entry in junctionEntries.Keys)
                     {
                         WindowsFileDesc.GetFileInfoFromFileSystemInfo(
                             new DirectoryInfo(Path.Combine(WindowsRfsUtil.RealPath(handleFileNode.FileName), entry)),

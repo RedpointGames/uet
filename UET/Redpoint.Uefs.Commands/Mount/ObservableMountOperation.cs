@@ -8,7 +8,7 @@
     using Redpoint.ProgressMonitor;
     using Redpoint.Uefs.Protocol;
 
-    internal class ObservableMountOperation<TRequest> : ObservableOperation<TRequest, MountResponse>
+    internal sealed class ObservableMountOperation<TRequest> : ObservableOperation<TRequest, MountResponse>
     {
         public ObservableMountOperation(
             IRetryableGrpc retryableGrpc,
@@ -29,7 +29,7 @@
 
         public async Task<string> RunAndWaitForMountIdAsync()
         {
-            return (await RunAndWaitForCompleteAsync()).MountId;
+            return (await RunAndWaitForCompleteAsync().ConfigureAwait(false)).MountId;
         }
     }
 }

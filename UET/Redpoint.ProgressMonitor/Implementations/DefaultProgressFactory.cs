@@ -3,7 +3,7 @@
     using System;
     using System.IO;
 
-    internal class DefaultProgressFactory : IProgressFactory
+    internal sealed class DefaultProgressFactory : IProgressFactory
     {
         public IByteBasedProgress CreateProgressForCallback(Func<long> getPosition, Func<long> getLength)
         {

@@ -21,6 +21,7 @@
     using System.Net.Sockets;
     using Redpoint.OpenGE.Component.Worker.PeerRemoteFs;
     using Redpoint.Reservation;
+    using Redpoint.Concurrency;
 
     internal class RemoteTaskDescriptorExecutor : ITaskDescriptorExecutor<RemoteTaskDescriptor>
     {
@@ -174,16 +175,16 @@
             _logger.LogTrace("Executing remote task with remote execution strategy.");
 
             // Get a workspace to work in.
-            await using (var reservation = await _reservationManagerForOpenGE.ReservationManager.ReserveAsync(
+            await using ((await _reservationManagerForOpenGE.ReservationManager.ReserveAsync(
                 "OpenGEBuild",
-                descriptor.ToolExecutionInfo.ToolExecutableName))
+                descriptor.ToolExecutionInfo.ToolExecutableName).ConfigureAwait(false)).AsAsyncDisposable(out var reservation).ConfigureAwait(false))
             {
                 // Ask the tool manager where our tool is located.
                 var st = Stopwatch.StartNew();
                 var toolPath = await _toolManager.GetToolPathAsync(
                     descriptor.ToolExecutionInfo.ToolXxHash64,
                     descriptor.ToolExecutionInfo.ToolExecutableName,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 _logger.LogTrace($"Tool path obtained in: {st.Elapsed}");
                 st.Restart();
 
@@ -192,7 +193,7 @@
                 await _blobManager.LayoutBuildDirectoryAsync(
                     reservation.ReservedPath,
                     descriptor.TransferringStorageLayer.InputsByBlobXxHash64,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 _logger.LogTrace($"Laid out build directory in: {st.Elapsed}");
                 st.Restart();
 
@@ -227,12 +228,12 @@
                 }
                 foreach (var key in _knownDirectoryEnvironmentVariables)
                 {
-                    if (effectiveEnvironmentVariables.ContainsKey(key) &&
-                        !string.IsNullOrWhiteSpace(effectiveEnvironmentVariables[key]))
+                    if (effectiveEnvironmentVariables.TryGetValue(key, out var value) &&
+                        !string.IsNullOrWhiteSpace(value))
                     {
                         var targetPath = _blobManager.ConvertAbsolutePathToBuildDirectoryPath(
                             reservation.ReservedPath,
-                            effectiveEnvironmentVariables[key]);
+                            value);
                         if (!Path.Exists(targetPath))
                         {
                             Directory.CreateDirectory(targetPath);
@@ -316,7 +317,7 @@
                             var outputBlobs = await _blobManager.CaptureOutputBlobsFromBuildDirectoryAsync(
                                 reservation.ReservedPath,
                                 descriptor.TransferringStorageLayer.OutputAbsolutePaths,
-                                cancellationToken);
+                                cancellationToken).ConfigureAwait(false);
                             yield return new ExecuteTaskResponse
                             {
                                 Response = new Protocol.ProcessResponse
@@ -363,7 +364,7 @@
             var toolPath = await _toolManager.GetToolPathAsync(
                 descriptor.ToolExecutionInfo.ToolXxHash64,
                 descriptor.ToolExecutionInfo.ToolExecutableName,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             // Compute the list of junctions.
             var junctions = new List<string>
@@ -373,10 +374,15 @@
             };
 
             // Request a workspace that maps the remote FS.
-            await using (var handle = await _peerRemoteFsManager.AcquirePeerRemoteFs(
-                peerAddress,
-                descriptor.RemoteFsStorageLayer.RemotePort,
-                junctions.ToArray()))
+            await using (
+                (await _peerRemoteFsManager.AcquirePeerRemoteFs(
+                    peerAddress,
+                    descriptor.RemoteFsStorageLayer.RemotePort,
+                    junctions.ToArray(),
+                    cancellationToken)
+                .ConfigureAwait(false))
+                    .AsAsyncDisposable(out var handle)
+                    .ConfigureAwait(false))
             {
                 // Set up the environment variable dictionary.
                 Dictionary<string, string> environmentVariables = new Dictionary<string, string>();
@@ -429,7 +435,7 @@
                 {
                     _logger.LogInformation($"No drive mappings are being applied (not configured).");
                 }
-                await Task.Delay(10000);
+                await Task.Delay(10000, cancellationToken).ConfigureAwait(false);
                 await foreach (var response in _processExecutor.ExecuteAsync(
                     processSpecification,
                     cancellationToken))

@@ -25,23 +25,23 @@
 
         private void CheckDataForRetry(string data)
         {
-            if (data.Contains("error C3859"))
+            if (data.Contains("error C3859", StringComparison.Ordinal))
             {
                 // Temporary "PCH out of memory" error that we get from MSVC.
                 NeedsRetry = true;
             }
-            if (data.Contains("error LNK1107"))
+            if (data.Contains("error LNK1107", StringComparison.Ordinal))
             {
                 // Seems to happen sometimes when using clang-tidy?
                 NeedsRetry = true;
             }
-            if (data.Contains("LLVM ERROR: out of memory"))
+            if (data.Contains("LLVM ERROR: out of memory", StringComparison.Ordinal))
             {
                 NeedsRetry = true;
             }
-            if (data.Contains("it is being used by another process") &&
-                data.Contains("DynamicBuildGraph") &&
-                data.Contains(".xml"))
+            if (data.Contains("it is being used by another process", StringComparison.Ordinal) &&
+                data.Contains("DynamicBuildGraph", StringComparison.Ordinal) &&
+                data.Contains(".xml", StringComparison.Ordinal))
             {
                 // For some reason BuildGraph wasn't able to read the DynamicBuildGraph
                 // file on the network share. This wouldn't occur if BuildGraph were built
@@ -63,7 +63,7 @@
                 //
                 NeedsRetry = true;
             }
-            if (data.Contains("fatal error CVT1107") && data.Contains("is corrupt"))
+            if (data.Contains("fatal error CVT1107", StringComparison.Ordinal) && data.Contains("is corrupt", StringComparison.Ordinal))
             {
                 // fatal error CVT1107: '(file path)' is corrupt
                 // Delete the corrupt file and retry.
@@ -78,7 +78,7 @@
                     }
                 }
             }
-            if (data.Contains("had to patch your engine"))
+            if (data.Contains("had to patch your engine", StringComparison.Ordinal))
             {
                 ForceRetry = true;
             }

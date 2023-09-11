@@ -7,7 +7,7 @@
 
     [SupportedOSPlatform("windows")]
     [Endpoint("/VolumeDriver.Unmount")]
-    internal class DockerUnmountEndpointHandler : IEndpointHandler<DockerUnmountRequest, DockerUnmountResponse>
+    internal sealed class DockerUnmountEndpointHandler : IEndpointHandler<DockerUnmountRequest, DockerUnmountResponse>
     {
         public async ValueTask<DockerUnmountResponse> HandleAsync(IUefsDaemon plugin, DockerUnmountRequest request)
         {
@@ -20,7 +20,7 @@
             }
 
             var volume = plugin.DockerVolumes[request.Name];
-            await volume.Mutex.WaitAsync();
+            await volume.Mutex.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (volume.Mountpoint == null)

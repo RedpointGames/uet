@@ -2,7 +2,7 @@
 {
     using System.IO;
 
-    internal class StreamByteBasedProgress : IByteBasedProgress
+    internal sealed class StreamByteBasedProgress : IByteBasedProgress
     {
         private readonly Stream _stream;
 

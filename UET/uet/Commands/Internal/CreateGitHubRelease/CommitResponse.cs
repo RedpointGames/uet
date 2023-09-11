@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class CommitResponse
+    internal sealed class CommitResponse
     {
         [JsonPropertyName("tree")]
         public TreePointer? Tree { get; set; }

@@ -48,7 +48,7 @@
             };
 
             var memory = new MemoryStream();
-            using (var encoder = new SequentialVersion1Encoder(entries, entries.Keys))
+            using (var encoder = new SequentialVersion1EncoderStream(entries, entries.Keys))
             {
                 encoder.CopyTo(memory);
             }
@@ -59,7 +59,7 @@
             var newBuffer = new byte[256 * 1024];
             var readEntries = new Dictionary<long, string>();
 
-            using (var decoder = new SequentialVersion1Decoder(
+            using (var decoder = new SequentialVersion1DecoderStream(
                 (hash, length) =>
                 {
                     currentHash = hash;

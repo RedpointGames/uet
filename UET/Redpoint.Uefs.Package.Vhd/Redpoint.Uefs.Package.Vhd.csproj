@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.DiscUtils\Redpoint.ThirdParty.DiscUtils.csproj" />
+    <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Package\Redpoint.Uefs.Package.csproj" />
     <ProjectReference Include="..\Redpoint.Windows.VolumeManagement\Redpoint.Windows.VolumeManagement.csproj" />
   </ItemGroup>

@@ -4,7 +4,7 @@
     using Redpoint.Uefs.Protocol;
     using System.Threading.Tasks;
 
-    internal class ListMountsTransactionExecutor : ITransactionExecutor<ListMountsTransactionRequest, ListResponse>
+    internal sealed class ListMountsTransactionExecutor : ITransactionExecutor<ListMountsTransactionRequest, ListResponse>
     {
         private readonly IMountTracking _mountTracking;
         private readonly IMountLockObtainer _mountLockObtainer;
@@ -27,7 +27,7 @@
             using (await _mountLockObtainer.ObtainLockAsync(
                 context,
                 "ListMountsTransactionExecutor",
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false))
             {
                 foreach (var kv in _mountTracking.CurrentMounts)
                 {

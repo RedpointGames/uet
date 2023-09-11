@@ -28,6 +28,6 @@
         /// <summary>
         /// An array of path names that the volume is mounted to. These can either be drive letters in the format <code>C:\</code> or paths in the format <code>C:\SomeFolder\Mount\</code>.
         /// </summary>
-        public string[] VolumePathNames { get; }
+        public IReadOnlyCollection<string> VolumePathNames { get; }
     }
 }

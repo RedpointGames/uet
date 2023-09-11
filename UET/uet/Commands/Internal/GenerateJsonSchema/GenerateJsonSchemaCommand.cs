@@ -7,9 +7,9 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal class GenerateJsonSchemaCommand
+    internal sealed class GenerateJsonSchemaCommand
     {
-        public class Options
+        public sealed class Options
         {
             public Option<FileInfo?> OutputPath = new Option<FileInfo?>("--output-path");
         }
@@ -26,7 +26,7 @@
             return command;
         }
 
-        private class GenerateJsonSchemaCommandInstance : ICommandInstance
+        private sealed class GenerateJsonSchemaCommandInstance : ICommandInstance
         {
             private readonly ILogger<GenerateJsonSchemaCommandInstance> _logger;
             private readonly IJsonSchemaGenerator _jsonSchemaGenerator;
@@ -54,7 +54,7 @@
                 {
                     using (var stream = new FileStream(outputPath.FullName, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
                     {
-                        await _jsonSchemaGenerator.GenerateAsync(stream);
+                        await _jsonSchemaGenerator.GenerateAsync(stream).ConfigureAwait(false);
                     }
                     _logger.LogInformation($"Successfully emitted JSON schema for BuildConfig.json to: {outputPath.FullName}");
                 }
@@ -62,7 +62,7 @@
                 {
                     using (var stream = new MemoryStream())
                     {
-                        await _jsonSchemaGenerator.GenerateAsync(stream);
+                        await _jsonSchemaGenerator.GenerateAsync(stream).ConfigureAwait(false);
                         var bytes = new byte[stream.Position];
                         stream.Seek(0, SeekOrigin.Begin);
                         stream.Read(bytes);

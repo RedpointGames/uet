@@ -16,7 +16,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class CustomProjectPrepareProvider : IProjectPrepareProvider
+    internal sealed class CustomProjectPrepareProvider : IProjectPrepareProvider
     {
         private readonly ILogger<CustomPluginPrepareProvider> _logger;
         private readonly IScriptExecutor _scriptExecutor;
@@ -84,7 +84,7 @@
                                                 @"""$(TargetConfiguration)""",
                                             },
                                             If = "$(HostPlatform) == 'Win64'"
-                                        });
+                                        }).ConfigureAwait(false);
                                     await writer.WriteSpawnAsync(
                                         new SpawnElementProperties
                                         {
@@ -104,14 +104,14 @@
                                                 @"""$(TargetConfiguration)""",
                                             },
                                             If = "$(HostPlatform) == 'Mac'"
-                                        });
-                                });
+                                        }).ConfigureAwait(false);
+                                }).ConfigureAwait(false);
                             await writer.WritePropertyAsync(
                                 new PropertyElementProperties
                                 {
                                     Name = "DynamicBeforeCompileMacros",
                                     Value = $"$(DynamicBeforeCompileMacros)CustomOnCompile-{entry.name};",
-                                });
+                                }).ConfigureAwait(false);
                             break;
                         case BuildConfigProjectPrepareRunBefore.BuildGraph:
                             // We don't emit anything in the graph for these.
@@ -144,7 +144,7 @@
                         WorkingDirectory = repositoryRoot,
                     },
                     CaptureSpecification.Passthrough,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
         }
     }

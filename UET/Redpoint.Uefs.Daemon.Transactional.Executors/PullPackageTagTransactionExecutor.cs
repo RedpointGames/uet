@@ -11,8 +11,9 @@
     using Redpoint.Uefs.Daemon.RemoteStorage;
     using Redpoint.Uefs.Protocol;
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
+    using Redpoint.Hashing;
 
-    internal class PullPackageTagTransactionExecutor : ITransactionExecutor<PullPackageTagTransactionRequest, PullPackageTagTransactionResult>
+    internal sealed class PullPackageTagTransactionExecutor : ITransactionExecutor<PullPackageTagTransactionRequest, PullPackageTagTransactionResult>
     {
         private readonly IRemoteStorage<ManifestLayer> _registryRemoteStorage;
         private readonly IRemoteStorage<RegistryReferenceInfo> _referenceRemoteStorage;
@@ -47,11 +48,7 @@
             var path = tagComponents.Groups["path"].Value;
             var label = tagComponents.Groups["label"].Value;
 
-            string tagHash;
-            using (var hasher = SHA256.Create())
-            {
-                tagHash = BitConverter.ToString(hasher.ComputeHash(Encoding.UTF8.GetBytes(transaction.Tag))).Replace("-", "").ToLowerInvariant();
-            }
+            string tagHash = Hash.Sha256AsHexString(transaction.Tag, Encoding.UTF8);
 
             var client = RegistryClientFactory.GetRegistryClient(host, new ContainerRegistry.RegistryCredential
             {
@@ -66,7 +63,7 @@
             using (client)
             {
                 // Download the manifest.
-                var manifest = await client.Manifest.GetManifestAsync(path, label);
+                var manifest = await client.Manifest.GetManifestAsync(path, label, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 // Try to get the manifest list, and from there get the registry manifest
                 // for the current platform. We also have to handle legacy manifests.
@@ -116,7 +113,7 @@
                     }
 
                     // Download the actual manifest file from blob storage.
-                    registryManifest = (await client.Manifest.GetManifestAsync(path, selectedManifest.Digest, true))?.Manifest as ImageManifest2_2;
+                    registryManifest = (await client.Manifest.GetManifestAsync(path, selectedManifest.Digest, true, cancellationToken).ConfigureAwait(false))?.Manifest as ImageManifest2_2;
                 }
 
                 if (registryManifest == null || !registryManifest.Layers.Any())
@@ -148,11 +145,11 @@
                     packageManifest.MediaType == RegistryConstants.MediaTypePackageReferenceSparseImage)
                 {
                     // We have to pull this content layer to get the reference data.
-                    var getResponse = await client.Blobs.GetBlobAsync(path, packageManifest.Digest);
+                    var getResponse = await client.Blobs.GetBlobAsync(path, packageManifest.Digest, cancellationToken).ConfigureAwait(false);
                     using (var reader = new StreamReader(getResponse.Stream))
                     {
                         packageReferenceInfo = JsonSerializer.Deserialize(
-                            await reader.ReadToEndAsync(),
+                            await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false),
                             UefsRegistryJsonSerializerContext.Default.RegistryReferenceInfo);
                     }
                     if (packageReferenceInfo == null ||
@@ -175,7 +172,7 @@
                 {
                     using (var blobFactory = _registryRemoteStorage.GetFactory(packageManifest))
                     {
-                        var @lock = await context.ObtainLockAsync("PackageStorage", cancellationToken);
+                        var @lock = await context.ObtainLockAsync("PackageStorage", cancellationToken).ConfigureAwait(false);
                         var didReleaseSemaphore = false;
                         try
                         {
@@ -206,7 +203,7 @@
                                     context.UpdatePollingResponse(
                                         callback,
                                         packagePath != null ? new PullPackageTagTransactionResult { PackagePath = new FileInfo(packagePath) } : null);
-                                });
+                                }).ConfigureAwait(false);
                         }
                         finally
                         {
@@ -223,7 +220,7 @@
                 {
                     using (var blobFactory = _referenceRemoteStorage.GetFactory(packageReferenceInfo!))
                     {
-                        var @lock = await context.ObtainLockAsync("PackageStorage", cancellationToken);
+                        var @lock = await context.ObtainLockAsync("PackageStorage", cancellationToken).ConfigureAwait(false);
                         var didReleaseSemaphore = false;
                         try
                         {
@@ -254,7 +251,7 @@
                                     context.UpdatePollingResponse(
                                         callback,
                                         packagePath != null ? new PullPackageTagTransactionResult { PackagePath = new FileInfo(packagePath) } : null);
-                                });
+                                }).ConfigureAwait(false);
                         }
                         finally
                         {

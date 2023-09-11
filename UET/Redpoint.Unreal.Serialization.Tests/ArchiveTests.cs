@@ -8,7 +8,7 @@ namespace Redpoint.Unreal.Serialization.Tests
             var bytes = Convert.FromBase64String("nP84////1P7///////+QAfQBAABYAgAAAAAAAAAAL0QAAAAAAACJQAYAAABoZWxsbwA=");
             using (var stream = new MemoryStream(bytes))
             {
-                var archive = new Archive(stream, true, new ISerializerRegistry[0]);
+                var archive = new Archive(stream, true, Array.Empty<ISerializerRegistry>());
 
                 var a = new Store<short>(0);
                 var b = new Store<int>(0);
@@ -48,7 +48,7 @@ namespace Redpoint.Unreal.Serialization.Tests
             var bytes = Convert.FromBase64String("nP84////1P7///////+QAfQBAABYAgAAAAAAAAAAL0QAAAAAAACJQPr///9oAGUAbABsAG8AAAA=");
             using (var stream = new MemoryStream(bytes))
             {
-                var archive = new Archive(stream, true, new ISerializerRegistry[0]);
+                var archive = new Archive(stream, true, Array.Empty<ISerializerRegistry>());
 
                 var a = new Store<short>(0);
                 var b = new Store<int>(0);
@@ -87,7 +87,7 @@ namespace Redpoint.Unreal.Serialization.Tests
         {
             using (var stream = new MemoryStream())
             {
-                var archive = new Archive(stream, false, new ISerializerRegistry[0]);
+                var archive = new Archive(stream, false, Array.Empty<ISerializerRegistry>());
 
                 var a = new Store<short>(-100);
                 var b = new Store<int>(-200);

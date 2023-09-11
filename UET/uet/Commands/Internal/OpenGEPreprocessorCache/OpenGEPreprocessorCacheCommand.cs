@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.OpenGEPreprocessorCache
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Concurrency;
     using Redpoint.GrpcPipes;
     using Redpoint.OpenGE.Component.PreprocessorCache;
     using Redpoint.OpenGE.Component.PreprocessorCache.OnDemand;
@@ -9,9 +10,9 @@
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal class OpenGEPreprocessorCacheCommand
+    internal sealed class OpenGEPreprocessorCacheCommand
     {
-        internal class Options
+        internal sealed class Options
         {
         }
 
@@ -24,7 +25,7 @@
             return command;
         }
 
-        private class OpenGEPreprocessorCacheCommandInstance : ICommandInstance
+        private sealed class OpenGEPreprocessorCacheCommandInstance : ICommandInstance
         {
             private readonly IGrpcPipeFactory _grpcPipeFactory;
             private readonly IPreprocessorCacheFactory _preprocessorCacheFactory;
@@ -47,20 +48,20 @@
                 {
                     _logger.LogInformation("Starting OpenGE preprocessor cache...");
 
-                    await using (var cache = _preprocessorCacheFactory.CreateInProcessCache())
+                    await using (_preprocessorCacheFactory.CreateInProcessCache().AsAsyncDisposable(out var cache).ConfigureAwait(false))
                     {
-                        await cache.EnsureAsync();
+                        await cache.EnsureAsync().ConfigureAwait(false);
 
                         server = _grpcPipeFactory.CreateServer(
                             "OpenGEPreprocessorCache",
                             GrpcPipeNamespace.Computer,
                             cache);
-                        await server.StartAsync();
+                        await server.StartAsync().ConfigureAwait(false);
 
                         // Run until terminated, or until we've been idle for 5 minutes.
                         while (!context.GetCancellationToken().IsCancellationRequested)
                         {
-                            await Task.Delay(10000, context.GetCancellationToken());
+                            await Task.Delay(10000, context.GetCancellationToken()).ConfigureAwait(false);
                             if ((DateTimeOffset.UtcNow - cache.LastGrpcRequestUtc).TotalMinutes > 5)
                             {
                                 _logger.LogInformation("OpenGE preprocessor cache is automatically exiting because it has been idle for more than 5 minutes.");
@@ -78,7 +79,7 @@
                     // due the reservation being held while the current one is shutting down.
                     if (server != null)
                     {
-                        await server.StopAsync();
+                        await server.StopAsync().ConfigureAwait(false);
                     }
                 }
             }

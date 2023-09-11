@@ -4,7 +4,7 @@
     using System.Text.Json.Serialization;
 
     [JsonSerializable(typeof(List<IoChange>))]
-    internal partial class IoJsonSerializerContext : JsonSerializerContext
+    internal sealed partial class IoJsonSerializerContext : JsonSerializerContext
     {
     }
 }

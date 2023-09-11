@@ -9,9 +9,9 @@
     using System.Threading.Tasks;
     using UET.Services;
 
-    internal class OpenGEPreprocessorCacheClientResolvedCommand
+    internal sealed class OpenGEPreprocessorCacheClientResolvedCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<FileInfo> File;
             public Option<FileInfo[]> ForceIncludesFromPch;
@@ -38,7 +38,7 @@
             return command;
         }
 
-        private class OpenGEPreprocessorCacheClientResolvedCommandInstance : ICommandInstance
+        private sealed class OpenGEPreprocessorCacheClientResolvedCommandInstance : ICommandInstance
         {
             private readonly ILogger<OpenGEPreprocessorCacheClientResolvedCommandInstance> _logger;
             private readonly IPreprocessorCacheFactory _preprocessorCacheFactory;
@@ -69,7 +69,7 @@
                     }
                 });
 
-                await preprocessorCache.EnsureAsync();
+                await preprocessorCache.EnsureAsync().ConfigureAwait(false);
 
                 async Task<PreprocessorResolutionResultWithTimingMetadata> InvokeAsync()
                 {
@@ -124,17 +124,17 @@
                                 { "_M_HYBRID", 0 },
                             }
                         },
-                        context.GetCancellationToken());
+                        context.GetCancellationToken()).ConfigureAwait(false);
                 }
 
                 var st = Stopwatch.StartNew();
-                var result = await InvokeAsync();
+                var result = await InvokeAsync().ConfigureAwait(false);
                 var ms = st.ElapsedMilliseconds;
 
                 _logger.LogInformation($"Initial request completed in: {ms}ms");
                 {
                     st = Stopwatch.StartNew();
-                    _ = await InvokeAsync();
+                    _ = await InvokeAsync().ConfigureAwait(false);
                     ms = st.ElapsedMilliseconds;
                 }
                 _logger.LogInformation($"Subsequent request completed in: {ms}ms");

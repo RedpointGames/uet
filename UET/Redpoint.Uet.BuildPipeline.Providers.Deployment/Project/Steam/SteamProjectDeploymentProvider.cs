@@ -11,7 +11,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class SteamProjectDeploymentProvider : IProjectDeploymentProvider
+    internal sealed class SteamProjectDeploymentProvider : IProjectDeploymentProvider
     {
         public string Type => "Steam";
 

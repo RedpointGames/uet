@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.SdkManagement
 {
+    using Redpoint.Concurrency;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.IO;
@@ -51,7 +52,7 @@
             _logger.LogInformation($"Determining SDKs required for build graph node '{buildGraphNodeName}'...");
 
             var sdkSetups = new HashSet<ISdkSetup>();
-            var environmentVariableName = $"UET_PLATFORMS_FOR_BUILD_GRAPH_NODE_{buildGraphNodeName.Replace(" ", "_")}";
+            var environmentVariableName = $"UET_PLATFORMS_FOR_BUILD_GRAPH_NODE_{buildGraphNodeName.Replace(" ", "_", StringComparison.Ordinal)}";
             var overriddenPlatforms = Environment.GetEnvironmentVariable(environmentVariableName);
             if (!string.IsNullOrWhiteSpace(overriddenPlatforms))
             {
@@ -59,13 +60,13 @@
                 var platforms = overriddenPlatforms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 foreach (var platform in platforms)
                 {
-                    if (_sdkSetupsByPlatformName.ContainsKey(platform))
+                    if (_sdkSetupsByPlatformName.TryGetValue(platform, out var sdkSetup))
                     {
-                        sdkSetups.Add(_sdkSetupsByPlatformName[platform]);
+                        sdkSetups.Add(sdkSetup);
                     }
                 }
 
-                _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.PlatformNames.First()}'"))} based on environment variable '{environmentVariableName}'.");
+                _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.PlatformNames[0]}'"))} based on environment variable '{environmentVariableName}'.");
             }
             else
             {
@@ -73,13 +74,13 @@
                 var components = buildGraphNodeName.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 foreach (var component in components)
                 {
-                    if (_sdkSetupsByPlatformName.ContainsKey(component))
+                    if (_sdkSetupsByPlatformName.TryGetValue(component, out var sdkSetup))
                     {
-                        sdkSetups.Add(_sdkSetupsByPlatformName[component]);
+                        sdkSetups.Add(sdkSetup);
                     }
                 }
 
-                _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.PlatformNames.First()}'"))} based on BuildGraph node name '{buildGraphNodeName}'.");
+                _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.PlatformNames[0]}'"))} based on BuildGraph node name '{buildGraphNodeName}'.");
             }
 
             if (sdkSetups.Count == 0)
@@ -100,51 +101,51 @@
             {
                 _logger.LogInformation($"Requesting SDK for platform {sdkSetup.CommonPlatformNameForPackageId}...");
 
-                var packageId = $"{sdkSetup.CommonPlatformNameForPackageId}-{await sdkSetup.ComputeSdkPackageId(enginePath, cancellationToken)}";
+                var packageId = $"{sdkSetup.CommonPlatformNameForPackageId}-{await sdkSetup.ComputeSdkPackageId(enginePath, cancellationToken).ConfigureAwait(false)}";
                 allPackageIds.Add(packageId);
-                await using (var reservation = await reservationManager.ReserveExactAsync(packageId, cancellationToken))
+                await using ((await reservationManager.ReserveExactAsync(packageId, cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var reservation).ConfigureAwait(false))
                 {
                     if (!File.Exists(Path.Combine(reservation.ReservedPath, "sdk-ready")))
                     {
-                        var packageWorkingPath = Path.Combine(sdksPath, $"{packageId}-tmp-{Process.GetCurrentProcess().Id}");
-                        var packageOldPath = Path.Combine(sdksPath, $"{packageId}-old-{Process.GetCurrentProcess().Id}");
+                        var packageWorkingPath = Path.Combine(sdksPath, $"{packageId}-tmp-{Environment.ProcessId}");
+                        var packageOldPath = Path.Combine(sdksPath, $"{packageId}-old-{Environment.ProcessId}");
                         if (Directory.Exists(packageWorkingPath))
                         {
-                            await DirectoryAsync.DeleteAsync(packageWorkingPath, true);
+                            await DirectoryAsync.DeleteAsync(packageWorkingPath, true).ConfigureAwait(false);
                         }
                         if (Directory.Exists(packageOldPath))
                         {
-                            await DirectoryAsync.DeleteAsync(packageOldPath, true);
+                            await DirectoryAsync.DeleteAsync(packageOldPath, true).ConfigureAwait(false);
                         }
                         Directory.CreateDirectory(packageWorkingPath);
-                        await sdkSetup.GenerateSdkPackage(enginePath, packageWorkingPath, cancellationToken);
-                        await File.WriteAllTextAsync(Path.Combine(packageWorkingPath, "sdk-ready"), "ready", cancellationToken);
+                        await sdkSetup.GenerateSdkPackage(enginePath, packageWorkingPath, cancellationToken).ConfigureAwait(false);
+                        await File.WriteAllTextAsync(Path.Combine(packageWorkingPath, "sdk-ready"), "ready", cancellationToken).ConfigureAwait(false);
                         try
                         {
                             if (Directory.Exists(reservation.ReservedPath))
                             {
-                                await DirectoryAsync.MoveAsync(reservation.ReservedPath, packageOldPath);
+                                await DirectoryAsync.MoveAsync(reservation.ReservedPath, packageOldPath).ConfigureAwait(false);
                             }
-                            await DirectoryAsync.MoveAsync(packageWorkingPath, reservation.ReservedPath);
+                            await DirectoryAsync.MoveAsync(packageWorkingPath, reservation.ReservedPath).ConfigureAwait(false);
                         }
                         catch
                         {
                             if (!Directory.Exists(reservation.ReservedPath) &&
                                 Directory.Exists(packageOldPath))
                             {
-                                await DirectoryAsync.MoveAsync(packageOldPath, reservation.ReservedPath);
+                                await DirectoryAsync.MoveAsync(packageOldPath, reservation.ReservedPath).ConfigureAwait(false);
                             }
                         }
                         finally
                         {
                             if (Directory.Exists(packageOldPath))
                             {
-                                await DirectoryAsync.DeleteAsync(packageOldPath, true);
+                                await DirectoryAsync.DeleteAsync(packageOldPath, true).ConfigureAwait(false);
                             }
                         }
                     }
 
-                    foreach (var mapping in await sdkSetup.GetAutoSdkMappingsForSdkPackage(reservation.ReservedPath, cancellationToken))
+                    foreach (var mapping in await sdkSetup.GetAutoSdkMappingsForSdkPackage(reservation.ReservedPath, cancellationToken).ConfigureAwait(false))
                     {
                         var autoSdkPath = mapping.RelativePathInsideAutoSdkPath;
                         // @note: This does allow the reservation path to escape the reservation, but that's fine for the moment
@@ -154,10 +155,10 @@
 
                         autoSdkMappings[autoSdkPath] = absoluteTargetPath;
                     }
-                    var autoSdkEnvironment = await sdkSetup.GetRuntimeEnvironmentForSdkPackage(reservation.ReservedPath, cancellationToken);
+                    var autoSdkEnvironment = await sdkSetup.GetRuntimeEnvironmentForSdkPackage(reservation.ReservedPath, cancellationToken).ConfigureAwait(false);
                     foreach (var kv in autoSdkEnvironment.EnvironmentVariables)
                     {
-                        environmentVariables[kv.Key] = kv.Value.Replace("%SDK_PACKAGE_PATH%", reservation.ReservedPath);
+                        environmentVariables[kv.Key] = kv.Value.Replace("%SDK_PACKAGE_PATH%", reservation.ReservedPath, StringComparison.Ordinal);
                     }
                 }
             }
@@ -166,7 +167,7 @@
             if (autoSdkMappings.Count > 0)
             {
                 var autoSdkId = "AutoSDK-" + _stringUtilities.GetStabilityHash(string.Join(';', allPackageIds), 20);
-                await using (var reservation = await reservationManager.ReserveExactAsync(autoSdkId, cancellationToken))
+                await using ((await reservationManager.ReserveExactAsync(autoSdkId, cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var reservation).ConfigureAwait(false))
                 {
                     var hostFolder = true switch
                     {
@@ -197,9 +198,9 @@
                                     if (linkTarget == null)
                                     {
                                         _logger.LogInformation($"Removing existing AutoSDK directory '{autoSdkComponentPath}' because it should be a symbolic link.");
-                                        await DirectoryAsync.DeleteAsync(autoSdkComponentPath, true);
+                                        await DirectoryAsync.DeleteAsync(autoSdkComponentPath, true).ConfigureAwait(false);
                                     }
-                                    else if (!linkTarget.FullName.Trim(new[] { '/', '\\' }).Equals(desiredTarget.Trim(new[] { '/', '\\' }), StringComparison.InvariantCultureIgnoreCase))
+                                    else if (!linkTarget.FullName.Trim(new[] { '/', '\\' }).Equals(desiredTarget.Trim(new[] { '/', '\\' }), StringComparison.OrdinalIgnoreCase))
                                     {
                                         // Delete the incorrect symbolic link.
                                         _logger.LogInformation($"Removing existing AutoSDK symbolic link '{autoSdkComponentPath}' because it points at the wrong location: {linkTarget.FullName}");

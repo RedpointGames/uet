@@ -17,7 +17,7 @@
     using System.Threading.Tasks;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class VfsPackageFs : CachingPackageFs
+    internal sealed class VfsPackageFs : CachingPackageFs
     {
         private readonly IVfsDriverFactory _vfsFactory;
         private readonly ILogger<IVfsLayer> _logger;
@@ -110,7 +110,7 @@
             return Task.FromResult(true);
         }
 
-        private class StorageProjectionLayer : IVfsLayer
+        private sealed class StorageProjectionLayer : IVfsLayer
         {
             private readonly ILogger<IVfsLayer> _logger;
             private readonly VfsPackageFs _storageFS;
@@ -146,7 +146,7 @@
 
             public VfsEntryExistence Exists(string path)
             {
-                var fileExists = List(string.Empty)!.Any(x => string.Compare(x.Name, path, true) == 0);
+                var fileExists = List(string.Empty)!.Any(x => string.Equals(x.Name, path, StringComparison.OrdinalIgnoreCase));
                 if (!fileExists)
                 {
                     _logger.LogWarning($"VHD on-demand storage layer: Requested file does not exist (FileExists): {path}");
@@ -158,7 +158,7 @@
 
             public VfsEntry? GetInfo(string path)
             {
-                var entry = List(string.Empty)!.FirstOrDefault(x => string.Compare(x.Name, path, true) == 0);
+                var entry = List(string.Empty)!.FirstOrDefault(x => string.Equals(x.Name, path, StringComparison.OrdinalIgnoreCase));
                 if (entry == null)
                 {
                     _logger.LogWarning($"VHD on-demand storage layer: Requested file does not exist (GetInfo): {path}");
@@ -168,7 +168,7 @@
 
             public IEnumerable<VfsEntry>? List(string path)
             {
-                if (path != string.Empty)
+                if (!string.IsNullOrEmpty(path))
                 {
                     yield break;
                 }

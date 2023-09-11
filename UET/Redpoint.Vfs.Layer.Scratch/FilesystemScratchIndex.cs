@@ -3,7 +3,7 @@
     using Microsoft.Extensions.Logging;
     using System;
 
-    internal class FilesystemScratchIndex : IDisposable
+    internal sealed class FilesystemScratchIndex : IDisposable
     {
         private readonly ILogger<FilesystemScratchIndex> _logger;
         private readonly FilesystemScratchCache _fsScratchCache;
@@ -77,7 +77,7 @@
             }
         }
 
-        private string NormalizePathKey(string path)
+        private static string NormalizePathKey(string path)
         {
             return path.ToLowerInvariant();
         }
@@ -111,7 +111,7 @@
             var normalizedPathKey = NormalizePathKey(path);
             foreach (var key in _scratchIndex.IterateKeysOnly())
             {
-                if (key.StartsWith(normalizedPathKey + '\\'))
+                if (key.StartsWith(normalizedPathKey + '\\', StringComparison.OrdinalIgnoreCase))
                 {
 #if ENABLE_TRACE_LOGS
                     _logger.LogTrace($"Scratch index: Clear: {key}");
@@ -133,9 +133,9 @@
             var normalizedNewPath = NormalizePathKey(newPath);
             foreach (var kv in _scratchIndex.Iterate())
             {
-                if (kv.normalizedPath.StartsWith(normalizedOldPath + '\\'))
+                if (kv.normalizedPath.StartsWith(normalizedOldPath + '\\', StringComparison.OrdinalIgnoreCase))
                 {
-                    var newKey = normalizedNewPath + kv.normalizedPath.Substring(normalizedOldPath.Length);
+                    var newKey = normalizedNewPath + kv.normalizedPath[normalizedOldPath.Length..];
 #if ENABLE_TRACE_LOGS
                     _logger.LogTrace($"Scratch index: Move: {kv.normalizedPath} -> {newKey}");
 #endif

@@ -21,10 +21,16 @@
       Write-Host "dotnet build (UET.sln) failed with exit code $LastExitCode"
       exit $LastExitCode 
     }
-    dotnet test --no-build --logger:"console" --logger:"junit;LogFilePath=$((Get-Location).Path)\TestResults\{assembly}.test-result.xml" -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
-    if ($LastExitCode -ne 0) {
-      Write-Host "dotnet test (UET.sln) failed with exit code $LastExitCode"
-      exit $LastExitCode 
+    foreach ($Item in (Get-ChildItem UET -Filter *.Tests)) {
+      if (Test-Path "$($Item.FullName)/$($Item.Name).csproj") {
+        Write-Host "============ STARTING: $($Item.Name) ============"
+        dotnet test --logger:"console" --logger:"junit;LogFilePath=$((Get-Location).Path)\TestResults\$($Item.Name).test-result.xml" "$($Item.FullName)/bin/Release/net7.0/$($Item.Name).dll"
+        if ($LastExitCode -ne 0) {
+          Write-Host "============ FAILED:   $($Item.Name) ============"
+          exit $LastExitCode
+        }
+        Write-Host "============ PASSED:   $($Item.Name) ============"
+      }
     }
   artifacts:
     reports:
@@ -49,10 +55,18 @@
     - "Build AutoDiscovery"
   interruptible: true
   script: |
+    set -e
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
     echo "Package version: $PACKAGE_VERSION"
     dotnet build -c Release /p:PackageVersion=$PACKAGE_VERSION /p:OpenGEShimRuntimeIdentifier=all /p:OpenGEShimIsAlreadyBuilt=true UET/UET.sln
-    dotnet test --no-build --logger:"console" --logger:"junit;LogFilePath=$(pwd)/TestResults/{assembly}.test-result.xml" -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
+    for TEST_PATH in $(find UET -type d -name "*.Tests"); do
+      TEST_NAME=${TEST_PATH:4}
+      if [ -e "$TEST_PATH/$TEST_NAME.csproj" ]; then
+        echo "============ STARTING: $TEST_NAME ============"
+        dotnet test --logger:"console" --logger:"junit;LogFilePath=$(pwd)/TestResults/$TEST_NAME.test-result.xml" "$TEST_PATH/bin/Release/net7.0/$TEST_NAME.dll"
+        echo "============ PASSED:   $TEST_NAME ============"
+      fi
+    done
   artifacts:
     reports:
       junit: TestResults/*.test-result.xml

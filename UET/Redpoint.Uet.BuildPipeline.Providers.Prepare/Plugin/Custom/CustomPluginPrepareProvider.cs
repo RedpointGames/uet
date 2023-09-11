@@ -17,7 +17,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class CustomPluginPrepareProvider : IPluginPrepareProvider
+    internal sealed class CustomPluginPrepareProvider : IPluginPrepareProvider
     {
         private readonly ILogger<CustomPluginPrepareProvider> _logger;
         private readonly IScriptExecutor _scriptExecutor;
@@ -74,14 +74,14 @@
                                                 "-PackagePath",
                                                 @"""$(PackagePath)""",
                                             }
-                                        });
-                                });
+                                        }).ConfigureAwait(false);
+                                }).ConfigureAwait(false);
                             await writer.WritePropertyAsync(
                                 new PropertyElementProperties
                                 {
                                     Name = "DynamicBeforeAssembleFinalizeMacros",
                                     Value = $"$(DynamicBeforeAssembleFinalizeMacros)CustomOnAssembleFinalize-{entry.name};",
-                                });
+                                }).ConfigureAwait(false);
                             break;
                         case BuildConfigPluginPrepareRunBefore.Compile:
                             await writer.WriteMacroAsync(
@@ -118,7 +118,7 @@
                                                 @"""$(TargetConfiguration)""",
                                             },
                                             If = "$(HostPlatform) == 'Win64'"
-                                        });
+                                        }).ConfigureAwait(false);
                                     await writer.WriteSpawnAsync(
                                         new SpawnElementProperties
                                         {
@@ -138,14 +138,14 @@
                                                 @"""$(TargetConfiguration)""",
                                             },
                                             If = "$(HostPlatform) == 'Mac'"
-                                        });
-                                });
+                                        }).ConfigureAwait(false);
+                                }).ConfigureAwait(false);
                             await writer.WritePropertyAsync(
                                 new PropertyElementProperties
                                 {
                                     Name = "DynamicBeforeCompileMacros",
                                     Value = $"$(DynamicBeforeCompileMacros)CustomOnCompile-{entry.name};",
-                                });
+                                }).ConfigureAwait(false);
                             break;
                         case BuildConfigPluginPrepareRunBefore.BuildGraph:
                             // We don't emit anything in the graph for these.
@@ -177,7 +177,7 @@
                         WorkingDirectory = repositoryRoot,
                     },
                     CaptureSpecification.Passthrough,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
         }
     }

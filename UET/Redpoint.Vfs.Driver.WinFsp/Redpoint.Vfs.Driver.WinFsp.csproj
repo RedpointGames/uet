@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.WinFsp\Redpoint.ThirdParty.WinFsp.csproj" />
+    <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Abstractions\Redpoint.Vfs.Abstractions.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Driver\Redpoint.Vfs.Driver.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Windows\Redpoint.Vfs.Windows.csproj" />

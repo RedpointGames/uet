@@ -8,9 +8,9 @@
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
 
-    internal class CopyAndMutateBuildCsCommand
+    internal sealed class CopyAndMutateBuildCsCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> InputBasePath;
             public Option<string> InputFileList;
@@ -35,7 +35,7 @@
             return command;
         }
 
-        private class CopyAndMutateBuildCsCommandInstance : ICommandInstance
+        private sealed class CopyAndMutateBuildCsCommandInstance : ICommandInstance
         {
             private readonly ILogger<CopyAndMutateBuildCsCommandInstance> _logger;
             private readonly Options _options;
@@ -55,16 +55,16 @@
                 var outputPath = context.ParseResult.GetValueForOption(_options.OutputPath)!.Replace('/', '\\');
                 var marketplace = context.ParseResult.GetValueForOption(_options.Marketplace)!;
 
-                var inputFiles = await File.ReadAllLinesAsync(inputFileList);
+                var inputFiles = await File.ReadAllLinesAsync(inputFileList).ConfigureAwait(false);
                 var fileMappings = new List<(string input, string output)>();
                 foreach (var inputFile in inputFiles.Select(x => x.Replace('/', '\\')))
                 {
-                    if (!inputFile.StartsWith(inputBasePath))
+                    if (!inputFile.StartsWith(inputBasePath, StringComparison.Ordinal))
                     {
                         _logger.LogError("Invalid input file list!");
                         return 1;
                     }
-                    var relativeInputFile = inputFile.Substring(inputBasePath.Length);
+                    var relativeInputFile = inputFile[inputBasePath.Length..];
                     fileMappings.Add((inputFile, outputPath + '\\' + relativeInputFile));
                 }
 
@@ -84,11 +84,11 @@
                     var replaceRegex = new Regex("(?ms)^\\s+/\\* PRECOMPILED REMOVE BEGIN \\*/.*?/\\* PRECOMPILED REMOVE END \\*/");
                     foreach (var mapping in fileMappings)
                     {
-                        var buildCs = await File.ReadAllTextAsync(mapping.input);
-                        buildCs = buildCs.Replace("bUsePrecompiled = false;", "bUsePrecompiled = true;");
-                        while (buildCs.Contains("/* PRECOMPILED REMOVE BEGIN */"))
+                        var buildCs = await File.ReadAllTextAsync(mapping.input).ConfigureAwait(false);
+                        buildCs = buildCs.Replace("bUsePrecompiled = false;", "bUsePrecompiled = true;", StringComparison.Ordinal);
+                        while (buildCs.Contains("/* PRECOMPILED REMOVE BEGIN */", StringComparison.Ordinal))
                         {
-                            if (!buildCs.Contains("/* PRECOMPILED REMOVE END */"))
+                            if (!buildCs.Contains("/* PRECOMPILED REMOVE END */", StringComparison.Ordinal))
                             {
                                 _logger.LogError($"Missing PRECOMPILED REMOVE END after PRECOMPILED REMOVE BEGIN in: {mapping.input}");
                                 return 1;
@@ -102,7 +102,7 @@
                             buildCs = newBuildCs;
                         }
                         Directory.CreateDirectory(Path.GetDirectoryName(mapping.output)!);
-                        await File.WriteAllTextAsync(mapping.output, buildCs);
+                        await File.WriteAllTextAsync(mapping.output, buildCs).ConfigureAwait(false);
                         _logger.LogInformation($"Mutated: {mapping.input} -> {mapping.output}");
                     }
                 }

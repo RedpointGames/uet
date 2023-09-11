@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
@@ -9,6 +10,7 @@
     /// <summary>
     /// Represents the type of packfile entry.
     /// </summary>
+    [SuppressMessage("Design", "CA1027:Mark enums with FlagsAttribute", Justification = "This enumeration does not represent flags.")]
     public enum GitObjectType
     {
         /// <summary>

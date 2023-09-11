@@ -14,7 +14,7 @@
             string packageDigest,
             string extension,
             string tagHash,
-            string url,
+            string tag,
             Action releaseGlobalPullLock,
             Action<Action<PollingResponse>, string?> updatePollingResponse);
 

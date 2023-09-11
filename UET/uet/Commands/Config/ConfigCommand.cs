@@ -9,9 +9,9 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal class ConfigCommand
+    internal sealed class ConfigCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<bool> List;
             public Option<bool> On;
@@ -49,7 +49,7 @@
             return command;
         }
 
-        private class ConfigCommandInstance : ICommandInstance
+        private sealed class ConfigCommandInstance : ICommandInstance
         {
             private readonly ILogger<ConfigCommandInstance> _logger;
             private readonly IBooleanConfigSetting[] _booleanConfigSettings;
@@ -96,13 +96,13 @@
                     }
                     else if (on || off)
                     {
-                        await setting.SetValueAsync(on, context.GetCancellationToken());
+                        await setting.SetValueAsync(on, context.GetCancellationToken()).ConfigureAwait(false);
                         _logger.LogInformation($"'{name}' has been turned {(on ? "on" : "off")}.");
                         return 0;
                     }
                     else
                     {
-                        var value = await setting.GetValueAsync(context.GetCancellationToken());
+                        var value = await setting.GetValueAsync(context.GetCancellationToken()).ConfigureAwait(false);
                         _logger.LogInformation($"'{name}' is currently turned {(value ? "on" : "off")}.");
                         return 0;
                     }

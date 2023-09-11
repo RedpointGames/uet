@@ -10,9 +10,9 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal class CreateJunctionCommand
+    internal sealed class CreateJunctionCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<DirectoryInfo> LinkPath;
             public Option<DirectoryInfo?> TargetPath;
@@ -35,7 +35,7 @@
             return command;
         }
 
-        private class CreateJunctionCommandInstance : ICommandInstance
+        private sealed class CreateJunctionCommandInstance : ICommandInstance
         {
             private readonly ILogger<CreateJunctionCommandInstance> _logger;
             private readonly Options _options;

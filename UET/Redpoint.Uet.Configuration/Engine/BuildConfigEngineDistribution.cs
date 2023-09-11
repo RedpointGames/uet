@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.Configuration.Engine
 {
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
     public class BuildConfigEngineDistribution
@@ -17,9 +18,11 @@
         public BuildConfigEngineCook Cook { get; set; } = new BuildConfigEngineCook();
 
         [JsonPropertyName("Deployment")]
-        public BuildConfigEngineDeployment[] Deployment { get; set; } = new BuildConfigEngineDeployment[0];
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        public BuildConfigEngineDeployment[] Deployment { get; set; } = Array.Empty<BuildConfigEngineDeployment>();
 
         [JsonPropertyName("MobileProvisions")]
-        public BuildConfigMobileProvision[] MobileProvisions { get; set; } = new BuildConfigMobileProvision[0];
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        public BuildConfigMobileProvision[] MobileProvisions { get; set; } = Array.Empty<BuildConfigMobileProvision>();
     }
 }

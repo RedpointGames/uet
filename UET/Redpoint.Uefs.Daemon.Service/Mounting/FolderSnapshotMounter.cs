@@ -13,8 +13,9 @@
     using Redpoint.Vfs.Layer.Folder;
     using Redpoint.Vfs.Layer.Scratch;
     using System.Threading.Tasks;
+    using Redpoint.Concurrency;
 
-    internal class FolderSnapshotMounter : IMounter<MountFolderSnapshotRequest>
+    internal sealed class FolderSnapshotMounter : IMounter<MountFolderSnapshotRequest>
     {
         private readonly ILogger<FolderSnapshotMounter> _logger;
         private readonly IFolderVfsLayerFactory _folderVfsLayerFactory;
@@ -40,7 +41,7 @@
             IUefsDaemon daemon,
             MountContext context,
             MountFolderSnapshotRequest request,
-            TransactionListenerDelegate onPollingResponse,
+            TransactionListener onPollingResponse,
             CancellationToken cancellationToken)
         {
             if (_vfsDriverFactory == null)
@@ -59,7 +60,7 @@
             }
 
             // Run the mount transaction.
-            await using (var transaction = await daemon.TransactionalDatabase.BeginTransactionAsync(
+            await using ((await daemon.TransactionalDatabase.BeginTransactionAsync(
                 new AddMountTransactionRequest
                 {
                     MountId = context.MountId,
@@ -114,9 +115,9 @@
                     },
                 },
                 onPollingResponse,
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var transaction).ConfigureAwait(false))
             {
-                await transaction.WaitForCompletionAsync(cancellationToken);
+                await transaction.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
             }
         }
     }

@@ -51,7 +51,7 @@ if (File.Exists(currentBuildConfigPath))
     // We have a BuildConfig.json in the current directory; use whatever is in there.
     try
     {
-        var document = JsonNode.Parse(await File.ReadAllTextAsync(currentBuildConfigPath));
+        var document = JsonNode.Parse(await File.ReadAllTextAsync(currentBuildConfigPath).ConfigureAwait(false));
         targetVersion = document!.AsObject()["UETVersion"]!.ToString();
     }
     catch
@@ -101,16 +101,16 @@ do
                 logger,
                 targetVersion == "BleedingEdge" ? string.Empty : targetVersion,
                 true,
-                cts.Token);
+                cts.Token).ConfigureAwait(false);
             if (targetVersion == "BleedingEdge")
             {
                 targetVersion = UpgradeCommandImplementation.LastInstalledVersion!;
             }
         }
-        catch (IOException ex) when (ex.Message.Contains("used by another process"))
+        catch (IOException ex) when (ex.Message.Contains("used by another process", StringComparison.Ordinal))
         {
             logger.LogWarning($"Another UET shim instance is downloading {targetVersion}, checking if it is ready in another 2 seconds...");
-            await Task.Delay(2000);
+            await Task.Delay(2000).ConfigureAwait(false);
             continue;
         }
         catch (Exception ex)
@@ -143,8 +143,8 @@ var nestedExitCode = await processExecutor.ExecuteAsync(
         }
     },
     CaptureSpecification.Passthrough,
-    cts.Token);
-await Console.Out.FlushAsync();
-await Console.Error.FlushAsync();
+    cts.Token).ConfigureAwait(false);
+await Console.Out.FlushAsync().ConfigureAwait(false);
+await Console.Error.FlushAsync().ConfigureAwait(false);
 Environment.Exit(nestedExitCode);
 throw new BadImageFormatException();

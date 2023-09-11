@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class BuildConfigPluginPrepareCustom
+    internal sealed class BuildConfigPluginPrepareCustom
     {
         /// <summary>
         /// The path to the PowerShell script to execute, relative to the repository root.

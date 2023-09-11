@@ -4,7 +4,7 @@
     using Redpoint.Uet.Automation.Model;
     using System.Threading.Tasks;
 
-    internal class NullTestReporter : ITestReporter
+    internal sealed class NullTestReporter : ITestReporter
     {
         private readonly ILogger<NullTestReporter> _logger;
 

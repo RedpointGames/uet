@@ -15,7 +15,7 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class CachedFile : ICachedFile, IDisposable
+    internal sealed class CachedFile : ICachedFile, IDisposable
     {
         private readonly ILogger _logger;
 
@@ -47,12 +47,12 @@
             Interlocked.Exchange(ref _dirtyIndex, 1);
         }
 
-        private uint GetChunk(long offset)
+        private static uint GetChunk(long offset)
         {
             return (uint)(offset / _chunkSize);
         }
 
-        private long GetPosition(uint chunk)
+        private static long GetPosition(uint chunk)
         {
             return chunk * _chunkSize;
         }

@@ -4,26 +4,28 @@
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
 
+    [SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix", Justification = "This class represents a collection of objects.")]
     public partial class WorkerCoreRequestCollection<TWorkerCore> : IWorkerPoolTracerAssignable where TWorkerCore : IAsyncDisposable
     {
-        private readonly List<WorkerCoreRequest> _requests;
-        private readonly MutexSlim _requestLock;
-        private readonly AsyncEvent<WorkerCoreRequestStatistics> _onRequestsChanged;
+        internal readonly List<WorkerCoreRequest<TWorkerCore>> _requests;
+        internal readonly Concurrency.Mutex _requestLock;
+        internal readonly AsyncEvent<WorkerCoreRequestStatistics> _onRequestsChanged;
         private WorkerPoolTracer? _tracer;
 
         public WorkerCoreRequestCollection()
         {
-            _requests = new List<WorkerCoreRequest>();
-            _requestLock = new MutexSlim();
+            _requests = new List<WorkerCoreRequest<TWorkerCore>>();
+            _requestLock = new Concurrency.Mutex();
             _onRequestsChanged = new AsyncEvent<WorkerCoreRequestStatistics>();
         }
 
-        public async Task<WorkerCoreRequest[]> GetAllRequestsAsync()
+        public async Task<WorkerCoreRequest<TWorkerCore>[]> GetAllRequestsAsync()
         {
-            using (await _requestLock.WaitAsync())
+            using (await _requestLock.WaitAsync(CancellationToken.None).ConfigureAwait(false))
             {
                 return _requests.ToArray();
             }
@@ -34,7 +36,7 @@
             _tracer = tracer;
         }
 
-        private WorkerCoreRequestStatistics ObtainStatisticsWithinLock()
+        internal WorkerCoreRequestStatistics ObtainStatisticsWithinLock()
         {
             var unfulfilledLocalRequests = 0;
             var unfulfilledRemotableRequests = 0;
@@ -78,11 +80,11 @@
 
         public async Task<WorkerCoreRequestStatistics> GetCurrentStatisticsAsync(CancellationToken cancellationToken)
         {
-            using var _ = await _requestLock.WaitAsync(cancellationToken);
+            using var _ = await _requestLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             return ObtainStatisticsWithinLock();
         }
 
-        private Func<WorkerCoreRequest, bool> GetFilterForConstraint(CoreFulfillerConstraint fulfillerConstraint)
+        private static Func<WorkerCoreRequest<TWorkerCore>, bool> GetFilterForConstraint(CoreFulfillerConstraint fulfillerConstraint)
         {
             switch (fulfillerConstraint)
             {
@@ -111,14 +113,14 @@
             CoreFulfillerConstraint fulfillerConstraint,
             CancellationToken cancellationToken)
         {
-            var @lock = await _requestLock.WaitAsync(cancellationToken);
+            var @lock = await _requestLock.WaitAsync(cancellationToken).ConfigureAwait(false);
 
             _tracer?.AddTracingMessage("Getting all unfulfilled requests.");
             var handedOverLock = false;
             try
             {
                 var requests = _requests
-                    .Where(GetFilterForConstraint(fulfillerConstraint))
+                    .Where(WorkerCoreRequestCollection<TWorkerCore>.GetFilterForConstraint(fulfillerConstraint))
                     .ToList();
                 var result = new WorkerCoreRequestCollectionLock(@lock, requests);
                 handedOverLock = true;
@@ -140,11 +142,11 @@
         {
             _tracer?.AddTracingMessage("Creating an unfulfilled request so we can wait on it.");
             var didFulfill = false;
-            var request = await CreateUnfulfilledRequestAsync(corePreference, cancellationToken);
+            var request = await CreateUnfulfilledRequestAsync(corePreference, cancellationToken).ConfigureAwait(false);
             try
             {
                 _tracer?.AddTracingMessage("Waiting for the request to be fulfilled.");
-                await request.WaitForCoreAsync(cancellationToken);
+                await request.WaitForCoreAsync(cancellationToken).ConfigureAwait(false);
                 didFulfill = true;
                 return request;
             }
@@ -152,7 +154,7 @@
             {
                 if (!didFulfill)
                 {
-                    await request.DisposeAsync();
+                    await request.DisposeAsync().ConfigureAwait(false);
                 }
             }
         }
@@ -161,17 +163,17 @@
             CoreAllocationPreference corePreference,
             CancellationToken cancellationToken)
         {
-            using var _ = await _requestLock.WaitAsync(cancellationToken);
+            using var _ = await _requestLock.WaitAsync(cancellationToken).ConfigureAwait(false);
 
             _tracer?.AddTracingMessage("Creating new unfulfilled request and adding to dictionary.");
-            var newRequest = new WorkerCoreRequest(this, corePreference);
+            var newRequest = new WorkerCoreRequest<TWorkerCore>(this, corePreference);
             _requests.Add(newRequest);
             try
             {
                 _tracer?.AddTracingMessage("Broadcasting that the list of requests has changed.");
                 await _onRequestsChanged.BroadcastAsync(
                     ObtainStatisticsWithinLock(),
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
             catch
             {

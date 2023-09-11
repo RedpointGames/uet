@@ -7,9 +7,9 @@
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal class UploadToBackblazeB2Command
+    internal sealed class UploadToBackblazeB2Command
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<FileInfo> ZipPath;
             public Option<string> BucketName;
@@ -32,7 +32,7 @@
             return command;
         }
 
-        private class UploadToBackblazeB2CommandInstance : ICommandInstance
+        private sealed class UploadToBackblazeB2CommandInstance : ICommandInstance
         {
             private readonly ILogger<UploadToBackblazeB2CommandInstance> _logger;
             private readonly Options _options;
@@ -84,14 +84,14 @@
                     ApplicationKey = b2AppKey,
                 });
 
-                var bucket = await client.Buckets.GetByName(bucketName, context.GetCancellationToken());
+                var bucket = await client.Buckets.GetByName(bucketName, context.GetCancellationToken()).ConfigureAwait(false);
                 if (bucket == null)
                 {
                     _logger.LogError($"Unable to find bucket named '{bucketName}' (maybe you can't access it with this key?)");
                     return 1;
                 }
 
-                var uploadUrl = await client.Files.GetUploadUrl(bucket.BucketId, context.GetCancellationToken());
+                var uploadUrl = await client.Files.GetUploadUrl(bucket.BucketId, context.GetCancellationToken()).ConfigureAwait(false);
 
                 _logger.LogInformation($"Uploading {zipPath.Name} ({zipPath.Length / 1024 / 1024} MB)...");
 
@@ -111,7 +111,7 @@
                             progress,
                             SystemConsole.ConsoleInformation,
                             SystemConsole.WriteProgressToConsole,
-                            cts.Token);
+                            cts.Token).ConfigureAwait(false);
                     });
 
                     // Upload the file.
@@ -129,10 +129,10 @@
                                 bucketId: bucket.BucketId,
                                 fileInfo: null,
                                 dontSHA: true,
-                                context.GetCancellationToken());
+                                context.GetCancellationToken()).ConfigureAwait(false);
                             break;
                         }
-                        catch (B2Exception ex) when (ex.Message.Contains("no tomes available") || ex.Message.Contains("incident id"))
+                        catch (B2Exception ex) when (ex.Message.Contains("no tomes available", StringComparison.Ordinal) || ex.Message.Contains("incident id", StringComparison.Ordinal))
                         {
                             if (SystemConsole.ConsoleWidth.HasValue)
                             {
@@ -140,14 +140,14 @@
                             }
                             _logger.LogWarning("Temporary issue with Backblaze B2 while uploading. Retrying in 1 second...");
                             stream.Seek(0, SeekOrigin.Begin);
-                            await Task.Delay(1000);
+                            await Task.Delay(1000).ConfigureAwait(false);
                             continue;
                         }
                     }
                     while (true);
 
                     // Stop monitoring.
-                    await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);
+                    await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts).ConfigureAwait(false);
 
                     _logger.LogInformation($"Friendly URL on Backblaze B2: https://f002.backblazeb2.com/file/{bucket.BucketName}/{folderPrefix}/{zipPath.Name}");
                 }

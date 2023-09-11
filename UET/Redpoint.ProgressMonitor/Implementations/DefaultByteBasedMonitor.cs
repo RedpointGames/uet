@@ -4,7 +4,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DefaultByteBasedMonitor : IByteBasedMonitor
+    internal sealed class DefaultByteBasedMonitor : IByteBasedMonitor
     {
         private readonly IUtilities _utilities;
 
@@ -39,7 +39,7 @@
         public async Task MonitorAsync(
             IByteBasedProgress progress,
             IConsoleInformation? consoleInfo,
-            ProgressEmitDelegate onProgressEmit,
+            ProgressEmit onProgressEmit,
             CancellationToken ct)
         {
             var startTime = DateTimeOffset.UtcNow;
@@ -67,7 +67,7 @@
 
                 try
                 {
-                    await Task.Delay(100, ct);
+                    await Task.Delay(100, ct).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {

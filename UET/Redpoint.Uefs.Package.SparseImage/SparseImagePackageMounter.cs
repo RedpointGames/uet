@@ -6,7 +6,7 @@
     using Redpoint.Uefs.Protocol;
 
     [SupportedOSPlatform("macos")]
-    internal class SparseImagePackageMounter : IPackageMounter
+    internal sealed class SparseImagePackageMounter : IPackageMounter
     {
         private bool _isMounted = false;
         private string? _mountPath;
@@ -35,11 +35,11 @@
             _isMounted = true;
             _mountPath = mount.Devices.First(x => x.Value.mountPoint != null).Value.mountPoint!;
             _writeStoragePath = mount.Attributes["shadow-path"];
-            if (mount.Attributes["shadow-path"].Contains("uefs-discard"))
+            if (mount.Attributes["shadow-path"].Contains("uefs-discard", StringComparison.Ordinal))
             {
                 _persistenceMode = WriteScratchPersistence.DiscardOnUnmount;
             }
-            else if (mount.Attributes["shadow-path"].Contains("uefs-keep"))
+            else if (mount.Attributes["shadow-path"].Contains("uefs-keep", StringComparison.Ordinal))
             {
                 _persistenceMode = WriteScratchPersistence.Keep;
             }
@@ -78,7 +78,7 @@
                 {
                     Directory.Delete(mountPath);
                 }
-                catch (IOException ex) when (ex.Message.Contains("Resource busy"))
+                catch (IOException ex) when (ex.Message.Contains("Resource busy", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new PackageMounterException("unable to remove target path; ensure it is not already used as a mount point");
                 }
@@ -195,8 +195,8 @@
             {
                 throw new PackageMounterException("unable to start hdiutil process for unmounting sparse APFS image");
             }
-            var output = await process.StandardOutput.ReadToEndAsync();
-            await process.WaitForExitAsync();
+            var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+            await process.WaitForExitAsync().ConfigureAwait(false);
             if (process.ExitCode != 0)
             {
                 throw new PackageMounterException($"hdiutil for unmounting exited with code {process.ExitCode}");
@@ -209,7 +209,7 @@
             {
                 if (mode == "global")
                 {
-                    if (line.StartsWith("======="))
+                    if (line.StartsWith("=======", StringComparison.Ordinal))
                     {
                         mode = "local";
                         continue;
@@ -217,7 +217,7 @@
                 }
                 else if (mode == "local")
                 {
-                    if (line.StartsWith("/dev"))
+                    if (line.StartsWith("/dev", StringComparison.Ordinal))
                     {
                         var components = line.Split("\t", 3, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                         var deviceName = components.Length > 0 ? components[0] : null;
@@ -230,12 +230,12 @@
                             currentImportedMount.Devices.Add(deviceName, (deviceType, mountPath));
                         }
                     }
-                    else if (line.Contains(":"))
+                    else if (line.Contains(':', StringComparison.Ordinal))
                     {
                         var attributePair = line.Split(":", 3, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                         currentImportedMount.Attributes.Add(attributePair[0], attributePair[1]);
                     }
-                    else if (line.StartsWith("========"))
+                    else if (line.StartsWith("========", StringComparison.Ordinal))
                     {
                         if (currentImportedMount.Attributes.Count > 0)
                         {
@@ -253,14 +253,14 @@
             var result = new List<(string packagePath, string mountPath, IPackageMounter mounter)>();
             foreach (var importedMount in allImportedMounts)
             {
-                if (importedMount.Attributes.ContainsKey("image-type") &&
-                    importedMount.Attributes["image-type"] == "sparse disk image (shadowed)" &&
-                    importedMount.Attributes.ContainsKey("image-path") &&
+                if (importedMount.Attributes.TryGetValue("image-type", out var imageType) &&
+                    imageType == "sparse disk image (shadowed)" &&
+                    importedMount.Attributes.TryGetValue("image-path", out var imagePath) &&
                     importedMount.Attributes.ContainsKey("shadow-path") &&
                     importedMount.Devices.Any(x => x.Value.mountPoint != null))
                 {
                     result.Add((
-                        importedMount.Attributes["image-path"],
+                        imagePath,
                         importedMount.Devices.First(x => x.Value.mountPoint != null).Value.mountPoint!,
                         new SparseImagePackageMounter(importedMount)));
                 }

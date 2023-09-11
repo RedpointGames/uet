@@ -20,7 +20,7 @@
         Task MonitorAsync(
             T progress,
             IConsoleInformation? consoleInfo,
-            ProgressEmitDelegate onProgressEmit,
+            ProgressEmit onProgressEmit,
             CancellationToken ct);
     }
 }

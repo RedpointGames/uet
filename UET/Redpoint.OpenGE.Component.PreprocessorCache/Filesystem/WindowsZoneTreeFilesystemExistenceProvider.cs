@@ -110,16 +110,12 @@
             }
         }
 
-        public void Dispose()
-        {
-        }
-
         public async ValueTask DisposeAsync()
         {
             _disk?.Dispose();
             if (_reservation != null)
             {
-                await _reservation.DisposeAsync();
+                await _reservation.DisposeAsync().ConfigureAwait(false);
             }
         }
 

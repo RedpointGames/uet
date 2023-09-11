@@ -352,7 +352,7 @@
                         }
                         else
                         {
-                            throw new Exception("Dynamic include expressions for __has_include are not yet supported!");
+                            throw new InvalidOperationException("Dynamic include expressions for __has_include are not yet supported!");
                         }
                     }
                     // Normal function invocation.

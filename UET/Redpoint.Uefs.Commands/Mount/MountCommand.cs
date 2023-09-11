@@ -14,7 +14,7 @@
 
     public static class MountCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<FileInfo> PackagePath = new Option<FileInfo>("--pkg", description: "The path to the package to mount.");
             public Option<string> PackageTag = new Option<string>("--tag", description: "The tag of the package to mount. The package will be pulled from the registry if the local copy is out of date.");
@@ -37,7 +37,7 @@
             return command;
         }
 
-        private class MountCommandInstance : ICommandInstance
+        private sealed class MountCommandInstance : ICommandInstance
         {
             private readonly IMonitorFactory _monitorFactory;
             private readonly IProcessTree _processTree;
@@ -83,7 +83,7 @@
                     request,
                     TimeSpan.FromMinutes(60),
                     cancellationToken);
-                return await operation.RunAndWaitForMountIdAsync();
+                return await operation.RunAndWaitForMountIdAsync().ConfigureAwait(false);
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
@@ -174,7 +174,7 @@
                 if (trackParent)
                 {
                     Process? parentProcess = _processTree.GetParentProcess();
-                    while (parentProcess != null && (parentProcess.ProcessName.Contains("uefs") || parentProcess.ProcessName.Contains("dotnet")))
+                    while (parentProcess != null && (parentProcess.ProcessName.Contains("uefs", StringComparison.OrdinalIgnoreCase) || parentProcess.ProcessName.Contains("dotnet", StringComparison.OrdinalIgnoreCase)))
                     {
                         parentProcess = _processTree.GetParentProcess(parentProcess.Id);
                     }
@@ -202,7 +202,7 @@
                                     MountRequest = mountRequest,
                                     Path = packagePath!.FullName,
                                 },
-                                context.GetCancellationToken());
+                                context.GetCancellationToken()).ConfigureAwait(false);
                             break;
                         case MountType.PackageTag:
                             mountId = await MountAsync(
@@ -213,7 +213,7 @@
                                     Tag = packageTag,
                                     Credential = _credentialDiscovery.GetRegistryCredential(packageTag!),
                                 },
-                                context.GetCancellationToken());
+                                context.GetCancellationToken()).ConfigureAwait(false);
                             break;
                         case MountType.GitCommit:
                             var mountGitCommitRequest = new MountGitCommitRequest
@@ -230,7 +230,7 @@
                             mountId = await MountAsync(
                                 _uefsClient.MountGitCommit,
                                 mountGitCommitRequest,
-                                context.GetCancellationToken());
+                                context.GetCancellationToken()).ConfigureAwait(false);
                             break;
                         case MountType.FolderSnapshot:
                             mountId = await MountAsync(
@@ -240,7 +240,7 @@
                                     MountRequest = mountRequest,
                                     SourcePath = folderSnapshot!.FullName,
                                 },
-                                context.GetCancellationToken());
+                                context.GetCancellationToken()).ConfigureAwait(false);
                             break;
                         default:
                             throw new InvalidOperationException("unknown mount type");

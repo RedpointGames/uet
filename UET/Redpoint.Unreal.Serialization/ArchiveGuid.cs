@@ -29,10 +29,10 @@
             }
         }
 
-        public static (int a, int b, int c, int d) IntsFromGuid(Guid guid)
+        public static (int a, int b, int c, int d) IntsFromGuid(Guid value)
         {
             int a = 0, b = 0, c = 0, d = 0;
-            var guidBytes = guid.ToByteArray();
+            var guidBytes = value.ToByteArray();
             unsafe
             {
                 for (int i = 0; i < sizeof(int); i++)
@@ -55,27 +55,30 @@
             return (a, b, c, d);
         }
 
-        public static async ValueTask Serialize(this Archive ar, Store<Guid> guid)
+        public static async ValueTask Serialize(this Archive ar, Store<Guid> value)
         {
+            if (ar == null) throw new ArgumentNullException(nameof(ar));
+            if (value == null) throw new ArgumentNullException(nameof(value));
+
             if (ar.IsLoading)
             {
                 Store<int> a = new Store<int>(0),
                     b = new Store<int>(0),
                     c = new Store<int>(0),
                     d = new Store<int>(0);
-                await ar.Serialize(a);
-                await ar.Serialize(b);
-                await ar.Serialize(c);
-                await ar.Serialize(d);
-                guid.V = GuidFromInts(a.V, b.V, c.V, d.V);
+                await ar.Serialize(a).ConfigureAwait(false);
+                await ar.Serialize(b).ConfigureAwait(false);
+                await ar.Serialize(c).ConfigureAwait(false);
+                await ar.Serialize(d).ConfigureAwait(false);
+                value.V = GuidFromInts(a.V, b.V, c.V, d.V);
             }
             else
             {
-                var (a, b, c, d) = IntsFromGuid(guid.V);
-                await ar.Serialize(new Store<int>(a));
-                await ar.Serialize(new Store<int>(b));
-                await ar.Serialize(new Store<int>(c));
-                await ar.Serialize(new Store<int>(d));
+                var (a, b, c, d) = IntsFromGuid(value.V);
+                await ar.Serialize(new Store<int>(a)).ConfigureAwait(false);
+                await ar.Serialize(new Store<int>(b)).ConfigureAwait(false);
+                await ar.Serialize(new Store<int>(c)).ConfigureAwait(false);
+                await ar.Serialize(new Store<int>(d)).ConfigureAwait(false);
             }
         }
     }

@@ -20,9 +20,9 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal class RunRfsCommand
+    internal sealed class RunRfsCommand
     {
-        public class Options
+        public sealed class Options
         {
             public Option<string?> Path = new Option<string?>("--path", "The path to serve the remote filesystem from.");
             public Option<string?> ConnectTo = new Option<string?>("--connect-to", "The address of the RFS host to connect to.");
@@ -39,7 +39,7 @@
             return command;
         }
 
-        private class RunRfsCommandInstance : ICommandInstance
+        private sealed class RunRfsCommandInstance : ICommandInstance
         {
             private readonly ILogger<RunRfsCommandInstance> _logger;
             private readonly Options _options;
@@ -96,7 +96,7 @@
                     app.UseGrpcWeb();
                     app.MapGrpcService<WindowsRfs.WindowsRfsBase>();
 
-                    await app.StartAsync();
+                    await app.StartAsync().ConfigureAwait(false);
 
                     servingPort = new Uri(app.Urls.First()).Port;
 
@@ -129,7 +129,7 @@
                 try
                 {
                     var semaphore = new SemaphoreSlim(0);
-                    await semaphore.WaitAsync(context.GetCancellationToken());
+                    await semaphore.WaitAsync(context.GetCancellationToken()).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -142,7 +142,7 @@
 
                 if (app != null)
                 {
-                    await app.StopAsync();
+                    await app.StopAsync().ConfigureAwait(false);
                 }
 
                 return 0;

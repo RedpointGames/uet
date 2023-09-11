@@ -13,6 +13,11 @@
     <AssemblyName>Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console</AssemblyName>
     <Nullable>enable</Nullable>
     <NoWarn>1591</NoWarn>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode></AnalysisMode>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)../LibraryPackaging.Build.props" />

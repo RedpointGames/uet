@@ -12,7 +12,7 @@
         string[] Args { get; }
     }
 
-    internal class DefaultOpenGEDaemonArgs : IOpenGEDaemonArgs
+    internal sealed class DefaultOpenGEDaemonArgs : IOpenGEDaemonArgs
     {
         public DefaultOpenGEDaemonArgs(string[] args)
         {
@@ -22,7 +22,7 @@
         public string[] Args { get; }
     }
 
-    internal class OpenGEHostedService : IHostedService, IPreprocessorCacheAccessor
+    internal sealed class OpenGEHostedService : IHostedService, IPreprocessorCacheAccessor
     {
         private readonly ILogger<OpenGEHostedService> _logger;
         private readonly IOpenGEAgentFactory _openGEAgentFactory;
@@ -50,7 +50,7 @@
             _agent = _openGEAgentFactory.CreateAgent(
                 true,
                 !_daemonArgs.Args.Contains("--no-local"));
-            await _agent.StartAsync();
+            await _agent.StartAsync().ConfigureAwait(false);
             _logger.LogInformation("The OpenGE system-wide agent is now running.");
             _running = true;
         }
@@ -59,7 +59,7 @@
         {
             if (_running)
             {
-                await _agent!.StopAsync();
+                await _agent!.StopAsync().ConfigureAwait(false);
                 _logger.LogInformation("The OpenGE system-wide agent has stopped.");
                 _running = false;
             }

@@ -8,7 +8,7 @@
     using System.Threading.Tasks;
     using UETAutomation;
 
-    internal class GrpcTestLogger : ITestLogger
+    internal sealed class GrpcTestLogger : ITestLogger
     {
         private readonly TestReporting.TestReportingClient _client;
 
@@ -113,7 +113,7 @@
             });
         }
 
-        private UETAutomation.TestResultStatus Convert(Model.TestResultStatus testStatus)
+        private static UETAutomation.TestResultStatus Convert(Model.TestResultStatus testStatus)
         {
             switch (testStatus)
             {

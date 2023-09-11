@@ -3,9 +3,9 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DynamicCoreProvider : IWorkerCoreProvider<IWorkerCore>
+    internal sealed class DynamicCoreProvider : IWorkerCoreProvider<IWorkerCore>
     {
-        private SemaphoreSlim _provideCore = new SemaphoreSlim(0);
+        private Concurrency.Semaphore _provideCore = new Concurrency.Semaphore(0);
 
         public DynamicCoreProvider(int coresAvailable)
         {
@@ -17,11 +17,11 @@
 
         public async Task<IWorkerCore> RequestCoreAsync(CancellationToken cancellationToken)
         {
-            await _provideCore.WaitAsync(cancellationToken);
+            await _provideCore.WaitAsync(cancellationToken).ConfigureAwait(false);
             return new DynamicWorkerCore(this);
         }
 
-        private class DynamicWorkerCore : IWorkerCore
+        private sealed class DynamicWorkerCore : IWorkerCore
         {
             private readonly DynamicCoreProvider _provider;
 

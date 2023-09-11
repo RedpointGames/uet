@@ -69,7 +69,7 @@
                 var sp = services.BuildServiceProvider();
                 var instance = sp.GetRequiredService<TCommand>();
 
-                context.ExitCode = await instance.ExecuteAsync(context);
+                context.ExitCode = await instance.ExecuteAsync(context).ConfigureAwait(false);
             });
         }
     }

@@ -23,7 +23,7 @@
             _windowsSdkInstaller = windowsSdkInstaller;
         }
 
-        public string[] PlatformNames => new[] { "Windows", "Win64" };
+        public IReadOnlyList<string> PlatformNames => new[] { "Windows", "Win64" };
 
         public string CommonPlatformNameForPackageId => "Windows";
 
@@ -55,31 +55,31 @@
             var currentlyIn = CurrentlyIn.None;
             foreach (var line in microsoftPlatformSdkFileContent.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
-                if (line.StartsWith("//"))
+                if (line.StartsWith("//", StringComparison.Ordinal))
                 {
                     continue;
                 }
-                if (line.EndsWith(";"))
+                if (line.EndsWith(";", StringComparison.Ordinal))
                 {
                     currentlyIn = CurrentlyIn.None;
                 }
 
-                if (line.Contains(" PreferredWindowsSdkVersions "))
+                if (line.Contains(" PreferredWindowsSdkVersions ", StringComparison.Ordinal))
                 {
                     currentlyIn = CurrentlyIn.PreferredWindowsSdk;
                     continue;
                 }
-                else if (line.Contains(" PreferredVisualCppVersions "))
+                else if (line.Contains(" PreferredVisualCppVersions ", StringComparison.Ordinal))
                 {
                     currentlyIn = CurrentlyIn.PreferredVisualCpp;
                     continue;
                 }
-                else if (line.Contains(" VisualStudioSuggestedComponents "))
+                else if (line.Contains(" VisualStudioSuggestedComponents ", StringComparison.Ordinal))
                 {
                     currentlyIn = CurrentlyIn.VsSuggestedComponents;
                     continue;
                 }
-                else if (line.Contains(" VisualStudio2022SuggestedComponents "))
+                else if (line.Contains(" VisualStudio2022SuggestedComponents ", StringComparison.Ordinal))
                 {
                     currentlyIn = CurrentlyIn.Vs2022SuggestedComponents;
                     continue;
@@ -100,7 +100,7 @@
                     case CurrentlyIn.PreferredVisualCpp:
                         {
                             var match = _versionNumberRangeRegex.Match(line);
-                            if (match.Success && line.Contains("VS2022"))
+                            if (match.Success && line.Contains("VS2022", StringComparison.Ordinal))
                             {
                                 visualCppMinimumVersion = match.Groups[1].Value;
                                 currentlyIn = CurrentlyIn.None;
@@ -144,7 +144,7 @@
                 suggestedComponents.ToArray()));
         }
 
-        private async Task<WindowsSdkInstallerTarget> GetVersions(string unrealEnginePath)
+        private static async Task<WindowsSdkInstallerTarget> GetVersions(string unrealEnginePath)
         {
             var microsoftPlatformSdkFileContent = await File.ReadAllTextAsync(Path.Combine(
                 unrealEnginePath,
@@ -154,8 +154,8 @@
                 "UnrealBuildTool",
                 "Platform",
                 "Windows",
-                "MicrosoftPlatformSDK.Versions.cs"));
-            var rawVersions = await ParseVersions(microsoftPlatformSdkFileContent);
+                "MicrosoftPlatformSDK.Versions.cs")).ConfigureAwait(false);
+            var rawVersions = await ParseVersions(microsoftPlatformSdkFileContent).ConfigureAwait(false);
             return new WindowsSdkInstallerTarget
             {
                 WindowsSdkPreferredVersion = VersionNumber.Parse(rawVersions.windowsSdkPreferredVersion),
@@ -166,16 +166,16 @@
 
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
-            var versions = await GetVersions(unrealEnginePath);
+            var versions = await GetVersions(unrealEnginePath).ConfigureAwait(false);
             return $"{versions.WindowsSdkPreferredVersion}-{versions.VisualCppMinimumVersion}";
         }
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Retrieving desired versions from Unreal Engine source code...");
-            var versions = await GetVersions(unrealEnginePath);
+            var versions = await GetVersions(unrealEnginePath).ConfigureAwait(false);
 
-            await _windowsSdkInstaller.InstallSdkToPath(versions, sdkPackagePath, cancellationToken);
+            await _windowsSdkInstaller.InstallSdkToPath(versions, sdkPackagePath, cancellationToken).ConfigureAwait(false);
         }
 
         public Task<AutoSdkMapping[]> GetAutoSdkMappingsForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)

@@ -1,7 +1,7 @@
 ﻿namespace Redpoint.RuntimeJson
 {
     [AttributeUsage(AttributeTargets.Class)]
-    public class RuntimeJsonProviderAttribute : Attribute
+    public sealed class RuntimeJsonProviderAttribute : Attribute
     {
         public RuntimeJsonProviderAttribute(Type typeOfJsonSerializerContext)
         {

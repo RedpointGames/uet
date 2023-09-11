@@ -1,18 +1,20 @@
 ﻿namespace Redpoint.OpenGE.Component.Worker
 {
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading.Tasks;
 
-    internal class ConnectionIdleTracker
+    internal sealed class ConnectionIdleTracker : IDisposable
     {
         private CancellationTokenSource _idledTooLong;
         private readonly CancellationTokenSource _waitingForRequest;
         private int _idleTimeoutMilliseconds;
         private readonly Func<ConnectionIdleEventOutcome>? _considerIdleEvent;
-        private readonly SemaphoreSlim _threadSafety;
+        private readonly Concurrency.Semaphore _threadSafety;
         private CancellationTokenSource _cancelIdling;
         private Task? _idleCheckingTask;
 
+        [SuppressMessage("Design", "CA1068:CancellationToken parameters must come last", Justification = "The cancellation token is intentionally the first parameter.")]
         public ConnectionIdleTracker(
             CancellationToken clientInitiatedRequestCancellation,
             int idleTimeoutMilliseconds,
@@ -24,7 +26,7 @@
             _idleCheckingTask = null;
             _idleTimeoutMilliseconds = idleTimeoutMilliseconds;
             _considerIdleEvent = considerIdleEvent;
-            _threadSafety = new SemaphoreSlim(1);
+            _threadSafety = new Concurrency.Semaphore(1);
             _idledTooLong = new CancellationTokenSource();
             ResetIdledTooLong();
         }
@@ -64,7 +66,7 @@
             {
                 return;
             }
-            _threadSafety.Wait();
+            _threadSafety.Wait(CancellationToken.None);
             try
             {
                 if (newIdleTimeoutMilliseconds != null)
@@ -79,7 +81,7 @@
                     {
                         if (!Debugger.IsAttached)
                         {
-                            await Task.Delay(_idleTimeoutMilliseconds, cancelIdlingToken);
+                            await Task.Delay(_idleTimeoutMilliseconds, cancelIdlingToken).ConfigureAwait(false);
                             _idledTooLong.Cancel();
                         }
                     });
@@ -93,7 +95,7 @@
 
         public void StopIdling()
         {
-            _threadSafety.Wait();
+            _threadSafety.Wait(CancellationToken.None);
             try
             {
                 _cancelIdling!.Cancel();
@@ -103,6 +105,13 @@
             {
                 _threadSafety.Release();
             }
+        }
+
+        public void Dispose()
+        {
+            _idledTooLong.Dispose();
+            _waitingForRequest.Dispose();
+            _cancelIdling.Dispose();
         }
     }
 }

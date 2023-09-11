@@ -10,7 +10,7 @@
     using SDWin64::Windows.Win32.NetworkManagement.Dns;
 
     [SupportedOSPlatform("windows10.0.10240")]
-    internal unsafe class Win64ServiceRegisterCall : WindowsNativeRequestCall<DNS_SERVICE_REGISTER_REQUEST, DNS_SERVICE_CANCEL>
+    internal unsafe sealed class Win64ServiceRegisterCall : WindowsNativeRequestCall<DNS_SERVICE_REGISTER_REQUEST, DNS_SERVICE_CANCEL>
     {
         private readonly string _name;
         private readonly ushort _port;
@@ -53,7 +53,7 @@
 
         protected override void CancelRequest(DNS_SERVICE_CANCEL* cancel)
         {
-            PInvoke.DnsServiceRegisterCancel(cancel);
+            _ = PInvoke.DnsServiceRegisterCancel(cancel);
         }
 
         protected override unsafe void StartRequest(

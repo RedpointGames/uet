@@ -4,23 +4,26 @@
     using Redpoint.Uefs.Daemon.RemoteStorage;
     using Redpoint.Vfs.Abstractions;
     using System.Collections.Concurrent;
+    using System.Diagnostics.CodeAnalysis;
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class CachedFilePool
+    internal sealed class CachedFilePool
     {
         private readonly ILogger _logger;
         private readonly string _localStoragePath;
         private ConcurrentDictionary<string, OpenedCachedFile> _openCachedFiles;
         private Task _flushingTask;
 
-        private class OpenedCachedFile
+        [SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable", Justification = "Lifetime of fields is managed separate from the Dispose pattern.")]
+        private sealed class OpenedCachedFile
         {
             private readonly ILogger _logger;
             private readonly IRemoteStorageBlobFactory _sourceFactory;
             private readonly string _cachePath;
             private readonly string _indexPath;
-            private readonly SemaphoreSlim _flushLock = new SemaphoreSlim(1);
+            private readonly Concurrency.Semaphore _flushLock = new Concurrency.Semaphore(1);
+            private readonly object _lock = new object();
 
             private CachedFile? _file;
             private long _openHandles;
@@ -42,7 +45,7 @@
 
             public void FlushIndex()
             {
-                _flushLock.Wait();
+                _flushLock.Wait(CancellationToken.None);
                 try
                 {
                     _file?.FlushIndex();
@@ -53,7 +56,7 @@
                 }
             }
 
-            private class OpenedCachedFileHandle : IVfsFileHandle<ICachedFile>
+            private sealed class OpenedCachedFileHandle : IVfsFileHandle<ICachedFile>
             {
                 private readonly OpenedCachedFile _ocf;
 
@@ -66,13 +69,13 @@
 
                 public void Dispose()
                 {
-                    lock (_ocf)
+                    lock (_ocf._lock)
                     {
                         _ocf._openHandles--;
                         if (_ocf._openHandles == 0)
                         {
                             _ocf._logger.LogInformation($"Cache file closing: {_ocf._cachePath} / {_ocf._indexPath}");
-                            _ocf._flushLock.Wait();
+                            _ocf._flushLock.Wait(CancellationToken.None);
                             try
                             {
                                 _ocf._file?.FlushIndex();
@@ -91,7 +94,7 @@
 
             public IVfsFileHandle<ICachedFile> Allocate()
             {
-                lock (this)
+                lock (_lock)
                 {
                     _openHandles++;
                     if (_openHandles == 1)
@@ -150,7 +153,7 @@
                 {
                     file.FlushIndex();
                 }
-                await Task.Delay(5 * 1000);
+                await Task.Delay(5 * 1000).ConfigureAwait(false);
             }
             while (true);
         }

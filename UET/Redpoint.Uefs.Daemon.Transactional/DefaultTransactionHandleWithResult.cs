@@ -4,7 +4,7 @@
     using System;
     using System.Threading.Tasks;
 
-    internal class DefaultTransactionHandleWithResult<TResult> : ITransactionHandle<TResult> where TResult : class
+    internal sealed class DefaultTransactionHandleWithResult<TResult> : ITransactionHandle<TResult> where TResult : class
     {
         private readonly string _transactionId;
         private readonly IWaitableTransaction<TResult> _transaction;
@@ -29,7 +29,7 @@
 
         public async Task<TResult> WaitForCompletionAsync(CancellationToken cancellationToken)
         {
-            await _transaction.WaitForCompletionAsync(cancellationToken);
+            await _transaction.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
             return _transaction.Result!;
         }
     }

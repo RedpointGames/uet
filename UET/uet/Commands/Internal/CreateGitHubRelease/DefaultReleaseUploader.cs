@@ -12,7 +12,7 @@
     using System.Threading.Tasks;
     using System.Web;
 
-    internal class DefaultReleaseUploader : IReleaseUploader
+    internal sealed class DefaultReleaseUploader : IReleaseUploader
     {
         private readonly ILogger<DefaultReleaseUploader> _logger;
         private readonly IMonitorFactory _monitorFactory;
@@ -28,7 +28,7 @@
             _progressFactory = progressFactory;
         }
 
-        private StringContent MakeContent<T>(T value, JsonTypeInfo<T> typeInfo)
+        private static StringContent MakeContent<T>(T value, JsonTypeInfo<T> typeInfo)
         {
             return new StringContent(
                 JsonSerializer.Serialize(
@@ -42,20 +42,20 @@
             // If the release doesn't exist, create it first.
             ReleaseResponse release;
             _logger.LogInformation($"Checking if there is a release for {version}...");
-            var response = await client.GetAsync($"https://api.github.com/repos/RedpointGames/uet/releases/tags/{version}");
+            var response = await client.GetAsync(new Uri($"https://api.github.com/repos/RedpointGames/uet/releases/tags/{version}")).ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation($"Deleting existing release {version} on GitHub...");
-                release = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync(), GitHubJsonSerializerContext.Default.ReleaseResponse)!;
+                release = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync().ConfigureAwait(false), GitHubJsonSerializerContext.Default.ReleaseResponse)!;
                 response = await client.DeleteAsync(
-                    $"https://api.github.com/repos/RedpointGames/uet/releases/{release.Id}",
-                    context.GetCancellationToken());
+                    new Uri($"https://api.github.com/repos/RedpointGames/uet/releases/{release.Id}"),
+                    context.GetCancellationToken()).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
             }
 
             _logger.LogInformation($"Creating release {version} in draft status on GitHub...");
             response = await client.PostAsync(
-                "https://api.github.com/repos/RedpointGames/uet/releases",
+                new Uri("https://api.github.com/repos/RedpointGames/uet/releases"),
                 MakeContent(
                     new GitHubNewRelease
                     {
@@ -66,9 +66,9 @@
                         MakeLatest = "false",
                     },
                     GitHubJsonSerializerContext.Default.GitHubNewRelease),
-                context.GetCancellationToken());
+                context.GetCancellationToken()).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
-            release = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync(), GitHubJsonSerializerContext.Default.ReleaseResponse)!;
+            release = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync().ConfigureAwait(false), GitHubJsonSerializerContext.Default.ReleaseResponse)!;
 
             try
             {
@@ -91,7 +91,7 @@
                                 progress,
                                 SystemConsole.ConsoleInformation,
                                 SystemConsole.WriteProgressToConsole,
-                                cts.Token);
+                                cts.Token).ConfigureAwait(false);
                         });
 
                         // Upload the file.
@@ -99,26 +99,26 @@
                         content.Headers.ContentLength = file.path.Length;
                         content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                         response = await client.PostAsync(
-                            $"https://uploads.github.com/repos/RedpointGames/uet/releases/{release.Id}/assets?name={HttpUtility.UrlEncode(file.name)}",
+                            new Uri($"https://uploads.github.com/repos/RedpointGames/uet/releases/{release.Id}/assets?name={HttpUtility.UrlEncode(file.name)}"),
                             content,
-                            context.GetCancellationToken());
+                            context.GetCancellationToken()).ConfigureAwait(false);
                         response.EnsureSuccessStatusCode();
-                        var asset = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync(), GitHubJsonSerializerContext.Default.AssetResponse);
+                        var asset = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync().ConfigureAwait(false), GitHubJsonSerializerContext.Default.AssetResponse);
 
                         // Update the asset.
                         response = await client.PatchAsync(
-                            $"https://api.github.com/repos/RedpointGames/uet/releases/assets/{asset!.Id}",
+                            new Uri($"https://api.github.com/repos/RedpointGames/uet/releases/assets/{asset!.Id}"),
                             MakeContent(
                                 new GitHubPatchAsset
                                 {
                                     Name = file.name,
                                     Label = file.label,
                                 },
-                                GitHubJsonSerializerContext.Default.GitHubPatchAsset));
+                                GitHubJsonSerializerContext.Default.GitHubPatchAsset)).ConfigureAwait(false);
                         response.EnsureSuccessStatusCode();
 
                         // Stop monitoring.
-                        await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);
+                        await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts).ConfigureAwait(false);
                     }
                 }
             }
@@ -127,8 +127,8 @@
                 try
                 {
                     response = await client.DeleteAsync(
-                        $"https://api.github.com/repos/RedpointGames/uet/releases/{release.Id}",
-                        context.GetCancellationToken());
+                        new Uri($"https://api.github.com/repos/RedpointGames/uet/releases/{release.Id}"),
+                        context.GetCancellationToken()).ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
                 }
                 catch (Exception ex)
@@ -141,7 +141,7 @@
 
             _logger.LogInformation($"Publishing release {version} on GitHub...");
             response = await client.PatchAsync(
-                $"https://api.github.com/repos/RedpointGames/uet/releases/{release.Id}",
+                new Uri($"https://api.github.com/repos/RedpointGames/uet/releases/{release.Id}"),
                 MakeContent(
                     new GitHubNewRelease
                     {
@@ -150,7 +150,7 @@
                         MakeLatest = "false",
                     },
                     GitHubJsonSerializerContext.Default.GitHubNewRelease),
-                context.GetCancellationToken());
+                context.GetCancellationToken()).ConfigureAwait(false);
             if (response.StatusCode != System.Net.HttpStatusCode.UnprocessableEntity)
             {
                 response.EnsureSuccessStatusCode();
@@ -161,25 +161,25 @@
         {
             var latestDescription =
                 $"""
-                            This is the latest release of UET, currently {version}. This tag is always updated to the latest version on every release, so you can download UET from the URLs below as part of CI scripts and always get the latest files.
+                This is the latest release of UET, currently {version}. This tag is always updated to the latest version on every release, so you can download UET from the URLs below as part of CI scripts and always get the latest files.
 
-                            The file you want to download is either:
+                The file you want to download is either:
 
-                              - **[UET for Windows](https://github.com/RedpointGames/uet/releases/download/latest/uet.exe)**, or
-                              - **[UET for macOS](https://github.com/RedpointGames/uet/releases/download/latest/uet)**.
+                    - **[UET for Windows](https://github.com/RedpointGames/uet/releases/download/latest/uet.exe)**, or
+                    - **[UET for macOS](https://github.com/RedpointGames/uet/releases/download/latest/uet)**.
 
-                            The other files in this release are exist so they can be fetched on-demand by UET, or they are for specific use cases where the general UET binary is not suitable.
-                            """;
+                The other files in this release are exist so they can be fetched on-demand by UET, or they are for specific use cases where the general UET binary is not suitable.
+                """;
 
             // If the "latest" release doesn't exist, make it first.
             ReleaseResponse release;
             _logger.LogInformation($"Checking if there is a latest release...");
-            var response = await client.GetAsync("https://api.github.com/repos/RedpointGames/uet/releases/tags/latest");
+            var response = await client.GetAsync(new Uri("https://api.github.com/repos/RedpointGames/uet/releases/tags/latest")).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogInformation($"Creating release 'latest' in draft status on GitHub...");
                 response = await client.PostAsync(
-                    "https://api.github.com/repos/RedpointGames/uet/releases",
+                    new Uri("https://api.github.com/repos/RedpointGames/uet/releases"),
                     MakeContent(
                         new GitHubNewRelease
                         {
@@ -190,21 +190,21 @@
                             MakeLatest = "true",
                         },
                         GitHubJsonSerializerContext.Default.GitHubNewRelease),
-                    context.GetCancellationToken());
+                    context.GetCancellationToken()).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
-                release = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync(), GitHubJsonSerializerContext.Default.ReleaseResponse)!;
+                release = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync().ConfigureAwait(false), GitHubJsonSerializerContext.Default.ReleaseResponse)!;
                 _logger.LogInformation($"Created latest release with release ID {release.Id}.");
             }
             else
             {
-                release = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync(), GitHubJsonSerializerContext.Default.ReleaseResponse)!;
+                release = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync().ConfigureAwait(false), GitHubJsonSerializerContext.Default.ReleaseResponse)!;
                 _logger.LogInformation($"Latest release has release ID {release.Id}.");
             }
 
             // List all of the existing release assets. We will delete these after we've done our upload.
-            response = await client.GetAsync($"https://api.github.com/repos/RedpointGames/uet/releases/{release.Id}/assets");
+            response = await client.GetAsync(new Uri($"https://api.github.com/repos/RedpointGames/uet/releases/{release.Id}/assets")).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
-            var oldAssets = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync(), GitHubJsonSerializerContext.Default.AssetResponseArray) ?? Array.Empty<AssetResponse>();
+            var oldAssets = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync().ConfigureAwait(false), GitHubJsonSerializerContext.Default.AssetResponseArray) ?? Array.Empty<AssetResponse>();
             foreach (var oldAsset in oldAssets)
             {
                 _logger.LogInformation($"Detected old asset {oldAsset.Id!} on the latest release.");
@@ -233,7 +233,7 @@
                                 progress,
                                 SystemConsole.ConsoleInformation,
                                 SystemConsole.WriteProgressToConsole,
-                                cts.Token);
+                                cts.Token).ConfigureAwait(false);
                         });
 
                         // Upload the file.
@@ -242,15 +242,15 @@
                         content.Headers.ContentLength = file.path.Length;
                         content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                         response = await client.PostAsync(
-                            $"https://uploads.github.com/repos/RedpointGames/uet/releases/{release.Id}/assets?name={HttpUtility.UrlEncode(guid)}",
+                            new Uri($"https://uploads.github.com/repos/RedpointGames/uet/releases/{release.Id}/assets?name={HttpUtility.UrlEncode(guid)}"),
                             content,
-                            context.GetCancellationToken());
+                            context.GetCancellationToken()).ConfigureAwait(false);
                         response.EnsureSuccessStatusCode();
-                        var asset = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync(), GitHubJsonSerializerContext.Default.AssetResponse);
+                        var asset = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync().ConfigureAwait(false), GitHubJsonSerializerContext.Default.AssetResponse);
                         newAssets.Add((guid, file.name, file.label, asset!.Id!.Value));
 
                         // Stop monitoring.
-                        await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);
+                        await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts).ConfigureAwait(false);
                     }
                 }
 
@@ -262,26 +262,26 @@
                     if (oldAsset != null)
                     {
                         response = await client.PatchAsync(
-                            $"https://api.github.com/repos/RedpointGames/uet/releases/assets/{oldAsset.Id}",
+                            new Uri($"https://api.github.com/repos/RedpointGames/uet/releases/assets/{oldAsset.Id}"),
                             MakeContent(
                                 new GitHubPatchAsset
                                 {
                                     Name = $"old_{oldAsset.Id}",
                                 },
-                                GitHubJsonSerializerContext.Default.GitHubPatchAsset));
+                                GitHubJsonSerializerContext.Default.GitHubPatchAsset)).ConfigureAwait(false);
                         response.EnsureSuccessStatusCode();
                     }
                     try
                     {
                         response = await client.PatchAsync(
-                            $"https://api.github.com/repos/RedpointGames/uet/releases/assets/{newAsset.assetId}",
+                            new Uri($"https://api.github.com/repos/RedpointGames/uet/releases/assets/{newAsset.assetId}"),
                             MakeContent(
                                 new GitHubPatchAsset
                                 {
                                     Name = newAsset.desiredFilename,
                                     Label = newAsset.desiredLabel,
                                 },
-                                GitHubJsonSerializerContext.Default.GitHubPatchAsset));
+                                GitHubJsonSerializerContext.Default.GitHubPatchAsset)).ConfigureAwait(false);
                         response.EnsureSuccessStatusCode();
                     }
                     catch
@@ -290,13 +290,13 @@
                         {
                             // Failed to rename new one into place. Move the old one back.
                             response = await client.PatchAsync(
-                                $"https://api.github.com/repos/RedpointGames/uet/releases/assets/{oldAsset.Id}",
+                                new Uri($"https://api.github.com/repos/RedpointGames/uet/releases/assets/{oldAsset.Id}"),
                                 MakeContent(
                                     new GitHubPatchAsset
                                     {
                                         Name = oldAsset.Name,
                                     },
-                                    GitHubJsonSerializerContext.Default.GitHubPatchAsset));
+                                    GitHubJsonSerializerContext.Default.GitHubPatchAsset)).ConfigureAwait(false);
                             response.EnsureSuccessStatusCode();
                         }
 
@@ -312,8 +312,8 @@
                     try
                     {
                         response = await client.DeleteAsync(
-                            $"https://api.github.com/repos/RedpointGames/uet/releases/assets/{newAsset.assetId}",
-                            context.GetCancellationToken());
+                            new Uri($"https://api.github.com/repos/RedpointGames/uet/releases/assets/{newAsset.assetId}"),
+                            context.GetCancellationToken()).ConfigureAwait(false);
                         response.EnsureSuccessStatusCode();
                     }
                     catch (Exception ex)
@@ -331,8 +331,8 @@
                 try
                 {
                     response = await client.DeleteAsync(
-                        $"https://api.github.com/repos/RedpointGames/uet/releases/assets/{oldAsset.Id!}",
-                        context.GetCancellationToken());
+                        new Uri($"https://api.github.com/repos/RedpointGames/uet/releases/assets/{oldAsset.Id!}"),
+                        context.GetCancellationToken()).ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
                 }
                 catch (Exception ex)
@@ -344,7 +344,7 @@
             // Update the latest release
             _logger.LogInformation($"Updating the latest release on GitHub...");
             response = await client.PatchAsync(
-                $"https://api.github.com/repos/RedpointGames/uet/releases/{release.Id}",
+                new Uri($"https://api.github.com/repos/RedpointGames/uet/releases/{release.Id}"),
                 MakeContent(
                     new GitHubNewRelease
                     {
@@ -355,7 +355,7 @@
                         MakeLatest = "true",
                     },
                     GitHubJsonSerializerContext.Default.GitHubNewRelease),
-                context.GetCancellationToken());
+                context.GetCancellationToken()).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
         }
     }

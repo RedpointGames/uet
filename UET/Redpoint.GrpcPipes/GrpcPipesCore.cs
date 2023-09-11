@@ -22,6 +22,8 @@
             Func<GrpcChannel, T> constructor,
             GrpcChannelOptions? grpcChannelOptions = null)
         {
+            if (constructor == null) throw new ArgumentNullException(nameof(constructor));
+
             return new AspNetGrpcPipeFactory(null).CreateClient(pipeName, pipeNamespace, constructor, grpcChannelOptions);
         }
     }

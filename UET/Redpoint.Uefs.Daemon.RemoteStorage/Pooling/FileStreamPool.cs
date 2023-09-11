@@ -2,7 +2,7 @@
 {
     using System.Collections.Concurrent;
 
-    public class FileStreamPool : IDisposable
+    public sealed class FileStreamPool : IDisposable
     {
         private readonly string _path;
         private readonly FileAccess _fileAccess;
@@ -21,7 +21,7 @@
             _allFileStreams = new ConcurrentBag<FileStream>();
         }
 
-        private class FileStreamPoolAllocation : IFileStreamPoolAllocation
+        private sealed class FileStreamPoolAllocation : IFileStreamPoolAllocation
         {
             private readonly FileStreamPool _pool;
 

@@ -5,7 +5,7 @@
     using Redpoint.Uefs.Daemon.PackageFs;
     using System.ServiceProcess;
 
-    internal class DefaultPackageStorage : IPackageStorage
+    internal sealed class DefaultPackageStorage : IPackageStorage
     {
         private readonly ILogger<DefaultPackageStorage> _logger;
         private readonly IGitRepoManager _gitRepoManager;
@@ -40,7 +40,7 @@
                             _packageFs = packageFsFactory.CreateVfsBackedPackageFs(storagePath);
                             _healthCheckTask = Task.Run(HealthCheckVirtualFs);
                         }
-                        catch (FileNotFoundException ex) when (ex.Message.Contains("winfsp-msil"))
+                        catch (FileNotFoundException ex) when (ex.Message.Contains("winfsp-msil", StringComparison.Ordinal))
                         {
                             logger.LogWarning("WinFSP is not correctly installed on this system, so UEFS will fall back to full downloads on Windows. Please try restarting the machine or re-installing the WinFSP driver.");
                             _packageFs = packageFsFactory.CreateLocallyBackedPackageFs(storagePath);
@@ -78,7 +78,7 @@
                     return;
                 }
 
-                await Task.Delay(10000);
+                await Task.Delay(10000).ConfigureAwait(false);
             }
         }
 

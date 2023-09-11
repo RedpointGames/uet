@@ -123,12 +123,12 @@ namespace DiscUtils
 
             if (sourceFile.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                sourceFile = sourceFile.Substring(1);
+                sourceFile = sourceFile[1..];
             }
 
             if (destinationFile.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                destinationFile = destinationFile.Substring(1);
+                destinationFile = destinationFile[1..];
             }
 
             File.Copy(Path.Combine(BasePath, sourceFile), Path.Combine(BasePath, destinationFile), true);
@@ -147,7 +147,7 @@ namespace DiscUtils
 
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             Directory.CreateDirectory(Path.Combine(BasePath, path));
@@ -166,7 +166,7 @@ namespace DiscUtils
 
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             Directory.Delete(Path.Combine(BasePath, path));
@@ -208,7 +208,7 @@ namespace DiscUtils
 
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             File.Delete(Path.Combine(BasePath, path));
@@ -223,7 +223,7 @@ namespace DiscUtils
         {
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             return Directory.Exists(Path.Combine(BasePath, path));
@@ -238,7 +238,7 @@ namespace DiscUtils
         {
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             return File.Exists(Path.Combine(BasePath, path));
@@ -288,7 +288,7 @@ namespace DiscUtils
         {
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             try
@@ -338,7 +338,7 @@ namespace DiscUtils
         {
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             try
@@ -376,7 +376,7 @@ namespace DiscUtils
         {
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             try
@@ -407,12 +407,12 @@ namespace DiscUtils
 
             if (sourceDirectoryName.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                sourceDirectoryName = sourceDirectoryName.Substring(1);
+                sourceDirectoryName = sourceDirectoryName[1..];
             }
 
             if (destinationDirectoryName.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                destinationDirectoryName = destinationDirectoryName.Substring(1);
+                destinationDirectoryName = destinationDirectoryName[1..];
             }
 
             Directory.Move(Path.Combine(BasePath, sourceDirectoryName),
@@ -444,7 +444,7 @@ namespace DiscUtils
 
             if (destinationName.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                destinationName = destinationName.Substring(1);
+                destinationName = destinationName[1..];
             }
 
             if (FileExists(Path.Combine(BasePath, destinationName)))
@@ -461,7 +461,7 @@ namespace DiscUtils
 
             if (sourceName.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                sourceName = sourceName.Substring(1);
+                sourceName = sourceName[1..];
             }
 
             File.Move(Path.Combine(BasePath, sourceName), Path.Combine(BasePath, destinationName));
@@ -494,7 +494,7 @@ namespace DiscUtils
 
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             FileShare fileShare = FileShare.None;
@@ -517,7 +517,7 @@ namespace DiscUtils
         {
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             return File.GetAttributes(Path.Combine(BasePath, path));
@@ -537,7 +537,7 @@ namespace DiscUtils
 
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             File.SetAttributes(Path.Combine(BasePath, path), newValue);
@@ -572,7 +572,7 @@ namespace DiscUtils
         {
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             return File.GetCreationTimeUtc(Path.Combine(BasePath, path));
@@ -592,7 +592,7 @@ namespace DiscUtils
 
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             File.SetCreationTimeUtc(Path.Combine(BasePath, path), newTime);
@@ -627,7 +627,7 @@ namespace DiscUtils
         {
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             return File.GetLastAccessTimeUtc(Path.Combine(BasePath, path));
@@ -647,7 +647,7 @@ namespace DiscUtils
 
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             File.SetLastAccessTimeUtc(Path.Combine(BasePath, path), newTime);
@@ -682,7 +682,7 @@ namespace DiscUtils
         {
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             return File.GetLastWriteTimeUtc(Path.Combine(BasePath, path));
@@ -702,7 +702,7 @@ namespace DiscUtils
 
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             File.SetLastWriteTimeUtc(Path.Combine(BasePath, path), newTime);
@@ -717,7 +717,7 @@ namespace DiscUtils
         {
             if (path.StartsWith(@"\", StringComparison.OrdinalIgnoreCase))
             {
-                path = path.Substring(1);
+                path = path[1..];
             }
 
             return new FileInfo(Path.Combine(BasePath, path)).Length;
@@ -793,7 +793,7 @@ namespace DiscUtils
             string[] cleanList = new string[dirtyItems.Length];
             for (int x = 0; x < dirtyItems.Length; x++)
             {
-                cleanList[x] = dirtyItems[x].Substring(BasePath.Length - 1);
+                cleanList[x] = dirtyItems[x][(BasePath.Length - 1)..];
             }
 
             return cleanList;

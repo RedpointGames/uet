@@ -14,6 +14,7 @@
     using Redpoint.Uet.Workspace.Descriptors;
     using System.Threading;
     using System.Threading.Tasks;
+    using Redpoint.Concurrency;
 
     public class GitLabBuildNodeExecutor : IBuildNodeExecutor
     {
@@ -55,23 +56,26 @@
             string nodeName,
             CancellationToken cancellationToken)
         {
+            if (buildSpecification == null) throw new ArgumentNullException(nameof(buildSpecification));
+            if (buildExecutionEvents == null) throw new ArgumentNullException(nameof(buildExecutionEvents));
+
             var repository = System.Environment.GetEnvironmentVariable("CI_REPOSITORY_URL")!;
             var commit = System.Environment.GetEnvironmentVariable("CI_COMMIT_SHA")!;
 
-            await buildExecutionEvents.OnNodeStarted(nodeName);
+            await buildExecutionEvents.OnNodeStarted(nodeName).ConfigureAwait(false);
             try
             {
-                await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
+                await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
                     buildSpecification.Engine,
                     string.Empty,
-                    cancellationToken))
+                    cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engineWorkspace).ConfigureAwait(false))
                 {
                     var globalEnvironmentVariablesWithSdk = await _sdkSetupForBuildExecutor.SetupForBuildAsync(
                         buildSpecification,
                         nodeName,
                         engineWorkspace.Path,
                         buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
 
                     async Task<int> ExecuteBuildInWorkspaceAsync(string targetWorkspacePath)
                     {
@@ -87,7 +91,7 @@
                                 await provider.RunBeforeBuildGraphAsync(
                                     byType,
                                     targetWorkspacePath,
-                                    cancellationToken);
+                                    cancellationToken).ConfigureAwait(false);
                             }
                         }
 
@@ -103,7 +107,7 @@
                                 await provider.RunBeforeBuildGraphAsync(
                                     byType,
                                     targetWorkspacePath,
-                                    cancellationToken);
+                                    cancellationToken).ConfigureAwait(false);
                             }
                         }
 
@@ -134,17 +138,17 @@
                                     return false;
                                 },
                             }),
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
                     }
 
                     int exitCode;
                     if (buildSpecification.Engine.IsEngineBuild)
                     {
-                        exitCode = await ExecuteBuildInWorkspaceAsync(engineWorkspace.Path);
+                        exitCode = await ExecuteBuildInWorkspaceAsync(engineWorkspace.Path).ConfigureAwait(false);
                     }
                     else
                     {
-                        await using (var targetWorkspace = await _workspaceProvider.GetWorkspaceAsync(
+                        await using ((await _workspaceProvider.GetWorkspaceAsync(
                             new GitWorkspaceDescriptor
                             {
                                 RepositoryUrl = repository,
@@ -157,21 +161,21 @@
                                 WindowsSharedGitCachePath = null,
                                 MacSharedGitCachePath = null,
                             },
-                            cancellationToken))
+                            cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
                         {
-                            exitCode = await ExecuteBuildInWorkspaceAsync(targetWorkspace.Path);
+                            exitCode = await ExecuteBuildInWorkspaceAsync(targetWorkspace.Path).ConfigureAwait(false);
                         }
                     }
                     if (exitCode == 0)
                     {
                         _logger.LogTrace($"Finished: {nodeName} = Success");
-                        await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Success);
+                        await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Success).ConfigureAwait(false);
                         return 0;
                     }
                     else
                     {
                         _logger.LogTrace($"Finished: {nodeName} = Failed");
-                        await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Failed);
+                        await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Failed).ConfigureAwait(false);
                         return 1;
                     }
                 }
@@ -180,13 +184,13 @@
             {
                 // The build was cancelled.
                 _logger.LogTrace($"Finished: {nodeName} = Cancelled");
-                await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Cancelled);
+                await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Cancelled).ConfigureAwait(false);
                 return 1;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Internal exception while running build job {nodeName}: {ex.Message}");
-                await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Failed);
+                await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Failed).ConfigureAwait(false);
                 return 1;
             }
         }

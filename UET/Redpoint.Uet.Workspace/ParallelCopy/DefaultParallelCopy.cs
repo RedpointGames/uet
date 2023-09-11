@@ -51,16 +51,15 @@
             var destinationItems = destinationDirectoryInfo.Exists ? destinationDirectoryInfo.GetFileSystemInfos().ToDictionary(k => k.Name, v => v, StringComparer.InvariantCultureIgnoreCase) : new Dictionary<string, FileSystemInfo>();
             foreach (var source in sourceItems)
             {
-                var relativePath = Path.GetRelativePath(copyDescriptor.SourcePath, source.Value.FullName).Replace("\\", "/");
+                var relativePath = Path.GetRelativePath(copyDescriptor.SourcePath, source.Value.FullName).Replace("\\", "/", StringComparison.Ordinal);
                 if (copyDescriptor.ExcludePaths.Contains(relativePath, StringComparer.InvariantCultureIgnoreCase))
                 {
                     continue;
                 }
 
                 var recurseIntoSubdirectory = false;
-                if (destinationItems.ContainsKey(source.Key))
+                if (destinationItems.TryGetValue(source.Key, out var destination))
                 {
-                    var destination = destinationItems[source.Key];
                     if (source.Value.LastWriteTimeUtc > destination.LastWriteTimeUtc)
                     {
                         // Target is out-of-date.
@@ -102,14 +101,14 @@
                         copyDescriptor,
                         enteredPurgeMode || copyDescriptor.DirectoriesToRemoveExtraFilesUnder.Contains(di.Name, StringComparer.InvariantCultureIgnoreCase),
                         copyStats,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
             }
             if (enteredPurgeMode)
             {
                 foreach (var destination in destinationItems)
                 {
-                    var relativePath = Path.GetRelativePath(copyDescriptor.DestinationPath, destination.Value.FullName).Replace("\\", "/");
+                    var relativePath = Path.GetRelativePath(copyDescriptor.DestinationPath, destination.Value.FullName).Replace("\\", "/", StringComparison.Ordinal);
                     if (copyDescriptor.ExcludePaths.Contains(relativePath, StringComparer.InvariantCultureIgnoreCase))
                     {
                         continue;
@@ -137,7 +136,7 @@
                 descriptor,
                 false,
                 copyStats,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             var copyTaskCount = Math.Min(Environment.ProcessorCount - 1, copyItems.Count);
             var copyTasks = Enumerable.Range(0, copyTaskCount).Select(x => Task.Run(() =>
@@ -172,7 +171,7 @@
                     }
                 }
             }));
-            await Task.WhenAll(copyTasks);
+            await Task.WhenAll(copyTasks).ConfigureAwait(false);
 
             var deleteTaskCount = Math.Min(Environment.ProcessorCount - 1, deleteItems.Count);
             var deleteTasks = Enumerable.Range(0, deleteTaskCount).Select(x => Task.Run(async () =>
@@ -183,7 +182,7 @@
                     {
                         if (Directory.Exists(deleteItem.Destination))
                         {
-                            await DirectoryAsync.DeleteAsync(deleteItem.Destination, true);
+                            await DirectoryAsync.DeleteAsync(deleteItem.Destination, true).ConfigureAwait(false);
                         }
                         else
                         {

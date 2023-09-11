@@ -21,7 +21,7 @@
         private readonly INetworkAutoDiscovery _networkAutoDiscovery;
         private readonly ITaskScheduler _taskScheduler;
         internal readonly WorkerCoreRequestCollection<ITaskApiWorkerCore> _requestCollection;
-        private readonly MutexSlim _disposing;
+        private readonly Mutex _disposing;
         private bool _disposed;
         private readonly ITaskSchedulerScope _taskSchedulerScope;
         private readonly string? _localWorkerUniqueId;
@@ -41,7 +41,7 @@
             _networkAutoDiscovery = networkAutoDiscovery;
             _taskScheduler = taskScheduler;
             _requestCollection = new WorkerCoreRequestCollection<ITaskApiWorkerCore>();
-            _disposing = new MutexSlim();
+            _disposing = new Mutex();
             _disposed = false;
             _taskSchedulerScope = taskScheduler.CreateSchedulerScope("TaskApiWorkerPool", CancellationToken.None);
 
@@ -72,7 +72,7 @@
                     _requestCollection,
                     _remoteWorkerCoreProviderCollection,
                     false);
-                _remoteWorkerDiscoveryTask = _taskSchedulerScope.RunAsync("DiscoverRemoteWorkers", CancellationToken.None, DiscoverRemoteWorkersAsync);
+                _remoteWorkerDiscoveryTask = _taskSchedulerScope.RunAsync("DiscoverRemoteWorkers", DiscoverRemoteWorkersAsync, CancellationToken.None);
             }
         }
 
@@ -99,7 +99,7 @@
                             continue;
                         }
 
-                        if (await _remoteWorkerCoreProviderCollection!.HasAsync(workerUniqueId))
+                        if (await _remoteWorkerCoreProviderCollection!.HasAsync(workerUniqueId).ConfigureAwait(false))
                         {
                             // We already have this worker. Do not connect to it again.
                             continue;
@@ -135,9 +135,7 @@
                         var usable = false;
                         try
                         {
-                            await taskApi.PingTaskServiceAsync(
-                                new PingTaskServiceRequest(),
-                                deadline: DateTime.UtcNow.AddSeconds(10));
+                            await taskApi.PingTaskServiceAsync(new PingTaskServiceRequest(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                             usable = true;
                         }
                         catch
@@ -151,8 +149,8 @@
                                 taskApi,
                                 workerUniqueId,
                                 entry.TargetHostname);
-                            await newProvider.OnTaskApiDisconnected.AddAsync(OnRemoteWorkerDisconnectedAsync);
-                            await _remoteWorkerCoreProviderCollection.AddAsync(newProvider);
+                            await newProvider.OnTaskApiDisconnected.AddAsync(OnRemoteWorkerDisconnectedAsync).ConfigureAwait(false);
+                            await _remoteWorkerCoreProviderCollection.AddAsync(newProvider).ConfigureAwait(false);
                             _logger.LogInformation($"Discovered remote worker {entry.TargetHostname} at '{entry.ServiceName}'.");
                         }
                         else
@@ -168,7 +166,7 @@
                 catch (Exception ex)
                 {
                     _logger.LogCritical(ex, $"Critical failure in worker discovery loop: {ex.Message}");
-                    await Task.Delay(5000);
+                    await Task.Delay(5000, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -179,7 +177,7 @@
         {
             var castedProvider = (TaskApiWorkerCoreProvider)provider;
             _logger.LogTrace($"Notified that remote worker {castedProvider.DisplayName} is going away.");
-            await _remoteWorkerCoreProviderCollection!.RemoveAsync(provider);
+            await _remoteWorkerCoreProviderCollection!.RemoveAsync(provider).ConfigureAwait(false);
         }
 
         public Task<IWorkerCoreRequest<ITaskApiWorkerCore>> ReserveCoreAsync(
@@ -193,7 +191,7 @@
 
         public async ValueTask DisposeAsync()
         {
-            using var _ = await _disposing.WaitAsync();
+            using var _ = await _disposing.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             _logger.LogTrace("Worker pool is now shutting down.");
 
@@ -202,19 +200,19 @@
                 if (_localWorkerFulfiller != null)
                 {
                     _logger.LogTrace("Waiting for local worker request fulfiller to dispose...");
-                    await _localWorkerFulfiller.DisposeAsync();
+                    await _localWorkerFulfiller.DisposeAsync().ConfigureAwait(false);
                 }
                 if (_remoteWorkerFulfiller != null)
                 {
                     _logger.LogTrace("Waiting for remote worker request fulfiller to dispose...");
-                    await _remoteWorkerFulfiller.DisposeAsync();
+                    await _remoteWorkerFulfiller.DisposeAsync().ConfigureAwait(false);
                 }
                 if (_remoteWorkerDiscoveryTask != null)
                 {
                     try
                     {
                         _logger.LogTrace("Waiting for remote worker discovery task to complete...");
-                        await _taskSchedulerScope.DisposeAsync();
+                        await _taskSchedulerScope.DisposeAsync().ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {

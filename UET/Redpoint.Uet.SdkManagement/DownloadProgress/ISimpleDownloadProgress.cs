@@ -8,7 +8,7 @@
     {
         Task DownloadAndCopyToStreamAsync(
             HttpClient client,
-            string downloadUrl,
+            Uri downloadUrl,
             Func<Stream, Task> copier,
             CancellationToken cancellationToken);
     }

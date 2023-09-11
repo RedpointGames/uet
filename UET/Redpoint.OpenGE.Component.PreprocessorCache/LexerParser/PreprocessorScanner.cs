@@ -134,7 +134,7 @@
                     var variableMatch = _variableDefine.Match(defineExpr);
                     if (functionMatch.Success)
                     {
-                        var exprText = value.Length > functionMatch.Length ? value.Substring(functionMatch.Length) : string.Empty;
+                        var exprText = value.Length > functionMatch.Length ? value[functionMatch.Length..] : string.Empty;
                         var expr = string.IsNullOrWhiteSpace(exprText)
                             ? new PreprocessorExpression
                             {
@@ -157,7 +157,7 @@
                     }
                     else if (variableMatch.Success)
                     {
-                        var exprText = value.Length > variableMatch.Length ? value.Substring(variableMatch.Length) : string.Empty;
+                        var exprText = value.Length > variableMatch.Length ? value[variableMatch.Length..] : string.Empty;
                         var expr = string.IsNullOrWhiteSpace(exprText)
                             ? new PreprocessorExpression
                             {
@@ -227,7 +227,7 @@
                 case "#elif":
                     if (targetBlocks.Count == 0 || targetBlocks.Peek().DirectiveCase != PreprocessorDirective.DirectiveOneofCase.If)
                     {
-                        throw new Exception("Got #elif without an #if block.");
+                        throw new InvalidOperationException("Got #elif without an #if block.");
                     }
                     var elifConditionHash = ComputeConditionHash(
                         scanResult,
@@ -249,7 +249,7 @@
                 case "#else":
                     if (targetBlocks.Count == 0 || targetBlocks.Peek().DirectiveCase != PreprocessorDirective.DirectiveOneofCase.If)
                     {
-                        throw new Exception("Got #else without an #if block.");
+                        throw new InvalidOperationException("Got #else without an #if block.");
                     }
                     var elseDirective = MakeDirective(null, new PreprocessorDirective
                     {
@@ -267,7 +267,7 @@
                         targetBlocks.Peek().DirectiveCase != PreprocessorDirective.DirectiveOneofCase.If &&
                         targetBlocks.Peek().DirectiveCase != PreprocessorDirective.DirectiveOneofCase.Block)
                     {
-                        throw new Exception("Got #endif without an #if/#elif/#else block.");
+                        throw new InvalidOperationException("Got #endif without an #if/#elif/#else block.");
                     }
                     targetBlocks.Pop();
                     return;
@@ -367,7 +367,7 @@
                 // If we're in a block comment, we need to consume lines until we're not.
                 if (inBlockComment)
                 {
-                    var commentBlockEndIndex = line.IndexOf("*/");
+                    var commentBlockEndIndex = line.IndexOf("*/", StringComparison.Ordinal);
                     if (commentBlockEndIndex == -1)
                     {
                         // This line isn't terminating the block comment.
@@ -384,26 +384,26 @@
                         else
                         {
                             // Allow the rest of the line to be parsed.
-                            line = line.Substring(commentBlockEndIndex + 2);
+                            line = line[(commentBlockEndIndex + 2)..];
                             inBlockComment = false;
                         }
                     }
                 }
 
                 // If the line has a // in it, strip off the comment.
-                var commentIndex = line.IndexOf("//");
+                var commentIndex = line.IndexOf("//", StringComparison.Ordinal);
                 if (commentIndex != -1)
                 {
-                    line = line.Substring(0, commentIndex);
+                    line = line[..commentIndex];
                 }
 
                 // If the line has a /* in it, strip it out until we reach */.
-                var commentBlockStartIndex = line.IndexOf("/*");
+                var commentBlockStartIndex = line.IndexOf("/*", StringComparison.Ordinal);
                 while (commentBlockStartIndex != -1)
                 {
-                    var lineBefore = line.Substring(0, commentBlockStartIndex);
-                    var lineAfter = line.Substring(commentBlockStartIndex + 2);
-                    var commentBlockEndIndex = lineAfter.IndexOf("*/");
+                    var lineBefore = line[..commentBlockStartIndex];
+                    var lineAfter = line[(commentBlockStartIndex + 2)..];
+                    var commentBlockEndIndex = lineAfter.IndexOf("*/", StringComparison.Ordinal);
                     if (commentBlockEndIndex != -1)
                     {
                         if (commentBlockEndIndex == lineAfter.Length - 2)
@@ -415,8 +415,8 @@
                         else
                         {
                             // Comment block ends and then we have more content.
-                            line = lineBefore + lineAfter.Substring(commentBlockEndIndex + 2);
-                            commentBlockStartIndex = line.IndexOf("/*");
+                            line = lineBefore + lineAfter[(commentBlockEndIndex + 2)..];
+                            commentBlockStartIndex = line.IndexOf("/*", StringComparison.Ordinal);
                         }
                     }
                     else
@@ -441,10 +441,10 @@
                 {
                     // Strip all whitespace between the '#' and first non-whitespace
                     // character to allow for directives like "#  if".
-                    line = '#' + line.Substring(1).TrimStart();
+                    line = '#' + line[1..].TrimStart();
 
                     // Is it a directive we care about?
-                    directive = _directives.FirstOrDefault(x => line.StartsWith(x));
+                    directive = _directives.FirstOrDefault(x => line.StartsWith(x, StringComparison.Ordinal));
                     if (directive == null)
                     {
 #if DEBUG
@@ -457,7 +457,7 @@
                 // If the line ends in \, we need to grab more lines to generate the full directive value.
                 if (line.TrimEnd().EndsWith('\\'))
                 {
-                    previousDirectiveLine = previousDirectiveLine == string.Empty
+                    previousDirectiveLine = string.IsNullOrEmpty(previousDirectiveLine)
                         ? line.TrimEnd().TrimEnd('\\')
                         : previousDirectiveLine + '\n' + line.TrimEnd().TrimEnd('\\');
                     continuingPreviousDirectiveLine = true;
@@ -466,7 +466,7 @@
                 else if (continuingPreviousDirectiveLine)
                 {
                     line = previousDirectiveLine + '\n' + line;
-                    directive = _directives.FirstOrDefault(x => line.StartsWith(x))!;
+                    directive = _directives.FirstOrDefault(x => line.StartsWith(x, StringComparison.Ordinal))!;
                     if (directive == null)
                     {
                         throw new InvalidOperationException("Evaluating the directive should already have passed.");
@@ -476,11 +476,11 @@
                 }
 
                 // Split the directive to get the value on the right.
-                if (line.StartsWith(directive + '('))
+                if (line.StartsWith(directive + '(', StringComparison.Ordinal))
                 {
                     // Some Windows headers do "#if(expr)". Insert a space
                     // to make it easier to parse this.
-                    line = directive + ' ' + line.Substring(directive!.Length);
+                    line = directive + ' ' + line[directive!.Length..];
                 }
                 var components = line.Split(new[] { ' ', '\t' }, 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 if (directive != components[0])

@@ -4,7 +4,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.Uet.Automation.TestNotification.Io;
 
-    internal class DefaultTestNotificationFactory : ITestNotificationFactory
+    internal sealed class DefaultTestNotificationFactory : ITestNotificationFactory
     {
         private readonly IServiceProvider _serviceProvider;
 
@@ -17,8 +17,8 @@
         {
             return new IoTestNotification(
                 _serviceProvider.GetRequiredService<ILogger<IoTestNotification>>(),
-                cancellationToken,
-                !IoTestNotification.IsIoAvailable());
+                !IoTestNotification.IsIoAvailable(),
+                cancellationToken);
         }
 
         public ITestNotification CreateNull()

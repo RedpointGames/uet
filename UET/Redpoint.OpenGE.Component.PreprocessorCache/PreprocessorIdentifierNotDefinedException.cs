@@ -4,7 +4,7 @@
     using System.Runtime.Serialization;
 
     [Serializable]
-    internal class PreprocessorIdentifierNotDefinedException : Exception
+    public class PreprocessorIdentifierNotDefinedException : Exception
     {
         public PreprocessorIdentifierNotDefinedException()
         {

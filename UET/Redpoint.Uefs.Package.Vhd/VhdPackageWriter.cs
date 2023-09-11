@@ -1,4 +1,6 @@
-﻿namespace Redpoint.Uefs.Package.Vhd
+﻿using System;
+
+namespace Redpoint.Uefs.Package.Vhd
 {
     using DiscUtils;
     using DiscUtils.Ntfs;
@@ -10,12 +12,12 @@
     using System.Security.AccessControl;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class VhdPackageWriter : IPackageWriter
+    internal sealed class VhdPackageWriter : IPackageWriter
     {
         private FileStream? _fs;
         private Disk? _disk;
         private NtfsFileSystem? _ntfs;
-        private SemaphoreSlim _writeSemaphore = new SemaphoreSlim(1);
+        private Concurrency.Semaphore _writeSemaphore = new Concurrency.Semaphore(1);
 
         /// <summary>
         /// NTFS and other overheads means we can't actually have a tiny disk. Give us
@@ -117,7 +119,7 @@
                 SparseStream? writer = null;
                 try
                 {
-                    await _writeSemaphore.WaitAsync();
+                    await _writeSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
                     try
                     {
                         writer = _ntfs!.OpenFile(packageManifestEntry.PathInPackage, FileMode.Create, FileAccess.ReadWrite, new NewFileOptions
@@ -132,12 +134,12 @@
 
                     byte[] buffer = new byte[128 * 1024];
                     int bytesRead;
-                    while ((bytesRead = await reader.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) != 0)
+                    while ((bytesRead = await reader.ReadAsync(buffer).ConfigureAwait(false)) != 0)
                     {
-                        await _writeSemaphore.WaitAsync();
+                        await _writeSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
                         try
                         {
-                            await writer.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);
+                            await writer.WriteAsync(buffer.AsMemory(0, bytesRead)).ConfigureAwait(false);
                         }
                         finally
                         {
@@ -152,7 +154,7 @@
                 {
                     if (writer != null)
                     {
-                        await _writeSemaphore.WaitAsync();
+                        await _writeSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
                         try
                         {
                             writer.Dispose();

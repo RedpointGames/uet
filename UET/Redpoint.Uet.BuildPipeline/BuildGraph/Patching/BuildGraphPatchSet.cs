@@ -11,6 +11,6 @@
         public string Output { get; set; } = string.Empty;
 
         [JsonPropertyName("Patches"), JsonRequired]
-        public BuildGraphPatchSetPatch[] Patches { get; set; } = new BuildGraphPatchSetPatch[0];
+        public BuildGraphPatchSetPatch[] Patches { get; set; } = Array.Empty<BuildGraphPatchSetPatch>();
     }
 }

@@ -33,7 +33,7 @@
                             SourcePath = buildEngineSpecification._enginePath,
                             WorkspaceDisambiguators = new[] { workspaceSuffix },
                         },
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -42,7 +42,7 @@
                         {
                             AliasedPath = buildEngineSpecification._enginePath
                         },
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
             }
             else if (buildEngineSpecification._uefsPackageTag != null)
@@ -53,7 +53,7 @@
                         PackageTag = buildEngineSpecification._uefsPackageTag,
                         WorkspaceDisambiguators = new[] { workspaceSuffix },
                     },
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
             else if (buildEngineSpecification._gitCommit != null)
             {
@@ -70,7 +70,7 @@
                         WindowsSharedGitCachePath = buildEngineSpecification._gitSharedWindowsCachePath,
                         MacSharedGitCachePath = buildEngineSpecification._gitSharedMacCachePath,
                     },
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
             else
             {

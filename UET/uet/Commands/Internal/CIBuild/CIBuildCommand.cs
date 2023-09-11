@@ -16,9 +16,9 @@
     using System.Threading.Tasks;
     using UET.Commands.EngineSpec;
 
-    internal class CIBuildCommand
+    internal sealed class CIBuildCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> Executor;
 
@@ -42,7 +42,7 @@
             return command;
         }
 
-        private class CIBuildCommandInstance : ICommandInstance
+        private sealed class CIBuildCommandInstance : ICommandInstance
         {
             private readonly ILogger<CIBuildCommandInstance> _logger;
             private readonly Options _options;
@@ -167,6 +167,7 @@
                     throw new PlatformNotSupportedException();
                 }
 
+#pragma warning disable CA1839 // Use 'Environment.ProcessPath'
                 var buildSpecification = new BuildSpecification
                 {
                     Engine = engineSpec,
@@ -185,6 +186,7 @@
                     ArtifactExportPath = Environment.CurrentDirectory,
                     MobileProvisions = buildJson.MobileProvisions,
                 };
+#pragma warning restore CA1839 // Use 'Environment.ProcessPath'
 
                 try
                 {
@@ -194,10 +196,10 @@
                         buildJson.PrepareProject,
                         new LoggerBasedBuildExecutionEvents(_logger),
                         buildJson.NodeName,
-                        context.GetCancellationToken());
+                        context.GetCancellationToken()).ConfigureAwait(false);
                     return buildResult;
                 }
-                catch (BuildPipelineExecutionFailure ex)
+                catch (BuildPipelineExecutionFailureException ex)
                 {
                     _logger.LogError(ex.Message);
                     return 1;
@@ -208,7 +210,7 @@
                     // have read-write access to the folder. I'm pretty sure BuildGraph already does this
                     // for us, but there are other cases (like when we copy UET to shared storage) that we
                     // need to do permission updates, so let's just do this for consistency.
-                    await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(buildJson.SharedStoragePath, buildJson.NodeName), context.GetCancellationToken());
+                    await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(buildJson.SharedStoragePath, buildJson.NodeName), context.GetCancellationToken()).ConfigureAwait(false);
                 }
             }
         }

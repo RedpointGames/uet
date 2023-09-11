@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class TreeResponse
+    internal sealed class TreeResponse
     {
         [JsonPropertyName("tree")]
         public List<TreeEntry>? Tree { get; set; }

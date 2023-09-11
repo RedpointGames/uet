@@ -4,7 +4,7 @@
     using Redpoint.Uefs.Protocol;
     using System;
 
-    internal class DefaultTransactionContextWithResult<TResult> : DefaultTransactionContext, ITransactionContext<TResult>, IAsyncDisposable
+    internal sealed class DefaultTransactionContextWithResult<TResult> : DefaultTransactionContext, ITransactionContext<TResult>, IAsyncDisposable
     {
         public DefaultTransactionContextWithResult(DefaultTransactionalDatabase database, IWaitableTransaction<TResult> transaction) : base(database, transaction)
         {

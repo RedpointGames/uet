@@ -10,7 +10,7 @@
     using System.Threading;
 
     [SupportedOSPlatform("windows10.0.10240")]
-    internal class Win64NetworkAutoDiscovery : INetworkAutoDiscovery
+    internal sealed class Win64NetworkAutoDiscovery : INetworkAutoDiscovery
     {
         private readonly ITaskScheduler _taskScheduler;
 
@@ -20,7 +20,7 @@
             _taskScheduler = taskScheduler;
         }
 
-        private class DnsDeregisterAsyncDisposable : IAsyncDisposable
+        private sealed class DnsDeregisterAsyncDisposable : IAsyncDisposable
         {
             private readonly Win64ServiceInstance _serviceInstance;
 
@@ -32,7 +32,7 @@
             public async ValueTask DisposeAsync()
             {
                 var request = new Win64ServiceDeRegisterCall(_serviceInstance);
-                await request.ExecuteAsync(CancellationToken.None);
+                await request.ExecuteAsync(CancellationToken.None).ConfigureAwait(false);
             }
         }
 
@@ -42,7 +42,7 @@
             CancellationToken cancellationToken)
         {
             var request = new Win64ServiceRegisterCall(name, (ushort)port);
-            var nativeRequest = await request.ExecuteAsync(cancellationToken);
+            var nativeRequest = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
             var serviceInstance = (Win64ServiceInstance)nativeRequest.DisposablePtrs[0];
             return new DnsDeregisterAsyncDisposable(serviceInstance);
         }
@@ -51,29 +51,31 @@
             string query,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            await using var scope = _taskScheduler.CreateSchedulerScope("Win64NetworkDiscovery", cancellationToken);
-            var stream = new TerminableAwaitableConcurrentQueue<NetworkService>();
-            var request = new Win64ServiceBrowseCall(query, stream);
-            var task = scope.RunAsync("BrowseCall", cancellationToken, async (cancellationToken) =>
+            await using (_taskScheduler.CreateSchedulerScope("Win64NetworkDiscovery", cancellationToken).AsAsyncDisposable(out var scope).ConfigureAwait(false))
             {
-                try
+                var stream = new TerminableAwaitableConcurrentQueue<NetworkService>();
+                var request = new Win64ServiceBrowseCall(query, stream);
+                var task = scope.RunAsync("BrowseCall", async (cancellationToken) =>
                 {
-                    await request.ExecuteAsync(cancellationToken);
-                }
-                catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
+                    try
+                    {
+                        await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
+                    {
+                        // Consume this OperationCanceledException.
+                    }
+                    finally
+                    {
+                        stream.Terminate();
+                    }
+                }, cancellationToken);
+                await foreach (var entry in stream)
                 {
-                    // Consume this OperationCanceledException.
+                    yield return entry;
                 }
-                finally
-                {
-                    stream.Terminate();
-                }
-            });
-            await foreach (var entry in stream)
-            {
-                yield return entry;
+                await task.ConfigureAwait(false);
             }
-            await task;
         }
     }
 }

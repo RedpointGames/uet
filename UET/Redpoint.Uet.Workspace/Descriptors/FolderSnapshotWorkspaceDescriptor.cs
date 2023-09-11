@@ -9,6 +9,6 @@
     {
         public required string SourcePath { get; set; }
 
-        public required string[] WorkspaceDisambiguators { get; set; }
+        public required IReadOnlyList<string> WorkspaceDisambiguators { get; set; }
     }
 }

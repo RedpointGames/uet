@@ -33,7 +33,7 @@
     }
 
     [SupportedOSPlatform("windows")]
-    internal class DockerPluginHostedService : IHostedService
+    internal sealed class DockerPluginHostedService : IHostedService, IAsyncDisposable
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILoggerFactory _loggerFactory;
@@ -52,7 +52,7 @@
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
-        {   
+        {
             // We only run the Docker integration if Docker is installed.
             var dockerRoot = Path.Combine(
                 Environment.GetEnvironmentVariable("PROGRAMDATA")!,
@@ -81,7 +81,7 @@
                         listenOptions.Protocols = HttpProtocols.Http1;
                     });
             });
-            
+
             // Map all our endpoints across.
             var endpointHandlerTypes = new List<Type>
             {
@@ -149,7 +149,7 @@
                     {
                         using (var reader = new StreamReader(context.Request.Body))
                         {
-                            requestString = await reader.ReadToEndAsync();
+                            requestString = await reader.ReadToEndAsync().ConfigureAwait(false);
                         }
                     }
 
@@ -160,7 +160,7 @@
                         (responseCode, responseString) = await endpointHandlers[context.Request.Path](context.RequestServices).HandleAsync(
                             context.RequestServices.GetRequiredService<IUefsDaemon>(),
                             requestString,
-                            DockerJsonSerializerContext.Default);
+                            DockerJsonSerializerContext.Default).ConfigureAwait(false);
                     }
                     catch (Exception exx)
                     {
@@ -171,18 +171,18 @@
                             await writer.WriteAsync(JsonConvert.SerializeObject(new GenericErrorResponse
                             {
                                 Err = "internal daemon error, refer to system logs."
-                            }));
+                            })).ConfigureAwait(false);
                         }
-                        await context.Response.CompleteAsync();
+                        await context.Response.CompleteAsync().ConfigureAwait(false);
                         return;
                     }
 
                     context.Response.StatusCode = responseCode;
                     using (var writer = new StreamWriter(context.Response.Body))
                     {
-                        await writer.WriteAsync(responseString);
+                        await writer.WriteAsync(responseString).ConfigureAwait(false);
                     }
-                    await context.Response.CompleteAsync();
+                    await context.Response.CompleteAsync().ConfigureAwait(false);
                     if (context.Request.Path != "/uefs/Poll" || responseCode != 200)
                     {
                         if (responseCode != 200)
@@ -198,7 +198,7 @@
             }
 
             // Start the application.
-            await _app.StartAsync();
+            await _app.StartAsync(cancellationToken).ConfigureAwait(false);
 
             // Write out the Docker plugin file.
             var pluginFilePath = Path.Combine(dockerRoot, "plugins", "uefs.json");
@@ -227,13 +227,30 @@
         {
             if (_pluginStream != null)
             {
-                await _pluginStream.DisposeAsync();
+                await _pluginStream.DisposeAsync().ConfigureAwait(false);
                 _pluginStream = null;
             }
 
             if (_app != null)
             {
-                await _app.StopAsync();
+                await _app.StopAsync(cancellationToken).ConfigureAwait(false);
+                await _app.DisposeAsync().ConfigureAwait(false);
+                _app = null;
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_pluginStream != null)
+            {
+                await _pluginStream.DisposeAsync().ConfigureAwait(false);
+                _pluginStream = null;
+            }
+
+            if (_app != null)
+            {
+                await _app.StopAsync().ConfigureAwait(false);
+                await _app.DisposeAsync().ConfigureAwait(false);
                 _app = null;
             }
         }

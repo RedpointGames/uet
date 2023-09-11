@@ -3,6 +3,7 @@
     using System;
     using System.Collections;
     using System.ComponentModel;
+    using System.Diagnostics.CodeAnalysis;
     using System.Runtime.InteropServices;
     using System.Runtime.Versioning;
     using global::Windows.Win32;
@@ -12,14 +13,15 @@
     /// Instantiate this class to enumerate over the current system volumes.
     /// </summary>
     [SupportedOSPlatform("windows6.2")]
-    public class SystemVolumes : IEnumerable<SystemVolume>
+    public sealed class SystemVolumes : IEnumerable<SystemVolume>
     {
-        private class SystemVolumeEnumerator : IEnumerator<SystemVolume>
+        private sealed class SystemVolumeEnumerator : IEnumerator<SystemVolume>
         {
             private char[] _buffer = new char[PInvoke.MAX_PATH];
             private SystemVolume? _current;
             private global::Windows.Win32.Storage.FileSystem.FindVolumeHandle? _iterationHandle;
 
+            [SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "Raises the IndexOutOfRangeException only when the indexer is out of range.")]
             public SystemVolume Current
             {
                 get
@@ -58,7 +60,7 @@
                     {
                         var volumeName = GetStringFromBuffer();
 
-                        var volumeIdRaw = volumeName.Substring(4).TrimEnd('\\');
+                        var volumeIdRaw = volumeName[4..].TrimEnd('\\');
                         if (PInvoke.QueryDosDevice(volumeIdRaw, buffer, (uint)_buffer.Length) == 0x0)
                         {
                             throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -84,13 +86,13 @@
                                 {
                                     if (span[i] == 0)
                                     {
-                                        volumePathNames.Add(new string(span.Slice(lastIndex, i - lastIndex)));
+                                        volumePathNames.Add(new string(span[lastIndex..i]));
                                         lastIndex = i + 1;
                                     }
                                 }
                                 if (lastIndex != span.Length)
                                 {
-                                    volumePathNames.Add(new string(span.Slice(lastIndex, (int)span.Length - lastIndex)));
+                                    volumePathNames.Add(new string(span[lastIndex..(int)span.Length]));
                                 }
                             }
                             finally

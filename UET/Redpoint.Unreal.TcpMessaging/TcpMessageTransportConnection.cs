@@ -1,5 +1,8 @@
-﻿namespace Redpoint.Unreal.TcpMessaging
+﻿using System;
+
+namespace Redpoint.Unreal.TcpMessaging
 {
+    using Redpoint.Concurrency;
     using Microsoft.Extensions.Logging;
     using Redpoint.Unreal.Serialization;
     using Redpoint.Unreal.TcpMessaging.MessageTypes;
@@ -18,19 +21,20 @@
 
         private class AttachedListener
         {
-            public SemaphoreSlim Ready = new SemaphoreSlim(0);
+            public Concurrency.Semaphore Ready = new Concurrency.Semaphore(0);
             public ConcurrentQueue<TcpDeserializedMessage> Queue = new ConcurrentQueue<TcpDeserializedMessage>();
         }
 
         private Guid? _remoteNodeId;
         private bool _disposed;
+        private readonly CancellationTokenSource _disposeCancellationTokenSource;
         private ConcurrentQueue<TcpDeserializedMessage> _queuedToSend;
         private Task _backgroundSender;
         private readonly Task _backgroundReceiver;
         private readonly Task _backgroundPinger;
         private readonly List<AttachedListener> _listeningQueues;
         private bool _isLegacyTcpSerialization;
-        private SemaphoreSlim _readyToSend;
+        private Concurrency.Semaphore _readyToSend;
         private string _remoteOwner;
 
         private static ISerializerRegistry[] _serializerRegistries = new[]
@@ -40,6 +44,8 @@
 
         public static async Task<TcpMessageTransportConnection> CreateAsync(Func<Task<TcpClient>> connectionFactory, ILogger? logger = null)
         {
+            if (connectionFactory == null) throw new ArgumentNullException(nameof(connectionFactory));
+
             Guid initialRemoteGuidId = Guid.Empty;
             TcpMessageTransportConnection? instance = null;
             var guid = Guid.NewGuid();
@@ -54,19 +60,19 @@
                         Store<TcpMessageHeader> header = new(new(guid));
 
                         var headerArchive = new Archive(memoryStream, false, _serializerRegistries);
-                        await headerArchive.Serialize(header);
+                        await headerArchive.Serialize(header).ConfigureAwait(false);
 
                         var position = memoryStream.Position;
                         memoryStream.Seek(0, SeekOrigin.Begin);
 
-                        await client.GetStream().WriteAsync(memoryStream.GetBuffer(), 0, (int)position);
+                        await client.GetStream().WriteAsync(memoryStream.GetBuffer().AsMemory(0, (int)position)).ConfigureAwait(false);
                     }
 
                     // Receive the remote's header from the stream.
                     {
                         var receiveArchive = new Archive(client.GetStream(), true, _serializerRegistries);
                         var header = new Store<TcpMessageHeader>(new());
-                        await receiveArchive.Serialize(header);
+                        await receiveArchive.Serialize(header).ConfigureAwait(false);
                         if (instance == null)
                         {
                             initialRemoteGuidId = header.V.NodeId;
@@ -77,7 +83,7 @@
                         }
                         logger?.LogTrace($"Received header from remote node ID {header.V.NodeId}");
                     }
-                });
+                }).ConfigureAwait(false);
             instance = new TcpMessageTransportConnection(reconnectableStream, guid, initialRemoteGuidId, logger);
             return instance;
         }
@@ -91,9 +97,10 @@
             _stream = stream;
 
             _disposed = false;
+            _disposeCancellationTokenSource = new CancellationTokenSource();
             _remoteNodeId = initialRemoteGuidId;
             _queuedToSend = new ConcurrentQueue<TcpDeserializedMessage>();
-            _readyToSend = new SemaphoreSlim(0);
+            _readyToSend = new Concurrency.Semaphore(0);
             _backgroundSender = Task.Run(SendInBackground);
             _backgroundReceiver = Task.Run(ReceiveInBackground);
             _backgroundPinger = Task.Run(PingInBackground);
@@ -109,7 +116,7 @@
             {
                 Send(new EngineServicePing());
                 Send(new SessionServicePing { UserName = _remoteOwner ?? Environment.UserName ?? "user" });
-                await Task.Delay(2000);
+                await Task.Delay(2000).ConfigureAwait(false);
             }
         }
 
@@ -130,10 +137,10 @@
                     var receiveArchive = new Archive(_stream, true, _serializerRegistries);
 
                     var nextBytes = new Store<uint>(0);
-                    await receiveArchive.Serialize(nextBytes);
+                    await receiveArchive.Serialize(nextBytes).ConfigureAwait(false);
 
-                    var buffer = new Store<byte[]>(new byte[0]);
-                    await receiveArchive.Serialize(buffer, nextBytes.V);
+                    var buffer = new Store<byte[]>(Array.Empty<byte>());
+                    await receiveArchive.Serialize(buffer, nextBytes.V).ConfigureAwait(false);
 
                     var nextMessage = new Store<TcpDeserializedMessage>(new());
                     try
@@ -144,7 +151,7 @@
                             using (var memory = new MemoryStream(buffer.V))
                             {
                                 var memoryArchive = new Archive(memory, true, _serializerRegistries);
-                                await memoryArchive.Serialize(legacyNextMessage);
+                                await memoryArchive.Serialize(legacyNextMessage).ConfigureAwait(false);
                             }
                             nextMessage.V = legacyNextMessage.V.ToModernMessage();
                         }
@@ -153,13 +160,13 @@
                             using (var memory = new MemoryStream(buffer.V))
                             {
                                 var memoryArchive = new Archive(memory, true, _serializerRegistries);
-                                await memoryArchive.Serialize(nextMessage);
+                                await memoryArchive.Serialize(nextMessage).ConfigureAwait(false);
                             }
                         }
                     }
                     catch (TopLevelAssetPathNotFoundException)
                     {
-                        _logger?.LogTrace($" {{{nextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{nextMessage.V.AssetPath.V.PackageName.V + "." + nextMessage.V.AssetPath.V.AssetName.V}]\n(no C# class registered for this message type)");
+                        _logger?.LogTrace($" {{{nextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(nextMessage.V.RecipientAddresses.V.Data.Count > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{nextMessage.V.AssetPath.V.PackageName.V + "." + nextMessage.V.AssetPath.V.AssetName.V}]\n(no C# class registered for this message type)");
                         continue;
                     }
                     catch (Exception ex) when ((!_isLegacyTcpSerialization) && (ex is EndOfStreamException || ex is OverflowException))
@@ -172,14 +179,14 @@
                             using (var memory = new MemoryStream(buffer.V))
                             {
                                 var memoryArchive = new Archive(memory, true, _serializerRegistries);
-                                await memoryArchive.Serialize(legacyNextMessage);
+                                await memoryArchive.Serialize(legacyNextMessage).ConfigureAwait(false);
                             }
                             nextMessage.V = legacyNextMessage.V.ToModernMessage();
                         }
                         catch (TopLevelAssetPathNotFoundException)
                         {
                             // We still decoded the header properly, so we still turn on legacy serialization in this case.
-                            _logger?.LogTrace($" {{{legacyNextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(legacyNextMessage.V.RecipientAddresses.V.Data.Length > 0 ? legacyNextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{legacyNextMessage.V.AssetPath.V}]\n(no C# class registered for this message type)");
+                            _logger?.LogTrace($" {{{legacyNextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(legacyNextMessage.V.RecipientAddresses.V.Data.Count > 0 ? legacyNextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{legacyNextMessage.V.AssetPath.V}]\n(no C# class registered for this message type)");
                             shouldContinue = true;
                         }
 
@@ -193,7 +200,7 @@
                     }
 
                     {
-                        _logger?.LogTrace($" {{{nextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{nextMessage.V.AssetPath.V.PackageName.V + "." + nextMessage.V.AssetPath.V.AssetName.V}]\n{nextMessage.V.GetMessageData()}");
+                        _logger?.LogTrace($" {{{nextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(nextMessage.V.RecipientAddresses.V.Data.Count > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{nextMessage.V.AssetPath.V.PackageName.V + "." + nextMessage.V.AssetPath.V.AssetName.V}]\n{nextMessage.V.GetMessageData()}");
 
                         switch (nextMessage.V.GetMessageData())
                         {
@@ -234,7 +241,7 @@
                                         BuildDate = buildDate,
                                         DeviceName = "UET",
                                         InstanceId = _guid,
-                                        InstanceName = $"UET-{Process.GetCurrentProcess().Id}",
+                                        InstanceName = $"UET-{Environment.ProcessId}",
                                         PlatformName = "WindowsEditor",
                                         SessionId = RemoteSessionId!.Value,
                                         SessionName = string.Empty,
@@ -273,7 +280,7 @@
                     {
                         // The connection must be reconnected.
                         _logger?.LogTrace("TCP stream disconnected during received, reconnecting...");
-                        await _stream.ReconnectAsync();
+                        await _stream.ReconnectAsync().ConfigureAwait(false);
                     }
                 }
                 catch (Exception ex)
@@ -283,7 +290,7 @@
                     {
                         OnUnrecoverablyBroken(this, new EventArgs());
                     }
-                    await DisposeAsync();
+                    await DisposeAsync().ConfigureAwait(false);
                     throw;
                 }
             }
@@ -295,7 +302,7 @@
             {
                 try
                 {
-                    await _readyToSend.WaitAsync();
+                    await _readyToSend.WaitAsync(_disposeCancellationTokenSource.Token).ConfigureAwait(false);
 
                     TcpDeserializedMessage nextMessageRaw;
                     if (!_queuedToSend.TryDequeue(out nextMessageRaw!))
@@ -311,16 +318,16 @@
                         {
                             var memoryArchive = new Archive(memory, false, _serializerRegistries);
 
-                            _logger?.LogTrace($" {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId : "*")}}} <- {{{nextMessage.V.SenderAddress.V.UniqueId}}} [{nextMessage.V.AssetPath.V.PackageName + "." + nextMessage.V.AssetPath.V.AssetName}]\n{nextMessage.V.GetMessageData()}");
+                            _logger?.LogTrace($" {{{(nextMessage.V.RecipientAddresses.V.Data.Count > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId : "*")}}} <- {{{nextMessage.V.SenderAddress.V.UniqueId}}} [{nextMessage.V.AssetPath.V.PackageName + "." + nextMessage.V.AssetPath.V.AssetName}]\n{nextMessage.V.GetMessageData()}");
 
                             if (_isLegacyTcpSerialization)
                             {
                                 var legacyNextMessage = new Store<LegacyTcpDeserializedMessage>(nextMessage.V.ToLegacyMessage());
-                                await memoryArchive.Serialize(legacyNextMessage);
+                                await memoryArchive.Serialize(legacyNextMessage).ConfigureAwait(false);
                             }
                             else
                             {
-                                await memoryArchive.Serialize(nextMessage);
+                                await memoryArchive.Serialize(nextMessage).ConfigureAwait(false);
                             }
 
                             var length = new Store<uint>((uint)memory.Position);
@@ -331,10 +338,10 @@
 
                             var sendArchive = new Archive(_stream, false, _serializerRegistries);
 
-                            await sendArchive.Serialize(length);
+                            await sendArchive.Serialize(length).ConfigureAwait(false);
 
                             memory.Seek(0, SeekOrigin.Begin);
-                            await memory.CopyToAsync(_stream);
+                            await memory.CopyToAsync(_stream).ConfigureAwait(false);
 
                             _logger?.LogTrace("Flushed message to remote TCP stream!");
                         }
@@ -351,14 +358,14 @@
                         {
                             // The connection must be reconnected and the message resent.
                             _logger?.LogTrace("TCP stream disconnected during send, reconnecting...");
-                            await _stream.ReconnectAsync();
+                            await _stream.ReconnectAsync().ConfigureAwait(false);
                             _queuedToSend.Enqueue(nextMessageRaw);
                             _readyToSend.Release();
                             continue;
                         }
                     }
                 }
-                catch (InvalidOperationException ex) when (ex.Message.Contains("The operation is not allowed on non-connected sockets"))
+                catch (InvalidOperationException ex) when (ex.Message.Contains("The operation is not allowed on non-connected sockets", StringComparison.Ordinal))
                 {
                     // This is expected when the connection is being intentionally closed.
                 }
@@ -402,6 +409,8 @@
 
         public void Respond<T>(TcpDeserializedMessage sourceMessage, T value) where T : notnull, new()
         {
+            if (sourceMessage == null) throw new ArgumentNullException(nameof(sourceMessage));
+
             var nextMessage = new TcpDeserializedMessage
             {
                 SenderAddress = new(new MessageAddress(_guid)),
@@ -418,6 +427,8 @@
 
         public async Task ReceiveUntilAsync(Func<TcpDeserializedMessage, Task<bool>> onMessageReceived, CancellationToken cancellationToken)
         {
+            if (onMessageReceived == null) throw new ArgumentNullException(nameof(onMessageReceived));
+
             try
             {
                 var listener = new AttachedListener();
@@ -426,7 +437,7 @@
                 {
                     while (!cancellationToken.IsCancellationRequested)
                     {
-                        await listener.Ready.WaitAsync(cancellationToken);
+                        await listener.Ready.WaitAsync(cancellationToken).ConfigureAwait(false);
 
                         TcpDeserializedMessage nextMessage;
                         var didPull = false;
@@ -436,7 +447,7 @@
                         }
                         while (!didPull);
 
-                        if (await onMessageReceived(nextMessage))
+                        if (await onMessageReceived(nextMessage).ConfigureAwait(false))
                         {
                             return;
                         }
@@ -461,8 +472,11 @@
 
         public async ValueTask DisposeAsync()
         {
+            GC.SuppressFinalize(this);
             _disposed = true;
-            await _stream.DisposeAsync();
+            _disposeCancellationTokenSource.Cancel();
+            _disposeCancellationTokenSource.Dispose();
+            await _stream.DisposeAsync().ConfigureAwait(false);
         }
     }
 }

@@ -114,7 +114,7 @@ namespace DiscUtils.Ntfs
             int streamSepPos = name.IndexOf(':');
             if (streamSepPos >= 0)
             {
-                searchName = name.Substring(0, streamSepPos);
+                searchName = name[..streamSepPos];
             }
 
             DirectoryIndexEntry entry = Index.FindFirst(new FileNameQuery(searchName, _context.UpperCase));
@@ -219,7 +219,7 @@ namespace DiscUtils.Ntfs
             do
             {
                 string suffix = string.Format(CultureInfo.InvariantCulture, "~{0}", i);
-                candidate = baseName.Substring(0, Math.Min(8 - suffix.Length, baseName.Length)) + suffix +
+                candidate = baseName[..Math.Min(8 - suffix.Length, baseName.Length)] + suffix +
                             (ext.Length > 0 ? "." + ext : string.Empty);
                 i++;
             } while (GetEntryByName(candidate) != null);

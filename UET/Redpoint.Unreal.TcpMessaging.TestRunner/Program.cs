@@ -12,9 +12,9 @@ var targetEndpoint = new MessageAddress();
 var connection = await TcpMessageTransportConnection.CreateAsync(async () =>
 {
     var client = new TcpClient();
-    await client.ConnectAsync(new IPEndPoint(IPAddress.Loopback, 6666));
+    await client.ConnectAsync(new IPEndPoint(IPAddress.Loopback, 6666)).ConfigureAwait(false);
     return client;
-});
+}).ConfigureAwait(false);
 
 // Detect the remote's engine version so we can pretend to be the same.
 var engineVersion = 0;
@@ -40,7 +40,7 @@ await connection.ReceiveUntilAsync(message =>
     }
 
     return Task.FromResult(false);
-}, CancellationToken.None);
+}, CancellationToken.None).ConfigureAwait(false);
 
 // Find workers.
 connection.Send(new AutomationWorkerFindWorkers
@@ -61,7 +61,7 @@ await connection.ReceiveUntilAsync(message =>
     }
 
     return Task.FromResult(false);
-}, CancellationToken.None);
+}, CancellationToken.None).ConfigureAwait(false);
 
 // Discover tests.
 var discoveredTests = new AutomationWorkerRequestTestsReplyComplete();
@@ -80,7 +80,7 @@ await connection.ReceiveUntilAsync(message =>
     }
 
     return Task.FromResult(false);
-}, CancellationToken.None);
+}, CancellationToken.None).ConfigureAwait(false);
 
 // List discovered tests.
 Console.WriteLine($"{discoveredTests.Tests.Count} tests found");
@@ -160,5 +160,5 @@ foreach (var test in discoveredTests.Tests.OrderBy(x => x.FullTestPath))
         }
 
         return Task.FromResult(false);
-    }, CancellationToken.None);
+    }, CancellationToken.None).ConfigureAwait(false);
 }

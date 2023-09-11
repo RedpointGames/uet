@@ -7,11 +7,12 @@
     using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.Globalization;
     using System.Threading.Tasks;
 
     public static class BuildCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<FileInfo> PackagePath;
             public Option<DirectoryInfo> DirectoryPath;
@@ -39,7 +40,7 @@
             return command;
         }
 
-        private class BuildCommandInstance : ICommandInstance
+        private sealed class BuildCommandInstance : ICommandInstance
         {
             private readonly IEnumerable<IPackageWriterFactory> _writers;
             private readonly IPackageManifestAssembler _packageManifestAssembler;
@@ -97,8 +98,8 @@
                     try
                     {
                         writer.OpenPackageForWriting(packagePath.FullName, packageManifest.IndexSizeBytes, packageManifest.DataSizeBytes);
-                        await writer.WritePackageIndex(packageManifest);
-                        await _packageManifestDataWriter.WriteData(writer, packageManifest);
+                        await writer.WritePackageIndex(packageManifest).ConfigureAwait(false);
+                        await _packageManifestDataWriter.WriteData(writer, packageManifest).ConfigureAwait(false);
                     }
                     catch (PackageWriterException ex)
                     {
@@ -112,16 +113,16 @@
                 Console.WriteLine();
                 if (duration.Hours == 0)
                 {
-                    Console.WriteLine($"package created successfully in {duration.Minutes}:{duration.Seconds.ToString().PadLeft(2, '0')}");
+                    Console.WriteLine($"package created successfully in {duration.Minutes}:{duration.Seconds.ToString(CultureInfo.InvariantCulture).PadLeft(2, '0')}");
                 }
                 else
                 {
-                    Console.WriteLine($"package created successfully in {duration.Hours}:{duration.Minutes.ToString().PadLeft(2, '0')}:{duration.Seconds.ToString().PadLeft(2, '0')}");
+                    Console.WriteLine($"package created successfully in {duration.Hours}:{duration.Minutes.ToString(CultureInfo.InvariantCulture).PadLeft(2, '0')}:{duration.Seconds.ToString(CultureInfo.InvariantCulture).PadLeft(2, '0')}");
                 }
 
                 // Hash by default now since basically all use cases require
                 // a digest file to be present.
-                _ = await _fileHasher.ComputeHashAsync(packagePath);
+                _ = await _fileHasher.ComputeHashAsync(packagePath).ConfigureAwait(false);
 
                 return 0;
             }

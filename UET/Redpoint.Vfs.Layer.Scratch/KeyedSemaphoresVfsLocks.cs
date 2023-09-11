@@ -3,7 +3,7 @@
     using KeyedSemaphores;
     using System.Collections.Concurrent;
 
-    internal class KeyedSemaphoresVfsLocks : IVfsLocks
+    internal sealed class KeyedSemaphoresVfsLocks : IVfsLocks
     {
         private readonly KeyedSemaphoresCollection<string> _locks;
         private readonly ConcurrentDictionary<string, string> _lockHolders;

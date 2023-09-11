@@ -493,7 +493,7 @@
                 foreach (var fileInfo in fileInfoHeaders)
                 {
                     // Substring to parse out the file info prefix.
-                    infoData.Add(fileInfo.Key.Substring(10), fileInfo.Value.First());
+                    infoData.Add(fileInfo.Key[10..], fileInfo.Value.First());
                 }
             }
             file.FileInfo = infoData;

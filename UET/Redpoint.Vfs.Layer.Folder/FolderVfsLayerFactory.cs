@@ -5,7 +5,7 @@
     using Redpoint.Vfs.Abstractions;
     using Redpoint.Vfs.LocalIo;
 
-    internal class FolderVfsLayerFactory : IFolderVfsLayerFactory
+    internal sealed class FolderVfsLayerFactory : IFolderVfsLayerFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

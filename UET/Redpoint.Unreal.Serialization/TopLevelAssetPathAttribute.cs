@@ -3,7 +3,7 @@
     using System;
 
     [AttributeUsage(AttributeTargets.Class)]
-    public class TopLevelAssetPathAttribute : Attribute
+    public sealed class TopLevelAssetPathAttribute : Attribute
     {
         public Name PackageName { get; }
         public Name AssetName { get; }

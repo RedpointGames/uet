@@ -26,7 +26,7 @@
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
             Dictionary<string, string> globalEnvironmentVariables,
-            BuildConfigMobileProvision[] mobileProvisions,
+            IReadOnlyList<BuildConfigMobileProvision> mobileProvisions,
             ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken);
 

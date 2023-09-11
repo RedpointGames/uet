@@ -8,9 +8,9 @@
     using System.Threading.Tasks;
     using UET.Services;
 
-    internal class OpenGEPreprocessorCacheClientUnresolvedCommand
+    internal sealed class OpenGEPreprocessorCacheClientUnresolvedCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<FileInfo> File;
 
@@ -29,7 +29,7 @@
             return command;
         }
 
-        private class OpenGEPreprocessorCacheClientUnresolvedCommandInstance : ICommandInstance
+        private sealed class OpenGEPreprocessorCacheClientUnresolvedCommandInstance : ICommandInstance
         {
             private readonly ILogger<OpenGEPreprocessorCacheClientUnresolvedCommandInstance> _logger;
             private readonly IPreprocessorCacheFactory _preprocessorCacheFactory;
@@ -60,12 +60,12 @@
                     }
                 });
 
-                await preprocessorCache.EnsureAsync();
+                await preprocessorCache.EnsureAsync().ConfigureAwait(false);
 
                 var st = Stopwatch.StartNew();
                 var result = await preprocessorCache.GetUnresolvedDependenciesAsync(
                     context.ParseResult.GetValueForOption(_options.File)!.FullName,
-                    context.GetCancellationToken());
+                    context.GetCancellationToken()).ConfigureAwait(false);
                 var ms = st.ElapsedMilliseconds;
 
                 _logger.LogInformation($"Initial request completed in: {ms}ms");
@@ -73,7 +73,7 @@
                     st = Stopwatch.StartNew();
                     _ = await preprocessorCache.GetUnresolvedDependenciesAsync(
                         context.ParseResult.GetValueForOption(_options.File)!.FullName,
-                        context.GetCancellationToken());
+                        context.GetCancellationToken()).ConfigureAwait(false);
                     ms = st.ElapsedMilliseconds;
                 }
                 _logger.LogInformation($"Subsequent request completed in: {ms}ms");

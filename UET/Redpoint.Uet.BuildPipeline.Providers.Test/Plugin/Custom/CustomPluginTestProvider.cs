@@ -11,7 +11,7 @@
     using System.Text.Json.Serialization;
     using Redpoint.RuntimeJson;
 
-    internal class CustomPluginTestProvider : IPluginTestProvider
+    internal sealed class CustomPluginTestProvider : IPluginTestProvider
     {
         private readonly IPluginTestProjectEmitProvider _pluginTestProjectEmitProvider;
 
@@ -39,13 +39,13 @@
             await WriteBuildGraphTestProjectNodesAsync(
                 context,
                 writer,
-                castedSettings);
+                castedSettings).ConfigureAwait(false);
 
             // Write nodes for custom tests that run against the packaged plugin.
             await WriteBuildGraphPackagedPluginNodesAsync(
                 context,
                 writer,
-                castedSettings);
+                castedSettings).ConfigureAwait(false);
         }
 
         private async Task WriteBuildGraphTestProjectNodesAsync(
@@ -63,7 +63,7 @@
                 .ToArray();
             if (customTestsAgainstTestProject.Length > 0)
             {
-                await _pluginTestProjectEmitProvider.EnsureTestProjectNodesArePresentAsync(context, writer);
+                await _pluginTestProjectEmitProvider.EnsureTestProjectNodesArePresentAsync(context, writer).ConfigureAwait(false);
             }
 
             // Emit the nodes to run custom tests to run against the test project.
@@ -110,20 +110,20 @@
                                                 "-TestProjectPath",
                                                 @$"""{_pluginTestProjectEmitProvider.GetTestProjectUProjectFilePath(platform)}""",
                                             }
-                                        });
-                                });
+                                        }).ConfigureAwait(false);
+                                }).ConfigureAwait(false);
                             await writer.WriteDynamicNodeAppendAsync(
                                 new DynamicNodeAppendElementProperties
                                 {
                                     NodeName = nodeName,
                                     MustPassForLaterDeployment = true,
-                                });
+                                }).ConfigureAwait(false);
                         }
-                    });
+                    }).ConfigureAwait(false);
             }
         }
 
-        private async Task WriteBuildGraphPackagedPluginNodesAsync(
+        private static async Task WriteBuildGraphPackagedPluginNodesAsync(
             IBuildGraphEmitContext context,
             XmlWriter writer,
             IEnumerable<(string name, BuildConfigPluginTestCustom settings)> dynamicSettings)
@@ -182,16 +182,16 @@
                                                 "-PackagedPluginPath",
                                                 @$"""$(TempPath)/$(PackageFolder)/""",
                                             }
-                                        });
-                                });
+                                        }).ConfigureAwait(false);
+                                }).ConfigureAwait(false);
                             await writer.WriteDynamicNodeAppendAsync(
                                 new DynamicNodeAppendElementProperties
                                 {
                                     NodeName = nodeName,
                                     MustPassForLaterDeployment = true,
-                                });
+                                }).ConfigureAwait(false);
                         }
-                    });
+                    }).ConfigureAwait(false);
             }
         }
     }

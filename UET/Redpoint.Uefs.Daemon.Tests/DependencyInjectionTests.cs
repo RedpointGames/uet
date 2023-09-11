@@ -12,7 +12,7 @@ namespace Redpoint.Uefs.Daemon.Tests
         static DependencyInjectionTestGenerator()
         {
             _serviceCollection = new ServiceCollection();
-            Program.AddAllServices(_serviceCollection, new string[0]);
+            Program.AddAllServices(_serviceCollection, Array.Empty<string>());
         }
 
         public IEnumerator<object[]> GetEnumerator()
@@ -42,7 +42,7 @@ namespace Redpoint.Uefs.Daemon.Tests
         static DependencyInjectionTests()
         {
             var services = new ServiceCollection();
-            Program.AddAllServices(services, new string[0]);
+            Program.AddAllServices(services, Array.Empty<string>());
             _serviceProvider = services.BuildServiceProvider();
         }
 

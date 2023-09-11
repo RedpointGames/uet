@@ -1,4 +1,6 @@
-﻿namespace Redpoint.ProgressMonitor
+﻿using System;
+
+namespace Redpoint.ProgressMonitor
 {
     using System;
     using System.IO;
@@ -74,7 +76,11 @@
         /// <inheritdoc/>
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            var bytesRead = await _underlyingStream.ReadAsync(buffer, offset, count, cancellationToken);
+#if NETCOREAPP2_1_OR_GREATER
+            var bytesRead = await _underlyingStream.ReadAsync(buffer.AsMemory(offset, count), cancellationToken).ConfigureAwait(false);
+#else
+            var bytesRead = await _underlyingStream.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
+#endif
             _position += bytesRead;
             return bytesRead;
         }
@@ -83,7 +89,7 @@
         /// <inheritdoc/>
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
-            var bytesRead = await _underlyingStream.ReadAsync(buffer, cancellationToken);
+            var bytesRead = await _underlyingStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
             _position += bytesRead;
             return bytesRead;
         }

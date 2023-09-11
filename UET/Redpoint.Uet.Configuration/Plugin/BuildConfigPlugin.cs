@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.Configuration.Plugin
 {
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
     public class BuildConfigPlugin : BuildConfig
@@ -20,6 +21,7 @@
         /// A list of distributions.
         /// </summary>
         [JsonPropertyName("Distributions")]
+        [SuppressMessage("Design", "CA1002:Do not expose generic lists", Justification = "This property is used for JSON serialization.")]
         public List<BuildConfigPluginDistribution> Distributions { get; set; } = new List<BuildConfigPluginDistribution>();
     }
 }

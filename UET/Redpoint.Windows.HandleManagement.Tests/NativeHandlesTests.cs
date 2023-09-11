@@ -74,12 +74,12 @@ namespace Redpoint.Windows.HandleManagement.Tests
             var found = false;
             using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
             {
-                var pid = Process.GetCurrentProcess().Id;
+                var pid = Environment.ProcessId;
                 await foreach (var fileHandle in NativeHandles.GetAllFileHandlesAsync(CancellationToken.None))
                 {
                     if (fileHandle.ProcessId == pid)
                     {
-                        if (fileHandle.FilePath.Equals(tempPath, StringComparison.InvariantCultureIgnoreCase))
+                        if (fileHandle.FilePath.Equals(tempPath, StringComparison.OrdinalIgnoreCase))
                         {
                             found = true;
                             break;
@@ -100,12 +100,12 @@ namespace Redpoint.Windows.HandleManagement.Tests
             var found = false;
             using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
             {
-                var pid = Process.GetCurrentProcess().Id;
+                var pid = Environment.ProcessId;
                 await foreach (var fileHandle in NativeHandles.GetAllFileHandlesAsync(CancellationToken.None))
                 {
                     if (fileHandle.ProcessId == pid)
                     {
-                        if (fileHandle.FilePath.Equals(tempPath, StringComparison.InvariantCultureIgnoreCase))
+                        if (fileHandle.FilePath.Equals(tempPath, StringComparison.OrdinalIgnoreCase))
                         {
                             await NativeHandles.ForciblyCloseHandleAsync(fileHandle, CancellationToken.None);
                             found = true;

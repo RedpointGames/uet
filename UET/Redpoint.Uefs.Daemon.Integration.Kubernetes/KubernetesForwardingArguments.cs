@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.Uefs.Daemon.Integration.Kubernetes
 {
-    internal class KubernetesForwardingArguments
+    internal sealed class KubernetesForwardingArguments
     {
         public int Port { get; set; }
 

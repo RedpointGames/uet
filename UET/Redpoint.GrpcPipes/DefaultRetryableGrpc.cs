@@ -7,7 +7,7 @@
     using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
 
-    internal class DefaultRetryableGrpc : IRetryableGrpc
+    internal sealed class DefaultRetryableGrpc : IRetryableGrpc
     {
         private readonly ILogger<DefaultRetryableGrpc> _logger;
 
@@ -35,7 +35,7 @@
                     if (attempt != maxAttempts - 1)
                     {
                         _logger.LogTrace($"gRPC call failed with status code {ex.StatusCode} on attempt {attempt + 1}. Retrying in {backoff}ms...");
-                        await Task.Delay((int)backoff);
+                        await Task.Delay((int)backoff, cancellationToken).ConfigureAwait(false);
                         backoff *= retry.ExponentialBackoffMultiplier;
                         if (backoff > retry.MaximumBackoffMilliseconds)
                         {
@@ -69,14 +69,14 @@
                 try
                 {
                     response = call(request, null, null, cancellationToken);
-                    hasMessage = await response.ResponseStream.MoveNext(currentTimeout.Token);
+                    hasMessage = await response.ResponseStream.MoveNext(currentTimeout.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (currentTimeout.IsCancellationRequested)
                 {
                     if (attempt != maxAttempts - 1)
                     {
                         _logger.LogTrace($"gRPC streaming call failed as no response was received within {retry.RequestTimeout.TotalMilliseconds}ms on attempt {attempt + 1}. Retrying in {backoff}ms...");
-                        await Task.Delay((int)backoff);
+                        await Task.Delay((int)backoff, cancellationToken).ConfigureAwait(false);
                         backoff *= retry.ExponentialBackoffMultiplier;
                         if (backoff > retry.MaximumBackoffMilliseconds)
                         {
@@ -94,7 +94,7 @@
                     if (attempt != maxAttempts - 1)
                     {
                         _logger.LogTrace($"gRPC streaming call failed with status code {ex.StatusCode} on attempt {attempt + 1}. Retrying in {backoff}ms...");
-                        await Task.Delay((int)backoff);
+                        await Task.Delay((int)backoff, cancellationToken).ConfigureAwait(false);
                         backoff *= retry.ExponentialBackoffMultiplier;
                         if (backoff > retry.MaximumBackoffMilliseconds)
                         {
@@ -125,14 +125,14 @@
                     currentTimeout = new CancellationTokenSource(idleTimeout);
                     try
                     {
-                        hasMessage = await response.ResponseStream.MoveNext(currentTimeout.Token);
+                        hasMessage = await response.ResponseStream.MoveNext(currentTimeout.Token).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException) when (currentTimeout.IsCancellationRequested)
                     {
                         if (attempt != maxAttempts - 1)
                         {
                             _logger.LogTrace($"gRPC streaming call failed as no response was received within {idleTimeout.TotalMilliseconds}ms on attempt {attempt + 1}. Retrying in {backoff}ms...");
-                            await Task.Delay((int)backoff);
+                            await Task.Delay((int)backoff, cancellationToken).ConfigureAwait(false);
                             backoff *= retry.ExponentialBackoffMultiplier;
                             if (backoff > retry.MaximumBackoffMilliseconds)
                             {
@@ -151,7 +151,7 @@
                         if (attempt != maxAttempts - 1)
                         {
                             _logger.LogTrace($"gRPC streaming call failed with status code {ex.StatusCode} on attempt {attempt + 1}. Retrying in {backoff}ms...");
-                            await Task.Delay((int)backoff);
+                            await Task.Delay((int)backoff, cancellationToken).ConfigureAwait(false);
                             backoff *= retry.ExponentialBackoffMultiplier;
                             if (backoff > retry.MaximumBackoffMilliseconds)
                             {

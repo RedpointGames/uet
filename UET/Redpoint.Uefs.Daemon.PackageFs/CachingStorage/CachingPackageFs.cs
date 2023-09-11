@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uefs.Daemon.PackageFs.CachingStorage
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Hashing;
     using Redpoint.Uefs.Daemon.PackageFs.Tagging;
     using Redpoint.Uefs.Daemon.RemoteStorage;
     using Redpoint.Uefs.Protocol;
@@ -68,11 +69,7 @@
                     var info = JsonSerializer.Deserialize(File.ReadAllText(file.FullName).Trim(), PackageFsInternalJsonSerializerContext.Default.PackageStorageTag);
                     if (File.Exists(Path.Combine(_infoStoragePath, info!.Hash + ".info")))
                     {
-                        string tagHash;
-                        using (var hasher = SHA256.Create())
-                        {
-                            tagHash = BitConverter.ToString(hasher.ComputeHash(Encoding.UTF8.GetBytes(info!.Tag))).Replace("-", "").ToLowerInvariant();
-                        }
+                        string tagHash = Hash.Sha256AsHexString(info!.Tag, Encoding.UTF8);
                         if (tagHash == Path.GetFileNameWithoutExtension(file.Name))
                         {
                             _tagReferences.Add(tagHash, info);
@@ -132,23 +129,23 @@
             Action<Action<PollingResponse>, string?> updatePollingResponse)
         {
             // Check to see if we already have this package on disk.
-            var normalizedPackageHash = packageDigest.Replace(":", "_");
+            var normalizedPackageHash = packageDigest.Replace(":", "_", StringComparison.Ordinal);
             if (_currentInfos.ContainsKey(normalizedPackageHash) &&
                 File.Exists(Path.Combine(_infoStoragePath, normalizedPackageHash + ".info")))
             {
                 // We do. Check if we need to update our tag data.
-                if (_tagReferences.ContainsKey(tagHash) &&
+                if (_tagReferences.TryGetValue(tagHash, out var tagHashValue) &&
                     File.Exists(Path.Combine(_tagStoragePath, tagHash + ".tag")))
                 {
-                    if (_tagReferences[tagHash].Hash != normalizedPackageHash)
+                    if (tagHashValue.Hash != normalizedPackageHash)
                     {
                         // Update the tag information on disk.
-                        _tagReferences[tagHash].Hash = normalizedPackageHash;
+                        tagHashValue.Hash = normalizedPackageHash;
                         await File.WriteAllTextAsync(
                             Path.Combine(_tagStoragePath, tagHash + ".tag"),
                             JsonSerializer.Serialize(
-                                _tagReferences[tagHash],
-                                PackageFsInternalJsonSerializerContext.Default.PackageStorageTag));
+                                tagHashValue,
+                                PackageFsInternalJsonSerializerContext.Default.PackageStorageTag)).ConfigureAwait(false);
                     }
                 }
                 else
@@ -163,7 +160,7 @@
                         Path.Combine(_tagStoragePath, tagHash + ".tag"),
                         JsonSerializer.Serialize(
                             _tagReferences[tagHash],
-                                PackageFsInternalJsonSerializerContext.Default.PackageStorageTag));
+                                PackageFsInternalJsonSerializerContext.Default.PackageStorageTag)).ConfigureAwait(false);
                 }
 
                 var earlyResultPath = Path.Combine(_vfsmountStoragePath, normalizedPackageHash + extension);
@@ -209,7 +206,7 @@
                 infoTargetPath,
                 JsonSerializer.Serialize(
                     info,
-                    PackageFsInternalJsonSerializerContext.Default.CachingInfoJson));
+                    PackageFsInternalJsonSerializerContext.Default.CachingInfoJson)).ConfigureAwait(false);
 
             // We now have this info on disk.
             _currentInfos.Add(normalizedPackageHash, info);
@@ -222,7 +219,7 @@
                 Path.Combine(_tagStoragePath, tagHash + ".tag"),
                 JsonSerializer.Serialize(
                     _tagReferences[tagHash],
-                    PackageFsInternalJsonSerializerContext.Default.PackageStorageTag));
+                    PackageFsInternalJsonSerializerContext.Default.PackageStorageTag)).ConfigureAwait(false);
 
             // Return the finished operation.
             var resultPath = Path.Combine(_vfsmountStoragePath, normalizedPackageHash + extension);
@@ -258,7 +255,7 @@
                 {
                     try
                     {
-                        if (!(await VerifyPackageAsync(isFixing, info.Key, info.Value, updatePollingResponse)))
+                        if (!(await VerifyPackageAsync(isFixing, info.Key, info.Value, updatePollingResponse).ConfigureAwait(false)))
                         {
                             didError = true;
                         }
@@ -271,7 +268,7 @@
                         });
                         didError = true;
                     }
-                });
+                }).ConfigureAwait(false);
                 if (didError)
                 {
                     return;
@@ -302,11 +299,7 @@
                         PackageFsInternalJsonSerializerContext.Default.PackageStorageTag);
                     if (File.Exists(Path.Combine(_infoStoragePath, info!.Hash + ".info")))
                     {
-                        string tagHash;
-                        using (var hasher = SHA256.Create())
-                        {
-                            tagHash = BitConverter.ToString(hasher.ComputeHash(Encoding.UTF8.GetBytes(info!.Tag))).Replace("-", "").ToLowerInvariant();
-                        }
+                        string tagHash = Hash.Sha256AsHexString(info!.Tag, Encoding.UTF8);
                         if (tagHash == Path.GetFileNameWithoutExtension(file.Name))
                         {
                             tagReferences.Add(tagHash, info);

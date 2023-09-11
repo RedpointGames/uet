@@ -20,7 +20,7 @@ namespace Redpoint.AutoDiscovery
         /// <summary>
         /// The known address list for the service.
         /// </summary>
-        public required IPAddress[] TargetAddressList { get; set; }
+        public required IReadOnlyCollection<IPAddress> TargetAddressList { get; set; }
 
         /// <summary>
         /// The port that the service is running on.

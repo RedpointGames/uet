@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.Uet.Automation.Worker.Local
 {
-    internal class LocalWorkerCrashData : IWorkerCrashData
+    internal sealed class LocalWorkerCrashData : IWorkerCrashData
     {
         private readonly string _callstack;
 

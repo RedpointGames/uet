@@ -1,10 +1,12 @@
-﻿namespace Redpoint.Uefs.Package.SparseImage
+﻿using System;
+
+namespace Redpoint.Uefs.Package.SparseImage
 {
     using System.Diagnostics;
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("macos")]
-    internal class SparseImagePackageWriter : IPackageWriter
+    internal sealed class SparseImagePackageWriter : IPackageWriter
     {
         private string? _mountPath = null;
         private bool _isMounted = false;
@@ -35,7 +37,7 @@
         public void OpenPackageForWriting(string packagePath, long indexSize, long dataSize)
         {
             // Check the filename is correct for usage with hdiutil.
-            if (!packagePath.EndsWith(".sparseimage"))
+            if (!packagePath.EndsWith(".sparseimage", StringComparison.OrdinalIgnoreCase))
             {
                 throw new PackageWriterException("the package path must end in '.sparseimage'");
             }
@@ -192,9 +194,9 @@
                 {
                     byte[] buffer = new byte[128 * 1024];
                     int bytesRead;
-                    while ((bytesRead = await reader.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) != 0)
+                    while ((bytesRead = await reader.ReadAsync(buffer).ConfigureAwait(false)) != 0)
                     {
-                        await writer.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);
+                        await writer.WriteAsync(buffer.AsMemory(0, bytesRead)).ConfigureAwait(false);
                         onFileBytesWritten(bytesRead);
                     }
 

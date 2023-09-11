@@ -13,7 +13,7 @@
     public class AsyncEvent : IAsyncEvent
     {
         private readonly List<Func<CancellationToken, Task>> _handlers;
-        private readonly MutexSlim _handlersLock;
+        private readonly Mutex _handlersLock;
 
         /// <summary>
         /// Construct a new asynchronous event.
@@ -21,34 +21,34 @@
         public AsyncEvent()
         {
             _handlers = new List<Func<CancellationToken, Task>>();
-            _handlersLock = new MutexSlim();
+            _handlersLock = new Mutex();
         }
 
         /// <inheritdoc />
         public void Add(Func<CancellationToken, Task> handler)
         {
-            using var _ = _handlersLock.Wait();
+            using var _ = _handlersLock.Wait(CancellationToken.None);
             _handlers.Add(handler);
         }
 
         /// <inheritdoc />
         public async Task AddAsync(Func<CancellationToken, Task> handler)
         {
-            using var _ = await _handlersLock.WaitAsync();
+            using var _ = await _handlersLock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             _handlers.Add(handler);
         }
 
         /// <inheritdoc />
         public void Remove(Func<CancellationToken, Task> handler)
         {
-            using var _ = _handlersLock.Wait();
+            using var _ = _handlersLock.Wait(CancellationToken.None);
             _handlers.Remove(handler);
         }
 
         /// <inheritdoc />
         public async Task RemoveAsync(Func<CancellationToken, Task> handler)
         {
-            using var _ = await _handlersLock.WaitAsync();
+            using var _ = await _handlersLock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             _handlers.Remove(handler);
         }
 
@@ -60,7 +60,7 @@
         public async Task BroadcastAsync(CancellationToken cancellationToken)
         {
             Func<CancellationToken, Task>[] handlers;
-            using (await _handlersLock.WaitAsync())
+            using (await _handlersLock.WaitAsync(cancellationToken).ConfigureAwait(false))
             {
                 handlers = _handlers.ToArray();
             }
@@ -69,8 +69,8 @@
                 cancellationToken,
                 async (handler, ct) =>
                 {
-                    await handler(ct);
-                });
+                    await handler(ct).ConfigureAwait(false);
+                }).ConfigureAwait(false);
         }
     }
 
@@ -81,7 +81,7 @@
     public class AsyncEvent<TArgs> : IAsyncEvent<TArgs>
     {
         private readonly List<Func<TArgs, CancellationToken, Task>> _handlers;
-        private readonly MutexSlim _handlersLock;
+        private readonly Mutex _handlersLock;
 
         /// <summary>
         /// Construct a new asynchronous event.
@@ -89,34 +89,34 @@
         public AsyncEvent()
         {
             _handlers = new List<Func<TArgs, CancellationToken, Task>>();
-            _handlersLock = new MutexSlim();
+            _handlersLock = new Mutex();
         }
 
         /// <inheritdoc />
         public void Add(Func<TArgs, CancellationToken, Task> handler)
         {
-            using var _ = _handlersLock.Wait();
+            using var _ = _handlersLock.Wait(CancellationToken.None);
             _handlers.Add(handler);
         }
 
         /// <inheritdoc />
         public async Task AddAsync(Func<TArgs, CancellationToken, Task> handler)
         {
-            using var _ = await _handlersLock.WaitAsync();
+            using var _ = await _handlersLock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             _handlers.Add(handler);
         }
 
         /// <inheritdoc />
         public void Remove(Func<TArgs, CancellationToken, Task> handler)
         {
-            using var _ = _handlersLock.Wait();
+            using var _ = _handlersLock.Wait(CancellationToken.None);
             _handlers.Remove(handler);
         }
 
         /// <inheritdoc />
         public async Task RemoveAsync(Func<TArgs, CancellationToken, Task> handler)
         {
-            using var _ = await _handlersLock.WaitAsync();
+            using var _ = await _handlersLock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             _handlers.Remove(handler);
         }
 
@@ -129,7 +129,7 @@
         public async Task BroadcastAsync(TArgs args, CancellationToken cancellationToken)
         {
             Func<TArgs, CancellationToken, Task>[] handlers;
-            using (await _handlersLock.WaitAsync())
+            using (await _handlersLock.WaitAsync(cancellationToken).ConfigureAwait(false))
             {
                 handlers = _handlers.ToArray();
             }
@@ -138,8 +138,8 @@
                 cancellationToken,
                 async (handler, ct) =>
                 {
-                    await handler(args, ct);
-                });
+                    await handler(args, ct).ConfigureAwait(false);
+                }).ConfigureAwait(false);
         }
     }
 }

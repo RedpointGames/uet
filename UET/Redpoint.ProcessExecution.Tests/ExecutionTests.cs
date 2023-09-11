@@ -31,7 +31,7 @@
                     },
                 },
                 CaptureSpecification.Passthrough,
-                CancellationToken.None);
+                CancellationToken.None).ConfigureAwait(false);
             Assert.Equal(0, exitCode);
         }
 
@@ -59,7 +59,7 @@
                     },
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None);
+                CancellationToken.None).ConfigureAwait(false);
             Assert.Equal(0, exitCode);
             Assert.Equal("test", stdout.ToString().Trim());
         }
@@ -87,7 +87,7 @@
                     },
                 },
                 CaptureSpecification.Passthrough,
-                CancellationToken.None);
+                CancellationToken.None).ConfigureAwait(false);
             Assert.Equal(1, exitCode);
         }
 
@@ -114,7 +114,7 @@
                     },
                 },
                 CaptureSpecification.Passthrough,
-                CancellationToken.None);
+                CancellationToken.None).ConfigureAwait(false);
             Assert.Equal(375, exitCode);
         }
 
@@ -144,8 +144,8 @@
                         },
                     },
                     CaptureSpecification.Passthrough,
-                    cts.Token);
-            });
+                    cts.Token).ConfigureAwait(false);
+            }).ConfigureAwait(false);
         }
 
         [SkippableFact]
@@ -177,7 +177,7 @@
                     },
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None);
+                CancellationToken.None).ConfigureAwait(false);
             Assert.Equal(0, exitCode);
         }
 
@@ -206,7 +206,7 @@
                     },
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None);
+                CancellationToken.None).ConfigureAwait(false);
             Assert.Equal(0, exitCode);
         }
 
@@ -239,10 +239,10 @@
                     },
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None);
+                CancellationToken.None).ConfigureAwait(false);
             Assert.Equal(0, exitCode);
             var lines = stdout.ToString().Split("\r\n");
-            Assert.Contains(lines, x => x.Contains("Redpoint.ProcessExecution.Tests.dll"));
+            Assert.Contains(lines, x => x.Contains("Redpoint.ProcessExecution.Tests.dll", StringComparison.OrdinalIgnoreCase));
         }
 
         [SkippableFact]
@@ -274,7 +274,7 @@
                     },
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None);
+                CancellationToken.None).ConfigureAwait(false);
             Assert.Equal(0, exitCode);
             Assert.Equal("test", stdout.ToString().Trim());
         }
@@ -308,7 +308,7 @@
                     PerProcessDriveMappings = new Dictionary<char, string>(),
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None);
+                CancellationToken.None).ConfigureAwait(false);
             Assert.Equal(0, exitCode);
             Assert.Equal("test", stdout.ToString().Trim());
         }
@@ -343,7 +343,7 @@
                     WorkingDirectory = "I:\\"
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None);
+                CancellationToken.None).ConfigureAwait(false);
             Assert.Equal(0, exitCode);
             Assert.Equal("test", stdout.ToString().Trim());
         }
@@ -378,10 +378,10 @@
                     WorkingDirectory = "I:\\"
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None);
+                CancellationToken.None).ConfigureAwait(false);
             Assert.Equal(0, exitCode);
             var lines = stdout.ToString().Split("\r\n");
-            Assert.Contains(lines, x => x.Contains("Redpoint.ProcessExecution.Tests.dll"));
+            Assert.Contains(lines, x => x.Contains("Redpoint.ProcessExecution.Tests.dll", StringComparison.OrdinalIgnoreCase));
         }
     }
 }

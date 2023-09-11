@@ -7,12 +7,13 @@
     using System;
     using System.Diagnostics.CodeAnalysis;
     using static Crayon.Output;
+    using System.Globalization;
 
     /// <summary>
     /// Based on https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Logging.Console/src/SimpleConsoleFormatter.cs because
     /// we need to modify it in unsupported ways.
     /// </summary>
-    internal class SimpleBuildConsoleFormatter : ConsoleFormatter, IDisposable
+    internal sealed class SimpleBuildConsoleFormatter : ConsoleFormatter, IDisposable
     {
         private const string _loglevelPadding = ":";
         private static readonly string _messagePadding = new string(' ', GetLogLevelString(LogLevel.Information).Length + _loglevelPadding.Length);
@@ -62,7 +63,7 @@
             if (timestampFormat != null)
             {
                 DateTimeOffset dateTimeOffset = GetCurrentDateTime();
-                timestamp = dateTimeOffset.ToString(timestampFormat);
+                timestamp = dateTimeOffset.ToString(timestampFormat, CultureInfo.InvariantCulture);
             }
             if (!FormatterOptions.OmitLogPrefix)
             {
@@ -141,7 +142,7 @@
 
             static void WriteReplacing(TextWriter writer, string oldValue, string newValue, string message)
             {
-                string newMessage = message.Replace(oldValue, newValue);
+                string newMessage = message.Replace(oldValue, newValue, StringComparison.Ordinal);
                 writer.Write(newMessage);
             }
         }
@@ -165,7 +166,7 @@
             };
         }
 
-        private Func<string, string> GetLogLevelConsoleColors(LogLevel logLevel)
+        private static Func<string, string> GetLogLevelConsoleColors(LogLevel logLevel)
         {
             return logLevel switch
             {

@@ -23,9 +23,9 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal class RunDriveMappedProcessCommand
+    internal sealed class RunDriveMappedProcessCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> ProcessPath;
             public Option<string> WorkingDirectory;
@@ -56,7 +56,7 @@
             return command;
         }
 
-        private class RunDriveMappedProcessCommandInstance : ICommandInstance
+        private sealed class RunDriveMappedProcessCommandInstance : ICommandInstance
         {
             private readonly ILogger<RunDriveMappedProcessCommandInstance> _logger;
             private readonly IProcessExecutor _processExecutor;
@@ -122,7 +122,7 @@
                     app.UseGrpcWeb();
                     app.MapGrpcService<WindowsRfs.WindowsRfsBase>();
 
-                    await app.StartAsync();
+                    await app.StartAsync().ConfigureAwait(false);
 
                     var servingPort = new Uri(app.Urls.First()).Port;
 
@@ -171,11 +171,11 @@
                     }
                     else
                     {
-                        spec.PerProcessDriveMappings = new Dictionary<char, string>();
+                        var newPerProcessDriveMappings = new Dictionary<char, string>();
                         foreach (var mapping in driveMappings)
                         {
                             var c = mapping.Split('=', 2, StringSplitOptions.TrimEntries);
-                            spec.PerProcessDriveMappings[c[0][0]] = c[1];
+                            newPerProcessDriveMappings[c[0][0]] = c[1];
 
                             if (c[0].ToUpperInvariant()[0] == 'C' &&
                                 !Directory.Exists(Path.Combine(c[1], "Windows")))
@@ -190,13 +190,14 @@
                                 }
                             }
                         }
+                        spec.PerProcessDriveMappings = newPerProcessDriveMappings;
                     }
                 }
 
                 var exitCode = await _processExecutor.ExecuteAsync(
                     spec,
                     CaptureSpecification.Passthrough,
-                    CancellationToken.None);
+                    CancellationToken.None).ConfigureAwait(false);
                 return exitCode;
             }
         }
