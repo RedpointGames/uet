@@ -61,11 +61,11 @@
     dotnet build -c Release /p:PackageVersion=$PACKAGE_VERSION /p:OpenGEShimRuntimeIdentifier=all /p:OpenGEShimIsAlreadyBuilt=true UET/UET.sln
     for TEST_PATH in $(find UET -type d -name "*.Tests"); do
       TEST_NAME=${TEST_PATH:4}
-      Write-Host "============ STARTING: $TEST_NAME ============"
       if [ -e "$TEST_PATH/$TEST_NAME.csproj" ]; then
+        echo "============ STARTING: $TEST_NAME ============"
         dotnet test --logger:"console" --logger:"junit;LogFilePath=$(pwd)/TestResults/$TEST_NAME.test-result.xml" "$TEST_PATH/bin/Release/net7.0/$TEST_NAME.dll"
+        echo "============ PASSED:   $TEST_NAME ============"
       fi
-      Write-Host "============ PASSED:   $TEST_NAME ============"
     done
   artifacts:
     reports:
