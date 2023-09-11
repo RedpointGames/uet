@@ -30,7 +30,7 @@
                 return;
             }
 
-            var goForwardPath = Path.Combine(Path.GetTempPath(), $"go-forward-{Process.GetCurrentProcess().Id}.exe");
+            var goForwardPath = Path.Combine(Path.GetTempPath(), $"go-forward-{Environment.ProcessId}.exe");
             Directory.CreateDirectory(Path.GetDirectoryName(goForwardPath)!);
             if (File.Exists(goForwardPath))
             {
@@ -40,7 +40,7 @@
             {
                 using (var target = new FileStream(goForwardPath, FileMode.Create, FileAccess.ReadWrite))
                 {
-                    await source.CopyToAsync(target);
+                    await source.CopyToAsync(target).ConfigureAwait(false);
                 }
             }
 
@@ -86,7 +86,7 @@
                     {
                         _logger.LogError("Failed to start go-forward!");
                     }
-                    await process.WaitForExitAsync(stoppingToken);
+                    await process.WaitForExitAsync(stoppingToken).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -105,7 +105,7 @@
                 stoppingToken.ThrowIfCancellationRequested();
 
                 _logger.LogInformation($"go-forward exited with exit code {process.ExitCode}, restarting in {_secondsBackoff} seconds...");
-                await Task.Delay(_secondsBackoff * 1000, stoppingToken);
+                await Task.Delay(_secondsBackoff * 1000, stoppingToken).ConfigureAwait(false);
                 _secondsBackoff *= 2;
                 if (_secondsBackoff > 30)
                 {

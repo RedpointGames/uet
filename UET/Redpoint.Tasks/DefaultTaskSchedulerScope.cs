@@ -1,13 +1,16 @@
 ﻿namespace Redpoint.Tasks
 {
+    using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
+    using System.Diagnostics;
 
     internal class DefaultTaskSchedulerScope : ITaskSchedulerScope
     {
+        private readonly ILogger _logger;
         private readonly string _scopeName;
         private readonly CancellationTokenSource _scopeCancellationTokenSource;
         private readonly List<ScheduledTask> _tasks;
-        private readonly MutexSlim _tasksMutex;
+        private readonly Mutex _tasksMutex;
 
         private class ScheduledTask
         {
@@ -17,13 +20,19 @@
         }
 
         public DefaultTaskSchedulerScope(
+            ILogger logger,
             string scopeName,
             CancellationToken scopeCancellationToken)
         {
+            _logger = logger;
             _scopeName = scopeName;
             _scopeCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(scopeCancellationToken);
             _tasks = new List<ScheduledTask>();
-            _tasksMutex = new MutexSlim();
+            _tasksMutex = new Mutex();
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace($"A new task scheduling scope has been created: {_scopeName}");
+            }
         }
 
         public string[] GetCurrentlyExecutingTasks()
@@ -48,6 +57,10 @@
             {
                 _tasks.Add(scheduledTask);
             }
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace($"Scheduling task: {_scopeName}/{taskName}");
+            }
             scheduledTask.InternalTask = Task.Run(async () =>
             {
                 try
@@ -56,6 +69,10 @@
                 }
                 finally
                 {
+                    if (_logger.IsEnabled(LogLevel.Trace))
+                    {
+                        _logger.LogTrace($"Scheduled task ended: {_scopeName}/{taskName}");
+                    }
                     using (await _tasksMutex.WaitAsync(CancellationToken.None))
                     {
                         _tasks.Remove(scheduledTask);
@@ -67,37 +84,48 @@
 
         public async ValueTask DisposeAsync()
         {
-            var exceptions = new List<Exception>();
-            _scopeCancellationTokenSource.Cancel();
-            List<ScheduledTask> tasksCopy;
-            using (await _tasksMutex.WaitAsync(CancellationToken.None))
+            var st = _logger.IsEnabled(LogLevel.Trace) ? Stopwatch.StartNew() : null;
+            try
             {
-                tasksCopy = _tasks.ToList();
-                _tasks.Clear();
-            }
-            foreach (var task in tasksCopy)
-            {
-                try
+                var exceptions = new List<Exception>();
+                _scopeCancellationTokenSource.Cancel();
+                List<ScheduledTask> tasksCopy;
+                using (await _tasksMutex.WaitAsync(CancellationToken.None))
                 {
-                    var internalTask = task.InternalTask;
-                    if (internalTask != null)
+                    tasksCopy = _tasks.ToList();
+                    _tasks.Clear();
+                }
+                foreach (var task in tasksCopy)
+                {
+                    try
                     {
-                        await internalTask;
+                        var internalTask = task.InternalTask;
+                        if (internalTask != null)
+                        {
+                            await internalTask;
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Consume this exception.
+                    }
+                    catch (Exception ex)
+                    {
+                        // Track this exception so we can propagate it.
+                        exceptions.Add(ex);
                     }
                 }
-                catch (OperationCanceledException)
+                if (exceptions.Count > 0)
                 {
-                    // Consume this exception.
-                }
-                catch (Exception ex)
-                {
-                    // Track this exception so we can propagate it.
-                    exceptions.Add(ex);
+                    throw new AggregateException(exceptions);
                 }
             }
-            if (exceptions.Count > 0)
+            finally
             {
-                throw new AggregateException(exceptions);
+                if (_logger.IsEnabled(LogLevel.Trace) && st != null)
+                {
+                    _logger.LogTrace($"Took {st.ElapsedMilliseconds} milliseconds to shutdown scheduling scope: {_scopeName}");
+                }
             }
         }
 

@@ -11,9 +11,10 @@
     /// dequeue items from and asynchronously enumerate over.
     /// </summary>
     /// <typeparam name="T">The element in the queue.</typeparam>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix", Justification = "This class implements a queue.")]
     public class AwaitableConcurrentQueue<T> : IAsyncEnumerable<T>
     {
-        private readonly SemaphoreSlim _ready = new SemaphoreSlim(0);
+        private readonly Semaphore _ready = new Semaphore(0);
         private readonly ConcurrentQueue<T> _queue = new ConcurrentQueue<T>();
 
         /// <summary>
@@ -41,7 +42,7 @@
         /// <returns>The item that was dequeued.</returns>
         public async ValueTask<T> DequeueAsync(CancellationToken cancellationToken)
         {
-            await _ready.WaitAsync(cancellationToken);
+            await _ready.WaitAsync(cancellationToken).ConfigureAwait(false);
             if (!_queue.TryDequeue(out var result))
             {
                 throw new InvalidOperationException("Dequeue failed to pull item off queue. This is an internal bug.");
@@ -55,7 +56,7 @@
             return new AsyncEnumerator(this, cancellationToken);
         }
 
-        private class AsyncEnumerator : IAsyncEnumerator<T>
+        private sealed class AsyncEnumerator : IAsyncEnumerator<T>
         {
             private readonly AwaitableConcurrentQueue<T> _queue;
             private readonly CancellationToken _cancellationToken;
@@ -83,7 +84,7 @@
 
             public async ValueTask<bool> MoveNextAsync()
             {
-                _current = await _queue.DequeueAsync(_cancellationToken);
+                _current = await _queue.DequeueAsync(_cancellationToken).ConfigureAwait(false);
                 _currentSet = true;
                 return true;
             }

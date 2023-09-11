@@ -7,15 +7,14 @@
     /// This class allows you to access a registry key using the PowerShell style convention of <code>HKXX:\Path\To\Key</code>, which significantly reduces the boilerplate required to open nested registry keys.
     /// </summary>
     [SupportedOSPlatform("windows")]
-    public class RegistryStack : IDisposable
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix", Justification = "This class behaves like a stack.")]
+    public sealed class RegistryStack : IDisposable
     {
-        private readonly string _path;
         private readonly RegistryKey[] _openedKeys;
         private readonly bool _exists;
 
-        private RegistryStack(string path, RegistryKey[] openedKeys, bool exists)
+        private RegistryStack(RegistryKey[] openedKeys, bool exists)
         {
-            _path = path;
             _openedKeys = openedKeys;
             _exists = exists;
         }
@@ -34,6 +33,8 @@
         /// <exception cref="RegistryPathNotWellFormedException">Thrown if the registry path does not start with "HKCU:" or "HKLM:".</exception>
         public static RegistryStack OpenPath(string path, bool writable = false, bool create = false)
         {
+            if (path == null) throw new ArgumentNullException(nameof(path));
+
             var openedKeys = new List<RegistryKey>();
             RegistryKey? currentKey;
             var components = path.Split("\\");
@@ -86,7 +87,7 @@
                 }
                 openedKeys.Add(currentKey);
             }
-            return new RegistryStack(path, openedKeys.ToArray(), exists);
+            return new RegistryStack(openedKeys.ToArray(), exists);
         }
 
         /// <summary>
@@ -101,7 +102,9 @@
                 {
                     return _openedKeys[_openedKeys.Length - 1];
                 }
+#pragma warning disable CA1065 // Do not raise exceptions in unexpected locations
                 throw new RegistryKeyNotFoundException();
+#pragma warning restore CA1065 // Do not raise exceptions in unexpected locations
             }
         }
 

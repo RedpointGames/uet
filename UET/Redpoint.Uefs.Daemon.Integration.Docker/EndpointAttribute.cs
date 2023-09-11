@@ -1,7 +1,7 @@
 ﻿namespace Redpoint.Uefs.Daemon.Integration.Docker
 {
     [AttributeUsage(AttributeTargets.Class)]
-    public class EndpointAttribute : Attribute
+    public sealed class EndpointAttribute : Attribute
     {
         public EndpointAttribute(string url)
         {

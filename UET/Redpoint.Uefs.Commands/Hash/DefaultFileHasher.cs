@@ -62,16 +62,16 @@
                                         }
                                     }
                                 },
-                                cts.Token);
+                                cts.Token).ConfigureAwait(false);
                         });
 
-                        var shaBytes = await hasher.ComputeHashAsync(stream);
-                        sha256 = "sha256:" + BitConverter.ToString(shaBytes).Replace("-", "").ToLowerInvariant();
+                        var shaBytes = await hasher.ComputeHashAsync(stream).ConfigureAwait(false);
+                        sha256 = "sha256:" + Hashing.Hash.Sha256AsHexString(shaBytes);
 
                         cts.Cancel();
                         try
                         {
-                            await monitorTask;
+                            await monitorTask.ConfigureAwait(false);
                         }
                         catch (TaskCanceledException) { }
 
@@ -81,12 +81,12 @@
                         }
                     }
                 }
-                await File.WriteAllTextAsync(digestPath, sha256);
+                await File.WriteAllTextAsync(digestPath, sha256).ConfigureAwait(false);
             }
             else
             {
                 Console.WriteLine("reading digest from existing digest file");
-                sha256 = (await File.ReadAllTextAsync(digestPath)).Trim();
+                sha256 = (await File.ReadAllTextAsync(digestPath).ConfigureAwait(false)).Trim();
             }
             return sha256;
         }

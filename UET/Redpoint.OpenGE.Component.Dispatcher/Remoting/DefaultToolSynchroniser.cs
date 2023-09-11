@@ -14,14 +14,10 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal interface IHashedToolInfo
-    {
-    }
-
     internal class DefaultToolSynchroniser : IToolSynchroniser
     {
         private readonly Dictionary<string, HashedToolInfo> _hashedToolCache = new Dictionary<string, HashedToolInfo>();
-        private readonly SemaphoreSlim _toolHashingSemaphore = new SemaphoreSlim(1);
+        private readonly Concurrency.Semaphore _toolHashingSemaphore = new Concurrency.Semaphore(1);
 
         private class HashedToolInfo : IHashedToolInfo
         {
@@ -41,7 +37,7 @@
             // Compute all the files we want on the remote
             // machine and all of the hashes.
             HashedToolInfo toolInfo;
-            await _toolHashingSemaphore.WaitAsync(cancellationToken);
+            await _toolHashingSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 var toolLastModifiedUtc = File.GetLastWriteTimeUtc(path);
@@ -63,9 +59,9 @@
                         async (file, cancellationToken) =>
                         {
                             var relativePath = Path.GetRelativePath(basePath, file).Replace('\\', '/');
-                            var pathHash = (await XxHash64Helpers.HashFile(file, cancellationToken)).hash;
+                            var pathHash = (await XxHash64Helpers.HashFile(file, cancellationToken).ConfigureAwait(false)).hash;
                             files[relativePath] = pathHash;
-                        });
+                        }).ConfigureAwait(false);
                     var sortedHashes = files.Values.OrderBy(x => x).ToArray();
                     var toolHashBuffer = new byte[sortedHashes.Length * sizeof(long)];
                     for (int i = 0; i < sortedHashes.Length; i++)
@@ -110,8 +106,8 @@
                 {
                     ToolXxHash64 = toolInfo.ToolXxHash64,
                 }
-            });
-            var response = await workerCore.Request.GetNextAsync();
+            }, cancellationToken).ConfigureAwait(false);
+            var response = await workerCore.Request.GetNextAsync(cancellationToken).ConfigureAwait(false);
             if (response.ResponseCase != ExecutionResponse.ResponseOneofCase.QueryTool)
             {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Remote worker did not respond with a QueryToolResponse."));
@@ -139,8 +135,8 @@
             await workerCore.Request.RequestStream.WriteAsync(new ExecutionRequest
             {
                 HasToolBlobs = hasToolBlobsRequest,
-            });
-            response = await workerCore.Request.GetNextAsync();
+            }, cancellationToken).ConfigureAwait(false);
+            response = await workerCore.Request.GetNextAsync(cancellationToken).ConfigureAwait(false);
             if (response.ResponseCase != ExecutionResponse.ResponseOneofCase.HasToolBlobs)
             {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Remote worker did not respond with a HasToolBlobsResponse."));
@@ -188,9 +184,9 @@
                         await workerCore.Request.RequestStream.WriteAsync(new ExecutionRequest
                         {
                             WriteToolBlob = writeToolBlobRequest,
-                        });
+                        }, cancellationToken).ConfigureAwait(false);
                     }
-                    response = await workerCore.Request.GetNextAsync();
+                    response = await workerCore.Request.GetNextAsync(cancellationToken).ConfigureAwait(false);
                     if (response.ResponseCase != ExecutionResponse.ResponseOneofCase.WriteToolBlob)
                     {
                         throw new RpcException(new Status(StatusCode.InvalidArgument, "Remote worker did not respond with a WriteToolBlobResponse."));
@@ -214,8 +210,8 @@
             await workerCore.Request.RequestStream.WriteAsync(new ExecutionRequest
             {
                 ConstructTool = constructToolRequest,
-            });
-            response = await workerCore.Request.GetNextAsync();
+            }, cancellationToken).ConfigureAwait(false);
+            response = await workerCore.Request.GetNextAsync(cancellationToken).ConfigureAwait(false);
             if (response.ResponseCase != ExecutionResponse.ResponseOneofCase.ConstructTool)
             {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Remote worker did not respond with a ConstructToolResponse."));

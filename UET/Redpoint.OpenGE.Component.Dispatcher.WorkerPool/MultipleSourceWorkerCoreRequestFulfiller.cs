@@ -16,9 +16,9 @@
         private readonly WorkerCoreRequestCollection<TWorkerCore> _requestCollection;
         private readonly WorkerCoreProviderCollection<TWorkerCore> _providerCollection;
         private readonly bool _fulfillsLocalRequests;
-        private readonly SemaphoreSlim _processRequestsSemaphore;
+        private readonly Semaphore _processRequestsSemaphore;
         private readonly Dictionary<IWorkerCoreProvider<TWorkerCore>, WorkerCoreObtainmentState> _currentProviders;
-        private readonly MutexSlim _currentProvidersLock;
+        private readonly Mutex _currentProvidersLock;
         private readonly Task _backgroundTask;
         private WorkerPoolTracer? _tracer;
 
@@ -182,9 +182,9 @@
             _requestCollection = requestCollection;
             _providerCollection = providerCollection;
             _fulfillsLocalRequests = canFulfillLocalRequests;
-            _processRequestsSemaphore = new SemaphoreSlim(1);
+            _processRequestsSemaphore = new Semaphore(1);
             _currentProviders = new Dictionary<IWorkerCoreProvider<TWorkerCore>, WorkerCoreObtainmentState>();
-            _currentProvidersLock = new MutexSlim();
+            _currentProvidersLock = new Mutex();
             _backgroundTask = _taskSchedulerScope.RunAsync("BackgroundTask", CancellationToken.None, RunAsync);
         }
 
@@ -256,7 +256,7 @@
                 catch (Exception ex)
                 {
                     _logger.LogCritical(ex, ex.Message);
-                    await Task.Delay(1000);
+                    await Task.Delay(1000, cancellationToken);
                 }
             }
             while (true)

@@ -89,7 +89,7 @@
                     {
                         previousEnginePath = (await File.ReadAllTextAsync(
                             Path.Combine(candidate, "UETLastEnginePath.txt"),
-                            context.GetCancellationToken())).Trim();
+                            context.GetCancellationToken()).ConfigureAwait(false)).Trim();
                     }
 
                     if (!string.Equals(enginePath.FullName, previousEnginePath, StringComparison.OrdinalIgnoreCase))
@@ -112,7 +112,7 @@
                     await File.WriteAllTextAsync(
                         Path.Combine(candidate, "UETLastEnginePath.txt"),
                         enginePath.FullName,
-                        context.GetCancellationToken());
+                        context.GetCancellationToken()).ConfigureAwait(false);
                 }
 
                 return 0;

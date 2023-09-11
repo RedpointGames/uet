@@ -172,8 +172,8 @@
                             {
                                 var files = Directory.GetFiles(Path.Combine(path.DirectoryPath, "Source"), "*.Target.cs");
                                 editorTarget = files.Where(x => x.EndsWith("Editor.Target.cs")).Select(x => Path.GetFileName(x)).First();
-                                editorTarget = editorTarget.Substring(0, editorTarget.LastIndexOf(".Target.cs"));
-                                gameTarget = editorTarget.Substring(0, editorTarget.LastIndexOf("Editor"));
+                                editorTarget = editorTarget[..editorTarget.LastIndexOf(".Target.cs")];
+                                gameTarget = editorTarget[..editorTarget.LastIndexOf("Editor")];
                             }
                             else
                             {
@@ -223,7 +223,7 @@
                                 executeTests: true,
                                 executeDeployment: false,
                                 strictIncludes: false,
-                                localExecutor: true);
+                                localExecutor: true).ConfigureAwait(false);
                             break;
                         case PathSpecType.UPlugin:
                             var buildConfigPlugin = new BuildConfigPlugin
@@ -283,7 +283,7 @@
                                 localExecutor: true,
                                 isPluginRooted: true,
                                 commandlinePluginVersionName: null,
-                                commandlinePluginVersionNumber: null);
+                                commandlinePluginVersionNumber: null).ConfigureAwait(false);
                             break;
                         default:
                             throw new NotSupportedException();
@@ -304,7 +304,7 @@
                         null,
                         executionEvents,
                         CaptureSpecification.Passthrough,
-                        context.GetCancellationToken());
+                        context.GetCancellationToken()).ConfigureAwait(false);
                     if (buildResult == 0)
                     {
                         _logger.LogInformation($"All build jobs {Bright.Green("passed successfully")}.");

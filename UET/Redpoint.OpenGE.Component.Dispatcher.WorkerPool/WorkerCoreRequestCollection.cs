@@ -10,14 +10,14 @@
     public partial class WorkerCoreRequestCollection<TWorkerCore> : IWorkerPoolTracerAssignable where TWorkerCore : IAsyncDisposable
     {
         private readonly List<WorkerCoreRequest> _requests;
-        private readonly MutexSlim _requestLock;
+        private readonly Concurrency.Mutex _requestLock;
         private readonly AsyncEvent<WorkerCoreRequestStatistics> _onRequestsChanged;
         private WorkerPoolTracer? _tracer;
 
         public WorkerCoreRequestCollection()
         {
             _requests = new List<WorkerCoreRequest>();
-            _requestLock = new MutexSlim();
+            _requestLock = new Concurrency.Mutex();
             _onRequestsChanged = new AsyncEvent<WorkerCoreRequestStatistics>();
         }
 

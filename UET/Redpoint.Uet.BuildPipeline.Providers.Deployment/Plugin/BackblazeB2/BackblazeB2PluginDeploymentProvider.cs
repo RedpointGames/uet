@@ -59,7 +59,7 @@
                                     new SpawnElementProperties
                                     {
                                         Exe = "$(UETPath)",
-                                        Arguments = (_globalArgsProvider?.GlobalArgsArray ?? new string[0]).Concat(new[]
+                                        Arguments = (_globalArgsProvider?.GlobalArgsArray ?? Array.Empty<string>()).Concat(new[]
                                         {
                                             "internal",
                                             "upload-to-backblaze-b2",

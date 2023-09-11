@@ -76,7 +76,7 @@
                 var version = context.ParseResult.GetValueForOption(_options.Version)!;
                 var files = (context.ParseResult.GetValueForOption(_options.Files) ?? Array.Empty<string>()).Select(x =>
                 {
-                    if (x.Contains("="))
+                    if (x.Contains('=', StringComparison.Ordinal))
                     {
                         var c = x.Split("=", 3);
                         return (
@@ -121,10 +121,10 @@
 
                     if (!schemaOnly)
                     {
-                        await _releaseUploader.CreateVersionReleaseAsync(context, version, files, client);
-                        await _releaseUploader.UpdateLatestReleaseAsync(context, version, files, client);
+                        await _releaseUploader.CreateVersionReleaseAsync(context, version, files, client).ConfigureAwait(false);
+                        await _releaseUploader.UpdateLatestReleaseAsync(context, version, files, client).ConfigureAwait(false);
                     }
-                    await _schemaUploader.UpdateSchemaRepositoryAsync(version, client, context.GetCancellationToken());
+                    await _schemaUploader.UpdateSchemaRepositoryAsync(version, client, context.GetCancellationToken()).ConfigureAwait(false);
 
                     _logger.LogInformation($"GitHub release process complete.");
                     return 0;

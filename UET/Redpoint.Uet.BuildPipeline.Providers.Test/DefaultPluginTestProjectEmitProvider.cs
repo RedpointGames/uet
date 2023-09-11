@@ -59,7 +59,7 @@
                                 {
                                     Name = $"{_propertyPrefix}_PluginEditorBinaries_{platform}",
                                     Value = string.Empty,
-                                });
+                                }).ConfigureAwait(false);
                             await writer.WritePropertyAsync(
                                 new PropertyElementProperties
                                 {
@@ -68,7 +68,7 @@
                                     // @note: Plugin binaries are only available when not making a Marketplace package. For
                                     // Marketplace packages, the plugin is compiled as part of the automation project prior to testing.
                                     If = $"'$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditor{platform})' == 'true'"
-                                });
+                                }).ConfigureAwait(false);
                             await writer.WriteExpandAsync(
                                 new ExpandElementProperties
                                 {
@@ -83,9 +83,9 @@
                                         { "OutputTag", $"#{_propertyPrefix}_Plugin_{platform}" },
                                     },
                                     If = platform == BuildConfigHostPlatform.Mac ? "'$(IsBuildMachine)' == 'true'" : null,
-                                });
+                                }).ConfigureAwait(false);
                         }
-                    });
+                    }).ConfigureAwait(false);
 
                 // Assemble our "editor automation" projects. These just contain the packages for the relevant
                 // host platform. We potentially have two projects because one will have the Windows plugin
@@ -113,9 +113,9 @@
                                         { "OutputTag", $"#{_propertyPrefix}_Project_{platform}" },
                                         { "IsForGauntlet", "false" },
                                     }
-                                });
+                                }).ConfigureAwait(false);
                         }
-                    });
+                    }).ConfigureAwait(false);
 
                 // Execute our editor automation tests.
                 foreach (var platform in allPlatforms)
@@ -155,7 +155,7 @@
                                                 { "TargetPlatform", platform.ToString() },
                                                 { "TargetConfiguration", "Development" },
                                             }
-                                        });
+                                        }).ConfigureAwait(false);
                                     await writer.WriteCompileAsync(
                                         new CompileElementProperties
                                         {
@@ -171,9 +171,9 @@
                                                 "-NoDebugInfo",
                                                 "$(AdditionalArguments)",
                                             }
-                                        });
-                                });
-                        });
+                                        }).ConfigureAwait(false);
+                                }).ConfigureAwait(false);
+                        }).ConfigureAwait(false);
 
                     // @note: We use a property here because there won't be any compiled binaries when building
                     // for the Marketplace. This allows the nodes below to pull in compiled binaries only when
@@ -183,16 +183,16 @@
                         {
                             Name = $"{_propertyPrefix}_ProjectCompiled_{platform}",
                             Value = string.Empty,
-                        });
+                        }).ConfigureAwait(false);
                     await writer.WritePropertyAsync(
                         new PropertyElementProperties
                         {
                             Name = $"{_propertyPrefix}_ProjectCompiled_{platform}",
                             Value = $"#{_propertyPrefix}_ProjectCompiled_{platform}",
                             If = marketplaceCondition
-                        });
+                        }).ConfigureAwait(false);
                 }
-            });
+            }).ConfigureAwait(false);
         }
     }
 }

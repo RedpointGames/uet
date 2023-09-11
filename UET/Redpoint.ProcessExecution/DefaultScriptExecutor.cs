@@ -28,7 +28,7 @@
                     FilePath = await _pathResolver.ResolveBinaryPath(
                         OperatingSystem.IsWindows()
                             ? "powershell"
-                            : "pwsh"),
+                            : "pwsh").ConfigureAwait(false),
                     Arguments = new[]
                     {
                         "-ExecutionPolicy",
@@ -38,7 +38,7 @@
                     EnvironmentVariables = scriptSpecification.EnvironmentVariables,
                 },
                 captureSpecification,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace Redpoint.IO
+﻿using System;
+
+namespace Redpoint.IO
 {
     using System;
     using System.ComponentModel;
@@ -11,10 +13,12 @@
         [SupportedOSPlatform("windows5.1.2600")]
         public unsafe static string GetFullyQualifiedDosDevicePath(string path)
         {
-            if (path.StartsWith(@"\\"))
+            if (path == null) throw new ArgumentNullException(nameof(path));
+
+            if (path.StartsWith(@"\\", StringComparison.OrdinalIgnoreCase))
             {
                 // This is a UNC path.
-                return @"\Device\Mup\" + path.Substring(2);
+                return string.Concat(@"\Device\Mup\", path.AsSpan(2));
             }
             else
             {
@@ -41,11 +45,11 @@
                         }
                     }
                 }
-                if (dosDevice == string.Empty)
+                if (string.IsNullOrEmpty(dosDevice))
                 {
                     throw new InvalidOperationException($"Unable to resolve DosDevice for path root '{driveRoot}'");
                 }
-                return (dosDevice + '\\' + path.Substring(3)).TrimEnd('\\');
+                return (string.Concat(dosDevice, "\\", path.AsSpan(3))).TrimEnd('\\');
             }
         }
     }

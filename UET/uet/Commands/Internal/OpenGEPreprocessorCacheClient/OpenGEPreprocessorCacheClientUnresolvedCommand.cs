@@ -60,12 +60,12 @@
                     }
                 });
 
-                await preprocessorCache.EnsureAsync();
+                await preprocessorCache.EnsureAsync().ConfigureAwait(false);
 
                 var st = Stopwatch.StartNew();
                 var result = await preprocessorCache.GetUnresolvedDependenciesAsync(
                     context.ParseResult.GetValueForOption(_options.File)!.FullName,
-                    context.GetCancellationToken());
+                    context.GetCancellationToken()).ConfigureAwait(false);
                 var ms = st.ElapsedMilliseconds;
 
                 _logger.LogInformation($"Initial request completed in: {ms}ms");
@@ -73,7 +73,7 @@
                     st = Stopwatch.StartNew();
                     _ = await preprocessorCache.GetUnresolvedDependenciesAsync(
                         context.ParseResult.GetValueForOption(_options.File)!.FullName,
-                        context.GetCancellationToken());
+                        context.GetCancellationToken()).ConfigureAwait(false);
                     ms = st.ElapsedMilliseconds;
                 }
                 _logger.LogInformation($"Subsequent request completed in: {ms}ms");

@@ -60,7 +60,7 @@
                 _ => throw new PlatformNotSupportedException(),
             };
 
-            var xgeShimFolder = Path.Combine(Path.GetTempPath(), $"openge-shim-{Process.GetCurrentProcess().Id}");
+            var xgeShimFolder = Path.Combine(Path.GetTempPath(), $"openge-shim-{Environment.ProcessId}");
             var xgeShimPath = Path.Combine(xgeShimFolder, shimName);
 
             await _semaphoreSlim.WaitAsync(cancellationToken);

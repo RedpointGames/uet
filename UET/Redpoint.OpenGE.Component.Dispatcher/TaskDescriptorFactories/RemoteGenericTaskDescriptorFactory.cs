@@ -12,7 +12,7 @@
 
     internal class RemoteGenericTaskDescriptorFactory : RemoteTaskDescriptorFactory
     {
-        private ISet<string> _recognisedTools = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase)
+        private ISet<string> _recognisedTools = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "cl.exe",
         };
@@ -38,7 +38,7 @@
         {
             // Compute the environment variables, excluding any environment variables we
             // know to be per-machine.
-            var environmentVariables = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+            var environmentVariables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var kv in spec.ExecutionEnvironment.EnvironmentVariables)
             {
                 environmentVariables[kv.Key] = kv.Value;

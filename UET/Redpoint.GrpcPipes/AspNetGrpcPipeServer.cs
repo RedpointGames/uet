@@ -11,7 +11,8 @@
     using System.Diagnostics.CodeAnalysis;
     using System.Net;
 
-    internal class AspNetGrpcPipeServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T> : IGrpcPipeServer<T> where T : class
+    [SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable", Justification = "The resource is released when StopAsync is called.")]
+    internal partial class AspNetGrpcPipeServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T> : IGrpcPipeServer<T> where T : class
     {
         private readonly string _pipePath;
         private readonly T _instance;
@@ -32,6 +33,42 @@
             _pipeNamespace = pipeNamespace;
         }
 
+        [LoggerMessage(
+            EventId = 0,
+            Level = LogLevel.Trace,
+            Message = "Attempting to start gRPC server...")]
+        static partial void LogGrpcServerStarting(ILogger logger);
+
+        [LoggerMessage(
+            EventId = 1,
+            Level = LogLevel.Trace,
+            Message = "Using TCP socket with plain text pointer file to workaround issue in .NET 7 where Unix sockets do not work on Windows.")]
+        static partial void LogTcpSocketFallback(ILogger logger);
+
+        [LoggerMessage(
+            EventId = 2,
+            Level = LogLevel.Trace,
+            Message = "Wrote pointer file with content '{pointerContent}' to: {pipePath}")]
+        static partial void LogWrotePointerFile(ILogger logger, string pointerContent, string pipePath);
+
+        [LoggerMessage(
+            EventId = 3,
+            Level = LogLevel.Trace,
+            Message = "gRPC server started successfully.")]
+        static partial void LogGrpcServerStarted(ILogger logger);
+
+        [LoggerMessage(
+            EventId = 4,
+            Level = LogLevel.Trace,
+            Message = "Removing existing pointer file from: {pipePath}")]
+        static partial void LogRemovingPointerFile(ILogger logger, string pipePath);
+
+        [LoggerMessage(
+            EventId = 5,
+            Level = LogLevel.Trace,
+            Message = "Removing existing UNIX socket from: {pipePath}")]
+        static partial void LogRemovingUnixSocket(ILogger logger, string pipePath);
+
         public async Task StartAsync()
         {
             if (_app != null)
@@ -43,12 +80,14 @@
                 WebApplication? app = null;
                 try
                 {
-                    _logger.LogTrace("Attempting to start gRPC server...");
+                    LogGrpcServerStarting(_logger);
 
                     Directory.CreateDirectory(Path.GetDirectoryName(_pipePath)!);
                     var builder = WebApplication.CreateBuilder();
                     builder.Logging.ClearProviders();
+#pragma warning disable CA2000 // Dispose objects before losing scope
                     builder.Logging.AddProvider(new ForwardingLoggerProvider(_logger));
+#pragma warning restore CA2000 // Dispose objects before losing scope
                     builder.Services.AddGrpc(options =>
                     {
                         // Allow unlimited message sizes.
@@ -66,7 +105,7 @@
                             // on Windows (see https://github.com/dotnet/aspnetcore/issues/47043#issuecomment-1589922597),
                             // so until we can move to .NET 8 with named pipes, we have to do this
                             // jank workaround.
-                            _logger.LogTrace("Using TCP socket with plain text pointer file to workaround issue in .NET 7 where Unix sockets do not work on Windows.");
+                            LogTcpSocketFallback(_logger);
                             serverOptions.Listen(
                                 new IPEndPoint(IPAddress.Loopback, 0),
                                 listenOptions =>
@@ -89,12 +128,12 @@
                     app.UseRouting();
                     app.MapGrpcService<T>();
 
-                    await app.StartAsync();
+                    await app.StartAsync().ConfigureAwait(false);
 
                     if (OperatingSystem.IsWindows())
                     {
                         var pointerContent = $"pointer: {app.Urls.First()}";
-                        _logger.LogTrace($"Wrote pointer file with content '{pointerContent}' to: {_pipePath}");
+                        LogWrotePointerFile(_logger, pointerContent, _pipePath);
                         _pipePointerStream = new FileStream(
                             _pipePath,
                             FileMode.Create,
@@ -104,10 +143,10 @@
                             FileOptions.DeleteOnClose);
                         using (var writer = new StreamWriter(_pipePointerStream, leaveOpen: true))
                         {
-                            writer.Write(pointerContent);
-                            writer.Flush();
+                            await writer.WriteAsync(pointerContent).ConfigureAwait(false);
+                            await writer.FlushAsync().ConfigureAwait(false);
                         }
-                        _pipePointerStream.Flush();
+                        await _pipePointerStream.FlushAsync().ConfigureAwait(false);
                         // @note: Now we hold the FileStream open until we shutdown and then let FileOptions.DeleteOnClose delete it.
                     }
                     else if (_pipeNamespace == GrpcPipeNamespace.Computer)
@@ -126,7 +165,7 @@
                             UnixFileMode.OtherExecute);
                     }
 
-                    _logger.LogTrace("gRPC server started successfully.");
+                    LogGrpcServerStarted(_logger);
                     _app = app;
                     return;
                 }
@@ -134,27 +173,27 @@
                     // Unix socket is in use by another process.
                     ex.InnerException is AddressInUseException ||
                     // Pointer file is open by another server.
-                    ex.Message.Contains("used by another process") ||
+                    ex.Message.Contains("used by another process", StringComparison.OrdinalIgnoreCase) ||
                     // Old Unix socket on Windows which we can't write the pointer file into (because it's still a Unix socket).
-                    ex.Message.Contains("cannot be accessed by the system")) && File.Exists(_pipePath))
+                    ex.Message.Contains("cannot be accessed by the system", StringComparison.OrdinalIgnoreCase)) && File.Exists(_pipePath))
                 {
                     // Remove the existing pipe. Newer servers always take over from older ones.
                     if (OperatingSystem.IsWindows())
                     {
                         if (_pipePointerStream != null)
                         {
-                            _pipePointerStream.Dispose();
+                            await _pipePointerStream.DisposeAsync().ConfigureAwait(false);
                             _pipePointerStream = null;
                         }
-                        _logger.LogTrace($"Removing existing pointer file from: {_pipePath}");
+                        LogRemovingPointerFile(_logger, _pipePath);
                     }
                     else
                     {
-                        _logger.LogTrace($"Removing existing UNIX socket from: {_pipePath}");
+                        LogRemovingUnixSocket(_logger, _pipePath);
                     }
                     if (app != null)
                     {
-                        await app.StopAsync();
+                        await app.StopAsync().ConfigureAwait(false);
                         app = null;
                     }
                     File.Delete(_pipePath);
@@ -167,13 +206,13 @@
         {
             if (_pipePointerStream != null)
             {
-                _pipePointerStream.Dispose();
+                await _pipePointerStream.DisposeAsync().ConfigureAwait(false);
                 _pipePointerStream = null;
             }
 
             if (_app != null)
             {
-                await _app.StopAsync();
+                await _app.StopAsync().ConfigureAwait(false);
                 _app = null;
             }
         }

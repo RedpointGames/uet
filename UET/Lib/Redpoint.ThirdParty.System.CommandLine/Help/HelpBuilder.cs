@@ -369,7 +369,7 @@ namespace System.CommandLine.Help
                     {
                         if (part.Length - i < maxWidth)
                         {
-                            yield return part.Substring(i);
+                            yield return part[i..];
                             break;
                         }
                         else

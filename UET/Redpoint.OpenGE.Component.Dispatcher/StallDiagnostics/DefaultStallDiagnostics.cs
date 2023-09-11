@@ -29,13 +29,13 @@
             var remoteWorkerFulfiller = workerPool._remoteWorkerFulfiller;
 
             _logger.LogInformation("Capturing stall diagnostics: Task statuses...");
-            var statuses = await instance.GetTaskStatusesAsync();
+            var statuses = await instance.GetTaskStatusesAsync().ConfigureAwait(false);
 
             _logger.LogInformation("Capturing stall diagnostics: Request collection...");
             WorkerCoreRequestCollection<ITaskApiWorkerCore>.WorkerCoreRequest[] requests;
             if (requestCollection != null)
             {
-                requests = await requestCollection.GetAllRequestsAsync();
+                requests = await requestCollection.GetAllRequestsAsync().ConfigureAwait(false);
             }
             else
             {

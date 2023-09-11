@@ -168,7 +168,7 @@
                 }
                 else
                 {
-                    services.AddSingleton<IGlobalArgsProvider>(new CommandUETGlobalArgsProvider(string.Empty, new string[0]));
+                    services.AddSingleton<IGlobalArgsProvider>(new CommandUETGlobalArgsProvider(string.Empty, Array.Empty<string>()));
                 }
                 if (extraServices != null)
                 {
@@ -199,7 +199,7 @@
                     {
                         foreach (var lifecycle in lifecycles)
                         {
-                            await lifecycle.StartAsync(context.GetCancellationToken());
+                            await lifecycle.StartAsync(context.GetCancellationToken()).ConfigureAwait(false);
                             startedLifecycles.Add(lifecycle);
                         }
                     }
@@ -211,7 +211,7 @@
 
                     try
                     {
-                        context.ExitCode = await instance.ExecuteAsync(context);
+                        context.ExitCode = await instance.ExecuteAsync(context).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -225,7 +225,7 @@
                     {
                         try
                         {
-                            await lifecycle.StopAsync();
+                            await lifecycle.StopAsync().ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {

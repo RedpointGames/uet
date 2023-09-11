@@ -4,6 +4,7 @@
     using System.Collections;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading;
 
     /// <summary>
@@ -11,11 +12,12 @@
     /// downstream enumerations.
     /// </summary>
     /// <typeparam name="T">The element in the queue.</typeparam>
+    [SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix", Justification = "This class implements a queue.")]
     public class TerminableConcurrentQueue<T> : IEnumerable<T>
     {
-        private readonly SemaphoreSlim _ready = new SemaphoreSlim(0);
+        private readonly Semaphore _ready = new Semaphore(0);
         private readonly ConcurrentQueue<T> _queue = new ConcurrentQueue<T>();
-        private bool _terminated = false;
+        private bool _terminated;
 
         /// <summary>
         /// Enqueue an item into the queue.
@@ -33,7 +35,7 @@
 
         /// <summary>
         /// Terminates the queue, meaning that no further items can be dequeued
-        /// from it. Once this is called, <see cref="Dequeue()"/>
+        /// from it. Once this is called, <see cref="Dequeue(CancellationToken)"/>
         /// will throw <see cref="OperationCanceledException"/>, and enumerables from
         /// <see cref="GetEnumerator()"/> will stop enumerating
         /// normally.
@@ -56,9 +58,9 @@
         /// is available.
         /// </summary>
         /// <returns>The item that was dequeued.</returns>
-        public T Dequeue()
+        public T Dequeue(CancellationToken cancellationToken)
         {
-            _ready.Wait();
+            _ready.Wait(cancellationToken);
             if (!_queue.TryDequeue(out var result))
             {
                 if (_terminated)
@@ -86,7 +88,7 @@
             return new Enumerator(this);
         }
 
-        private class Enumerator : IEnumerator<T>
+        private sealed class Enumerator : IEnumerator<T>
         {
             private readonly TerminableConcurrentQueue<T> _queue;
             private T? _current;
@@ -113,7 +115,7 @@
 
             public bool MoveNext()
             {
-                _queue._ready.Wait();
+                _queue._ready.Wait(CancellationToken.None);
                 if (!_queue._queue.TryDequeue(out var result))
                 {
                     if (_queue._terminated)

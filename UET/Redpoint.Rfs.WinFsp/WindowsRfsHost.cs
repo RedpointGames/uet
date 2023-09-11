@@ -1,4 +1,6 @@
-﻿namespace Redpoint.Rfs.WinFsp
+﻿#pragma warning disable CA1849
+
+namespace Redpoint.Rfs.WinFsp
 {
     using Fsp;
     using Fsp.Interop;

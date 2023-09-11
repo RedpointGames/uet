@@ -218,7 +218,7 @@ namespace DiscUtils.Internal
                 return string.Empty; // No directory, just a file name
             }
 
-            return trimmed.Substring(0, index);
+            return trimmed[..index];
         }
 
         /// <summary>
@@ -236,7 +236,7 @@ namespace DiscUtils.Internal
                 return trimmed; // No directory, just a file name
             }
 
-            return trimmed.Substring(index + 1);
+            return trimmed[(index + 1)..];
         }
 
         /// <summary>
@@ -285,7 +285,7 @@ namespace DiscUtils.Internal
 
             if (basePath.StartsWith(@"\") && merged.Length > 2 && merged[1].Equals(':'))
             {
-                return merged.Substring(2);
+                return merged[2..];
             }
 
             return merged;

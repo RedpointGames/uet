@@ -14,7 +14,7 @@
         /// A list of platforms to build the project for.
         /// </summary>
         [JsonPropertyName("Platforms")]
-        public string[] Platforms { get; set; } = new string[0];
+        public string[] Platforms { get; set; } = Array.Empty<string>();
 
         /// <summary>
         /// If not specified, defaults to ["Development", "Shipping"].

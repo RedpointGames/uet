@@ -21,7 +21,7 @@
                 {
                     // When running via 'dotnet', the .dll file is returned instead of the .exe bootstrapper.
                     // We want to launch via the .exe instead.
-                    location = location.Substring(0, location.Length - 4) + ".exe";
+                    location = location[..^4] + ".exe";
                 }
                 return location;
             }

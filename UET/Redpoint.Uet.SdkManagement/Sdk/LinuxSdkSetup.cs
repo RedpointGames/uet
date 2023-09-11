@@ -52,8 +52,8 @@
                 "UnrealBuildTool",
                 "Platform",
                 "Linux",
-                "LinuxPlatformSDK.Versions.cs"));
-            return await ParseClangToolchainVersion(linuxPlatformSdk);
+                "LinuxPlatformSDK.Versions.cs")).ConfigureAwait(false);
+            return await ParseClangToolchainVersion(linuxPlatformSdk).ConfigureAwait(false);
         }
 
         public Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
@@ -63,7 +63,7 @@
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
         {
-            var clangToolchain = await GetClangToolchainVersion(unrealEnginePath);
+            var clangToolchain = await GetClangToolchainVersion(unrealEnginePath).ConfigureAwait(false);
 
             _logger.LogInformation($"Downloading Linux cross-compile toolchain {clangToolchain}...");
             using (var client = new HttpClient())
@@ -74,8 +74,8 @@
                     await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
                         client,
                         downloadUrl,
-                        async stream => await stream.CopyToAsync(target, cancellationToken),
-                        cancellationToken);
+                        async stream => await stream.CopyToAsync(target, cancellationToken).ConfigureAwait(false),
+                        cancellationToken).ConfigureAwait(false);
                 }
             }
 
@@ -84,7 +84,7 @@
             {
                 using (var sstream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Redpoint.Uet.SdkManagement.7z.exe"))
                 {
-                    await sstream!.CopyToAsync(zstream, cancellationToken);
+                    await sstream!.CopyToAsync(zstream, cancellationToken).ConfigureAwait(false);
                 }
             }
             Directory.CreateDirectory(Path.Combine(sdkPackagePath, "SDK"));
@@ -96,7 +96,7 @@
                     WorkingDirectory = Path.Combine(sdkPackagePath, "SDK")
                 },
                 CaptureSpecification.Passthrough,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             if (exitCode != 0)
             {
                 throw new SdkSetupPackageGenerationFailedException("Failed to extract NSIS installer with 7-Zip.");

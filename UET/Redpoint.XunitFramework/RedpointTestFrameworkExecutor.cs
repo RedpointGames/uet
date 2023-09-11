@@ -33,7 +33,7 @@
                 DiagnosticMessageSink,
                 executionMessageSink,
                 executionOptions);
-            _diagnosticMessageSink.OnMessage(new DiagnosticMessage($"RUN STARTED: Redpoint.XunitFramework has been asked to run {testCasesList.Count} test cases in process ID {Process.GetCurrentProcess().Id}..."));
+            _diagnosticMessageSink.OnMessage(new DiagnosticMessage($"RUN STARTED: Redpoint.XunitFramework has been asked to run {testCasesList.Count} test cases in process ID {Environment.ProcessId}..."));
             await assemblyRunner.RunAsync();
             _diagnosticMessageSink.OnMessage(new DiagnosticMessage($"RUN STARTED: Redpoint.XunitFramework has finished running all test cases."));
         }

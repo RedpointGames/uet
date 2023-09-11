@@ -14,6 +14,9 @@
             string existingFile,
             bool overwrite)
         {
+            if (pathOfLink == null) throw new ArgumentNullException(nameof(pathOfLink));
+            if (existingFile == null) throw new ArgumentNullException(nameof(existingFile));
+
             if (!Path.IsPathFullyQualified(pathOfLink))
             {
                 pathOfLink = Path.GetFullPath(pathOfLink);
@@ -23,11 +26,11 @@
                 existingFile = Path.GetFullPath(existingFile);
             }
 
-            if (!pathOfLink.StartsWith(@"\\?\"))
+            if (!pathOfLink.StartsWith(@"\\?\", StringComparison.Ordinal))
             {
                 pathOfLink = $@"\\?\{Path.GetFullPath(pathOfLink)}";
             }
-            if (!existingFile.StartsWith(@"\\?\"))
+            if (!existingFile.StartsWith(@"\\?\", StringComparison.Ordinal))
             {
                 existingFile = $@"\\?\{Path.GetFullPath(existingFile)}";
             }

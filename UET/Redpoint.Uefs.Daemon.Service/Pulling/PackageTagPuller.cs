@@ -6,6 +6,7 @@
     using Redpoint.Uefs.Protocol;
     using System.Threading;
     using System.Threading.Tasks;
+    using Redpoint.Concurrency;
 
     internal class PackageTagPuller : IPuller<PullPackageTagRequest>
     {
@@ -15,7 +16,7 @@
             TransactionListenerDelegate<FileInfo?> onPollingResponse,
             CancellationToken cancellationToken)
         {
-            await using (var transaction = await daemon.TransactionalDatabase.BeginTransactionAsync<PullPackageTagTransactionRequest, PullPackageTagTransactionResult>(
+            await using ((await daemon.TransactionalDatabase.BeginTransactionAsync<PullPackageTagTransactionRequest, PullPackageTagTransactionResult>(
                 new PullPackageTagTransactionRequest
                 {
                     PackageFs = daemon.PackageStorage.PackageFs,
@@ -24,7 +25,7 @@
                     NoWait = request.PullRequest.NoWait,
                 },
                 (response, result) => onPollingResponse(response, result?.PackagePath),
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var transaction).ConfigureAwait(false))
             {
                 // If we're not waiting, go as soon as the operation ID is available.
                 if (request.PullRequest.NoWait)
@@ -32,7 +33,7 @@
                     return new PullResult(transaction.TransactionId, false);
                 }
 
-                await transaction.WaitForCompletionAsync(cancellationToken);
+                await transaction.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
                 return new PullResult(transaction.TransactionId, true);
             }
         }

@@ -141,7 +141,7 @@
 
             static void WriteReplacing(TextWriter writer, string oldValue, string newValue, string message)
             {
-                string newMessage = message.Replace(oldValue, newValue);
+                string newMessage = message.Replace(oldValue, newValue, StringComparison.Ordinal);
                 writer.Write(newMessage);
             }
         }

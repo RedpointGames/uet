@@ -55,7 +55,7 @@
                         _uefsClient.GetInProgressOperationsAsync,
                         new GetInProgressOperationsRequest(),
                         new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
-                        context.GetCancellationToken());
+                        context.GetCancellationToken()).ConfigureAwait(false);
                     if (response.OperationId.Count == 0)
                     {
                         Console.WriteLine("all pending pull operations have finished");
@@ -72,10 +72,10 @@
                             new WaitRequest { OperationId = operationId },
                             TimeSpan.FromMinutes(60),
                             context.GetCancellationToken());
-                        await operation.RunAndWaitForCompleteAsync();
+                        await operation.RunAndWaitForCompleteAsync().ConfigureAwait(false);
                     }
 
-                    await Task.Delay(250);
+                    await Task.Delay(250).ConfigureAwait(false);
                 }
                 while (true);
             }

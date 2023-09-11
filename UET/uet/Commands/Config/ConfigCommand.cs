@@ -96,13 +96,13 @@
                     }
                     else if (on || off)
                     {
-                        await setting.SetValueAsync(on, context.GetCancellationToken());
+                        await setting.SetValueAsync(on, context.GetCancellationToken()).ConfigureAwait(false);
                         _logger.LogInformation($"'{name}' has been turned {(on ? "on" : "off")}.");
                         return 0;
                     }
                     else
                     {
-                        var value = await setting.GetValueAsync(context.GetCancellationToken());
+                        var value = await setting.GetValueAsync(context.GetCancellationToken()).ConfigureAwait(false);
                         _logger.LogInformation($"'{name}' is currently turned {(value ? "on" : "off")}.");
                         return 0;
                     }

@@ -14,7 +14,7 @@
         private readonly IGrpcPipeFactory _grpcPipeFactory;
         private readonly IProcessExecutor _processExecutor;
         private readonly ProcessSpecification _daemonLaunchSpecification;
-        private readonly SemaphoreSlim _clientCreatingSemaphore;
+        private readonly Concurrency.Semaphore _clientCreatingSemaphore;
         private readonly CancellationTokenSource _daemonCancellationTokenSource;
         private PreprocessorCacheApi.PreprocessorCacheApiClient? _currentClient;
         private Task<int>? _daemonProcess;
@@ -29,7 +29,7 @@
             _grpcPipeFactory = grpcPipeFactory;
             _processExecutor = processExecutor;
             _daemonLaunchSpecification = daemonLaunchSpecification;
-            _clientCreatingSemaphore = new SemaphoreSlim(1);
+            _clientCreatingSemaphore = new Concurrency.Semaphore(1);
             _daemonCancellationTokenSource = new CancellationTokenSource();
             _currentClient = null;
             _daemonProcess = null;

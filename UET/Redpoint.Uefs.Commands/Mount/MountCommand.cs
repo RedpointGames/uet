@@ -83,7 +83,7 @@
                     request,
                     TimeSpan.FromMinutes(60),
                     cancellationToken);
-                return await operation.RunAndWaitForMountIdAsync();
+                return await operation.RunAndWaitForMountIdAsync().ConfigureAwait(false);
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
@@ -174,7 +174,7 @@
                 if (trackParent)
                 {
                     Process? parentProcess = _processTree.GetParentProcess();
-                    while (parentProcess != null && (parentProcess.ProcessName.Contains("uefs") || parentProcess.ProcessName.Contains("dotnet")))
+                    while (parentProcess != null && (parentProcess.ProcessName.Contains("uefs", StringComparison.OrdinalIgnoreCase) || parentProcess.ProcessName.Contains("dotnet", StringComparison.OrdinalIgnoreCase)))
                     {
                         parentProcess = _processTree.GetParentProcess(parentProcess.Id);
                     }
@@ -202,7 +202,7 @@
                                     MountRequest = mountRequest,
                                     Path = packagePath!.FullName,
                                 },
-                                context.GetCancellationToken());
+                                context.GetCancellationToken()).ConfigureAwait(false);
                             break;
                         case MountType.PackageTag:
                             mountId = await MountAsync(
@@ -213,7 +213,7 @@
                                     Tag = packageTag,
                                     Credential = _credentialDiscovery.GetRegistryCredential(packageTag!),
                                 },
-                                context.GetCancellationToken());
+                                context.GetCancellationToken()).ConfigureAwait(false);
                             break;
                         case MountType.GitCommit:
                             var mountGitCommitRequest = new MountGitCommitRequest
@@ -230,7 +230,7 @@
                             mountId = await MountAsync(
                                 _uefsClient.MountGitCommit,
                                 mountGitCommitRequest,
-                                context.GetCancellationToken());
+                                context.GetCancellationToken()).ConfigureAwait(false);
                             break;
                         case MountType.FolderSnapshot:
                             mountId = await MountAsync(
@@ -240,7 +240,7 @@
                                     MountRequest = mountRequest,
                                     SourcePath = folderSnapshot!.FullName,
                                 },
-                                context.GetCancellationToken());
+                                context.GetCancellationToken()).ConfigureAwait(false);
                             break;
                         default:
                             throw new InvalidOperationException("unknown mount type");

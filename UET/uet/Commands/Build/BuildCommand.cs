@@ -384,7 +384,7 @@
                     case EngineSpecType.SelfEngineByBuildConfig:
                         var engineDistribution = distribution!.Distribution as BuildConfigEngineDistribution;
                         var repositoryUrl = engineDistribution!.Source.Repository;
-                        if (!repositoryUrl.Contains("://"))
+                        if (!repositoryUrl.Contains("://", StringComparison.Ordinal))
                         {
                             var shortSshUrlRegex = new Regex("^(.+@)*([\\w\\d\\.]+):(.*)$");
                             var shortSshUrlMatch = shortSshUrlRegex.Match(repositoryUrl);
@@ -470,7 +470,7 @@
                                         executeTests: test,
                                         executeDeployment: deploy,
                                         strictIncludes: strictIncludes,
-                                        localExecutor: executorName == "local");
+                                        localExecutor: executorName == "local").ConfigureAwait(false);
                                     prepareProject = projectDistribution.Prepare;
                                     break;
                                 case BuildConfigPluginDistribution pluginDistribution:
@@ -493,7 +493,7 @@
                                         localExecutor: executorName == "local",
                                         isPluginRooted: false,
                                         commandlinePluginVersionName: pluginVersionName,
-                                        commandlinePluginVersionNumber: pluginVersionNumber);
+                                        commandlinePluginVersionNumber: pluginVersionNumber).ConfigureAwait(false);
                                     preparePlugin = pluginDistribution.Prepare;
                                     break;
                                 case BuildConfigEngineDistribution engineDistribution:
@@ -501,7 +501,7 @@
                                         engineSpec,
                                         buildGraphEnvironment,
                                         engineDistribution,
-                                        context.GetCancellationToken());
+                                        context.GetCancellationToken()).ConfigureAwait(false);
                                     break;
                                 default:
                                     throw new NotSupportedException();
@@ -514,7 +514,7 @@
                                 path,
                                 shipping,
                                 strictIncludes,
-                                platforms ?? new string[0]);
+                                platforms ?? Array.Empty<string>());
                             break;
                         case PathSpecType.UPlugin:
                             buildSpec = await _buildSpecificationGenerator.PluginPathSpecToBuildSpecAsync(
@@ -523,11 +523,11 @@
                                 path,
                                 shipping,
                                 strictIncludes,
-                                platforms ?? new string[0],
+                                platforms ?? Array.Empty<string>(),
                                 package: pluginPackage != "none",
                                 marketplace: pluginPackage == "marketplace",
                                 commandlinePluginVersionName: pluginVersionName,
-                                commandlinePluginVersionNumber: pluginVersionNumber);
+                                commandlinePluginVersionNumber: pluginVersionNumber).ConfigureAwait(false);
                             break;
                         default:
                             throw new NotSupportedException();
@@ -548,7 +548,7 @@
                         prepareProject,
                         executionEvents,
                         CaptureSpecification.Passthrough,
-                        context.GetCancellationToken());
+                        context.GetCancellationToken()).ConfigureAwait(false);
                     if (buildResult == 0)
                     {
                         _logger.LogInformation($"All build jobs {Bright.Green("passed successfully")}.");

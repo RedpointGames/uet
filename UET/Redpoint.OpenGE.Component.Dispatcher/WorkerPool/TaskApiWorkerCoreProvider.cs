@@ -47,20 +47,20 @@
             try
             {
                 // Open the request to the remote worker.
+                _logger.LogTrace($"Requesting a core from {_workerDisplayName}...");
                 var request = _taskApiClient.ReserveCoreAndExecute(cancellationToken: cancellationToken);
 
                 // Send the request to reserve a core.
-                _logger.LogTrace($"Requesting a core from {_workerDisplayName}...");
                 await request.RequestStream.WriteAsync(new ExecutionRequest
                 {
                     ReserveCore = new ReserveCoreRequest
                     {
                     }
-                }, cancellationToken);
+                }, cancellationToken).ConfigureAwait(false);
 
                 // Get the core reserved response. This operation will cease if the 
                 // cancellation token is cancelled before the reservation is made.
-                if (!await request.ResponseStream.MoveNext(cancellationToken))
+                if (!await request.ResponseStream.MoveNext(cancellationToken).ConfigureAwait(false))
                 {
                     // The server disconnected from us without reserving a core. This
                     // can happen if the remote worker is e.g. shutting down.
@@ -86,7 +86,7 @@
             }
             catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable)
             {
-                await _onTaskApiDisconnected.BroadcastAsync(this, CancellationToken.None);
+                await _onTaskApiDisconnected.BroadcastAsync(this, CancellationToken.None).ConfigureAwait(false);
                 throw;
             }
         }
@@ -138,12 +138,12 @@
                 try
                 {
                     // Try to cleanly close if the connection is still open.
-                    await Request.RequestStream.CompleteAsync();
+                    await Request.RequestStream.CompleteAsync().ConfigureAwait(false);
                 }
                 catch
                 {
                 }
-                await Request.OnTerminated.RemoveAsync(OnTerminated);
+                await Request.OnTerminated.RemoveAsync(OnTerminated).ConfigureAwait(false);
             }
 
             public ValueTask<bool> IsAliveAsync(CancellationToken cancellationToken)

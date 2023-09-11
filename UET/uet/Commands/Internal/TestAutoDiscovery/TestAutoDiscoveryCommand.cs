@@ -41,7 +41,7 @@
                 await using (await _networkAutoDiscovery.RegisterServiceAsync(
                     $"{Environment.MachineName}._discoverytest._tcp.local",
                     10203,
-                    context.GetCancellationToken()))
+                    context.GetCancellationToken()).ConfigureAwait(false))
                 {
                     _logger.LogInformation("Auto-discovery service registered.");
                     var gate = new Gate();
@@ -49,7 +49,7 @@
                     {
                         gate.Open();
                     });
-                    await gate.WaitAsync(context.GetCancellationToken());
+                    await gate.WaitAsync(context.GetCancellationToken()).ConfigureAwait(false);
                     return 0;
                 }
             }

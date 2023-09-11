@@ -13,17 +13,17 @@
     public abstract class GrpcWritableBinaryChunkStream<TInbound> : Stream
     {
         private readonly IAsyncStreamWriter<TInbound> _sendingStream;
-        private readonly SemaphoreSlim _writingSemaphore;
+        private readonly Concurrency.Semaphore _writingSemaphore;
         private readonly byte[] _memoryBuffer;
         private int _memoryBufferPosition;
         private long _position;
         private bool _hasSentFinish;
 
-        public GrpcWritableBinaryChunkStream(
+        protected GrpcWritableBinaryChunkStream(
             IAsyncStreamWriter<TInbound> sendingStream)
         {
             _sendingStream = sendingStream;
-            _writingSemaphore = new SemaphoreSlim(1);
+            _writingSemaphore = new Concurrency.Semaphore(1);
             _memoryBuffer = new byte[128 * 1024];
             _memoryBufferPosition = 0;
             _position = 0;
@@ -44,12 +44,12 @@
         public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             await WriteAsync(
-                new ReadOnlyMemory<byte>(buffer, offset, count), 
-                cancellationToken);
+                new ReadOnlyMemory<byte>(buffer, offset, count),
+                cancellationToken).ConfigureAwait(false);
         }
 
         public override async ValueTask WriteAsync(
-            ReadOnlyMemory<byte> buffer, 
+            ReadOnlyMemory<byte> buffer,
             CancellationToken cancellationToken = default)
         {
             if (_hasSentFinish)
@@ -61,7 +61,7 @@
                 return;
             }
             var remainingInIncomingBuffer = buffer.Length;
-            await _writingSemaphore.WaitAsync(CancellationToken.None);
+            await _writingSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (_hasSentFinish)
@@ -95,7 +95,7 @@
                             new ReadOnlyMemory<byte>(_memoryBuffer, 0, _memoryBuffer.Length),
                             _position,
                             false);
-                        await _sendingStream.WriteAsync(message);
+                        await _sendingStream.WriteAsync(message, cancellationToken).ConfigureAwait(false);
                         _position += _memoryBuffer.Length;
                         _memoryBufferPosition = 0;
                     }
@@ -120,7 +120,9 @@
 
         public override async ValueTask DisposeAsync()
         {
-            await _writingSemaphore.WaitAsync(CancellationToken.None);
+            GC.SuppressFinalize(this);
+
+            await _writingSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (!_hasSentFinish)
@@ -129,7 +131,7 @@
                         new ReadOnlyMemory<byte>(_memoryBuffer, 0, _memoryBufferPosition),
                         _position,
                         true);
-                    await _sendingStream.WriteAsync(message);
+                    await _sendingStream.WriteAsync(message).ConfigureAwait(false);
                     _hasSentFinish = true;
                 }
             }
@@ -137,6 +139,8 @@
             {
                 _writingSemaphore.Release();
             }
+
+            await base.DisposeAsync().ConfigureAwait(false);
         }
 
         #region Unsupported Methods
@@ -172,6 +176,7 @@
 
         protected override void Dispose(bool disposing)
         {
+            base.Dispose(disposing);
             throw new NotSupportedException("GrpcWritableBinaryChunkStream must be disposed asynchronously using DisposeAsync");
         }
 

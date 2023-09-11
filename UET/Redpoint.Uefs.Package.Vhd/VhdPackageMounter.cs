@@ -190,7 +190,7 @@
                 {
                     throw new InvalidOperationException($"Failed to physical path of attached disk: {getDiskResult}");
                 }
-                var physicalPathDiskNumber = uint.Parse(physicalPathStr.Substring("\\\\.\\PhysicalDrive".Length));
+                var physicalPathDiskNumber = uint.Parse(physicalPathStr["\\\\.\\PhysicalDrive".Length..]);
 
                 // Iterate through all of the volumes on the system until we find the one
                 // that matches our physical disk number.
@@ -320,7 +320,7 @@
         public Task<(string packagePath, string mountPath, IPackageMounter mounter)[]> ImportExistingMountsAtStartupAsync()
         {
             // @todo: Not yet implemented on Windows.
-            return Task.FromResult(new (string packagePath, string mountPath, IPackageMounter mounter)[0]);
+            return Task.FromResult(Array.Empty<(string packagePath, string mountPath, IPackageMounter mounter)>());
         }
     }
 }

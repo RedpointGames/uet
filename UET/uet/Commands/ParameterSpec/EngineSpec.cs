@@ -163,13 +163,13 @@
             if ((flags & EngineParseFlags.UEFS) != 0)
             {
                 // Detect UEFS tags.
-                if (engine.StartsWith("uefs:"))
+                if (engine.StartsWith("uefs:", StringComparison.Ordinal))
                 {
                     return new EngineSpec
                     {
                         Type = EngineSpecType.UEFSPackageTag,
                         OriginalSpec = engine,
-                        UEFSPackageTag = engine.Substring("uefs:".Length),
+                        UEFSPackageTag = engine["uefs:".Length..],
                     };
                 }
             }
@@ -177,19 +177,19 @@
             if ((flags & EngineParseFlags.Git) != 0)
             {
                 // Detect commits.
-                if (engine.StartsWith("git:"))
+                if (engine.StartsWith("git:", StringComparison.Ordinal))
                 {
                     // <commit>@<url>,f:<folder>,z:<zip>,...
-                    var value = engine.Substring("git:".Length);
-                    var firstAt = value.IndexOf('@');
-                    var commit = value.Substring(0, firstAt);
-                    value = value.Substring(firstAt + 1);
-                    var firstComma = value.IndexOf(",");
-                    var url = firstComma == -1 ? value : value.Substring(0, firstComma);
+                    var value = engine["git:".Length..];
+                    var firstAt = value.IndexOf('@', StringComparison.Ordinal);
+                    var commit = value[..firstAt];
+                    value = value[(firstAt + 1)..];
+                    var firstComma = value.IndexOf(",", StringComparison.Ordinal);
+                    var url = firstComma == -1 ? value : value[..firstComma];
                     (string type, string value)[] layers;
                     if (firstComma != -1)
                     {
-                        layers = value.Substring(firstComma + 1).Split(',').Select(x =>
+                        layers = value[(firstComma + 1)..].Split(',').Select(x =>
                         {
                             var s = x.Split(':', 2);
                             return (s[0], s[1]);
@@ -253,7 +253,7 @@
                         {
                             foreach (var installation in installed.InstallationList)
                             {
-                                if (installation.AppName?.StartsWith($"UE_{engine}") ?? false &&
+                                if (installation.AppName?.StartsWith($"UE_{engine}", StringComparison.Ordinal) ?? false &&
                                     installation.InstallLocation != null &&
                                     Directory.Exists(installation.InstallLocation))
                                 {
@@ -290,7 +290,7 @@
                         {
                             foreach (var engineName in stack.Key.GetValueNames())
                             {
-                                if (engine.Equals(engineName, StringComparison.InvariantCultureIgnoreCase))
+                                if (engine.Equals(engineName, StringComparison.OrdinalIgnoreCase))
                                 {
                                     var registryBasedPath = stack.Key.GetValue(engineName) as string;
                                     if (registryBasedPath != null && Directory.Exists(registryBasedPath))

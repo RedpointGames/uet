@@ -110,12 +110,12 @@
                             hasAnyToRemove = true;
                             if (force)
                             {
-                                await using (var reservation = await _reservationManager.ReserveExactAsync(directory.Name, context.GetCancellationToken()))
+                                await using (var reservation = (await _reservationManager.ReserveExactAsync(directory.Name, context.GetCancellationToken()).ConfigureAwait(false)).ConfigureAwait(false))
                                 {
                                     try
                                     {
                                         _logger.LogInformation($"Removing directory '{directory.FullName}'...");
-                                        await DirectoryAsync.DeleteAsync(directory.FullName, true);
+                                        await DirectoryAsync.DeleteAsync(directory.FullName, true).ConfigureAwait(false);
                                     }
                                     catch (Exception ex)
                                     {
@@ -129,7 +129,7 @@
                             }
                         }
                         return;
-                    });
+                    }).ConfigureAwait(false);
 
                 if (!hasAnyToRemove)
                 {

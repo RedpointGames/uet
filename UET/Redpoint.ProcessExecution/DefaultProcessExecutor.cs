@@ -25,11 +25,11 @@
 
         private string EscapeArgumentForLogging(string argument)
         {
-            if (!argument.Contains(" "))
+            if (!argument.Contains(' ', StringComparison.Ordinal))
             {
                 return argument;
             }
-            return $"\"{argument.Replace("\\", "\\\\")}\"";
+            return $"\"{argument.Replace("\\", "\\\\", StringComparison.Ordinal)}\"";
         }
 
         public async Task<int> ExecuteAsync(
@@ -40,7 +40,7 @@
             var disposables = new List<IAsyncDisposable>();
             foreach (var hook in _serviceProvider.GetServices<IProcessExecutorHook>())
             {
-                var disposable = await hook.ModifyProcessSpecificationWithCleanupAsync(processSpecification, cancellationToken);
+                var disposable = await hook.ModifyProcessSpecificationWithCleanupAsync(processSpecification, cancellationToken).ConfigureAwait(false);
                 if (disposable != null)
                 {
                     disposables.Add(disposable);
@@ -111,13 +111,13 @@
                     {
                         while (!process.StandardOutput.EndOfStream)
                         {
-                            var line = (await process.StandardOutput.ReadLineAsync())?.TrimEnd();
+                            var line = (await process.StandardOutput.ReadLineAsync().ConfigureAwait(false))?.TrimEnd();
                             if (!string.IsNullOrWhiteSpace(line))
                             {
                                 captureSpecification.OnReceiveStandardOutput(line);
                             }
                         }
-                    });
+                    }, cancellationToken);
                 }
                 if (startInfo.RedirectStandardError)
                 {
@@ -125,13 +125,13 @@
                     {
                         while (!process.StandardError.EndOfStream)
                         {
-                            var line = (await process.StandardError.ReadLineAsync())?.TrimEnd();
+                            var line = (await process.StandardError.ReadLineAsync().ConfigureAwait(false))?.TrimEnd();
                             if (!string.IsNullOrWhiteSpace(line))
                             {
                                 captureSpecification.OnReceiveStandardError(line);
                             }
                         }
-                    });
+                    }, cancellationToken);
                 }
                 try
                 {
@@ -150,7 +150,7 @@
                     }
 
                     // Wait for the process to exit or until cancellation.
-                    await exitSemaphore.WaitAsync(cancellationToken);
+                    await exitSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -194,7 +194,7 @@
                 {
                     try
                     {
-                        await outputReadingTask;
+                        await outputReadingTask.ConfigureAwait(false);
                     }
                     catch { }
                 }
@@ -202,7 +202,7 @@
                 {
                     try
                     {
-                        await errorReadingTask;
+                        await errorReadingTask.ConfigureAwait(false);
                     }
                     catch { }
                 }
@@ -213,7 +213,7 @@
             {
                 foreach (var disposable in disposables)
                 {
-                    await disposable.DisposeAsync();
+                    await disposable.DisposeAsync().ConfigureAwait(false);
                 }
             }
         }

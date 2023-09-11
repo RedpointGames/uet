@@ -4,7 +4,7 @@
 
     internal class WindowsChrootState
     {
-        public required IDictionary<char, string> PerProcessDriveMappings { get; init; }
+        public required IReadOnlyDictionary<char, string> PerProcessDriveMappings { get; init; }
         public nint[]? HandlesToCloseOnProcessExit { get; set; }
     }
 }

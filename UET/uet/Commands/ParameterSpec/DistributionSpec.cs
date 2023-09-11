@@ -64,7 +64,7 @@
                             case BuildConfigProject buildConfigProject:
                                 {
                                     var selectedDistributionEntry = buildConfigProject.Distributions
-                                        .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.CurrentCultureIgnoreCase));
+                                        .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.OrdinalIgnoreCase));
                                     if (selectedDistributionEntry == null)
                                     {
                                         result.ErrorMessage = $"The distribution '{distribution}' specified by --{result.Argument.Name} was not found in the BuildConfig.json file.";
@@ -82,7 +82,7 @@
                             case BuildConfigPlugin buildConfigPlugin:
                                 {
                                     var selectedDistributionEntry = buildConfigPlugin.Distributions
-                                        .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.CurrentCultureIgnoreCase));
+                                        .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.OrdinalIgnoreCase));
                                     if (selectedDistributionEntry == null)
                                     {
                                         result.ErrorMessage = $"The distribution '{distribution}' specified by --{result.Argument.Name} was not found in the BuildConfig.json file.";
@@ -100,7 +100,7 @@
                             case BuildConfigEngine buildConfigEngine:
                                 {
                                     var selectedDistributionEntry = buildConfigEngine.Distributions
-                                        .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.CurrentCultureIgnoreCase));
+                                        .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.OrdinalIgnoreCase));
                                     if (selectedDistributionEntry == null)
                                     {
                                         result.ErrorMessage = $"The distribution '{distribution}' specified by --{result.Argument.Name} was not found in the BuildConfig.json file.";

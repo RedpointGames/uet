@@ -51,7 +51,7 @@
                 return _environmentInfo;
             }
 
-            await _setupSemaphore.WaitAsync();
+            await _setupSemaphore.WaitAsync().ConfigureAwait(false);
             try
             {
                 if (_environmentInfo != null)
@@ -133,7 +133,7 @@
                 // agent within our process.
                 _logger.LogInformation("Launching in-process version of OpenGE for executing tasks.");
                 _agent = _openGEAgentFactory.CreateAgent(false, true);
-                await _agent.StartAsync();
+                await _agent.StartAsync().ConfigureAwait(false);
                 _environmentInfo = new OpenGEEnvironmentInfo
                 {
                     ShouldUseOpenGE = true,
@@ -152,7 +152,7 @@
         {
             if (_environmentInfo == null)
             {
-                await GetOpenGEEnvironmentInfo();
+                await GetOpenGEEnvironmentInfo().ConfigureAwait(false);
             }
 
             // @note: The daemon no longer goes through this code
@@ -165,7 +165,7 @@
             {
                 return _onDemandCache;
             }
-            await _onDemandCacheSemaphore.WaitAsync();
+            await _onDemandCacheSemaphore.WaitAsync().ConfigureAwait(false);
             try
             {
                 if (_onDemandCache != null)
@@ -197,12 +197,12 @@
 
         public async Task StopAsync()
         {
-            await _setupSemaphore.WaitAsync();
+            await _setupSemaphore.WaitAsync().ConfigureAwait(false);
             try
             {
                 if (_agent != null)
                 {
-                    await _agent.StopAsync();
+                    await _agent.StopAsync().ConfigureAwait(false);
                     _agent = null;
                 }
             }

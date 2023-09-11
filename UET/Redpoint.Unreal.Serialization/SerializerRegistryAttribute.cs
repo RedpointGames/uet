@@ -3,7 +3,7 @@
     using System;
 
     [AttributeUsage(AttributeTargets.Class)]
-    public class SerializerRegistryAttribute : Attribute
+    public sealed class SerializerRegistryAttribute : Attribute
     {
     }
 }

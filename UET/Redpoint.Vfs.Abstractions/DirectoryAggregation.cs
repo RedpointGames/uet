@@ -22,6 +22,8 @@
             IEnumerable<VfsEntry> local,
             bool enableCorrectnessChecks = false)
         {
+            if (local == null) throw new ArgumentNullException(nameof(local));
+
             var upstreamEnumerator = upstream?.GetEnumerator();
             var localEnumerator = local.GetEnumerator();
 

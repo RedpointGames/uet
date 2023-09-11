@@ -1,9 +1,11 @@
 ﻿namespace UET.Services
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Concurrency;
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.Engine;
     using System;
+    using System.Globalization;
     using System.Text.Json;
     using UET.Commands.Build;
     using UET.Commands.EngineSpec;
@@ -21,7 +23,7 @@
             _engineWorkspaceProvider = engineWorkspaceProvider;
         }
 
-        private EngineBuildVersionJson? GetEngineVersionInfo(string path)
+        private static EngineBuildVersionJson? GetEngineVersionInfo(string path)
         {
             var buildVersion = Path.Combine(path, "Engine", "Build", "Build.version");
             if (File.Exists(buildVersion))
@@ -46,17 +48,17 @@
             {
                 var currentTime = DateTimeOffset.UtcNow;
                 var unixTimestamp = currentTime.ToUnixTimeSeconds();
-                var versionDateTime = currentTime.ToString("yyyy.MM.dd");
+                var versionDateTime = currentTime.ToString("yyyy.MM.dd", CultureInfo.InvariantCulture);
                 if (!string.IsNullOrWhiteSpace(overrideDateVersion))
                 {
                     versionDateTime = overrideDateVersion;
                 }
 
                 EngineBuildVersionJson? engineInfo;
-                await using (var engineWorkspace = await _engineWorkspaceProvider.GetEngineWorkspace(
+                await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
                     engineSpec,
                     string.Empty,
-                    cancellationToken))
+                    cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engineWorkspace).ConfigureAwait(false))
                 {
                     engineInfo = GetEngineVersionInfo(engineWorkspace.Path);
                     if (engineInfo == null)
@@ -66,7 +68,7 @@
                 }
 
                 var versionNumber = $"{unixTimestamp}{engineInfo.MinorVersion}";
-                var versionName = $"{versionDateTime}-{engineInfo.MajorVersion}.{engineInfo.MinorVersion}-{ciCommitShortSha.Substring(0, 8)}";
+                var versionName = $"{versionDateTime}-{engineInfo.MajorVersion}.{engineInfo.MinorVersion}-{ciCommitShortSha[..8]}";
 
                 _logger.LogInformation($"Building as versioned package: {versionName}");
                 return (versionName, versionNumber);

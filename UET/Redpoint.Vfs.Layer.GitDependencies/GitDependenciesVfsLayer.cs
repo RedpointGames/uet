@@ -20,7 +20,7 @@
         private readonly Dictionary<string, DependencyFile> _files;
         private readonly Dictionary<string, DependencyBlob> _blobs;
         private readonly Dictionary<string, DependencyPack> _packs;
-        private readonly SemaphoreSlim _globalSemaphore;
+        private readonly Concurrency.Semaphore _globalSemaphore;
 
         public GitDependenciesVfsLayer(
             ILogger<GitDependenciesVfsLayer> logger,
@@ -36,19 +36,19 @@
             _treeProjection = new Dictionary<string, VfsEntry>();
             _treeExpansionProjectionSorted = new Dictionary<string, VfsEntry[]>();
             _fileProjection = new Dictionary<string, VfsEntry>();
-            _files = new Dictionary<string, DependencyFile>();
+            _files = new Dictionary<string, DependencyFile>(StringComparer.InvariantCultureIgnoreCase);
             _blobs = new Dictionary<string, DependencyBlob>();
             _packs = new Dictionary<string, DependencyPack>();
-            _globalSemaphore = new SemaphoreSlim(1);
+            _globalSemaphore = new Concurrency.Semaphore(1);
         }
 
         public async Task InitAsync(CancellationToken cancellationToken)
         {
             // Make sure it's initialized.
-            await _nextLayer.InitAsync(cancellationToken);
+            await _nextLayer.InitAsync(cancellationToken).ConfigureAwait(false);
 
             var treeExpansionProjection = new Dictionary<string, Dictionary<string, VfsEntry>>();
-            foreach (var depsFile in _nextLayer.Files.Where(x => x.Key.ToLowerInvariant().EndsWith(".gitdeps.xml")))
+            foreach (var depsFile in _nextLayer.Files.Where(x => x.Key.EndsWith(".gitdeps.xml", StringComparison.InvariantCultureIgnoreCase)))
             {
                 VfsEntry? metadata = null;
                 using (var handle = _nextLayer.OpenFile(depsFile.Key, FileMode.Open, FileAccess.Read, FileShare.Read, ref metadata))
@@ -68,8 +68,8 @@
 
                     foreach (var pack in document.SelectSingleNode("//Packs")!.ChildNodes.OfType<XmlElement>())
                     {
-                        long.TryParse(pack.GetAttribute("Size"), out long size);
-                        long.TryParse(pack.GetAttribute("CompressedSize"), out long compressedSize);
+                        _ = long.TryParse(pack.GetAttribute("Size"), out long size);
+                        _ = long.TryParse(pack.GetAttribute("CompressedSize"), out long compressedSize);
 
                         _packs.Add(
                             pack.GetAttribute("Hash"),
@@ -84,8 +84,8 @@
 
                     foreach (var blob in document.SelectSingleNode("//Blobs")!.ChildNodes.OfType<XmlElement>())
                     {
-                        long.TryParse(blob.GetAttribute("Size"), out long size);
-                        long.TryParse(blob.GetAttribute("PackOffset"), out long packOffset);
+                        _ = long.TryParse(blob.GetAttribute("Size"), out long size);
+                        _ = long.TryParse(blob.GetAttribute("PackOffset"), out long packOffset);
 
                         _blobs.Add(
                             blob.GetAttribute("Hash"),
@@ -101,12 +101,12 @@
                     foreach (var file in document.SelectSingleNode("//Files")!.ChildNodes.OfType<XmlElement>())
                     {
                         _files.Add(
-                            file.GetAttribute("Name").ToLowerInvariant().Replace('/', '\\'),
+                            file.GetAttribute("Name").Replace('/', '\\'),
                             new DependencyFile
                             {
                                 Name = file.GetAttribute("Name"),
                                 Hash = file.GetAttribute("Hash"),
-                                IsExecutable = (file.GetAttribute("IsExecutable") ?? "false").ToLowerInvariant() == "true",
+                                IsExecutable = (file.GetAttribute("IsExecutable") ?? "false").Equals("true", StringComparison.OrdinalIgnoreCase),
                             });
                         var fileProjection = new VfsEntry
                         {
@@ -249,13 +249,13 @@
 #if ENABLE_TRACE_LOGS
                 _logger.LogTrace($"{pack.RemotePath}/{pack.Hash}: Fetching pack on demand... ({pack.CompressedSize / 1024 / 1024}MB to download, {pack.Size / 1024 / 1024}MB when extracted)");
 #endif
-                using (var stream = await client.GetStreamAsync($"http://cdn.unrealengine.com/dependencies/{pack.RemotePath}/{pack.Hash}"))
+                using (var stream = await client.GetStreamAsync($"http://cdn.unrealengine.com/dependencies/{pack.RemotePath}/{pack.Hash}").ConfigureAwait(false))
                 {
                     using (var decompressedStream = new GZipStream(stream, CompressionMode.Decompress, true))
                     {
                         using (var writer = new FileStream(packPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                         {
-                            await decompressedStream.CopyToAsync(writer);
+                            await decompressedStream.CopyToAsync(writer).ConfigureAwait(false);
                         }
                     }
                 }
@@ -336,7 +336,7 @@
                 using (KeyedSemaphores.KeyedSemaphore.Lock($"git-deps-pack-download:{packHash?.ToLowerInvariant()}"))
                 {
                     // Run on another thread since Dokan doesn't support awaiting.
-                    var backgroundTask = Task.Run(async () => await EnsurePackExists(packHash!));
+                    var backgroundTask = Task.Run(async () => await EnsurePackExists(packHash!).ConfigureAwait(false));
                     // @todo: Is this safe?
                     backgroundTask.Wait();
                 }

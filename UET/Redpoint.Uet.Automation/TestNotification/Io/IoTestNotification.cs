@@ -116,7 +116,7 @@
         public async Task FlushAsync()
         {
             _cancellationTokenSource.Cancel();
-            await _submitTask;
+            await _submitTask.ConfigureAwait(false);
         }
 
         private async Task SubmitResultsAsync(List<IoChange> changes)
@@ -134,7 +134,7 @@
                     var response = await client.PutAsJsonAsync(
                         $"{(Environment.GetEnvironmentVariable("IO_URL") ?? string.Empty).TrimEnd('/')}/api/submit/tests",
                         changes,
-                        IoJsonSerializerContext.Default.ListIoChange);
+                        IoJsonSerializerContext.Default.ListIoChange).ConfigureAwait(false);
                     if (!response.IsSuccessStatusCode)
                     {
                         _logger.LogWarning($"Failed to send test results to Io build monitor.\nStatus Code: {response.StatusCode}\nBody: {response.Content.ReadAsStringAsync()}");
@@ -161,11 +161,11 @@
                         }
                         if (results.Count == 0)
                         {
-                            await Task.Delay(1000, _cancellationTokenSource.Token);
+                            await Task.Delay(1000, _cancellationTokenSource.Token).ConfigureAwait(false);
                             continue;
                         }
 
-                        await SubmitResultsAsync(results);
+                        await SubmitResultsAsync(results).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
@@ -173,7 +173,7 @@
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, $"Exception while reporting data to Io: {ex.Message}");
-                        await Task.Delay(1000, _cancellationTokenSource.Token);
+                        await Task.Delay(1000, _cancellationTokenSource.Token).ConfigureAwait(false);
                     }
                 }
             }
@@ -196,7 +196,7 @@
                 if (results.Count > 0)
                 {
                     _logger.LogTrace($"There are {results.Count} changes to include in the final submission to Io");
-                    await SubmitResultsAsync(results);
+                    await SubmitResultsAsync(results).ConfigureAwait(false);
                 }
                 else
                 {

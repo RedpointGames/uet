@@ -10,7 +10,7 @@
     /// <summary>
     /// Provides access to a local Git repository.
     /// </summary>
-    public class NativeGitRepository : IGitRepository
+    public sealed class NativeGitRepository : IGitRepository
     {
         private readonly Repository _repository;
 

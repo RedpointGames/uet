@@ -81,13 +81,13 @@
                             switch (response.Response.DataCase)
                             {
                                 case ProcessResponse.DataOneofCase.StandardOutputLine:
-                                    if (autoRecover.Any(x => response.Response.StandardOutputLine.Contains(x)))
+                                    if (autoRecover.Any(x => response.Response.StandardOutputLine.Contains(x, StringComparison.Ordinal)))
                                     {
                                         shouldAutoRecover = true;
                                     }
                                     break;
                                 case ProcessResponse.DataOneofCase.StandardErrorLine:
-                                    if (autoRecover.Any(x => response.Response.StandardErrorLine.Contains(x)))
+                                    if (autoRecover.Any(x => response.Response.StandardErrorLine.Contains(x, StringComparison.Ordinal)))
                                     {
                                         shouldAutoRecover = true;
                                     }
@@ -107,13 +107,13 @@
                         switch (response.Response.DataCase)
                         {
                             case ProcessResponse.DataOneofCase.StandardOutputLine:
-                                if (request.IgnoreLines.Any(x => response.Response.StandardOutputLine.Contains(x)))
+                                if (request.IgnoreLines.Any(x => response.Response.StandardOutputLine.Contains(x, StringComparison.Ordinal)))
                                 {
                                     ignoreThisOutputLine = true;
                                 }
                                 break;
                             case ProcessResponse.DataOneofCase.StandardErrorLine:
-                                if (request.IgnoreLines.Any(x => response.Response.StandardErrorLine.Contains(x)))
+                                if (request.IgnoreLines.Any(x => response.Response.StandardErrorLine.Contains(x, StringComparison.Ordinal)))
                                 {
                                     ignoreThisOutputLine = true;
                                 }
@@ -124,7 +124,7 @@
                             await responseStream.WriteAsync(new ExecutionResponse
                             {
                                 ExecuteTask = response,
-                            });
+                            }, cancellationToken).ConfigureAwait(false);
                         }
                         if (response.Response.DataCase == ProcessResponse.DataOneofCase.ExitCode)
                         {

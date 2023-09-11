@@ -11,7 +11,7 @@
     internal class DefaultToolManager : IToolManager, IAsyncDisposable
     {
         private readonly IReservationManagerForOpenGE _reservationManagerForOpenGE;
-        private readonly SemaphoreSlim _toolsReservationSemaphore;
+        private readonly Concurrency.Semaphore _toolsReservationSemaphore;
         private IReservation? _toolsReservation;
         private IReservation? _toolBlobsReservation;
         private bool _disposed;
@@ -20,7 +20,7 @@
             IReservationManagerForOpenGE reservationManagerForOpenGE)
         {
             _reservationManagerForOpenGE = reservationManagerForOpenGE;
-            _toolsReservationSemaphore = new SemaphoreSlim(1);
+            _toolsReservationSemaphore = new Concurrency.Semaphore(1);
             _toolsReservation = null;
             _toolBlobsReservation = null;
             _disposed = false;
@@ -31,7 +31,7 @@
             string toolExecutableName,
             CancellationToken cancellationToken)
         {
-            var toolsPath = await GetToolsPath();
+            var toolsPath = await GetToolsPath().ConfigureAwait(false);
             return Path.Combine(
                 toolsPath,
                 toolXxHash64.HexString(),
@@ -42,7 +42,7 @@
             QueryToolRequest request,
             CancellationToken cancellationToken)
         {
-            var toolsPath = await GetToolsPath();
+            var toolsPath = await GetToolsPath().ConfigureAwait(false);
 
             return new QueryToolResponse
             {
@@ -54,7 +54,7 @@
             HasToolBlobsRequest request,
             CancellationToken cancellationToken)
         {
-            var toolBlobsPath = await GetToolBlobsPath();
+            var toolBlobsPath = await GetToolBlobsPath().ConfigureAwait(false);
 
             var requested = new HashSet<long>(request.ToolBlobs.Select(x => x.XxHash64));
             var exists = new HashSet<long>();
@@ -67,13 +67,13 @@
                 }
                 else if (File.Exists(file.LocalHintPath))
                 {
-                    var localHintHash = (await XxHash64Helpers.HashFile(file.LocalHintPath, cancellationToken)).hash;
+                    var localHintHash = (await XxHash64Helpers.HashFile(file.LocalHintPath, cancellationToken).ConfigureAwait(false)).hash;
                     if (localHintHash == file.XxHash64)
                     {
                         try
                         {
                             File.Copy(file.LocalHintPath, targetPath + ".tmp", true);
-                            if ((await XxHash64Helpers.HashFile(targetPath + ".tmp", cancellationToken)).hash == file.XxHash64)
+                            if ((await XxHash64Helpers.HashFile(targetPath + ".tmp", cancellationToken).ConfigureAwait(false)).hash == file.XxHash64)
                             {
                                 File.Move(targetPath + ".tmp", targetPath, true);
                                 exists.Add(file.XxHash64);
@@ -108,7 +108,7 @@
             IWorkerRequestStream requestStream,
             CancellationToken cancellationToken)
         {
-            var toolBlobsPath = await GetToolBlobsPath();
+            var toolBlobsPath = await GetToolBlobsPath().ConfigureAwait(false);
 
             if (initialRequest.InitialOrSubsequentCase != WriteToolBlobRequest.InitialOrSubsequentOneofCase.ToolBlobXxHash64)
             {
@@ -129,7 +129,7 @@
                 committedSize += request.Data.Length;
                 if (!request.FinishWrite)
                 {
-                    while (await requestStream.MoveNext(cancellationToken))
+                    while (await requestStream.MoveNext(cancellationToken).ConfigureAwait(false))
                     {
                         committedSize += requestStream.Current.WriteToolBlob.Data.Length;
 
@@ -153,13 +153,13 @@
                 // If another RPC wrote this while we were waiting for the lock, bail.
                 if (File.Exists(targetPath))
                 {
-                    return await ConsumeAndDiscardAsync(initialRequest);
+                    return await ConsumeAndDiscardAsync(initialRequest).ConfigureAwait(false);
                 }
 
                 @lock = LockFile.TryObtainLock(lockPath);
                 if (@lock == null)
                 {
-                    await Task.Delay(2000, cancellationToken);
+                    await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
                 }
             }
             while (@lock == null);
@@ -168,7 +168,7 @@
                 // If another RPC wrote this while we were waiting for the lock, bail.
                 if (File.Exists(targetPath))
                 {
-                    return await ConsumeAndDiscardAsync(initialRequest);
+                    return await ConsumeAndDiscardAsync(initialRequest).ConfigureAwait(false);
                 }
 
                 // Write the temporary file and hash at the same time.
@@ -178,7 +178,7 @@
                     var request = initialRequest;
                     while (true)
                     {
-                        await stream.WriteAsync(request.Data.Memory, cancellationToken);
+                        await stream.WriteAsync(request.Data.Memory, cancellationToken).ConfigureAwait(false);
                         committedSize += request.Data.Length;
                         xxHash64.Append(request.Data.Span);
                         if (request.FinishWrite)
@@ -187,7 +187,7 @@
                         }
                         else
                         {
-                            if (!await requestStream.MoveNext(cancellationToken))
+                            if (!await requestStream.MoveNext(cancellationToken).ConfigureAwait(false))
                             {
                                 throw new RpcException(new Status(StatusCode.InvalidArgument, "WriteToolBlobRequest stream ended early."));
                             }
@@ -223,8 +223,8 @@
             ConstructToolRequest request,
             CancellationToken cancellationToken)
         {
-            var toolsPath = await GetToolsPath();
-            var toolBlobsPath = await GetToolBlobsPath();
+            var toolsPath = await GetToolsPath().ConfigureAwait(false);
+            var toolBlobsPath = await GetToolBlobsPath().ConfigureAwait(false);
 
             var hash = request.ToolXxHash64.HexString();
             var targetPath = Path.Combine(toolsPath, hash);
@@ -259,7 +259,7 @@
                 @lock = LockFile.TryObtainLock(lockPath);
                 if (@lock == null)
                 {
-                    await Task.Delay(2000, cancellationToken);
+                    await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
                 }
             }
             while (@lock == null);
@@ -354,7 +354,7 @@
                 {
                     return _toolsReservation.ReservedPath;
                 }
-                _toolsReservation = await _reservationManagerForOpenGE.ReservationManager.ReserveAsync("Tools");
+                _toolsReservation = await _reservationManagerForOpenGE.ReservationManager.ReserveAsync("Tools").ConfigureAwait(false);
                 return _toolsReservation.ReservedPath;
             }
             finally
@@ -384,7 +384,7 @@
                 {
                     return _toolBlobsReservation.ReservedPath;
                 }
-                _toolBlobsReservation = await _reservationManagerForOpenGE.ReservationManager.ReserveAsync("ToolBlobs");
+                _toolBlobsReservation = await _reservationManagerForOpenGE.ReservationManager.ReserveAsync("ToolBlobs").ConfigureAwait(false);
                 return _toolBlobsReservation.ReservedPath;
             }
             finally
@@ -400,11 +400,11 @@
             {
                 if (_toolBlobsReservation != null)
                 {
-                    await _toolBlobsReservation.DisposeAsync();
+                    await _toolBlobsReservation.DisposeAsync().ConfigureAwait(false);
                 }
                 if (_toolsReservation != null)
                 {
-                    await _toolsReservation.DisposeAsync();
+                    await _toolsReservation.DisposeAsync().ConfigureAwait(false);
                 }
                 _disposed = true;
             }

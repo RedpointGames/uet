@@ -69,7 +69,7 @@
                     },
                     TimeSpan.FromMinutes(60),
                     context.GetCancellationToken());
-                var response = await operation.RunAndWaitForCompleteAsync();
+                var response = await operation.RunAndWaitForCompleteAsync().ConfigureAwait(false);
                 if (response.PollingResponse.Type == PollingResponseType.Backgrounded)
                 {
                     _logger.LogInformation("Verify operation will continue in the background (it may have even completed instantly); use the 'wait' command to wait for all pending verify operations.");

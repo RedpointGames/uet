@@ -3,6 +3,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.Uet.Automation.Model;
     using System;
+    using System.Globalization;
     using System.Threading.Tasks;
     using System.Xml;
 
@@ -35,30 +36,30 @@
                     Async = true,
                 }))
                 {
-                    await writer.WriteStartDocumentAsync();
-                    await writer.WriteStartElementAsync(null, "testsuites", null);
-                    await writer.WriteStartElementAsync(null, "testsuite", null);
-                    await writer.WriteAttributeStringAsync(null, "name", null, "UET");
-                    await writer.WriteAttributeStringAsync(null, "tests", null, results.Length.ToString());
-                    await writer.WriteAttributeStringAsync(null, "skipped", null, results.Count(x => x.TestStatus == TestResultStatus.Skipped).ToString());
-                    await writer.WriteAttributeStringAsync(null, "failures", null, results.Count(x => x.TestStatus != TestResultStatus.Skipped && x.TestStatus != TestResultStatus.Passed).ToString());
-                    await writer.WriteAttributeStringAsync(null, "errors", null, "0");
-                    await writer.WriteAttributeStringAsync(null, "time", null, duration.TotalSeconds.ToString());
+                    await writer.WriteStartDocumentAsync().ConfigureAwait(false);
+                    await writer.WriteStartElementAsync(null, "testsuites", null).ConfigureAwait(false);
+                    await writer.WriteStartElementAsync(null, "testsuite", null).ConfigureAwait(false);
+                    await writer.WriteAttributeStringAsync(null, "name", null, "UET").ConfigureAwait(false);
+                    await writer.WriteAttributeStringAsync(null, "tests", null, results.Length.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
+                    await writer.WriteAttributeStringAsync(null, "skipped", null, results.Count(x => x.TestStatus == TestResultStatus.Skipped).ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
+                    await writer.WriteAttributeStringAsync(null, "failures", null, results.Count(x => x.TestStatus != TestResultStatus.Skipped && x.TestStatus != TestResultStatus.Passed).ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
+                    await writer.WriteAttributeStringAsync(null, "errors", null, "0").ConfigureAwait(false);
+                    await writer.WriteAttributeStringAsync(null, "time", null, duration.TotalSeconds.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
 
                     foreach (var result in results)
                     {
-                        await writer.WriteStartElementAsync(null, "testcase", null);
+                        await writer.WriteStartElementAsync(null, "testcase", null).ConfigureAwait(false);
 
                         var testClassName = string.Empty;
                         var testName = string.Empty;
-                        if (result.FullTestPath.EndsWith("." + result.TestName))
+                        if (result.FullTestPath.EndsWith("." + result.TestName, StringComparison.Ordinal))
                         {
-                            testClassName = result.FullTestPath.Substring(0, result.FullTestPath.Length - result.TestName.Length - 1);
+                            testClassName = result.FullTestPath[..(result.FullTestPath.Length - result.TestName.Length - 1)];
                             testName = result.TestName;
 
-                            if (testClassName.StartsWith(projectName + "."))
+                            if (testClassName.StartsWith(projectName + ".", StringComparison.Ordinal))
                             {
-                                testClassName = testClassName.Substring(projectName.Length + 1);
+                                testClassName = testClassName[(projectName.Length + 1)..];
                             }
                         }
                         else
@@ -67,42 +68,42 @@
                             testName = result.FullTestPath;
                         }
 
-                        await writer.WriteAttributeStringAsync(null, "classname", null, testClassName);
-                        await writer.WriteAttributeStringAsync(null, "name", null, testName);
+                        await writer.WriteAttributeStringAsync(null, "classname", null, testClassName).ConfigureAwait(false);
+                        await writer.WriteAttributeStringAsync(null, "name", null, testName).ConfigureAwait(false);
 
                         var stdout = new List<string>();
 
                         foreach (var entry in result.Entries)
                         {
                             var filename = entry.Filename;
-                            filename = filename.Replace("\\", "/");
-                            if (filename.ToLowerInvariant().StartsWith((filenamePrefixToCut.Replace("\\", "/") + "/").ToLowerInvariant()))
+                            filename = filename.Replace("\\", "/", StringComparison.Ordinal);
+                            if (filename.StartsWith(filenamePrefixToCut.Replace("\\", "/", StringComparison.Ordinal) + "/", StringComparison.OrdinalIgnoreCase))
                             {
-                                filename = filename.Substring(filenamePrefixToCut.Length + 1);
+                                filename = filename[(filenamePrefixToCut.Length + 1)..];
                                 filename = $"{projectName}/Source/{filename}";
                             }
 
                             if (entry.Category == TestResultEntryCategory.Error)
                             {
-                                await writer.WriteStartElementAsync(null, "failure", null);
-                                await writer.WriteAttributeStringAsync(null, "type", null, entry.Category.ToString());
-                                await writer.WriteAttributeStringAsync(null, "message", null, entry.Message.ToString());
+                                await writer.WriteStartElementAsync(null, "failure", null).ConfigureAwait(false);
+                                await writer.WriteAttributeStringAsync(null, "type", null, entry.Category.ToString()).ConfigureAwait(false);
+                                await writer.WriteAttributeStringAsync(null, "message", null, entry.Message.ToString()).ConfigureAwait(false);
                                 if (!string.IsNullOrWhiteSpace(filename) || entry.LineNumber > -1)
                                 {
                                     await writer.WriteStringAsync($@"
 ERROR: {entry.Message}
 File: {filename}
 Line: {entry.LineNumber}
-");
+").ConfigureAwait(false);
                                 }
                                 else
                                 {
                                     await writer.WriteStringAsync($@"
 ERROR: {entry.Message}
 No filename or line number is available.
-");
+").ConfigureAwait(false);
                                 }
-                                await writer.WriteEndElementAsync();
+                                await writer.WriteEndElementAsync().ConfigureAwait(false);
                             }
 
                             if (entry.Category == TestResultEntryCategory.Warning)
@@ -127,36 +128,36 @@ No filename or line number is available.
 
                         if (!string.IsNullOrWhiteSpace(result.EngineCrashInfo))
                         {
-                            await writer.WriteStartElementAsync(null, "failure", null);
-                            await writer.WriteAttributeStringAsync(null, "type", null, "Crash");
-                            await writer.WriteAttributeStringAsync(null, "message", null, result.EngineCrashInfo);
-                            await writer.WriteStringAsync(result.EngineCrashInfo);
-                            await writer.WriteEndElementAsync();
+                            await writer.WriteStartElementAsync(null, "failure", null).ConfigureAwait(false);
+                            await writer.WriteAttributeStringAsync(null, "type", null, "Crash").ConfigureAwait(false);
+                            await writer.WriteAttributeStringAsync(null, "message", null, result.EngineCrashInfo).ConfigureAwait(false);
+                            await writer.WriteStringAsync(result.EngineCrashInfo).ConfigureAwait(false);
+                            await writer.WriteEndElementAsync().ConfigureAwait(false);
                         }
 
                         if (result.AutomationRunnerCrashInfo != null)
                         {
-                            await writer.WriteStartElementAsync(null, "failure", null);
-                            await writer.WriteAttributeStringAsync(null, "type", null, "Exception");
-                            await writer.WriteAttributeStringAsync(null, "message", null, result.AutomationRunnerCrashInfo.Message);
-                            await writer.WriteStringAsync(result.AutomationRunnerCrashInfo.ToString());
-                            await writer.WriteEndElementAsync();
+                            await writer.WriteStartElementAsync(null, "failure", null).ConfigureAwait(false);
+                            await writer.WriteAttributeStringAsync(null, "type", null, "Exception").ConfigureAwait(false);
+                            await writer.WriteAttributeStringAsync(null, "message", null, result.AutomationRunnerCrashInfo.Message).ConfigureAwait(false);
+                            await writer.WriteStringAsync(result.AutomationRunnerCrashInfo.ToString()).ConfigureAwait(false);
+                            await writer.WriteEndElementAsync().ConfigureAwait(false);
                         }
 
                         if (stdout.Count > 0)
                         {
-                            await writer.WriteStartElementAsync(null, "system-out", null);
-                            await writer.WriteStringAsync(string.Join("\n", stdout));
-                            await writer.WriteEndElementAsync();
+                            await writer.WriteStartElementAsync(null, "system-out", null).ConfigureAwait(false);
+                            await writer.WriteStringAsync(string.Join("\n", stdout)).ConfigureAwait(false);
+                            await writer.WriteEndElementAsync().ConfigureAwait(false);
                         }
 
-                        await writer.WriteEndElementAsync();
+                        await writer.WriteEndElementAsync().ConfigureAwait(false);
                     }
 
-                    await writer.WriteEndElementAsync();
-                    await writer.WriteEndElementAsync();
-                    await writer.WriteEndDocumentAsync();
-                    await writer.FlushAsync();
+                    await writer.WriteEndElementAsync().ConfigureAwait(false);
+                    await writer.WriteEndElementAsync().ConfigureAwait(false);
+                    await writer.WriteEndDocumentAsync().ConfigureAwait(false);
+                    await writer.FlushAsync().ConfigureAwait(false);
                 }
             }
         }

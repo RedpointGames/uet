@@ -182,7 +182,7 @@
             }
         }
 
-        private unsafe void ReleaseNativeOverlapped(nint overlapped)
+        private static unsafe void ReleaseNativeOverlapped(nint overlapped)
         {
             // _logger.LogError($"Freeing OVERLAPPED: {overlapped}");
             Marshal.FreeHGlobal(overlapped);
@@ -280,7 +280,7 @@
             {
                 fileName = fileName.TrimStart('\\');
 
-                if (fileName == string.Empty)
+                if (string.IsNullOrEmpty(fileName))
                 {
                     fileAttributes = (uint)FileAttributes.Directory;
                     if (securityDescriptor != null)
@@ -334,7 +334,7 @@
             // from it's store.
             if (_enableNameNormalization)
             {
-                if (path == string.Empty)
+                if (string.IsNullOrEmpty(path))
                 {
                     return @"\";
                 }
@@ -345,7 +345,7 @@
                     var normalizedPath = @"\";
                     foreach (var component in components)
                     {
-                        if (currentPath == string.Empty)
+                        if (string.IsNullOrEmpty(currentPath))
                         {
                             currentPath = component;
                         }
@@ -405,7 +405,7 @@
                     return Trace(fileName, STATUS_OBJECT_NAME_COLLISION);
                 }
                 var parentPath = Path.GetDirectoryName(fileName);
-                if (fileName.Contains('\\') && parentPath != null && (_projectionLayer.Exists(parentPath) != VfsEntryExistence.DirectoryExists))
+                if (fileName.Contains('\\', StringComparison.Ordinal) && parentPath != null && (_projectionLayer.Exists(parentPath) != VfsEntryExistence.DirectoryExists))
                 {
                     if (_projectionLayer.Exists(parentPath) == VfsEntryExistence.FileExists)
                     {
@@ -506,7 +506,7 @@
                 }
 
                 // Are we opening the root?
-                if (fileName == string.Empty)
+                if (string.IsNullOrEmpty(fileName))
                 {
                     // Yes, we're opening the root.
                     var fileNode = WinFspFileNode.AsExistingDirectoryWithPath(fileName, new VfsEntry
@@ -1224,7 +1224,7 @@
                 }
                 if (currentDirectory == null)
                 {
-                    throw new ArgumentNullException(nameof(currentDirectory));
+                    throw new InvalidOperationException(nameof(currentDirectory) + " computed as null, but was required.");
                 }
                 if (parentDirectory == null)
                 {

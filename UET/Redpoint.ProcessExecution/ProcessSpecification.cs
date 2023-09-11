@@ -7,6 +7,6 @@
         public required string FilePath { get; set; }
 
         [SupportedOSPlatform("windows")]
-        public Dictionary<char, string>? PerProcessDriveMappings { get; set; }
+        public IReadOnlyDictionary<char, string>? PerProcessDriveMappings { get; set; }
     }
 }

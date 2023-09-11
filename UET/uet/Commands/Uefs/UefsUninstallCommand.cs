@@ -69,16 +69,16 @@
                     throw new PlatformNotSupportedException();
                 }
 
-                if (await _serviceControl.IsServiceInstalled(daemonName))
+                if (await _serviceControl.IsServiceInstalled(daemonName).ConfigureAwait(false))
                 {
-                    if (await _serviceControl.IsServiceRunning(daemonName))
+                    if (await _serviceControl.IsServiceRunning(daemonName).ConfigureAwait(false))
                     {
                         _logger.LogInformation("Stopping UEFS daemon...");
-                        await _serviceControl.StopService(daemonName);
+                        await _serviceControl.StopService(daemonName).ConfigureAwait(false);
                     }
 
                     _logger.LogInformation("Uninstalling UEFS daemon...");
-                    await _serviceControl.UninstallService(daemonName);
+                    await _serviceControl.UninstallService(daemonName).ConfigureAwait(false);
                 }
 
                 _logger.LogInformation("The UEFS service has been uninstalled.");

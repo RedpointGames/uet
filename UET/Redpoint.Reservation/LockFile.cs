@@ -44,7 +44,7 @@
                         FileOptions.DeleteOnClose);
                     return new LockFile(handle, path);
                 }
-                catch (IOException ex) when (ex.Message.Contains("another process"))
+                catch (IOException ex) when (ex.Message.Contains("another process", StringComparison.Ordinal))
                 {
                     _localLocks.Remove(path, out _);
                     return null;

@@ -17,7 +17,7 @@
         /// <summary>
         /// The names of other build jobs that this build job depends on.
         /// </summary>
-        public string[] Needs { get; set; } = new string[0];
+        public string[] Needs { get; set; } = Array.Empty<string>();
 
         /// <summary>
         /// The platform for this build job to run on.
@@ -32,7 +32,7 @@
         /// <summary>
         /// A list of artifact paths to upload for this build job.
         /// </summary>
-        public string[] ArtifactPaths { get; set; } = new string[0];
+        public string[] ArtifactPaths { get; set; } = Array.Empty<string>();
 
         /// <summary>
         /// The path to the JUnit test report to upload for this build job.

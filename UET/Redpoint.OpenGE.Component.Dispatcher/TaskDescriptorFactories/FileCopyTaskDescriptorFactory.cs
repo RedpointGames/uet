@@ -8,7 +8,7 @@
     {
         public int ScoreTaskSpec(GraphTaskSpec spec)
         {
-            if (Path.GetFileName(spec.Tool.Path).Equals("cmd.exe", StringComparison.InvariantCultureIgnoreCase) &&
+            if (Path.GetFileName(spec.Tool.Path).Equals("cmd.exe", StringComparison.OrdinalIgnoreCase) &&
                 spec.Arguments.Length == 4 &&
                 spec.Arguments[0] == "/c" &&
                 spec.Arguments[1] == "copy")

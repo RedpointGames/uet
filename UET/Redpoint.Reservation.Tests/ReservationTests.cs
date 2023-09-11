@@ -18,7 +18,7 @@ namespace Redpoint.Reservation.Tests
 
             var manager = factory.CreateReservationManager(Path.Combine(Path.GetTempPath(), "RedpointReservationTests"));
 
-            var reservationId = $"test-{Process.GetCurrentProcess().Id}";
+            var reservationId = $"test-{Environment.ProcessId}";
             for (var i = 0; i < 10; i++)
             {
                 await using (var reservation1 = await manager.TryReserveExactAsync(reservationId))

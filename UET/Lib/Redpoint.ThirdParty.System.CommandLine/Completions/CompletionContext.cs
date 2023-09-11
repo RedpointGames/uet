@@ -71,9 +71,9 @@ namespace System.CommandLine.Completions
             }
             else
             {
-                var textBeforeCursor = rawInput!.Substring(0, position!.Value);
+                var textBeforeCursor = rawInput![..position!.Value];
 
-                var textAfterCursor = rawInput.Substring(position.Value);
+                var textAfterCursor = rawInput[position.Value..];
 
                 return textBeforeCursor.Split(' ').LastOrDefault() +
                        textAfterCursor.Split(' ').FirstOrDefault();

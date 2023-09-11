@@ -63,7 +63,7 @@
                 JsonNode? node;
                 using (var stream = new StreamReader(new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read)))
                 {
-                    node = JsonNode.Parse(await stream.ReadToEndAsync());
+                    node = JsonNode.Parse(await stream.ReadToEndAsync().ConfigureAwait(false));
                 }
 
                 if (node == null)
@@ -122,7 +122,7 @@
                     await stream.WriteAsync(node.ToJsonString(new JsonSerializerOptions
                     {
                         WriteIndented = true
-                    }));
+                    })).ConfigureAwait(false);
                 }
 
                 return 0;

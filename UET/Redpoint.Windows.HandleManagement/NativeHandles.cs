@@ -330,11 +330,11 @@ namespace Redpoint.Windows.HandleManagement
                                         {
                                             if (objectPathLocal.StartsWith(kv.Key, StringComparison.InvariantCultureIgnoreCase))
                                             {
-                                                filePaths = kv.Value.Select(x => x + objectPathLocal.Substring(kv.Key.Length)).ToArray();
+                                                filePaths = kv.Value.Select(x => x + objectPathLocal[kv.Key.Length..]).ToArray();
                                                 return GetPathResultCode.Success;
                                             }
                                         }
-                                        filePaths = new string[0];
+                                        filePaths = Array.Empty<string>();
                                         return GetPathResultCode.Success;
                                     }
                                     else

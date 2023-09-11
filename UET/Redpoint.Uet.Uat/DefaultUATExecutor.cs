@@ -117,11 +117,11 @@
                 {
                     if (arg.StartsWith("-SingleNode="))
                     {
-                        singleNodeName = arg.Substring("-SingleNode=".Length).Replace("\"", "");
+                        singleNodeName = arg["-SingleNode=".Length..].Replace("\"", "");
                     }
                     else if (arg.StartsWith("-SharedStorageDir="))
                     {
-                        sharedStorageDir = arg.Substring("-SharedStorageDir=".Length).Replace("\"", "");
+                        sharedStorageDir = arg["-SharedStorageDir=".Length..].Replace("\"", "");
                     }
                 }
                 if (!string.IsNullOrWhiteSpace(singleNodeName) && !string.IsNullOrWhiteSpace(sharedStorageDir))
@@ -213,7 +213,7 @@
                             }
                             catch (Exception ex)
                             {
-                                if (ex.Message.Contains("used by another process") || ex.Message.Contains("is denied"))
+                                if (ex.Message.Contains("used by another process", StringComparison.Ordinal) || ex.Message.Contains("is denied", StringComparison.Ordinal))
                                 {
                                     _logger.LogWarning("File lock still present for one or more files...");
                                     await Task.Delay(2000);

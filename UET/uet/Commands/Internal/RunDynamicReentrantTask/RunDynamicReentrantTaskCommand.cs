@@ -92,7 +92,7 @@
                 }
             }
 
-            private object DeserializeDynamicSettings<T>(IDynamicReentrantExecutor<T> reentrantExecutor, byte[] jsonBytes)
+            private static object DeserializeDynamicSettings<T>(IDynamicReentrantExecutor<T> reentrantExecutor, byte[] jsonBytes)
             {
                 var reader = new Utf8JsonReader(jsonBytes);
                 return reentrantExecutor.DynamicSettings.Deserialize(ref reader);
@@ -128,7 +128,7 @@
                 }
                 var reentrantExecutor = reentrantExecutors[0];
 
-                var jsonBytes = await File.ReadAllBytesAsync(taskJsonPath.FullName);
+                var jsonBytes = await File.ReadAllBytesAsync(taskJsonPath.FullName, cancellationToken).ConfigureAwait(false);
                 var config = DeserializeDynamicSettings(reentrantExecutor, jsonBytes);
 
                 var runtimeSettingsDictionary = new Dictionary<string, string>();
@@ -141,7 +141,7 @@
                 return await reentrantExecutor.ExecuteBuildGraphNodeAsync(
                     config,
                     runtimeSettingsDictionary,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
         }
     }

@@ -20,6 +20,11 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <RootNamespace>Tenray.ZoneTree</RootNamespace>
     <Configurations>Debug;Release;ReleaseWithDoc</Configurations>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode></AnalysisMode>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
   <PropertyGroup>

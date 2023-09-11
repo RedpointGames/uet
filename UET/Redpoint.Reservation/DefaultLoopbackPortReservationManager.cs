@@ -19,7 +19,7 @@
         {
             do
             {
-                var pid = Process.GetCurrentProcess().Id;
+                var pid = Environment.ProcessId;
                 var pidUpper = (byte)((pid & 0xFF00) >> 8);
                 var pidLower = (byte)(pid & 0x00FF);
                 var rand = (byte)(Random.Shared.Next() & 0xFF);
@@ -34,7 +34,7 @@
                 var endpoint = new IPEndPoint(loopbackAddress, port);
 
                 var reservation = await _globalMutexReservationManager.TryReserveExactAsync(
-                    $"RedpointReservation_{endpoint}");
+                    $"RedpointReservation_{endpoint}").ConfigureAwait(false);
                 if (reservation != null)
                 {
                     // We reserved this port.

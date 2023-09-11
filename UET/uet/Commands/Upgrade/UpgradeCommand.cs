@@ -75,12 +75,12 @@
                             _logger,
                             version,
                             doNotSetAsCurrent,
-                            context.GetCancellationToken());
+                            context.GetCancellationToken()).ConfigureAwait(false);
                     }
-                    catch (IOException ex) when (ex.Message.Contains("used by another process"))
+                    catch (IOException ex) when (ex.Message.Contains("used by another process", StringComparison.Ordinal))
                     {
                         _logger.LogWarning($"Another UET shim instance is downloading this version, checking if it is ready in another 2 seconds...");
-                        await Task.Delay(2000);
+                        await Task.Delay(2000).ConfigureAwait(false);
                         continue;
                     }
                 }

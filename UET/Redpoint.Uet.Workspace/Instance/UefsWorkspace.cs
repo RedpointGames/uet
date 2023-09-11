@@ -47,7 +47,7 @@
             }
             foreach (var reservation in _reservations)
             {
-                await reservation.DisposeAsync();
+                await reservation.DisposeAsync().ConfigureAwait(false);
             }
         }
     }

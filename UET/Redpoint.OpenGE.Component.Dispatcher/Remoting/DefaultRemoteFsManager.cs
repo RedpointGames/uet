@@ -15,7 +15,7 @@
 
     internal class DefaultRemoteFsManager : IRemoteFsManager, IAsyncDisposable
     {
-        private readonly MutexSlim _startLock;
+        private readonly Mutex _startLock;
         private readonly ILogger<DefaultRemoteFsManager> _logger;
         private int? _listeningPort;
         private WebApplication? _app;
@@ -23,7 +23,7 @@
         public DefaultRemoteFsManager(
             ILogger<DefaultRemoteFsManager> logger)
         {
-            _startLock = new MutexSlim();
+            _startLock = new Mutex();
             _logger = logger;
         }
 
@@ -39,7 +39,7 @@
                 return _listeningPort.Value;
             }
 
-            using (await _startLock.WaitAsync())
+            using (await _startLock.WaitAsync().ConfigureAwait(false))
             {
                 var builder = WebApplication.CreateBuilder();
                 builder.Logging.ClearProviders();
@@ -67,7 +67,7 @@
                 app.UseRouting();
                 app.MapGrpcService<WindowsRfs.WindowsRfsBase>();
 
-                await app.StartAsync();
+                await app.StartAsync().ConfigureAwait(false);
 
                 _app = app;
                 _listeningPort = new Uri(app.Urls.First()).Port;
@@ -77,11 +77,11 @@
 
         public async ValueTask DisposeAsync()
         {
-            using (await _startLock.WaitAsync())
+            using (await _startLock.WaitAsync().ConfigureAwait(false))
             {
                 if (_app != null)
                 {
-                    await _app.StopAsync();
+                    await _app.StopAsync().ConfigureAwait(false);
                 }
                 _app = null;
                 _listeningPort = null;

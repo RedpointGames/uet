@@ -5,8 +5,8 @@
     /// </summary>
     public class Gate
     {
-        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(0);
-        private bool _opened = false;
+        private readonly Semaphore _semaphore = new Semaphore(0);
+        private bool _opened;
 
         /// <summary>
         /// Constructs a new gate in the closed state.
@@ -56,35 +56,35 @@
                 return;
             }
 
-            await _semaphore.WaitAsync(cancellationToken);
+            await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             _semaphore.Release();
         }
 
         /// <summary>
         /// Wait synchronously until the gate is opened.
         /// </summary>
-        public void Wait()
+        public void Wait(CancellationToken cancellationToken)
         {
             if (_opened)
             {
                 return;
             }
 
-            _semaphore.Wait();
+            _semaphore.Wait(cancellationToken);
             _semaphore.Release();
         }
 
         /// <summary>
         /// Wait synchronously until the gate is opened or the elapsed milliseconds have passed.
         /// </summary>
-        public bool TryWait(int elapsedMilliseconds)
+        public bool TryWait(int elapsedMilliseconds, CancellationToken cancellationToken)
         {
             if (_opened)
             {
                 return true;
             }
 
-            if (!_semaphore.Wait(elapsedMilliseconds))
+            if (!_semaphore.Wait(elapsedMilliseconds, cancellationToken))
             {
                 return false;
             }

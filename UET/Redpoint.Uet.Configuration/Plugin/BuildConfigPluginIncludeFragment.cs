@@ -8,6 +8,6 @@
         /// A list of distributions.
         /// </summary>
         [JsonPropertyName("Distributions"), JsonRequired]
-        public BuildConfigPluginDistribution[] Distributions { get; set; } = new BuildConfigPluginDistribution[0];
+        public BuildConfigPluginDistribution[] Distributions { get; set; } = Array.Empty<BuildConfigPluginDistribution>();
     }
 }

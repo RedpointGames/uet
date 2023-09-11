@@ -11,7 +11,7 @@
 
         async Task<IAsyncDisposable?> ModifyProcessSpecificationWithCleanupAsync(ProcessSpecification processSpecification, CancellationToken cancellationToken)
         {
-            await ModifyProcessSpecificationAsync(processSpecification, cancellationToken);
+            await ModifyProcessSpecificationAsync(processSpecification, cancellationToken).ConfigureAwait(false);
             return null;
         }
     }

@@ -212,7 +212,7 @@ namespace System.CommandLine.Parsing
             void ParseDirective(CommandNode parent)
             {
                 var token = CurrentToken;
-                var withoutBrackets = token.Value.Substring(1, token.Value.Length - 2);
+                var withoutBrackets = token.Value[1..^1];
                 var keyAndValue = withoutBrackets.Split(new[]
                 {
                     ':'

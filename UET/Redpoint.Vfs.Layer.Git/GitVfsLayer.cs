@@ -19,7 +19,7 @@
         private readonly string _blobPath;
         private readonly string _indexCachePath;
         private bool _didInit;
-        private readonly SemaphoreSlim _globalSemaphore;
+        private readonly Concurrency.Semaphore _globalSemaphore;
         private IGitCommit? _commit;
         private DateTimeOffset _created;
         private readonly GitIndex _index;
@@ -49,7 +49,7 @@
             _logger = logger;
             _localIoVfsFileFactory = localIoVfsFileFactory;
             _materializationCache = new ConcurrentLru<string, bool>(1024 * 32);
-            _globalSemaphore = new SemaphoreSlim(1);
+            _globalSemaphore = new Concurrency.Semaphore(1);
         }
 
         public IReadOnlyDictionary<string, string> Files => _index._files;
@@ -158,9 +158,9 @@
 
         private string AdjustNewLinesForWindows(string content)
         {
-            if (!content.Contains("\r"))
+            if (!content.Contains('\r', StringComparison.Ordinal))
             {
-                return content.Replace("\n", "\r\n");
+                return content.Replace("\n", "\r\n", StringComparison.Ordinal);
             }
             return content;
         }

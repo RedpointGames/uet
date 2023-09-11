@@ -70,7 +70,7 @@
             {
                 if (_emitOnce.TryAdd(name, true))
                 {
-                    await runOnce();
+                    await runOnce().ConfigureAwait(false);
                 }
             }
         }
@@ -89,7 +89,7 @@
                     context,
                     writer,
                     buildConfigDistribution,
-                    byType);
+                    byType).ConfigureAwait(false);
             }
         }
 
@@ -112,8 +112,8 @@
                 Async = true,
             }))
             {
-                await writer.WriteStartDocumentAsync();
-                await writer.WriteStartElementAsync(null, "BuildGraph", "http://www.epicgames.com/BuildGraph");
+                await writer.WriteStartDocumentAsync().ConfigureAwait(false);
+                await writer.WriteStartElementAsync(null, "BuildGraph", "http://www.epicgames.com/BuildGraph").ConfigureAwait(false);
 
                 if (buildConfigDistribution is BuildConfigPluginDistribution pluginDistribution)
                 {
@@ -124,7 +124,7 @@
                             writer,
                             pluginDistribution,
                             _pluginTests,
-                            pluginDistribution.Tests);
+                            pluginDistribution.Tests).ConfigureAwait(false);
                     }
 
                     if (pluginDistribution.Deployment != null && executeDeployment)
@@ -134,7 +134,7 @@
                             writer,
                             pluginDistribution,
                             _pluginDeployments,
-                            pluginDistribution.Deployment);
+                            pluginDistribution.Deployment).ConfigureAwait(false);
                     }
                 }
                 else if (buildConfigDistribution is BuildConfigProjectDistribution projectDistribution)
@@ -146,7 +146,7 @@
                             writer,
                             projectDistribution,
                             _projectTests,
-                            projectDistribution.Tests);
+                            projectDistribution.Tests).ConfigureAwait(false);
                     }
 
                     if (projectDistribution.Deployments != null && executeDeployment)
@@ -156,7 +156,7 @@
                             writer,
                             projectDistribution,
                             _projectDeployments,
-                            projectDistribution.Deployments);
+                            projectDistribution.Deployments).ConfigureAwait(false);
                     }
                 }
                 else
@@ -164,8 +164,8 @@
                     throw new NotSupportedException();
                 }
 
-                await writer.WriteEndElementAsync();
-                await writer.WriteEndDocumentAsync();
+                await writer.WriteEndElementAsync().ConfigureAwait(false);
+                await writer.WriteEndDocumentAsync().ConfigureAwait(false);
             }
         }
 
@@ -186,8 +186,8 @@
                 Async = true,
             }))
             {
-                await writer.WriteStartDocumentAsync();
-                await writer.WriteStartElementAsync(null, "BuildGraph", "http://www.epicgames.com/BuildGraph");
+                await writer.WriteStartDocumentAsync().ConfigureAwait(false);
+                await writer.WriteStartElementAsync(null, "BuildGraph", "http://www.epicgames.com/BuildGraph").ConfigureAwait(false);
 
                 if (buildConfigDistribution is BuildConfigPluginDistribution pluginDistribution)
                 {
@@ -198,7 +198,7 @@
                             writer,
                             pluginDistribution,
                             _pluginPrepare,
-                            pluginDistribution.Prepare);
+                            pluginDistribution.Prepare).ConfigureAwait(false);
                     }
                 }
                 else if (buildConfigDistribution is BuildConfigProjectDistribution projectDistribution)
@@ -210,7 +210,7 @@
                             writer,
                             projectDistribution,
                             _projectPrepare,
-                            projectDistribution.Prepare);
+                            projectDistribution.Prepare).ConfigureAwait(false);
                     }
                 }
                 else
@@ -218,8 +218,8 @@
                     throw new NotSupportedException();
                 }
 
-                await writer.WriteEndElementAsync();
-                await writer.WriteEndDocumentAsync();
+                await writer.WriteEndElementAsync().ConfigureAwait(false);
+                await writer.WriteEndDocumentAsync().ConfigureAwait(false);
             }
         }
     }

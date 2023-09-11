@@ -13,6 +13,7 @@
     using Redpoint.Vfs.Layer.Folder;
     using Redpoint.Vfs.Layer.Scratch;
     using System.Threading.Tasks;
+    using Redpoint.Concurrency;
 
     internal class FolderSnapshotMounter : IMounter<MountFolderSnapshotRequest>
     {
@@ -59,7 +60,7 @@
             }
 
             // Run the mount transaction.
-            await using (var transaction = await daemon.TransactionalDatabase.BeginTransactionAsync(
+            await using ((await daemon.TransactionalDatabase.BeginTransactionAsync(
                 new AddMountTransactionRequest
                 {
                     MountId = context.MountId,
@@ -114,9 +115,9 @@
                     },
                 },
                 onPollingResponse,
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var transaction).ConfigureAwait(false))
             {
-                await transaction.WaitForCompletionAsync(cancellationToken);
+                await transaction.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
             }
         }
     }

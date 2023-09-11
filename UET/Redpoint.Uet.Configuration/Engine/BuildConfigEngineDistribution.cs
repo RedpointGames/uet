@@ -17,9 +17,9 @@
         public BuildConfigEngineCook Cook { get; set; } = new BuildConfigEngineCook();
 
         [JsonPropertyName("Deployment")]
-        public BuildConfigEngineDeployment[] Deployment { get; set; } = new BuildConfigEngineDeployment[0];
+        public BuildConfigEngineDeployment[] Deployment { get; set; } = Array.Empty<BuildConfigEngineDeployment>();
 
         [JsonPropertyName("MobileProvisions")]
-        public BuildConfigMobileProvision[] MobileProvisions { get; set; } = new BuildConfigMobileProvision[0];
+        public BuildConfigMobileProvision[] MobileProvisions { get; set; } = Array.Empty<BuildConfigMobileProvision>();
     }
 }

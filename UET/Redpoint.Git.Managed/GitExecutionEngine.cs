@@ -116,9 +116,8 @@
                             getObjectFromPackfile.Packfile.FullName,
                             path => new Packfile.Packfile(path));
                         var packfileIndex = _packfileIndexCache.GetOrAdd(
-                            getObjectFromPackfile.Packfile.FullName.Substring(
-                                0,
-                                getObjectFromPackfile.Packfile.FullName.Length - 5) + ".idx",
+                            getObjectFromPackfile.Packfile.FullName[
+..^5] + ".idx",
                             path => new PackfileIndex(path));
                         if (packfile.GetRawPackfileEntry(
                             packfileIndex,

@@ -11,6 +11,7 @@
     using Redpoint.Uefs.Protocol;
     using System.Threading;
     using System.Threading.Tasks;
+    using Redpoint.Concurrency;
 
     internal class PackageFileMounter : IMounter<MountPackageFileRequest>
     {
@@ -41,7 +42,7 @@
             }
 
             // Run the mount transaction.
-            await using (var transaction = await daemon.TransactionalDatabase.BeginTransactionAsync(
+            await using ((await daemon.TransactionalDatabase.BeginTransactionAsync(
                 new AddMountTransactionRequest
                 {
                     MountId = context.MountId,
@@ -71,7 +72,7 @@
                                 request.Path,
                                 request.MountRequest.MountPath,
                                 writeStoragePath,
-                                request.MountRequest.WriteScratchPersistence);
+                                request.MountRequest.WriteScratchPersistence).ConfigureAwait(false);
                         }
                         catch (PackageMounterException ex)
                         {
@@ -99,9 +100,9 @@
                     }
                 },
                 onPollingResponse,
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var transaction).ConfigureAwait(false))
             {
-                await transaction.WaitForCompletionAsync(cancellationToken);
+                await transaction.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
             }
         }
     }

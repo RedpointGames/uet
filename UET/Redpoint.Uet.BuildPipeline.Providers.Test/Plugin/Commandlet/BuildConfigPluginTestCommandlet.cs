@@ -21,7 +21,7 @@
         /// A list of platforms to execute this commandlet test on. A set of "Win64", "Mac" or both.
         /// </summary>
         [JsonPropertyName("Platforms"), JsonRequired]
-        public BuildConfigHostPlatform[] Platforms { get; set; } = new BuildConfigHostPlatform[0];
+        public BuildConfigHostPlatform[] Platforms { get; set; } = Array.Empty<BuildConfigHostPlatform>();
 
         /// <summary>
         /// To detect scenarios where the Unreal Editor stalls between startup and the commandlet

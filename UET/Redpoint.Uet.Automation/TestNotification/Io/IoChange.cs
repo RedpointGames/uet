@@ -33,7 +33,7 @@
         public double? DurationSeconds { get; set; }
 
         [JsonPropertyName("appendPrimaryLogLines")]
-        public string[] AppendPrimaryLogLines { get; set; } = new string[0];
+        public string[] AppendPrimaryLogLines { get; set; } = Array.Empty<string>();
 
         [JsonPropertyName("appendAdditionalLogLines")]
         public Dictionary<string, string[]> AppendAdditionalLogLines { get; set; } = new Dictionary<string, string[]>();

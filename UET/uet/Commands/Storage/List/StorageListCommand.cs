@@ -121,7 +121,7 @@
                         var directory = entry.dir;
                         if (!directory.Exists)
                         {
-                            await semaphore.WaitAsync();
+                            await semaphore.WaitAsync(ct).ConfigureAwait(false);
                             try
                             {
                                 remaining--;
@@ -207,7 +207,7 @@
                                 break;
                         }
 
-                        await semaphore.WaitAsync();
+                        await semaphore.WaitAsync(ct).ConfigureAwait(false);
                         try
                         {
                             maxIdLength = Math.Max(maxIdLength, directory.Name.Length);
@@ -231,7 +231,7 @@
                         }
 
                         return;
-                    });
+                    }).ConfigureAwait(false);
 
                 var now = DateTimeOffset.UtcNow;
                 if (entries.Count > 0)

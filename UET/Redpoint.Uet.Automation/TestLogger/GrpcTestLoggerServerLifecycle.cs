@@ -2,6 +2,7 @@
 {
     using Grpc.Core;
     using Redpoint.GrpcPipes;
+    using Redpoint.Hashing;
     using Redpoint.Uet.Automation.Model;
     using Redpoint.Uet.Automation.TestLogging;
     using Redpoint.Uet.Automation.Worker;
@@ -36,14 +37,14 @@
             _loggerServer = new GrpcTestLoggerServer(
                 _testLoggerFactory,
                 _grpcPipeFactory);
-            await _loggerServer.StartAsync();
+            await _loggerServer.StartAsync().ConfigureAwait(false);
         }
 
         public async Task StopAsync()
         {
             if (_loggerServer != null)
             {
-                await _loggerServer.StopAsync();
+                await _loggerServer.StopAsync().ConfigureAwait(false);
             }
             _loggerServer = null;
         }
@@ -79,7 +80,7 @@
                 ITestLoggerFactory testLoggerFactory,
                 IGrpcPipeFactory grpcPipeFactory)
             {
-                PipeName = $"UETAutomationLog-{BitConverter.ToString(Guid.NewGuid().ToByteArray()).Replace("-", "").ToLowerInvariant()}";
+                PipeName = $"UETAutomationLog-{Hash.GuidAsHexString(Guid.NewGuid())}";
                 _pipeServer = grpcPipeFactory.CreateServer(
                     PipeName,
                     GrpcPipeNamespace.User,
@@ -99,13 +100,13 @@
 
             public override async Task<LogResponse> LogWorkerStarting(LogWorkerStartingRequest request, ServerCallContext context)
             {
-                await _testLogger.LogWorkerStarting(new FakeWorker(request.WorkerDisplayName));
+                await _testLogger.LogWorkerStarting(new FakeWorker(request.WorkerDisplayName)).ConfigureAwait(false);
                 return new LogResponse();
             }
 
             public override async Task<LogResponse> LogWorkerStarted(LogWorkerStartedRequest request, ServerCallContext context)
             {
-                await _testLogger.LogWorkerStarted(new FakeWorker(request.WorkerDisplayName), TimeSpan.FromSeconds(request.StartupDurationSeconds));
+                await _testLogger.LogWorkerStarted(new FakeWorker(request.WorkerDisplayName), TimeSpan.FromSeconds(request.StartupDurationSeconds)).ConfigureAwait(false);
                 return new LogResponse();
             }
 
@@ -113,7 +114,7 @@
             {
                 await _testLogger.LogWorkerStopped(
                     new FakeWorker(request.WorkerDisplayName),
-                    request.WorkerHasCrashData ? new LocalWorkerCrashData(request.WorkerCrashData) : null);
+                    request.WorkerHasCrashData ? new LocalWorkerCrashData(request.WorkerCrashData) : null).ConfigureAwait(false);
                 return new LogResponse();
             }
 
@@ -133,11 +134,11 @@
                         DateStarted = DateTime.UtcNow,
                         DateFinished = DateTime.UtcNow,
                         Duration = TimeSpan.Zero,
-                        Entries = new TestResultEntry[0],
+                        Entries = Array.Empty<TestResultEntry>(),
                         Platform = string.Empty,
                         TestName = string.Empty,
                         WorkerDisplayName = request.WorkerDisplayName,
-                    });
+                    }).ConfigureAwait(false);
                 return new LogResponse();
             }
 
@@ -157,11 +158,11 @@
                         DateStarted = DateTime.UtcNow,
                         DateFinished = DateTime.UtcNow,
                         Duration = TimeSpan.Zero,
-                        Entries = new TestResultEntry[0],
+                        Entries = Array.Empty<TestResultEntry>(),
                         Platform = string.Empty,
                         TestName = string.Empty,
                         WorkerDisplayName = request.WorkerDisplayName,
-                    });
+                    }).ConfigureAwait(false);
                 return new LogResponse();
             }
 
@@ -206,7 +207,7 @@
                         TestsRemaining = request.TestsRemaining,
                         TestsTotal = request.TestsTotal,
                     },
-                    testResult);
+                    testResult).ConfigureAwait(false);
                 return new LogResponse();
             }
 
@@ -220,13 +221,13 @@
                         TestsTotal = request.TestsTotal,
                     },
                     new Exception($"Forwarded exception: {request.ExceptionText}"),
-                    request.ExceptionContext);
+                    request.ExceptionContext).ConfigureAwait(false);
                 return new LogResponse();
             }
 
             public override async Task<LogResponse> LogTestRunTimedOut(LogTestRunTimedOutRequest request, ServerCallContext context)
             {
-                await _testLogger.LogTestRunTimedOut(TimeSpan.FromSeconds(request.TimeoutDurationSeconds));
+                await _testLogger.LogTestRunTimedOut(TimeSpan.FromSeconds(request.TimeoutDurationSeconds)).ConfigureAwait(false);
                 return new LogResponse();
             }
 

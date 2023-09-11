@@ -5,7 +5,7 @@
 
     internal class ManualCoreProvider : IWorkerCoreProvider<IWorkerCore>
     {
-        private SemaphoreSlim _provideCore = new SemaphoreSlim(0);
+        private Concurrency.Semaphore _provideCore = new Concurrency.Semaphore(0);
 
         public ManualCoreProvider()
         {

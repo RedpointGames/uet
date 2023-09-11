@@ -58,7 +58,7 @@
                     {
                         var volumeName = GetStringFromBuffer();
 
-                        var volumeIdRaw = volumeName.Substring(4).TrimEnd('\\');
+                        var volumeIdRaw = volumeName[4..].TrimEnd('\\');
                         if (PInvoke.QueryDosDevice(volumeIdRaw, buffer, (uint)_buffer.Length) == 0x0)
                         {
                             throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -84,13 +84,13 @@
                                 {
                                     if (span[i] == 0)
                                     {
-                                        volumePathNames.Add(new string(span.Slice(lastIndex, i - lastIndex)));
+                                        volumePathNames.Add(new string(span[lastIndex..i]));
                                         lastIndex = i + 1;
                                     }
                                 }
                                 if (lastIndex != span.Length)
                                 {
-                                    volumePathNames.Add(new string(span.Slice(lastIndex, (int)span.Length - lastIndex)));
+                                    volumePathNames.Add(new string(span[lastIndex..(int)span.Length]));
                                 }
                             }
                             finally

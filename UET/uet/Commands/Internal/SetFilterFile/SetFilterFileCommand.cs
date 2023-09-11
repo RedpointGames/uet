@@ -72,7 +72,7 @@
                 }
 
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-                await File.WriteAllTextAsync(outputPath!, string.Join("\n", lines));
+                await File.WriteAllTextAsync(outputPath!, string.Join("\n", lines)).ConfigureAwait(false);
                 return 0;
             }
         }

@@ -4,6 +4,7 @@
     using Redpoint.ProcessExecution.Windows.SystemCopy;
     using System;
     using System.Collections.Generic;
+    using Redpoint.Hashing;
     using System.Linq;
     using System.Runtime.Versioning;
     using System.Text;
@@ -26,7 +27,7 @@
     [SupportedOSPlatform("windows5.1.2600")]
     internal static class WindowsChroot
     {
-        internal static unsafe WindowsChrootState SetupChrootState(IDictionary<char, string> perProcessDriveMappings)
+        internal static unsafe WindowsChrootState SetupChrootState(IReadOnlyDictionary<char, string> perProcessDriveMappings)
         {
             foreach (var kv in perProcessDriveMappings)
             {
@@ -53,7 +54,7 @@
 
             // Create the root NT object to hold our device map.
             nint objectDirectoryHandle;
-            string objectDirectoryName = $@"\??\RedpointProcMap{Guid.NewGuid().ToString().Replace("-", "").ToLowerInvariant()}";
+            string objectDirectoryName = $@"\??\RedpointProcMap{Hash.GuidAsHexString(Guid.NewGuid())}";
             fixed (char* objectDirectoryNamePtr = objectDirectoryName)
             {
                 var objectDirectoryNameUnicode = new Ntdll.UNICODE_STRING(objectDirectoryNamePtr, objectDirectoryName.Length);

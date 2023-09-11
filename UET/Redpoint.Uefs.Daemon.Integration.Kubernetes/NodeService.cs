@@ -60,7 +60,7 @@
                     }
 
                     var tag = request.VolumeContext["tag"];
-                    var targetDomain = tag.Substring(0, tag.IndexOf('/'));
+                    var targetDomain = tag[..tag.IndexOf('/', StringComparison.Ordinal)];
 
                     _logger.LogInformation($"Kubernetes is requesting mount of tag '{tag}' to '{request.TargetPath}' with volume ID '{request.VolumeId}'");
 
@@ -69,9 +69,9 @@
                         KubernetesJsonSerializerContext.Default.KubernetesDockerConfig);
                     var pullSecretForTag = pullSecret!.Auths.Where(x =>
                     {
-                        if (x.Key.StartsWith("https://"))
+                        if (x.Key.StartsWith("https://", StringComparison.Ordinal))
                         {
-                            return x.Key.Substring(8).StartsWith(targetDomain);
+                            return x.Key[8..].StartsWith(targetDomain, StringComparison.Ordinal);
                         }
                         return false;
                     }).Select(x => x.Value).FirstOrDefault();
@@ -182,7 +182,7 @@
                         else
                         {
                             _logger.LogInformation($"Fetching Git commit '{request.VolumeContext["gitCommit"]}' from '{request.VolumeContext["gitUrl"]}': status: '{entry.PollingResponse.Status}', received objects: {entry.PollingResponse.GitReceivedObjects}, indexed objects: {entry.PollingResponse.GitIndexedObjects}, total objects: {entry.PollingResponse.GitTotalObjects}, received bytes: {entry.PollingResponse.GitReceivedBytes}, type: {(entry.PollingResponse.GitSlowFetch ? "libgit2" : "native")}, git server progress message: '{entry.PollingResponse.GitServerProgressMessage}'");
-                            await Task.Delay(1000);
+                            await Task.Delay(1000).ConfigureAwait(false);
                         }
                     }
                     if (mountId == null)
@@ -218,7 +218,7 @@
                         MountId = $"kube:{request.VolumeId}"
                     },
                     new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
-                    CancellationToken.None);
+                    CancellationToken.None).ConfigureAwait(false);
                 return new NodeUnpublishVolumeResponse();
             }
             catch (OperationCanceledException)

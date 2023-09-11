@@ -1,0 +1,55 @@
+is_global = true
+
+#### These should remain off ####
+
+# This analyser is useless when using dependency injection, as most internal classes won't
+# have explicit new() calls.
+dotnet_diagnostic.CA1812.severity = none
+
+# This analyser just has way too many false positives with the amount of concurrent code
+# we write.
+dotnet_diagnostic.CA1508.severity = none
+
+# We don't want warnings telling us we can't explicitly initialise things to values,
+# because even when we're initialising to defaults, it makes the code intent more readable.
+dotnet_diagnostic.CA1805.severity = none
+
+# When we use catch{}, we're intentionally consuming all exception types.
+dotnet_diagnostic.CA1031.severity = none
+
+# False positive with our AsAsyncDisposable pattern on 'await using' constructs.
+dotnet_diagnostic.CA2000.severity = none
+
+# False positive when we intentionally want lowercase data and don't plan on round-tripping.
+dotnet_diagnostic.CA1308.severity = none
+
+# We know SHA1 is "insecure", but it is the hashing algorithm used by Git.
+dotnet_diagnostic.CA5350.severity = none
+
+# We don't need extra constructors on our custom exceptions.
+dotnet_diagnostic.CA1032.severity = none
+
+# We intentionally use public fields in a few places.
+dotnet_diagnostic.CA1051.severity = none
+
+# We don't need to worry about consumers in other languages.
+dotnet_diagnostic.CA1716.severity = none
+
+# We don't want to use resource tables for internationalization.
+dotnet_diagnostic.CA1303.severity = none
+
+# We don't care about exceptions being serializable, because we don't use .NET serialization.
+dotnet_diagnostic.CA2229.severity = none
+
+# Seems to be false positives around public read-only accessors since it is raised even
+# when there is a read-only accessor?
+dotnet_diagnostic.CA1019.severity = none
+
+#### Gradually turn these on ####
+
+# Turn off warnings around usage of logging APIs.
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA2254.severity = none
+
+# We should eventually convert Flush/Dispose calls to FlushAsync/DisposeAsync.
+dotnet_diagnostic.CA1849.severity = none

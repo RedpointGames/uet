@@ -2,6 +2,7 @@
 {
     using global::Docker.DotNet;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Hashing;
     using Redpoint.Uefs.Daemon.Abstractions;
     using Redpoint.Uefs.Daemon.Integration.Docker;
     using Redpoint.Uefs.Daemon.Integration.Docker.Models;
@@ -40,7 +41,7 @@
             }
 
             var volume = plugin.DockerVolumes[request.Name];
-            await volume.Mutex.WaitAsync();
+            await volume.Mutex.WaitAsync().ConfigureAwait(false);
             try
             {
                 if (volume.Mountpoint != null)
@@ -61,11 +62,7 @@
                     });
                 }
 
-                string hash;
-                using (var sha = SHA1.Create())
-                {
-                    hash = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(volume.Name))).ToLowerInvariant().Replace("-", "");
-                }
+                string hash = Hash.Sha1AsHexString(volume.Name, Encoding.UTF8);
 
                 try
                 {
@@ -84,7 +81,7 @@
                                 }
                             }
                         }
-                    });
+                    }).ConfigureAwait(false);
                     if (containers.Count == 0)
                     {
                         throw new EndpointException<DockerMountResponse>(400, new DockerMountResponse
@@ -123,7 +120,7 @@
                     string? targetPath = null;
                     foreach (var layer in layerChain!)
                     {
-                        var relativePath = volume.FilePath.Substring("C:\\".Length);
+                        var relativePath = volume.FilePath["C:\\".Length..];
                         var descendantPath = Path.Combine(layer, "Files", relativePath);
 
                         _logger.LogTrace($"Checking for package file: {descendantPath}");
@@ -204,7 +201,7 @@
                     try
                     {
                         volume.PackageMounter = selectedMounter;
-                        await selectedMounter.MountAsync(targetPath, volume.Mountpoint, writeStorage, WriteScratchPersistence.DiscardOnUnmount);
+                        await selectedMounter.MountAsync(targetPath, volume.Mountpoint, writeStorage, WriteScratchPersistence.DiscardOnUnmount).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {

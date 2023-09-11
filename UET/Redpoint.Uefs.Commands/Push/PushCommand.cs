@@ -2,6 +2,7 @@
 {
     using Docker.Registry.DotNet.Models;
     using Docker.Registry.DotNet.Registry;
+    using Redpoint.Hashing;
     using Redpoint.ProgressMonitor;
     using Redpoint.Uefs.Commands.Hash;
     using Redpoint.Uefs.ContainerRegistry;
@@ -9,6 +10,7 @@
     using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.Globalization;
     using System.IO.MemoryMappedFiles;
     using System.Linq;
     using System.Security.Cryptography;
@@ -88,7 +90,7 @@
                 var label = tag.Groups["label"].Value;
 
                 // Compute the digest for the package first. We need it in both modes.
-                string sha256 = await _fileHasher.ComputeHashAsync(packagePath);
+                string sha256 = await _fileHasher.ComputeHashAsync(packagePath).ConfigureAwait(false);
 
                 // Connect to the registry.
                 var clientCredential = RegistryClientFactory.GetRegistryCredential(host);
@@ -111,16 +113,13 @@
                     {
                         Console.WriteLine("uploading config to registry...");
                         var info = JsonSerializer.Serialize(new RegistryImageConfig { }, UefsCommandJsonSerializerContext.Default.RegistryImageConfig);
-                        using (var hasher = SHA256.Create())
+                        configDigest = "sha256:" + Hash.Sha256AsHexString(info, Encoding.UTF8);
+                        if (!await client.Blobs.IsExistBlobAsync(path, configDigest).ConfigureAwait(false))
                         {
-                            configDigest = "sha256:" + BitConverter.ToString(hasher.ComputeHash(Encoding.UTF8.GetBytes(info))).Replace("-", "").ToLowerInvariant();
-                        }
-                        if (!await client.Blobs.IsExistBlobAsync(path, configDigest))
-                        {
-                            var upload = await client.BlobUploads.StartUploadBlobAsync(path);
+                            var upload = await client.BlobUploads.StartUploadBlobAsync(path).ConfigureAwait(false);
                             using (var memory = new MemoryStream(Encoding.UTF8.GetBytes(info)))
                             {
-                                await client.BlobUploads.CompleteBlobUploadAsync(upload, configDigest, memory);
+                                await client.BlobUploads.CompleteBlobUploadAsync(upload, configDigest, memory).ConfigureAwait(false);
                             }
                         }
                         configLength = Encoding.UTF8.GetBytes(info).Length;
@@ -133,7 +132,7 @@
                         var packageInfo = new FileInfo(packagePath.FullName);
                         using (var mmap = MemoryMappedFile.CreateFromFile(packagePath.FullName, FileMode.Open, null, 0))
                         {
-                            if (await client.Blobs.IsExistBlobAsync(path, sha256))
+                            if (await client.Blobs.IsExistBlobAsync(path, sha256).ConfigureAwait(false))
                             {
                                 Console.WriteLine("already exists; skipping blob upload");
                             }
@@ -150,13 +149,13 @@
                                         progress,
                                         SystemConsole.ConsoleInformation,
                                         SystemConsole.WriteProgressToConsole,
-                                        cts.Token);
+                                        cts.Token).ConfigureAwait(false);
                                 });
 
                                 try
                                 {
-                                    var upload = await client.BlobUploads.StartUploadBlobAsync(path);
-                                    var startPosition = long.Parse(upload.Range.Split("-")[1]);
+                                    var upload = await client.BlobUploads.StartUploadBlobAsync(path).ConfigureAwait(false);
+                                    var startPosition = long.Parse(upload.Range.Split("-")[1], CultureInfo.InvariantCulture);
 
                                     const long chunkSize = 1024 * 1024 * 1024;
 
@@ -171,23 +170,23 @@
                                                 upload,
                                                 view,
                                                 from,
-                                                to);
+                                                to).ConfigureAwait(false);
                                         }
                                     }
-                                    await client.BlobUploads.CompleteBlobUploadAsync(upload, sha256);
+                                    await client.BlobUploads.CompleteBlobUploadAsync(upload, sha256).ConfigureAwait(false);
                                 }
                                 finally
                                 {
-                                    await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);
+                                    await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts).ConfigureAwait(false);
                                 }
                             }
                         }
 
-                        if (packagePath.FullName.EndsWith(RegistryConstants.FileExtensionVHD))
+                        if (packagePath.FullName.EndsWith(RegistryConstants.FileExtensionVHD, StringComparison.OrdinalIgnoreCase))
                         {
                             pkgMediaType = RegistryConstants.MediaTypePackageVHD;
                         }
-                        else if (packagePath.FullName.EndsWith(RegistryConstants.FileExtensionSparseImage))
+                        else if (packagePath.FullName.EndsWith(RegistryConstants.FileExtensionSparseImage, StringComparison.OrdinalIgnoreCase))
                         {
                             pkgMediaType = RegistryConstants.MediaTypePackageSparseImage;
                         }
@@ -211,13 +210,13 @@
                                 Location = packageRef,
                                 Digest = sha256,
                             },
-                            UefsCommandJsonSerializerContext.Default.RegistryReferenceInfo);
+                            UefsCommandJsonSerializerContext.Default.RegistryReferenceInfo).ConfigureAwait(false);
 
-                        if (packagePath.FullName.EndsWith(RegistryConstants.FileExtensionVHD))
+                        if (packagePath.FullName.EndsWith(RegistryConstants.FileExtensionVHD, StringComparison.OrdinalIgnoreCase))
                         {
                             pkgMediaType = RegistryConstants.MediaTypePackageReferenceVHD;
                         }
-                        else if (packagePath.FullName.EndsWith(RegistryConstants.FileExtensionSparseImage))
+                        else if (packagePath.FullName.EndsWith(RegistryConstants.FileExtensionSparseImage, StringComparison.OrdinalIgnoreCase))
                         {
                             pkgMediaType = RegistryConstants.MediaTypePackageReferenceSparseImage;
                         }
@@ -234,7 +233,7 @@
                     {
                         var existingManifest = await client.Manifest.GetManifestAsync(
                             path,
-                            label);
+                            label).ConfigureAwait(false);
                         if (existingManifest?.Manifest is ImageManifest2_2 existingManifestSchema2)
                         {
                             // This is an older upload, which didn't use the manifest list system.
@@ -251,7 +250,7 @@
                                 path,
                                 label,
                                 RegistryConstants.PlatformWindows,
-                                existingManifestSchema2);
+                                existingManifestSchema2).ConfigureAwait(false);
 
                             // Add the manifest.
                             existingManifests.Add(new Manifest
@@ -313,7 +312,7 @@
                                     Digest = pkgDigest,
                                 }
                             }
-                        });
+                        }).ConfigureAwait(false);
 
                     // Generate the manifest list itself.
                     var manifestList = new ManifestList
@@ -345,7 +344,7 @@
                     }
 
                     // Upload the manifest for this tag.
-                    await client.Manifest.PutManifestAsync(path, label, manifestList);
+                    await client.Manifest.PutManifestAsync(path, label, manifestList).ConfigureAwait(false);
                 }
 
                 Console.WriteLine("push complete");
@@ -360,16 +359,13 @@
             {
                 string pkgDigest;
                 var info = JsonSerializer.Serialize(data, typeInfo);
-                using (var hasher = SHA256.Create())
+                pkgDigest = "sha256:" + Hash.Sha256AsHexString(info, Encoding.UTF8);
+                if (!await client.Blobs.IsExistBlobAsync(path, pkgDigest).ConfigureAwait(false))
                 {
-                    pkgDigest = "sha256:" + BitConverter.ToString(hasher.ComputeHash(Encoding.UTF8.GetBytes(info))).Replace("-", "").ToLowerInvariant();
-                }
-                if (!await client.Blobs.IsExistBlobAsync(path, pkgDigest))
-                {
-                    var upload = await client.BlobUploads.StartUploadBlobAsync(path);
+                    var upload = await client.BlobUploads.StartUploadBlobAsync(path).ConfigureAwait(false);
                     using (var memory = new MemoryStream(Encoding.UTF8.GetBytes(info)))
                     {
-                        await client.BlobUploads.CompleteBlobUploadAsync(upload, pkgDigest, memory);
+                        await client.BlobUploads.CompleteBlobUploadAsync(upload, pkgDigest, memory).ConfigureAwait(false);
                     }
                     Console.WriteLine($"tiny blob uploaded: {pkgDigest} ({path})");
                 }
@@ -388,9 +384,9 @@
                 ImageManifest manifest)
             {
                 var platformedLabel = $"{label}-uefsplatform-{platform}";
-                var response = await client.Manifest.PutManifestAsync(path, platformedLabel, manifest);
+                var response = await client.Manifest.PutManifestAsync(path, platformedLabel, manifest).ConfigureAwait(false);
                 Console.WriteLine($"intermediate manifest uploaded for: {platform}: {response.DockerContentDigest} ({platformedLabel})");
-                return (response.DockerContentDigest, int.Parse(response.ContentLength));
+                return (response.DockerContentDigest, int.Parse(response.ContentLength, CultureInfo.InvariantCulture));
             }
         }
     }

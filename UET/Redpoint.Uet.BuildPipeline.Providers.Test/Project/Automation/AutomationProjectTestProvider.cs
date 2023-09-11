@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Project.Automation
 {
+    using Redpoint.Concurrency;
     using Redpoint.Uet.Configuration.Project;
     using Redpoint.Uet.BuildGraph;
     using System.Threading.Tasks;
@@ -126,16 +127,16 @@
                                             { "TestResultsPath", $"$(ArtifactExportPath)/.uet/tmp/Automation{platform}/TestResults.xml" },
                                             { "WorkerLogsPath", $"$(ArtifactExportPath)/.uet/tmp/Automation{platform}" },
                                             { "TargetName", test.settings.TargetName ?? "UnrealEditor" },
-                                        });
-                                });
+                                        }).ConfigureAwait(false);
+                                }).ConfigureAwait(false);
                             await writer.WriteDynamicNodeAppendAsync(
                                 new DynamicNodeAppendElementProperties
                                 {
                                     NodeName = nodeName,
                                     MustPassForLaterDeployment = true,
-                                });
+                                }).ConfigureAwait(false);
                         }
-                    });
+                    }).ConfigureAwait(false);
             }
         }
 
@@ -152,7 +153,7 @@
             var workerLogsPath = runtimeSettings["WorkerLogsPath"];
             var targetName = runtimeSettings["TargetName"];
 
-            await using (var automationRunner = await _automationRunnerFactory.CreateAndRunAsync(
+            await using ((await _automationRunnerFactory.CreateAndRunAsync(
                 _testLoggerFactory.CreateConsole(),
                 _testNotificationFactory.CreateIo(cancellationToken),
                 _testReporterFactory.CreateJunit(testResultsPath),
@@ -181,9 +182,9 @@
                     TestAttemptCount = config.TestAttemptCount.HasValue ? Math.Max(config.TestAttemptCount.Value, 1) : null,
                     FilenamePrefixToCut = Path.GetDirectoryName(testProjectPath)!,
                 },
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var automationRunner).ConfigureAwait(false))
             {
-                var testResults = await automationRunner.WaitForResultsAsync();
+                var testResults = await automationRunner.WaitForResultsAsync().ConfigureAwait(false);
                 if (testResults.Length == 0 ||
                     testResults.Any(x => x.TestStatus != TestResultStatus.Passed && x.TestStatus != TestResultStatus.Skipped))
                 {

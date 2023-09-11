@@ -24,7 +24,7 @@
         public async Task<string> GetServiceExecutableAndArguments(string name)
         {
             var svcRegex = new Regex("^ExecStart=(.*)$", RegexOptions.Multiline);
-            var execStart = svcRegex.Match(await File.ReadAllTextAsync($"/etc/systemd/system/{name}.service")).Groups[1].Value;
+            var execStart = svcRegex.Match(await File.ReadAllTextAsync($"/etc/systemd/system/{name}.service").ConfigureAwait(false)).Groups[1].Value;
             return execStart.Trim();
         }
 
@@ -42,7 +42,7 @@
                 CreateNoWindow = true,
                 UseShellExecute = false,
             })!;
-            await checkProcess.WaitForExitAsync();
+            await checkProcess.WaitForExitAsync().ConfigureAwait(false);
             return checkProcess.ExitCode == 0;
         }
 
@@ -58,7 +58,7 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
-");
+").ConfigureAwait(false);
             File.CreateSymbolicLink($"/etc/systemd/system/multi-user.target.wants/{name}.service", $"/etc/systemd/system/{name}.service");
             await Process.Start(new ProcessStartInfo
             {
@@ -69,7 +69,7 @@ WantedBy=multi-user.target
                 },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync();
+            })!.WaitForExitAsync().ConfigureAwait(false);
         }
 
         public async Task StartService(string name)
@@ -84,7 +84,7 @@ WantedBy=multi-user.target
                 },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync();
+            })!.WaitForExitAsync().ConfigureAwait(false);
         }
 
         public async Task StopService(string name)
@@ -99,7 +99,7 @@ WantedBy=multi-user.target
                 },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync();
+            })!.WaitForExitAsync().ConfigureAwait(false);
         }
 
         public async Task UninstallService(string name)
@@ -117,7 +117,7 @@ WantedBy=multi-user.target
                 },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync();
+            })!.WaitForExitAsync().ConfigureAwait(false);
         }
     }
 

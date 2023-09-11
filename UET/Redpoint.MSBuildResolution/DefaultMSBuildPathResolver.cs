@@ -93,33 +93,33 @@
                     var versionedPath = Path.Combine(installationPath, "MSBuild", "15.0", "Bin", "MSBuild.exe");
                     if (File.Exists(currentPath))
                     {
-                        return (currentPath, new string[0]);
+                        return (currentPath, Array.Empty<string>());
                     }
                     if (File.Exists(versionedPath))
                     {
-                        return (versionedPath, new string[0]);
+                        return (versionedPath, Array.Empty<string>());
                     }
                 }
 
                 var proposedPath = GetMSBuildFromRegistry(@"Microsoft\VisualStudio\SxS\VS7", "15.0", @"MSBuild\15.0\bin\MSBuild.exe");
                 if (proposedPath != null)
                 {
-                    return (proposedPath, new string[0]);
+                    return (proposedPath, Array.Empty<string>());
                 }
                 proposedPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "MSBuild", "14.0", "Bin", "MSBuild.exe");
                 if (File.Exists(proposedPath))
                 {
-                    return (proposedPath, new string[0]);
+                    return (proposedPath, Array.Empty<string>());
                 }
                 proposedPath = GetMSBuildFromRegistry(@"Microsoft\MSBuild\ToolsVersions\14.0", "MSBuildToolsPath", "MSBuild.exe");
                 if (proposedPath != null)
                 {
-                    return (proposedPath, new string[0]);
+                    return (proposedPath, Array.Empty<string>());
                 }
                 proposedPath = GetMSBuildFromRegistry(@"Microsoft\MSBuild\ToolsVersions\12.0", "MSBuildToolsPath", "MSBuild.exe");
                 if (proposedPath != null)
                 {
-                    return (proposedPath, new string[0]);
+                    return (proposedPath, Array.Empty<string>());
                 }
 
                 throw new FileNotFoundException($"MSBuild could not be found.");

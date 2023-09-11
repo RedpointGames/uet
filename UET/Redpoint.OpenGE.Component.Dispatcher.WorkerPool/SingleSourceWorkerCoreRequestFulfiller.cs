@@ -12,15 +12,16 @@
     public class SingleSourceWorkerCoreRequestFulfiller<TWorkerCore> : IAsyncDisposable, IWorkerPoolTracerAssignable where TWorkerCore : IAsyncDisposable
     {
         private readonly ILogger _logger;
+        private readonly bool _enableTracing;
         private readonly ITaskSchedulerScope _taskSchedulerScope;
         private readonly WorkerCoreRequestCollection<TWorkerCore> _requestCollection;
         private readonly IWorkerCoreProvider<TWorkerCore> _coreProvider;
         private readonly bool _fulfillsLocalRequests;
         private readonly int _remoteDelayMilliseconds;
-        private readonly SemaphoreSlim _processRequestsSemaphore;
+        private readonly Semaphore _processRequestsSemaphore;
         private readonly ConcurrentQueue<TWorkerCore> _coresAcquired;
         private long _coreAcquiringCount;
-        private readonly MutexSlim _requestProcessingLock;
+        private readonly Mutex _requestProcessingLock;
         private readonly Task _backgroundTask;
         private WorkerPoolTracer? _tracer;
 
@@ -33,15 +34,16 @@
             int remoteDelayMilliseconds)
         {
             _logger = logger;
+            _enableTracing = _logger.IsEnabled(LogLevel.Trace);
             _taskSchedulerScope = taskScheduler.CreateSchedulerScope("SingleSourceWorkerCoreRequestFulfiller", CancellationToken.None);
             _requestCollection = requestCollection;
             _coreProvider = coreProvider;
             _fulfillsLocalRequests = canFulfillLocalRequests;
             _remoteDelayMilliseconds = remoteDelayMilliseconds;
-            _processRequestsSemaphore = new SemaphoreSlim(1);
+            _processRequestsSemaphore = new Semaphore(1);
             _coresAcquired = new ConcurrentQueue<TWorkerCore>();
             _coreAcquiringCount = 0;
-            _requestProcessingLock = new MutexSlim();
+            _requestProcessingLock = new Mutex();
             _backgroundTask = _taskSchedulerScope.RunAsync("BackgroundTask", CancellationToken.None, RunAsync);
         }
 
@@ -82,7 +84,10 @@
 
         private Task OnNotifiedRequestsChanged(WorkerCoreRequestStatistics statistics, CancellationToken token)
         {
-            _tracer?.AddTracingMessage("Notified that requests have changed.");
+            if (_enableTracing)
+            {
+                _logger.LogTrace($"{nameof(SingleSourceWorkerCoreRequestFulfiller<TWorkerCore>)}.{nameof(OnNotifiedRequestsChanged)}: Notified that requests have changed.");
+            }
             _processRequestsSemaphore.Release();
             return Task.CompletedTask;
         }
@@ -115,7 +120,10 @@
                 {
                     while (!cancellationToken.IsCancellationRequested)
                     {
-                        _tracer?.AddTracingMessage("Waiting to be notified that requests have changed.");
+                        if (_enableTracing)
+                        {
+                            _logger.LogTrace($"{nameof(SingleSourceWorkerCoreRequestFulfiller<TWorkerCore>)}.{nameof(RunAsync)}: Waiting to be notified that requests have changed.");
+                        }
                         if (_remoteDelayMilliseconds > 0)
                         {
                             // Wait until we either get a notification, or until the remote delay
@@ -139,11 +147,15 @@
                             await _processRequestsSemaphore.WaitAsync(cancellationToken);
                         }
 
-                        _tracer?.AddTracingMessage("Waiting to obtain the request processing lock.");
+                        if (_enableTracing)
+                        {
+                            _logger.LogTrace($"{nameof(SingleSourceWorkerCoreRequestFulfiller<TWorkerCore>)}.{nameof(RunAsync)}: Waiting to obtain the request processing lock.");
+                        }
                         using (await _requestProcessingLock.WaitAsync(cancellationToken))
                         {
                             // Step 1: Get the list of local only requests we haven't fulfilled yet.
                             int pendingRequestCount = 0;
+                            var seenRequests = new HashSet<IWorkerCoreRequest<TWorkerCore>>();
                             if (_fulfillsLocalRequests)
                             {
                                 await using (var unfulfilledRequests = await _requestCollection
@@ -155,6 +167,7 @@
                                     // now (because our background tasks have obtained cores).
                                     foreach (var request in unfulfilledRequests.Requests)
                                     {
+                                        seenRequests.Add(request.Request);
                                     retryCore:
                                         if (!_coresAcquired.TryDequeue(out var core))
                                         {
@@ -192,6 +205,11 @@
                             {
                                 foreach (var request in unfulfilledRequests.Requests)
                                 {
+                                    if (seenRequests.Contains(request.Request))
+                                    {
+                                        // We already handled this request earlier in the local-only check.
+                                        continue;
+                                    }
                                     if ((DateTime.UtcNow - request.Request.DateRequestedUtc).TotalMilliseconds < _remoteDelayMilliseconds)
                                     {
                                         // We're not allowed to fulfill this request yet; we want another fulfiller
@@ -223,6 +241,10 @@
                                     }
                                 }
                             }
+                            if (_enableTracing)
+                            {
+                                _logger.LogTrace($"{nameof(SingleSourceWorkerCoreRequestFulfiller<TWorkerCore>)}.{nameof(RunAsync)}: There are {pendingRequestCount} pending requests.");
+                            }
 
                             // Step 4: Compute how many cores we need to be requesting, based on
                             // how many are in-flight and how many we're lacking.
@@ -232,6 +254,10 @@
                                 // Start background tasks to obtain more cores.
                                 for (int i = 0; i < differenceCores; i++)
                                 {
+                                    if (_enableTracing)
+                                    {
+                                        _logger.LogTrace($"{nameof(SingleSourceWorkerCoreRequestFulfiller<TWorkerCore>)}.{nameof(RunAsync)}: Scheduling obtainment of core [current = {i}/{differenceCores}].");
+                                    }
                                     Interlocked.Increment(ref _coreAcquiringCount);
                                     _ = _taskSchedulerScope.RunAsync(
                                         "ObtainCore",
@@ -240,7 +266,10 @@
                                         {
                                             try
                                             {
-                                                _tracer?.AddTracingMessage($"Starting obtainment of core.");
+                                                if (_enableTracing)
+                                                {
+                                                    _logger.LogTrace($"{nameof(SingleSourceWorkerCoreRequestFulfiller<TWorkerCore>)}.{nameof(RunAsync)}: Starting obtainment of core.");
+                                                }
 
                                                 // Try to obtain the core.
                                                 TWorkerCore? obtainedCore = default;
@@ -250,7 +279,10 @@
                                                 }
                                                 catch (Exception ex)
                                                 {
-                                                    _tracer?.AddTracingMessage($"Exception during RequestCoreAsync: {ex}");
+                                                    if (_enableTracing)
+                                                    {
+                                                        _logger.LogTrace($"{nameof(SingleSourceWorkerCoreRequestFulfiller<TWorkerCore>)}.{nameof(RunAsync)}: Exception during RequestCoreAsync: {ex}");
+                                                    }
                                                 }
 
                                                 // If we got a core, put it into the queue.

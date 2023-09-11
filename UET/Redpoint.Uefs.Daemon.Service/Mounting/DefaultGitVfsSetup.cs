@@ -49,7 +49,7 @@
             var gitDeps = _gitDependenciesVfsLayerFactory.CreateLayer(
                 Path.Combine(daemon.StoragePath, "git-deps"),
                 gitLayer);
-            await gitDeps.InitAsync(CancellationToken.None);
+            await gitDeps.InitAsync(CancellationToken.None).ConfigureAwait(false);
 
             // Add on console layers.
             IVfsLayer finalLayer = gitDeps;

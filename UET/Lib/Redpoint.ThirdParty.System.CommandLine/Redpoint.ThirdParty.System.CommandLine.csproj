@@ -11,6 +11,11 @@
     <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
     <IsTrimmable>true</IsTrimmable>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode></AnalysisMode>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)../LibraryPackaging.Build.props" />

@@ -79,7 +79,7 @@ await connection.ReceiveUntilAsync(message =>
                 BuildDate = buildDate,
                 DeviceName = "DEBUG-CONTROL",
                 InstanceId = instanceId,
-                InstanceName = $"DEBUG-CONTROL-{Process.GetCurrentProcess().Id}",
+                InstanceName = $"DEBUG-CONTROL-{Environment.ProcessId}",
                 PlatformName = "WindowsEditor",
                 SessionId = sessionId,
                 SessionName = string.Empty,
@@ -91,7 +91,7 @@ await connection.ReceiveUntilAsync(message =>
             connection.Respond(message, new AutomationWorkerFindWorkersResponse
             {
                 DeviceName = "DEBUG-CONTROL",
-                InstanceName = $"DEBUG-CONTROL-{Process.GetCurrentProcess().Id}",
+                InstanceName = $"DEBUG-CONTROL-{Environment.ProcessId}",
                 Platform = "Windows",
                 OSVersionName = "Windows 11",
                 ModelName = string.Empty,

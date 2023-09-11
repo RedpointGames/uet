@@ -30,7 +30,7 @@
                     .OfType<string>()
                     .Where(x => x.StartsWith("UET_PLATFORM_SDK_CONFIG_PATH_")))
                 {
-                    var platform = environmentVariableName.Substring("UET_PLATFORM_SDK_CONFIG_PATH_".Length);
+                    var platform = environmentVariableName["UET_PLATFORM_SDK_CONFIG_PATH_".Length..];
                     var configPath = Environment.GetEnvironmentVariable(environmentVariableName)!;
                     var config = JsonSerializer.Deserialize(
                         File.ReadAllText(configPath),

@@ -2,6 +2,7 @@ namespace Redpoint.Git.Managed.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Concurrency;
     using Redpoint.Git.Managed.Operation;
     using Redpoint.Git.Managed.Packfile;
     using Redpoint.Numerics;
@@ -32,7 +33,7 @@ namespace Redpoint.Git.Managed.Tests
             services.AddTasks();
             var sp = services.BuildServiceProvider();
 
-            var engine = new GitExecutionEngine(
+            using var engine = new GitExecutionEngine(
                 sp.GetRequiredService<ILogger<GitExecutionEngine>>(),
                 sp.GetRequiredService<ITaskScheduler>())
             {
@@ -44,7 +45,7 @@ namespace Redpoint.Git.Managed.Tests
 
             foreach (var entry in entries)
             {
-                var s = new SemaphoreSlim(0);
+                var s = new Semaphore(0);
                 engine.EnqueueOperation(new GetObjectGitOperation
                 {
                     GitDirectory = new DirectoryInfo("git"),
@@ -71,7 +72,9 @@ namespace Redpoint.Git.Managed.Tests
                         return Task.CompletedTask;
                     }
                 });
-                Assert.True(await s.WaitAsync(5000), "Expected Git operation to complete within 5 seconds");
+                Assert.True(
+                    await s.WaitAsync(5000, CancellationToken.None).ConfigureAwait(false),
+                    "Expected Git operation to complete within 5 seconds");
             }
         }
     }

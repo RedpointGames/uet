@@ -123,7 +123,7 @@
                             outputTrack.Did = true;
                         }
                     },
-                    monitorCts.Token);
+                    monitorCts.Token).ConfigureAwait(false);
             });
 
             try
@@ -271,7 +271,7 @@
                 monitorCts.Cancel();
                 try
                 {
-                    await monitorTask;
+                    await monitorTask.ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {

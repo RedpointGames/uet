@@ -54,7 +54,7 @@
             _logger.LogTrace("Starting observation of AsyncDuplexStreamingCall");
             try
             {
-                while (await _call.ResponseStream.MoveNext(cancellationToken))
+                while (await _call.ResponseStream.MoveNext(cancellationToken).ConfigureAwait(false))
                 {
                     var current = _call.ResponseStream.Current;
                     _logger.LogTrace($"Enqueuing AsyncDuplexStreamingCall: {current}");
@@ -62,43 +62,43 @@
                 }
                 _logger.LogTrace($"Terminating AsyncDuplexStreamingCall due to normal completion");
                 _queue.Terminate();
-                await _onTerminated.BroadcastAsync(StatusCode.OK, CancellationToken.None);
+                await _onTerminated.BroadcastAsync(StatusCode.OK, CancellationToken.None).ConfigureAwait(false);
             }
             catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
             {
                 _logger.LogTrace($"Terminating AsyncDuplexStreamingCall due to call being called cancelled by client");
                 _queue.Terminate();
-                await _onTerminated.BroadcastAsync(StatusCode.Cancelled, CancellationToken.None);
+                await _onTerminated.BroadcastAsync(StatusCode.Cancelled, CancellationToken.None).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _logger.LogTrace($"Terminating AsyncDuplexStreamingCall due to cancellation token");
                 _queue.Terminate();
-                await _onTerminated.BroadcastAsync(StatusCode.Cancelled, CancellationToken.None);
+                await _onTerminated.BroadcastAsync(StatusCode.Cancelled, CancellationToken.None).ConfigureAwait(false);
             }
             catch (RpcException ex)
             {
                 _logger.LogTrace($"AsyncDuplexStreamingCall got exception: {ex}");
                 _exception = ExceptionDispatchInfo.Capture(ex);
-                await _onException.BroadcastAsync(ex, CancellationToken.None);
+                await _onException.BroadcastAsync(ex, CancellationToken.None).ConfigureAwait(false);
                 _queue.Enqueue((null, _exception));
                 _queue.Terminate();
-                await _onTerminated.BroadcastAsync(ex.StatusCode, CancellationToken.None);
+                await _onTerminated.BroadcastAsync(ex.StatusCode, CancellationToken.None).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 _logger.LogTrace($"AsyncDuplexStreamingCall got exception: {ex}");
                 _exception = ExceptionDispatchInfo.Capture(ex);
-                await _onException.BroadcastAsync(ex, CancellationToken.None);
+                await _onException.BroadcastAsync(ex, CancellationToken.None).ConfigureAwait(false);
                 _queue.Enqueue((null, _exception));
                 _queue.Terminate();
-                await _onTerminated.BroadcastAsync(StatusCode.Internal, CancellationToken.None);
+                await _onTerminated.BroadcastAsync(StatusCode.Internal, CancellationToken.None).ConfigureAwait(false);
             }
         }
 
         public async ValueTask<TResponse> GetNextAsync(CancellationToken cancellationToken = default)
         {
-            var result = await _queue.DequeueAsync(cancellationToken);
+            var result = await _queue.DequeueAsync(cancellationToken).ConfigureAwait(false);
             if (result.response != null)
             {
                 return result.response;
@@ -140,7 +140,7 @@
         public async ValueTask DisposeAsync()
         {
             _logger.LogTrace($"AsyncDuplexStreamingCall being disposed");
-            await _taskSchedulerScope.DisposeAsync();
+            await _taskSchedulerScope.DisposeAsync().ConfigureAwait(false);
         }
     }
 }

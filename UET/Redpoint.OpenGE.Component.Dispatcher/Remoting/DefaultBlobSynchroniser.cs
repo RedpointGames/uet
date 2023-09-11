@@ -2,6 +2,7 @@
 {
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Concurrency;
     using Redpoint.OpenGE.Component.Dispatcher.WorkerPool;
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Core.ReadableStream;
@@ -38,7 +39,7 @@
                 cancellationToken,
                 async (absolutePath, cancellationToken) =>
                 {
-                    var (contentHash, contentLengthBytes) = await XxHash64Helpers.HashFile(absolutePath, cancellationToken);
+                    var (contentHash, contentLengthBytes) = await XxHash64Helpers.HashFile(absolutePath, cancellationToken).ConfigureAwait(false);
                     pathsToContentHashes[absolutePath] = contentHash;
                     pathsToLastModifiedUtcTicks[absolutePath] = File.GetLastWriteTimeUtc(absolutePath).Ticks;
                     contentHashesToContent[contentHash] = new BlobInfo
@@ -47,7 +48,7 @@
                         Content = null,
                         ByteLength = contentLengthBytes,
                     };
-                });
+                }).ConfigureAwait(false);
             foreach (var entry in remoteTaskDescriptor.TransferringStorageLayer.InputsByPathOrContent.AbsolutePathsToVirtualContent)
             {
                 var (contentHash, contentLengthBytes) = XxHash64Helpers.HashString(entry.Value);
@@ -91,6 +92,18 @@
             };
         }
 
+        [LoggerMessage(
+            EventId = 0,
+            Level = LogLevel.Trace,
+            Message = "Remote reports that it is not missing any blobs.")]
+        static partial void LogRemoteNotMissingBlobs(ILogger logger);
+
+        [LoggerMessage(
+            EventId = 1,
+            Level = LogLevel.Trace,
+            Message = "Remote reports that it is missing {blobCount} blobs.")]
+        static partial void LogRemoteMissingBlobs(ILogger logger, int blobCount);
+
         public async Task<BlobSynchronisationResult<InputFilesByBlobXxHash64>> SynchroniseInputBlobsAsync(
             ITaskApiWorkerCore workerCore,
             BlobHashingResult hashingResult,
@@ -106,8 +119,8 @@
             await workerCore.Request.RequestStream.WriteAsync(new ExecutionRequest
             {
                 QueryMissingBlobs = queryMissingBlobsRequest,
-            });
-            var response = await workerCore.Request.GetNextAsync();
+            }, cancellationToken).ConfigureAwait(false);
+            var response = await workerCore.Request.GetNextAsync(cancellationToken).ConfigureAwait(false);
             if (response.ResponseCase != ExecutionResponse.ResponseOneofCase.QueryMissingBlobs)
             {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Remote worker did not respond with a QueryMissingBlobsResponse."));
@@ -116,7 +129,7 @@
             if (response.QueryMissingBlobs.MissingBlobXxHash64.Count == 0)
             {
                 // We don't have any blobs to transfer.
-                _logger.LogTrace("Remote reports that it is not missing any blobs.");
+                LogRemoteNotMissingBlobs(_logger);
                 return new BlobSynchronisationResult<InputFilesByBlobXxHash64>
                 {
                     ElapsedUtcTicksHashingInputFiles = hashingResult.ElapsedUtcTicksHashingInputFiles,
@@ -130,23 +143,23 @@
             // Create a stream from the content blobs, and then copy from that stream
             // through the compressor stream, and then read chunks from that stream
             // and send them to the server.
-            _logger.LogTrace($"Remote reports that it is missing {response.QueryMissingBlobs.MissingBlobXxHash64.Count} blobs.");
+            LogRemoteMissingBlobs(_logger, response.QueryMissingBlobs.MissingBlobXxHash64.Count);
             stopwatchSyncing.Start();
-            await using (var destination = new SendCompressedBlobsWritableBinaryChunkStream(
-                workerCore.Request.RequestStream))
+            await using (new SendCompressedBlobsWritableBinaryChunkStream(
+                workerCore.Request.RequestStream).AsAsyncDisposable(out var destination).ConfigureAwait(false))
             {
-                await using (var compressor = new BrotliStream(destination, CompressionMode.Compress))
+                await using (new BrotliStream(destination, CompressionMode.Compress).AsAsyncDisposable(out var compressor).ConfigureAwait(false))
                 {
                     using (var source = new SequentialVersion1Encoder(
                         hashingResult.ContentHashesToContent,
                         response.QueryMissingBlobs.MissingBlobXxHash64))
                     {
-                        await source.CopyToAsync(compressor, cancellationToken);
+                        await source.CopyToAsync(compressor, cancellationToken).ConfigureAwait(false);
                     }
                 }
                 compressedTransferLength = destination.Position;
             }
-            response = await workerCore.Request.GetNextAsync();
+            response = await workerCore.Request.GetNextAsync(cancellationToken).ConfigureAwait(false);
             if (response.ResponseCase != ExecutionResponse.ResponseOneofCase.SendCompressedBlobs)
             {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Remote worker did not respond with a SendCompressedBlobsResponse."));
@@ -204,14 +217,14 @@
                     }
                     else
                     {
-                        var currentHash = (await XxHash64Helpers.HashFile(absolutePath, cancellationToken)).hash;
+                        var currentHash = (await XxHash64Helpers.HashFile(absolutePath, cancellationToken).ConfigureAwait(false)).hash;
                         if (currentHash != blobXxHash64)
                         {
                             hashesToPull[blobXxHash64] = true;
                             filesToPull[absolutePath] = blobXxHash64;
                         }
                     }
-                });
+                }).ConfigureAwait(false);
             var hashesToFiles = new Dictionary<long, List<string>>();
             foreach (var kv in filesToPull)
             {
@@ -230,7 +243,7 @@
             await workerCore.Request.RequestStream.WriteAsync(new ExecutionRequest
             {
                 ReceiveOutputBlobs = receiveOutputBlobsRequest
-            });
+            }, cancellationToken).ConfigureAwait(false);
             var currentStreams = new List<FileStream>();
             long currentBytesRemaining = 0;
             try
@@ -284,7 +297,7 @@
                     {
                         using (var decompressor = new BrotliStream(source, CompressionMode.Decompress))
                         {
-                            await decompressor.CopyToAsync(destination);
+                            await decompressor.CopyToAsync(destination, cancellationToken).ConfigureAwait(false);
                         }
                         compressedTransferLength = source.Position;
                     }
@@ -294,8 +307,8 @@
             {
                 foreach (var currentStream in currentStreams)
                 {
-                    currentStream.Flush();
-                    currentStream.Dispose();
+                    await currentStream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    await currentStream.DisposeAsync().ConfigureAwait(false);
                 }
                 currentStreams.Clear();
             }

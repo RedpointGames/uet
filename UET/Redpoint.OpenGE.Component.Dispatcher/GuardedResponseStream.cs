@@ -6,12 +6,12 @@
     internal class GuardedResponseStream<T> : IGuardedResponseStream<T>
     {
         private readonly IServerStreamWriter<T> _responseStream;
-        private readonly SemaphoreSlim _semaphore;
+        private readonly Concurrency.Semaphore _semaphore;
 
         public GuardedResponseStream(IServerStreamWriter<T> responseStream)
         {
             _responseStream = responseStream;
-            _semaphore = new SemaphoreSlim(1);
+            _semaphore = new Concurrency.Semaphore(1);
         }
 
         public async Task WriteAsync(
@@ -22,7 +22,7 @@
             await _semaphore.WaitAsync();
             try
             {
-                await _responseStream.WriteAsync(response);
+                await _responseStream.WriteAsync(response, cancellationToken).ConfigureAwait(false);
             }
             finally
             {

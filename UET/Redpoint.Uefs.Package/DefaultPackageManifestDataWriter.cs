@@ -126,7 +126,7 @@
                 OnFileWriteComplete onDirectoryWriteComplete = (pathInPackage) =>
                 {
                     Interlocked.Add(ref metrics.written_directories, 1);
-                    metrics.last_written_path = pathInPackage.Length > 63 ? pathInPackage.Substring(0, 20) + "..." + pathInPackage.Substring(pathInPackage.Length - 40, 40) : pathInPackage;
+                    metrics.last_written_path = pathInPackage.Length > 63 ? pathInPackage[..20] + "..." + pathInPackage.Substring(pathInPackage.Length - 40, 40) : pathInPackage;
                 };
 
                 if (packageWriter.SupportsParallelWrites && packageWriter.SupportsParallelDirectoryWrites)
@@ -158,7 +158,7 @@
             OnFileWriteComplete onFileWriteComplete = (pathInPackage) =>
             {
                 Interlocked.Add(ref metrics.written_files, 1);
-                metrics.last_written_path = pathInPackage.Length > 63 ? pathInPackage.Substring(0, 20) + "..." + pathInPackage.Substring(pathInPackage.Length - 40, 40) : pathInPackage;
+                metrics.last_written_path = pathInPackage.Length > 63 ? pathInPackage[..20] + "..." + pathInPackage.Substring(pathInPackage.Length - 40, 40) : pathInPackage;
             };
 
             if (packageWriter.SupportsParallelWrites)

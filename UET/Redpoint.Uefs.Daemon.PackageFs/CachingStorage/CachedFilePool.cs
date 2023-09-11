@@ -150,7 +150,7 @@
                 {
                     file.FlushIndex();
                 }
-                await Task.Delay(5 * 1000);
+                await Task.Delay(5 * 1000).ConfigureAwait(false);
             }
             while (true);
         }

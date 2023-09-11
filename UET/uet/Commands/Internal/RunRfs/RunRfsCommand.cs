@@ -96,7 +96,7 @@
                     app.UseGrpcWeb();
                     app.MapGrpcService<WindowsRfs.WindowsRfsBase>();
 
-                    await app.StartAsync();
+                    await app.StartAsync().ConfigureAwait(false);
 
                     servingPort = new Uri(app.Urls.First()).Port;
 
@@ -129,7 +129,7 @@
                 try
                 {
                     var semaphore = new SemaphoreSlim(0);
-                    await semaphore.WaitAsync(context.GetCancellationToken());
+                    await semaphore.WaitAsync(context.GetCancellationToken()).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -142,7 +142,7 @@
 
                 if (app != null)
                 {
-                    await app.StopAsync();
+                    await app.StopAsync().ConfigureAwait(false);
                 }
 
                 return 0;

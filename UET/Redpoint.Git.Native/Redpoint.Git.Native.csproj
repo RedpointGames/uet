@@ -16,7 +16,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
     <ProjectReference Include="..\Redpoint.Git.Abstractions\Redpoint.Git.Abstractions.csproj" />
+    <ProjectReference Include="..\Redpoint.Hashing\Redpoint.Hashing.csproj" />
     <ProjectReference Include="..\Redpoint.Tasks\Redpoint.Tasks.csproj" />
   </ItemGroup>
 

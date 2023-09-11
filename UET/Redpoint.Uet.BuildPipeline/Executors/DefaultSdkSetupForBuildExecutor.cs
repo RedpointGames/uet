@@ -35,7 +35,7 @@
                         enginePath,
                         sdksPath,
                         nodeName,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {

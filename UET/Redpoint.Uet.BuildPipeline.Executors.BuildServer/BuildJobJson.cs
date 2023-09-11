@@ -54,6 +54,6 @@
         public bool UseStorageVirtualisation { get; set; } = false;
 
         [JsonPropertyName("MobileProvisions"), JsonRequired]
-        public BuildConfigMobileProvision[] MobileProvisions { get; set; } = new BuildConfigMobileProvision[0];
+        public BuildConfigMobileProvision[] MobileProvisions { get; set; } = Array.Empty<BuildConfigMobileProvision>();
     }
 }

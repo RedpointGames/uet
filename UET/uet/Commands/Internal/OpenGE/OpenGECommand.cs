@@ -73,7 +73,7 @@
                                 DisableOpenGE = false,
                             },
                             CaptureSpecification.Passthrough,
-                            context.GetCancellationToken());
+                            context.GetCancellationToken()).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException) when (context.GetCancellationToken().IsCancellationRequested)
                     {

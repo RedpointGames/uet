@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.BuildGraph
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Concurrency;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Export;
     using Redpoint.Uet.BuildPipeline.BuildGraph.MobileProvisioning;
@@ -63,7 +64,7 @@
                 },
                 null,
                 captureSpecification,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             if (exitCode != 0)
             {
                 throw new BuildGraphExecutionFailure($"Failed to list options from build graph; UAT exited with non-zero exit code {exitCode}.");
@@ -86,10 +87,10 @@
             ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken)
         {
-            await using (var nugetPackages = await _dynamicWorkspaceProvider.GetWorkspaceAsync(new TemporaryWorkspaceDescriptor
+            await using ((await _dynamicWorkspaceProvider.GetWorkspaceAsync(new TemporaryWorkspaceDescriptor
             {
                 Name = "NuGetPackages"
-            }, cancellationToken))
+            }, cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var nugetPackages).ConfigureAwait(false))
             {
                 var environmentVariables = new Dictionary<string, string>
                 {
@@ -147,7 +148,7 @@
                     environmentVariables,
                     mobileProvisions,
                     captureSpecification,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -186,7 +187,7 @@
                     },
                     null,
                     captureSpecification,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
                     throw new BuildGraphExecutionFailure($"Failed to generate build graph; UAT exited with non-zero exit code {exitCode}.");
@@ -253,7 +254,7 @@
                 {
                     using (var writer = new FileStream(buildGraphScriptPath, FileMode.Open, FileAccess.Write, FileShare.None))
                     {
-                        await reader!.CopyToAsync(writer, cancellationToken);
+                        await reader!.CopyToAsync(writer, cancellationToken).ConfigureAwait(false);
                     }
                 }
                 deleteBuildGraphScriptPath = true;
@@ -265,7 +266,7 @@
                 {
                     using (var writer = new FileStream(buildGraphScriptPath, FileMode.Open, FileAccess.Write, FileShare.None))
                     {
-                        await reader!.CopyToAsync(writer, cancellationToken);
+                        await reader!.CopyToAsync(writer, cancellationToken).ConfigureAwait(false);
                     }
                 }
                 deleteBuildGraphScriptPath = true;
@@ -275,11 +276,11 @@
                 throw new NotSupportedException();
             }
 
-            await _buildGraphPatcher.PatchBuildGraphAsync(enginePath, buildGraphScript._forEngine);
+            await _buildGraphPatcher.PatchBuildGraphAsync(enginePath, buildGraphScript._forEngine).ConfigureAwait(false);
 
             if (mobileProvisions != null)
             {
-                await _mobileProvisioning.InstallMobileProvisions(enginePath, buildGraphScript._forEngine, mobileProvisions, cancellationToken);
+                await _mobileProvisioning.InstallMobileProvisions(enginePath, buildGraphScript._forEngine, mobileProvisions, cancellationToken).ConfigureAwait(false);
             }
 
             if (buildGraphEnvironmentVariables.Count == 0)
@@ -321,7 +322,7 @@
                         EnvironmentVariables = buildGraphEnvironmentVariables
                     },
                     captureSpecification,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
             finally
             {

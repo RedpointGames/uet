@@ -38,9 +38,9 @@
 
         public static async Task Serialize(Archive ar, Store<TcpMessageHeader> value)
         {
-            await ar.Serialize(value.V._magicNumber);
-            await ar.Serialize(value.V._version);
-            await ar.Serialize(value.V._nodeId);
+            await ar.Serialize(value.V._magicNumber).ConfigureAwait(false);
+            await ar.Serialize(value.V._version).ConfigureAwait(false);
+            await ar.Serialize(value.V._nodeId).ConfigureAwait(false);
         }
     }
 }

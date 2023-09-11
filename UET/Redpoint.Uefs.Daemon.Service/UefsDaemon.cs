@@ -28,7 +28,7 @@
         private readonly Dictionary<string, DockerVolume> _dockerVolumes;
         private readonly ITransactionalDatabase _transactionalDatabase;
         private readonly DaemonDatabase _database;
-        private readonly SemaphoreSlim _databaseSaveSemaphore = new SemaphoreSlim(1);
+        private readonly Concurrency.Semaphore _databaseSaveSemaphore = new Concurrency.Semaphore(1);
         private IGrpcPipeServer<UefsGrpcService>? _grpcService;
 
         public UefsDaemon(
@@ -128,7 +128,7 @@
             {
                 using (var mounter = mounterFactory.CreatePackageMounter())
                 {
-                    foreach (var mount in await mounter.ImportExistingMountsAtStartupAsync())
+                    foreach (var mount in await mounter.ImportExistingMountsAtStartupAsync().ConfigureAwait(false))
                     {
                         var existingId = mountIdCache.FirstOrDefault(x => PathUtils.IsPathEqual(x.Key, mount.mountPath)).Value;
                         var newId = existingId ?? Guid.NewGuid().ToString();
@@ -202,7 +202,7 @@
                                 Path = persistentMount.Value.PackagePath,
                             },
                             _ => Task.CompletedTask,
-                            CancellationToken.None);
+                            CancellationToken.None).ConfigureAwait(false);
                     }
                     else if (!string.IsNullOrWhiteSpace(persistentMount.Value.GitUrl) &&
                         !string.IsNullOrWhiteSpace(persistentMount.Value.GitCommit))
@@ -228,7 +228,7 @@
                                 Commit = persistentMount.Value.GitCommit,
                             },
                             _ => Task.CompletedTask,
-                            CancellationToken.None);
+                            CancellationToken.None).ConfigureAwait(false);
                     }
                     else
                     {
@@ -253,21 +253,21 @@
 
             if (mustSaveDatabase)
             {
-                await SavePersistentDatabaseAsync();
+                await SavePersistentDatabaseAsync().ConfigureAwait(false);
             }
 
             _grpcService = _grpcPipeFactory.CreateServer(
-                "UEFS", 
-                GrpcPipeNamespace.Computer, 
+                "UEFS",
+                GrpcPipeNamespace.Computer,
                 _serviceProvider.GetRequiredService<UefsGrpcService>());
-            await _grpcService.StartAsync();
+            await _grpcService.StartAsync().ConfigureAwait(false);
         }
 
         public async ValueTask DisposeAsync()
         {
             if (_grpcService != null)
             {
-                await _grpcService.StopAsync();
+                await _grpcService.StopAsync().ConfigureAwait(false);
                 _grpcService = null;
             }
 
@@ -301,7 +301,7 @@
                 id,
                 mount);
             _database.MountIdCache[mount.MountPath!] = id;
-            await SavePersistentDatabaseAsync();
+            await SavePersistentDatabaseAsync().ConfigureAwait(false);
         }
 
         public async Task RemoveCurrentMountAsync(string id)
@@ -314,31 +314,31 @@
             }
             if (impactedKeys.Count > 0)
             {
-                await SavePersistentDatabaseAsync();
+                await SavePersistentDatabaseAsync().ConfigureAwait(false);
             }
         }
 
         public async Task AddPersistentMountAsync(string mountPath, DaemonDatabasePersistentMount persistentMount)
         {
             _database.AddPersistentMount(mountPath, persistentMount);
-            await SavePersistentDatabaseAsync();
+            await SavePersistentDatabaseAsync().ConfigureAwait(false);
         }
 
         public async Task RemovePersistentMountAsync(string mountPath)
         {
             _database.RemovePersistentMount(mountPath);
-            await SavePersistentDatabaseAsync();
+            await SavePersistentDatabaseAsync().ConfigureAwait(false);
         }
 
         private async Task SavePersistentDatabaseAsync()
         {
-            await _databaseSaveSemaphore.WaitAsync();
+            await _databaseSaveSemaphore.WaitAsync(CancellationToken.None);
             try
             {
                 var databasePath = Path.Combine(
                     _rootPath,
                     "db.json");
-                await File.WriteAllTextAsync(databasePath, JsonSerializer.Serialize(_database, DaemonDatabaseJsonSerializerContext.WithStringEnums.DaemonDatabase));
+                await File.WriteAllTextAsync(databasePath, JsonSerializer.Serialize(_database, DaemonDatabaseJsonSerializerContext.WithStringEnums.DaemonDatabase)).ConfigureAwait(false);
             }
             finally
             {

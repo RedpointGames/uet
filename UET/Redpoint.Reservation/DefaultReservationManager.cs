@@ -4,6 +4,7 @@
     using Microsoft.Win32.SafeHandles;
     using System;
     using System.Collections.Concurrent;
+    using System.Globalization;
     using System.Numerics;
     using System.Reflection.Metadata;
     using System.Security.Cryptography;
@@ -19,47 +20,44 @@
         private readonly string _metaPath;
         private static ConcurrentDictionary<string, bool> _localReservations = new ConcurrentDictionary<string, bool>();
 
-        private string GetStabilityHash(string inputString, int? length)
+        private static string GetStabilityHash(string inputString, int? length)
         {
-            using (var sha = SHA256.Create())
+            var inputBytes = SHA256.HashData(Encoding.ASCII.GetBytes(inputString));
+            const string alphabet = "0123456789abcdefghijklmnopqrstuvwxyz.-_";
+            var dividend = new BigInteger(inputBytes);
+            var builder = new StringBuilder();
+            while (dividend != 0)
             {
-                var inputBytes = sha.ComputeHash(Encoding.ASCII.GetBytes(inputString));
-                const string alphabet = "0123456789abcdefghijklmnopqrstuvwxyz.-_";
-                var dividend = new BigInteger(inputBytes);
-                var builder = new StringBuilder();
-                while (dividend != 0)
+                dividend = BigInteger.DivRem(dividend, alphabet.Length, out BigInteger remainder);
+                builder.Insert(0, alphabet[Math.Abs((int)remainder)]);
+            }
+            string target;
+            if (!length.HasValue)
+            {
+                target = builder.ToString();
+            }
+            else
+            {
+                target = builder.ToString()[..length.Value];
+            }
+            var targetChars = target.ToCharArray();
+            // @note: We must replace . at the end of the string with _
+            // because Windows does not support trailing dots. However,
+            // we don't want to alter the length of the resulting string
+            // for OpenGE path length stability reasons, so we replace
+            // dots with underscores instead of trimming.
+            for (int d = targetChars.Length - 1; d >= 0; d--)
+            {
+                if (targetChars[d] == '.')
                 {
-                    dividend = BigInteger.DivRem(dividend, alphabet.Length, out BigInteger remainder);
-                    builder.Insert(0, alphabet[Math.Abs((int)remainder)]);
-                }
-                string target;
-                if (!length.HasValue)
-                {
-                    target = builder.ToString();
+                    targetChars[d] = '_';
                 }
                 else
                 {
-                    target = builder.ToString().Substring(0, length.Value);
+                    break;
                 }
-                var targetChars = target.ToCharArray();
-                // @note: We must replace . at the end of the string with _
-                // because Windows does not support trailing dots. However,
-                // we don't want to alter the length of the resulting string
-                // for OpenGE path length stability reasons, so we replace
-                // dots with underscores instead of trimming.
-                for (int d = targetChars.Length - 1; d >= 0; d--)
-                {
-                    if (targetChars[d] == '.')
-                    {
-                        targetChars[d] = '_';
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-                return new string(targetChars);
             }
+            return new string(targetChars);
         }
 
 
@@ -114,7 +112,7 @@
 
             public ValueTask DisposeAsync()
             {
-                File.WriteAllText(_metaPath, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
+                File.WriteAllText(_metaPath, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture));
                 _localReservationRelease();
                 _handle.Close();
                 return ValueTask.CompletedTask;
@@ -148,7 +146,7 @@
                         Directory.CreateDirectory(reservedPath);
                         _logger.LogTrace($"Reservation target '{targetName}' has been acquired in this process.");
                         File.WriteAllLines(Path.Combine(_metaPath, "desc." + targetName), new[] { @namespace }.Concat(parameters));
-                        File.WriteAllText(Path.Combine(_metaPath, "date." + targetName), DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
+                        File.WriteAllText(Path.Combine(_metaPath, "date." + targetName), DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture));
                         return Task.FromResult<IReservation>(new Reservation(
                             handle,
                             reservedPath,
@@ -159,7 +157,7 @@
                                 _localReservations.Remove(targetName, out _);
                             }));
                     }
-                    catch (IOException ex) when (ex.Message.Contains("another process"))
+                    catch (IOException ex) when (ex.Message.Contains("another process", StringComparison.InvariantCultureIgnoreCase))
                     {
                         // Attempt the next reservation.
                         _logger.LogTrace($"Reservation target '{targetName}' is in use by another process.");
@@ -180,16 +178,16 @@
         {
             return (await ReserveExactInternalAsync(
                 name,
-                cancellationToken,
-                false))!;
+                false,
+                cancellationToken).ConfigureAwait(false))!;
         }
 
         public Task<IReservation?> TryReserveExactAsync(string name)
         {
             return ReserveExactInternalAsync(
                 name,
-                CancellationToken.None,
-                true);
+                true,
+                CancellationToken.None);
         }
 
         public IReservation? TryReserveExact(string targetName)
@@ -208,7 +206,7 @@
                     Directory.CreateDirectory(reservedPath);
                     _logger.LogTrace($"Reservation target '{targetName}' has been acquired in this process.");
                     File.WriteAllLines(Path.Combine(_metaPath, "desc." + targetName), new[] { targetName });
-                    File.WriteAllText(Path.Combine(_metaPath, "date." + targetName), DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
+                    File.WriteAllText(Path.Combine(_metaPath, "date." + targetName), DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture));
                     return new Reservation(
                         handle,
                         reservedPath,
@@ -219,7 +217,7 @@
                             _localReservations.Remove(targetName, out _);
                         });
                 }
-                catch (IOException ex) when (ex.Message.Contains("another process"))
+                catch (IOException ex) when (ex.Message.Contains("another process", StringComparison.InvariantCultureIgnoreCase))
                 {
                     // Attempt the next reservation.
                     _logger.LogTrace($"Reservation target '{targetName}' is in use by another process.");
@@ -234,7 +232,7 @@
             }
         }
 
-        private async Task<IReservation?> ReserveExactInternalAsync(string targetName, CancellationToken cancellationToken, bool allowFailure)
+        private async Task<IReservation?> ReserveExactInternalAsync(string targetName, bool allowFailure, CancellationToken cancellationToken)
         {
             do
             {
@@ -252,7 +250,7 @@
                         Directory.CreateDirectory(reservedPath);
                         _logger.LogTrace($"Reservation target '{targetName}' has been acquired in this process.");
                         File.WriteAllLines(Path.Combine(_metaPath, "desc." + targetName), new[] { targetName });
-                        File.WriteAllText(Path.Combine(_metaPath, "date." + targetName), DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
+                        File.WriteAllText(Path.Combine(_metaPath, "date." + targetName), DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture));
                         return new Reservation(
                             handle,
                             reservedPath,
@@ -263,7 +261,7 @@
                                 _localReservations.Remove(targetName, out _);
                             });
                     }
-                    catch (IOException ex) when (ex.Message.Contains("another process"))
+                    catch (IOException ex) when (ex.Message.Contains("another process", StringComparison.InvariantCultureIgnoreCase))
                     {
                         // Attempt the next reservation.
                         _logger.LogTrace($"Reservation target '{targetName}' is in use by another process.");
@@ -274,7 +272,7 @@
                         }
                         else
                         {
-                            await Task.Delay(1000, cancellationToken);
+                            await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                             continue;
                         }
                     }
@@ -288,7 +286,7 @@
                     }
                     else
                     {
-                        await Task.Delay(100, cancellationToken);
+                        await Task.Delay(100, cancellationToken).ConfigureAwait(false);
                         continue;
                     }
                 }

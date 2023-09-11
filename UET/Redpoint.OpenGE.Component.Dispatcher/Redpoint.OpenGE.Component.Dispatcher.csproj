@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.ApplicationLifecycle\Redpoint.ApplicationLifecycle.csproj" />
+    <ProjectReference Include="..\Redpoint.Hashing\Redpoint.Hashing.csproj" />
     <ProjectReference Include="..\Redpoint.Logging\Redpoint.Logging.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Component.Dispatcher.WorkerPool\Redpoint.OpenGE.Component.Dispatcher.WorkerPool.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Component.PreprocessorCache\Redpoint.OpenGE.Component.PreprocessorCache.csproj" />

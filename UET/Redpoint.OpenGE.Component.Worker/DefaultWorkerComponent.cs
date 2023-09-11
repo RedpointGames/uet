@@ -28,7 +28,7 @@
         private readonly bool _localUseOnly;
         private readonly string _workerDisplayName;
         private readonly string _workerUniqueId;
-        private readonly SemaphoreSlim _reservationSemaphore;
+        private readonly Concurrency.Semaphore _reservationSemaphore;
         private readonly ConcurrentBag<int> _reservationBag;
         private CancellationTokenSource? _shutdownCancellationTokenSource;
         private int? _listeningPort;
@@ -53,7 +53,7 @@
             _workerUniqueId = Guid.NewGuid().ToString();
 
             var processorCount = Environment.ProcessorCount;// * (OperatingSystem.IsMacOS() ? 1 : 2);
-            _reservationSemaphore = new SemaphoreSlim(processorCount);
+            _reservationSemaphore = new Concurrency.Semaphore(processorCount);
             _reservationBag = new ConcurrentBag<int>(Enumerable.Range(1, processorCount));
         }
 
@@ -96,7 +96,7 @@
             app.UseGrpcWeb();
             app.MapGrpcService<TaskApi.TaskApiBase>();
 
-            await app.StartAsync();
+            await app.StartAsync(shutdownCancellationToken).ConfigureAwait(false);
 
             _listeningPort = new Uri(app.Urls.First()).Port;
 
@@ -110,7 +110,7 @@
                 _autoDiscoveryInstance = await _networkAutoDiscovery.RegisterServiceAsync(
                     autoDiscoveryName,
                     _listeningPort.Value,
-                    shutdownCancellationToken);
+                    shutdownCancellationToken).ConfigureAwait(false);
                 _logger.LogInformation($"Worker advertising on auto-discovery name: {autoDiscoveryName}");
             }
         }
@@ -120,12 +120,12 @@
             _shutdownCancellationTokenSource!.Cancel();
             if (_autoDiscoveryInstance != null)
             {
-                await _autoDiscoveryInstance.DisposeAsync();
+                await _autoDiscoveryInstance.DisposeAsync().ConfigureAwait(false);
                 _autoDiscoveryInstance = null;
             }
             if (_app != null)
             {
-                await _app.StopAsync();
+                await _app.StopAsync().ConfigureAwait(false);
                 _app = null;
             }
         }
@@ -136,7 +136,7 @@
         {
             try
             {
-                return await requestStream.MoveNext(cancellationToken);
+                return await requestStream.MoveNext(cancellationToken).ConfigureAwait(false);
             }
             catch (IOException)
             {
@@ -199,11 +199,11 @@
             try
             {
                 // Wait for the reservation to be made first.
-                reservedCore = await HandleReservationRequestLoopAsync(requestStream, responseStream, uniqueAssignmentId, connectionIdleTracker);
+                reservedCore = await HandleReservationRequestLoopAsync(requestStream, responseStream, uniqueAssignmentId, connectionIdleTracker).ConfigureAwait(false);
                 didReserve = true;
 
                 // Process requests after the reservation.
-                while (await PullFromRequestStreamAsync(requestStream, connectionIdleTracker.CancellationToken))
+                while (await PullFromRequestStreamAsync(requestStream, connectionIdleTracker.CancellationToken).ConfigureAwait(false))
                 {
                     lastRequest = requestStream.Current.RequestCase;
                     switch (requestStream.Current.RequestCase)
@@ -219,8 +219,8 @@
                                 {
                                     QueryTool = await _toolManager.QueryToolAsync(
                                         requestStream.Current.QueryTool,
-                                        context.CancellationToken),
-                                });
+                                        context.CancellationToken).ConfigureAwait(false),
+                                }).ConfigureAwait(false);
                             }
                             finally
                             {
@@ -237,8 +237,8 @@
                                 {
                                     HasToolBlobs = await _toolManager.HasToolBlobsAsync(
                                         requestStream.Current.HasToolBlobs,
-                                        context.CancellationToken),
-                                });
+                                        context.CancellationToken).ConfigureAwait(false),
+                                }).ConfigureAwait(false);
                             }
                             finally
                             {
@@ -256,8 +256,8 @@
                                     WriteToolBlob = await _toolManager.WriteToolBlobAsync(
                                         requestStream.Current.WriteToolBlob,
                                         new WorkerRequestStream(requestStream),
-                                        context.CancellationToken),
-                                });
+                                        context.CancellationToken).ConfigureAwait(false),
+                                }).ConfigureAwait(false);
                             }
                             finally
                             {
@@ -274,8 +274,8 @@
                                 {
                                     ConstructTool = await _toolManager.ConstructToolAsync(
                                         requestStream.Current.ConstructTool,
-                                        context.CancellationToken),
-                                });
+                                        context.CancellationToken).ConfigureAwait(false),
+                                }).ConfigureAwait(false);
                             }
                             finally
                             {
@@ -292,7 +292,7 @@
                                     context,
                                     requestStream.Current.QueryMissingBlobs,
                                     responseStream,
-                                    context.CancellationToken);
+                                    context.CancellationToken).ConfigureAwait(false);
                             }
                             finally
                             {
@@ -310,7 +310,7 @@
                                     requestStream.Current,
                                     requestStream,
                                     responseStream,
-                                    context.CancellationToken);
+                                    context.CancellationToken).ConfigureAwait(false);
                             }
                             finally
                             {
@@ -327,7 +327,7 @@
                                     GrpcPeerParser.ParsePeer(context).Address,
                                     requestStream.Current.ExecuteTask,
                                     responseStream,
-                                    context.CancellationToken);
+                                    context.CancellationToken).ConfigureAwait(false);
                             }
                             finally
                             {
@@ -344,7 +344,7 @@
                                     context,
                                     requestStream.Current,
                                     responseStream,
-                                    context.CancellationToken);
+                                    context.CancellationToken).ConfigureAwait(false);
                             }
                             finally
                             {
@@ -404,7 +404,7 @@
             {
                 var shouldReturn = false;
                 while (!shouldReturn &&
-                    await requestStream.MoveNext(connectionIdleTracker.CancellationToken))
+                    await requestStream.MoveNext(connectionIdleTracker.CancellationToken).ConfigureAwait(false))
                 {
                     switch (requestStream.Current.RequestCase)
                     {
@@ -412,7 +412,7 @@
                             connectionIdleTracker.StopIdling();
                             try
                             {
-                                await _reservationSemaphore.WaitAsync(connectionIdleTracker.CancellationToken);
+                                await _reservationSemaphore.WaitAsync(connectionIdleTracker.CancellationToken).ConfigureAwait(false);
                                 if (!_reservationBag.TryTake(out reservedCore))
                                 {
                                     throw new RpcException(new Status(
@@ -428,7 +428,7 @@
                                         WorkerCoreNumber = reservedCore,
                                         WorkerCoreUniqueAssignmentId = uniqueAssignmentId,
                                     }
-                                });
+                                }).ConfigureAwait(false);
                             }
                             finally
                             {

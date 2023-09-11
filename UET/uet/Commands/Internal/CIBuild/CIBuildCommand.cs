@@ -194,7 +194,7 @@
                         buildJson.PrepareProject,
                         new LoggerBasedBuildExecutionEvents(_logger),
                         buildJson.NodeName,
-                        context.GetCancellationToken());
+                        context.GetCancellationToken()).ConfigureAwait(false);
                     return buildResult;
                 }
                 catch (BuildPipelineExecutionFailure ex)
@@ -208,7 +208,7 @@
                     // have read-write access to the folder. I'm pretty sure BuildGraph already does this
                     // for us, but there are other cases (like when we copy UET to shared storage) that we
                     // need to do permission updates, so let's just do this for consistency.
-                    await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(buildJson.SharedStoragePath, buildJson.NodeName), context.GetCancellationToken());
+                    await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(buildJson.SharedStoragePath, buildJson.NodeName), context.GetCancellationToken()).ConfigureAwait(false);
                 }
             }
         }

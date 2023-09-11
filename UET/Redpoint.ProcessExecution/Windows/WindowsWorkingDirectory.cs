@@ -72,7 +72,7 @@
                     var address = PInvoke.GetProcAddress(kernel32, "SetCurrentDirectoryW");
                     if (address.Value == 0)
                     {
-                        throw new NullReferenceException("Unable to locate 'SetCurrentDirectoryW' in Kernel32.");
+                        throw new InvalidOperationException("Unable to locate 'SetCurrentDirectoryW' in Kernel32.");
                     }
 
                     // Create a remote thread in the target process; our thread in this case

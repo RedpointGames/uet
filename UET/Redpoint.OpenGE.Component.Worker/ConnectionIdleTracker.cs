@@ -9,7 +9,7 @@
         private readonly CancellationTokenSource _waitingForRequest;
         private int _idleTimeoutMilliseconds;
         private readonly Func<ConnectionIdleEventOutcome>? _considerIdleEvent;
-        private readonly SemaphoreSlim _threadSafety;
+        private readonly Concurrency.Semaphore _threadSafety;
         private CancellationTokenSource _cancelIdling;
         private Task? _idleCheckingTask;
 
@@ -24,7 +24,7 @@
             _idleCheckingTask = null;
             _idleTimeoutMilliseconds = idleTimeoutMilliseconds;
             _considerIdleEvent = considerIdleEvent;
-            _threadSafety = new SemaphoreSlim(1);
+            _threadSafety = new Concurrency.Semaphore(1);
             _idledTooLong = new CancellationTokenSource();
             ResetIdledTooLong();
         }
@@ -79,7 +79,7 @@
                     {
                         if (!Debugger.IsAttached)
                         {
-                            await Task.Delay(_idleTimeoutMilliseconds, cancelIdlingToken);
+                            await Task.Delay(_idleTimeoutMilliseconds, cancelIdlingToken).ConfigureAwait(false);
                             _idledTooLong.Cancel();
                         }
                     });

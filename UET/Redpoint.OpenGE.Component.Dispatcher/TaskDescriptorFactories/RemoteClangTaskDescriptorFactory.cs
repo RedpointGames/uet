@@ -32,7 +32,7 @@
 
         public override string PreparationOperationCompletedDescription => "parsed headers";
 
-        private readonly IReadOnlySet<string> _recognisedClangCompilers = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase)
+        private readonly IReadOnlySet<string> _recognisedClangCompilers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "clang-cl.exe",
             "clang-tidy.exe"
@@ -131,23 +131,23 @@
                 var compileCommands = JsonSerializer.Deserialize(
                     File.ReadAllText(compileCommandDatabase).Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("'", "\""),
                     ClangCompileCommandJsonSerializerContext.Default.ClangCompileCommandArray);
-                compileCommand = compileCommands!.First(x => string.Equals(x.File, inputFile, StringComparison.InvariantCultureIgnoreCase));
+                compileCommand = compileCommands!.First(x => string.Equals(x.File, inputFile, StringComparison.OrdinalIgnoreCase));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, ex.Message);
-                return await DelegateToLocalExecutor();
+                return await DelegateToLocalExecutor().ConfigureAwait(false);
             }
 
             if (compileCommand.Command == null)
             {
-                return await DelegateToLocalExecutor();
+                return await DelegateToLocalExecutor().ConfigureAwait(false);
             }
             var commandArguments = CommandLineArgumentSplitter.SplitArguments(compileCommand.Command!);
             var responseFile = commandArguments.FirstOrDefault(x => x.StartsWith('@'));
             if (responseFile == null)
             {
-                return await DelegateToLocalExecutor();
+                return await DelegateToLocalExecutor().ConfigureAwait(false);
             }
 
             // Set up the compiler architype.
@@ -167,7 +167,7 @@
             _commonPlatformDefines.ApplyDefines("Win64", compilerArchitype);
             foreach (var arg in commandArguments.Where(x => x.StartsWith("/D")))
             {
-                var define = arg.Substring(2).Split('=', 2);
+                var define = arg[2..].Split('=', 2);
                 if (define.Length == 1)
                 {
                     compilerArchitype.TargetPlatformNumericDefines.Add(define[0], 1);
@@ -190,20 +190,20 @@
 
             // Parse the response file.
             var msvcParsedResponseFile = await _msvcResponseFileParser.ParseResponseFileAsync(
-                responseFile.Substring(1),
+                responseFile[1..],
                 spec.WorkingDirectory,
                 guaranteedToExecuteLocally,
                 spec.ExecutionEnvironment.BuildStartTicks,
                 compilerArchitype,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             if (msvcParsedResponseFile == null)
             {
-                return await DelegateToLocalExecutor();
+                return await DelegateToLocalExecutor().ConfigureAwait(false);
             }
 
             // Compute the environment variables, excluding any environment variables we
             // know to be per-machine.
-            var environmentVariables = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+            var environmentVariables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var kv in spec.ExecutionEnvironment.EnvironmentVariables)
             {
                 environmentVariables[kv.Key] = kv.Value;

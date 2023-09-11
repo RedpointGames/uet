@@ -16,7 +16,7 @@
 
         public async ValueTask DisposeAsync()
         {
-            await _reservation.DisposeAsync();
+            await _reservation.DisposeAsync().ConfigureAwait(false);
         }
     }
 }

@@ -49,7 +49,7 @@
             {
                 _gitUrl = uefsGitUrl,
                 _gitCommit = uefsGitCommit,
-                _gitConsoleZips = uefsGitConsoleZips ?? new string[0],
+                _gitConsoleZips = uefsGitConsoleZips ?? Array.Empty<string>(),
                 _gitSharedWindowsCachePath = windowsSharedGitCachePath,
                 _gitSharedMacCachePath = macSharedGitCachePath,
                 IsEngineBuild = isEngineBuild,

@@ -59,35 +59,35 @@
                 "UnrealBuildTool",
                 "Platform",
                 "Android",
-                "AndroidPlatformSDK.Versions.cs"));
+                "AndroidPlatformSDK.Versions.cs")).ConfigureAwait(false);
             return (
-                await ParseVersion(androidPlatformSdk, "platforms"),
-                await ParseVersion(androidPlatformSdk, "build-tools"),
-                await ParseVersion(androidPlatformSdk, "cmake"),
-                await ParseVersion(androidPlatformSdk, "ndk"));
+                await ParseVersion(androidPlatformSdk, "platforms").ConfigureAwait(false),
+                await ParseVersion(androidPlatformSdk, "build-tools").ConfigureAwait(false),
+                await ParseVersion(androidPlatformSdk, "cmake").ConfigureAwait(false),
+                await ParseVersion(androidPlatformSdk, "ndk").ConfigureAwait(false));
         }
 
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
-            var versions = await GetVersions(unrealEnginePath);
+            var versions = await GetVersions(unrealEnginePath).ConfigureAwait(false);
             return $"{versions.platforms}-{versions.buildTools}-{versions.cmake}-{versions.ndk}-{_jdkVersion}";
         }
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
         {
-            var versions = await GetVersions(unrealEnginePath);
+            var versions = await GetVersions(unrealEnginePath).ConfigureAwait(false);
 
             if (!File.Exists(Path.Combine(sdkPackagePath, "Jdk", _jdkVersion, "bin", "java.exe")))
             {
                 _logger.LogInformation("Downloading and extracting the Microsoft JDK (about 177MB)...");
                 if (Directory.Exists(Path.Combine(sdkPackagePath, "Jdk")))
                 {
-                    await DirectoryAsync.DeleteAsync(Path.Combine(sdkPackagePath, "Jdk"), true);
+                    await DirectoryAsync.DeleteAsync(Path.Combine(sdkPackagePath, "Jdk"), true).ConfigureAwait(false);
                 }
                 using (var client = new HttpClient())
                 {
-                    var response = await client.GetAsync(_jdkDownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-                    var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                    var response = await client.GetAsync(_jdkDownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
                     Directory.CreateDirectory(Path.Combine(sdkPackagePath, "Jdk"));
                     var archive = new ZipArchive(stream);
                     archive.ExtractToDirectory(Path.Combine(sdkPackagePath, "Jdk"));
@@ -99,12 +99,12 @@
                 _logger.LogInformation("Downloading and extracting the Android cmdline-tools (about 127MB)...");
                 if (Directory.Exists(Path.Combine(sdkPackagePath, "Sdk")))
                 {
-                    await DirectoryAsync.DeleteAsync(Path.Combine(sdkPackagePath, "Sdk"), true);
+                    await DirectoryAsync.DeleteAsync(Path.Combine(sdkPackagePath, "Sdk"), true).ConfigureAwait(false);
                 }
                 using (var client = new HttpClient())
                 {
-                    var response = await client.GetAsync("https://dl.google.com/android/repository/commandlinetools-win-9477386_latest.zip", HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-                    var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                    var response = await client.GetAsync("https://dl.google.com/android/repository/commandlinetools-win-9477386_latest.zip", HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
                     Directory.CreateDirectory(Path.Combine(sdkPackagePath, "Sdk"));
                     var archive = new ZipArchive(stream);
                     archive.ExtractToDirectory(Path.Combine(sdkPackagePath, "Sdk"));
@@ -133,7 +133,7 @@
                     }
                 },
                 CaptureSpecification.Passthrough,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("Installing required Android components...");
             var components = new (string path, string componentId)[]
@@ -169,7 +169,7 @@
                             }
                         },
                         CaptureSpecification.Passthrough,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
             }
             File.WriteAllText(Path.Combine(sdkPackagePath, "ndk-version.txt"), versions.ndk);

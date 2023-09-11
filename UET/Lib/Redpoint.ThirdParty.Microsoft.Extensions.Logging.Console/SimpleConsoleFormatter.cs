@@ -83,7 +83,7 @@ namespace Microsoft.Extensions.Logging.Console
 #if NETCOREAPP
             Span<char> span = stackalloc char[10];
             if (eventId.TryFormat(span, out int charsWritten))
-                textWriter.Write(span.Slice(0, charsWritten));
+                textWriter.Write(span[..charsWritten]);
             else
 #endif
                 textWriter.Write(eventId.ToString());

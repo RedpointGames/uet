@@ -53,7 +53,7 @@
                     _uefsClient.ListAsync,
                     new ListRequest(),
                     new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
-                    context.GetCancellationToken());
+                    context.GetCancellationToken()).ConfigureAwait(false);
 
                 if (all)
                 {
@@ -66,7 +66,7 @@
                                 MountId = mount.Id,
                             },
                             new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
-                            context.GetCancellationToken());
+                            context.GetCancellationToken()).ConfigureAwait(false);
                         Console.WriteLine($"successfully unmounted: {mount.MountPath}");
                     }
 
@@ -88,13 +88,13 @@
                             MountId = mount.Id,
                         },
                         new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
-                        context.GetCancellationToken());
+                        context.GetCancellationToken()).ConfigureAwait(false);
                     Console.WriteLine($"successfully unmounted: {mount.MountPath}");
                     return 0;
                 }
                 else if (string.IsNullOrWhiteSpace(mountPath))
                 {
-                    var mount = response.Mounts.FirstOrDefault(x => x.MountPath.Equals(mountPath, StringComparison.InvariantCultureIgnoreCase));
+                    var mount = response.Mounts.FirstOrDefault(x => x.MountPath.Equals(mountPath, StringComparison.OrdinalIgnoreCase));
                     if (mount == null)
                     {
                         Console.Error.WriteLine($"error: the path is not mounted according to the local daemon");
@@ -108,7 +108,7 @@
                             MountId = mount.Id,
                         },
                         new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
-                        context.GetCancellationToken());
+                        context.GetCancellationToken()).ConfigureAwait(false);
                     Console.WriteLine($"successfully unmounted: {mount.MountPath}");
                     return 0;
                 }

@@ -9,7 +9,7 @@
         {
             return String.Compare(
                 (String)((DictionaryEntry)x!).Key,
-                (String)((DictionaryEntry)y!).Key);
+                (String)((DictionaryEntry)y!).Key, StringComparison.Ordinal);
         }
     }
 }

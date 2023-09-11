@@ -122,7 +122,7 @@
                     app.UseGrpcWeb();
                     app.MapGrpcService<WindowsRfs.WindowsRfsBase>();
 
-                    await app.StartAsync();
+                    await app.StartAsync().ConfigureAwait(false);
 
                     var servingPort = new Uri(app.Urls.First()).Port;
 
@@ -196,7 +196,7 @@
                 var exitCode = await _processExecutor.ExecuteAsync(
                     spec,
                     CaptureSpecification.Passthrough,
-                    CancellationToken.None);
+                    CancellationToken.None).ConfigureAwait(false);
                 return exitCode;
             }
         }

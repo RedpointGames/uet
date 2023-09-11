@@ -9,6 +9,7 @@
     using Redpoint.Uefs.Daemon.PackageFs.Tagging;
     using Redpoint.Uefs.ContainerRegistry;
     using Redpoint.Uefs.Protocol;
+    using Redpoint.Hashing;
 
     internal class LocalPackageFs : IPackageFs
     {
@@ -56,11 +57,7 @@
                     if (File.Exists(Path.Combine(_storagePath, info!.Hash + RegistryConstants.FileExtensionVHD)) ||
                         File.Exists(Path.Combine(_storagePath, info!.Hash + RegistryConstants.FileExtensionSparseImage)))
                     {
-                        string tagHash;
-                        using (var hasher = SHA256.Create())
-                        {
-                            tagHash = BitConverter.ToString(hasher.ComputeHash(Encoding.UTF8.GetBytes(info!.Tag))).Replace("-", "").ToLowerInvariant();
-                        }
+                        string tagHash = Hash.Sha256AsHexString(info!.Tag, Encoding.UTF8);
                         if (tagHash == Path.GetFileNameWithoutExtension(file.Name))
                         {
                             _tagReferences.Add(tagHash, info);
@@ -92,7 +89,7 @@
             Action<Action<PollingResponse>, string?> updatePollingResponse)
         {
             // Check to see if we already have this package on disk.
-            var normalizedPackageHash = packageDigest.Replace(":", "_");
+            var normalizedPackageHash = packageDigest.Replace(":", "_", StringComparison.Ordinal);
             if (_availablePackages.Contains(normalizedPackageHash) &&
                 File.Exists(Path.Combine(_storagePath, normalizedPackageHash + extension)))
             {
@@ -108,7 +105,7 @@
                             Path.Combine(_storagePath, tagHash + ".tag"),
                             JsonSerializer.Serialize(
                                 _tagReferences[tagHash],
-                                PackageFsInternalJsonSerializerContext.Default.PackageStorageTag));
+                                PackageFsInternalJsonSerializerContext.Default.PackageStorageTag)).ConfigureAwait(false);
                     }
                 }
                 else
@@ -123,7 +120,7 @@
                         Path.Combine(_storagePath, tagHash + ".tag"),
                         JsonSerializer.Serialize(
                             _tagReferences[tagHash],
-                            PackageFsInternalJsonSerializerContext.Default.PackageStorageTag));
+                            PackageFsInternalJsonSerializerContext.Default.PackageStorageTag)).ConfigureAwait(false);
                 }
 
                 var resultPath = Path.Combine(_storagePath, normalizedPackageHash + extension);
@@ -206,21 +203,21 @@
                                 {
                                     x.PullingPackageUpdatePosition(copier.Position);
                                 }, null);
-                                await Task.Delay(100, cts.Token);
+                                await Task.Delay(100, cts.Token).ConfigureAwait(false);
                             }
                         }
                         catch (TaskCanceledException) { }
                     });
 
                     // Run the copy.
-                    await copier.CopyAsync();
+                    await copier.CopyAsync().ConfigureAwait(false);
 
                     // Get the hash and finalize.
                     downloadedHash = "sha256:" + copier.SHA256Hash;
                     cts.Cancel();
                     try
                     {
-                        await uploadProgress;
+                        await uploadProgress.ConfigureAwait(false);
                     }
                     catch (TaskCanceledException) { }
                 }
@@ -256,7 +253,7 @@
                 Path.Combine(_storagePath, tagHash + ".tag"),
                 JsonSerializer.Serialize(
                     _tagReferences[tagHash],
-                    PackageFsInternalJsonSerializerContext.Default.PackageStorageTag));
+                    PackageFsInternalJsonSerializerContext.Default.PackageStorageTag)).ConfigureAwait(false);
             return finalTargetPath;
         }
 
@@ -294,11 +291,7 @@
                     if (File.Exists(Path.Combine(_storagePath, info!.Hash + RegistryConstants.FileExtensionVHD)) ||
                         File.Exists(Path.Combine(_storagePath, info!.Hash + RegistryConstants.FileExtensionSparseImage)))
                     {
-                        string tagHash;
-                        using (var hasher = SHA256.Create())
-                        {
-                            tagHash = BitConverter.ToString(hasher.ComputeHash(Encoding.UTF8.GetBytes(info!.Tag))).Replace("-", "").ToLowerInvariant();
-                        }
+                        string tagHash = Hash.Sha256AsHexString(info!.Tag, Encoding.UTF8);
                         if (tagHash == Path.GetFileNameWithoutExtension(file.Name))
                         {
                             tagReferences.Add(tagHash, info);

@@ -86,7 +86,7 @@
                         var logFiles = new Dictionary<string, long>();
                         while (!monitoringCts.IsCancellationRequested)
                         {
-                            await Task.Delay(100);
+                            await Task.Delay(100).ConfigureAwait(false);
 
                             foreach (var file in interestedLogDirectories.SelectMany(x => Directory.GetFiles(x, "*.txt").Concat(Directory.GetFiles(x, "*.log"))))
                             {
@@ -104,7 +104,7 @@
                                     var lastNewline = contentString.LastIndexOf('\n');
                                     if (lastNewline > 0)
                                     {
-                                        var targetContentString = lastNewline == contentString.Length - 1 ? contentString : contentString.Substring(0, lastNewline + 1);
+                                        var targetContentString = lastNewline == contentString.Length - 1 ? contentString : contentString[..(lastNewline + 1)];
                                         var byteCount = Encoding.UTF8.GetBytes(targetContentString).Length;
                                         logFiles[file] += byteCount;
                                         foreach (var line in targetContentString.Split('\n'))
@@ -132,12 +132,12 @@
                             WorkingDirectory = Path.GetDirectoryName(installer.InstallerPath!)
                         },
                         CaptureSpecification.Passthrough,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
 
                     monitoringCts.Cancel();
                     try
                     {
-                        await monitoringProcess;
+                        await monitoringProcess.ConfigureAwait(false);
                     }
                     catch (OperationCanceledException) when (monitoringCts.IsCancellationRequested)
                     {
@@ -187,7 +187,7 @@
                                 $"TARGETDIR={targetDirectory}",
                             },
                             WorkingDirectory = Path.GetDirectoryName(file)
-                        }, CaptureSpecification.Passthrough, cancellationToken);
+                        }, CaptureSpecification.Passthrough, cancellationToken).ConfigureAwait(false);
                     if (!File.Exists(Path.Combine(targetDirectory, Path.GetFileName(file))))
                     {
                         throw new SdkSetupPackageGenerationFailedException($"MSI extraction failed for: {file}");
@@ -225,7 +225,7 @@
                         SuggestedComponents = suggestedComponents,
                     },
                     string.IsNullOrWhiteSpace(_config.RequiredWindowsSdk.SubdirectoryName) ? sdkPackagePath : Path.Combine(sdkPackagePath, _config.RequiredWindowsSdk.SubdirectoryName),
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
         }
 

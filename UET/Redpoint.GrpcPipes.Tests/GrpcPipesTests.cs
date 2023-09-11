@@ -48,7 +48,7 @@ namespace Redpoint.GrpcPipes.Tests
             var sp = services.BuildServiceProvider();
             var pipeFactory = sp.GetRequiredService<IGrpcPipeFactory>();
 
-            var pipeName = $"test-grpc-pipes-{Process.GetCurrentProcess().Id}";
+            var pipeName = $"test-grpc-pipes-{Environment.ProcessId}";
 
             var isCalled = false;
             var testService = new TestServiceServer(() => isCalled = true);
@@ -104,7 +104,7 @@ namespace Redpoint.GrpcPipes.Tests
             var sp = services.BuildServiceProvider();
             var pipeFactory = sp.GetRequiredService<IGrpcPipeFactory>();
 
-            var pipeName = $"test-grpc-pipes-{Process.GetCurrentProcess().Id}";
+            var pipeName = $"test-grpc-pipes-{Environment.ProcessId}";
 
             var isCalled = false;
             var testService = new TestServiceServer(() => isCalled = true);
@@ -144,7 +144,7 @@ namespace Redpoint.GrpcPipes.Tests
             var sp = services.BuildServiceProvider();
             var pipeFactory = sp.GetRequiredService<IGrpcPipeFactory>();
 
-            var pipeName = $"test-grpc-pipes-2-{Process.GetCurrentProcess().Id}";
+            var pipeName = $"test-grpc-pipes-2-{Environment.ProcessId}";
 
             var isCalled = false;
             var testService1 = new TestServiceServer(() => { });

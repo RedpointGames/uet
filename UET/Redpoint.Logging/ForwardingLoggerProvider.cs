@@ -1,15 +1,17 @@
 ﻿namespace Redpoint.Logging
 {
     using Microsoft.Extensions.Logging;
+    using System.Diagnostics.CodeAnalysis;
 
     /// <summary>
     /// Forwards logs from one service collection to an existing <see cref="ILogger"/> instance.
     /// </summary>
+    [SuppressMessage("Design", "CA1063:Implement IDisposable Correctly", Justification = "This implementation does not have any resources to cleanup.")]
     public class ForwardingLoggerProvider : ILoggerProvider
     {
         private readonly ILogger _logger;
 
-        private class ForwardingLogger : ILogger
+        private sealed class ForwardingLogger : ILogger
         {
             private readonly ILogger _logger;
 
@@ -48,6 +50,8 @@
             return new ForwardingLogger(_logger);
         }
 
+        [SuppressMessage("Design", "CA1063:Implement IDisposable Correctly", Justification = "This implementation has no behaviour in Dispose.")]
+        [SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "This implementation has no behaviour in Dispose.")]
         public void Dispose()
         {
         }

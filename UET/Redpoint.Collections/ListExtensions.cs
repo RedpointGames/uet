@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
 
     /// <summary>
     /// Extension methods for <see cref="List{T}"/>.
@@ -13,8 +14,11 @@
         /// </summary>
         /// <typeparam name="T">The list element type.</typeparam>
         /// <param name="list">The list to shuffle.</param>
+        [SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Shuffle() is not intended to be used in security-related scenarios.")]
         public static void Shuffle<T>(this List<T> list)
         {
+            if (list == null) throw new ArgumentNullException(nameof(list));
+
             for (var i = list.Count - 1; i > 0; i--)
             {
                 var k = Random.Shared.Next(i + 1);

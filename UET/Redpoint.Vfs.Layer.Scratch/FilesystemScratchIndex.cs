@@ -135,7 +135,7 @@
             {
                 if (kv.normalizedPath.StartsWith(normalizedOldPath + '\\'))
                 {
-                    var newKey = normalizedNewPath + kv.normalizedPath.Substring(normalizedOldPath.Length);
+                    var newKey = normalizedNewPath + kv.normalizedPath[normalizedOldPath.Length..];
 #if ENABLE_TRACE_LOGS
                     _logger.LogTrace($"Scratch index: Move: {kv.normalizedPath} -> {newKey}");
 #endif

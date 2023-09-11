@@ -14,6 +14,10 @@
     using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
+    using System.Diagnostics.CodeAnalysis;
+    using Redpoint.Concurrency;
+    using System.Globalization;
+    using Redpoint.Hashing;
 
     internal class GitRepoManager : IGitRepoManager
     {
@@ -22,18 +26,22 @@
         private readonly ILogger<GitRepoManager> _logger;
         private readonly ITaskScheduler _taskScheduler;
         private readonly List<Process> _processes;
-        private readonly SemaphoreSlim _processSemaphore;
+        private readonly Concurrency.Semaphore _processSemaphore;
 
         [SupportedOSPlatform("macos"), SupportedOSPlatform("linux")]
-        [DllImport("libc")]
+        [DllImport("libc", SetLastError = false, CharSet = CharSet.Ansi)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
+        [SuppressMessage("Globalization", "CA2101:Specify marshaling for P/Invoke string arguments", Justification = "Strings will be marshalled as UTF-8 on macOS/Linux.")]
         private static extern int chown(string path, uint owner, uint group);
 
         [SupportedOSPlatform("macos"), SupportedOSPlatform("linux")]
-        [DllImport("libc")]
+        [DllImport("libc", SetLastError = false, CharSet = CharSet.Ansi)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
         internal static extern uint geteuid();
 
         [SupportedOSPlatform("macos"), SupportedOSPlatform("linux")]
-        [DllImport("libc")]
+        [DllImport("libc", SetLastError = false, CharSet = CharSet.Ansi)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
         internal static extern uint getegid();
 
         public GitRepoManager(
@@ -66,7 +74,7 @@
             else if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
             {
                 logger.LogInformation($"Changing {_gitRepoPath} to be owned by the current user...");
-                chown(_gitRepoPath, geteuid(), getegid());
+                _ = chown(_gitRepoPath, geteuid(), getegid());
             }
 
             var gitGlobalPath = Path.Combine(
@@ -86,10 +94,10 @@
             {
                 logger.LogInformation($"Loading the Git configuration...");
                 var configuration = Configuration.BuildFrom(null);
-                if (!(configuration.Get<string>("safe.directory")?.Value?.Contains(_gitRepoPath.Replace("\\", "\\\\")) ?? false))
+                if (!(configuration.Get<string>("safe.directory")?.Value?.Contains(_gitRepoPath.Replace("\\", "\\\\", StringComparison.Ordinal), StringComparison.Ordinal) ?? false))
                 {
                     logger.LogInformation($"Adding {_gitRepoPath} to safe.directory in the global Git configuration file.");
-                    configuration.Add("safe.directory", _gitRepoPath.Replace("\\", "\\\\"), ConfigurationLevel.Global);
+                    configuration.Add("safe.directory", _gitRepoPath.Replace("\\", "\\\\", StringComparison.Ordinal), ConfigurationLevel.Global);
                 }
             }
             catch (LibGit2SharpException)
@@ -112,7 +120,7 @@
             _logger = logger;
             _taskScheduler = taskScheduler;
             _processes = new List<Process>();
-            _processSemaphore = new SemaphoreSlim(1);
+            _processSemaphore = new Concurrency.Semaphore(1);
         }
 
         public bool HasCommit(
@@ -143,360 +151,358 @@
             string privateKeyFile,
             Action<GitFetchProgressInfo> onProgress)
         {
-            await using var scope = _taskScheduler.CreateSchedulerScope("GitRepoManager", CancellationToken.None);
-            await scope.RunAsync($"Fetch:{url}", CancellationToken.None, async (cancellationToken) =>
+            await using (_taskScheduler.CreateSchedulerScope("GitRepoManager", CancellationToken.None).AsAsyncDisposable(out var scope).ConfigureAwait(false))
             {
-                string hash;
-                using (var sha = SHA1.Create())
+                await scope.RunAsync($"Fetch:{url}", CancellationToken.None, async (cancellationToken) =>
                 {
-                    hash = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(url))).ToLowerInvariant().Replace("-", "");
-                }
+                    string hash = Hash.Sha1AsHexString(url, Encoding.UTF8);
 
-                var remoteName = $"remote-{hash.Substring(0, 8)}";
-                if (_repository.Network.Remotes.Any(x => x.Name == remoteName))
-                {
-                    if (_repository.Network.Remotes[remoteName].Url != url)
+                    var remoteName = $"remote-{hash[..8]}";
+                    if (_repository.Network.Remotes.Any(x => x.Name == remoteName))
                     {
-                        _repository.Network.Remotes.Remove(remoteName);
+                        if (_repository.Network.Remotes[remoteName].Url != url)
+                        {
+                            _repository.Network.Remotes.Remove(remoteName);
+                            _repository.Network.Remotes.Add(remoteName, url);
+                        }
+                    }
+                    else
+                    {
                         _repository.Network.Remotes.Add(remoteName, url);
                     }
-                }
-                else
-                {
-                    _repository.Network.Remotes.Add(remoteName, url);
-                }
 
-                var username = new Uri(url).UserInfo;
-                if (username.Contains(":"))
-                {
-                    username = username.Substring(0, username.IndexOf(":"));
-                }
-
-                CredentialsHandler credentialHandler = (string url, string usernameFromUrl, SupportedCredentialTypes types) =>
-                {
-                    _logger.LogInformation($"Was asked to provide credentials for URL: {url}");
-                    return new SshUserKeyCredentials
+                    var username = new Uri(url).UserInfo;
+                    if (username.Contains(':', StringComparison.Ordinal))
                     {
-                        Username = username,
-                        Passphrase = "",
-                        PublicKey = publicKeyFile,
-                        PrivateKey = privateKeyFile
-                    };
-                };
-
-                string refspec;
-                bool createBranch = false;
-                if (new Regex("^[0-9a-f]{7,40}$").IsMatch(commit))
-                {
-                    // Fetch specific commit.
-                    refspec = $"{commit}";
-                    createBranch = true;
-                }
-                else
-                {
-                    refspec = string.Empty;
-                    var refs = _repository.Network.ListReferences(url, credentialHandler).ToList();
-                    foreach (var @ref in refs)
-                    {
-                        if (@ref.CanonicalName == $"refs/heads/{commit}")
-                        {
-                            refspec = $"refs/heads/{commit}:refs/heads/{commit}";
-                            break;
-                        }
-                        else if (@ref.CanonicalName == $"refs/tags/{commit}")
-                        {
-                            refspec = $"refs/tags/{commit}:refs/tags/{commit}";
-                            break;
-                        }
+                        username = username[..username.IndexOf(":", StringComparison.Ordinal)];
                     }
-                    if (refspec == string.Empty)
-                    {
-                        throw new NotFoundException($"The ref '{commit}' was not found in the remote repository. Check the branch and tag name and try again.");
-                    }
-                }
 
-                // Add some well known paths onto our current PATH if they're not present. This helps
-                // the search below and the invocation of 'ssh' when UEFS is running as a Kubernetes
-                // HostProcess container.
-                if (OperatingSystem.IsWindows())
-                {
-                    var wellKnownPaths = new HashSet<string>
+                    CredentialsHandler credentialHandler = (string url, string usernameFromUrl, SupportedCredentialTypes types) =>
                     {
-                        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Git", "cmd").ToLowerInvariant(),
-                        Path.Combine(Environment.GetEnvironmentVariable("SYSTEMROOT")!, "System32", "OpenSSH").ToLowerInvariant()
-                    };
-                    var currentPaths = new HashSet<string>(Environment.GetEnvironmentVariable("PATH")?.ToLowerInvariant()?.Split(';') ?? new string[0]);
-                    wellKnownPaths.ExceptWith(currentPaths);
-                    foreach (var pathToAdd in wellKnownPaths)
-                    {
-                        if (Directory.Exists(pathToAdd))
+                        _logger.LogInformation($"Was asked to provide credentials for URL: {url}");
+                        return new SshUserKeyCredentials
                         {
-                            var currentPathVariable = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-                            if (!string.IsNullOrWhiteSpace(currentPathVariable))
+                            Username = username,
+                            Passphrase = "",
+                            PublicKey = publicKeyFile,
+                            PrivateKey = privateKeyFile
+                        };
+                    };
+
+                    string refspec;
+                    bool createBranch = false;
+                    if (new Regex("^[0-9a-f]{7,40}$").IsMatch(commit))
+                    {
+                        // Fetch specific commit.
+                        refspec = $"{commit}";
+                        createBranch = true;
+                    }
+                    else
+                    {
+                        refspec = string.Empty;
+                        var refs = _repository.Network.ListReferences(url, credentialHandler).ToList();
+                        foreach (var @ref in refs)
+                        {
+                            if (@ref.CanonicalName == $"refs/heads/{commit}")
                             {
-                                currentPathVariable += ';';
+                                refspec = $"refs/heads/{commit}:refs/heads/{commit}";
+                                break;
                             }
-                            currentPathVariable += pathToAdd;
-                            Environment.SetEnvironmentVariable("PATH", currentPathVariable);
+                            else if (@ref.CanonicalName == $"refs/tags/{commit}")
+                            {
+                                refspec = $"refs/tags/{commit}:refs/tags/{commit}";
+                                break;
+                            }
+                        }
+                        if (string.IsNullOrEmpty(refspec))
+                        {
+                            throw new NotFoundException($"The ref '{commit}' was not found in the remote repository. Check the branch and tag name and try again.");
                         }
                     }
-                }
 
-                // If we have Git installed on the system, use that instead of libgit2 as libgit2 is
-                // very slow at fetching large repositories (which Unreal Engine is).
-                string? WhereSearch(string filename)
-                {
-                    var path = Environment.GetEnvironmentVariable("PATH");
-                    var pathext = Environment.GetEnvironmentVariable("PATHEXT");
-                    if (path == null || pathext == null)
+                    // Add some well known paths onto our current PATH if they're not present. This helps
+                    // the search below and the invocation of 'ssh' when UEFS is running as a Kubernetes
+                    // HostProcess container.
+                    if (OperatingSystem.IsWindows())
                     {
-                        return null;
+                        var wellKnownPaths = new HashSet<string>
+                        {
+                            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Git", "cmd").ToLowerInvariant(),
+                            Path.Combine(Environment.GetEnvironmentVariable("SYSTEMROOT")!, "System32", "OpenSSH").ToLowerInvariant()
+                        };
+                        var currentPaths = new HashSet<string>(Environment.GetEnvironmentVariable("PATH")?.ToLowerInvariant()?.Split(';') ?? Array.Empty<string>());
+                        wellKnownPaths.ExceptWith(currentPaths);
+                        foreach (var pathToAdd in wellKnownPaths)
+                        {
+                            if (Directory.Exists(pathToAdd))
+                            {
+                                var currentPathVariable = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+                                if (!string.IsNullOrWhiteSpace(currentPathVariable))
+                                {
+                                    currentPathVariable += ';';
+                                }
+                                currentPathVariable += pathToAdd;
+                                Environment.SetEnvironmentVariable("PATH", currentPathVariable);
+                            }
+                        }
                     }
 
-                    var paths = new[] { Environment.CurrentDirectory }
-                            .Concat(path.Split(';'));
-                    var extensions = new[] { String.Empty }
-                            .Concat(pathext.Split(';')
-                                       .Where(e => e.StartsWith(".")));
-                    var combinations = paths.SelectMany(x => extensions,
-                            (path, extension) => Path.Combine(path, filename + extension));
-                    return combinations.FirstOrDefault(File.Exists);
-                }
-                var nativeGitPath = WhereSearch("git.exe");
-                if (nativeGitPath != null)
-                {
-                    var git = Process.Start(new ProcessStartInfo
+                    // If we have Git installed on the system, use that instead of libgit2 as libgit2 is
+                    // very slow at fetching large repositories (which Unreal Engine is).
+                    string? WhereSearch(string filename)
                     {
-                        Environment =
+                        var path = Environment.GetEnvironmentVariable("PATH");
+                        var pathext = Environment.GetEnvironmentVariable("PATHEXT");
+                        if (path == null || pathext == null)
                         {
-                            { "GIT_SSH_COMMAND", $"ssh -i {privateKeyFile.Replace("\\", "\\\\")} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" }
-                        },
-                        FileName = nativeGitPath,
-                        WorkingDirectory = _gitRepoPath,
-                        ArgumentList =
+                            return null;
+                        }
+
+                        var paths = new[] { Environment.CurrentDirectory }
+                                .Concat(path.Split(';'));
+                        var extensions = new[] { string.Empty }
+                                .Concat(pathext.Split(';')
+                                           .Where(e => e.StartsWith(".", StringComparison.Ordinal)));
+                        var combinations = paths.SelectMany(x => extensions,
+                                (path, extension) => Path.Combine(path, filename + extension));
+                        return combinations.FirstOrDefault(File.Exists);
+                    }
+                    var nativeGitPath = WhereSearch("git.exe");
+                    if (nativeGitPath != null)
+                    {
+                        var git = Process.Start(new ProcessStartInfo
                         {
+                            Environment =
+                            {
+                            { "GIT_SSH_COMMAND", $"ssh -i {privateKeyFile.Replace("\\", "\\\\", StringComparison.Ordinal)} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" }
+                            },
+                            FileName = nativeGitPath,
+                            WorkingDirectory = _gitRepoPath,
+                            ArgumentList =
+                            {
                             "fetch",
                             "--progress",
                             "--verbose",
                             remoteName,
                             refspec,
-                        },
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                    });
-                    if (git == null)
-                    {
-                        throw new InvalidOperationException("Failed to start Git process for performing fast fetch.");
-                    }
-                    await _processSemaphore.WaitAsync();
-                    try
-                    {
-                        _processes.Add(git);
-                    }
-                    finally
-                    {
-                        _processSemaphore.Release();
-                    }
-                    try
-                    {
-                        git.OutputDataReceived += (sender, args) =>
+                            },
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                        });
+                        if (git == null)
                         {
-                            if (args.Data != null)// !string.IsNullOrWhiteSpace(args.Data))
-                            {
-                                _logger.LogInformation(args.Data.ToString().Trim());
-                            }
-                        };
-                        var receiveRegex = new Regex("Receiving objects:\\s*(?<perc>[0-9]+)%\\s+\\((?<obj>[0-9]+)/(?<total>[0-9]+)\\),\\s+(?<data>[0-9\\.]+)\\s+(?<unit>[MKGTiB]+)\\s+\\|\\s+(?<rate>[0-9\\.]+)\\s+[MKGTiB/s]+$");
-                        var receiveInitRegex = new Regex("Receiving objects:\\s*(?<perc>[0-9]+)%\\s+\\((?<obj>[0-9]+)/(?<total>[0-9]+)\\)$");
-                        var receiveDoneRegex = new Regex("Receiving objects:\\s*(?<perc>[0-9]+)%\\s+\\((?<obj>[0-9]+)/(?<total>[0-9]+)\\),\\s+(?<data>[0-9\\.]+)\\s+(?<unit>[MKGTiB]+)\\s+\\|\\s+(?<rate>[0-9\\.]+)\\s+[MKGTiB/s]+,\\s+done$");
-                        var deltaRegex = new Regex("Resolving deltas:\\s*(?<perc>[0-9]+)%\\s+\\((?<obj>[0-9]+)/(?<total>[0-9]+)\\)$");
-                        var deltaDoneRegex = new Regex("Resolving deltas:\\s*(?<perc>[0-9]+)%\\s+\\((?<obj>[0-9]+)/(?<total>[0-9]+)\\),\\s+done$");
-                        var dataHolder = new DataHolder();
-                        git.ErrorDataReceived += (sender, args) =>
-                        {
-                            try
-                            {
-                                if (args.Data != null)
-                                {
-                                    if (args.Data.StartsWith("remote: "))
-                                    {
-                                        onProgress(new GitFetchProgressInfo
-                                        {
-                                            ServerProgressMessage = args.Data.Substring("remote: ".Length).Trim(),
-                                            SlowFetch = false,
-                                        });
-                                    }
-                                    else
-                                    {
-                                        var receiveMatch = receiveRegex.Match(args.Data.Trim());
-                                        var receiveInitMatch = receiveInitRegex.Match(args.Data.Trim());
-                                        var receiveDoneMatch = receiveDoneRegex.Match(args.Data.Trim());
-                                        var deltaMatch = deltaRegex.Match(args.Data.Trim());
-                                        var deltaDoneMatch = deltaDoneRegex.Match(args.Data.Trim());
-                                        if (receiveDoneMatch.Success)
-                                        {
-                                            receiveMatch = receiveDoneMatch;
-                                        }
-                                        if (deltaDoneMatch.Success)
-                                        {
-                                            deltaMatch = deltaDoneMatch;
-                                        }
-                                        if (receiveMatch.Success)
-                                        {
-                                            var data = double.Parse(receiveMatch.Groups["data"].Value);
-                                            long bytes = 0;
-                                            switch (receiveMatch.Groups["unit"].Value)
-                                            {
-                                                case "KiB":
-                                                    bytes = (long)Math.Ceiling(data * 1024);
-                                                    break;
-                                                case "MiB":
-                                                    bytes = (long)Math.Ceiling(data * 1024 * 1024);
-                                                    break;
-                                                case "GiB":
-                                                    bytes = (long)Math.Ceiling(data * 1024 * 1024 * 1024);
-                                                    break;
-                                                case "TiB":
-                                                    bytes = (long)Math.Ceiling(data * 1024 * 1024 * 1024 * 1024);
-                                                    break;
-                                            }
-
-                                            dataHolder.BytesReceived = bytes;
-                                            onProgress(new GitFetchProgressInfo
-                                            {
-                                                TotalObjects = int.Parse(receiveMatch.Groups["total"].Value),
-                                                IndexedObjects = 0,
-                                                ReceivedObjects = int.Parse(receiveMatch.Groups["obj"].Value),
-                                                ReceivedBytes = bytes,
-                                                SlowFetch = false,
-                                            });
-                                        }
-                                        else if (receiveInitMatch.Success)
-                                        {
-                                            onProgress(new GitFetchProgressInfo
-                                            {
-                                                TotalObjects = int.Parse(receiveInitMatch.Groups["total"].Value),
-                                                IndexedObjects = 0,
-                                                ReceivedObjects = int.Parse(receiveInitMatch.Groups["obj"].Value),
-                                                ReceivedBytes = 0,
-                                                SlowFetch = false,
-                                            });
-                                        }
-                                        else if (deltaMatch.Success)
-                                        {
-                                            onProgress(new GitFetchProgressInfo
-                                            {
-                                                TotalObjects = int.Parse(deltaMatch.Groups["total"].Value),
-                                                IndexedObjects = int.Parse(deltaMatch.Groups["obj"].Value),
-                                                ReceivedObjects = int.Parse(deltaMatch.Groups["total"].Value),
-                                                ReceivedBytes = dataHolder.BytesReceived,
-                                                SlowFetch = false,
-                                            });
-                                        }
-                                        else if (args.Data.Contains("[new tag]") || args.Data.Contains($"From {url}"))
-                                        {
-                                            // Do not emit.
-                                        }
-                                        else if (!string.IsNullOrWhiteSpace(args.Data))
-                                        {
-                                            _logger.LogWarning(args.Data.ToString().Trim());
-                                        }
-                                    }
-                                }
-                            }
-                            catch (FormatException ex)
-                            {
-                                _logger.LogError(ex, ex.Message);
-                            }
-                        };
-                        git.BeginOutputReadLine();
-                        git.BeginErrorReadLine();
-                        git.WaitForExit();
-                        if (git.ExitCode != 0)
-                        {
-                            throw new InvalidOperationException($"Git process exited with non-zero exit code: {git.ExitCode}");
+                            throw new InvalidOperationException("Failed to start Git process for performing fast fetch.");
                         }
-                        _logger.LogInformation("Git operation using native binary completed successfully.");
-                    }
-                    finally
-                    {
-                        await _processSemaphore.WaitAsync();
+                        await _processSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                         try
                         {
-                            _processes.Remove(git);
+                            _processes.Add(git);
                         }
                         finally
                         {
                             _processSemaphore.Release();
                         }
-                    }
-                }
-                else
-                {
-                    _repository.Network.Fetch(
-                        remoteName,
-                        new[]
+                        try
                         {
-                            refspec,
-                        },
-                        new FetchOptions
-                        {
-                            CertificateCheck = (Certificate certificate, bool valid, string host) =>
+                            git.OutputDataReceived += (sender, args) =>
                             {
-                                _logger.LogInformation("Was asked to verify if certificate was valid!");
-                                return true;
-                            },
-                            CredentialsProvider = credentialHandler,
-                            OnProgress = (string serverProgressOutput) =>
-                            {
-                                onProgress(new GitFetchProgressInfo
+                                if (args.Data != null)// !string.IsNullOrWhiteSpace(args.Data))
                                 {
-                                    ServerProgressMessage = serverProgressOutput,
-                                    SlowFetch = true,
-                                });
-                                return true;
-                            },
-                            OnTransferProgress = (TransferProgress transferProgress) =>
+                                    _logger.LogInformation(args.Data.ToString().Trim());
+                                }
+                            };
+                            var receiveRegex = new Regex("Receiving objects:\\s*(?<perc>[0-9]+)%\\s+\\((?<obj>[0-9]+)/(?<total>[0-9]+)\\),\\s+(?<data>[0-9\\.]+)\\s+(?<unit>[MKGTiB]+)\\s+\\|\\s+(?<rate>[0-9\\.]+)\\s+[MKGTiB/s]+$");
+                            var receiveInitRegex = new Regex("Receiving objects:\\s*(?<perc>[0-9]+)%\\s+\\((?<obj>[0-9]+)/(?<total>[0-9]+)\\)$");
+                            var receiveDoneRegex = new Regex("Receiving objects:\\s*(?<perc>[0-9]+)%\\s+\\((?<obj>[0-9]+)/(?<total>[0-9]+)\\),\\s+(?<data>[0-9\\.]+)\\s+(?<unit>[MKGTiB]+)\\s+\\|\\s+(?<rate>[0-9\\.]+)\\s+[MKGTiB/s]+,\\s+done$");
+                            var deltaRegex = new Regex("Resolving deltas:\\s*(?<perc>[0-9]+)%\\s+\\((?<obj>[0-9]+)/(?<total>[0-9]+)\\)$");
+                            var deltaDoneRegex = new Regex("Resolving deltas:\\s*(?<perc>[0-9]+)%\\s+\\((?<obj>[0-9]+)/(?<total>[0-9]+)\\),\\s+done$");
+                            var dataHolder = new DataHolder();
+                            git.ErrorDataReceived += (sender, args) =>
                             {
-                                onProgress(new GitFetchProgressInfo
+                                try
                                 {
-                                    TotalObjects = transferProgress.TotalObjects,
-                                    IndexedObjects = transferProgress.IndexedObjects,
-                                    ReceivedObjects = transferProgress.ReceivedObjects,
-                                    ReceivedBytes = transferProgress.ReceivedBytes,
-                                    SlowFetch = true,
-                                });
-                                return true;
-                            },
-                            Prune = false,
-                            RepositoryOperationStarting = (RepositoryOperationContext context) =>
-                            {
-                                _logger.LogInformation($"Repository operation starting: {context.RemoteUrl}");
-                                return true;
-                            },
-                            RepositoryOperationCompleted = (RepositoryOperationContext context) =>
-                            {
-                                _logger.LogInformation($"Repository operation completed: {context.RemoteUrl}");
-                            },
-                            TagFetchMode = TagFetchMode.Auto,
-                        },
-                        "Updated ref from UEFS fetch");
-                }
+                                    if (args.Data != null)
+                                    {
+                                        if (args.Data.StartsWith("remote: ", StringComparison.Ordinal))
+                                        {
+                                            onProgress(new GitFetchProgressInfo
+                                            {
+                                                ServerProgressMessage = args.Data["remote: ".Length..].Trim(),
+                                                SlowFetch = false,
+                                            });
+                                        }
+                                        else
+                                        {
+                                            var receiveMatch = receiveRegex.Match(args.Data.Trim());
+                                            var receiveInitMatch = receiveInitRegex.Match(args.Data.Trim());
+                                            var receiveDoneMatch = receiveDoneRegex.Match(args.Data.Trim());
+                                            var deltaMatch = deltaRegex.Match(args.Data.Trim());
+                                            var deltaDoneMatch = deltaDoneRegex.Match(args.Data.Trim());
+                                            if (receiveDoneMatch.Success)
+                                            {
+                                                receiveMatch = receiveDoneMatch;
+                                            }
+                                            if (deltaDoneMatch.Success)
+                                            {
+                                                deltaMatch = deltaDoneMatch;
+                                            }
+                                            if (receiveMatch.Success)
+                                            {
+                                                var data = double.Parse(receiveMatch.Groups["data"].Value, CultureInfo.InvariantCulture);
+                                                long bytes = 0;
+                                                switch (receiveMatch.Groups["unit"].Value)
+                                                {
+                                                    case "KiB":
+                                                        bytes = (long)Math.Ceiling(data * 1024);
+                                                        break;
+                                                    case "MiB":
+                                                        bytes = (long)Math.Ceiling(data * 1024 * 1024);
+                                                        break;
+                                                    case "GiB":
+                                                        bytes = (long)Math.Ceiling(data * 1024 * 1024 * 1024);
+                                                        break;
+                                                    case "TiB":
+                                                        bytes = (long)Math.Ceiling(data * 1024 * 1024 * 1024 * 1024);
+                                                        break;
+                                                }
 
-                if (createBranch)
-                {
-                    _repository.Branches.Add($"commit-{commit}", commit);
-                }
-                if (!HasCommit(commit))
-                {
-                    throw new InvalidOperationException("Internal fetch command failed to fetch commit!");
-                }
-            });
+                                                dataHolder.BytesReceived = bytes;
+                                                onProgress(new GitFetchProgressInfo
+                                                {
+                                                    TotalObjects = int.Parse(receiveMatch.Groups["total"].Value, CultureInfo.InvariantCulture),
+                                                    IndexedObjects = 0,
+                                                    ReceivedObjects = int.Parse(receiveMatch.Groups["obj"].Value, CultureInfo.InvariantCulture),
+                                                    ReceivedBytes = bytes,
+                                                    SlowFetch = false,
+                                                });
+                                            }
+                                            else if (receiveInitMatch.Success)
+                                            {
+                                                onProgress(new GitFetchProgressInfo
+                                                {
+                                                    TotalObjects = int.Parse(receiveInitMatch.Groups["total"].Value, CultureInfo.InvariantCulture),
+                                                    IndexedObjects = 0,
+                                                    ReceivedObjects = int.Parse(receiveInitMatch.Groups["obj"].Value, CultureInfo.InvariantCulture),
+                                                    ReceivedBytes = 0,
+                                                    SlowFetch = false,
+                                                });
+                                            }
+                                            else if (deltaMatch.Success)
+                                            {
+                                                onProgress(new GitFetchProgressInfo
+                                                {
+                                                    TotalObjects = int.Parse(deltaMatch.Groups["total"].Value, CultureInfo.InvariantCulture),
+                                                    IndexedObjects = int.Parse(deltaMatch.Groups["obj"].Value, CultureInfo.InvariantCulture),
+                                                    ReceivedObjects = int.Parse(deltaMatch.Groups["total"].Value, CultureInfo.InvariantCulture),
+                                                    ReceivedBytes = dataHolder.BytesReceived,
+                                                    SlowFetch = false,
+                                                });
+                                            }
+                                            else if (args.Data.Contains("[new tag]", StringComparison.Ordinal) || args.Data.Contains($"From {url}", StringComparison.Ordinal))
+                                            {
+                                                // Do not emit.
+                                            }
+                                            else if (!string.IsNullOrWhiteSpace(args.Data))
+                                            {
+                                                _logger.LogWarning(args.Data.ToString().Trim());
+                                            }
+                                        }
+                                    }
+                                }
+                                catch (FormatException ex)
+                                {
+                                    _logger.LogError(ex, ex.Message);
+                                }
+                            };
+                            git.BeginOutputReadLine();
+                            git.BeginErrorReadLine();
+                            git.WaitForExit();
+                            if (git.ExitCode != 0)
+                            {
+                                throw new InvalidOperationException($"Git process exited with non-zero exit code: {git.ExitCode}");
+                            }
+                            _logger.LogInformation("Git operation using native binary completed successfully.");
+                        }
+                        finally
+                        {
+                            await _processSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                            try
+                            {
+                                _processes.Remove(git);
+                            }
+                            finally
+                            {
+                                _processSemaphore.Release();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        _repository.Network.Fetch(
+                            remoteName,
+                            new[]
+                            {
+                            refspec,
+                            },
+                            new FetchOptions
+                            {
+                                CertificateCheck = (Certificate certificate, bool valid, string host) =>
+                                {
+                                    _logger.LogInformation("Was asked to verify if certificate was valid!");
+                                    return true;
+                                },
+                                CredentialsProvider = credentialHandler,
+                                OnProgress = (string serverProgressOutput) =>
+                                {
+                                    onProgress(new GitFetchProgressInfo
+                                    {
+                                        ServerProgressMessage = serverProgressOutput,
+                                        SlowFetch = true,
+                                    });
+                                    return true;
+                                },
+                                OnTransferProgress = (TransferProgress transferProgress) =>
+                                {
+                                    onProgress(new GitFetchProgressInfo
+                                    {
+                                        TotalObjects = transferProgress.TotalObjects,
+                                        IndexedObjects = transferProgress.IndexedObjects,
+                                        ReceivedObjects = transferProgress.ReceivedObjects,
+                                        ReceivedBytes = transferProgress.ReceivedBytes,
+                                        SlowFetch = true,
+                                    });
+                                    return true;
+                                },
+                                Prune = false,
+                                RepositoryOperationStarting = (RepositoryOperationContext context) =>
+                                {
+                                    _logger.LogInformation($"Repository operation starting: {context.RemoteUrl}");
+                                    return true;
+                                },
+                                RepositoryOperationCompleted = (RepositoryOperationContext context) =>
+                                {
+                                    _logger.LogInformation($"Repository operation completed: {context.RemoteUrl}");
+                                },
+                                TagFetchMode = TagFetchMode.Auto,
+                            },
+                            "Updated ref from UEFS fetch");
+                    }
+
+                    if (createBranch)
+                    {
+                        _repository.Branches.Add($"commit-{commit}", commit);
+                    }
+                    if (!HasCommit(commit))
+                    {
+                        throw new InvalidOperationException("Internal fetch command failed to fetch commit!");
+                    }
+                }).ConfigureAwait(false);
+            }
         }
 
         public void StopProcesses()
         {
-            _processSemaphore.Wait();
+            _processSemaphore.Wait(CancellationToken.None);
             try
             {
                 foreach (var process in _processes)

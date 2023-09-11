@@ -66,7 +66,7 @@
                     request,
                     TimeSpan.FromMinutes(60),
                     cancellationToken);
-                return await operation.RunAndWaitForCompleteAsync();
+                return await operation.RunAndWaitForCompleteAsync().ConfigureAwait(false);
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
@@ -94,7 +94,7 @@
                                 Tag = packageTag,
                                 Credential = _credentialDiscovery.GetRegistryCredential(packageTag!),
                             },
-                            context.GetCancellationToken());
+                            context.GetCancellationToken()).ConfigureAwait(false);
                     }
                     else if (string.IsNullOrWhiteSpace(packageTag) &&
                              !string.IsNullOrWhiteSpace(gitUrl) &&
@@ -112,7 +112,7 @@
                                 Commit = gitCommit,
                                 Credential = _credentialDiscovery.GetGitCredential(gitUrl),
                             },
-                            context.GetCancellationToken());
+                            context.GetCancellationToken()).ConfigureAwait(false);
                     }
                     else
                     {

@@ -134,7 +134,7 @@
                     var variableMatch = _variableDefine.Match(defineExpr);
                     if (functionMatch.Success)
                     {
-                        var exprText = value.Length > functionMatch.Length ? value.Substring(functionMatch.Length) : string.Empty;
+                        var exprText = value.Length > functionMatch.Length ? value[functionMatch.Length..] : string.Empty;
                         var expr = string.IsNullOrWhiteSpace(exprText)
                             ? new PreprocessorExpression
                             {
@@ -157,7 +157,7 @@
                     }
                     else if (variableMatch.Success)
                     {
-                        var exprText = value.Length > variableMatch.Length ? value.Substring(variableMatch.Length) : string.Empty;
+                        var exprText = value.Length > variableMatch.Length ? value[variableMatch.Length..] : string.Empty;
                         var expr = string.IsNullOrWhiteSpace(exprText)
                             ? new PreprocessorExpression
                             {
@@ -384,7 +384,7 @@
                         else
                         {
                             // Allow the rest of the line to be parsed.
-                            line = line.Substring(commentBlockEndIndex + 2);
+                            line = line[(commentBlockEndIndex + 2)..];
                             inBlockComment = false;
                         }
                     }
@@ -394,15 +394,15 @@
                 var commentIndex = line.IndexOf("//");
                 if (commentIndex != -1)
                 {
-                    line = line.Substring(0, commentIndex);
+                    line = line[..commentIndex];
                 }
 
                 // If the line has a /* in it, strip it out until we reach */.
                 var commentBlockStartIndex = line.IndexOf("/*");
                 while (commentBlockStartIndex != -1)
                 {
-                    var lineBefore = line.Substring(0, commentBlockStartIndex);
-                    var lineAfter = line.Substring(commentBlockStartIndex + 2);
+                    var lineBefore = line[..commentBlockStartIndex];
+                    var lineAfter = line[(commentBlockStartIndex + 2)..];
                     var commentBlockEndIndex = lineAfter.IndexOf("*/");
                     if (commentBlockEndIndex != -1)
                     {
@@ -415,7 +415,7 @@
                         else
                         {
                             // Comment block ends and then we have more content.
-                            line = lineBefore + lineAfter.Substring(commentBlockEndIndex + 2);
+                            line = lineBefore + lineAfter[(commentBlockEndIndex + 2)..];
                             commentBlockStartIndex = line.IndexOf("/*");
                         }
                     }
@@ -441,7 +441,7 @@
                 {
                     // Strip all whitespace between the '#' and first non-whitespace
                     // character to allow for directives like "#  if".
-                    line = '#' + line.Substring(1).TrimStart();
+                    line = '#' + line[1..].TrimStart();
 
                     // Is it a directive we care about?
                     directive = _directives.FirstOrDefault(x => line.StartsWith(x));
@@ -480,7 +480,7 @@
                 {
                     // Some Windows headers do "#if(expr)". Insert a space
                     // to make it easier to parse this.
-                    line = directive + ' ' + line.Substring(directive!.Length);
+                    line = directive + ' ' + line[directive!.Length..];
                 }
                 var components = line.Split(new[] { ' ', '\t' }, 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 if (directive != components[0])

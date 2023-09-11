@@ -110,7 +110,7 @@
             {
                 var info = new FileInfo(path);
 
-                if (info.Name.Equals("BuildConfig.json", StringComparison.InvariantCultureIgnoreCase) && !ignoreBuildJson)
+                if (info.Name.Equals("BuildConfig.json", StringComparison.OrdinalIgnoreCase) && !ignoreBuildJson)
                 {
                     return new PathSpec
                     {

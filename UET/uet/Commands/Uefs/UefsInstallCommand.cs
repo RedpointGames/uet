@@ -68,7 +68,7 @@
                     _logger.LogInformation("Checking for the latest version...");
                     using (var client = new HttpClient())
                     {
-                        version = (await client.GetStringAsync(latestUrl)).Trim();
+                        version = (await client.GetStringAsync(latestUrl).ConfigureAwait(false)).Trim();
                     }
 
                     if (string.IsNullOrWhiteSpace(version))
@@ -118,10 +118,10 @@
                     {
                         using (var target = new FileStream(Path.Combine(baseFolder, version, filename + ".tmp"), FileMode.Create, FileAccess.Write, FileShare.None))
                         {
-                            var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                            var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
                             response.EnsureSuccessStatusCode();
                             using (var stream = new PositionAwareStream(
-                                await response.Content.ReadAsStreamAsync(),
+                                await response.Content.ReadAsStreamAsync().ConfigureAwait(false),
                                 response.Content.Headers.ContentLength!.Value))
                             {
                                 var cts = new CancellationTokenSource();
@@ -133,12 +133,12 @@
                                         progress,
                                         SystemConsole.ConsoleInformation,
                                         SystemConsole.WriteProgressToConsole,
-                                        cts.Token);
+                                        cts.Token).ConfigureAwait(false);
                                 });
 
-                                await stream.CopyToAsync(target);
+                                await stream.CopyToAsync(target).ConfigureAwait(false);
 
-                                await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);
+                                await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts).ConfigureAwait(false);
                             }
                         }
                     }
@@ -154,16 +154,16 @@
                     _logger.LogInformation($"UEFS daemon {version} has been downloaded successfully.");
                 }
 
-                if (await _serviceControl.IsServiceInstalled(daemonName))
+                if (await _serviceControl.IsServiceInstalled(daemonName).ConfigureAwait(false))
                 {
-                    if (await _serviceControl.IsServiceRunning(daemonName))
+                    if (await _serviceControl.IsServiceRunning(daemonName).ConfigureAwait(false))
                     {
                         _logger.LogInformation("Stopping UEFS daemon...");
-                        await _serviceControl.StopService(daemonName);
+                        await _serviceControl.StopService(daemonName).ConfigureAwait(false);
                     }
 
                     _logger.LogInformation("Uninstalling UEFS daemon...");
-                    await _serviceControl.UninstallService(daemonName);
+                    await _serviceControl.UninstallService(daemonName).ConfigureAwait(false);
                 }
 
                 _logger.LogInformation("Installing UEFS daemon...");
@@ -172,10 +172,10 @@
                     "The UEFS daemon provides storage virtualization APIs.",
                     $"{Path.Combine(baseFolder, version, filename)} --service",
                     stdoutPath,
-                    stderrPath);
+                    stderrPath).ConfigureAwait(false);
 
                 _logger.LogInformation("Starting UEFS daemon...");
-                await _serviceControl.StartService(daemonName);
+                await _serviceControl.StartService(daemonName).ConfigureAwait(false);
 
                 _logger.LogInformation("The UEFS service has been started.");
                 return 0;

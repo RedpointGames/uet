@@ -52,17 +52,17 @@
 
         public static async Task Serialize(Archive ar, Store<TcpDeserializedMessage> value)
         {
-            await ar.Serialize(value.V.AssetPath);
-            await ar.Serialize(value.V.SenderAddress);
-            await ar.Serialize(value.V.RecipientAddresses);
-            await ar.Serialize(value.V.MessageScope);
-            await ar.Serialize(value.V.TimeSent);
-            await ar.Serialize(value.V.ExpirationTime);
-            await ar.Serialize(value.V.Annotations);
+            await ar.Serialize(value.V.AssetPath).ConfigureAwait(false);
+            await ar.Serialize(value.V.SenderAddress).ConfigureAwait(false);
+            await ar.Serialize(value.V.RecipientAddresses).ConfigureAwait(false);
+            await ar.Serialize(value.V.MessageScope).ConfigureAwait(false);
+            await ar.Serialize(value.V.TimeSent).ConfigureAwait(false);
+            await ar.Serialize(value.V.ExpirationTime).ConfigureAwait(false);
+            await ar.Serialize(value.V.Annotations).ConfigureAwait(false);
 
             // The JSON content in this value does not have
             // a length prefix, so we can't use DynamicJsonSerialize.
-            await ar.DynamicJsonFromRemainderOfStream(value.V.AssetPath, value.V._message!);
+            await ar.DynamicJsonFromRemainderOfStream(value.V.AssetPath, value.V._message!).ConfigureAwait(false);
         }
 
         public LegacyTcpDeserializedMessage ToLegacyMessage()

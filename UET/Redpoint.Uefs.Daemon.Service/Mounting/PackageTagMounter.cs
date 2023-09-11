@@ -11,6 +11,7 @@
     using Redpoint.Uefs.Protocol;
     using System;
     using System.Threading.Tasks;
+    using Redpoint.Concurrency;
 
     internal class PackageTagMounter : IMounter<MountPackageTagRequest>
     {
@@ -42,7 +43,7 @@
 
             // Run pull transaction in case we need to pull this package.
             PullPackageTagTransactionResult result;
-            await using (var transaction = await daemon.TransactionalDatabase.BeginTransactionAsync<PullPackageTagTransactionRequest, PullPackageTagTransactionResult>(
+            await using ((await daemon.TransactionalDatabase.BeginTransactionAsync<PullPackageTagTransactionRequest, PullPackageTagTransactionResult>(
                 new PullPackageTagTransactionRequest
                 {
                     PackageFs = daemon.PackageStorage.PackageFs,
@@ -50,21 +51,21 @@
                     Credential = request.Credential,
                     NoWait = false,
                 },
-                async (response, _) => 
+                async (response, _) =>
                 {
                     // Don't propagate the completion status, because we still have the mount to do.
                     if (response.Status != PollingResponseStatus.Complete)
                     {
-                        await onPollingResponse(response);
+                        await onPollingResponse(response).ConfigureAwait(false);
                     }
                 },
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var transaction).ConfigureAwait(false))
             {
-                result = await transaction.WaitForCompletionAsync(cancellationToken);
+                result = await transaction.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
             }
 
             // Now run the mount transaction.
-            await using (var transaction = await daemon.TransactionalDatabase.BeginTransactionAsync(
+            await using ((await daemon.TransactionalDatabase.BeginTransactionAsync(
                 new AddMountTransactionRequest
                 {
                     MountId = context.MountId,
@@ -94,7 +95,7 @@
                                 result.PackagePath.FullName,
                                 request.MountRequest.MountPath,
                                 writeStoragePath,
-                                request.MountRequest.WriteScratchPersistence);
+                                request.MountRequest.WriteScratchPersistence).ConfigureAwait(false);
                         }
                         catch (PackageMounterException ex)
                         {
@@ -122,9 +123,9 @@
                     }
                 },
                 onPollingResponse,
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var transaction).ConfigureAwait(false))
             {
-                await transaction.WaitForCompletionAsync(cancellationToken);
+                await transaction.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
             }
         }
     }

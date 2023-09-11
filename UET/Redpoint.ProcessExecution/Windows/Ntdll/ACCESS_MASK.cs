@@ -1,9 +1,12 @@
 ﻿namespace Redpoint.ProcessExecution.Windows.Ntdll
 {
+    using System.Diagnostics.CodeAnalysis;
+
     /// <remarks>
     /// See https://learn.microsoft.com/en-us/windows/win32/secauthz/access-mask.
     /// </remarks>
     [Flags]
+    [SuppressMessage("Design", "CA1069:Enums values should not be duplicated", Justification = "This enum matches the Win32 declaration.")]
     internal enum ACCESS_MASK : uint
     {
         // https://learn.microsoft.com/en-us/windows/win32/devnotes/ntopendirectoryobject
@@ -11,7 +14,7 @@
         DIRECTORY_TRAVERSE = 1u << 1,
         DIRECTORY_CREATE_OBJECT = 1u << 2,
         DIRECTORY_CREATE_SUBDIRECTORY = 1u << 3,
-        DIRECTORY_ALL_ACCESS = 
+        DIRECTORY_ALL_ACCESS =
             STANDARD_RIGHTS_REQUIRED |
             DIRECTORY_QUERY |
             DIRECTORY_TRAVERSE |

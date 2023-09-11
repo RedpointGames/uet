@@ -64,7 +64,7 @@
                                 DynamicSettings = new BuildConfigPluginTestAutomation
                                 {
                                     TestPrefix = "A_PREFIX",
-                                    ConfigFiles = new string[0],
+                                    ConfigFiles = Array.Empty<string>(),
                                     MinWorkerCount = 16,
                                     Platforms = new BuildConfigHostPlatform[] { BuildConfigHostPlatform.Win64, BuildConfigHostPlatform.Mac },
                                     TestRunTimeoutMinutes = null,

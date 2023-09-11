@@ -50,7 +50,7 @@
                     return 1;
                 }
 
-                await _fileHasher.ComputeHashAsync(packagePath);
+                await _fileHasher.ComputeHashAsync(packagePath).ConfigureAwait(false);
 
                 Console.WriteLine("hash complete");
                 return 0;

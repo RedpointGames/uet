@@ -8,9 +8,9 @@
         public string Name { get; set; } = string.Empty;
 
         [JsonPropertyName("Agent Types")]
-        public string[] AgentTypes { get; set; } = new string[0];
+        public string[] AgentTypes { get; set; } = Array.Empty<string>();
 
         [JsonPropertyName("Nodes")]
-        public BuildGraphExportNode[] Nodes { get; set; } = new BuildGraphExportNode[0];
+        public BuildGraphExportNode[] Nodes { get; set; } = Array.Empty<BuildGraphExportNode>();
     }
 }

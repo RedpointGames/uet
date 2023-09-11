@@ -15,13 +15,13 @@
         /// <summary>
         /// Compares two filenames such that they are ordered correctly for a virtual filesystem driver.
         /// </summary>
-        /// <param name="a">The first filename.</param>
-        /// <param name="b">The second filename.</param>
+        /// <param name="x">The first filename.</param>
+        /// <param name="y">The second filename.</param>
         /// <returns>The relative order.</returns>
-        public int Compare(string? a, string? b)
+        public int Compare(string? x, string? y)
         {
-            string? sa = a as string;
-            string? sb = b as string;
+            string? sa = x as string;
+            string? sb = y as string;
             if (sa != null && sb != null)
             {
                 if (sa == ".")
@@ -57,7 +57,7 @@
                     return 1;
                 }
 
-                if (Path.GetExtension(sa).Equals(Path.GetExtension(sb), StringComparison.InvariantCultureIgnoreCase))
+                if (Path.GetExtension(sa).Equals(Path.GetExtension(sb), StringComparison.OrdinalIgnoreCase))
                 {
                     return _compareInfo.Compare(
                         Path.GetFileNameWithoutExtension(sa),
@@ -74,7 +74,7 @@
             }
             else
             {
-                return Comparer.Default.Compare(a, b);
+                return Comparer.Default.Compare(x, y);
             }
         }
 
@@ -96,7 +96,9 @@
         /// <returns>The hash code.</returns>
         public int GetHashCode([DisallowNull] string obj)
         {
-            return obj.ToLowerInvariant().GetHashCode();
+            if (obj == null) throw new ArgumentNullException(nameof(obj));
+
+            return obj.GetHashCode(StringComparison.InvariantCultureIgnoreCase);
         }
     }
 }

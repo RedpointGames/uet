@@ -11,6 +11,7 @@
     using Redpoint.Uefs.Daemon.RemoteStorage;
     using Redpoint.Uefs.Protocol;
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
+    using Redpoint.Hashing;
 
     internal class PullPackageTagTransactionExecutor : ITransactionExecutor<PullPackageTagTransactionRequest, PullPackageTagTransactionResult>
     {
@@ -47,11 +48,7 @@
             var path = tagComponents.Groups["path"].Value;
             var label = tagComponents.Groups["label"].Value;
 
-            string tagHash;
-            using (var hasher = SHA256.Create())
-            {
-                tagHash = BitConverter.ToString(hasher.ComputeHash(Encoding.UTF8.GetBytes(transaction.Tag))).Replace("-", "").ToLowerInvariant();
-            }
+            string tagHash = Hash.Sha256AsHexString(transaction.Tag, Encoding.UTF8);
 
             var client = RegistryClientFactory.GetRegistryClient(host, new ContainerRegistry.RegistryCredential
             {

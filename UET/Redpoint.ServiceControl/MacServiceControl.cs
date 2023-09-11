@@ -12,6 +12,7 @@
     internal class MacServiceControl : IServiceControl
     {
         [DllImport("libc")]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
         internal static extern uint geteuid();
 
         public bool HasPermissionToInstall => geteuid() == 0;
@@ -79,9 +80,9 @@
             {
                 // Otherwise synthesize the command line.
                 var program = kv["Program"] as string ?? string.Empty;
-                var programArguments = kv["ProgramArguments"] as string[] ?? new string[0];
-                var programArgumentsString = string.Join(" ", programArguments.Select(x => $"'{x.Replace("'", "'\"'\"'")}'"));
-                return Task.FromResult($"'{program.Replace("'", "'\"'\"'")}' {programArguments}".Trim());
+                var programArguments = kv["ProgramArguments"] as string[] ?? Array.Empty<string>();
+                var programArgumentsString = string.Join(" ", programArguments.Select(x => $"'{x.Replace("'", "'\"'\"'", StringComparison.Ordinal)}'"));
+                return Task.FromResult($"'{program.Replace("'", "'\"'\"'", StringComparison.Ordinal)}' {programArguments}".Trim());
             }
         }
 
@@ -91,61 +92,61 @@
                 $"/Library/LaunchDaemons/{name}.plist",
                 new XmlWriterSettings { Async = true, Indent = true, IndentChars = "  " }))
             {
-                await writer.WriteStartDocumentAsync();
+                await writer.WriteStartDocumentAsync().ConfigureAwait(false);
 
-                await writer.WriteDocTypeAsync("plist", "-//Apple Computer//DTD PLIST 1.0//EN", "http://www.apple.com/DTDs/PropertyList-1.0.dtd", null);
+                await writer.WriteDocTypeAsync("plist", "-//Apple Computer//DTD PLIST 1.0//EN", "http://www.apple.com/DTDs/PropertyList-1.0.dtd", null).ConfigureAwait(false);
 
-                await writer.WriteStartElementAsync(null, "plist", null);
-                await writer.WriteAttributeStringAsync(null, "version", null, "1.0");
+                await writer.WriteStartElementAsync(null, "plist", null).ConfigureAwait(false);
+                await writer.WriteAttributeStringAsync(null, "version", null, "1.0").ConfigureAwait(false);
 
-                await writer.WriteStartElementAsync(null, "dict", null);
+                await writer.WriteStartElementAsync(null, "dict", null).ConfigureAwait(false);
 
-                await writer.WriteElementStringAsync(null, "key", null, "Label");
-                await writer.WriteElementStringAsync(null, "string", null, name);
-                await writer.WriteElementStringAsync(null, "key", null, "ServiceDescription");
-                await writer.WriteElementStringAsync(null, "string", null, description);
+                await writer.WriteElementStringAsync(null, "key", null, "Label").ConfigureAwait(false);
+                await writer.WriteElementStringAsync(null, "string", null, name).ConfigureAwait(false);
+                await writer.WriteElementStringAsync(null, "key", null, "ServiceDescription").ConfigureAwait(false);
+                await writer.WriteElementStringAsync(null, "string", null, description).ConfigureAwait(false);
 
-                await writer.WriteElementStringAsync(null, "key", null, "IsManagedByRedpointServiceControl");
-                await writer.WriteStartElementAsync(null, "true", null);
-                await writer.WriteEndElementAsync();
+                await writer.WriteElementStringAsync(null, "key", null, "IsManagedByRedpointServiceControl").ConfigureAwait(false);
+                await writer.WriteStartElementAsync(null, "true", null).ConfigureAwait(false);
+                await writer.WriteEndElementAsync().ConfigureAwait(false);
 
-                await writer.WriteElementStringAsync(null, "key", null, "RunAtLoad");
-                await writer.WriteStartElementAsync(null, "true", null);
-                await writer.WriteEndElementAsync();
+                await writer.WriteElementStringAsync(null, "key", null, "RunAtLoad").ConfigureAwait(false);
+                await writer.WriteStartElementAsync(null, "true", null).ConfigureAwait(false);
+                await writer.WriteEndElementAsync().ConfigureAwait(false);
 
-                await writer.WriteElementStringAsync(null, "key", null, "KeepAlive");
-                await writer.WriteStartElementAsync(null, "dict", null);
-                await writer.WriteElementStringAsync(null, "key", null, "SuccessfulExit");
-                await writer.WriteStartElementAsync(null, "false", null);
-                await writer.WriteEndElementAsync();
-                await writer.WriteEndElementAsync();
+                await writer.WriteElementStringAsync(null, "key", null, "KeepAlive").ConfigureAwait(false);
+                await writer.WriteStartElementAsync(null, "dict", null).ConfigureAwait(false);
+                await writer.WriteElementStringAsync(null, "key", null, "SuccessfulExit").ConfigureAwait(false);
+                await writer.WriteStartElementAsync(null, "false", null).ConfigureAwait(false);
+                await writer.WriteEndElementAsync().ConfigureAwait(false);
+                await writer.WriteEndElementAsync().ConfigureAwait(false);
 
-                await writer.WriteElementStringAsync(null, "key", null, "Program");
-                await writer.WriteElementStringAsync(null, "string", null, "/bin/bash");
-                await writer.WriteElementStringAsync(null, "key", null, "ProgramArguments");
-                await writer.WriteStartElementAsync(null, "array", null);
-                await writer.WriteElementStringAsync(null, "string", null, "/bin/bash");
-                await writer.WriteElementStringAsync(null, "string", null, "-c");
-                await writer.WriteElementStringAsync(null, "string", null, executableAndArguments);
-                await writer.WriteEndElementAsync();
+                await writer.WriteElementStringAsync(null, "key", null, "Program").ConfigureAwait(false);
+                await writer.WriteElementStringAsync(null, "string", null, "/bin/bash").ConfigureAwait(false);
+                await writer.WriteElementStringAsync(null, "key", null, "ProgramArguments").ConfigureAwait(false);
+                await writer.WriteStartElementAsync(null, "array", null).ConfigureAwait(false);
+                await writer.WriteElementStringAsync(null, "string", null, "/bin/bash").ConfigureAwait(false);
+                await writer.WriteElementStringAsync(null, "string", null, "-c").ConfigureAwait(false);
+                await writer.WriteElementStringAsync(null, "string", null, executableAndArguments).ConfigureAwait(false);
+                await writer.WriteEndElementAsync().ConfigureAwait(false);
 
                 if (stdoutLogPath != null)
                 {
-                    await writer.WriteElementStringAsync(null, "key", null, "StandardOutPath");
-                    await writer.WriteElementStringAsync(null, "string", null, stdoutLogPath);
+                    await writer.WriteElementStringAsync(null, "key", null, "StandardOutPath").ConfigureAwait(false);
+                    await writer.WriteElementStringAsync(null, "string", null, stdoutLogPath).ConfigureAwait(false);
                 }
 
                 if (stderrLogPath != null)
                 {
-                    await writer.WriteElementStringAsync(null, "key", null, "StandardErrorPath");
-                    await writer.WriteElementStringAsync(null, "string", null, stderrLogPath);
+                    await writer.WriteElementStringAsync(null, "key", null, "StandardErrorPath").ConfigureAwait(false);
+                    await writer.WriteElementStringAsync(null, "string", null, stderrLogPath).ConfigureAwait(false);
                 }
 
-                await writer.WriteEndElementAsync();
+                await writer.WriteEndElementAsync().ConfigureAwait(false);
 
-                await writer.WriteEndElementAsync();
+                await writer.WriteEndElementAsync().ConfigureAwait(false);
 
-                await writer.WriteEndDocumentAsync();
+                await writer.WriteEndDocumentAsync().ConfigureAwait(false);
             }
 
             File.SetUnixFileMode(
@@ -166,7 +167,7 @@
                 },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync();
+            })!.WaitForExitAsync().ConfigureAwait(false);
 
             await Process.Start(new ProcessStartInfo
             {
@@ -178,7 +179,7 @@
                 },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync();
+            })!.WaitForExitAsync().ConfigureAwait(false);
         }
 
         public async Task<bool> IsServiceRunning(string name)
@@ -195,9 +196,9 @@
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
             })!;
-            var output = await process.StandardOutput.ReadToEndAsync();
-            await process.WaitForExitAsync();
-            if (output.Contains("pid = "))
+            var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+            await process.WaitForExitAsync().ConfigureAwait(false);
+            if (output.Contains("pid = ", StringComparison.Ordinal))
             {
                 return true;
             }
@@ -217,7 +218,7 @@
                 CreateNoWindow = true,
                 UseShellExecute = false,
             })!;
-            await process.WaitForExitAsync();
+            await process.WaitForExitAsync().ConfigureAwait(false);
         }
 
         public async Task StopService(string name)
@@ -233,7 +234,7 @@
                 CreateNoWindow = true,
                 UseShellExecute = false,
             })!;
-            await process.WaitForExitAsync();
+            await process.WaitForExitAsync().ConfigureAwait(false);
         }
 
         public async Task UninstallService(string name)
@@ -248,7 +249,7 @@
                 },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync();
+            })!.WaitForExitAsync().ConfigureAwait(false);
 
             await Process.Start(new ProcessStartInfo
             {
@@ -261,7 +262,7 @@
                 },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync();
+            })!.WaitForExitAsync().ConfigureAwait(false);
 
             File.Delete($"/Library/LaunchDaemons/{name}.plist");
         }

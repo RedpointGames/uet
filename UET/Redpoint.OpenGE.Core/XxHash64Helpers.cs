@@ -12,7 +12,7 @@
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 var hasher = new XxHash64();
-                await hasher.AppendAsync(stream, cancellationToken);
+                await hasher.AppendAsync(stream, cancellationToken).ConfigureAwait(false);
                 return (BitConverter.ToInt64(hasher.GetCurrentHash()), stream.Length);
             }
         }

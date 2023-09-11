@@ -29,7 +29,7 @@
 
         public async Task<string> RunAndWaitForMountIdAsync()
         {
-            return (await RunAndWaitForCompleteAsync()).MountId;
+            return (await RunAndWaitForCompleteAsync().ConfigureAwait(false)).MountId;
         }
     }
 }

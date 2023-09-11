@@ -78,7 +78,7 @@
                 public HttpClient HttpClient { get; } = new HttpClient();
             }
 
-            private class RetryTransferException : Exception
+            public class RetryTransferException : Exception
             {
             }
 
@@ -108,7 +108,7 @@
                 {
                     try
                     {
-                        using (var fromStream = await GetFromStreamAsync(from, streamContext, context.GetCancellationToken()))
+                        using (var fromStream = await GetFromStreamAsync(from, streamContext, context.GetCancellationToken()).ConfigureAwait(false))
                         {
                             var cts = new CancellationTokenSource();
                             var progress = _progressFactory.CreateProgressForStream(fromStream);
@@ -119,12 +119,12 @@
                                     progress,
                                     SystemConsole.ConsoleInformation,
                                     SystemConsole.WriteProgressToConsole,
-                                    cts.Token);
+                                    cts.Token).ConfigureAwait(false);
                             });
 
-                            await PerformUploadAsync(to, fromStream, streamContext, context.GetCancellationToken());
+                            await PerformUploadAsync(to, fromStream, streamContext, context.GetCancellationToken()).ConfigureAwait(false);
 
-                            await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts);
+                            await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts).ConfigureAwait(false);
                         }
                         break;
                     }
@@ -135,7 +135,7 @@
                             Console.WriteLine();
                         }
                         _logger.LogWarning("Temporary network issue while transferring data. Retrying in 1 second...");
-                        await Task.Delay(1000);
+                        await Task.Delay(1000).ConfigureAwait(false);
                         continue;
                     }
                     finally
@@ -148,7 +148,7 @@
                 return 0;
             }
 
-            private async Task<Stream> GetFromStreamAsync(string from, StreamContext context, CancellationToken cancellationToken)
+            private static async Task<Stream> GetFromStreamAsync(string from, StreamContext context, CancellationToken cancellationToken)
             {
                 switch (CalculateTypeOfUrl(from))
                 {
@@ -160,15 +160,15 @@
                                 ApplicationKey = context.AppKey!,
                             });
                             var url = new Uri(from);
-                            var file = await client.Files.DownloadByName(url.AbsolutePath.TrimStart('/'), url.Host, cancellationToken);
+                            var file = await client.Files.DownloadByName(url.AbsolutePath.TrimStart('/'), url.Host, cancellationToken).ConfigureAwait(false);
                             var wrapped = new PositionAwareStream(file.FileData, file.Size);
                             return wrapped;
                         }
                     case "http":
                         {
-                            var response = await context.HttpClient.GetAsync(from, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                            var response = await context.HttpClient.GetAsync(from, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                             var wrapped = new PositionAwareStream(
-                                await response.Content.ReadAsStreamAsync(),
+                                await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false),
                                 response.Content.Headers.ContentLength ?? 0);
                             return wrapped;
                         }
@@ -181,7 +181,7 @@
                 }
             }
 
-            private async Task PerformUploadAsync(string to, Stream source, StreamContext context, CancellationToken cancellationToken)
+            private static async Task PerformUploadAsync(string to, Stream source, StreamContext context, CancellationToken cancellationToken)
             {
                 switch (CalculateTypeOfUrl(to))
                 {
@@ -192,8 +192,8 @@
                             ApplicationKey = context.AppKey!,
                         });
                         var url = new Uri(to);
-                        var bucketId = (await client.Buckets.GetByName(url.Host, cancellationToken)).BucketId;
-                        var uploadUrl = await client.Files.GetUploadUrl(bucketId, cancellationToken);
+                        var bucketId = (await client.Buckets.GetByName(url.Host, cancellationToken).ConfigureAwait(false)).BucketId;
+                        var uploadUrl = await client.Files.GetUploadUrl(bucketId, cancellationToken).ConfigureAwait(false);
                         try
                         {
                             await client.Files.Upload(
@@ -205,9 +205,9 @@
                                 bucketId,
                                 null,
                                 true,
-                                cancellationToken);
+                                cancellationToken).ConfigureAwait(false);
                         }
-                        catch (B2Exception ex) when (ex.Message.Contains("no tomes available"))
+                        catch (B2Exception ex) when (ex.Message.Contains("no tomes available", StringComparison.Ordinal))
                         {
                             throw new RetryTransferException();
                         }
@@ -215,7 +215,7 @@
                     case "local":
                         using (var stream = new FileStream(to, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
                         {
-                            await source.CopyToAsync(stream, cancellationToken);
+                            await source.CopyToAsync(stream, cancellationToken).ConfigureAwait(false);
                         }
                         return;
                     default:
@@ -223,9 +223,9 @@
                 }
             }
 
-            private string CalculateTypeOfUrl(string url)
+            private static string CalculateTypeOfUrl(string url)
             {
-                if (url.Contains("://"))
+                if (url.Contains("://", StringComparison.Ordinal))
                 {
                     var uri = new Uri(url);
                     switch (uri.Scheme.ToLowerInvariant())

@@ -38,7 +38,7 @@
 
         public IEnumerable<VfsEntry>? List(string path)
         {
-            return new VfsEntry[0];
+            return Array.Empty<VfsEntry>();
         }
 
         public bool MoveFile(string oldPath, string newPath, bool replace)

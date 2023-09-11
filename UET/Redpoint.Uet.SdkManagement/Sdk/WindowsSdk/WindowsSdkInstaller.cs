@@ -50,7 +50,7 @@
             VisualStudioManifest rootManifest;
             using (var client = new HttpClient())
             {
-                rootManifest = (await client.GetFromJsonAsync(rootManifestUrl, new VisualStudioJsonSerializerContext(new JsonSerializerOptions(serializerOptions)).VisualStudioManifest))!;
+                rootManifest = (await client.GetFromJsonAsync(rootManifestUrl, new VisualStudioJsonSerializerContext(new JsonSerializerOptions(serializerOptions)).VisualStudioManifest).ConfigureAwait(false))!;
             }
 
             // In the root manifest, locate the manifest with all the packages.
@@ -59,7 +59,7 @@
             using (var client = new HttpClient())
             {
                 var packagesManifestUrl = rootManifest.ChannelItems!.First(x => x.Type == "Manifest");
-                packagesManifest = (await client.GetFromJsonAsync(packagesManifestUrl.Payloads!.First().Url, new VisualStudioJsonSerializerContext(new JsonSerializerOptions(serializerOptions)).VisualStudioManifest))!;
+                packagesManifest = (await client.GetFromJsonAsync(packagesManifestUrl.Payloads!.First().Url, new VisualStudioJsonSerializerContext(new JsonSerializerOptions(serializerOptions)).VisualStudioManifest).ConfigureAwait(false))!;
             }
 
             // Generate a dictionary of components based on their ID.
@@ -114,8 +114,8 @@
                 {
                     if (id.EndsWith(suffix))
                     {
-                        var versionSignifier = id.Substring("microsoft.vc.".Length);
-                        versionSignifier = versionSignifier.Substring(0, versionSignifier.Length - suffix.Length);
+                        var versionSignifier = id["microsoft.vc.".Length..];
+                        versionSignifier = versionSignifier[..^suffix.Length];
                         if (numericVersionSignifier.IsMatch(versionSignifier))
                         {
                             if (VersionNumber.Parse(vcComponent.Version!) >= versions.VisualCppMinimumVersion)
@@ -221,19 +221,19 @@
                 {
                     case "Vsix":
                         {
-                            await ExtractVsixComponent(component, sdkPackagePath, cancellationToken);
+                            await ExtractVsixComponent(component, sdkPackagePath, cancellationToken).ConfigureAwait(false);
                         }
                         break;
                     case "Exe":
                         {
-                            await ExtractExecutableComponent(component, sdkPackagePath, cancellationToken);
+                            await ExtractExecutableComponent(component, sdkPackagePath, cancellationToken).ConfigureAwait(false);
                         }
                         break;
                     case "Msi":
                         {
                             if (componentId == "Microsoft.VisualStudio.Setup.Configuration")
                             {
-                                await ExtractMsiComponent(component, sdkPackagePath, cancellationToken);
+                                await ExtractMsiComponent(component, sdkPackagePath, cancellationToken).ConfigureAwait(false);
                             }
                         }
                         break;
@@ -315,18 +315,18 @@
             {
                 var key = kv.Key;
                 var append = false;
-                if (kv.Key.StartsWith("+"))
+                if (kv.Key.StartsWith("+", StringComparison.Ordinal))
                 {
-                    key = kv.Key.Substring(1);
+                    key = kv.Key[1..];
                     append = true;
                 }
                 if (append)
                 {
-                    batchLines.Add($"@set {key}={kv.Value.Replace("<root>", "%~dp0")};%{key}%");
+                    batchLines.Add($"@set {key}={kv.Value.Replace("<root>", "%~dp0", StringComparison.OrdinalIgnoreCase)};%{key}%");
                 }
                 else
                 {
-                    batchLines.Add($"@set {key}={kv.Value.Replace("<root>", "%~dp0")}");
+                    batchLines.Add($"@set {key}={kv.Value.Replace("<root>", "%~dp0", StringComparison.OrdinalIgnoreCase)}");
                 }
             }
             batchLines.Add("cmd");
@@ -364,17 +364,17 @@
                                         continue;
                                     }
 
-                                    var relativeName = HttpUtility.UrlDecode(entry.FullName.Replace("+", "%2B"));
-                                    if (relativeName.StartsWith("Contents"))
+                                    var relativeName = HttpUtility.UrlDecode(entry.FullName.Replace("+", "%2B", StringComparison.Ordinal));
+                                    if (relativeName.StartsWith("Contents", StringComparison.OrdinalIgnoreCase))
                                     {
-                                        relativeName = relativeName.Substring("Contents".Length + 1);
+                                        relativeName = relativeName[("Contents".Length + 1)..];
                                     }
                                     else
                                     {
                                         continue;
                                     }
 
-                                    if (relativeName.Contains('\\') || relativeName.Contains('/'))
+                                    if (relativeName.Contains('\\', StringComparison.Ordinal) || relativeName.Contains('/', StringComparison.Ordinal))
                                     {
                                         var directoryName = Path.GetDirectoryName(relativeName);
                                         Directory.CreateDirectory(Path.Combine(vs2022, directoryName!));
@@ -385,7 +385,7 @@
                             }
                             return Task.CompletedTask;
                         },
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
 
                 }
             }
@@ -447,8 +447,8 @@
                             await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
                                 client,
                                 payload.Url!,
-                                async stream => await stream.CopyToAsync(file, cancellationToken),
-                                cancellationToken);
+                                async stream => await stream.CopyToAsync(file, cancellationToken).ConfigureAwait(false),
+                                cancellationToken).ConfigureAwait(false);
                         }
                         using (var file = new FileStream(targetPath, FileMode.Open, FileAccess.Read))
                         {
@@ -478,8 +478,8 @@
                         await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
                             client,
                             uri.url,
-                            async stream => await stream.CopyToAsync(file, cancellationToken),
-                            cancellationToken);
+                            async stream => await stream.CopyToAsync(file, cancellationToken).ConfigureAwait(false),
+                            cancellationToken).ConfigureAwait(false);
                     }
                 }
             }
@@ -501,7 +501,7 @@
                             $"TARGETDIR={windowsKitsPath}",
                         },
                         WorkingDirectory = Path.Combine(sdkPackagePath, "__Installers")
-                    }, CaptureSpecification.Passthrough, cancellationToken);
+                    }, CaptureSpecification.Passthrough, cancellationToken).ConfigureAwait(false);
                 if (!File.Exists(Path.Combine(windowsKitsPath, msiFile)))
                 {
                     throw new SdkSetupPackageGenerationFailedException($"MSI extraction failed for: {msiFile}");
@@ -509,7 +509,7 @@
                 File.Delete(Path.Combine(windowsKitsPath, msiFile));
             }
             // Clean up the installers folder that we no longer need.
-            await DirectoryAsync.DeleteAsync(Path.Combine(sdkPackagePath, "__Installers"), true);
+            await DirectoryAsync.DeleteAsync(Path.Combine(sdkPackagePath, "__Installers"), true).ConfigureAwait(false);
         }
 
         private async Task ExtractMsiComponent(VisualStudioManifestChannelItem component, string sdkPackagePath, CancellationToken cancellationToken)
@@ -531,8 +531,8 @@
                         await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
                             client,
                             payload.Url!,
-                            async stream => await stream.CopyToAsync(file, cancellationToken),
-                            cancellationToken);
+                            async stream => await stream.CopyToAsync(file, cancellationToken).ConfigureAwait(false),
+                            cancellationToken).ConfigureAwait(false);
                     }
                 }
             }
@@ -555,7 +555,7 @@
                             $"TARGETDIR={setupPath}",
                         },
                         WorkingDirectory = Path.Combine(sdkPackagePath, "__Installers")
-                    }, CaptureSpecification.Passthrough, cancellationToken);
+                    }, CaptureSpecification.Passthrough, cancellationToken).ConfigureAwait(false);
                 if (!File.Exists(Path.Combine(setupPath, msiFile)))
                 {
                     throw new SdkSetupPackageGenerationFailedException($"MSI extraction failed for: {msiFile}");
@@ -563,7 +563,7 @@
                 File.Delete(Path.Combine(setupPath, msiFile));
             }
             // Clean up the installers folder that we no longer need.
-            await DirectoryAsync.DeleteAsync(Path.Combine(sdkPackagePath, "__Installers"), true);
+            await DirectoryAsync.DeleteAsync(Path.Combine(sdkPackagePath, "__Installers"), true).ConfigureAwait(false);
         }
     }
 }

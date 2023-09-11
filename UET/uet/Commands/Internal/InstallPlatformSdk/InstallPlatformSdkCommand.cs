@@ -102,7 +102,7 @@
                     // @note: We just leverage the fact that the BuildGraph node name containing
                     // the platform is enough for the platform to be installed.
                     platform,
-                    context.GetCancellationToken());
+                    context.GetCancellationToken()).ConfigureAwait(false);
 
                 Console.WriteLine("The following environment variables would be set:");
                 foreach (var kv in envVars)

@@ -201,14 +201,14 @@
                             }
                         }
                         span.V.Span[length.V - 1] = 0;
-                        value.V = Encoding.Unicode.GetString(span.V.Span.Slice(0, span.V.Span.Length - sizeof(short)));
+                        value.V = Encoding.Unicode.GetString(span.V.Span[..^2]);
                     }
                     else
                     {
                         var span = new Store<Memory<byte>>(Memory<byte>.Empty);
                         await Serialize(span, length.V);
                         span.V.Span[length.V - 1] = 0;
-                        value.V = Encoding.ASCII.GetString(span.V.Span.Slice(0, span.V.Span.Length - 1));
+                        value.V = Encoding.ASCII.GetString(span.V.Span[..^1]);
                     }
 
                     if (length.V == 1)

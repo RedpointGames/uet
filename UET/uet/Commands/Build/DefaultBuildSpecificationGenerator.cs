@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Build
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Concurrency;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Dynamic;
@@ -15,6 +16,7 @@
     using Redpoint.Uet.Uat;
     using System;
     using System.Diagnostics;
+    using System.Globalization;
     using System.Linq;
     using System.Text.Json;
     using System.Text.Json.Serialization;
@@ -59,7 +61,7 @@
             public required string Configurations;
         }
 
-        private TargetConfig ComputeTargetConfig(string name, BuildConfigProjectBuildTarget? target, bool localExecutor)
+        private static TargetConfig ComputeTargetConfig(string name, BuildConfigProjectBuildTarget? target, bool localExecutor)
         {
             if (target == null)
             {
@@ -83,7 +85,7 @@
             };
         }
 
-        private TargetConfig ComputeTargetConfig(string name, BuildConfigPluginBuildTarget? target, bool localExecutor)
+        private static TargetConfig ComputeTargetConfig(string name, BuildConfigPluginBuildTarget? target, bool localExecutor)
         {
             if (target == null)
             {
@@ -107,7 +109,7 @@
             };
         }
 
-        private string GetFilterInclude(
+        private static string GetFilterInclude(
             string repositoryRoot,
             BuildConfigPluginDistribution distribution)
         {
@@ -120,8 +122,8 @@
             foreach (var rawFilterRule in rawFilterRules)
             {
                 if (rawFilterRule == "[FilterPlugin]" ||
-                    rawFilterRule.StartsWith(";") ||
-                    rawFilterRule.StartsWith("-") ||
+                    rawFilterRule.StartsWith(";", StringComparison.Ordinal) ||
+                    rawFilterRule.StartsWith("-", StringComparison.Ordinal) ||
                     rawFilterRule.Trim().Length == 0)
                 {
                     continue;
@@ -131,7 +133,7 @@
             return string.Join(";", filterRules);
         }
 
-        private string GetFilterExclude(
+        private static string GetFilterExclude(
             string repositoryRoot,
             BuildConfigPluginDistribution distribution)
         {
@@ -144,13 +146,13 @@
             foreach (var rawFilterRule in rawFilterRules)
             {
                 if (rawFilterRule == "[FilterPlugin]" ||
-                    rawFilterRule.StartsWith(";") ||
-                    !rawFilterRule.StartsWith("-") ||
+                    rawFilterRule.StartsWith(";", StringComparison.Ordinal) ||
+                    !rawFilterRule.StartsWith("-", StringComparison.Ordinal) ||
                     rawFilterRule.Trim().Length == 0)
                 {
                     continue;
                 }
-                filterRules.Add(rawFilterRule.Substring(1));
+                filterRules.Add(rawFilterRule[1..]);
             }
             return string.Join(";", filterRules);
         }
@@ -163,17 +165,17 @@
         {
             var availablePlatforms = new HashSet<string>();
             var availablePlatformsMac = new HashSet<string>();
-            await using (var engine = await _engineWorkspaceProvider.GetEngineWorkspace(
+            await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
                 engineSpec,
                 "EngineBuildOptionAnalysis",
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engine).ConfigureAwait(false))
             {
                 var installedEngineBuildPath = Path.Combine(
                     engine.Path,
                     "Engine",
                     "Build",
                     "InstalledEngineBuild.xml");
-                var installedEngineBuild = await File.ReadAllTextAsync(installedEngineBuildPath);
+                var installedEngineBuild = await File.ReadAllTextAsync(installedEngineBuildPath, cancellationToken).ConfigureAwait(false);
                 await _buildGraphExecutor.ListGraphAsync(
                     engine.Path,
                     BuildGraphScriptSpecification.ForEngine(),
@@ -182,16 +184,16 @@
                         ReceiveStdout = (line) =>
                         {
                             line = line.Trim();
-                            if (line.StartsWith("-set:With") &&
-                                !line.StartsWith("-set:WithDDC") &&
-                                !line.StartsWith("-set:WithClient") &&
-                                !line.StartsWith("-set:WithServer") &&
-                                !line.StartsWith("-set:WithFullDebugInfo"))
+                            if (line.StartsWith("-set:With", StringComparison.Ordinal) &&
+                                !line.StartsWith("-set:WithDDC", StringComparison.Ordinal) &&
+                                !line.StartsWith("-set:WithClient", StringComparison.Ordinal) &&
+                                !line.StartsWith("-set:WithServer", StringComparison.Ordinal) &&
+                                !line.StartsWith("-set:WithFullDebugInfo", StringComparison.Ordinal))
                             {
-                                line = line.Substring("-set:With".Length);
+                                line = line["-set:With".Length..];
                                 line = line.Split('=')[0];
                                 availablePlatforms.Add(line);
-                                if (installedEngineBuild.Contains($@"<Option Name=""With{line}"""))
+                                if (installedEngineBuild.Contains($@"<Option Name=""With{line}""", StringComparison.Ordinal))
                                 {
                                     // macOS only knows about public (non-console) platforms.
                                     availablePlatformsMac.Add(line);
@@ -200,7 +202,7 @@
                             return false;
                         }
                     }),
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
 
             var settings = new Dictionary<string, string>
@@ -239,7 +241,7 @@
             };
         }
 
-        private string[] FilterIncompatiblePlatforms(string[] platforms, bool localExecutor)
+        private static string[] FilterIncompatiblePlatforms(string[] platforms, bool localExecutor)
         {
             if (!localExecutor)
             {
@@ -247,11 +249,11 @@
             }
             if (OperatingSystem.IsWindows())
             {
-                return platforms.Where(x => !x.Equals("Mac", StringComparison.InvariantCultureIgnoreCase) && !x.Equals("IOS", StringComparison.InvariantCultureIgnoreCase)).ToArray();
+                return platforms.Where(x => !x.Equals("Mac", StringComparison.OrdinalIgnoreCase) && !x.Equals("IOS", StringComparison.OrdinalIgnoreCase)).ToArray();
             }
             else
             {
-                return platforms.Where(x => x.Equals("Mac", StringComparison.InvariantCultureIgnoreCase) || x.Equals("IOS", StringComparison.InvariantCultureIgnoreCase)).ToArray();
+                return platforms.Where(x => x.Equals("Mac", StringComparison.OrdinalIgnoreCase) || x.Equals("IOS", StringComparison.OrdinalIgnoreCase)).ToArray();
             }
         }
 
@@ -267,8 +269,8 @@
                 env.Mac!.SharedStorageAbsolutePath;
             Directory.CreateDirectory(sharedStorageAbsolutePath);
 
-            var nodeFilename = $"DynamicBuildGraph-{Process.GetCurrentProcess().Id}.Nodes.xml";
-            var macroFilename = $"DynamicBuildGraph-{Process.GetCurrentProcess().Id}.Macros.xml";
+            var nodeFilename = $"DynamicBuildGraph-{Environment.ProcessId}.Nodes.xml";
+            var macroFilename = $"DynamicBuildGraph-{Environment.ProcessId}.Macros.xml";
 
             using (var stream = new FileStream(Path.Combine(sharedStorageAbsolutePath, nodeFilename), FileMode.Create, FileAccess.Write, FileShare.None))
             {
@@ -277,18 +279,18 @@
                     localExecutor,
                     distribution,
                     executeTests,
-                    executeDeployment);
+                    executeDeployment).ConfigureAwait(false);
             }
-            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(sharedStorageAbsolutePath, nodeFilename), CancellationToken.None);
+            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(sharedStorageAbsolutePath, nodeFilename), CancellationToken.None).ConfigureAwait(false);
 
             using (var stream = new FileStream(Path.Combine(sharedStorageAbsolutePath, macroFilename), FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 await _dynamicBuildGraphIncludeWriter.WriteBuildGraphMacroInclude(
                     stream,
                     localExecutor,
-                    distribution);
+                    distribution).ConfigureAwait(false);
             }
-            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(sharedStorageAbsolutePath, macroFilename), CancellationToken.None);
+            await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(sharedStorageAbsolutePath, macroFilename), CancellationToken.None).ConfigureAwait(false);
 
             return ($"__SHARED_STORAGE_PATH__/{nodeFilename}", $"__SHARED_STORAGE_PATH__/{macroFilename}");
         }
@@ -328,7 +330,7 @@
 
             // Compute directories to clean.
             var cleanDirectories = new List<string>();
-            foreach (var filespec in distribution.Clean?.Filespecs ?? new string[0])
+            foreach (var filespec in distribution.Clean?.Filespecs ?? Array.Empty<string>())
             {
                 cleanDirectories.Add(filespec);
             }
@@ -340,14 +342,14 @@
             // Compute packaging settings.
             var isForMarketplaceSubmission = distribution.Package != null &&
                 (distribution.Package.Marketplace ?? false);
-            var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(engineSpec, true, CancellationToken.None);
+            var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(engineSpec, true, CancellationToken.None).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(commandlinePluginVersionName))
             {
                 versionInfo.versionName = commandlinePluginVersionName;
             }
             if (commandlinePluginVersionNumber.HasValue)
             {
-                versionInfo.versionNumber = commandlinePluginVersionNumber.Value.ToString();
+                versionInfo.versionNumber = commandlinePluginVersionNumber.Value.ToString(CultureInfo.InvariantCulture);
             }
 
             // Validate packaging settings. If the plugin has custom configuration files
@@ -367,13 +369,13 @@
                 localExecutor,
                 distribution,
                 executeTests,
-                executeDeployment);
+                executeDeployment).ConfigureAwait(false);
 
             // Compute the Gauntlet config paths.
             var gauntletPaths = new List<string>();
             if (distribution.Gauntlet != null)
             {
-                foreach (var path in distribution.Gauntlet.ConfigFiles ?? new string[0])
+                foreach (var path in distribution.Gauntlet.ConfigFiles ?? Array.Empty<string>())
                 {
                     gauntletPaths.Add(path);
                 }
@@ -392,13 +394,13 @@
                 {
                     throw new BuildMisconfigurationException("You must configure the 'Copyright.Header' value in BuildConfig.json to package for the Marketplace.");
                 }
-                else if (!pluginInfo.Copyright.Header.Contains("%Y"))
+                else if (!pluginInfo.Copyright.Header.Contains("%Y", StringComparison.Ordinal))
                 {
                     throw new BuildMisconfigurationException("The configured copyright header must have a %Y placeholder for the current year to package for the Marketplace.");
                 }
                 else
                 {
-                    copyrightHeader = pluginInfo.Copyright.Header.Replace("%Y", DateTime.UtcNow.Year.ToString());
+                    copyrightHeader = pluginInfo.Copyright.Header.Replace("%Y", DateTime.UtcNow.Year.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal);
                     if (pluginInfo.Copyright.ExcludePaths != null)
                     {
                         copyrightExcludes = string.Join(";", pluginInfo.Copyright.ExcludePaths);
@@ -475,7 +477,7 @@
                 GlobalEnvironmentVariables = globalEnvironmentVariables,
                 ProjectFolderName = null,
                 ArtifactExportPath = Environment.CurrentDirectory,
-                MobileProvisions = new BuildConfigMobileProvision[0],
+                MobileProvisions = Array.Empty<BuildConfigMobileProvision>(),
             };
         }
 
@@ -502,7 +504,7 @@
                 localExecutor,
                 distribution,
                 executeTests,
-                executeDeployment);
+                executeDeployment).ConfigureAwait(false);
 
             // Compute final settings for BuildGraph.
             return new BuildSpecification
@@ -552,7 +554,7 @@
                 UETPath = _selfLocation.GetUETLocalLocation(),
                 ProjectFolderName = distribution.FolderName,
                 ArtifactExportPath = Environment.CurrentDirectory,
-                MobileProvisions = new BuildConfigMobileProvision[0],
+                MobileProvisions = Array.Empty<BuildConfigMobileProvision>(),
             };
         }
 
@@ -571,14 +573,14 @@
             var targetPlatform = OperatingSystem.IsWindows() ? "Win64" : "Mac";
             var gameConfigurations = shipping ? "Shipping" : "Development";
 
-            var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(engineSpec, true, CancellationToken.None);
+            var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(engineSpec, true, CancellationToken.None).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(commandlinePluginVersionName))
             {
                 versionInfo.versionName = commandlinePluginVersionName;
             }
             if (commandlinePluginVersionNumber.HasValue)
             {
-                versionInfo.versionNumber = commandlinePluginVersionNumber.Value.ToString();
+                versionInfo.versionNumber = commandlinePluginVersionNumber.Value.ToString(CultureInfo.InvariantCulture);
             }
 
             // If building for the Marketplace, compute the copyright header
@@ -587,7 +589,7 @@
             if (marketplace)
             {
                 var pluginFile = JsonSerializer.Deserialize(
-                    await File.ReadAllTextAsync(pathSpec.UPluginPath!),
+                    await File.ReadAllTextAsync(pathSpec.UPluginPath!).ConfigureAwait(false),
                     ProjectPluginFileJsonSerializerContext.Default.UPluginFile);
                 if (string.IsNullOrWhiteSpace(pluginFile?.CreatedBy))
                 {
@@ -659,7 +661,7 @@
                 },
                 ProjectFolderName = null,
                 ArtifactExportPath = Environment.CurrentDirectory,
-                MobileProvisions = new BuildConfigMobileProvision[0],
+                MobileProvisions = Array.Empty<BuildConfigMobileProvision>(),
             };
         }
 
@@ -677,9 +679,9 @@
             if (Directory.Exists(Path.Combine(pathSpec.DirectoryPath, "Source")))
             {
                 var files = Directory.GetFiles(Path.Combine(pathSpec.DirectoryPath, "Source"), "*.Target.cs");
-                editorTarget = files.Where(x => x.EndsWith("Editor.Target.cs")).Select(x => Path.GetFileName(x)).First();
-                editorTarget = editorTarget.Substring(0, editorTarget.LastIndexOf(".Target.cs"));
-                gameTarget = editorTarget.Substring(0, editorTarget.LastIndexOf("Editor"));
+                editorTarget = files.Where(x => x.EndsWith("Editor.Target.cs", StringComparison.Ordinal)).Select(x => Path.GetFileName(x)).First();
+                editorTarget = editorTarget[..editorTarget.LastIndexOf(".Target.cs", StringComparison.Ordinal)];
+                gameTarget = editorTarget[..editorTarget.LastIndexOf("Editor", StringComparison.Ordinal)];
             }
             else
             {
@@ -737,7 +739,7 @@
                 UETPath = _selfLocation.GetUETLocalLocation(),
                 ProjectFolderName = string.Empty,
                 ArtifactExportPath = Environment.CurrentDirectory,
-                MobileProvisions = new BuildConfigMobileProvision[0],
+                MobileProvisions = Array.Empty<BuildConfigMobileProvision>(),
             };
         }
     }

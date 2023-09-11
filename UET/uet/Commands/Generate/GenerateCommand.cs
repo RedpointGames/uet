@@ -141,7 +141,7 @@
                 var exitCode = await _processExecutor.ExecuteAsync(
                     processSpecification,
                     CaptureSpecification.Passthrough,
-                    context.GetCancellationToken());
+                    context.GetCancellationToken()).ConfigureAwait(false);
                 return exitCode;
             }
         }

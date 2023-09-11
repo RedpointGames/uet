@@ -5,12 +5,12 @@
     public class BuildConfigEngineBuild
     {
         [JsonPropertyName("TargetTypes")]
-        public string[] TargetTypes { get; set; } = new string[0];
+        public string[] TargetTypes { get; set; } = Array.Empty<string>();
 
         [JsonPropertyName("EditorPlatforms")]
-        public string[] EditorPlatforms { get; set; } = new string[0];
+        public string[] EditorPlatforms { get; set; } = Array.Empty<string>();
 
         [JsonPropertyName("Platforms")]
-        public string[] Platforms { get; set; } = new string[0];
+        public string[] Platforms { get; set; } = Array.Empty<string>();
     }
 }

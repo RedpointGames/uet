@@ -10,6 +10,11 @@
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode></AnalysisMode>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -17,5 +22,5 @@
     <Authors>Kenneth Bell;LordMike</Authors>
     <PackageTags>DiscUtils;Filesystem;NTFS</PackageTags>
   </PropertyGroup>
-  
+
 </Project>

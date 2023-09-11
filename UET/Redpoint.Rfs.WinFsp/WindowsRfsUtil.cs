@@ -17,7 +17,7 @@
             {
                 throw new InvalidOperationException("RealPath can only be used with paths underneath a drive letter.");
             }
-            return @$"{fullPath[1]}:{fullPath.Substring(2)}";
+            return @$"{fullPath[1]}:{fullPath[2..]}";
         }
     }
 }

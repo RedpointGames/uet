@@ -443,7 +443,7 @@ namespace DiscUtils
                         string extension = Path.GetExtension(uri.AbsolutePath).ToUpperInvariant();
                         if (extension.StartsWith(".", StringComparison.Ordinal))
                         {
-                            extension = extension.Substring(1);
+                            extension = extension[1..];
                         }
 
                         foundFactory = VirtualDiskManager.ExtensionMap.TryGetValue(extension, out factory);
@@ -489,7 +489,7 @@ namespace DiscUtils
             string extension = Path.GetExtension(path).ToUpperInvariant();
             if (extension.StartsWith(".", StringComparison.Ordinal))
             {
-                extension = extension.Substring(1);
+                extension = extension[1..];
             }
 
             VirtualDiskFactory factory;
@@ -567,7 +567,7 @@ namespace DiscUtils
             string extension = Path.GetExtension(path).ToUpperInvariant();
             if (extension.StartsWith(".", StringComparison.Ordinal))
             {
-                extension = extension.Substring(1);
+                extension = extension[1..];
             }
 
             VirtualDiskFactory factory;

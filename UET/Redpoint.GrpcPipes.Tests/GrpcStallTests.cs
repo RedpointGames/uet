@@ -50,7 +50,7 @@
             var sp = services.BuildServiceProvider();
             var pipeFactory = sp.GetRequiredService<IGrpcPipeFactory>();
 
-            var pipeName = $"test-grpc-stall-{Process.GetCurrentProcess().Id}";
+            var pipeName = $"test-grpc-stall-{Environment.ProcessId}";
 
             // Set up the server.
             var testService = new TestServiceServer();

@@ -47,7 +47,7 @@
                     }
                 }
             }
-            catch (IOException ex) when (ex.Message.Contains("incorrect"))
+            catch (IOException ex) when (ex.Message.Contains("incorrect", StringComparison.Ordinal))
             {
                 // Bad filename.
                 return null;

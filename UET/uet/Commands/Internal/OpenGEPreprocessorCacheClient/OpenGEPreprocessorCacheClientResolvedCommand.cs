@@ -69,7 +69,7 @@
                     }
                 });
 
-                await preprocessorCache.EnsureAsync();
+                await preprocessorCache.EnsureAsync().ConfigureAwait(false);
 
                 async Task<PreprocessorResolutionResultWithTimingMetadata> InvokeAsync()
                 {
@@ -124,17 +124,17 @@
                                 { "_M_HYBRID", 0 },
                             }
                         },
-                        context.GetCancellationToken());
+                        context.GetCancellationToken()).ConfigureAwait(false);
                 }
 
                 var st = Stopwatch.StartNew();
-                var result = await InvokeAsync();
+                var result = await InvokeAsync().ConfigureAwait(false);
                 var ms = st.ElapsedMilliseconds;
 
                 _logger.LogInformation($"Initial request completed in: {ms}ms");
                 {
                     st = Stopwatch.StartNew();
-                    _ = await InvokeAsync();
+                    _ = await InvokeAsync().ConfigureAwait(false);
                     ms = st.ElapsedMilliseconds;
                 }
                 _logger.LogInformation($"Subsequent request completed in: {ms}ms");

@@ -2,7 +2,7 @@
 {
     using System.Collections.Concurrent;
 
-    public class FileStreamPool : IDisposable
+    public sealed class FileStreamPool : IDisposable
     {
         private readonly string _path;
         private readonly FileAccess _fileAccess;

@@ -61,7 +61,7 @@
                                     new SpawnElementProperties
                                     {
                                         Exe = "$(UETPath)",
-                                        Arguments = (_globalArgsProvider?.GlobalArgsArray ?? new string[0]).Concat(new[]
+                                        Arguments = (_globalArgsProvider?.GlobalArgsArray ?? Array.Empty<string>()).Concat(new[]
                                         {
                                             "internal",
                                             "run-downstream-test",
@@ -74,16 +74,16 @@
                                             "--packaged-plugin-path",
                                             $@"""$(TempPath)/$(PackageFolder)/""",
                                         }).ToArray()
-                                    });
-                            });
+                                    }).ConfigureAwait(false);
+                            }).ConfigureAwait(false);
                         await writer.WriteDynamicNodeAppendAsync(
                             new DynamicNodeAppendElementProperties
                             {
                                 NodeName = nodeName,
                                 MustPassForLaterDeployment = true,
-                            });
+                            }).ConfigureAwait(false);
                     }
-                });
+                }).ConfigureAwait(false);
         }
     }
 }

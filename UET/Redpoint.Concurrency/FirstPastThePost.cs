@@ -5,7 +5,8 @@
 
     /// <summary>
     /// Invokes a callback with the result when the first operation returns a
-    /// result. Unlike <see cref="Task.WhenAny{TResult}(Task{TResult}[])"/>, 
+    /// result. Unlike <see cref="Task.WhenAny{TResult}(Task{TResult}[])"/>, this
+    /// only waits for the first result to be returned.
     /// </summary>
     /// <typeparam name="TResult"></typeparam>
     public class FirstPastThePost<TResult> where TResult : class
@@ -13,7 +14,7 @@
         private readonly CancellationTokenSource _cancellationTokenSource;
         private long _scheduledOperations;
         private bool _hasResult;
-        private readonly SemaphoreSlim _resultSemaphore;
+        private readonly Semaphore _resultSemaphore;
         private readonly Func<TResult?, Task> _onResult;
 
         /// <summary>
@@ -30,7 +31,7 @@
             _cancellationTokenSource = cancellationTokenSource;
             _scheduledOperations = scheduledOperations;
             _hasResult = false;
-            _resultSemaphore = new SemaphoreSlim(1);
+            _resultSemaphore = new Semaphore(1);
             _onResult = onResult;
         }
 
@@ -44,7 +45,7 @@
         /// </summary>
         public async Task UpdateScheduledOperationsAsync(long scheduledOperations)
         {
-            await _resultSemaphore.WaitAsync();
+            await _resultSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (_hasResult)
@@ -69,7 +70,7 @@
         public async Task ReceiveResultAsync(TResult result)
         {
             var broadcastResult = false;
-            await _resultSemaphore.WaitAsync();
+            await _resultSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 _scheduledOperations--;
@@ -94,7 +95,7 @@
 
             if (broadcastResult)
             {
-                await _onResult(result);
+                await _onResult(result).ConfigureAwait(false);
             }
         }
 
@@ -106,7 +107,7 @@
         public async Task ReceiveNoResultAsync()
         {
             var broadcastResult = false;
-            await _resultSemaphore.WaitAsync();
+            await _resultSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 _scheduledOperations--;
@@ -136,7 +137,7 @@
 
             if (broadcastResult)
             {
-                await _onResult(null);
+                await _onResult(null).ConfigureAwait(false);
             }
         }
     }

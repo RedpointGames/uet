@@ -26,7 +26,7 @@
                 }
                 else
                 {
-                    return builder.ToString().Substring(0, length.Value).Trim('.');
+                    return builder.ToString()[..length.Value].Trim('.');
                 }
             }
         }

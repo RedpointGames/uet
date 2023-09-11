@@ -97,8 +97,8 @@
                     try
                     {
                         writer.OpenPackageForWriting(packagePath.FullName, packageManifest.IndexSizeBytes, packageManifest.DataSizeBytes);
-                        await writer.WritePackageIndex(packageManifest);
-                        await _packageManifestDataWriter.WriteData(writer, packageManifest);
+                        await writer.WritePackageIndex(packageManifest).ConfigureAwait(false);
+                        await _packageManifestDataWriter.WriteData(writer, packageManifest).ConfigureAwait(false);
                     }
                     catch (PackageWriterException ex)
                     {
@@ -121,7 +121,7 @@
 
                 // Hash by default now since basically all use cases require
                 // a digest file to be present.
-                _ = await _fileHasher.ComputeHashAsync(packagePath);
+                _ = await _fileHasher.ComputeHashAsync(packagePath).ConfigureAwait(false);
 
                 return 0;
             }

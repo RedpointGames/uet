@@ -45,7 +45,7 @@
                 logger.LogInformation("Checking for the latest version...");
                 using (var client = new HttpClient())
                 {
-                    version = (await client.GetStringAsync(latestUrl)).Trim();
+                    version = (await client.GetStringAsync(latestUrl, cancellationToken).ConfigureAwait(false)).Trim();
                 }
 
                 if (string.IsNullOrWhiteSpace(version))
@@ -99,10 +99,10 @@
                         var response = await client.GetAsync(
                             downloadUrl,
                             HttpCompletionOption.ResponseHeadersRead,
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
                         response.EnsureSuccessStatusCode();
                         using (var stream = new PositionAwareStream(
-                            await response.Content.ReadAsStreamAsync(cancellationToken),
+                            await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false),
                             response.Content.Headers.ContentLength!.Value))
                         {
                             var cts = new CancellationTokenSource();
@@ -131,15 +131,15 @@
                                             Console.WriteLine(message);
                                         }
                                     },
-                                    cts.Token);
-                            });
+                                    cts.Token).ConfigureAwait(false);
+                            }, cancellationToken);
 
-                            await stream.CopyToAsync(target, cancellationToken);
+                            await stream.CopyToAsync(target, cancellationToken).ConfigureAwait(false);
 
                             cts.Cancel();
                             try
                             {
-                                await monitorTask;
+                                await monitorTask.ConfigureAwait(false);
                             }
                             catch (OperationCanceledException) { }
                         }
@@ -195,7 +195,7 @@
                 {
                     Directory.CreateSymbolicLink(latestLink.FullName, Path.Combine(baseFolder, version));
                 }
-                catch (IOException ex) when (ex.Message.Contains("A required privilege is not held by the client"))
+                catch (IOException ex) when (ex.Message.Contains("A required privilege is not held by the client", StringComparison.Ordinal))
                 {
                     logger.LogWarning("You don't have permission to create symbolic links on this system. Your PATH will be set to the specific UET version instead, which will require you to restart your terminal to start using the new UET version.");
                     targetPathForPath = Path.Combine(baseFolder, version);
@@ -268,12 +268,12 @@
                     var zprofile = Path.Combine(home, ".zprofile");
                     if (File.Exists(zprofile))
                     {
-                        var lines = (await File.ReadAllLinesAsync(zprofile, cancellationToken)).ToList();
+                        var lines = (await File.ReadAllLinesAsync(zprofile, cancellationToken).ConfigureAwait(false)).ToList();
                         if (!lines.Contains(pathLine))
                         {
                             logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to your .zprofile...");
                             lines.Add(pathLine);
-                            await File.WriteAllLinesAsync(zprofile, lines, cancellationToken);
+                            await File.WriteAllLinesAsync(zprofile, lines, cancellationToken).ConfigureAwait(false);
                             updated = true;
                         }
                     }
@@ -281,12 +281,12 @@
                 var bashprofile = Path.Combine(home, ".bash_profile");
                 if (File.Exists(bashprofile))
                 {
-                    var lines = (await File.ReadAllLinesAsync(bashprofile, cancellationToken)).ToList();
+                    var lines = (await File.ReadAllLinesAsync(bashprofile, cancellationToken).ConfigureAwait(false)).ToList();
                     if (!lines.Contains(pathLine))
                     {
                         logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to your .bash_profile...");
                         lines.Add(pathLine);
-                        await File.WriteAllLinesAsync(bashprofile, lines, cancellationToken);
+                        await File.WriteAllLinesAsync(bashprofile, lines, cancellationToken).ConfigureAwait(false);
                         updated = true;
                     }
                 }
@@ -299,7 +299,7 @@
             var currentBuildConfigPath = Path.Combine(Environment.CurrentDirectory, "BuildConfig.json");
             if (File.Exists(currentBuildConfigPath))
             {
-                var document = JsonNode.Parse(await File.ReadAllTextAsync(currentBuildConfigPath, cancellationToken));
+                var document = JsonNode.Parse(await File.ReadAllTextAsync(currentBuildConfigPath, cancellationToken).ConfigureAwait(false));
                 var didUpdate = false;
                 try
                 {
@@ -368,7 +368,7 @@
                         memory.Seek(0, SeekOrigin.Begin);
                         using (var writer = new FileStream(currentBuildConfigPath, FileMode.Create, FileAccess.Write, FileShare.None))
                         {
-                            await memory.CopyToAsync(writer, cancellationToken);
+                            await memory.CopyToAsync(writer, cancellationToken).ConfigureAwait(false);
                         }
                     }
                 }

@@ -10,14 +10,14 @@
     public class WorkerCoreProviderCollection<TWorkerCore> : IWorkerPoolTracerAssignable where TWorkerCore : IAsyncDisposable
     {
         private readonly Dictionary<string, IWorkerCoreProvider<TWorkerCore>> _providers;
-        private readonly MutexSlim _providerLock;
+        private readonly Mutex _providerLock;
         private readonly AsyncEvent<WorkerCoreProviderCollectionChanged<TWorkerCore>> _onProvidersChanged;
         private WorkerPoolTracer? _tracer;
 
         public WorkerCoreProviderCollection()
         {
             _providers = new Dictionary<string, IWorkerCoreProvider<TWorkerCore>>();
-            _providerLock = new MutexSlim();
+            _providerLock = new Mutex();
             _onProvidersChanged = new AsyncEvent<WorkerCoreProviderCollectionChanged<TWorkerCore>>();
         }
 

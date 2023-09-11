@@ -68,13 +68,13 @@
                 }
                 else if (line.StartsWith("/D"))
                 {
-                    var define = line.Substring("/D".Length).Split('=', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    var define = line["/D".Length..].Split('=', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                     globalDefinitions[define[0]] = define.Length >= 2 ? define[1] : "1";
                 }
                 else if (line.StartsWith("/I") ||
                     line.StartsWith("/external:I"))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring(line.StartsWith("/I") ? "/I ".Length : "/external:I ".Length));
+                    var path = new PotentiallyQuotedPath(line[(line.StartsWith("/I") ? "/I ".Length : "/external:I ".Length)..]);
                     path.MakeAbsolutePath(workingDirectory);
                     var info = new DirectoryInfo(path.Path);
                     if (info.Exists)
@@ -95,45 +95,45 @@
                 }
                 else if (line.StartsWith("/FI"))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring("/FI".Length));
+                    var path = new PotentiallyQuotedPath(line["/FI".Length..]);
                     path.MakeAbsolutePath(workingDirectory);
                     var fi = new FileInfo(path.Path);
                     forceIncludeFiles.Add(fi);
                 }
                 else if (line.StartsWith("/Yu"))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring("/Yu".Length));
+                    var path = new PotentiallyQuotedPath(line["/Yu".Length..]);
                     path.MakeAbsolutePath(workingDirectory);
                     pchInputFile = new FileInfo(path.Path);
                 }
                 else if (line.StartsWith("/Yc"))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring("/Yc".Length));
+                    var path = new PotentiallyQuotedPath(line["/Yc".Length..]);
                     path.MakeAbsolutePath(workingDirectory);
                     pchInputFile = new FileInfo(path.Path);
                     isCreatingPch = true;
                 }
                 else if (line.StartsWith("/Fp"))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring("/Fp".Length));
+                    var path = new PotentiallyQuotedPath(line["/Fp".Length..]);
                     path.MakeAbsolutePath(workingDirectory);
                     pchCacheFile = new FileInfo(path.Path);
                 }
                 else if (line.StartsWith("/Fo"))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring("/Fo".Length));
+                    var path = new PotentiallyQuotedPath(line["/Fo".Length..]);
                     path.MakeAbsolutePath(workingDirectory);
                     outputFile = new FileInfo(path.Path);
                 }
                 else if (line.StartsWith("/sourceDependencies "))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring("/sourceDependencies ".Length));
+                    var path = new PotentiallyQuotedPath(line["/sourceDependencies ".Length..]);
                     path.MakeAbsolutePath(workingDirectory);
                     sourceDependencies = new FileInfo(path.Path);
                 }
                 else if (line.StartsWith("/clang:-MF"))
                 {
-                    var path = new PotentiallyQuotedPath(line.Substring("/clang:-MF".Length));
+                    var path = new PotentiallyQuotedPath(line["/clang:-MF".Length..]);
                     path.MakeAbsolutePath(workingDirectory);
                     clangDepfile = new FileInfo(path.Path);
                 }
@@ -147,7 +147,7 @@
             }
 
             // Determine the dependent header files.
-            var preprocessorCache = await _preprocessorCacheAccessor.GetPreprocessorCacheAsync();
+            var preprocessorCache = await _preprocessorCacheAccessor.GetPreprocessorCacheAsync().ConfigureAwait(false);
             PreprocessorResolutionResultWithTimingMetadata dependentFiles;
             if (!guaranteedToExecuteLocally)
             {
@@ -160,7 +160,7 @@
                         globalDefinitions,
                         buildStartTicks,
                         architype,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
                 catch (RpcException ex) when (ex.StatusCode == StatusCode.InvalidArgument)
                 {

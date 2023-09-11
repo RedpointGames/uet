@@ -56,7 +56,7 @@
             var graphStopwatch = Stopwatch.StartNew();
 
             // Create a task scheduler scope for running our tasks on.
-            await using var schedulerScope = _taskScheduler.CreateSchedulerScope($"ExecuteGraphAsync", cancellationToken);
+            await using var schedulerScope = _taskScheduler.CreateSchedulerScope($"ExecuteGraphAsync", cancellationToken).ConfigureAwait(false);
 
             // Track the state of this graph execution.
             var instance = new GraphExecutionInstance(graph, cancellationToken)
@@ -67,15 +67,16 @@
             // Create a stall monitor which dumps information if the execution stops making progress.
             await using var stallMonitor = _stallMonitorFactory.CreateStallMonitor(
                 schedulerScope,
-                instance);
+                instance).ConfigureAwait(false);
             instance.StallMonitor = stallMonitor;
 
             // Schedule up all of the tasks that can be immediately scheduled.
-            await instance.ScheduleInitialTasksAsync();
+            _logger.LogTrace("Scheduling initial tasks...");
+            await instance.ScheduleInitialTasksAsync().ConfigureAwait(false);
 
             // At this point, if we don't have anything that can be
             // scheduled, then the execution can never make any progress.
-            if (!await instance.AreAnyTasksScheduledAsync())
+            if (!await instance.AreAnyTasksScheduledAsync().ConfigureAwait(false))
             {
                 throw new RpcException(new Status(
                     StatusCode.InvalidArgument,
@@ -89,14 +90,16 @@
                 {
                     // Get the next task to schedule. This queue only contains
                     // tasks whose dependencies have all passed.
-                    var (task, terminated) = await instance.QueuedTasksForScheduling.TryDequeueAsync(instance.CancellationToken);
+                    var (task, terminated) = await instance.QueuedTasksForScheduling.TryDequeueAsync(instance.CancellationToken).ConfigureAwait(false);
                     if (terminated)
                     {
                         // No more tasks to process.
+                        _logger.LogTrace("No more tasks to execute. Ending execution graph.");
                         break;
                     }
 
                     // Schedule the task to run on the thread pool.
+                    _logger.LogTrace("Pulled task from the queue and scheduling it's work.");
                     instance.ScheduledExecutions.Add(schedulerScope.RunAsync(
                         task!.GraphTaskSpec.Task.Name,
                         cancellationToken,
@@ -109,13 +112,14 @@
                                 task!,
                                 buildBehaviour,
                                 responseStream,
-                                cancellationToken);
+                                cancellationToken).ConfigureAwait(false);
                         }));
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (await instance.DidAllTasksCompleteSuccessfullyAsync())
+                _logger.LogTrace("Checking if all tasks executed successfully...");
+                if (await instance.DidAllTasksCompleteSuccessfullyAsync().ConfigureAwait(false))
                 {
                     // All tasks completed successfully.
                     await responseStream.WriteAsync(new JobResponse
@@ -125,7 +129,7 @@
                             Status = JobCompletionStatus.JobCompletionSuccess,
                             TotalSeconds = graphStopwatch.Elapsed.TotalSeconds,
                         }
-                    });
+                    }, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -137,7 +141,7 @@
                             Status = JobCompletionStatus.JobCompletionFailure,
                             TotalSeconds = graphStopwatch.Elapsed.TotalSeconds,
                         }
-                    });
+                    }, cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
@@ -165,7 +169,7 @@
                     {
                         try
                         {
-                            await execution;
+                            await execution.ConfigureAwait(false);
                         }
                         catch
                         {
@@ -181,7 +185,7 @@
                                 TotalSeconds = graphStopwatch.Elapsed.TotalSeconds,
                                 ExceptionMessage = instance.ExceptionMessage ?? string.Empty,
                             }
-                        });
+                        }, cancellationToken).ConfigureAwait(false);
                     }
                 }
                 else
@@ -189,6 +193,8 @@
                     throw;
                 }
             }
+
+            _logger.LogTrace("ExecuteGraphAsync work has completed.");
         }
 
         private async Task ExecuteTaskAsync(
@@ -231,9 +237,9 @@
                 await responseStream.WriteAsync(new JobResponse
                 {
                     TaskPhaseChange = phaseChange,
-                });
+                }, cancellationToken).ConfigureAwait(false);
             }
-            await instance.SetTaskStatusAsync(task, GraphTaskStatus.Starting);
+            await instance.SetTaskStatusAsync(task, GraphTaskStatus.Starting).ConfigureAwait(false);
             try
             {
                 try
@@ -257,10 +263,10 @@
                             instance.CancellationToken);
                         try
                         {
-                            await instance.SetTaskStatusAsync(task, GraphTaskStatus.WaitingForFastLocalCore);
+                            await instance.SetTaskStatusAsync(task, GraphTaskStatus.WaitingForFastLocalCore).ConfigureAwait(false);
                             localCoreRequest = await instance.WorkerPool.ReserveCoreAsync(
                                 CoreAllocationPreference.RequireLocal,
-                                localCoreTimeout.Token);
+                                localCoreTimeout.Token).ConfigureAwait(false);
                             _logger.LogTrace("Obtained a local core.");
                         }
                         catch (OperationCanceledException)
@@ -272,7 +278,7 @@
                     try
                     {
                         // Do descriptor generation based on the task.
-                        await instance.SetTaskStatusAsync(task, GraphTaskStatus.ComputingTaskDescriptor);
+                        await instance.SetTaskStatusAsync(task, GraphTaskStatus.ComputingTaskDescriptor).ConfigureAwait(false);
                         TaskDescriptor taskDescriptor;
                         switch (task)
                         {
@@ -294,10 +300,10 @@
                                         // long running.
                                         describingCoreRequest = await instance.WorkerPool.ReserveCoreAsync(
                                             CoreAllocationPreference.RequireLocal,
-                                            instance.CancellationToken);
+                                            instance.CancellationToken).ConfigureAwait(false);
 
                                         // Notify the client where we're preparing the descriptor.
-                                        var describingCore = await describingCoreRequest.WaitForCoreAsync(CancellationToken.None);
+                                        var describingCore = await describingCoreRequest.WaitForCoreAsync(CancellationToken.None).ConfigureAwait(false);
                                         prepareStopwatch = Stopwatch.StartNew();
                                         await responseStream.WriteAsync(new JobResponse
                                         {
@@ -309,12 +315,12 @@
                                                 WorkerMachineName = describingCore.WorkerMachineName,
                                                 WorkerCoreNumber = describingCore.WorkerCoreNumber,
                                             }
-                                        });
+                                        }, cancellationToken).ConfigureAwait(false);
                                     }
                                     describingGraphTask.TaskDescriptor = taskDescriptor = await describingGraphTask.TaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
                                         task.GraphTaskSpec,
                                         isLocalCoreCandidateThatCanRunLocally,
-                                        instance.CancellationToken);
+                                        instance.CancellationToken).ConfigureAwait(false);
                                     if (describingGraphTask.TaskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote &&
                                         !taskDescriptor.Remote.UseFastLocalExecution)
                                     {
@@ -327,21 +333,21 @@
                                             {
                                                 describingGraphTask.ToolHashingResult = await _toolSynchroniser.HashToolAsync(
                                                     describingGraphTask.TaskDescriptor.Remote,
-                                                    cancellationToken);
+                                                    cancellationToken).ConfigureAwait(false);
                                             }),
                                             schedulerScope.RunAsync($"{task.GraphTaskSpec.Task.Name}:HashInputBlobs", instance.CancellationToken, async (cancellationToken) =>
                                             {
                                                 describingGraphTask.BlobHashingResult = await _blobSynchroniser.HashInputBlobsAsync(
                                                     describingGraphTask.TaskDescriptor.Remote,
-                                                    cancellationToken);
-                                            }));
+                                                    cancellationToken).ConfigureAwait(false);
+                                            })).ConfigureAwait(false);
                                     }
                                 }
                                 finally
                                 {
                                     if (describingCoreRequest != null)
                                     {
-                                        await describingCoreRequest.DisposeAsync();
+                                        await describingCoreRequest.DisposeAsync().ConfigureAwait(false);
                                     }
                                 }
                                 if (prepareStopwatch != null &&
@@ -356,7 +362,7 @@
                                             TotalSeconds = prepareStopwatch!.Elapsed.TotalSeconds,
                                             OperationCompletedDescription = describingGraphTask.TaskDescriptorFactory.PreparationOperationCompletedDescription ?? string.Empty,
                                         }
-                                    });
+                                    }, cancellationToken).ConfigureAwait(false);
                                 }
                                 if (isLocalCoreCandidateThatCanRunLocally)
                                 {
@@ -364,7 +370,7 @@
                                     await instance.FinishTaskAsync(
                                         task,
                                         TaskCompletionStatus.TaskCompletionSuccess,
-                                        GraphExecutionDownstreamScheduling.ImmediatelyScheduledDueToFastExecution);
+                                        GraphExecutionDownstreamScheduling.ImmediatelyScheduledDueToFastExecution).ConfigureAwait(false);
                                     task = downstreamTasks.First();
                                 }
                                 break;
@@ -372,7 +378,7 @@
                                 taskDescriptor = await fastExecutableGraphTask.TaskDescriptorFactory.CreateDescriptorForTaskSpecAsync(
                                     fastExecutableGraphTask.GraphTaskSpec,
                                     localCoreRequest != null,
-                                    instance.CancellationToken);
+                                    instance.CancellationToken).ConfigureAwait(false);
                                 if (taskDescriptor.DescriptorCase == TaskDescriptor.DescriptorOneofCase.Remote &&
                                     !taskDescriptor.Remote.UseFastLocalExecution)
                                 {
@@ -385,7 +391,7 @@
                                         {
                                             fastExecutableGraphTask.ToolHashingResult = await _toolSynchroniser.HashToolAsync(
                                                 taskDescriptor.Remote,
-                                                cancellationToken);
+                                                cancellationToken).ConfigureAwait(false);
                                         }),
                                         schedulerScope.RunAsync($"{task.GraphTaskSpec.Task.Name}:HashInputBlobs", instance.CancellationToken, async (cancellationToken) =>
                                         {
@@ -393,9 +399,9 @@
                                             {
                                                 fastExecutableGraphTask.BlobHashingResult = await _blobSynchroniser.HashInputBlobsAsync(
                                                     taskDescriptor.Remote,
-                                                    cancellationToken);
+                                                    cancellationToken).ConfigureAwait(false);
                                             }
-                                        }));
+                                        })).ConfigureAwait(false);
                                 }
                                 break;
                             case ExecutableGraphTask executableGraphTask:
@@ -445,18 +451,18 @@
                                         {
                                             throw new InvalidOperationException("UseFastLocalExecution must not be set if we're not using a local core!");
                                         }
-                                        await instance.SetTaskStatusAsync(task, GraphTaskStatus.WaitingForCore);
+                                        await instance.SetTaskStatusAsync(task, GraphTaskStatus.WaitingForCore).ConfigureAwait(false);
                                         coreRequest = await instance.WorkerPool.ReserveCoreAsync(
                                             taskDescriptor.DescriptorCase != TaskDescriptor.DescriptorOneofCase.Remote
                                                 ? CoreAllocationPreference.RequireLocal
                                                 : CoreAllocationPreference.PreferRemote,
-                                            instance.CancellationToken);
+                                            instance.CancellationToken).ConfigureAwait(false);
                                     }
-                                    await instance.SetTaskStatusAsync(task, GraphTaskStatus.ExecutingTaskDescriptor);
+                                    await instance.SetTaskStatusAsync(task, GraphTaskStatus.ExecutingTaskDescriptor).ConfigureAwait(false);
                                     await using (coreRequest)
                                     {
                                         // We're now going to start doing the work for this task.
-                                        var core = await coreRequest.WaitForCoreAsync(CancellationToken.None);
+                                        var core = await coreRequest.WaitForCoreAsync(CancellationToken.None).ConfigureAwait(false);
                                         _logger.LogTrace($"Got core reservation from: {core.WorkerMachineName} {core.WorkerCoreNumber}");
                                         taskStopwatch.Start();
                                         currentPhaseStopwatch.Start();
@@ -476,7 +482,7 @@
                                                 InitialPhaseStartTimeUtcTicks = currentPhaseStartTimestamp.UtcTicks,
                                                 InitialPhase = currentPhase,
                                             },
-                                        }, instance.CancellationToken);
+                                        }, instance.CancellationToken).ConfigureAwait(false);
                                         didStart = true;
 
                                         // Perform synchronisation for remote tasks.
@@ -489,7 +495,7 @@
                                             var toolExecutionInfo = await _toolSynchroniser.SynchroniseToolAndGetXxHash64Async(
                                                 core,
                                                 remotableGraphTask.ToolHashingResult!,
-                                                instance.CancellationToken);
+                                                instance.CancellationToken).ConfigureAwait(false);
                                             taskDescriptor.Remote.ToolExecutionInfo = toolExecutionInfo;
 
                                             // Notify the client we're changing phases.
@@ -500,7 +506,7 @@
                                                 {
                                                     { "tool.xxHash64", taskDescriptor.Remote.ToolExecutionInfo.ToolXxHash64.HexString() },
                                                     { "tool.executableName", taskDescriptor.Remote.ToolExecutionInfo.ToolExecutableName },
-                                                });
+                                                }).ConfigureAwait(false);
 
                                             // Synchronise all of the input blobs if needed.
                                             Dictionary<string, string> syncPhaseStats;
@@ -510,7 +516,7 @@
                                                 var inputBlobSynchronisation = await _blobSynchroniser.SynchroniseInputBlobsAsync(
                                                     core,
                                                     remotableGraphTask.BlobHashingResult!,
-                                                    instance.CancellationToken);
+                                                    instance.CancellationToken).ConfigureAwait(false);
                                                 taskDescriptor.Remote.TransferringStorageLayer.InputsByBlobXxHash64 = inputBlobSynchronisation.Result;
                                                 syncPhaseStats = new Dictionary<string, string>
                                                 {
@@ -540,14 +546,14 @@
                                             // Set up the remote FS port if that is the storage layer we're using.
                                             if (taskDescriptor.Remote.StorageLayerCase == RemoteTaskDescriptor.StorageLayerOneofCase.RemoteFsStorageLayer)
                                             {
-                                                taskDescriptor.Remote.RemoteFsStorageLayer.RemotePort = await _remoteFsManager.StartRemoteFsIfNeededAsync();
+                                                taskDescriptor.Remote.RemoteFsStorageLayer.RemotePort = await _remoteFsManager.StartRemoteFsIfNeededAsync().ConfigureAwait(false);
                                             }
 
                                             // Notify the client we're changing phases.
                                             _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Sending phase change to client...");
                                             await SendPhaseChangeAsync(
                                                 TaskPhase.TaskExecution,
-                                                syncPhaseStats);
+                                                syncPhaseStats).ConfigureAwait(false);
                                         }
 
                                     // Execute the task on the core.
@@ -567,13 +573,13 @@
                                         await core.Request.RequestStream.WriteAsync(new ExecutionRequest
                                         {
                                             ExecuteTask = executeTaskRequest
-                                        }, instance.CancellationToken);
+                                        }, instance.CancellationToken).ConfigureAwait(false);
 
                                         // Stream the results until we get an exit code.
                                         ExecuteTaskResponse? finalExecuteTaskResponse = null;
-                                        await using (var enumerable = core.Request.GetAsyncEnumerator(instance.CancellationToken))
+                                        await using (var enumerable = core.Request.GetAsyncEnumerator(instance.CancellationToken).ConfigureAwait(false))
                                         {
-                                            while (!didComplete && await enumerable.MoveNextAsync(instance.CancellationToken))
+                                            while (!didComplete && await enumerable.MoveNextAsync(instance.CancellationToken).ConfigureAwait(false))
                                             {
                                                 var current = enumerable.Current;
                                                 if (current.ResponseCase != ExecutionResponse.ResponseOneofCase.ExecuteTask)
@@ -592,7 +598,7 @@
                                                                 Id = task.GraphTaskSpec.Task.Name,
                                                                 StandardOutputLine = current.ExecuteTask.Response.StandardOutputLine,
                                                             }
-                                                        });
+                                                        }, cancellationToken).ConfigureAwait(false);
                                                         break;
                                                     case ProcessResponse.DataOneofCase.StandardErrorLine:
                                                         await responseStream.WriteAsync(new JobResponse
@@ -602,7 +608,7 @@
                                                                 Id = task.GraphTaskSpec.Task.Name,
                                                                 StandardErrorLine = current.ExecuteTask.Response.StandardErrorLine,
                                                             }
-                                                        });
+                                                        }, cancellationToken).ConfigureAwait(false);
                                                         break;
                                                     case ProcessResponse.DataOneofCase.ExitCode:
                                                         exitCode = current.ExecuteTask.Response.ExitCode;
@@ -642,14 +648,14 @@
                                             // Notify the client we're changing phases.
                                             await SendPhaseChangeAsync(
                                                 TaskPhase.RemoteOutputBlobSynchronisation,
-                                                finalPhaseMetadata);
+                                                finalPhaseMetadata).ConfigureAwait(false);
                                             finalPhaseMetadata.Clear();
 
                                             var outputBlobSynchronisation = await _blobSynchroniser.SynchroniseOutputBlobsAsync(
                                                 core,
                                                 taskDescriptor.Remote,
                                                 finalExecuteTaskResponse,
-                                                instance.CancellationToken);
+                                                instance.CancellationToken).ConfigureAwait(false);
                                             finalPhaseMetadata = new Dictionary<string, string>
                                             {
                                                 {
@@ -682,7 +688,7 @@
                     {
                         if (localCoreRequest != null)
                         {
-                            await localCoreRequest.DisposeAsync();
+                            await localCoreRequest.DisposeAsync().ConfigureAwait(false);
                         }
                     }
                 }
@@ -736,7 +742,7 @@
                                     WorkerMachineName = string.Empty,
                                     WorkerCoreNumber = 0,
                                 },
-                            }, instance.CancellationToken);
+                            }, instance.CancellationToken).ConfigureAwait(false);
                         }
                         await responseStream.WriteAsync(new JobResponse
                         {
@@ -752,10 +758,10 @@
                                 TotalSecondsInPreviousPhase = currentPhaseStopwatch.Elapsed.TotalSeconds,
                                 PreviousPhaseMetadata = { finalPhaseMetadata },
                             }
-                        }, instance.CancellationToken);
+                        }, instance.CancellationToken).ConfigureAwait(false);
                     }
 
-                    await instance.FinishTaskAsync(task, status, GraphExecutionDownstreamScheduling.ScheduleByGraphExecution);
+                    await instance.FinishTaskAsync(task, status, GraphExecutionDownstreamScheduling.ScheduleByGraphExecution).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
                 {

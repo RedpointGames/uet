@@ -230,7 +230,7 @@
                     throw new InvalidOperationException("Pointer file format is invalid!");
                 }
 
-                var pointer = pointerFileContent.Substring("pointer: ".Length).Trim();
+                var pointer = pointerFileContent["pointer: ".Length..].Trim();
 
                 logger?.LogTrace($"Creating gRPC channel with TCP socket from pointer file: {pointer}");
 

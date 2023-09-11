@@ -19,7 +19,7 @@
         private readonly ICachingPreprocessorScannerFactory _cachingPreprocessorScannerFactory;
         private readonly IPreprocessorResolver _preprocessorResolver;
         private readonly IReservationManagerForOpenGE _openGEReservationManagerProvider;
-        private readonly SemaphoreSlim _initSemaphore = new SemaphoreSlim(1);
+        private readonly Concurrency.Semaphore _initSemaphore = new Concurrency.Semaphore(1);
         private ICachingPreprocessorScanner? _cachingScanner;
         private bool _inited = false;
         private bool _disposed = false;
@@ -113,8 +113,8 @@
         }
 
         public async override Task<PreprocessorResolutionResultWithTimingMetadata> GetResolvedDependenciesAsync(
-            string filePath, 
-            string[] forceIncludes, 
+            string filePath,
+            string[] forceIncludes,
             string[] includeDirectories,
             Dictionary<string, string> globalDefinitions,
             long buildStartTicks,
@@ -134,7 +134,7 @@
         }
 
         public async override Task<PreprocessorScanResultWithCacheMetadata> GetUnresolvedDependenciesAsync(
-            string filePath, 
+            string filePath,
             CancellationToken cancellationToken)
         {
             await EnsureAsync();

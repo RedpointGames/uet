@@ -5,6 +5,6 @@
     public class BuildGraphExport
     {
         [JsonPropertyName("Groups")]
-        public BuildGraphExportGroup[] Groups { get; set; } = new BuildGraphExportGroup[0];
+        public BuildGraphExportGroup[] Groups { get; set; } = Array.Empty<BuildGraphExportGroup>();
     }
 }
