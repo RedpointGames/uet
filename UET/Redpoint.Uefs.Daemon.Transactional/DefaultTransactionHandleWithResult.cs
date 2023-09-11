@@ -29,7 +29,7 @@
 
         public async Task<TResult> WaitForCompletionAsync(CancellationToken cancellationToken)
         {
-            await _transaction.WaitForCompletionAsync(cancellationToken);
+            await _transaction.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
             return _transaction.Result!;
         }
     }

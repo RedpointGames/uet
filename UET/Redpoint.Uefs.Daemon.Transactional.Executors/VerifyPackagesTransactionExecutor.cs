@@ -17,7 +17,7 @@
                 x.Init(Protocol.PollingResponseType.Verify);
             });
 
-            var @lock = await context.ObtainLockAsync("PackageStorage", cancellationToken);
+            var @lock = await context.ObtainLockAsync("PackageStorage", cancellationToken).ConfigureAwait(false);
             var didReleaseSemaphore = false;
             try
             {
@@ -33,7 +33,7 @@
                         @lock.Dispose();
                         didReleaseSemaphore = true;
                     },
-                    context.UpdatePollingResponse);
+                    context.UpdatePollingResponse).ConfigureAwait(false);
 
                 context.UpdatePollingResponse(x =>
                 {

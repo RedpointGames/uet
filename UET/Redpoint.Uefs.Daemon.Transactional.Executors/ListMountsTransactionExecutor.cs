@@ -27,7 +27,7 @@
             using (await _mountLockObtainer.ObtainLockAsync(
                 context,
                 "ListMountsTransactionExecutor",
-                cancellationToken))
+                cancellationToken).ConfigureAwait(false))
             {
                 foreach (var kv in _mountTracking.CurrentMounts)
                 {

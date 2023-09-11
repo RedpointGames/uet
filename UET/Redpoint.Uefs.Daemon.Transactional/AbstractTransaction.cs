@@ -69,7 +69,7 @@
             public async ValueTask DisposeAsync()
             {
                 _transaction._listeners.TryRemove(_listener, out _);
-                if (_transaction._listeners.Count == 0 && !_transaction._backgroundable)
+                if (_transaction._listeners.IsEmpty && !_transaction._backgroundable)
                 {
                     // If there is no-one interested in the transaction any more (because all
                     // the listeners are gone), and the transaction is not backgroundable (i.e.
@@ -78,7 +78,7 @@
 
                     // Wait for the executor to bubble up the cancellation so that the last
                     // DisposeAsync will wait until the executor stops all work.
-                    await _transaction._executorCompleteSemaphore.WaitAsync();
+                    await _transaction._executorCompleteSemaphore.WaitAsync().ConfigureAwait(false);
                     _transaction._executorCompleteSemaphore.Release();
 
                     // If we threw an exception and it wasn't a cancellation
@@ -115,7 +115,7 @@
                 {
                     foreach (var kv in _listeners)
                     {
-                        await InvokeListenerAsync(kv.Key, pollingResponse);
+                        await InvokeListenerAsync(kv.Key, pollingResponse).ConfigureAwait(false);
                     }
 
                     await Task.Yield();
@@ -138,7 +138,7 @@
 
         public async Task WaitForCompletionAsync(CancellationToken cancellationToken)
         {
-            await _executorCompleteSemaphore.WaitAsync(CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _executorCancellationTokenSource.Token).Token);
+            await _executorCompleteSemaphore.WaitAsync(CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _executorCancellationTokenSource.Token).Token).ConfigureAwait(false);
             _executorCompleteSemaphore.Release();
             if (_thrownException != null)
             {

@@ -1,5 +1,9 @@
-﻿namespace Redpoint.Uefs.Package
+﻿using System;
+
+namespace Redpoint.Uefs.Package
 {
+    using System.Globalization;
+
     internal sealed class DefaultPackageManifestDataWriter : IPackageManifestDataWriter
     {
         private sealed class WriteMetrics
@@ -41,11 +45,11 @@
 
                         if (!Console.IsOutputRedirected)
                         {
-                            Console.Write($"\rprogress: {directory_progress.ToString("#####0.00").PadLeft(9)} % ({written_directories_loaded.ToString("######0").PadLeft(7)} / {metrics.total_directories.ToString("######0").PadLeft(7)}) directories, files will be written after this step finishes, last created: {metrics.last_written_path ?? "(no directory created yet)"}".PadRight(Console.BufferWidth));
+                            Console.Write($"\rprogress: {directory_progress.ToString("#####0.00", CultureInfo.InvariantCulture).PadLeft(9)} % ({written_directories_loaded.ToString("######0", CultureInfo.InvariantCulture).PadLeft(7)} / {metrics.total_directories.ToString("######0", CultureInfo.InvariantCulture).PadLeft(7)}) directories, files will be written after this step finishes, last created: {metrics.last_written_path ?? "(no directory created yet)"}".PadRight(Console.BufferWidth));
                         }
                         else if (count % 50 == 0)
                         {
-                            Console.WriteLine($"progress: {directory_progress.ToString("#####0.00").PadLeft(9)} % ({written_directories_loaded.ToString("######0").PadLeft(7)} / {metrics.total_directories.ToString("######0").PadLeft(7)}) directories, files will be written after this step finishes, last created: {metrics.last_written_path ?? "(no directory created yet)"}");
+                            Console.WriteLine($"progress: {directory_progress.ToString("#####0.00", CultureInfo.InvariantCulture).PadLeft(9)} % ({written_directories_loaded.ToString("######0", CultureInfo.InvariantCulture).PadLeft(7)} / {metrics.total_directories.ToString("######0", CultureInfo.InvariantCulture).PadLeft(7)}) directories, files will be written after this step finishes, last created: {metrics.last_written_path ?? "(no directory created yet)"}");
                         }
                     }
                     else
@@ -98,11 +102,11 @@
 
                         if (!Console.IsOutputRedirected)
                         {
-                            Console.Write($"\rprogress: {file_progress.ToString("#####0.00").PadLeft(9)} % ({written_files_loaded.ToString("######0").PadLeft(7)} / {packageManifest.FileCount.ToString("######0").PadLeft(7)}) files, {bytes_progress.ToString("#####0.00").PadLeft(9)} % ({(written_bytes_loaded / 1024 / 1024).ToString("######0").PadLeft(7)} / {(metrics.total_bytes / 1024 / 1024).ToString("######0")}) MB, {bytes_per_second.ToString("#####0.00")} {rate}, {remaining_minutes}:{remaining_seconds.ToString("00")} to go, last wrote: {metrics.last_written_path ?? "(no file finished yet)"}".PadRight(Console.BufferWidth));
+                            Console.Write($"\rprogress: {file_progress.ToString("#####0.00", CultureInfo.InvariantCulture).PadLeft(9)} % ({written_files_loaded.ToString("######0", CultureInfo.InvariantCulture).PadLeft(7)} / {packageManifest.FileCount.ToString("######0", CultureInfo.InvariantCulture).PadLeft(7)}) files, {bytes_progress.ToString("#####0.00", CultureInfo.InvariantCulture).PadLeft(9)} % ({(written_bytes_loaded / 1024 / 1024).ToString("######0", CultureInfo.InvariantCulture).PadLeft(7)} / {(metrics.total_bytes / 1024 / 1024).ToString("######0", CultureInfo.InvariantCulture)}) MB, {bytes_per_second.ToString("#####0.00", CultureInfo.InvariantCulture)} {rate}, {remaining_minutes}:{remaining_seconds.ToString("00", CultureInfo.InvariantCulture)} to go, last wrote: {metrics.last_written_path ?? "(no file finished yet)"}".PadRight(Console.BufferWidth));
                         }
                         else if (count % 50 == 0)
                         {
-                            Console.WriteLine($"progress: {file_progress.ToString("#####0.00").PadLeft(9)} % ({written_files_loaded.ToString("######0").PadLeft(7)} / {packageManifest.FileCount.ToString("######0").PadLeft(7)}) files, {bytes_progress.ToString("#####0.00").PadLeft(9)} % ({(written_bytes_loaded / 1024 / 1024).ToString("######0").PadLeft(7)} / {(metrics.total_bytes / 1024 / 1024).ToString("######0")}) MB, {bytes_per_second.ToString("#####0.00")} {rate}, {remaining_minutes}:{remaining_seconds.ToString("00")} to go, last wrote: {metrics.last_written_path ?? "(no file finished yet)"}");
+                            Console.WriteLine($"progress: {file_progress.ToString("#####0.00", CultureInfo.InvariantCulture).PadLeft(9)} % ({written_files_loaded.ToString("######0", CultureInfo.InvariantCulture).PadLeft(7)} / {packageManifest.FileCount.ToString("######0", CultureInfo.InvariantCulture).PadLeft(7)}) files, {bytes_progress.ToString("#####0.00", CultureInfo.InvariantCulture).PadLeft(9)} % ({(written_bytes_loaded / 1024 / 1024).ToString("######0", CultureInfo.InvariantCulture).PadLeft(7)} / {(metrics.total_bytes / 1024 / 1024).ToString("######0", CultureInfo.InvariantCulture)}) MB, {bytes_per_second.ToString("#####0.00", CultureInfo.InvariantCulture)} {rate}, {remaining_minutes}:{remaining_seconds.ToString("00", CultureInfo.InvariantCulture)} to go, last wrote: {metrics.last_written_path ?? "(no file finished yet)"}");
                         }
 
                         metrics.last_emitted_console_time = remaining_seconds;
@@ -113,7 +117,7 @@
 
                     if (!metrics.done)
                     {
-                        await Task.Delay(100);
+                        await Task.Delay(100).ConfigureAwait(false);
                     }
                 }
                 while (!metrics.done);
@@ -126,7 +130,7 @@
                 OnFileWriteComplete onDirectoryWriteComplete = (pathInPackage) =>
                 {
                     Interlocked.Add(ref metrics.written_directories, 1);
-                    metrics.last_written_path = pathInPackage.Length > 63 ? pathInPackage[..20] + "..." + pathInPackage.Substring(pathInPackage.Length - 40, 40) : pathInPackage;
+                    metrics.last_written_path = pathInPackage.Length > 63 ? string.Concat(pathInPackage.AsSpan()[..20], "...", pathInPackage.AsSpan(pathInPackage.Length - 40, 40)) : pathInPackage;
                 };
 
                 if (packageWriter.SupportsParallelWrites && packageWriter.SupportsParallelDirectoryWrites)
@@ -136,14 +140,14 @@
                         new ParallelOptions { },
                         async (entry, ct) =>
                         {
-                            await packageWriter.WritePackageDirectory(entry, onDirectoryWriteComplete);
-                        });
+                            await packageWriter.WritePackageDirectory(entry, onDirectoryWriteComplete).ConfigureAwait(false);
+                        }).ConfigureAwait(false);
                 }
                 else
                 {
                     foreach (var entry in packageManifest.Where(x => x.IsDirectory))
                     {
-                        await packageWriter.WritePackageDirectory(entry, onDirectoryWriteComplete);
+                        await packageWriter.WritePackageDirectory(entry, onDirectoryWriteComplete).ConfigureAwait(false);
                     }
                 }
 
@@ -158,7 +162,7 @@
             OnFileWriteComplete onFileWriteComplete = (pathInPackage) =>
             {
                 Interlocked.Add(ref metrics.written_files, 1);
-                metrics.last_written_path = pathInPackage.Length > 63 ? pathInPackage[..20] + "..." + pathInPackage.Substring(pathInPackage.Length - 40, 40) : pathInPackage;
+                metrics.last_written_path = pathInPackage.Length > 63 ? string.Concat(pathInPackage.AsSpan()[..20], "...", pathInPackage.AsSpan(pathInPackage.Length - 40, 40)) : pathInPackage;
             };
 
             if (packageWriter.SupportsParallelWrites)
@@ -168,19 +172,19 @@
                     new ParallelOptions { },
                     async (entry, ct) =>
                     {
-                        await packageWriter.WritePackageFile(entry, onFileBytesWritten, onFileWriteComplete);
-                    });
+                        await packageWriter.WritePackageFile(entry, onFileBytesWritten, onFileWriteComplete).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
             }
             else
             {
                 foreach (var entry in packageManifest.Where(x => !x.IsDirectory))
                 {
-                    await packageWriter.WritePackageFile(entry, onFileBytesWritten, onFileWriteComplete);
+                    await packageWriter.WritePackageFile(entry, onFileBytesWritten, onFileWriteComplete).ConfigureAwait(false);
                 }
             }
 
             metrics.done = true;
-            await progressTask;
+            await progressTask.ConfigureAwait(false);
         }
     }
 }

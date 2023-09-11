@@ -46,7 +46,7 @@
             IDisposable @lock;
             try
             {
-                @lock = await context.ObtainLockAsync("mount-list", timeoutCancellationTokenSource.Token);
+                @lock = await context.ObtainLockAsync("mount-list", timeoutCancellationTokenSource.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

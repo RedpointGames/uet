@@ -63,7 +63,7 @@
 
         public async Task<IDisposable> ObtainLockAsync(string key, CancellationToken cancellationToken)
         {
-            var @lock = await _database.GetInternalLockAsync(key, cancellationToken);
+            var @lock = await _database.GetInternalLockAsync(key, cancellationToken).ConfigureAwait(false);
             var lockWrapper = new LockWrapper(this, key, @lock);
             _obtainedLocks.Add(lockWrapper);
             return lockWrapper;

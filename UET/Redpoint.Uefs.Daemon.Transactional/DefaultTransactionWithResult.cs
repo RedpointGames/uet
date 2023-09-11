@@ -32,7 +32,7 @@
         {
             TransactionListenerDelegate<TResult> listenerDelegateWrapped = async (PollingResponse pollingResponse, TResult? _) =>
             {
-                await listenerDelegate(pollingResponse);
+                await listenerDelegate(pollingResponse).ConfigureAwait(false);
             };
             _listeners.TryAdd(listenerDelegateWrapped, true);
             return new ReleasableListener(this, listenerDelegateWrapped);
