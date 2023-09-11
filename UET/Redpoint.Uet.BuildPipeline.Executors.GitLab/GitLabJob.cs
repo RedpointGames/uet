@@ -35,6 +35,6 @@
         public string[]? AfterScript { get; set; } = null;
 
         [YamlMember(Alias = "variables", DefaultValuesHandling = DefaultValuesHandling.OmitNull, ScalarStyle = YamlDotNet.Core.ScalarStyle.DoubleQuoted)]
-        public IReadOnlyDictionary<string, string>? Variables { get; set; } = null;
+        public Dictionary<string, string>? Variables { get; set; } = null;
     }
 }
