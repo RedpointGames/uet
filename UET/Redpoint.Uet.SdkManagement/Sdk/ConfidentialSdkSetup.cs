@@ -127,7 +127,7 @@
                         {
                             FilePath = installer.InstallerPath!,
                             Arguments = installer.InstallerArguments!
-                                .Select(x => x.Replace("%LOG_PATH%", logPath))
+                                .Select(x => x.Replace("%LOG_PATH%", logPath, StringComparison.Ordinal))
                                 .ToArray(),
                             WorkingDirectory = Path.GetDirectoryName(installer.InstallerPath!)
                         },

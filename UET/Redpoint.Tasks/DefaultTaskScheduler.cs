@@ -2,7 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
 
-    internal class DefaultTaskScheduler : ITaskScheduler
+    internal sealed class DefaultTaskScheduler : ITaskScheduler
     {
         private readonly ILogger<DefaultTaskScheduler> _logger;
 

@@ -4,7 +4,7 @@
     using Redpoint.Concurrency;
     using System.Diagnostics;
 
-    internal class DefaultTaskSchedulerScope : ITaskSchedulerScope
+    internal sealed class DefaultTaskSchedulerScope : ITaskSchedulerScope
     {
         private readonly ILogger _logger;
         private readonly string _scopeName;
@@ -12,7 +12,7 @@
         private readonly List<ScheduledTask> _tasks;
         private readonly Mutex _tasksMutex;
 
-        private class ScheduledTask
+        private sealed class ScheduledTask
         {
             public required string Name;
             public required CancellationTokenSource CancellationTokenSource;
@@ -37,7 +37,7 @@
 
         public string[] GetCurrentlyExecutingTasks()
         {
-            using (_tasksMutex.Wait())
+            using (_tasksMutex.Wait(CancellationToken.None))
             {
                 return _tasks.Select(x => $"{_scopeName}:{x.Name}").ToArray();
             }
@@ -53,7 +53,7 @@
                 Name = taskName,
                 CancellationTokenSource = cts,
             };
-            using (await _tasksMutex.WaitAsync(CancellationToken.None))
+            using (await _tasksMutex.WaitAsync(CancellationToken.None).ConfigureAwait(false))
             {
                 _tasks.Add(scheduledTask);
             }
@@ -65,7 +65,7 @@
             {
                 try
                 {
-                    await backgroundTask(cts.Token);
+                    await backgroundTask(cts.Token).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -73,13 +73,13 @@
                     {
                         _logger.LogTrace($"Scheduled task ended: {_scopeName}/{taskName}");
                     }
-                    using (await _tasksMutex.WaitAsync(CancellationToken.None))
+                    using (await _tasksMutex.WaitAsync(CancellationToken.None).ConfigureAwait(false))
                     {
                         _tasks.Remove(scheduledTask);
                     }
                 }
             });
-            await scheduledTask.InternalTask;
+            await scheduledTask.InternalTask.ConfigureAwait(false);
         }
 
         public async ValueTask DisposeAsync()
@@ -90,7 +90,7 @@
                 var exceptions = new List<Exception>();
                 _scopeCancellationTokenSource.Cancel();
                 List<ScheduledTask> tasksCopy;
-                using (await _tasksMutex.WaitAsync(CancellationToken.None))
+                using (await _tasksMutex.WaitAsync(CancellationToken.None).ConfigureAwait(false))
                 {
                     tasksCopy = _tasks.ToList();
                     _tasks.Clear();
@@ -102,7 +102,7 @@
                         var internalTask = task.InternalTask;
                         if (internalTask != null)
                         {
-                            await internalTask;
+                            await internalTask.ConfigureAwait(false);
                         }
                     }
                     catch (OperationCanceledException)
@@ -126,12 +126,14 @@
                 {
                     _logger.LogTrace($"Took {st.ElapsedMilliseconds} milliseconds to shutdown scheduling scope: {_scopeName}");
                 }
+                _scopeCancellationTokenSource.Dispose();
             }
         }
 
         public void Dispose()
         {
             _scopeCancellationTokenSource.Cancel();
+            _scopeCancellationTokenSource.Dispose();
             // @note: We can't await on the remaining tasks for this type of dispose.
         }
     }

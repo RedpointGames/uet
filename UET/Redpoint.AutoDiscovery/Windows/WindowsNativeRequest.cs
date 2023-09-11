@@ -9,7 +9,7 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal unsafe class WindowsNativeRequest<TRequest, TCancel> : IDisposable where TCancel : unmanaged
+    internal unsafe sealed class WindowsNativeRequest<TRequest, TCancel> : IDisposable where TCancel : unmanaged
     {
         public readonly nint Id;
         public readonly Gate AsyncSemaphore;
@@ -34,7 +34,6 @@
             HGlobalPtrs = hGlobalPtrs;
             DisposablePtrs = disposablePtrs;
             CancellableRequest = new WindowsCancellableRequest<TCancel>(
-                cancellationToken,
                 cancel =>
                 {
                     cancelHandler(cancel);
@@ -47,7 +46,8 @@
                         ResultException = ExceptionDispatchInfo.Capture(ex);
                     }
                     AsyncSemaphore.Open();
-                });
+                },
+                cancellationToken);
         }
 
         public void Dispose()
@@ -60,6 +60,7 @@
             {
                 Marshal.FreeHGlobal(ptr);
             }
+            CancellableRequest.Dispose();
         }
     }
 }

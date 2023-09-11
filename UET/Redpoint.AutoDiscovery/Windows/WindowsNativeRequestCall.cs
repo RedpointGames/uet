@@ -4,19 +4,14 @@
 
     internal abstract class WindowsNativeRequestCall<TRequest, TCancel> where TCancel : unmanaged
     {
-        protected static readonly WindowsNativeRequestCollection<TRequest, TCancel> _calls;
-
-        static WindowsNativeRequestCall()
-        {
-            _calls = new WindowsNativeRequestCollection<TRequest, TCancel>();
-        }
+        protected static readonly WindowsNativeRequestCollection<TRequest, TCancel> _calls = new WindowsNativeRequestCollection<TRequest, TCancel>();
 
         public async Task<WindowsNativeRequest<TRequest, TCancel>> ExecuteAsync(CancellationToken cancellationToken)
         {
             var request = ExecuteStart(cancellationToken);
             try
             {
-                await request.AsyncSemaphore.WaitAsync(cancellationToken);
+                await request.AsyncSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                 if (request.ResultException != null)
                 {
                     request.ResultException.Throw();

@@ -6,7 +6,7 @@
     using System.Text.RegularExpressions;
     using Redpoint.ThirdParty.CredentialManagement;
 
-    internal class DefaultCredentialDiscovery : ICredentialDiscovery
+    internal sealed class DefaultCredentialDiscovery : ICredentialDiscovery
     {
         private static readonly Regex _tagRegex = new Regex("^(?<host>[a-z\\.\\:0-9]+)/(?<path>[a-z\\./0-9-_]+):?(?<label>[a-z\\.0-9-_]+)?$");
 

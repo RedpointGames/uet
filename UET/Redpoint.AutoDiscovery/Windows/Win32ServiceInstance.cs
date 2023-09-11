@@ -8,7 +8,7 @@
     using SDWin32::Windows.Win32.NetworkManagement.Dns;
 
     [SupportedOSPlatform("windows10.0.10240")]
-    internal unsafe class Win32ServiceInstance : IDisposable
+    internal unsafe sealed class Win32ServiceInstance : IDisposable
     {
         private readonly unsafe DNS_SERVICE_INSTANCE* _instance;
         private bool _keepOnNextDispose;

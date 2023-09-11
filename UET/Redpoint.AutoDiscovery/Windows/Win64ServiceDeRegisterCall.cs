@@ -10,7 +10,7 @@
     using SDWin64::Windows.Win32.NetworkManagement.Dns;
 
     [SupportedOSPlatform("windows10.0.10240")]
-    internal unsafe class Win64ServiceDeRegisterCall : WindowsNativeRequestCall<DNS_SERVICE_REGISTER_REQUEST, DNS_SERVICE_CANCEL>
+    internal unsafe sealed class Win64ServiceDeRegisterCall : WindowsNativeRequestCall<DNS_SERVICE_REGISTER_REQUEST, DNS_SERVICE_CANCEL>
     {
         private readonly Win64ServiceInstance _serviceInstance;
 

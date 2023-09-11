@@ -106,7 +106,7 @@
                 using (var client = new HttpClient())
                 {
                     var homebrewScript = await client.GetStringAsync("https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh").ConfigureAwait(false);
-                    await File.WriteAllTextAsync(homebrewScriptPath, homebrewScript.Replace("\r\n", "\n")).ConfigureAwait(false);
+                    await File.WriteAllTextAsync(homebrewScriptPath, homebrewScript.Replace("\r\n", "\n", StringComparison.Ordinal)).ConfigureAwait(false);
                     File.SetUnixFileMode(homebrewScriptPath,
                         UnixFileMode.UserRead |
                         UnixFileMode.UserWrite |

@@ -4,7 +4,7 @@
     using System.Runtime.InteropServices;
     using System.Threading;
 
-    internal class WindowsCancellableRequest<TCancel> : IDisposable where TCancel : unmanaged
+    internal sealed class WindowsCancellableRequest<TCancel> : IDisposable where TCancel : unmanaged
     {
         private readonly nint _serviceCancel;
         private readonly CancellationTokenRegistration _cancellationTokenRegistration;
@@ -13,8 +13,8 @@
         private readonly Action<nint> _uponCancel;
 
         public unsafe WindowsCancellableRequest(
-            CancellationToken cancellationToken,
-            Action<nint> uponCancel)
+            Action<nint> uponCancel,
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             _serviceCancel = Marshal.AllocHGlobal(sizeof(TCancel));

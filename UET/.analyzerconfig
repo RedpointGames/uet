@@ -45,6 +45,10 @@ dotnet_diagnostic.CA2229.severity = none
 # when there is a read-only accessor?
 dotnet_diagnostic.CA1019.severity = none
 
+# Incorrect false positive for properties which are used with JSON serialization, where we
+# must have public non-read-only collection properties for deserialization to work properly.
+dotnet_diagnostic.CA2227.severity = none
+
 #### Gradually turn these on ####
 
 # Turn off warnings around usage of logging APIs.

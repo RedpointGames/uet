@@ -3,7 +3,7 @@
     using System;
     using System.Collections.Concurrent;
 
-    internal unsafe class WindowsNativeRequestCollection<TRequest, TCancel> where TCancel : unmanaged
+    internal unsafe sealed class WindowsNativeRequestCollection<TRequest, TCancel> where TCancel : unmanaged
     {
         private readonly ConcurrentDictionary<nint, WindowsNativeRequest<TRequest, TCancel>> _requests;
         private nint _nextId;
