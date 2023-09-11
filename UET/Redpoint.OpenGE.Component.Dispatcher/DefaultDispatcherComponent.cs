@@ -32,7 +32,7 @@
         private long _inflightJobs = 0;
         private bool _isShuttingDown = false;
         private CancellationToken _shutdownCancellationToken;
-        private readonly Concurrency.Semaphore _inflightJobCountSemaphore = new Concurrency.Semaphore(1);
+        private readonly Concurrency.Mutex _inflightJobCountSemaphore = new Concurrency.Mutex();
         private readonly Concurrency.Semaphore _allInflightJobsAreComplete = new Concurrency.Semaphore(0);
 
         public DefaultDispatcherComponent(
@@ -93,14 +93,9 @@
 
         private async Task<long> GetInflightJobCount()
         {
-            await _inflightJobCountSemaphore.WaitAsync(_shutdownCancellationToken).ConfigureAwait(false);
-            try
+            using (await _inflightJobCountSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false))
             {
                 return _inflightJobs;
-            }
-            finally
-            {
-                _inflightJobCountSemaphore.Release();
             }
         }
 
@@ -155,8 +150,7 @@
                 }
 
                 // Increment the current job count.
-                await _inflightJobCountSemaphore.WaitAsync(_shutdownCancellationToken).ConfigureAwait(false);
-                try
+                using (await _inflightJobCountSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false))
                 {
                     if (_isShuttingDown)
                     {
@@ -165,10 +159,6 @@
                     }
                     _logger.LogTrace("OpenGE in-flight: Incremented job count");
                     _inflightJobs++;
-                }
-                finally
-                {
-                    _inflightJobCountSemaphore.Release();
                 }
 
                 // Execute the job.
@@ -262,8 +252,7 @@
                 finally
                 {
                     // Decrement the job count.
-                    await _inflightJobCountSemaphore.WaitAsync(_shutdownCancellationToken).ConfigureAwait(false);
-                    try
+                    using (await _inflightJobCountSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false))
                     {
                         _inflightJobs--;
                         _logger.LogTrace("OpenGE in-flight: Decremented job count");
@@ -272,10 +261,6 @@
                             _allInflightJobsAreComplete.Release();
                             _logger.LogTrace("OpenGE in-flight: Firing all in-flight jobs complete semaphore");
                         }
-                    }
-                    finally
-                    {
-                        _inflightJobCountSemaphore.Release();
                     }
                 }
             }
