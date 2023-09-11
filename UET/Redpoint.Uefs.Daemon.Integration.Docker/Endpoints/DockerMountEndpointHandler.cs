@@ -41,7 +41,7 @@
             }
 
             var volume = plugin.DockerVolumes[request.Name];
-            await volume.Mutex.WaitAsync().ConfigureAwait(false);
+            await volume.Mutex.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (volume.Mountpoint != null)

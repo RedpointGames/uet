@@ -63,7 +63,7 @@
             using (client)
             {
                 // Download the manifest.
-                var manifest = await client.Manifest.GetManifestAsync(path, label).ConfigureAwait(false);
+                var manifest = await client.Manifest.GetManifestAsync(path, label, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 // Try to get the manifest list, and from there get the registry manifest
                 // for the current platform. We also have to handle legacy manifests.
@@ -113,7 +113,7 @@
                     }
 
                     // Download the actual manifest file from blob storage.
-                    registryManifest = (await client.Manifest.GetManifestAsync(path, selectedManifest.Digest, true).ConfigureAwait(false))?.Manifest as ImageManifest2_2;
+                    registryManifest = (await client.Manifest.GetManifestAsync(path, selectedManifest.Digest, true, cancellationToken).ConfigureAwait(false))?.Manifest as ImageManifest2_2;
                 }
 
                 if (registryManifest == null || !registryManifest.Layers.Any())
@@ -145,11 +145,11 @@
                     packageManifest.MediaType == RegistryConstants.MediaTypePackageReferenceSparseImage)
                 {
                     // We have to pull this content layer to get the reference data.
-                    var getResponse = await client.Blobs.GetBlobAsync(path, packageManifest.Digest).ConfigureAwait(false);
+                    var getResponse = await client.Blobs.GetBlobAsync(path, packageManifest.Digest, cancellationToken).ConfigureAwait(false);
                     using (var reader = new StreamReader(getResponse.Stream))
                     {
                         packageReferenceInfo = JsonSerializer.Deserialize(
-                            await reader.ReadToEndAsync().ConfigureAwait(false),
+                            await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false),
                             UefsRegistryJsonSerializerContext.Default.RegistryReferenceInfo);
                     }
                     if (packageReferenceInfo == null ||

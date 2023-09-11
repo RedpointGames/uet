@@ -11,7 +11,7 @@
         Task<PullResult> PullAsync(
             IUefsDaemon daemon,
             TRequest request,
-            TransactionListenerDelegate<FileInfo?> onPollingResponse,
+            TransactionListener<FileInfo?> onPollingResponse,
             CancellationToken cancellationToken);
     }
 }

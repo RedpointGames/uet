@@ -15,7 +15,7 @@
             _logger = logger;
         }
 
-        private string Worker(IWorker worker)
+        private static string Worker(IWorker worker)
         {
             if (worker == null)
             {
@@ -24,7 +24,7 @@
             return $"[Worker {worker.DisplayName}] ";
         }
 
-        private string Progress(TestProgressionInfo? progressionInfo)
+        private static string Progress(TestProgressionInfo? progressionInfo)
         {
             // [100%, 1234/1234]
 

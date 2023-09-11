@@ -11,6 +11,7 @@
 
         public IRemoteStorageBlobFactory GetFactory(RegistryReferenceInfo reference)
         {
+            if (reference == null) throw new ArgumentNullException(nameof(reference));
             return new ReferenceRemoteStorageBlobFactory(reference.Location);
         }
 
@@ -21,8 +22,8 @@
 
             public ReferenceRemoteStorageBlobFactory(string path)
             {
-                if (OperatingSystem.IsWindows() && path.StartsWith("\\\\") ||
-                    OperatingSystem.IsMacOS() && path.StartsWith("/"))
+                if (OperatingSystem.IsWindows() && path.StartsWith("\\\\", StringComparison.Ordinal) ||
+                    OperatingSystem.IsMacOS() && path.StartsWith("/", StringComparison.Ordinal))
                 {
                     _pool = new FileStreamPool(path, FileAccess.Read, FileShare.Read);
                     _sfPool = new SafeFileHandlePool(path, FileAccess.Read, FileShare.Read);

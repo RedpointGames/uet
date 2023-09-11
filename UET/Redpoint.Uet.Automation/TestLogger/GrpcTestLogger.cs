@@ -113,7 +113,7 @@
             });
         }
 
-        private UETAutomation.TestResultStatus Convert(Model.TestResultStatus testStatus)
+        private static UETAutomation.TestResultStatus Convert(Model.TestResultStatus testStatus)
         {
             switch (testStatus)
             {

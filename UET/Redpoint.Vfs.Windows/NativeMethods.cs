@@ -1,22 +1,12 @@
-﻿using System.Runtime.CompilerServices;
-
-[assembly: DisableRuntimeMarshalling]
-
-namespace Redpoint.Vfs.Windows
+﻿namespace Redpoint.Vfs.Windows
 {
     using Microsoft.Win32.SafeHandles;
     using Redpoint.Vfs.Abstractions;
     using System.Runtime.InteropServices;
 
-    public partial class NativeMethods
+    public static partial class NativeMethods
     {
-        [StructLayout(LayoutKind.Sequential, Pack = 8)]
-        public ref struct NativeFileEndOfFileInfo
-        {
-            public long EndOfFile;
-        }
-
-        public const int FileInformationClass_FileEndOfFileInfo = 0x6; // _FILE_INFO_BY_HANDLE_CLASS.FileEndOfFileInfo
+        public const int FileInformationClassFileEndOfFileInfo = 0x6; // _FILE_INFO_BY_HANDLE_CLASS.FileEndOfFileInfo
 
         // No operation should use SetFilePointerEx as it is not thread safe. All operations must use lpOverlapped!
 

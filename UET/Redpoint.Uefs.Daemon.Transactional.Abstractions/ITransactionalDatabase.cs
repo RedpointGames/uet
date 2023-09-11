@@ -6,22 +6,22 @@
     {
         Task<ITransactionHandle> BeginTransactionAsync<TRequest>(
             TRequest transactionRequest,
-            TransactionListenerDelegate transactionListener,
+            TransactionListener transactionListener,
             CancellationToken cancellationToken) where TRequest : class, ITransactionRequest;
 
         Task<ITransactionHandle<TResult>> BeginTransactionAsync<TRequest, TResult>(
             TRequest transactionRequest,
-            TransactionListenerDelegate<TResult> transactionListener,
+            TransactionListener<TResult> transactionListener,
             CancellationToken cancellationToken) where TRequest : class, ITransactionRequest<TResult> where TResult : class;
 
         Task<ITransactionHandle?> AddListenerToExistingTransactionAsync(
             string transactionId,
-            TransactionListenerDelegate transactionListener,
+            TransactionListener transactionListener,
             CancellationToken cancellationToken);
 
         Task<ITransactionHandle<TResult>?> AddListenerToExistingTransactionAsync<TResult>(
             string transactionId,
-            TransactionListenerDelegate<TResult> transactionListener,
+            TransactionListener<TResult> transactionListener,
             CancellationToken cancellationToken) where TResult : class;
     }
 }

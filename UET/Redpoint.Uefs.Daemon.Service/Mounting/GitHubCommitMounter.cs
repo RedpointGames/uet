@@ -37,7 +37,7 @@
             IUefsDaemon daemon,
             MountContext context,
             MountGitHubCommitRequest request,
-            TransactionListenerDelegate onPollingResponse,
+            TransactionListener onPollingResponse,
             CancellationToken cancellationToken)
         {
             if (daemon.IsPathMountPath(request.MountRequest.MountPath))

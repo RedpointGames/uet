@@ -6,14 +6,14 @@
     using System.Threading.Tasks;
 
     internal sealed class DefaultTransaction<TRequest> :
-        AbstractTransaction<TRequest, TransactionListenerDelegate>,
+        AbstractTransaction<TRequest, TransactionListener>,
         ITransaction<TRequest>,
         IWaitableTransaction
         where TRequest : class, ITransactionRequest
     {
         public DefaultTransaction(
             TRequest request,
-            TransactionListenerDelegate initialListener,
+            TransactionListener initialListener,
             CancellationTokenSource executorCancellationTokenSource,
             bool backgroundable,
             SemaphoreSlim executorCompleteSemaphore) : base(
@@ -26,7 +26,7 @@
         }
 
         protected override Task InvokeListenerAsync(
-            TransactionListenerDelegate @delegate,
+            TransactionListener @delegate,
             PollingResponse response)
         {
             return @delegate(response);

@@ -10,7 +10,7 @@
 
         // @note: We need this on the interface because the full ITransaction interface
         // and the DefaultTransaction class both require the request type to be known.
-        IAsyncDisposable RegisterListener(TransactionListenerDelegate listenerDelegate);
+        IAsyncDisposable RegisterListener(TransactionListener listenerDelegate);
     }
 
     internal interface IWaitableTransaction<TResult> : IWaitableTransaction
@@ -19,7 +19,7 @@
 
         // @note: We need these on this interface because the full ITransaction interface
         // and the DefaultTransaction class both require the request type to be known.
-        IAsyncDisposable RegisterListener(TransactionListenerDelegate<TResult> listenerDelegate);
+        IAsyncDisposable RegisterListener(TransactionListener<TResult> listenerDelegate);
         void UpdatePollingResponse(PollingResponse pollingResponse, TResult? result);
     }
 }

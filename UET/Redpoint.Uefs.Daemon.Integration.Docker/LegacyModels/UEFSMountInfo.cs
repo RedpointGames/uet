@@ -16,7 +16,7 @@
         [JsonPropertyName("TagHint")]
         public string? TagHint = null;
 
-        [JsonPropertyName("Persist"), Obsolete]
+        [JsonPropertyName("Persist"), Obsolete("Use PersistMode instead.")]
         public bool Persist = false;
 
         [JsonPropertyName("PersistMode")]

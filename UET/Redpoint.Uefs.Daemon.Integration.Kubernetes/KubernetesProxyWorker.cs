@@ -3,6 +3,7 @@
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using System.Diagnostics;
+    using System.Globalization;
     using System.Linq;
     using System.Reflection;
     using System.Threading;
@@ -40,7 +41,7 @@
             {
                 using (var target = new FileStream(goForwardPath, FileMode.Create, FileAccess.ReadWrite))
                 {
-                    await source.CopyToAsync(target).ConfigureAwait(false);
+                    await source.CopyToAsync(target, stoppingToken).ConfigureAwait(false);
                 }
             }
 
@@ -56,7 +57,7 @@
                         ArgumentList =
                         {
                             "--port",
-                            _args.Port.ToString(),
+                            _args.Port.ToString(CultureInfo.InvariantCulture),
                             "--unix",
                             _args.UnixSocketPath
                         },

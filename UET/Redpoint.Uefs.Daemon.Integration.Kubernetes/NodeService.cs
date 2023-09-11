@@ -47,25 +47,24 @@
         {
             try
             {
-                if (request.VolumeContext.ContainsKey("tag"))
+                if (request.VolumeContext.TryGetValue("tag", out var tag))
                 {
-                    if (!request.VolumeContext.ContainsKey("pullSecretPropertyName"))
+                    if (!request.VolumeContext.TryGetValue("pullSecretPropertyName", out var pullSecretPropertyName))
                     {
                         throw new RpcException(new Status(StatusCode.InvalidArgument, "Mounting a UEFS package by tag requires a 'pullSecretPropertyName' attribute to be provided, which indicates the property name inside the secret attached via 'nodePublishSecretRef' that contains the Docker registry configuration secret."));
                     }
 
-                    if (!request.Secrets.ContainsKey(request.VolumeContext["pullSecretPropertyName"]))
+                    if (!request.Secrets.TryGetValue(pullSecretPropertyName, out var pullSecretRaw))
                     {
-                        throw new RpcException(new Status(StatusCode.InvalidArgument, $"'{request.VolumeContext["pullSecretPropertyName"]}' was specified as the property name for the attached secret, but the attached secret only had these property names available: {string.Join(" ", request.Secrets.Keys.Select(x => $"\"{x}\""))}"));
+                        throw new RpcException(new Status(StatusCode.InvalidArgument, $"'{pullSecretPropertyName}' was specified as the property name for the attached secret, but the attached secret only had these property names available: {string.Join(" ", request.Secrets.Keys.Select(x => $"\"{x}\""))}"));
                     }
 
-                    var tag = request.VolumeContext["tag"];
                     var targetDomain = tag[..tag.IndexOf('/', StringComparison.Ordinal)];
 
                     _logger.LogInformation($"Kubernetes is requesting mount of tag '{tag}' to '{request.TargetPath}' with volume ID '{request.VolumeId}'");
 
                     var pullSecret = JsonSerializer.Deserialize(
-                        request.Secrets[request.VolumeContext["pullSecretPropertyName"]],
+                        pullSecretRaw,
                         KubernetesJsonSerializerContext.Default.KubernetesDockerConfig);
                     var pullSecretForTag = pullSecret!.Auths.Where(x =>
                     {

@@ -27,7 +27,7 @@
                 });
             }
 
-            if (!request.Opts["path"].ToLowerInvariant().StartsWith("c:\\"))
+            if (!request.Opts["path"].StartsWith("c:\\", StringComparison.OrdinalIgnoreCase))
             {
                 throw new EndpointException<DockerCreateResponse>(409, new DockerCreateResponse
                 {

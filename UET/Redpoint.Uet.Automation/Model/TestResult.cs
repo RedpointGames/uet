@@ -20,7 +20,7 @@
 
         public required TimeSpan Duration { get; set; }
 
-        public required TestResultEntry[] Entries { get; set; }
+        public required IReadOnlyCollection<TestResultEntry> Entries { get; set; }
 
         public string? EngineCrashInfo { get; set; }
 

@@ -33,7 +33,7 @@
             IUefsDaemon daemon,
             MountContext context,
             MountPackageFileRequest request,
-            TransactionListenerDelegate onPollingResponse,
+            TransactionListener onPollingResponse,
             CancellationToken cancellationToken)
         {
             if (daemon.IsPathMountPath(request.MountRequest.MountPath))

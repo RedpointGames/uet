@@ -252,7 +252,7 @@
                 {
                     EndOfFile = length,
                 };
-                if (!NativeMethods.SetFileInformationByHandle(_handle, NativeMethods.FileInformationClass_FileEndOfFileInfo, eof, sizeof(NativeMethods.NativeFileEndOfFileInfo)))
+                if (!NativeMethods.SetFileInformationByHandle(_handle, NativeMethods.FileInformationClassFileEndOfFileInfo, eof, sizeof(NativeMethods.NativeFileEndOfFileInfo)))
                 {
                     return Marshal.GetHRForLastWin32Error();
                 }

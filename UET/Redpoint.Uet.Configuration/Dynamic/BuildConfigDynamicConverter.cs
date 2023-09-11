@@ -162,6 +162,9 @@
             BuildConfigDynamic<TDistribution, TBaseClass> value,
             JsonSerializerOptions options)
         {
+            if (writer == null) throw new ArgumentNullException(nameof(writer));
+            if (value == null) throw new ArgumentNullException(nameof(value));
+
             var provider = _providers.First(x => x.Type == value.Type);
 
             writer.WriteStartObject();

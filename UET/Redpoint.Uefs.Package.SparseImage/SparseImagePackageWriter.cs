@@ -1,4 +1,6 @@
-﻿namespace Redpoint.Uefs.Package.SparseImage
+﻿using System;
+
+namespace Redpoint.Uefs.Package.SparseImage
 {
     using System.Diagnostics;
     using System.Runtime.Versioning;
@@ -192,9 +194,9 @@
                 {
                     byte[] buffer = new byte[128 * 1024];
                     int bytesRead;
-                    while ((bytesRead = await reader.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) != 0)
+                    while ((bytesRead = await reader.ReadAsync(buffer).ConfigureAwait(false)) != 0)
                     {
-                        await writer.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);
+                        await writer.WriteAsync(buffer.AsMemory(0, bytesRead)).ConfigureAwait(false);
                         onFileBytesWritten(bytesRead);
                     }
 

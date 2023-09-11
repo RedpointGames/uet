@@ -13,7 +13,7 @@
         public async Task<PullResult> PullAsync(
             IUefsDaemon daemon,
             PullGitCommitRequest request,
-            TransactionListenerDelegate<FileInfo?> onPollingResponse,
+            TransactionListener<FileInfo?> onPollingResponse,
             CancellationToken cancellationToken)
         {
             // Run pull transaction in case we need to pull this Git commit.

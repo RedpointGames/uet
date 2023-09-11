@@ -33,7 +33,7 @@
     }
 
     [SupportedOSPlatform("windows")]
-    internal sealed class DockerPluginHostedService : IHostedService
+    internal sealed class DockerPluginHostedService : IHostedService, IAsyncDisposable
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILoggerFactory _loggerFactory;
@@ -198,7 +198,7 @@
             }
 
             // Start the application.
-            await _app.StartAsync().ConfigureAwait(false);
+            await _app.StartAsync(cancellationToken).ConfigureAwait(false);
 
             // Write out the Docker plugin file.
             var pluginFilePath = Path.Combine(dockerRoot, "plugins", "uefs.json");
@@ -233,7 +233,24 @@
 
             if (_app != null)
             {
+                await _app.StopAsync(cancellationToken).ConfigureAwait(false);
+                await _app.DisposeAsync().ConfigureAwait(false);
+                _app = null;
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_pluginStream != null)
+            {
+                await _pluginStream.DisposeAsync().ConfigureAwait(false);
+                _pluginStream = null;
+            }
+
+            if (_app != null)
+            {
                 await _app.StopAsync().ConfigureAwait(false);
+                await _app.DisposeAsync().ConfigureAwait(false);
                 _app = null;
             }
         }

@@ -194,7 +194,7 @@
                 };
                 if (!string.IsNullOrWhiteSpace(request.AutomationRunnerCrashInfo))
                 {
-                    testResult.AutomationRunnerCrashInfo = new Exception(request.AutomationRunnerCrashInfo);
+                    testResult.AutomationRunnerCrashInfo = new InvalidOperationException(request.AutomationRunnerCrashInfo);
                 }
                 if (!string.IsNullOrWhiteSpace(request.EngineCrashInfo))
                 {
@@ -220,7 +220,7 @@
                         TestsRemaining = request.TestsRemaining,
                         TestsTotal = request.TestsTotal,
                     },
-                    new Exception($"Forwarded exception: {request.ExceptionText}"),
+                    new InvalidOperationException($"Forwarded exception: {request.ExceptionText}"),
                     request.ExceptionContext).ConfigureAwait(false);
                 return new LogResponse();
             }
@@ -231,7 +231,7 @@
                 return new LogResponse();
             }
 
-            private Model.TestResultStatus Convert(UETAutomation.TestResultStatus testStatus)
+            private static Model.TestResultStatus Convert(UETAutomation.TestResultStatus testStatus)
             {
                 switch (testStatus)
                 {

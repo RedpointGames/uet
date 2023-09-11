@@ -23,7 +23,9 @@
             {
                 if (_underlying == null)
                 {
+#pragma warning disable CA2208 // Instantiate argument exceptions correctly
                     throw new ArgumentNullException(nameof(_underlying));
+#pragma warning restore CA2208 // Instantiate argument exceptions correctly
                 }
                 _underlying.V = (TOriginal)(object)value!;
             }

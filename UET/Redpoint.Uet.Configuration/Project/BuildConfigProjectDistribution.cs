@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.Configuration.Project
 {
     using Redpoint.Uet.Configuration.Dynamic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
     /// <summary>
@@ -30,6 +31,7 @@
         /// Specifies the preparation scripts to run before various steps. You can specify multiple preparation entries.
         /// </summary>
         [JsonPropertyName("Prepare"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>[]? Prepare { get; set; }
 
         /// <summary>
@@ -42,12 +44,14 @@
         /// A list of tests to run for the project.
         /// </summary>
         [JsonPropertyName("Tests"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public BuildConfigDynamic<BuildConfigProjectDistribution, ITestProvider>[]? Tests { get; set; }
 
         /// <summary>
         /// A list of deployments to run for the project.
         /// </summary>
         [JsonPropertyName("Deployments"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public BuildConfigDynamic<BuildConfigProjectDistribution, IDeploymentProvider>[]? Deployments { get; set; }
     }
 }

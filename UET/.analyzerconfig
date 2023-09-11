@@ -49,6 +49,10 @@ dotnet_diagnostic.CA1019.severity = none
 # must have public non-read-only collection properties for deserialization to work properly.
 dotnet_diagnostic.CA2227.severity = none
 
+# Incorrectly reports that we should not declare static methods on generic types, even when the
+# static method is required by an interface.
+dotnet_diagnostic.CA1000.severity = none
+
 #### Gradually turn these on ####
 
 # Turn off warnings around usage of logging APIs.

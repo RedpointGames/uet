@@ -218,7 +218,7 @@
 
                         // Generate all of the pending tests.
                         groupState.AllTests = discoveredTests.Tests
-                            .Where(x => x.FullTestPath.StartsWith(_configuration.TestPrefix))
+                            .Where(x => x.FullTestPath.StartsWith(_configuration.TestPrefix, StringComparison.Ordinal))
                             .Select(x => new TestResult
                             {
                                 Platform = worker.Descriptor.Platform,
@@ -554,9 +554,9 @@
 
         private async Task WorkerRemovedFromPoolAsync(IWorker worker, int exitCode, IWorkerCrashData? crashData)
         {
-            if (_workers.ContainsKey(worker))
+            if (_workers.TryGetValue(worker, out var workerState))
             {
-                var currentTest = _workers[worker].CurrentTest;
+                var currentTest = workerState.CurrentTest;
                 if (currentTest != null)
                 {
                     if (crashData != null)
@@ -575,8 +575,8 @@
                     await _testLogger.LogFinished(worker, GetProgressionInfo(), currentTest).ConfigureAwait(false);
                     _notification.TestFinished(currentTest);
                 }
-                _workers[worker].CancellationTokenSource.Cancel();
-                await _workers[worker].TransportConnection.DisposeAsync().ConfigureAwait(false);
+                workerState.CancellationTokenSource.Cancel();
+                await workerState.TransportConnection.DisposeAsync().ConfigureAwait(false);
                 _workers.Remove(worker);
             }
         }

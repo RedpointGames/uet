@@ -78,7 +78,7 @@
                     return;
                 }
 
-                await Task.Delay(10000);
+                await Task.Delay(10000).ConfigureAwait(false);
             }
         }
 

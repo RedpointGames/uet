@@ -37,7 +37,7 @@
 
         public async Task<ITransactionHandle> BeginTransactionAsync<TRequest>(
             TRequest transactionRequest,
-            TransactionListenerDelegate transactionListener,
+            TransactionListener transactionListener,
             CancellationToken cancellationToken) where TRequest : class, ITransactionRequest
         {
             var executor = _serviceProvider.GetRequiredService<ITransactionExecutor<TRequest>>();
@@ -134,7 +134,7 @@
 
         public async Task<ITransactionHandle<TResult>> BeginTransactionAsync<TRequest, TResult>(
             TRequest transactionRequest,
-            TransactionListenerDelegate<TResult> transactionListener,
+            TransactionListener<TResult> transactionListener,
             CancellationToken cancellationToken) where TRequest : class, ITransactionRequest<TResult> where TResult : class
         {
             var executor = _serviceProvider.GetRequiredService<ITransactionExecutor<TRequest, TResult>>();
@@ -232,7 +232,7 @@
 
         public async Task<ITransactionHandle?> AddListenerToExistingTransactionAsync(
             string transactionId,
-            TransactionListenerDelegate transactionListener,
+            TransactionListener transactionListener,
             CancellationToken cancellationToken)
         {
             await _transactionListSemasphore.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -256,7 +256,7 @@
 
         public async Task<ITransactionHandle<TResult>?> AddListenerToExistingTransactionAsync<TResult>(
             string transactionId,
-            TransactionListenerDelegate<TResult> transactionListener,
+            TransactionListener<TResult> transactionListener,
             CancellationToken cancellationToken) where TResult : class
         {
             await _transactionListSemasphore.WaitAsync(cancellationToken).ConfigureAwait(false);

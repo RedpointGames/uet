@@ -7,7 +7,7 @@
     [JsonSerializable(typeof(DaemonDatabasePersistentMount))]
     public partial class DaemonDatabaseJsonSerializerContext : JsonSerializerContext
     {
-        public static DaemonDatabaseJsonSerializerContext WithStringEnums = new DaemonDatabaseJsonSerializerContext(new JsonSerializerOptions
+        public static DaemonDatabaseJsonSerializerContext WithStringEnums { get; } = new(new JsonSerializerOptions
         {
             Converters =
             {

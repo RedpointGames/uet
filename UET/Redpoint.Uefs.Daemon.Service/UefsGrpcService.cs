@@ -93,7 +93,7 @@
         private async Task RunMountAsync(
             IServerStreamWriter<MountResponse> stream,
             MountContext mountContext,
-            Func<TransactionListenerDelegate, Task> operation)
+            Func<TransactionListener, Task> operation)
         {
             PollingResponse? lastPollingResponse = null;
             var streamClosed = false;
@@ -236,7 +236,7 @@
 
         private async Task RunPullAsync(
             IServerStreamWriter<PullResponse> stream,
-            Func<TransactionListenerDelegate, Action<string>, Task> operation)
+            Func<TransactionListener, Action<string>, Task> operation)
         {
             string? transactionId = null;
             PollingResponse? lastPollingResponse = null;

@@ -19,10 +19,7 @@
             {
                 _persistentMounts = new Dictionary<string, DaemonDatabasePersistentMount>();
             }
-            if (_persistentMounts.ContainsKey(mountPath))
-            {
-                _persistentMounts.Remove(mountPath);
-            }
+            _persistentMounts.Remove(mountPath);
         }
 
         public IReadOnlyDictionary<string, DaemonDatabasePersistentMount> GetPersistentMounts()

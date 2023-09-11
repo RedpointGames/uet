@@ -41,7 +41,7 @@
             IUefsDaemon daemon,
             MountContext context,
             MountFolderSnapshotRequest request,
-            TransactionListenerDelegate onPollingResponse,
+            TransactionListener onPollingResponse,
             CancellationToken cancellationToken)
         {
             if (_vfsDriverFactory == null)

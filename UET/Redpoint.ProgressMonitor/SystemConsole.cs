@@ -74,6 +74,7 @@
         /// <returns>The awaitable task.</returns>
         public static async Task CancelAndWaitForConsoleMonitoringTaskAsync(Task task, CancellationTokenSource cts)
         {
+            if (task == null) throw new ArgumentNullException(nameof(task));
             if (cts == null) throw new ArgumentNullException(nameof(cts));
 
             // Stop monitoring.

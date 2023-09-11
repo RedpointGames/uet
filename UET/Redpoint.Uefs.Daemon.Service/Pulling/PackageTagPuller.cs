@@ -13,7 +13,7 @@
         public async Task<PullResult> PullAsync(
             IUefsDaemon daemon,
             PullPackageTagRequest request,
-            TransactionListenerDelegate<FileInfo?> onPollingResponse,
+            TransactionListener<FileInfo?> onPollingResponse,
             CancellationToken cancellationToken)
         {
             await using ((await daemon.TransactionalDatabase.BeginTransactionAsync<PullPackageTagTransactionRequest, PullPackageTagTransactionResult>(

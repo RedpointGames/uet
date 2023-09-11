@@ -26,8 +26,8 @@
 
         public IoTestNotification(
             ILogger<IoTestNotification> logger,
-            CancellationToken cancellationToken,
-            bool simulateIo)
+            bool simulateIo,
+            CancellationToken cancellationToken)
         {
             _submitTask = Task.Run(RunAsync);
             _changeQueue = new ConcurrentQueue<IoChange>();

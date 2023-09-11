@@ -43,6 +43,7 @@
         /// <param name="error">The error message.</param>
         public static void Error(this PollingResponse response, string error)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.Err = error;
             response.Complete = true;
             response.Status = PollingResponseStatus.Error;
@@ -55,6 +56,8 @@
         /// <param name="ex">The exception.</param>
         public static void Exception(this PollingResponse response, Exception ex)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
+            if (ex == null) throw new ArgumentNullException(nameof(ex));
             response.Err = ex.ToString();
             response.Complete = true;
             response.Status = PollingResponseStatus.Error;
@@ -62,6 +65,7 @@
 
         public static void Init(this PollingResponse response, PollingResponseType type)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.Type = type;
             response.Complete = false;
             response.Status = PollingResponseStatus.Waiting;
@@ -74,6 +78,7 @@
 
         public static void Starting(this PollingResponse response)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.Complete = false;
             response.Status = PollingResponseStatus.Starting;
             response.Err = string.Empty;
@@ -85,6 +90,7 @@
 
         public static void Checking(this PollingResponse response)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.Complete = false;
             response.Status = PollingResponseStatus.Checking;
             response.Err = string.Empty;
@@ -96,6 +102,7 @@
 
         public static void VerifyingPackages(this PollingResponse response, int totalPackages)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.Complete = false;
             response.Status = PollingResponseStatus.Verifying;
             response.VerifyPackageTotal = totalPackages;
@@ -103,11 +110,13 @@
 
         public static void VerifyingPackage(this PollingResponse response, int packageIndex)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.VerifyPackageIndex = packageIndex;
         }
 
         public static void VerifyingChunk(this PollingResponse response, long length)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.Complete = false;
             response.Status = PollingResponseStatus.Verifying;
             response.Length = length;
@@ -115,16 +124,19 @@
 
         public static void VerifyingChunkUpdatePosition(this PollingResponse response, long position)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.Position = position;
         }
 
         public static void VerifyingChunkIncrementFixed(this PollingResponse response)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.VerifyChunksFixed++;
         }
 
         public static void CompleteForVerifying(this PollingResponse response)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.Complete = true;
             response.Status = PollingResponseStatus.Complete;
             response.Err = string.Empty;
@@ -132,6 +144,7 @@
 
         public static void CompleteForMount(this PollingResponse response)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.Complete = true;
             response.Status = PollingResponseStatus.Complete;
             response.Err = string.Empty;
@@ -139,6 +152,7 @@
 
         public static void CompleteForGit(this PollingResponse response)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.Complete = true;
             response.Status = PollingResponseStatus.Complete;
             response.Err = string.Empty;
@@ -149,6 +163,7 @@
             string packagePath,
             string packageHash)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.Complete = true;
             response.Status = PollingResponseStatus.Complete;
             response.Err = string.Empty;
@@ -162,6 +177,7 @@
             string packageHash,
             long length)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.Complete = true;
             response.Status = PollingResponseStatus.Complete;
             response.Err = string.Empty;
@@ -175,6 +191,7 @@
             this PollingResponse response,
             long length)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.Complete = false;
             response.Status = PollingResponseStatus.Pulling;
             response.Err = string.Empty;
@@ -185,6 +202,7 @@
 
         public static void PullingGit(this PollingResponse response)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.Complete = false;
             response.Status = PollingResponseStatus.Pulling;
             response.Err = string.Empty;
@@ -195,6 +213,7 @@
             this PollingResponse response,
             long position)
         {
+            if (response == null) throw new ArgumentNullException(nameof(response));
             response.Position = position;
         }
     }

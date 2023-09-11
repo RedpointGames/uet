@@ -17,8 +17,8 @@
         {
             return new IoTestNotification(
                 _serviceProvider.GetRequiredService<ILogger<IoTestNotification>>(),
-                cancellationToken,
-                !IoTestNotification.IsIoAvailable());
+                !IoTestNotification.IsIoAvailable(),
+                cancellationToken);
         }
 
         public ITestNotification CreateNull()

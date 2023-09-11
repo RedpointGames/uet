@@ -10,7 +10,7 @@
             IUefsDaemon daemon, 
             MountContext context, 
             TRequest request,
-            TransactionListenerDelegate onPollingResponse,
+            TransactionListener onPollingResponse,
             CancellationToken cancellationToken);
     }
 }

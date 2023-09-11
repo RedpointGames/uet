@@ -11,7 +11,7 @@
         /// The saved authentication credentials for each host.
         /// </summary>
         [JsonPropertyName("auths")]
-        public Dictionary<string, DockerAuthSetting> Auths { get; } = new Dictionary<string, DockerAuthSetting>();
+        public Dictionary<string, DockerAuthSetting> Auths { get; set; } = new Dictionary<string, DockerAuthSetting>();
 
         /// <summary>
         /// The type of credential store being used.

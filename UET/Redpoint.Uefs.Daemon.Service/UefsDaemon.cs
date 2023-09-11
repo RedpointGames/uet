@@ -332,7 +332,7 @@
 
         private async Task SavePersistentDatabaseAsync()
         {
-            await _databaseSaveSemaphore.WaitAsync(CancellationToken.None);
+            await _databaseSaveSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 var databasePath = Path.Combine(

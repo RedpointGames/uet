@@ -94,17 +94,17 @@
                 File.Exists(Path.Combine(_storagePath, normalizedPackageHash + extension)))
             {
                 // We do. Check if we need to update our tag data.
-                if (_tagReferences.ContainsKey(tagHash) &&
+                if (_tagReferences.TryGetValue(tagHash, out var tagHashValue) &&
                     File.Exists(Path.Combine(_storagePath, tagHash + ".tag")))
                 {
-                    if (_tagReferences[tagHash].Hash != normalizedPackageHash)
+                    if (tagHashValue.Hash != normalizedPackageHash)
                     {
                         // Update the tag information on disk.
-                        _tagReferences[tagHash].Hash = normalizedPackageHash;
+                        tagHashValue.Hash = normalizedPackageHash;
                         await File.WriteAllTextAsync(
                             Path.Combine(_storagePath, tagHash + ".tag"),
                             JsonSerializer.Serialize(
-                                _tagReferences[tagHash],
+                                tagHashValue,
                                 PackageFsInternalJsonSerializerContext.Default.PackageStorageTag)).ConfigureAwait(false);
                     }
                 }

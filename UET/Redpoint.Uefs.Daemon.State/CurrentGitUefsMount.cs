@@ -2,12 +2,14 @@
 {
     using Redpoint.Uefs.Protocol;
     using Redpoint.Vfs.Driver;
+    using System.Diagnostics.CodeAnalysis;
 
     public class CurrentGitUefsMount : CurrentUefsMount
     {
         public string GitUrl;
         public string GitCommit;
 
+        [SuppressMessage("Design", "CA1054:URI-like parameters should not be strings", Justification = "We intentionally want to use a string value for the Git URL.")]
         public CurrentGitUefsMount(string gitUrl, string gitCommit, string mountPath, IVfsDriver vfs)
         {
             GitUrl = gitUrl;
