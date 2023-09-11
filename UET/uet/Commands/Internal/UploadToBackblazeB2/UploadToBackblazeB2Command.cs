@@ -7,9 +7,9 @@
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal class UploadToBackblazeB2Command
+    internal sealed class UploadToBackblazeB2Command
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<FileInfo> ZipPath;
             public Option<string> BucketName;
@@ -32,7 +32,7 @@
             return command;
         }
 
-        private class UploadToBackblazeB2CommandInstance : ICommandInstance
+        private sealed class UploadToBackblazeB2CommandInstance : ICommandInstance
         {
             private readonly ILogger<UploadToBackblazeB2CommandInstance> _logger;
             private readonly Options _options;

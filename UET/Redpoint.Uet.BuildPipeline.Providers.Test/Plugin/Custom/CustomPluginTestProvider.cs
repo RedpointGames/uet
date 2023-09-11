@@ -123,7 +123,7 @@
             }
         }
 
-        private async Task WriteBuildGraphPackagedPluginNodesAsync(
+        private static async Task WriteBuildGraphPackagedPluginNodesAsync(
             IBuildGraphEmitContext context,
             XmlWriter writer,
             IEnumerable<(string name, BuildConfigPluginTestCustom settings)> dynamicSettings)

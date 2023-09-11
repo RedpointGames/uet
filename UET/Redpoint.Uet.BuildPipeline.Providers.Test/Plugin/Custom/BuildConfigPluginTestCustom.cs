@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Custom
 {
     using Redpoint.Uet.Configuration;
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
     public class BuildConfigPluginTestCustom
@@ -15,6 +16,7 @@
         /// A list of platforms to execute custom tests on. A set of "Win64", "Mac" or both.
         /// </summary>
         [JsonPropertyName("Platforms"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public BuildConfigHostPlatform[] Platforms { get; set; } = Array.Empty<BuildConfigHostPlatform>();
 
         /// <summary>

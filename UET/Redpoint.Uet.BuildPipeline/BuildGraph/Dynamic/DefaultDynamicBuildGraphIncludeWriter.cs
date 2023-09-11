@@ -75,7 +75,7 @@
             }
         }
 
-        private async Task WriteBuildGraphNodesAsync<TDistribution, TBaseClass>(
+        private static async Task WriteBuildGraphNodesAsync<TDistribution, TBaseClass>(
             IBuildGraphEmitContext context,
             XmlWriter writer,
             TDistribution buildConfigDistribution,

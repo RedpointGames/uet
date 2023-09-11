@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Commandlet
 {
     using Redpoint.Uet.Configuration;
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
     public class BuildConfigPluginTestCommandlet
@@ -15,12 +16,14 @@
         /// Additional command line arguments to pass to Unreal Editor when running the commandlet.
         /// </summary>
         [JsonPropertyName("AdditionalArguments"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public string[]? AdditionalArguments { get; set; } = null;
 
         /// <summary>
         /// A list of platforms to execute this commandlet test on. A set of "Win64", "Mac" or both.
         /// </summary>
         [JsonPropertyName("Platforms"), JsonRequired]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public BuildConfigHostPlatform[] Platforms { get; set; } = Array.Empty<BuildConfigHostPlatform>();
 
         /// <summary>

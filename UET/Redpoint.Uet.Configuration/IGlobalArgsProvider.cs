@@ -5,6 +5,6 @@
     {
         string GlobalArgsString { get; }
 
-        IReadOnlyCollection<string> GlobalArgsArray { get; }
+        IReadOnlyList<string> GlobalArgsArray { get; }
     }
 }

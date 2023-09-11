@@ -28,7 +28,7 @@
                 foreach (var environmentVariableName in Environment.GetEnvironmentVariables()
                     .Keys
                     .OfType<string>()
-                    .Where(x => x.StartsWith("UET_PLATFORM_SDK_CONFIG_PATH_")))
+                    .Where(x => x.StartsWith("UET_PLATFORM_SDK_CONFIG_PATH_", StringComparison.Ordinal)))
                 {
                     var platform = environmentVariableName["UET_PLATFORM_SDK_CONFIG_PATH_".Length..];
                     var configPath = Environment.GetEnvironmentVariable(environmentVariableName)!;

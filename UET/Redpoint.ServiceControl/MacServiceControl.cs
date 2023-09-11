@@ -69,7 +69,9 @@
                 }
             }
 
+#pragma warning disable CA1854
             if (kv.ContainsKey("IsManagedByRedpointServiceControl"))
+#pragma warning restore CA1854
             {
                 // The executable and arguments are
                 // always the second value in ProgramArguments.

@@ -45,7 +45,7 @@
                 logger.LogInformation("Checking for the latest version...");
                 using (var client = new HttpClient())
                 {
-                    version = (await client.GetStringAsync(latestUrl, cancellationToken).ConfigureAwait(false)).Trim();
+                    version = (await client.GetStringAsync(new Uri(latestUrl), cancellationToken).ConfigureAwait(false)).Trim();
                 }
 
                 if (string.IsNullOrWhiteSpace(version))
@@ -97,7 +97,7 @@
                     using (var target = new FileStream(Path.Combine(baseFolder, version, filename + ".tmp"), FileMode.Create, FileAccess.Write, FileShare.None))
                     {
                         var response = await client.GetAsync(
-                            downloadUrl,
+                            new Uri(downloadUrl),
                             HttpCompletionOption.ResponseHeadersRead,
                             cancellationToken).ConfigureAwait(false);
                         response.EnsureSuccessStatusCode();
@@ -228,7 +228,7 @@
                         // We already have it in the PATH.
                         hasPath = true;
                     }
-                    else if (entry.StartsWith(baseFolder))
+                    else if (entry.StartsWith(baseFolder, StringComparison.OrdinalIgnoreCase))
                     {
                         // Remove old versions from PATH.
                         path.RemoveAt(i);

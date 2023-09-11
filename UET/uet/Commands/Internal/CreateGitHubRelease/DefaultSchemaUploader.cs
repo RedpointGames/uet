@@ -8,6 +8,7 @@
     using System.Net.Http.Headers;
     using Microsoft.Extensions.Logging;
     using System.Text;
+    using System.Globalization;
 
     internal sealed class DefaultSchemaUploader : ISchemaUploader
     {
@@ -41,19 +42,19 @@
         {
             // Release the current 'main' branch of the schema repository.
             _logger.LogInformation("Getting current 'main' branch for schema repository...");
-            var response = await client.GetAsync($"https://api.github.com/repos/{_owner}/{_repo}/branches/main", cancellationToken).ConfigureAwait(false);
+            var response = await client.GetAsync(new Uri($"https://api.github.com/repos/{_owner}/{_repo}/branches/main"), cancellationToken).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             var branch = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false), GitHubJsonSerializerContext.Default.BranchResponse);
 
             // Get the existing commit.
             _logger.LogInformation($"Getting commit by SHA '{branch!.Commit!.Sha}'...");
-            response = await client.GetAsync($"https://api.github.com/repos/{_owner}/{_repo}/git/commits/{branch!.Commit!.Sha}", cancellationToken).ConfigureAwait(false);
+            response = await client.GetAsync(new Uri($"https://api.github.com/repos/{_owner}/{_repo}/git/commits/{branch!.Commit!.Sha}"), cancellationToken).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             var commit = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false), GitHubJsonSerializerContext.Default.CommitResponse);
 
             // Get the existing tree, which we'll make a derived tree from.
             _logger.LogInformation($"Getting tree by SHA '{commit!.Tree!.Sha!}'...");
-            response = await client.GetAsync($"https://api.github.com/repos/{_owner}/{_repo}/git/trees/{commit!.Tree!.Sha}", cancellationToken).ConfigureAwait(false);
+            response = await client.GetAsync(new Uri($"https://api.github.com/repos/{_owner}/{_repo}/git/trees/{commit!.Tree!.Sha}"), cancellationToken).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             var tree = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false), GitHubJsonSerializerContext.Default.TreeResponse);
 
@@ -87,7 +88,7 @@
             // Upload both blobs.
             _logger.LogInformation("Uploading root schema blob...");
             response = await client.PostAsync(
-                $"https://api.github.com/repos/{_owner}/{_repo}/git/blobs",
+                new Uri($"https://api.github.com/repos/{_owner}/{_repo}/git/blobs"),
                 MakeContent(
                     new GitHubNewBlob
                     {
@@ -100,7 +101,7 @@
             var rootBlob = JsonSerializer.Deserialize(await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false), GitHubJsonSerializerContext.Default.BlobPointer)!;
             _logger.LogInformation("Uploading version schema blob...");
             response = await client.PostAsync(
-                $"https://api.github.com/repos/{_owner}/{_repo}/git/blobs",
+                new Uri($"https://api.github.com/repos/{_owner}/{_repo}/git/blobs"),
                 MakeContent(
                     new GitHubNewBlob
                     {
@@ -115,7 +116,7 @@
             // Upload a new tree with the updated entries.
             _logger.LogInformation("Creating new tree...");
             response = await client.PostAsync(
-                $"https://api.github.com/repos/{_owner}/{_repo}/git/trees",
+                new Uri($"https://api.github.com/repos/{_owner}/{_repo}/git/trees"),
                 MakeContent(
                     new GitHubNewTree
                     {
@@ -146,7 +147,7 @@
             // Create the new commit.
             _logger.LogInformation("Creating new commit...");
             response = await client.PostAsync(
-                $"https://api.github.com/repos/{_owner}/{_repo}/git/commits",
+                new Uri($"https://api.github.com/repos/{_owner}/{_repo}/git/commits"),
                 MakeContent(
                     new GitHubNewCommit
                     {
@@ -162,7 +163,7 @@
             // Update the main branch.
             _logger.LogInformation("Updating the 'main' branch...");
             response = await client.PostAsync(
-                $"https://api.github.com/repos/{_owner}/{_repo}/git/refs/heads/main",
+                new Uri($"https://api.github.com/repos/{_owner}/{_repo}/git/refs/heads/main"),
                 MakeContent(
                     new GitHubUpdateRef
                     {
@@ -180,21 +181,21 @@
         {
             var versions = tree.Tree!
                 .Select(x => x.Path!)
-                .Where(x => x.EndsWith(".json") && x != "root.json")
+                .Where(x => x.EndsWith(".json", StringComparison.Ordinal) && x != "root.json")
                 .Select(x => Path.GetFileNameWithoutExtension(x))
                 .Concat(new[] { newVersion })
                 .Distinct()
                 .OrderByDescending(x =>
                 {
                     var c = x.Split(".");
-                    var major = long.Parse(c[0]);
-                    var minor = long.Parse(c[1]);
+                    var major = long.Parse(c[0], CultureInfo.InvariantCulture);
+                    var minor = long.Parse(c[1], CultureInfo.InvariantCulture);
                     var patchStr = c[2];
-                    if (patchStr.EndsWith("-pre"))
+                    if (patchStr.EndsWith("-pre", StringComparison.Ordinal))
                     {
                         patchStr = patchStr.Split("-")[0];
                     }
-                    var patch = long.Parse(patchStr);
+                    var patch = long.Parse(patchStr, CultureInfo.InvariantCulture);
                     return
                         (major * (366 * 60 * 24)) +
                         (minor * (60 * 24)) +

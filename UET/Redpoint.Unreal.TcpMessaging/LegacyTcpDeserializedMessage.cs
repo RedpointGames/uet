@@ -52,6 +52,9 @@
 
         public static async Task Serialize(Archive ar, Store<LegacyTcpDeserializedMessage> value)
         {
+            if (ar == null) throw new ArgumentNullException(nameof(ar));
+            if (value == null) throw new ArgumentNullException(nameof(value));
+
             await ar.Serialize(value.V.AssetPath).ConfigureAwait(false);
             await ar.Serialize(value.V.SenderAddress).ConfigureAwait(false);
             await ar.Serialize(value.V.RecipientAddresses).ConfigureAwait(false);

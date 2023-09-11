@@ -1,9 +1,11 @@
 ﻿namespace Redpoint.Uet.Workspace
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Runtime.Serialization;
 
     [Serializable]
+    [SuppressMessage("Design", "CA1064:Exceptions should be public", Justification = "This exception is only used internally.")]
     internal class UefsServiceNotRunningException : Exception
     {
         public UefsServiceNotRunningException() : base("The UEFS service is not running on this machine, so the requested workspace can not be provided.")

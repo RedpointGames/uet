@@ -20,9 +20,9 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal class RunRfsCommand
+    internal sealed class RunRfsCommand
     {
-        public class Options
+        public sealed class Options
         {
             public Option<string?> Path = new Option<string?>("--path", "The path to serve the remote filesystem from.");
             public Option<string?> ConnectTo = new Option<string?>("--connect-to", "The address of the RFS host to connect to.");
@@ -39,7 +39,7 @@
             return command;
         }
 
-        private class RunRfsCommandInstance : ICommandInstance
+        private sealed class RunRfsCommandInstance : ICommandInstance
         {
             private readonly ILogger<RunRfsCommandInstance> _logger;
             private readonly Options _options;

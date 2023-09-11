@@ -12,7 +12,7 @@
     using Redpoint.Uefs.Commands.Verify;
     using Redpoint.Uefs.Commands.Wait;
 
-    internal class UefsCommand
+    internal sealed class UefsCommand
     {
         public static Command CreateUefsCommand()
         {

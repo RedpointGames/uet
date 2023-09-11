@@ -12,9 +12,9 @@
     using System.Threading.Tasks;
     using UET.Services;
 
-    internal class OpenGEUninstallCommand
+    internal sealed class OpenGEUninstallCommand
     {
-        internal class Options
+        internal sealed class Options
         {
         }
 
@@ -31,7 +31,7 @@
             return command;
         }
 
-        private class OpenGEUninstallCommandInstance : ICommandInstance
+        private sealed class OpenGEUninstallCommandInstance : ICommandInstance
         {
             private readonly ILogger<OpenGEUninstallCommandInstance> _logger;
             private readonly IServiceControl _serviceControl;
@@ -117,7 +117,7 @@
             {
                 // Get the current version.
                 var currentVersionAttribute = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-                if (currentVersionAttribute != null && !currentVersionAttribute.InformationalVersion.EndsWith("-pre"))
+                if (currentVersionAttribute != null && !currentVersionAttribute.InformationalVersion.EndsWith("-pre", StringComparison.Ordinal))
                 {
                     var version = currentVersionAttribute.InformationalVersion;
                     var basePath = true switch
@@ -157,7 +157,7 @@
                     _logger.LogInformation("Checking for the latest version...");
                     using (var client = new HttpClient())
                     {
-                        version = (await client.GetStringAsync(latestUrl).ConfigureAwait(false)).Trim();
+                        version = (await client.GetStringAsync(new Uri(latestUrl)).ConfigureAwait(false)).Trim();
                     }
 
                     if (string.IsNullOrWhiteSpace(version))

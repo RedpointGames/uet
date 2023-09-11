@@ -28,7 +28,7 @@
             _simpleDownloadProgress = simpleDownloadProgress;
         }
 
-        public string[] PlatformNames => new[] { "Linux" };
+        public IReadOnlyList<string> PlatformNames => new[] { "Linux" };
 
         public string CommonPlatformNameForPackageId => "Linux";
 
@@ -42,7 +42,7 @@
             throw new InvalidOperationException("Unable to find Clang version in LinuxPlatformSDK.Versions.cs");
         }
 
-        private async Task<string> GetClangToolchainVersion(string unrealEnginePath)
+        private static async Task<string> GetClangToolchainVersion(string unrealEnginePath)
         {
             var linuxPlatformSdk = await File.ReadAllTextAsync(Path.Combine(
                 unrealEnginePath,
@@ -73,7 +73,7 @@
                     var downloadUrl = $"https://cdn.unrealengine.com/CrossToolchain_Linux/{clangToolchain.Trim()}.exe";
                     await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
                         client,
-                        downloadUrl,
+                        new Uri(downloadUrl),
                         async stream => await stream.CopyToAsync(target, cancellationToken).ConfigureAwait(false),
                         cancellationToken).ConfigureAwait(false);
                 }

@@ -3,6 +3,7 @@
     using System;
     using System.Collections;
     using System.ComponentModel;
+    using System.Diagnostics.CodeAnalysis;
     using System.Runtime.InteropServices;
     using System.Runtime.Versioning;
     using global::Windows.Win32;
@@ -20,6 +21,7 @@
             private SystemVolume? _current;
             private global::Windows.Win32.Storage.FileSystem.FindVolumeHandle? _iterationHandle;
 
+            [SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "Raises the IndexOutOfRangeException only when the indexer is out of range.")]
             public SystemVolume Current
             {
                 get

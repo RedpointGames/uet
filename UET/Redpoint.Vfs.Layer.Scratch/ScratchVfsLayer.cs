@@ -54,7 +54,7 @@
             Directory.CreateDirectory(_scratchPath);
         }
 
-        private string NormalizePathKey(string path)
+        private static string NormalizePathKey(string path)
         {
             return path.ToLowerInvariant();
         }

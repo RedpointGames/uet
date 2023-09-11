@@ -8,9 +8,9 @@
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal class TestAutoDiscoveryCommand
+    internal sealed class TestAutoDiscoveryCommand
     {
-        internal class Options
+        internal sealed class Options
         {
         }
 
@@ -23,7 +23,7 @@
             return command;
         }
 
-        private class TestAutoDiscoveryCommandInstance : ICommandInstance
+        private sealed class TestAutoDiscoveryCommandInstance : ICommandInstance
         {
             private readonly ILogger<TestAutoDiscoveryCommandInstance> _logger;
             private readonly INetworkAutoDiscovery _networkAutoDiscovery;

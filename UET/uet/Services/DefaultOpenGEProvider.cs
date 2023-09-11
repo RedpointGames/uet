@@ -14,9 +14,9 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DefaultOpenGEProvider : IOpenGEProvider
+    internal sealed class DefaultOpenGEProvider : IOpenGEProvider
     {
-        private readonly SemaphoreSlim _setupSemaphore = new SemaphoreSlim(1);
+        private readonly Redpoint.Concurrency.Semaphore _setupSemaphore = new Redpoint.Concurrency.Semaphore(1);
         private readonly ILogger<DefaultOpenGEProvider> _logger;
         private readonly IPathResolver _pathResolver;
         private readonly IGrpcPipeFactory _grpcPipeFactory;
@@ -26,7 +26,7 @@
         private OpenGEEnvironmentInfo? _environmentInfo;
         private IOpenGEAgent? _agent;
         private IPreprocessorCache? _onDemandCache;
-        private readonly SemaphoreSlim _onDemandCacheSemaphore = new SemaphoreSlim(1);
+        private readonly Redpoint.Concurrency.Semaphore _onDemandCacheSemaphore = new Redpoint.Concurrency.Semaphore(1);
 
         public DefaultOpenGEProvider(
             ILogger<DefaultOpenGEProvider> logger,
@@ -51,7 +51,7 @@
                 return _environmentInfo;
             }
 
-            await _setupSemaphore.WaitAsync().ConfigureAwait(false);
+            await _setupSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (_environmentInfo != null)
@@ -165,7 +165,7 @@
             {
                 return _onDemandCache;
             }
-            await _onDemandCacheSemaphore.WaitAsync().ConfigureAwait(false);
+            await _onDemandCacheSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (_onDemandCache != null)
@@ -197,7 +197,7 @@
 
         public async Task StopAsync()
         {
-            await _setupSemaphore.WaitAsync().ConfigureAwait(false);
+            await _setupSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (_agent != null)

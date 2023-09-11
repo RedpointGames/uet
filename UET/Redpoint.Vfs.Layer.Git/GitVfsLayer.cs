@@ -62,11 +62,11 @@
             {
                 _didInit = true;
 
-                var sha = await _repository.ResolveRefToShaAsync(_commitHash, cancellationToken);
-                _commit = await _repository.GetCommitByShaAsync(sha!, cancellationToken);
+                var sha = await _repository.ResolveRefToShaAsync(_commitHash, cancellationToken).ConfigureAwait(false);
+                _commit = await _repository.GetCommitByShaAsync(sha!, cancellationToken).ConfigureAwait(false);
                 _created = _commit.CommittedAtUtc;
 
-                var tree = await _commit.GetRootTreeAsync(cancellationToken);
+                var tree = await _commit.GetRootTreeAsync(cancellationToken).ConfigureAwait(false);
 
                 var cachedIndexTreePath = Path.Combine(_indexCachePath, tree.Sha);
 
@@ -86,7 +86,7 @@
                         Console.WriteLine($"Git parsed objects: {objectsMapped}");
                     }
                 });
-                await _index.InitializeFromTreeAsync(tree, metrics, cancellationToken);
+                await _index.InitializeFromTreeAsync(tree, metrics, cancellationToken).ConfigureAwait(false);
 
                 try
                 {
@@ -146,9 +146,9 @@
         public VfsEntry? GetInfo(string path)
         {
             var gitPath = path.TrimStart(Path.DirectorySeparatorChar).ToLowerInvariant();
-            if (_index._paths.ContainsKey(gitPath))
+            if (_index._paths.TryGetValue(gitPath, out var vfsEntry))
             {
-                return _index._paths[gitPath];
+                return vfsEntry;
             }
             else
             {
@@ -170,7 +170,7 @@
             bool acquiredGlobalSemaphore = false;
             if (Environment.GetEnvironmentVariable("UEFS_GIT_TEST_LOCK_MODE") == "global-semaphore")
             {
-                _globalSemaphore.Wait();
+                _globalSemaphore.Wait(CancellationToken.None);
                 acquiredGlobalSemaphore = true;
             }
 
@@ -218,14 +218,14 @@
 
                                 var stopwatch = Stopwatch.StartNew();
                                 var fileSha = _index._files[gitPath];
-                                var extractedSize = await _repository.MaterializeBlobToDiskByShaAsync(fileSha, expandedPath, contentAdjust, CancellationToken.None);
+                                var extractedSize = await _repository.MaterializeBlobToDiskByShaAsync(fileSha, expandedPath, contentAdjust, CancellationToken.None).ConfigureAwait(false);
 #if ENABLE_TRACE_LOGS
                                 _logger.LogTrace($"Materialized {gitPath} to disk ({extractedSize} bytes in {stopwatch.ElapsedMilliseconds.ToString("F2")} ms).");
 #endif
                             }
                         }
                         return true;
-                    }));
+                    }).ConfigureAwait(false));
                 bgTask.Wait();
                 if (bgTask.IsFaulted)
                 {

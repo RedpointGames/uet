@@ -7,6 +7,7 @@
     using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.Globalization;
     using System.Linq;
     using System.Runtime.InteropServices;
     using System.Runtime.Versioning;
@@ -14,9 +15,9 @@
     using System.Threading.Tasks;
     using UET.Commands.Build;
 
-    internal class StorageListCommand
+    internal sealed class StorageListCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<bool> NoDiskUsage = new Option<bool>("--no-disk-usage", "Skip computing disk usage of folders.");
         }
@@ -29,10 +30,11 @@
         }
 
         [SupportedOSPlatform("windows")]
-        [DllImport("kernel32.dll")]
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         static extern uint GetCompressedFileSize(string lpFileName, out uint lpFileSizeHigh);
 
-        private class StorageListCommandInstance : ICommandInstance
+        private sealed class StorageListCommandInstance : ICommandInstance
         {
             private readonly ILogger<StorageListCommandInstance> _logger;
             private readonly IReservationManagerForUet _reservationManager;
@@ -193,7 +195,7 @@
                         DateTimeOffset lastUsed = directory.LastWriteTimeUtc;
                         if (entry.metaFile != null && entry.metaFile.Exists)
                         {
-                            lastUsed = DateTimeOffset.FromUnixTimeSeconds(long.Parse(File.ReadAllText(entry.metaFile.FullName).Trim()));
+                            lastUsed = DateTimeOffset.FromUnixTimeSeconds(long.Parse(File.ReadAllText(entry.metaFile.FullName).Trim(), CultureInfo.InvariantCulture));
                         }
 
                         switch (type)

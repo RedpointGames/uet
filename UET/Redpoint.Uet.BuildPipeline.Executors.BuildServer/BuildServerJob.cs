@@ -17,7 +17,7 @@
         /// <summary>
         /// The names of other build jobs that this build job depends on.
         /// </summary>
-        public string[] Needs { get; set; } = Array.Empty<string>();
+        public IReadOnlyCollection<string> Needs { get; set; } = Array.Empty<string>();
 
         /// <summary>
         /// The platform for this build job to run on.
@@ -32,7 +32,7 @@
         /// <summary>
         /// A list of artifact paths to upload for this build job.
         /// </summary>
-        public string[] ArtifactPaths { get; set; } = Array.Empty<string>();
+        public IReadOnlyList<string> ArtifactPaths { get; set; } = Array.Empty<string>();
 
         /// <summary>
         /// The path to the JUnit test report to upload for this build job.
@@ -42,7 +42,7 @@
         /// <summary>
         /// The environment variables to set for this build job.
         /// </summary>
-        public Dictionary<string, string> EnvironmentVariables { get; set; } = new Dictionary<string, string>();
+        public IReadOnlyDictionary<string, string> EnvironmentVariables { get; set; } = new Dictionary<string, string>();
 
         /// <summary>
         /// The PowerShell or Bash script to run for this build job (depending on the platform).

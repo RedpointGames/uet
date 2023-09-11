@@ -8,6 +8,7 @@
     using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.Globalization;
     using System.Linq;
     using System.Runtime.InteropServices;
     using System.Runtime.Versioning;
@@ -15,9 +16,9 @@
     using System.Threading.Tasks;
     using UET.Commands.Build;
 
-    internal class StoragePurgeCommand
+    internal sealed class StoragePurgeCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<bool> Force = new Option<bool>("-f", "Actually purge directories instead of doing a dry run.");
             public Option<int> Days = new Option<int>("--days", "The number of days since a storage entry was last used in order for it to be purged. Setting this to 0 will purge everything.") { IsRequired = true };
@@ -35,7 +36,7 @@
             return command;
         }
 
-        private class StoragePurgeCommandInstance : ICommandInstance
+        private sealed class StoragePurgeCommandInstance : ICommandInstance
         {
             private readonly ILogger<StoragePurgeCommandInstance> _logger;
             private readonly IReservationManagerForUet _reservationManager;
@@ -101,7 +102,7 @@
                         DateTimeOffset lastUsed = directory.LastWriteTimeUtc;
                         if (entry.metaFile != null && entry.metaFile.Exists)
                         {
-                            lastUsed = DateTimeOffset.FromUnixTimeSeconds(long.Parse(File.ReadAllText(entry.metaFile.FullName).Trim()));
+                            lastUsed = DateTimeOffset.FromUnixTimeSeconds(long.Parse(File.ReadAllText(entry.metaFile.FullName).Trim(), CultureInfo.InvariantCulture));
                         }
 
                         var lastUsedDays = now - lastUsed;

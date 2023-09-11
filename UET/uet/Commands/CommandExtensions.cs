@@ -150,7 +150,7 @@
 
             public string GlobalArgsString { get; }
 
-            public string[] GlobalArgsArray { get; }
+            public IReadOnlyList<string> GlobalArgsArray { get; }
         }
 
         internal static void AddCommonHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TCommand>(this Command command, object options, Action<IServiceCollection>? extraServices = null, Action<IServiceCollection>? extraParsingServices = null) where TCommand : class, ICommandInstance
@@ -230,7 +230,6 @@
                         catch (Exception ex)
                         {
                             logger.LogError(ex, $"Uncaught exception during application lifecycle shutdown: {ex}");
-                            throw;
                         }
                     }
                 }

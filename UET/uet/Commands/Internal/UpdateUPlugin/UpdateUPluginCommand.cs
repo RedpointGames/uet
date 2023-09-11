@@ -3,13 +3,14 @@
     using Microsoft.Extensions.Logging;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.Globalization;
     using System.Text.Json;
     using System.Text.Json.Nodes;
     using System.Threading.Tasks;
 
-    internal class UpdateUPluginCommand
+    internal sealed class UpdateUPluginCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> InputPath;
             public Option<string> OutputPath;
@@ -38,7 +39,7 @@
             return command;
         }
 
-        private class UpdateUPluginCommandInstance : ICommandInstance
+        private sealed class UpdateUPluginCommandInstance : ICommandInstance
         {
             private readonly ILogger<UpdateUPluginCommandInstance> _logger;
             private readonly Options _options;
@@ -74,7 +75,7 @@
 
                 node["EngineVersion"] = engineVersion;
                 node["VersionName"] = versionName;
-                node["Version"] = ulong.Parse(versionNumber);
+                node["Version"] = ulong.Parse(versionNumber, CultureInfo.InvariantCulture);
                 node["Installed"] = true;
 
                 if (!marketplace)

@@ -253,14 +253,14 @@
             var result = new List<(string packagePath, string mountPath, IPackageMounter mounter)>();
             foreach (var importedMount in allImportedMounts)
             {
-                if (importedMount.Attributes.ContainsKey("image-type") &&
-                    importedMount.Attributes["image-type"] == "sparse disk image (shadowed)" &&
-                    importedMount.Attributes.ContainsKey("image-path") &&
+                if (importedMount.Attributes.TryGetValue("image-type", out var imageType) &&
+                    imageType == "sparse disk image (shadowed)" &&
+                    importedMount.Attributes.TryGetValue("image-path", out var imagePath) &&
                     importedMount.Attributes.ContainsKey("shadow-path") &&
                     importedMount.Devices.Any(x => x.Value.mountPoint != null))
                 {
                     result.Add((
-                        importedMount.Attributes["image-path"],
+                        imagePath,
                         importedMount.Devices.First(x => x.Value.mountPoint != null).Value.mountPoint!,
                         new SparseImagePackageMounter(importedMount)));
                 }

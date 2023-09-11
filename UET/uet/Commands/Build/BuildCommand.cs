@@ -577,7 +577,7 @@
                     }
                     return buildResult;
                 }
-                catch (BuildPipelineExecutionFailure ex)
+                catch (BuildPipelineExecutionFailureException ex)
                 {
                     _logger.LogError(ex.Message);
                     return 1;

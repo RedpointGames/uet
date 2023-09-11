@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class LauncherInstallation
+    internal sealed class LauncherInstallation
     {
         [JsonPropertyName("InstallLocation")]
         public string? InstallLocation { get; set; }

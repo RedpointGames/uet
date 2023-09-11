@@ -29,7 +29,7 @@
             _monitorFactory = monitorFactory;
         }
 
-        public string[] PlatformNames => new[] { "Mac", "IOS" };
+        public IReadOnlyList<string> PlatformNames => new[] { "Mac", "IOS" };
 
         public string CommonPlatformNameForPackageId => "Mac";
 
@@ -45,7 +45,7 @@
             throw new InvalidOperationException("Unable to find Clang version in ApplePlatformSDK.Versions.cs");
         }
 
-        private async Task<string> GetXcodeVersion(string unrealEnginePath)
+        private static async Task<string> GetXcodeVersion(string unrealEnginePath)
         {
             var applePlatformSdk = await File.ReadAllTextAsync(Path.Combine(
                 unrealEnginePath,
@@ -105,8 +105,8 @@
                 var homebrewScriptPath = $"/tmp/homebrew-install-{Environment.ProcessId}.sh";
                 using (var client = new HttpClient())
                 {
-                    var homebrewScript = await client.GetStringAsync("https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh").ConfigureAwait(false);
-                    await File.WriteAllTextAsync(homebrewScriptPath, homebrewScript.Replace("\r\n", "\n", StringComparison.Ordinal)).ConfigureAwait(false);
+                    var homebrewScript = await client.GetStringAsync(new Uri("https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"), cancellationToken).ConfigureAwait(false);
+                    await File.WriteAllTextAsync(homebrewScriptPath, homebrewScript.Replace("\r\n", "\n", StringComparison.Ordinal), cancellationToken).ConfigureAwait(false);
                     File.SetUnixFileMode(homebrewScriptPath,
                         UnixFileMode.UserRead |
                         UnixFileMode.UserWrite |
@@ -195,7 +195,7 @@
                             SystemConsole.ConsoleInformation,
                             SystemConsole.WriteProgressToConsole,
                             cts.Token).ConfigureAwait(false);
-                    });
+                    }, cts.Token);
 
                     // Copy the data.
                     await source.CopyToAsync(destination, 2 * 1024 * 1024, cancellationToken).ConfigureAwait(false);
@@ -236,7 +236,7 @@
                 _logger.LogInformation($"Setting up symbolic link for Xcode.app...");
                 var xcodeDirectory = Directory.GetDirectories(sdkPackagePath)
                     .Select(x => Path.GetFileName(x))
-                    .Where(x => x.StartsWith("Xcode"))
+                    .Where(x => x.StartsWith("Xcode", StringComparison.Ordinal))
                     .First();
                 File.CreateSymbolicLink(
                     Path.Combine(sdkPackagePath, "Xcode.app"),

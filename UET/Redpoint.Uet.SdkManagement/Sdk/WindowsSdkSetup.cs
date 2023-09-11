@@ -23,7 +23,7 @@
             _windowsSdkInstaller = windowsSdkInstaller;
         }
 
-        public string[] PlatformNames => new[] { "Windows", "Win64" };
+        public IReadOnlyList<string> PlatformNames => new[] { "Windows", "Win64" };
 
         public string CommonPlatformNameForPackageId => "Windows";
 

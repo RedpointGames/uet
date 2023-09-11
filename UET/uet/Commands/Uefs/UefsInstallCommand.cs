@@ -9,9 +9,9 @@
     using System.Reflection;
     using System.Threading.Tasks;
 
-    internal class UefsInstallCommand
+    internal sealed class UefsInstallCommand
     {
-        internal class Options
+        internal sealed class Options
         {
         }
 
@@ -28,7 +28,7 @@
             return command;
         }
 
-        private class UefsInstallCommandInstance : ICommandInstance
+        private sealed class UefsInstallCommandInstance : ICommandInstance
         {
             private readonly ILogger<UefsInstallCommandInstance> _logger;
             private readonly IServiceControl _serviceControl;
@@ -57,7 +57,7 @@
 
                 string version;
                 var currentVersionAttribute = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-                if (currentVersionAttribute != null && !currentVersionAttribute.InformationalVersion.EndsWith("-pre"))
+                if (currentVersionAttribute != null && !currentVersionAttribute.InformationalVersion.EndsWith("-pre", StringComparison.Ordinal))
                 {
                     version = currentVersionAttribute.InformationalVersion;
                 }
@@ -68,7 +68,7 @@
                     _logger.LogInformation("Checking for the latest version...");
                     using (var client = new HttpClient())
                     {
-                        version = (await client.GetStringAsync(latestUrl).ConfigureAwait(false)).Trim();
+                        version = (await client.GetStringAsync(new Uri(latestUrl)).ConfigureAwait(false)).Trim();
                     }
 
                     if (string.IsNullOrWhiteSpace(version))
@@ -118,7 +118,7 @@
                     {
                         using (var target = new FileStream(Path.Combine(baseFolder, version, filename + ".tmp"), FileMode.Create, FileAccess.Write, FileShare.None))
                         {
-                            var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                            var response = await client.GetAsync(new Uri(downloadUrl), HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
                             response.EnsureSuccessStatusCode();
                             using (var stream = new PositionAwareStream(
                                 await response.Content.ReadAsStreamAsync().ConfigureAwait(false),

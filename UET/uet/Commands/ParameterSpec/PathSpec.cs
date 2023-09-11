@@ -3,7 +3,7 @@
     using System;
     using System.CommandLine.Parsing;
 
-    internal class PathSpec
+    internal sealed class PathSpec
     {
         private PathSpec()
         {
@@ -119,7 +119,7 @@
                     };
                 }
 
-                if (info.Name.EndsWith(".uproject"))
+                if (info.Name.EndsWith(".uproject", StringComparison.OrdinalIgnoreCase))
                 {
                     return new PathSpec
                     {
@@ -129,7 +129,7 @@
                     };
                 }
 
-                if (info.Name.EndsWith(".uplugin"))
+                if (info.Name.EndsWith(".uplugin", StringComparison.OrdinalIgnoreCase))
                 {
                     return new PathSpec
                     {

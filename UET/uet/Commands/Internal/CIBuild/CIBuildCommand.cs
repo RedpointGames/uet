@@ -167,6 +167,7 @@
                     throw new PlatformNotSupportedException();
                 }
 
+#pragma warning disable CA1839 // Use 'Environment.ProcessPath'
                 var buildSpecification = new BuildSpecification
                 {
                     Engine = engineSpec,
@@ -185,6 +186,7 @@
                     ArtifactExportPath = Environment.CurrentDirectory,
                     MobileProvisions = buildJson.MobileProvisions,
                 };
+#pragma warning restore CA1839 // Use 'Environment.ProcessPath'
 
                 try
                 {
@@ -197,7 +199,7 @@
                         context.GetCancellationToken()).ConfigureAwait(false);
                     return buildResult;
                 }
-                catch (BuildPipelineExecutionFailure ex)
+                catch (BuildPipelineExecutionFailureException ex)
                 {
                     _logger.LogError(ex.Message);
                     return 1;

@@ -37,7 +37,7 @@
             _logger = logger;
         }
 
-        public string[] PlatformNames { get; }
+        public IReadOnlyList<string> PlatformNames { get; }
 
         public string CommonPlatformNameForPackageId => _config.CommonPlatformName ?? PlatformNames[0];
 
@@ -80,7 +80,7 @@
                         }
                     }
 
-                    var monitoringCts = new CancellationTokenSource();
+                    using var monitoringCts = new CancellationTokenSource();
                     var monitoringProcess = Task.Run(async () =>
                     {
                         var logFiles = new Dictionary<string, long>();
@@ -119,7 +119,7 @@
                                 }
                             }
                         }
-                    });
+                    }, monitoringCts.Token);
 
                     _logger.LogInformation($"Executing installer at '{installer.InstallerPath!}'...");
                     var exitCode = await _processExecutor.ExecuteAsync(
@@ -229,7 +229,7 @@
             }
         }
 
-        private void ProcessRegistryKeys(
+        private static void ProcessRegistryKeys(
             Dictionary<string, Dictionary<string, JsonElement>> registryKeys)
         {
             foreach (var kv in registryKeys)

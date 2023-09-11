@@ -166,7 +166,7 @@ namespace Redpoint.Unreal.TcpMessaging
                     }
                     catch (TopLevelAssetPathNotFoundException)
                     {
-                        _logger?.LogTrace($" {{{nextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{nextMessage.V.AssetPath.V.PackageName.V + "." + nextMessage.V.AssetPath.V.AssetName.V}]\n(no C# class registered for this message type)");
+                        _logger?.LogTrace($" {{{nextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(nextMessage.V.RecipientAddresses.V.Data.Count > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{nextMessage.V.AssetPath.V.PackageName.V + "." + nextMessage.V.AssetPath.V.AssetName.V}]\n(no C# class registered for this message type)");
                         continue;
                     }
                     catch (Exception ex) when ((!_isLegacyTcpSerialization) && (ex is EndOfStreamException || ex is OverflowException))
@@ -186,7 +186,7 @@ namespace Redpoint.Unreal.TcpMessaging
                         catch (TopLevelAssetPathNotFoundException)
                         {
                             // We still decoded the header properly, so we still turn on legacy serialization in this case.
-                            _logger?.LogTrace($" {{{legacyNextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(legacyNextMessage.V.RecipientAddresses.V.Data.Length > 0 ? legacyNextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{legacyNextMessage.V.AssetPath.V}]\n(no C# class registered for this message type)");
+                            _logger?.LogTrace($" {{{legacyNextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(legacyNextMessage.V.RecipientAddresses.V.Data.Count > 0 ? legacyNextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{legacyNextMessage.V.AssetPath.V}]\n(no C# class registered for this message type)");
                             shouldContinue = true;
                         }
 
@@ -200,7 +200,7 @@ namespace Redpoint.Unreal.TcpMessaging
                     }
 
                     {
-                        _logger?.LogTrace($" {{{nextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{nextMessage.V.AssetPath.V.PackageName.V + "." + nextMessage.V.AssetPath.V.AssetName.V}]\n{nextMessage.V.GetMessageData()}");
+                        _logger?.LogTrace($" {{{nextMessage.V.SenderAddress.V.UniqueId.V}}} -> {{{(nextMessage.V.RecipientAddresses.V.Data.Count > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId.V : "*")}}} [{nextMessage.V.AssetPath.V.PackageName.V + "." + nextMessage.V.AssetPath.V.AssetName.V}]\n{nextMessage.V.GetMessageData()}");
 
                         switch (nextMessage.V.GetMessageData())
                         {
@@ -318,7 +318,7 @@ namespace Redpoint.Unreal.TcpMessaging
                         {
                             var memoryArchive = new Archive(memory, false, _serializerRegistries);
 
-                            _logger?.LogTrace($" {{{(nextMessage.V.RecipientAddresses.V.Data.Length > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId : "*")}}} <- {{{nextMessage.V.SenderAddress.V.UniqueId}}} [{nextMessage.V.AssetPath.V.PackageName + "." + nextMessage.V.AssetPath.V.AssetName}]\n{nextMessage.V.GetMessageData()}");
+                            _logger?.LogTrace($" {{{(nextMessage.V.RecipientAddresses.V.Data.Count > 0 ? nextMessage.V.RecipientAddresses.V.Data[0].UniqueId : "*")}}} <- {{{nextMessage.V.SenderAddress.V.UniqueId}}} [{nextMessage.V.AssetPath.V.PackageName + "." + nextMessage.V.AssetPath.V.AssetName}]\n{nextMessage.V.GetMessageData()}");
 
                             if (_isLegacyTcpSerialization)
                             {

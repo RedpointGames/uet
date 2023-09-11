@@ -14,9 +14,9 @@
     using System.Text.Json.Serialization;
     using System.Threading.Tasks;
 
-    internal class RunDynamicReentrantTaskCommand
+    internal sealed class RunDynamicReentrantTaskCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> DistributionType;
             public Option<string> ReentrantExecutorCategory;
@@ -44,7 +44,7 @@
             return command;
         }
 
-        private class RunDynamicReentrantTaskCommandInstance : ICommandInstance
+        private sealed class RunDynamicReentrantTaskCommandInstance : ICommandInstance
         {
             private readonly ILogger<RunDynamicReentrantTaskCommandInstance> _logger;
             private readonly IServiceProvider _serviceProvider;

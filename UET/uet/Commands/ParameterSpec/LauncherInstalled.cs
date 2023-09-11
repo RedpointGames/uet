@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class LauncherInstalled
+    internal sealed class LauncherInstalled
     {
         [JsonPropertyName("InstallationList")]
         public LauncherInstallation[]? InstallationList { get; set; }

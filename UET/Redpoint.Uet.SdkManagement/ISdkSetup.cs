@@ -2,7 +2,7 @@
 {
     public interface ISdkSetup
     {
-        string[] PlatformNames { get; }
+        IReadOnlyList<string> PlatformNames { get; }
 
         string CommonPlatformNameForPackageId { get; }
 

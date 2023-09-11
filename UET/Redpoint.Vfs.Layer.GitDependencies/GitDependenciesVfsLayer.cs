@@ -249,7 +249,7 @@
 #if ENABLE_TRACE_LOGS
                 _logger.LogTrace($"{pack.RemotePath}/{pack.Hash}: Fetching pack on demand... ({pack.CompressedSize / 1024 / 1024}MB to download, {pack.Size / 1024 / 1024}MB when extracted)");
 #endif
-                using (var stream = await client.GetStreamAsync($"http://cdn.unrealengine.com/dependencies/{pack.RemotePath}/{pack.Hash}").ConfigureAwait(false))
+                using (var stream = await client.GetStreamAsync(new Uri($"http://cdn.unrealengine.com/dependencies/{pack.RemotePath}/{pack.Hash}")).ConfigureAwait(false))
                 {
                     using (var decompressedStream = new GZipStream(stream, CompressionMode.Decompress, true))
                     {
@@ -275,9 +275,9 @@
                 {
                     // For directories that only exist from the Git dependencies layer,
                     // we need to generate a projection entry for them.
-                    if (_treeProjection.ContainsKey(pathKey))
+                    if (_treeProjection.TryGetValue(pathKey, out var value))
                     {
-                        return _treeProjection[pathKey];
+                        return value;
                     }
                     else
                     {
@@ -313,7 +313,7 @@
             bool acquiredGlobalSemaphore = false;
             if (Environment.GetEnvironmentVariable("UEFS_GIT_TEST_LOCK_MODE") == "global-semaphore")
             {
-                _globalSemaphore.Wait();
+                _globalSemaphore.Wait(CancellationToken.None);
                 acquiredGlobalSemaphore = true;
             }
 

@@ -18,12 +18,12 @@
     using FileInfo = Fsp.Interop.FileInfo;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class WinFspVfsDriverImpl : FileSystemBase, IAsyncIoProcessing
+    internal sealed class WinFspVfsDriverImpl : FileSystemBase, IAsyncIoProcessing, IDisposable
     {
         private readonly ILogger _logger;
         private readonly IVfsLayer _projectionLayer;
         private readonly bool _enableCorrectnessChecks;
-        private readonly SemaphoreSlim _loggerSemaphore;
+        private readonly Concurrency.Semaphore _loggerSemaphore;
         private readonly DateTimeOffset _rootTime;
         private readonly IComparer<string> _caseInsensitiveComparer = new FileSystemNameComparer();
         private readonly AutoResetEvent _pendingAsyncIo;
@@ -36,7 +36,7 @@
 
         private const uint _dataWriteAccess = 0x2 | 0x4 | 0x10000 | 0x40000000;
 
-        protected const int _allocationUnit = 4096;
+        private const int _allocationUnit = 4096;
 
         private readonly byte[] _rootSecurityDescriptor;
         private readonly byte[] _fileSecurityDescriptor;
@@ -50,7 +50,7 @@
             _logger = logger;
             _projectionLayer = projectionLayer;
             _enableCorrectnessChecks = driverOptions.EnableCorrectnessChecks;
-            _loggerSemaphore = new SemaphoreSlim(1);
+            _loggerSemaphore = new Concurrency.Semaphore(1);
             _rootTime = DateTimeOffset.UtcNow;
 
             _pendingAsyncIo = new AutoResetEvent(false);
@@ -73,7 +73,7 @@
 
         public FileSystemHost? FileSystemHost { get; set; }
 
-        private unsafe void DispatchAsyncIo(
+        private static unsafe void DispatchAsyncIo(
             nint overlappedPtr,
             IAsyncIoHandle ioHandle,
             ulong requestHint,
@@ -211,7 +211,7 @@
                 ? ", " + string.Join(", ", parameters.Select(x => x?.ToString() ?? string.Empty))
                 : string.Empty;
 
-            _loggerSemaphore.Wait();
+            _loggerSemaphore.Wait(CancellationToken.None);
             try
             {
                 if (result == STATUS_SUCCESS || result == STATUS_END_OF_FILE)
@@ -1396,6 +1396,11 @@
                 _logger.LogCritical(ex, ex.Message);
                 throw;
             }
+        }
+
+        public void Dispose()
+        {
+            _pendingAsyncIo.Dispose();
         }
 
         // GetReparsePointByName

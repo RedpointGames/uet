@@ -29,7 +29,7 @@
             bool simulateIo,
             CancellationToken cancellationToken)
         {
-            _submitTask = Task.Run(RunAsync);
+            _submitTask = Task.Run(RunAsync, cancellationToken);
             _changeQueue = new ConcurrentQueue<IoChange>();
             _logger = logger;
             _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

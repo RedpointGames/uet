@@ -30,11 +30,9 @@
         private const string _jdkVersion = "jdk-11.0.19+7";
         private const string _jdkDownloadUrl = "https://aka.ms/download-jdk/microsoft-jdk-11.0.19-windows-x64.zip";
 
-        public string[] PlatformNames => new[] { "Android" };
+        public IReadOnlyList<string> PlatformNames => new[] { "Android" };
 
         public string CommonPlatformNameForPackageId => "Android";
-
-        private static ConcurrentDictionary<string, Assembly> _cachedCompiles = new ConcurrentDictionary<string, Assembly>();
 
         internal static Task<string> ParseVersion(string androidPlatformSdk, string versionCategory)
         {
@@ -49,7 +47,7 @@
             throw new InvalidOperationException($"Unable to find Android version for {versionCategory} in AndroidPlatformSDK.Versions.cs");
         }
 
-        private async Task<(string platforms, string buildTools, string cmake, string ndk)> GetVersions(string unrealEnginePath)
+        private static async Task<(string platforms, string buildTools, string cmake, string ndk)> GetVersions(string unrealEnginePath)
         {
             var androidPlatformSdk = await File.ReadAllTextAsync(Path.Combine(
                 unrealEnginePath,
@@ -86,7 +84,7 @@
                 }
                 using (var client = new HttpClient())
                 {
-                    var response = await client.GetAsync(_jdkDownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var response = await client.GetAsync(new Uri(_jdkDownloadUrl), HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                     var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
                     Directory.CreateDirectory(Path.Combine(sdkPackagePath, "Jdk"));
                     var archive = new ZipArchive(stream);
@@ -103,7 +101,7 @@
                 }
                 using (var client = new HttpClient())
                 {
-                    var response = await client.GetAsync("https://dl.google.com/android/repository/commandlinetools-win-9477386_latest.zip", HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var response = await client.GetAsync(new Uri("https://dl.google.com/android/repository/commandlinetools-win-9477386_latest.zip"), HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                     var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
                     Directory.CreateDirectory(Path.Combine(sdkPackagePath, "Sdk"));
                     var archive = new ZipArchive(stream);

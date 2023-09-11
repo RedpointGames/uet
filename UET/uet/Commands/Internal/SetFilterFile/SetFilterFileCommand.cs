@@ -5,9 +5,9 @@
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal class SetFilterFileCommand
+    internal sealed class SetFilterFileCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> PackageInclude;
             public Option<string> PackageExclude;
@@ -30,7 +30,7 @@
             return command;
         }
 
-        private class SetFilterFileCommandInstance : ICommandInstance
+        private sealed class SetFilterFileCommandInstance : ICommandInstance
         {
             private readonly ILogger<SetFilterFileCommandInstance> _logger;
             private readonly Options _options;

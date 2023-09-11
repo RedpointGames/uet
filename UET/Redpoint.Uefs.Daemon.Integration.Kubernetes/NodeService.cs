@@ -120,30 +120,30 @@
                     return new NodePublishVolumeResponse();
                 }
                 else if (
-                    request.VolumeContext.ContainsKey("gitUrl") &&
-                    request.VolumeContext.ContainsKey("gitCommit"))
+                    request.VolumeContext.TryGetValue("gitUrl", out var gitUrl) &&
+                    request.VolumeContext.TryGetValue("gitCommit", out var gitCommit))
                 {
-                    if (!request.VolumeContext.ContainsKey("gitSecretPrivatePropertyName"))
+                    if (!request.VolumeContext.TryGetValue("gitSecretPrivatePropertyName", out var gitSecretPrivatePropertyName))
                     {
                         throw new RpcException(new Status(StatusCode.InvalidArgument, "Mounting a Git commit requires a 'gitSecretPrivatePropertyName' attribute to be provided, which indicates the property name inside the secret attached via 'nodePublishSecretRef' that contains the Git private key in PEM format."));
                     }
-                    if (!request.VolumeContext.ContainsKey("gitSecretPublicPropertyName"))
+                    if (!request.VolumeContext.TryGetValue("gitSecretPublicPropertyName", out var gitSecretPublicPropertyName))
                     {
                         throw new RpcException(new Status(StatusCode.InvalidArgument, "Mounting a Git commit requires a 'gitSecretPublicPropertyName' attribute to be provided, which indicates the property name inside the secret attached via 'nodePublishSecretRef' that contains the Git public key in PEM format."));
                     }
 
-                    if (!request.Secrets.ContainsKey(request.VolumeContext["gitSecretPrivatePropertyName"]))
+                    if (!request.Secrets.TryGetValue(gitSecretPrivatePropertyName, out var gitSecretPrivateSecret))
                     {
-                        throw new RpcException(new Status(StatusCode.InvalidArgument, $"'{request.VolumeContext["gitSecretPrivatePropertyName"]}' was specified as a property name for the attached secret, but the attached secret only had these property names available: {string.Join(" ", request.Secrets.Keys.Select(x => $"\"{x}\""))}"));
+                        throw new RpcException(new Status(StatusCode.InvalidArgument, $"'{gitSecretPrivatePropertyName}' was specified as a property name for the attached secret, but the attached secret only had these property names available: {string.Join(" ", request.Secrets.Keys.Select(x => $"\"{x}\""))}"));
                     }
-                    if (!request.Secrets.ContainsKey(request.VolumeContext["gitSecretPublicPropertyName"]))
+                    if (!request.Secrets.TryGetValue(gitSecretPublicPropertyName, out var gitSecretPublicSecret))
                     {
-                        throw new RpcException(new Status(StatusCode.InvalidArgument, $"'{request.VolumeContext["gitSecretPublicPropertyName"]}' was specified as a property name for the attached secret, but the attached secret only had these property names available: {string.Join(" ", request.Secrets.Keys.Select(x => $"\"{x}\""))}"));
+                        throw new RpcException(new Status(StatusCode.InvalidArgument, $"'{gitSecretPublicPropertyName}' was specified as a property name for the attached secret, but the attached secret only had these property names available: {string.Join(" ", request.Secrets.Keys.Select(x => $"\"{x}\""))}"));
                     }
 
-                    _logger.LogInformation($"Kubernetes is requesting mount of Git commit '{request.VolumeContext["gitCommit"]}' from '{request.VolumeContext["gitUrl"]}' to '{request.TargetPath}' with volume ID '{request.VolumeId}'");
+                    _logger.LogInformation($"Kubernetes is requesting mount of Git commit '{gitCommit}' from '{gitUrl}' to '{request.TargetPath}' with volume ID '{request.VolumeId}'");
 
-                    _logger.LogInformation($"Fetching Git commit '{request.VolumeContext["gitCommit"]}' from '{request.VolumeContext["gitUrl"]}'...");
+                    _logger.LogInformation($"Fetching Git commit '{gitCommit}' from '{gitUrl}'...");
 
                     string? mountId = null;
                     await foreach (var entry in _retryableGrpc.RetryableStreamingGrpcAsync(
@@ -156,15 +156,15 @@
                                 MountPath = request.TargetPath,
                                 StartupBehaviour = StartupBehaviour.None,
                                 WriteScratchPersistence = WriteScratchPersistence.DiscardOnUnmount,
-                                WriteScratchPath = request.VolumeContext.ContainsKey("scratchPath") ? request.VolumeContext["scratchPath"] ?? string.Empty : string.Empty,
+                                WriteScratchPath = request.VolumeContext.TryGetValue("scratchPath", out var scratchPath) ? scratchPath ?? string.Empty : string.Empty,
                                 TrackPid = 0,
                             },
-                            Commit = request.VolumeContext["gitCommit"],
-                            Url = request.VolumeContext["gitUrl"],
+                            Commit = gitCommit,
+                            Url = gitUrl,
                             Credential = new GitCredential
                             {
-                                SshPublicKeyAsPem = request.Secrets[request.VolumeContext["gitSecretPublicPropertyName"]],
-                                SshPrivateKeyAsPem = request.Secrets[request.VolumeContext["gitSecretPrivatePropertyName"]],
+                                SshPublicKeyAsPem = gitSecretPublicSecret,
+                                SshPrivateKeyAsPem = gitSecretPrivateSecret,
                             }
                         },
                         new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
@@ -180,7 +180,7 @@
                         }
                         else
                         {
-                            _logger.LogInformation($"Fetching Git commit '{request.VolumeContext["gitCommit"]}' from '{request.VolumeContext["gitUrl"]}': status: '{entry.PollingResponse.Status}', received objects: {entry.PollingResponse.GitReceivedObjects}, indexed objects: {entry.PollingResponse.GitIndexedObjects}, total objects: {entry.PollingResponse.GitTotalObjects}, received bytes: {entry.PollingResponse.GitReceivedBytes}, type: {(entry.PollingResponse.GitSlowFetch ? "libgit2" : "native")}, git server progress message: '{entry.PollingResponse.GitServerProgressMessage}'");
+                            _logger.LogInformation($"Fetching Git commit '{gitCommit}' from '{gitUrl}': status: '{entry.PollingResponse.Status}', received objects: {entry.PollingResponse.GitReceivedObjects}, indexed objects: {entry.PollingResponse.GitIndexedObjects}, total objects: {entry.PollingResponse.GitTotalObjects}, received bytes: {entry.PollingResponse.GitReceivedBytes}, type: {(entry.PollingResponse.GitSlowFetch ? "libgit2" : "native")}, git server progress message: '{entry.PollingResponse.GitServerProgressMessage}'");
                             await Task.Delay(1000).ConfigureAwait(false);
                         }
                     }

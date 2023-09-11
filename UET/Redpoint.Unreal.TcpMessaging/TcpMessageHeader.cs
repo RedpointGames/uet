@@ -23,11 +23,11 @@
         {
         }
 
-        public TcpMessageHeader(Guid Guid)
+        public TcpMessageHeader(Guid value)
         {
             _magicNumber = new(DefaultMagicNumber);
             _version = new(DefaultVersionNumber);
-            _nodeId = new(Guid);
+            _nodeId = new(value);
         }
 
         public bool IsValid()
@@ -38,6 +38,9 @@
 
         public static async Task Serialize(Archive ar, Store<TcpMessageHeader> value)
         {
+            if (ar == null) throw new ArgumentNullException(nameof(ar));
+            if (value == null) throw new ArgumentNullException(nameof(value));
+
             await ar.Serialize(value.V._magicNumber).ConfigureAwait(false);
             await ar.Serialize(value.V._version).ConfigureAwait(false);
             await ar.Serialize(value.V._nodeId).ConfigureAwait(false);

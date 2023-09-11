@@ -6,7 +6,7 @@
     {
         private TValue[] _data;
 
-        public IReadOnlyCollection<TValue> Data => _data;
+        public IReadOnlyList<TValue> Data => _data;
 
         public static readonly ArchiveArray<TIndex, TValue> Empty = new(TIndex.CreateChecked(0));
 

@@ -7,9 +7,9 @@
     using System.Linq;
     using System.Threading.Tasks;
 
-    internal class UpdateCopyrightHeadersForMarketplaceCommand
+    internal sealed class UpdateCopyrightHeadersForMarketplaceCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> Path;
             public Option<string> CopyrightHeader;
@@ -32,7 +32,7 @@
             return command;
         }
 
-        private class UpdateCopyrightHeadersForMarketplaceCommandInstance : ICommandInstance
+        private sealed class UpdateCopyrightHeadersForMarketplaceCommandInstance : ICommandInstance
         {
             private readonly ILogger<UpdateCopyrightHeadersForMarketplaceCommandInstance> _logger;
             private readonly Options _options;

@@ -58,9 +58,8 @@
                 }
 
                 var recurseIntoSubdirectory = false;
-                if (destinationItems.ContainsKey(source.Key))
+                if (destinationItems.TryGetValue(source.Key, out var destination))
                 {
-                    var destination = destinationItems[source.Key];
                     if (source.Value.LastWriteTimeUtc > destination.LastWriteTimeUtc)
                     {
                         // Target is out-of-date.

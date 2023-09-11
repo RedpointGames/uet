@@ -23,11 +23,11 @@
         {
             if (File.Exists(path))
             {
-                await GrantEveryonePermissionToFileAsync(new FileInfo(path), cancellationToken);
+                await GrantEveryonePermissionToFileAsync(new FileInfo(path), cancellationToken).ConfigureAwait(false);
             }
             else if (Directory.Exists(path))
             {
-                await GrantEveryonePermissionToDirectoryAsync(new DirectoryInfo(path), cancellationToken);
+                await GrantEveryonePermissionToDirectoryAsync(new DirectoryInfo(path), cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -108,11 +108,11 @@
 
             await Parallel.ForEachAsync(
                 directory.GetFiles().ToAsyncEnumerable(),
-                GrantEveryonePermissionToFileAsync);
+                GrantEveryonePermissionToFileAsync).ConfigureAwait(false);
 
             await Parallel.ForEachAsync(
                 directory.GetDirectories().ToAsyncEnumerable(),
-                GrantEveryonePermissionToDirectoryAsync);
+                GrantEveryonePermissionToDirectoryAsync).ConfigureAwait(false);
         }
     }
 }

@@ -65,7 +65,7 @@
             string windowsSharedStoragePath,
             string? macSharedStoragePath,
             string? linuxSharedStoragePath,
-            BuildConfigMobileProvision[] mobileProvisions,
+            IReadOnlyList<BuildConfigMobileProvision> mobileProvisions,
             bool requiresCrossPlatformForBuild)
         {
             windowsSharedStoragePath = windowsSharedStoragePath.TrimEnd('\\');
@@ -119,7 +119,7 @@
                         if (!string.IsNullOrWhiteSpace(entryAssembly.Location) ||
                             !manifestNames.Any(x => x.StartsWith("UET.Embedded.", StringComparison.Ordinal)))
                         {
-                            throw new BuildPipelineExecutionFailure("UET is not built as a self-contained cross-platform binary, and the build contains cross-platform targets. Create a version of UET with 'dotnet msbuild -restore -t:PublishAllRids' and use the resulting binary.");
+                            throw new BuildPipelineExecutionFailureException("UET is not built as a self-contained cross-platform binary, and the build contains cross-platform targets. Create a version of UET with 'dotnet msbuild -restore -t:PublishAllRids' and use the resulting binary.");
                         }
 
                         // Copy the binaries for other platforms from our embedded resources.
@@ -326,7 +326,7 @@
             }
 #endif
 
-            if (mobileProvisions.Length > 0)
+            if (mobileProvisions.Count > 0)
             {
                 var mobileTargetFolderNumber = 1;
                 var mobileTargetFolderName = $"mobileprovision";
@@ -422,7 +422,7 @@
 
             if (string.IsNullOrWhiteSpace(_buildServerOutputFilePath))
             {
-                throw new BuildPipelineExecutionFailure("This build executor requires BuildServerOutputFilePath to be set.");
+                throw new BuildPipelineExecutionFailureException("This build executor requires BuildServerOutputFilePath to be set.");
             }
 
             BuildGraphExport buildGraph;
@@ -633,10 +633,10 @@
         {
             foreach (var dependency in node.DependsOn.Split(';'))
             {
-                if (nodeMap.ContainsKey(dependency))
+                if (nodeMap.TryGetValue(dependency, out var dependencyValue))
                 {
                     allDependencies.Add(dependency);
-                    GetFullDependenciesOfNode(nodeMap, nodeMap[dependency], allDependencies);
+                    GetFullDependenciesOfNode(nodeMap, dependencyValue, allDependencies);
                 }
             }
         }

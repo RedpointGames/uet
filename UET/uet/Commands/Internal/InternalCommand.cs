@@ -23,7 +23,7 @@
     using UET.Commands.Internal.UpdateUPlugin;
     using UET.Commands.Internal.UploadToBackblazeB2;
 
-    internal class InternalCommand
+    internal sealed class InternalCommand
     {
         public static Command CreateInternalCommand(HashSet<Command> globalCommands)
         {

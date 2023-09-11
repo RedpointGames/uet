@@ -70,14 +70,14 @@
                                             "--folder-env-var",
                                             $@"""{deployment.settings.FolderPrefixEnvVar}"""
                                         }).ToArray()
-                                    });
-                            });
+                                    }).ConfigureAwait(false);
+                            }).ConfigureAwait(false);
                         await writer.WriteDynamicNodeAppendAsync(
                             new DynamicNodeAppendElementProperties
                             {
                                 NodeName = $"Deployment {deployment.name}",
-                            });
-                    });
+                            }).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
             }
         }
     }

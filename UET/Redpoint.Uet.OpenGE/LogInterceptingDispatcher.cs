@@ -3,10 +3,11 @@
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Protocol;
+    using System.Globalization;
     using System.Threading.Tasks;
     using static Crayon.Output;
 
-    internal class LogInterceptingDispatcher : JobApi.JobApiBase
+    internal sealed class LogInterceptingDispatcher : JobApi.JobApiBase
     {
         private readonly ILogger _logger;
         private readonly JobApi.JobApiClient _upstream;
@@ -32,23 +33,23 @@
             {
                 var remainingTasks = tasksTotal - tasksComplete;
                 var percent = (1.0 - (tasksTotal == 0 ? 0.0 : ((double)remainingTasks / tasksTotal))) * 100.0;
-                var tasksTotalLength = tasksTotal.ToString().Length;
-                var line = $"[{request.BuildNodeName}] [{percent,3:0}%, {tasksComplete.ToString().PadLeft(tasksTotalLength)}/{tasksTotal}]";
+                var tasksTotalLength = tasksTotal.ToString(CultureInfo.InvariantCulture).Length;
+                var line = $"[{request.BuildNodeName}] [{percent,3:0}%, {tasksComplete.ToString(CultureInfo.InvariantCulture).PadLeft(tasksTotalLength)}/{tasksTotal}]";
                 return line;
             }
 
             var upstream = _upstream.SubmitJob(request, cancellationToken: context.CancellationToken);
-            while (await upstream.ResponseStream.MoveNext(context.CancellationToken))
+            while (await upstream.ResponseStream.MoveNext(context.CancellationToken).ConfigureAwait(false))
             {
                 var response = upstream.ResponseStream.Current;
                 switch (response.ResponseCase)
                 {
                     case JobResponse.ResponseOneofCase.JobParsed:
                         tasksTotal = response.JobParsed.TotalTasks;
-                        await responseStream.WriteAsync(response);
+                        await responseStream.WriteAsync(response).ConfigureAwait(false);
                         break;
                     case JobResponse.ResponseOneofCase.JobComplete:
-                        await responseStream.WriteAsync(response);
+                        await responseStream.WriteAsync(response).ConfigureAwait(false);
                         break;
                     case JobResponse.ResponseOneofCase.TaskPreparing:
                         _logger.LogInformation($"{GetBuildStatusLogPrefix()} {response.TaskPreparing.DisplayName} {Bright.Black($"[{response.TaskPreparing.OperationDescription}]")}");

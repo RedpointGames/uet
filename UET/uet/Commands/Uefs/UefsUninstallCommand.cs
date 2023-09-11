@@ -9,9 +9,9 @@
     using System.Reflection;
     using System.Threading.Tasks;
 
-    internal class UefsUninstallCommand
+    internal sealed class UefsUninstallCommand
     {
-        internal class Options
+        internal sealed class Options
         {
         }
 
@@ -28,7 +28,7 @@
             return command;
         }
 
-        private class UefsUninstallCommandInstance : ICommandInstance
+        private sealed class UefsUninstallCommandInstance : ICommandInstance
         {
             private readonly ILogger<UefsUninstallCommandInstance> _logger;
             private readonly IServiceControl _serviceControl;

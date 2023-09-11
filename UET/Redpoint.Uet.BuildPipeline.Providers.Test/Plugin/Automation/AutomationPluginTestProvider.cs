@@ -141,7 +141,7 @@
                                         BuildConfigPluginTestAutomation>(
                                         this,
                                         context,
-                                        $"{platform}.{test.name}".Replace(" ", "."),
+                                        $"{platform}.{test.name}".Replace(" ", ".", StringComparison.Ordinal),
                                         test.settings,
                                         new Dictionary<string, string>
                                         {

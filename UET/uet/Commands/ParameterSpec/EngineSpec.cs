@@ -9,7 +9,7 @@
     using System.Text.Json;
     using System.Text.RegularExpressions;
 
-    internal class EngineSpec
+    internal sealed class EngineSpec
     {
         private EngineSpec()
         {

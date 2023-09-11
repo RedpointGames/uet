@@ -2,9 +2,10 @@
 {
     using Microsoft.Extensions.Logging;
     using System;
+    using System.Globalization;
     using System.Threading.Tasks;
 
-    internal class DefaultBuildConfigurationManager : IBuildConfigurationManager
+    internal sealed class DefaultBuildConfigurationManager : IBuildConfigurationManager, IDisposable
     {
         private readonly ILogger<DefaultBuildConfigurationManager> _logger;
         private readonly Mutex _buildConfigurationMutex;
@@ -31,7 +32,7 @@
                     var stackCountString = File.ReadAllText(stackCountFilePath).Trim();
                     try
                     {
-                        stackCount = int.Parse(stackCountString);
+                        stackCount = int.Parse(stackCountString, CultureInfo.InvariantCulture);
                     }
                     catch
                     {
@@ -79,7 +80,7 @@
                 }
                 else
                 {
-                    File.WriteAllText(stackCountFilePath, (stackCount + 1).ToString());
+                    File.WriteAllText(stackCountFilePath, (stackCount + 1).ToString(CultureInfo.InvariantCulture));
                 }
                 return Task.FromResult(true);
             }
@@ -110,7 +111,7 @@
                     var stackCountString = File.ReadAllText(stackCountFilePath).Trim();
                     try
                     {
-                        stackCount = int.Parse(stackCountString);
+                        stackCount = int.Parse(stackCountString, CultureInfo.InvariantCulture);
                     }
                     catch
                     {
@@ -139,7 +140,7 @@
                 }
                 else
                 {
-                    File.WriteAllText(stackCountFilePath, (stackCount - 1).ToString());
+                    File.WriteAllText(stackCountFilePath, (stackCount - 1).ToString(CultureInfo.InvariantCulture));
                 }
             }
             catch (Exception ex)
@@ -151,6 +152,11 @@
                 _buildConfigurationMutex.ReleaseMutex();
             }
             return Task.CompletedTask;
+        }
+
+        public void Dispose()
+        {
+            _buildConfigurationMutex.Dispose();
         }
     }
 }

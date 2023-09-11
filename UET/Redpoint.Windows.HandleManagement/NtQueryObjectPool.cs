@@ -8,9 +8,9 @@
     using System.Runtime;
     using System.Diagnostics;
 
-    internal class NtQueryObjectPool
+    internal sealed class NtQueryObjectPool
     {
-        private class ThreadRequest
+        private sealed class ThreadRequest : IDisposable
         {
             public HANDLE Handle;
             public OBJECT_INFORMATION_CLASS ObjectInformationClass;
@@ -22,6 +22,12 @@
             public CancellationToken CancellationToken;
             public ManualResetEventSlim Started = new ManualResetEventSlim();
             public ManualResetEventSlim Complete = new ManualResetEventSlim();
+
+            public void Dispose()
+            {
+                Started.Dispose();
+                Complete.Dispose();
+            }
         }
 
         private NtQueryObjectPool()
@@ -37,7 +43,7 @@
 
         public static readonly NtQueryObjectPool Instance = new NtQueryObjectPool();
 
-        private readonly SemaphoreSlim _requestsAvailable = new SemaphoreSlim(0);
+        private readonly Concurrency.Semaphore _requestsAvailable = new Concurrency.Semaphore(0);
         private readonly ConcurrentQueue<ThreadRequest> _requests = new ConcurrentQueue<ThreadRequest>();
         private readonly Thread[] _threads;
 
@@ -47,7 +53,7 @@
             {
                 while (true)
                 {
-                    _requestsAvailable.Wait();
+                    _requestsAvailable.Wait(CancellationToken.None);
                     if (!_requests.TryDequeue(out var result))
                     {
                         continue;
@@ -93,7 +99,7 @@
             ref uint returnLength)
         {
             var cts = new CancellationTokenSource();
-            var request = new ThreadRequest
+            using var request = new ThreadRequest
             {
                 Handle = handle,
                 ObjectInformationClass = objectInformationClass,

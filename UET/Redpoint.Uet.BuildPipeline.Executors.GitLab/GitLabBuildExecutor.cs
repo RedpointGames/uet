@@ -103,7 +103,7 @@
                     job.Artifacts = new GitLabJobArtifacts
                     {
                         When = "always",
-                        Paths = sourceJob.ArtifactPaths,
+                        Paths = sourceJob.ArtifactPaths.ToArray(),
                     };
                     if (sourceJob.ArtifactJUnitReportPath != null)
                     {

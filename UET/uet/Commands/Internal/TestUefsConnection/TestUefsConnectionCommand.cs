@@ -7,9 +7,9 @@
     using System.Threading.Tasks;
     using static Redpoint.Uefs.Protocol.Uefs;
 
-    internal class TestUefsConnectionCommand
+    internal sealed class TestUefsConnectionCommand
     {
-        internal class Options
+        internal sealed class Options
         {
         }
 
@@ -22,7 +22,7 @@
             return command;
         }
 
-        private class TestUefsConnectionCommandInstance : ICommandInstance
+        private sealed class TestUefsConnectionCommandInstance : ICommandInstance
         {
             private readonly ILogger<TestUefsConnectionCommandInstance> _logger;
             private readonly UefsClient _uefsClient;

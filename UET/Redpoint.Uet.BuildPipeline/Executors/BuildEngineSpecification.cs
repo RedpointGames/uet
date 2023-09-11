@@ -1,5 +1,7 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Executors
 {
+    using System.Diagnostics.CodeAnalysis;
+
     public class BuildEngineSpecification
     {
         internal string? _engineVersion { get; private set; }
@@ -37,6 +39,7 @@
             };
         }
 
+        [SuppressMessage("Design", "CA1054:URI-like parameters should not be strings", Justification = "Git URLs are not compatible with the Uri object.")]
         public static BuildEngineSpecification ForGitCommitWithZips(
             string uefsGitUrl,
             string uefsGitCommit,

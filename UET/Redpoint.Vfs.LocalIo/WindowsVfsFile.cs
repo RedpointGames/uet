@@ -248,11 +248,11 @@
         {
             unsafe
             {
-                NativeMethods.NativeFileEndOfFileInfo eof = new NativeMethods.NativeFileEndOfFileInfo
+                NativeFileEndOfFileInfo eof = new NativeFileEndOfFileInfo
                 {
                     EndOfFile = length,
                 };
-                if (!NativeMethods.SetFileInformationByHandle(_handle, NativeMethods.FileInformationClassFileEndOfFileInfo, eof, sizeof(NativeMethods.NativeFileEndOfFileInfo)))
+                if (!NativeMethods.SetFileInformationByHandle(_handle, NativeMethods.FileInformationClassFileEndOfFileInfo, eof, sizeof(NativeFileEndOfFileInfo)))
                 {
                     return Marshal.GetHRForLastWin32Error();
                 }

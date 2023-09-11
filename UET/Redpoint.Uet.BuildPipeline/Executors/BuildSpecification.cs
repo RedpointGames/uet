@@ -55,6 +55,6 @@
         /// <summary>
         /// The mobile provisions to apply before BuildGraph starts. For builds that run on a build server, these files will be staged to shared storage.
         /// </summary>
-        public required BuildConfigMobileProvision[] MobileProvisions { get; set; }
+        public required IReadOnlyList<BuildConfigMobileProvision> MobileProvisions { get; set; }
     }
 }

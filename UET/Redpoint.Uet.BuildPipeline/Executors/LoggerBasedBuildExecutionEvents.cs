@@ -23,12 +23,12 @@
             _logger = logger;
         }
 
-        public List<(string nodeName, BuildResultStatus resultStatus)> GetResults()
+        public IReadOnlyList<(string nodeName, BuildResultStatus resultStatus)> GetResults()
         {
             var results = new List<(string nodeName, BuildResultStatus resultStatus)>();
             foreach (var nodeName in _buildResultsOrder)
             {
-                results.Add((nodeName, _buildResults.ContainsKey(nodeName) ? _buildResults[nodeName] : BuildResultStatus.NotRun));
+                results.Add((nodeName, _buildResults.TryGetValue(nodeName, out var value) ? value : BuildResultStatus.NotRun));
             }
             return results;
         }
@@ -60,6 +60,8 @@
 
         public Task OnNodeOutputReceived(string nodeName, string[] lines)
         {
+            if (lines == null) throw new ArgumentNullException(nameof(lines));
+
             foreach (var line in lines)
             {
                 var highlightedLine = _warningRegex.Replace(line, m => $"{m.Groups[1].Value}{Bright.Yellow(m.Groups[2].Value)}{m.Groups[3].Value}");

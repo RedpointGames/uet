@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class UProjectFile
+    internal sealed class UProjectFile
     {
         [JsonPropertyName("EngineAssociation")]
         public string? EngineAssociation { get; set; }

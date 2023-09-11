@@ -1,5 +1,7 @@
 ﻿namespace Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk
 {
+    using System.Globalization;
+
     internal class VersionNumber
     {
         public int Major { get; init; }
@@ -13,9 +15,9 @@
             var components = version.Split(".");
             return new VersionNumber
             {
-                Major = int.Parse(components[0]),
-                Minor = int.Parse(components[1]),
-                Patch = int.Parse(components[2]),
+                Major = int.Parse(components[0], CultureInfo.InvariantCulture),
+                Minor = int.Parse(components[1], CultureInfo.InvariantCulture),
+                Patch = int.Parse(components[2], CultureInfo.InvariantCulture),
             };
         }
 

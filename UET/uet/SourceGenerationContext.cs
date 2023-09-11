@@ -8,7 +8,7 @@
     [JsonSerializable(typeof(UProjectFile))]
     [JsonSerializable(typeof(EngineBuildVersionJson))]
     [JsonSerializable(typeof(LauncherInstalled))]
-    internal partial class SourceGenerationContext : JsonSerializerContext
+    internal sealed partial class SourceGenerationContext : JsonSerializerContext
     {
     }
 }

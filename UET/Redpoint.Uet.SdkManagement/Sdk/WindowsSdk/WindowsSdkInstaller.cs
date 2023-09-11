@@ -35,7 +35,6 @@
 
         internal async Task InstallSdkToPath(WindowsSdkInstallerTarget versions, string sdkPackagePath, CancellationToken cancellationToken)
         {
-
             const string rootManifestUrl = "https://aka.ms/vs/17/release/channel";
             var serializerOptions = new JsonSerializerOptions
             {
@@ -50,7 +49,7 @@
             VisualStudioManifest rootManifest;
             using (var client = new HttpClient())
             {
-                rootManifest = (await client.GetFromJsonAsync(rootManifestUrl, new VisualStudioJsonSerializerContext(new JsonSerializerOptions(serializerOptions)).VisualStudioManifest).ConfigureAwait(false))!;
+                rootManifest = (await client.GetFromJsonAsync(rootManifestUrl, new VisualStudioJsonSerializerContext(new JsonSerializerOptions(serializerOptions)).VisualStudioManifest, cancellationToken: cancellationToken).ConfigureAwait(false))!;
             }
 
             // In the root manifest, locate the manifest with all the packages.
@@ -59,7 +58,7 @@
             using (var client = new HttpClient())
             {
                 var packagesManifestUrl = rootManifest.ChannelItems!.First(x => x.Type == "Manifest");
-                packagesManifest = (await client.GetFromJsonAsync(packagesManifestUrl.Payloads!.First().Url, new VisualStudioJsonSerializerContext(new JsonSerializerOptions(serializerOptions)).VisualStudioManifest).ConfigureAwait(false))!;
+                packagesManifest = (await client.GetFromJsonAsync(packagesManifestUrl.Payloads!.First().Url, new VisualStudioJsonSerializerContext(new JsonSerializerOptions(serializerOptions)).VisualStudioManifest, cancellationToken: cancellationToken).ConfigureAwait(false))!;
             }
 
             // Generate a dictionary of components based on their ID.
@@ -112,7 +111,7 @@
                 var id = vcComponent.Id!.ToLowerInvariant();
                 foreach (var suffix in vcComponentSuffixes)
                 {
-                    if (id.EndsWith(suffix))
+                    if (id.EndsWith(suffix, StringComparison.Ordinal))
                     {
                         var versionSignifier = id["microsoft.vc.".Length..];
                         versionSignifier = versionSignifier[..^suffix.Length];
@@ -352,7 +351,7 @@
                 {
                     await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
                         client,
-                        payload.Url!,
+                        new Uri(payload.Url!),
                         stream =>
                         {
                             using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
@@ -446,7 +445,7 @@
                         {
                             await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
                                 client,
-                                payload.Url!,
+                                new Uri(payload.Url!),
                                 async stream => await stream.CopyToAsync(file, cancellationToken).ConfigureAwait(false),
                                 cancellationToken).ConfigureAwait(false);
                         }
@@ -463,7 +462,7 @@
             }
             _logger.LogInformation($"{allCabNames.Count} CAB files to download and extract...");
             var cabFileToUrl = component.Payloads
-                .Where(x => x.FileName!.EndsWith(".cab"))
+                .Where(x => x.FileName!.EndsWith(".cab", StringComparison.Ordinal))
                 .ToDictionary(k => k.FileName!, v => (url: v.Url!, size: v.Size));
             foreach (var cabName in allCabNames)
             {
@@ -477,7 +476,7 @@
                         _logger.LogInformation($"Downloading CAB: {cabName} ({uri.size / 1024 / 1024} MB)");
                         await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
                             client,
-                            uri.url,
+                            new Uri(uri.url),
                             async stream => await stream.CopyToAsync(file, cancellationToken).ConfigureAwait(false),
                             cancellationToken).ConfigureAwait(false);
                     }
@@ -530,7 +529,7 @@
                     {
                         await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
                             client,
-                            payload.Url!,
+                            new Uri(payload.Url!),
                             async stream => await stream.CopyToAsync(file, cancellationToken).ConfigureAwait(false),
                             cancellationToken).ConfigureAwait(false);
                     }

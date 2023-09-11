@@ -10,9 +10,9 @@
     using TestPipes;
     using static TestPipes.TestService;
 
-    internal class TestGrpcPipesCommand
+    internal sealed class TestGrpcPipesCommand
     {
-        internal class Options
+        internal sealed class Options
         {
         }
 
@@ -25,7 +25,7 @@
             return command;
         }
 
-        private class TestGrpcPipesCommandInstance : TestServiceBase, ICommandInstance
+        private sealed class TestGrpcPipesCommandInstance : TestServiceBase, ICommandInstance
         {
             private readonly IGrpcPipeFactory _grpcPipeFactory;
             private readonly ILogger<TestGrpcPipesCommandInstance> _logger;

@@ -60,13 +60,13 @@
                 var platforms = overriddenPlatforms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 foreach (var platform in platforms)
                 {
-                    if (_sdkSetupsByPlatformName.ContainsKey(platform))
+                    if (_sdkSetupsByPlatformName.TryGetValue(platform, out var sdkSetup))
                     {
-                        sdkSetups.Add(_sdkSetupsByPlatformName[platform]);
+                        sdkSetups.Add(sdkSetup);
                     }
                 }
 
-                _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.PlatformNames.First()}'"))} based on environment variable '{environmentVariableName}'.");
+                _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.PlatformNames[0]}'"))} based on environment variable '{environmentVariableName}'.");
             }
             else
             {
@@ -74,13 +74,13 @@
                 var components = buildGraphNodeName.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 foreach (var component in components)
                 {
-                    if (_sdkSetupsByPlatformName.ContainsKey(component))
+                    if (_sdkSetupsByPlatformName.TryGetValue(component, out var sdkSetup))
                     {
-                        sdkSetups.Add(_sdkSetupsByPlatformName[component]);
+                        sdkSetups.Add(sdkSetup);
                     }
                 }
 
-                _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.PlatformNames.First()}'"))} based on BuildGraph node name '{buildGraphNodeName}'.");
+                _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.PlatformNames[0]}'"))} based on BuildGraph node name '{buildGraphNodeName}'.");
             }
 
             if (sdkSetups.Count == 0)

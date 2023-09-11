@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Automation
 {
     using Redpoint.Uet.Configuration;
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
     public class BuildConfigPluginTestAutomation
@@ -15,12 +16,14 @@
         /// A list of platforms to execute automation tests on. A set of "Win64", "Mac" or both.
         /// </summary>
         [JsonPropertyName("Platforms"), JsonRequired]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public BuildConfigHostPlatform[] Platforms { get; set; } = Array.Empty<BuildConfigHostPlatform>();
 
         /// <summary>
         /// A list of folders whose contents should be copied into the Config folder of the host project used for automation testing. This is used to set configuration if your automation tests require specific configuration values to be set.
         /// </summary>
         [JsonPropertyName("ConfigFiles"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public string[]? ConfigFiles { get; set; }
 
         /// <summary>

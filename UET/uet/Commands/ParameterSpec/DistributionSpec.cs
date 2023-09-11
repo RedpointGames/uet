@@ -8,7 +8,7 @@
     using System.CommandLine.Parsing;
     using UET.BuildConfig;
 
-    internal class DistributionSpec
+    internal sealed class DistributionSpec
     {
         private DistributionSpec()
         {

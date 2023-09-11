@@ -37,7 +37,7 @@ namespace Redpoint.Uefs.Package.SparseImage
         public void OpenPackageForWriting(string packagePath, long indexSize, long dataSize)
         {
             // Check the filename is correct for usage with hdiutil.
-            if (!packagePath.EndsWith(".sparseimage"))
+            if (!packagePath.EndsWith(".sparseimage", StringComparison.OrdinalIgnoreCase))
             {
                 throw new PackageWriterException("the package path must end in '.sparseimage'");
             }

@@ -10,9 +10,9 @@
     using System.IO;
     using System.Threading.Tasks;
 
-    internal class TransferCommand
+    internal sealed class TransferCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Argument<string> From;
             public Argument<string> To;
@@ -52,7 +52,7 @@
             return command;
         }
 
-        private class TransferCommandInstance : ICommandInstance
+        private sealed class TransferCommandInstance : ICommandInstance
         {
             private readonly ILogger<TransferCommandInstance> _logger;
             private readonly IProgressFactory _progressFactory;
@@ -71,14 +71,14 @@
                 _options = options;
             }
 
-            private record StreamContext
+            private sealed record StreamContext
             {
                 public required string? KeyId { get; set; }
                 public required string? AppKey { get; set; }
                 public HttpClient HttpClient { get; } = new HttpClient();
             }
 
-            public class RetryTransferException : Exception
+            public sealed class RetryTransferException : Exception
             {
             }
 
@@ -166,7 +166,7 @@
                         }
                     case "http":
                         {
-                            var response = await context.HttpClient.GetAsync(from, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                            var response = await context.HttpClient.GetAsync(new Uri(from), HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                             var wrapped = new PositionAwareStream(
                                 await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false),
                                 response.Content.Headers.ContentLength ?? 0);
