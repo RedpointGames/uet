@@ -39,7 +39,7 @@ globalServices.AddLogging(builder =>
 });
 var globalLogger = globalServices.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
 
-for (int i = 1; i <= 5; i++)
+for (int i = 1; i <= 100; i++)
 {
     globalLogger.LogInformation($"Iteration {i}: Starting up...");
 
