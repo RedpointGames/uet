@@ -119,13 +119,13 @@
             RecomputeReparsePointIndex();
         }
 
-        private class HandleFileNode
+        private sealed class HandleFileNode
         {
             public required long Handle;
             public required string FileName;
         }
 
-        private class VirtualFileNode
+        private sealed class VirtualFileNode
         {
             public required DirectoryInfo DirectoryInfo;
             public required HashSet<string> Subdirectories { get; set; }

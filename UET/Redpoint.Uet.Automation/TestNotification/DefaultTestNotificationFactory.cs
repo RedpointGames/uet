@@ -4,7 +4,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.Uet.Automation.TestNotification.Io;
 
-    internal class DefaultTestNotificationFactory : ITestNotificationFactory
+    internal sealed class DefaultTestNotificationFactory : ITestNotificationFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

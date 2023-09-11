@@ -54,7 +54,6 @@
                 _cancellationTokenSource = new CancellationTokenSource();
                 _ = taskSchedulerScope.RunAsync(
                     "StallMonitor",
-                    _cancellationTokenSource.Token,
                     async (cancellationToken) =>
                     {
                         while (!cancellationToken.IsCancellationRequested)
@@ -68,7 +67,8 @@
                                 instance.CancelEntireBuildDueToException(new InvalidOperationException("STALL DETECTED!"));
                             }
                         }
-                    });
+                    },
+                    _cancellationTokenSource.Token);
             }
 
             public void MadeProgress()

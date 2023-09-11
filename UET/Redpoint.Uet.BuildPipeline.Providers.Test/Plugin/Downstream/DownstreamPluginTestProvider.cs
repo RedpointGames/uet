@@ -14,7 +14,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class DownstreamPluginTestProvider : IPluginTestProvider
+    internal sealed class DownstreamPluginTestProvider : IPluginTestProvider
     {
         private readonly IGlobalArgsProvider? _globalArgsProvider;
 

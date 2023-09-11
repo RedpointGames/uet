@@ -93,7 +93,7 @@
 
         private async Task<long> GetInflightJobCount()
         {
-            await _inflightJobCountSemaphore.WaitAsync();
+            await _inflightJobCountSemaphore.WaitAsync(_shutdownCancellationToken).ConfigureAwait(false);
             try
             {
                 return _inflightJobs;
@@ -119,7 +119,7 @@
                     if (inFlightCount > 0)
                     {
                         _logger.LogTrace("OpenGE in-flight: Waiting for in-flight OpenGE jobs to terminate...");
-                        await _allInflightJobsAreComplete.WaitAsync();
+                        await _allInflightJobsAreComplete.WaitAsync(_shutdownCancellationToken).ConfigureAwait(false);
                         _logger.LogTrace($"OpenGE in-flight: There are now no jobs in-flight");
                     }
 
@@ -155,7 +155,7 @@
                 }
 
                 // Increment the current job count.
-                await _inflightJobCountSemaphore.WaitAsync();
+                await _inflightJobCountSemaphore.WaitAsync(_shutdownCancellationToken).ConfigureAwait(false);
                 try
                 {
                     if (_isShuttingDown)
@@ -262,7 +262,7 @@
                 finally
                 {
                     // Decrement the job count.
-                    await _inflightJobCountSemaphore.WaitAsync();
+                    await _inflightJobCountSemaphore.WaitAsync(_shutdownCancellationToken).ConfigureAwait(false);
                     try
                     {
                         _inflightJobs--;

@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class GitHubUpdateRef
+    internal sealed class GitHubUpdateRef
     {
         [JsonPropertyName("sha")]
         public string? Sha { get; set; }

@@ -2,7 +2,7 @@
 {
     using System.Threading.Tasks;
 
-    internal class CollectionTestingWorkerCore : IWorkerCore
+    internal sealed class CollectionTestingWorkerCore : IWorkerCore
     {
         public ValueTask DisposeAsync()
         {

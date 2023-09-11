@@ -5,7 +5,7 @@
     using System.Security.Cryptography;
     using System.Text;
 
-    internal class DefaultStringUtilities : IStringUtilities
+    internal sealed class DefaultStringUtilities : IStringUtilities
     {
         public string GetStabilityHash(string inputString, int? length)
         {

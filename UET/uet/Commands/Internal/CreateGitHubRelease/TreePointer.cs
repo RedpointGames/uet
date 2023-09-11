@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class TreePointer
+    internal sealed class TreePointer
     {
         [JsonPropertyName("sha")]
         public string? Sha { get; set; }

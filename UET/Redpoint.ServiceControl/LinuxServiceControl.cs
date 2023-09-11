@@ -7,7 +7,7 @@
     using System.Threading.Tasks;
 
     [SupportedOSPlatform("linux")]
-    internal class LinuxServiceControl : IServiceControl
+    internal sealed class LinuxServiceControl : IServiceControl
     {
         [DllImport("libc")]
         internal static extern uint geteuid();

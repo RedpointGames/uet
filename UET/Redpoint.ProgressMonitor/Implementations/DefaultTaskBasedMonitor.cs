@@ -4,7 +4,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DefaultTaskBasedMonitor : ITaskBasedMonitor
+    internal sealed class DefaultTaskBasedMonitor : ITaskBasedMonitor
     {
         public string ComputeProgressMessage(ITaskBasedProgress progress, int? widthHint, DateTimeOffset startTime)
         {

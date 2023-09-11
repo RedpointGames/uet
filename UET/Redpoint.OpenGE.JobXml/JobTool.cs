@@ -20,6 +20,6 @@
 
         // public required string OutputFileMasks { get; init; }
 
-        public required string[]? AutoRecover { get; init; }
+        public required IReadOnlyCollection<string>? AutoRecover { get; init; }
     }
 }

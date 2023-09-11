@@ -5,7 +5,7 @@
 
     [JsonSerializable(typeof(RegistryImageConfig))]
     [JsonSerializable(typeof(RegistryReferenceInfo))]
-    internal partial class UefsCommandJsonSerializerContext : JsonSerializerContext
+    internal sealed partial class UefsCommandJsonSerializerContext : JsonSerializerContext
     {
     }
 }

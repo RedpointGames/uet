@@ -2,7 +2,7 @@
 {
     using System.Collections.Concurrent;
 
-    internal class SemaphoreSlimVfsLocks : IVfsLocks
+    internal sealed class SemaphoreSlimVfsLocks : IVfsLocks
     {
         private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks;
         private readonly ConcurrentDictionary<string, string> _lockHolders;

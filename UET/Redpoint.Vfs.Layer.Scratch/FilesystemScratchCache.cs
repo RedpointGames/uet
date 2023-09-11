@@ -62,7 +62,7 @@ namespace Redpoint.Vfs.Layer.Scratch
     }
 #else
 #if !USE_BREAKABLE
-    internal class FilesystemScratchCache : IVfsFileWriteCallbacks
+    internal sealed class FilesystemScratchCache : IVfsFileWriteCallbacks
     {
         private ICache<string, VfsEntry[]> _projectionCache;
         private static IComparer<string> _comparer = new FileSystemNameComparer();

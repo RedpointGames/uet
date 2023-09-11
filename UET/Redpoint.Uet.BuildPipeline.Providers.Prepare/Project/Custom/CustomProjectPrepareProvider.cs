@@ -16,7 +16,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class CustomProjectPrepareProvider : IProjectPrepareProvider
+    internal sealed class CustomProjectPrepareProvider : IProjectPrepareProvider
     {
         private readonly ILogger<CustomPluginPrepareProvider> _logger;
         private readonly IScriptExecutor _scriptExecutor;

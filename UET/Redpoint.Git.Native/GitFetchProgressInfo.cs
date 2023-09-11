@@ -3,7 +3,7 @@
     /// <summary>
     /// Represent process of a 'git fetch' operation.
     /// </summary>
-    public struct GitFetchProgressInfo
+    public record struct GitFetchProgressInfo
     {
         /// <summary>
         /// The progress message from the remote Git server. <c>null</c> until the server reports it.

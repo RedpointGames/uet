@@ -7,7 +7,7 @@
 
     [SupportedOSPlatform("macos")]
     [ProviderAlias("Mac")]
-    internal class MacLoggerProvider : ILoggerProvider
+    internal sealed class MacLoggerProvider : ILoggerProvider
     {
         private readonly IOptionsMonitor<MacLoggerOptions> _options;
         private readonly ConcurrentDictionary<string, MacLogger> _loggers;

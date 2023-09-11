@@ -12,9 +12,9 @@
     /// Instantiate this class to enumerate over the current system volumes.
     /// </summary>
     [SupportedOSPlatform("windows6.2")]
-    public class SystemVolumes : IEnumerable<SystemVolume>
+    public sealed class SystemVolumes : IEnumerable<SystemVolume>
     {
-        private class SystemVolumeEnumerator : IEnumerator<SystemVolume>
+        private sealed class SystemVolumeEnumerator : IEnumerator<SystemVolume>
         {
             private char[] _buffer = new char[PInvoke.MAX_PATH];
             private SystemVolume? _current;

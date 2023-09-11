@@ -18,7 +18,7 @@
     using System.Text.Json.Serialization;
     using Redpoint.RuntimeJson;
 
-    internal class AutomationPluginTestProvider : IPluginTestProvider, IDynamicReentrantExecutor<BuildConfigPluginDistribution, BuildConfigPluginTestAutomation>
+    internal sealed class AutomationPluginTestProvider : IPluginTestProvider, IDynamicReentrantExecutor<BuildConfigPluginDistribution, BuildConfigPluginTestAutomation>
     {
         private readonly IPluginTestProjectEmitProvider _pluginTestProjectEmitProvider;
         private readonly IAutomationRunnerFactory _automationRunnerFactory;

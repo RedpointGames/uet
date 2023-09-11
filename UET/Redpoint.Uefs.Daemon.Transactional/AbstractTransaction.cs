@@ -7,9 +7,9 @@
     using System.Runtime.ExceptionServices;
     using System.Threading.Tasks;
 
-    internal abstract class AbstractTransaction<TRequest, TListenerDelegate> : 
-        ITransaction 
-        where TRequest : class, ITransactionRequest 
+    internal abstract class AbstractTransaction<TRequest, TListenerDelegate> :
+        ITransaction
+        where TRequest : class, ITransactionRequest
         where TListenerDelegate : notnull
     {
         protected readonly ConcurrentDictionary<TListenerDelegate, bool> _listeners;
@@ -55,7 +55,7 @@
             return new ReleasableListener(this, _initialListener);
         }
 
-        protected class ReleasableListener : IAsyncDisposable
+        protected sealed class ReleasableListener : IAsyncDisposable
         {
             private readonly AbstractTransaction<TRequest, TListenerDelegate> _transaction;
             private readonly TListenerDelegate _listener;

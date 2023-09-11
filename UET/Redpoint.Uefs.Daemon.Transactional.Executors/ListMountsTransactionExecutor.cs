@@ -4,7 +4,7 @@
     using Redpoint.Uefs.Protocol;
     using System.Threading.Tasks;
 
-    internal class ListMountsTransactionExecutor : ITransactionExecutor<ListMountsTransactionRequest, ListResponse>
+    internal sealed class ListMountsTransactionExecutor : ITransactionExecutor<ListMountsTransactionRequest, ListResponse>
     {
         private readonly IMountTracking _mountTracking;
         private readonly IMountLockObtainer _mountLockObtainer;

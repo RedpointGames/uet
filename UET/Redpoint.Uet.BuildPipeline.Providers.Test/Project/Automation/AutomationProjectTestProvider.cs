@@ -19,7 +19,7 @@
     using Redpoint.Uet.Configuration;
     using Redpoint.RuntimeJson;
 
-    internal class AutomationProjectTestProvider : IProjectTestProvider, IDynamicReentrantExecutor<BuildConfigProjectDistribution, BuildConfigProjectTestAutomation>
+    internal sealed class AutomationProjectTestProvider : IProjectTestProvider, IDynamicReentrantExecutor<BuildConfigProjectDistribution, BuildConfigProjectTestAutomation>
     {
         private readonly IAutomationRunnerFactory _automationRunnerFactory;
         private readonly ITestLoggerFactory _testLoggerFactory;

@@ -4,7 +4,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DefaultGitFetchBasedMonitor : IGitFetchBasedMonitor
+    internal sealed class DefaultGitFetchBasedMonitor : IGitFetchBasedMonitor
     {
         private readonly IUtilities _utilities;
 

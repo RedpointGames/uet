@@ -13,7 +13,7 @@
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using Redpoint.Hashing;
 
-    internal class PullPackageTagTransactionExecutor : ITransactionExecutor<PullPackageTagTransactionRequest, PullPackageTagTransactionResult>
+    internal sealed class PullPackageTagTransactionExecutor : ITransactionExecutor<PullPackageTagTransactionRequest, PullPackageTagTransactionResult>
     {
         private readonly IRemoteStorage<ManifestLayer> _registryRemoteStorage;
         private readonly IRemoteStorage<RegistryReferenceInfo> _referenceRemoteStorage;

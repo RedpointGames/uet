@@ -8,9 +8,9 @@
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
 
-    internal class CopyAndMutateBuildCsCommand
+    internal sealed class CopyAndMutateBuildCsCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> InputBasePath;
             public Option<string> InputFileList;
@@ -35,7 +35,7 @@
             return command;
         }
 
-        private class CopyAndMutateBuildCsCommandInstance : ICommandInstance
+        private sealed class CopyAndMutateBuildCsCommandInstance : ICommandInstance
         {
             private readonly ILogger<CopyAndMutateBuildCsCommandInstance> _logger;
             private readonly Options _options;

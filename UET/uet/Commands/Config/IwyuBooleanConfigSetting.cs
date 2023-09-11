@@ -4,7 +4,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class IwyuBooleanConfigSetting : IBooleanConfigSetting
+    internal sealed class IwyuBooleanConfigSetting : IBooleanConfigSetting
     {
         public string Name => "iwyu";
 

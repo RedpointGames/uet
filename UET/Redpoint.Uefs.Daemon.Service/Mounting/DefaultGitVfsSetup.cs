@@ -12,7 +12,7 @@
     using Redpoint.Vfs.Layer.Scratch;
     using System.Threading.Tasks;
 
-    internal class DefaultGitVfsSetup : IGitVfsSetup
+    internal sealed class DefaultGitVfsSetup : IGitVfsSetup
     {
         private readonly ILogger<DefaultGitVfsSetup> _logger;
         private readonly IGitDependenciesVfsLayerFactory _gitDependenciesVfsLayerFactory;

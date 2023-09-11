@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
@@ -216,6 +217,7 @@
             });
         }
 
+        [SuppressMessage("Usage", "CA2215:Dispose methods should call base class dispose", Justification = "Stream.DisposeAsync calls into the synchronise Dispose method.")]
         public override async ValueTask DisposeAsync()
         {
             var client = _client;
@@ -227,7 +229,6 @@
             {
                 // This is fine.
             }
-            await base.DisposeAsync().ConfigureAwait(false);
         }
 
         #region Unsupported Synchronous Methods

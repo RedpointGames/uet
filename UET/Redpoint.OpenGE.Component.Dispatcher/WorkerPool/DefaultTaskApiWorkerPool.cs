@@ -72,7 +72,7 @@
                     _requestCollection,
                     _remoteWorkerCoreProviderCollection,
                     false);
-                _remoteWorkerDiscoveryTask = _taskSchedulerScope.RunAsync("DiscoverRemoteWorkers", CancellationToken.None, DiscoverRemoteWorkersAsync);
+                _remoteWorkerDiscoveryTask = _taskSchedulerScope.RunAsync("DiscoverRemoteWorkers", DiscoverRemoteWorkersAsync, CancellationToken.None);
             }
         }
 
@@ -191,7 +191,7 @@
 
         public async ValueTask DisposeAsync()
         {
-            using var _ = await _disposing.WaitAsync().ConfigureAwait(false);
+            using var _ = await _disposing.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             _logger.LogTrace("Worker pool is now shutting down.");
 

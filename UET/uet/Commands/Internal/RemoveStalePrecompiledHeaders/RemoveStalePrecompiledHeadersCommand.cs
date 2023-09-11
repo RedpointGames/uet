@@ -9,9 +9,9 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal class RemoveStalePrecompiledHeadersCommand
+    internal sealed class RemoveStalePrecompiledHeadersCommand
     {
-        public class Options
+        public sealed class Options
         {
             public Option<DirectoryInfo> EnginePath = new Option<DirectoryInfo>("--engine-path") { IsRequired = true };
             public Option<DirectoryInfo> ProjectPath = new Option<DirectoryInfo>("--project-path") { IsRequired = true };
@@ -29,7 +29,7 @@
             return command;
         }
 
-        private class RemoveStalePrecompiledHeadersCommandInstance : ICommandInstance
+        private sealed class RemoveStalePrecompiledHeadersCommandInstance : ICommandInstance
         {
             private readonly ILogger<RemoveStalePrecompiledHeadersCommandInstance> _logger;
             private readonly Options _options;

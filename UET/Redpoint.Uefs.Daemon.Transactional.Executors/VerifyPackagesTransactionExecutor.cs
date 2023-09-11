@@ -5,7 +5,7 @@
     using System.Threading.Tasks;
     using Redpoint.Uefs.Protocol;
 
-    internal class VerifyPackagesTransactionExecutor : ITransactionExecutor<VerifyPackagesTransactionRequest>
+    internal sealed class VerifyPackagesTransactionExecutor : ITransactionExecutor<VerifyPackagesTransactionRequest>
     {
         public async Task ExecuteTransactionAsync(
             ITransactionContext context,

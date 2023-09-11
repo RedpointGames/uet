@@ -9,7 +9,7 @@
     using Microsoft.Extensions.Logging;
     using System.Text;
 
-    internal class DefaultSchemaUploader : ISchemaUploader
+    internal sealed class DefaultSchemaUploader : ISchemaUploader
     {
         private readonly ILogger<DefaultSchemaUploader> _logger;
         private readonly IJsonSchemaGenerator _jsonSchemaGenerator;

@@ -7,7 +7,7 @@
         [Fact]
         public void CanEnumeratePackfileIndex()
         {
-            using var index = new PackfileIndex("pack-a3937f64bd05eea333e59ce57f47f3cdd76664b1.idx");
+            using var index = new GitPackfileIndex("pack-a3937f64bd05eea333e59ce57f47f3cdd76664b1.idx");
             for (ushort i = 0; i < 256; i++)
             {
                 _ = index.LowLevelGetNumberOfObjectsPrecedingSectionForMostSignificantByte((byte)i);
@@ -23,7 +23,7 @@
         [Fact]
         public void CanBinarySearchPackfileIndex()
         {
-            using var index = new PackfileIndex("pack-a3937f64bd05eea333e59ce57f47f3cdd76664b1.idx");
+            using var index = new GitPackfileIndex("pack-a3937f64bd05eea333e59ce57f47f3cdd76664b1.idx");
 
             var orderedExpectedObjects = new (UInt160 sha, uint expectedOffset)[]
             {
@@ -46,7 +46,7 @@
         [Fact]
         public void BinarySearchDoesNotReturnObjectsThatDoNotExist()
         {
-            using var index = new PackfileIndex("pack-a3937f64bd05eea333e59ce57f47f3cdd76664b1.idx");
+            using var index = new GitPackfileIndex("pack-a3937f64bd05eea333e59ce57f47f3cdd76664b1.idx");
 
             var missingObjects = new[]
             {

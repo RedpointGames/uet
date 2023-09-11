@@ -11,7 +11,7 @@
 
     public static class BuildCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<FileInfo> PackagePath;
             public Option<DirectoryInfo> DirectoryPath;
@@ -39,7 +39,7 @@
             return command;
         }
 
-        private class BuildCommandInstance : ICommandInstance
+        private sealed class BuildCommandInstance : ICommandInstance
         {
             private readonly IEnumerable<IPackageWriterFactory> _writers;
             private readonly IPackageManifestAssembler _packageManifestAssembler;

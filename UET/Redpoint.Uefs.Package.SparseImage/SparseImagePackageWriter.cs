@@ -4,7 +4,7 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("macos")]
-    internal class SparseImagePackageWriter : IPackageWriter
+    internal sealed class SparseImagePackageWriter : IPackageWriter
     {
         private string? _mountPath = null;
         private bool _isMounted = false;

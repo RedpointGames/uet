@@ -8,7 +8,7 @@
     using System.Threading.Tasks;
     using Redpoint.Concurrency;
 
-    internal class GitCommitPuller : IPuller<PullGitCommitRequest>
+    internal sealed class GitCommitPuller : IPuller<PullGitCommitRequest>
     {
         public async Task<PullResult> PullAsync(
             IUefsDaemon daemon,

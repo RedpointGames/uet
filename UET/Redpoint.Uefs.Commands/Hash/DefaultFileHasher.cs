@@ -5,7 +5,7 @@
     using System.Threading.Tasks;
     using Redpoint.ProgressMonitor;
 
-    internal class DefaultFileHasher : IFileHasher
+    internal sealed class DefaultFileHasher : IFileHasher
     {
         private readonly IMonitorFactory _monitorFactory;
         private readonly IProgressFactory _progressFactory;

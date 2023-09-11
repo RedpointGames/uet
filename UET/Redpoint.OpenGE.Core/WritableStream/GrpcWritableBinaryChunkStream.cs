@@ -3,6 +3,7 @@
     using Grpc.Core;
     using System;
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -118,6 +119,7 @@
             return Task.CompletedTask;
         }
 
+        [SuppressMessage("Usage", "CA2215:Dispose methods should call base class dispose", Justification = "Stream.DisposeAsync calls into the synchronise Dispose method.")]
         public override async ValueTask DisposeAsync()
         {
             GC.SuppressFinalize(this);
@@ -139,8 +141,6 @@
             {
                 _writingSemaphore.Release();
             }
-
-            await base.DisposeAsync().ConfigureAwait(false);
         }
 
         #region Unsupported Methods

@@ -43,7 +43,7 @@
             }
         }
 
-        public async Task RunAsync(string taskName, CancellationToken taskCancellationToken, Func<CancellationToken, Task> backgroundTask)
+        public async Task RunAsync(string taskName, Func<CancellationToken, Task> backgroundTask, CancellationToken taskCancellationToken)
         {
             var cts = CancellationTokenSource.CreateLinkedTokenSource(
                 _scopeCancellationTokenSource.Token,
@@ -53,7 +53,7 @@
                 Name = taskName,
                 CancellationTokenSource = cts,
             };
-            using (await _tasksMutex.WaitAsync(CancellationToken.None).ConfigureAwait(false))
+            using (await _tasksMutex.WaitAsync(cts.Token).ConfigureAwait(false))
             {
                 _tasks.Add(scheduledTask);
             }
@@ -77,8 +77,9 @@
                     {
                         _tasks.Remove(scheduledTask);
                     }
+                    cts.Dispose();
                 }
-            });
+            }, cts.Token);
             await scheduledTask.InternalTask.ConfigureAwait(false);
         }
 

@@ -6,7 +6,7 @@
     using System.Threading.Tasks;
     using Redpoint.Uefs.Protocol;
 
-    internal class PullGitCommitTransactionExecutor : ITransactionExecutor<PullGitCommitTransactionRequest>
+    internal sealed class PullGitCommitTransactionExecutor : ITransactionExecutor<PullGitCommitTransactionRequest>
     {
         private readonly ILogger<PullGitCommitTransactionExecutor> _logger;
 

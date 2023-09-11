@@ -15,7 +15,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class CommandletPluginTestProvider : IPluginTestProvider, IDynamicReentrantExecutor<BuildConfigPluginDistribution, BuildConfigPluginTestCommandlet>
+    internal sealed class CommandletPluginTestProvider : IPluginTestProvider, IDynamicReentrantExecutor<BuildConfigPluginDistribution, BuildConfigPluginTestCommandlet>
     {
         private readonly ILogger<CommandletPluginTestProvider> _logger;
         private readonly IScriptExecutor _scriptExecutor;

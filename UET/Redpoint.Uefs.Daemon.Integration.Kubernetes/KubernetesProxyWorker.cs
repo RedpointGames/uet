@@ -8,7 +8,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class KubernetesProxyWorker : BackgroundService
+    internal sealed class KubernetesProxyWorker : BackgroundService
     {
         private readonly ILogger<KubernetesProxyWorker> _logger;
         private readonly KubernetesForwardingArguments _args;

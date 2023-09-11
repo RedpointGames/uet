@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class GitHubNewBlob
+    internal sealed class GitHubNewBlob
     {
         [JsonPropertyName("content")]
         public string? Content { get; set; }

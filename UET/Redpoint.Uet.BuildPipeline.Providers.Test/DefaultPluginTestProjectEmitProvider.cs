@@ -6,7 +6,7 @@
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration;
 
-    internal class DefaultPluginTestProjectEmitProvider : IPluginTestProjectEmitProvider
+    internal sealed class DefaultPluginTestProjectEmitProvider : IPluginTestProjectEmitProvider
     {
         // Pick a unique property prefix so we never conflict.
         private const string _propertyPrefix = "TestProject";

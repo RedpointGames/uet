@@ -3,7 +3,7 @@
     using System.Text.Json.Serialization;
 
     [JsonSerializable(typeof(UPluginFile))]
-    internal partial class ProjectPluginFileJsonSerializerContext : JsonSerializerContext
+    internal partial sealed class ProjectPluginFileJsonSerializerContext : JsonSerializerContext
     {
 
     }

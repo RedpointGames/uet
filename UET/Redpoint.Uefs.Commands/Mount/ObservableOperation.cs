@@ -81,7 +81,7 @@
 
         public long Length { get; private set; }
 
-        private class DidOutput
+        private sealed class DidOutput
         {
             public bool Did;
         }

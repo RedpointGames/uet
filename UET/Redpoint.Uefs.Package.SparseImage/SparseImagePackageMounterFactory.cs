@@ -5,7 +5,7 @@
     using Microsoft.Extensions.Logging;
 
     [SupportedOSPlatform("macos")]
-    internal class SparseImagePackageMounterFactory : IPackageMounterFactory
+    internal sealed class SparseImagePackageMounterFactory : IPackageMounterFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

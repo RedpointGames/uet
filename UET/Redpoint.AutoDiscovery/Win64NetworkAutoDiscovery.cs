@@ -55,7 +55,7 @@
             {
                 var stream = new TerminableAwaitableConcurrentQueue<NetworkService>();
                 var request = new Win64ServiceBrowseCall(query, stream);
-                var task = scope.RunAsync("BrowseCall", cancellationToken, async (cancellationToken) =>
+                var task = scope.RunAsync("BrowseCall", async (cancellationToken) =>
                 {
                     try
                     {
@@ -69,7 +69,7 @@
                     {
                         stream.Terminate();
                     }
-                });
+                }, cancellationToken);
                 await foreach (var entry in stream)
                 {
                     yield return entry;

@@ -10,6 +10,7 @@
     using System.Text;
     using System.IO.Compression;
     using Redpoint.Tasks;
+    using System.Globalization;
 
     internal class GitExecutionEngine : IDisposable
     {
@@ -18,8 +19,8 @@
         // @bug: I'm pretty sure this can dispose the packfiles while we still
         // have streams open. Packfile needs to be updated to defer it's actual
         // Dispose operations until the returned streams are also disposed.
-        private readonly ICache<string, Packfile.Packfile> _packfileCache;
-        private readonly ICache<string, PackfileIndex> _packfileIndexCache;
+        private readonly ICache<string, Packfile.GitPackfile> _packfileCache;
+        private readonly ICache<string, GitPackfileIndex> _packfileIndexCache;
         private readonly ICache<string, bool> _looseObjectExistenceCache;
         private readonly ICache<string, FileInfo[]> _packfileListingCache;
         private readonly ITaskSchedulerScope _operationTasksScope;
@@ -31,12 +32,12 @@
         {
             _pendingOperations = new AwaitableConcurrentQueue<GitOperation>();
             _logger = logger;
-            _packfileCache = new ConcurrentLruBuilder<string, Packfile.Packfile>()
+            _packfileCache = new ConcurrentLruBuilder<string, Packfile.GitPackfile>()
                 .WithExpireAfterWrite(TimeSpan.FromMinutes(1))
                 .WithCapacity(20)
                 .WithAtomicGetOrAdd()
                 .Build();
-            _packfileIndexCache = new ConcurrentLruBuilder<string, PackfileIndex>()
+            _packfileIndexCache = new ConcurrentLruBuilder<string, GitPackfileIndex>()
                 .WithExpireAfterWrite(TimeSpan.FromMinutes(1))
                 .WithCapacity(20)
                 .WithAtomicGetOrAdd()
@@ -53,7 +54,7 @@
                 .Build();
             _operationTasksScope = taskScheduler.CreateSchedulerScope("GitExecutionEngine", CancellationToken.None);
             _operationTasks = Enumerable.Range(0, Math.Max(4, Environment.ProcessorCount))
-                .Select(x => _operationTasksScope.RunAsync($"Core{x}", CancellationToken.None, RunAsync))
+                .Select(x => _operationTasksScope.RunAsync($"Core{x}", RunAsync, CancellationToken.None))
                 .ToArray();
         }
 
@@ -91,7 +92,7 @@
                             packfiles.Length + 1,
                             async result =>
                             {
-                                await getObject.OnResultAsync(result);
+                                await getObject.OnResultAsync(result).ConfigureAwait(false);
                             });
                         foreach (var packfile in packfiles)
                         {
@@ -114,11 +115,11 @@
                     {
                         var packfile = _packfileCache.GetOrAdd(
                             getObjectFromPackfile.Packfile.FullName,
-                            path => new Packfile.Packfile(path));
+                            path => new Packfile.GitPackfile(path));
                         var packfileIndex = _packfileIndexCache.GetOrAdd(
                             getObjectFromPackfile.Packfile.FullName[
 ..^5] + ".idx",
-                            path => new PackfileIndex(path));
+                            path => new GitPackfileIndex(path));
                         if (packfile.GetRawPackfileEntry(
                             packfileIndex,
                             getObjectFromPackfile.Sha,
@@ -132,11 +133,11 @@
                                     Type = type,
                                     Size = size,
                                     Data = data,
-                                });
+                                }).ConfigureAwait(false);
                         }
                         else
                         {
-                            await getObjectFromPackfile.Result.ReceiveNoResultAsync();
+                            await getObjectFromPackfile.Result.ReceiveNoResultAsync().ConfigureAwait(false);
                         }
                     }
                     break;
@@ -188,7 +189,7 @@
                             var size = ulong.Parse(Encoding.ASCII.GetString(
                                 buffer,
                                 spaceIndex + 1,
-                                nullIndex - (spaceIndex + 1)));
+                                nullIndex - (spaceIndex + 1)), CultureInfo.InvariantCulture);
                             await getLooseObject.Result.ReceiveResultAsync(
                                 new GitObjectInfo
                                 {
@@ -202,11 +203,11 @@
                                     },
                                     Size = size,
                                     Data = new OffsetStream(stream, nullIndex + 1),
-                                });
+                                }).ConfigureAwait(false);
                         }
                         else
                         {
-                            await getLooseObject.Result.ReceiveNoResultAsync();
+                            await getLooseObject.Result.ReceiveNoResultAsync().ConfigureAwait(false);
                         }
                     }
                     break;
@@ -229,11 +230,11 @@
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    var nextOperation = await _pendingOperations.DequeueAsync(cancellationToken);
+                    var nextOperation = await _pendingOperations.DequeueAsync(cancellationToken).ConfigureAwait(false);
 
                     try
                     {
-                        await RunOperationAsync(nextOperation, cancellationToken);
+                        await RunOperationAsync(nextOperation, cancellationToken).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {

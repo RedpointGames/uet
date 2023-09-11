@@ -2,7 +2,7 @@
 {
     using System;
 
-    internal class ScratchIndexCorruptException : Exception
+    internal sealed class ScratchIndexCorruptException : Exception
     {
         public ScratchIndexCorruptException(string? message, Exception? innerException) : base(message, innerException)
         {

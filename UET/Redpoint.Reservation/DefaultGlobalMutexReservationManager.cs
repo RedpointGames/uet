@@ -6,7 +6,7 @@
     using System.Threading.Tasks;
     using Redpoint.Hashing;
 
-    internal class DefaultGlobalMutexReservationManager : IGlobalMutexReservationManager
+    internal sealed class DefaultGlobalMutexReservationManager : IGlobalMutexReservationManager
     {
         [SupportedOSPlatform("macos")]
         [SupportedOSPlatform("linux")]

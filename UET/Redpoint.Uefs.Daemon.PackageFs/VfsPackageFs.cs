@@ -17,7 +17,7 @@
     using System.Threading.Tasks;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class VfsPackageFs : CachingPackageFs
+    internal sealed class VfsPackageFs : CachingPackageFs
     {
         private readonly IVfsDriverFactory _vfsFactory;
         private readonly ILogger<IVfsLayer> _logger;
@@ -110,7 +110,7 @@
             return Task.FromResult(true);
         }
 
-        private class StorageProjectionLayer : IVfsLayer
+        private sealed class StorageProjectionLayer : IVfsLayer
         {
             private readonly ILogger<IVfsLayer> _logger;
             private readonly VfsPackageFs _storageFS;

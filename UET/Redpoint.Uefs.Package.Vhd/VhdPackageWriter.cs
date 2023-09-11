@@ -10,7 +10,7 @@
     using System.Security.AccessControl;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class VhdPackageWriter : IPackageWriter
+    internal sealed class VhdPackageWriter : IPackageWriter
     {
         private FileStream? _fs;
         private Disk? _disk;

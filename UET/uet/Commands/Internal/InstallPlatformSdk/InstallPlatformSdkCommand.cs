@@ -6,9 +6,9 @@
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal class InstallPlatformSdkCommand
+    internal sealed class InstallPlatformSdkCommand
     {
-        public class Options
+        public sealed class Options
         {
             public Option<DirectoryInfo> EnginePath;
             public Option<DirectoryInfo> PackagePath;
@@ -43,7 +43,7 @@
             return command;
         }
 
-        private class InstallPlatformSdkCommandInstance : ICommandInstance
+        private sealed class InstallPlatformSdkCommandInstance : ICommandInstance
         {
             private readonly Options _options;
             private readonly ILocalSdkManager _localSdkManager;

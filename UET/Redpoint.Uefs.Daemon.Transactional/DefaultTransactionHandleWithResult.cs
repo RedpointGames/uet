@@ -4,7 +4,7 @@
     using System;
     using System.Threading.Tasks;
 
-    internal class DefaultTransactionHandleWithResult<TResult> : ITransactionHandle<TResult> where TResult : class
+    internal sealed class DefaultTransactionHandleWithResult<TResult> : ITransactionHandle<TResult> where TResult : class
     {
         private readonly string _transactionId;
         private readonly IWaitableTransaction<TResult> _transaction;

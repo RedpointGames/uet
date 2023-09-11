@@ -19,7 +19,7 @@
     using System.Globalization;
     using Redpoint.Hashing;
 
-    internal class GitRepoManager : IGitRepoManager
+    internal sealed class GitRepoManager : IGitRepoManager
     {
         private readonly string _gitRepoPath;
         private readonly Repository _repository;
@@ -139,7 +139,7 @@
             }
         }
 
-        class DataHolder
+        sealed class DataHolder
         {
             public long BytesReceived;
         }
@@ -153,7 +153,7 @@
         {
             await using (_taskScheduler.CreateSchedulerScope("GitRepoManager", CancellationToken.None).AsAsyncDisposable(out var scope).ConfigureAwait(false))
             {
-                await scope.RunAsync($"Fetch:{url}", CancellationToken.None, async (cancellationToken) =>
+                await scope.RunAsync($"Fetch:{url}", async (cancellationToken) =>
                 {
                     string hash = Hash.Sha1AsHexString(url, Encoding.UTF8);
 
@@ -496,7 +496,7 @@
                     {
                         throw new InvalidOperationException("Internal fetch command failed to fetch commit!");
                     }
-                }).ConfigureAwait(false);
+                }, CancellationToken.None).ConfigureAwait(false);
             }
         }
 
@@ -524,6 +524,11 @@
             {
                 _processSemaphore.Release();
             }
+        }
+
+        public void Dispose()
+        {
+            _repository.Dispose();
         }
     }
 }

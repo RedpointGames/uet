@@ -7,14 +7,14 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class CachedFilePool
+    internal sealed class CachedFilePool
     {
         private readonly ILogger _logger;
         private readonly string _localStoragePath;
         private ConcurrentDictionary<string, OpenedCachedFile> _openCachedFiles;
         private Task _flushingTask;
 
-        private class OpenedCachedFile
+        private sealed class OpenedCachedFile
         {
             private readonly ILogger _logger;
             private readonly IRemoteStorageBlobFactory _sourceFactory;
@@ -53,7 +53,7 @@
                 }
             }
 
-            private class OpenedCachedFileHandle : IVfsFileHandle<ICachedFile>
+            private sealed class OpenedCachedFileHandle : IVfsFileHandle<ICachedFile>
             {
                 private readonly OpenedCachedFile _ocf;
 

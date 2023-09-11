@@ -11,7 +11,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class GauntletPluginTestProvider : IPluginTestProvider
+    internal sealed class GauntletPluginTestProvider : IPluginTestProvider
     {
         public GauntletPluginTestProvider()
         {

@@ -14,9 +14,9 @@
     using UET.Commands.Build;
     using UET.Commands.EngineSpec;
 
-    internal class GenerateCommand
+    internal sealed class GenerateCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<EngineSpec> Engine;
             public Option<PathSpec> Path;
@@ -50,7 +50,7 @@
             return command;
         }
 
-        private class GenerateCommandInstance : ICommandInstance
+        private sealed class GenerateCommandInstance : ICommandInstance
         {
             private readonly ILogger<GenerateCommandInstance> _logger;
             private readonly IProcessExecutor _processExecutor;

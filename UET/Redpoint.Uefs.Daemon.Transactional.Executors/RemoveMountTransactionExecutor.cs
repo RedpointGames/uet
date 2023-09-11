@@ -4,7 +4,7 @@
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using System.Threading.Tasks;
 
-    internal class RemoveMountTransactionExecutor : ITransactionExecutor<RemoveMountTransactionRequest>
+    internal sealed class RemoveMountTransactionExecutor : ITransactionExecutor<RemoveMountTransactionRequest>
     {
         private readonly IMountTracking _mountTracking;
         private readonly ILogger<RemoveMountTransactionExecutor> _logger;

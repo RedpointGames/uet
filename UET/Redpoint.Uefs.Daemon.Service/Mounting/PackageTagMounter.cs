@@ -13,7 +13,7 @@
     using System.Threading.Tasks;
     using Redpoint.Concurrency;
 
-    internal class PackageTagMounter : IMounter<MountPackageTagRequest>
+    internal sealed class PackageTagMounter : IMounter<MountPackageTagRequest>
     {
         private readonly ILogger<PackageTagMounter> _logger;
         private readonly IPackageMounterDetector _packageMounterDetector;

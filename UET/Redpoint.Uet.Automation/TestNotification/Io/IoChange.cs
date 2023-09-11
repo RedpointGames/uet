@@ -3,7 +3,7 @@
     using System.Collections.Generic;
     using System.Text.Json.Serialization;
 
-    internal class IoChange
+    internal sealed class IoChange
     {
         [JsonPropertyName("fullName")]
         public string? FullName { get; set; }

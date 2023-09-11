@@ -1,8 +1,8 @@
 ﻿namespace Redpoint.Uefs.Package
 {
-    internal class DefaultPackageManifestDataWriter : IPackageManifestDataWriter
+    internal sealed class DefaultPackageManifestDataWriter : IPackageManifestDataWriter
     {
-        private class WriteMetrics
+        private sealed class WriteMetrics
         {
             public bool writing_directories = false;
             public long written_directories = 0;

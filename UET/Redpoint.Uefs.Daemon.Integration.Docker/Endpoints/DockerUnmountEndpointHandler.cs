@@ -7,7 +7,7 @@
 
     [SupportedOSPlatform("windows")]
     [Endpoint("/VolumeDriver.Unmount")]
-    internal class DockerUnmountEndpointHandler : IEndpointHandler<DockerUnmountRequest, DockerUnmountResponse>
+    internal sealed class DockerUnmountEndpointHandler : IEndpointHandler<DockerUnmountRequest, DockerUnmountResponse>
     {
         public async ValueTask<DockerUnmountResponse> HandleAsync(IUefsDaemon plugin, DockerUnmountRequest request)
         {

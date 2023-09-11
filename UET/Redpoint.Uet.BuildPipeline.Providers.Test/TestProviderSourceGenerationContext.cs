@@ -20,7 +20,7 @@
     [JsonSerializable(typeof(BuildConfigProjectTestAutomation))]
     [JsonSerializable(typeof(BuildConfigProjectTestCustom))]
     [JsonSerializable(typeof(BuildConfigProjectTestGauntlet))]
-    internal partial class TestProviderSourceGenerationContext : JsonSerializerContext
+    internal partial sealed class TestProviderSourceGenerationContext : JsonSerializerContext
     {
         public static TestProviderSourceGenerationContext WithStringEnum { get; } = new TestProviderSourceGenerationContext(new JsonSerializerOptions
         {

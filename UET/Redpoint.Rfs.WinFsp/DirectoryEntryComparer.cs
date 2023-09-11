@@ -3,7 +3,7 @@
     using System;
     using System.Collections;
 
-    internal class DirectoryEntryComparer : IComparer
+    internal sealed class DirectoryEntryComparer : IComparer
     {
         public int Compare(object? x, object? y)
         {

@@ -5,10 +5,10 @@
     using System.Threading.Tasks;
 
     [SupportedOSPlatform("windows")]
-    internal class WindowsSystemResources : ISystemResources
+    internal sealed class WindowsSystemResources : ISystemResources
     {
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-        private class MEMORYSTATUSEX
+        private sealed class MEMORYSTATUSEX
         {
             public uint dwLength;
             public uint dwMemoryLoad;

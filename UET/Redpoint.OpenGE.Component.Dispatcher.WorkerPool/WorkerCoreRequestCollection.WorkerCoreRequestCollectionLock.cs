@@ -62,7 +62,7 @@
                         throw new ObjectDisposedException("WorkerCoreRequestCollectionLock");
                     }
 
-                    await ((WorkerCoreRequest)_request).FulfillRequestWithinLockAsync(core);
+                    await ((WorkerCoreRequest<TWorkerCore>)_request).FulfillRequestWithinLockAsync(core).ConfigureAwait(false);
                 }
 
                 public ValueTask DisposeAsync()

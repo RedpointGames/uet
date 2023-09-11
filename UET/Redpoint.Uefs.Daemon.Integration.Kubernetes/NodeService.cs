@@ -9,7 +9,7 @@
     using System.Threading.Tasks;
     using static Redpoint.Uefs.Protocol.Uefs;
 
-    internal class NodeService : Node.NodeBase
+    internal sealed class NodeService : Node.NodeBase
     {
         private readonly ILogger<NodeService> _logger;
         private readonly IRetryableGrpc _retryableGrpc;

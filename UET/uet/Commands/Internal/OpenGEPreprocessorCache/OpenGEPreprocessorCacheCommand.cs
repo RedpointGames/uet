@@ -10,9 +10,9 @@
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal class OpenGEPreprocessorCacheCommand
+    internal sealed class OpenGEPreprocessorCacheCommand
     {
-        internal class Options
+        internal sealed class Options
         {
         }
 
@@ -25,7 +25,7 @@
             return command;
         }
 
-        private class OpenGEPreprocessorCacheCommandInstance : ICommandInstance
+        private sealed class OpenGEPreprocessorCacheCommandInstance : ICommandInstance
         {
             private readonly IGrpcPipeFactory _grpcPipeFactory;
             private readonly IPreprocessorCacheFactory _preprocessorCacheFactory;

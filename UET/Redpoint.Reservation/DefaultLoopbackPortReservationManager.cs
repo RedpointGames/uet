@@ -5,7 +5,7 @@
     using System.Net;
     using System.Threading.Tasks;
 
-    internal class DefaultLoopbackPortReservationManager : ILoopbackPortReservationManager
+    internal sealed class DefaultLoopbackPortReservationManager : ILoopbackPortReservationManager
     {
         private readonly IGlobalMutexReservationManager _globalMutexReservationManager;
 

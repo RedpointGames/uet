@@ -7,7 +7,7 @@
     using System.IO.Compression;
     using System.Xml;
 
-    internal class GitDependenciesVfsLayer : IGitDependenciesVfsLayer
+    internal sealed class GitDependenciesVfsLayer : IGitDependenciesVfsLayer
     {
         private readonly ILogger<GitDependenciesVfsLayer> _logger;
         private readonly ILocalIoVfsFileFactory _localIoVfsFileFactory;

@@ -5,7 +5,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.Vfs.LocalIo;
 
-    internal class ScratchVfsLayerFactory : IScratchVfsLayerFactory
+    internal sealed class ScratchVfsLayerFactory : IScratchVfsLayerFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

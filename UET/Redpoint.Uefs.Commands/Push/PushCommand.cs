@@ -21,7 +21,7 @@
 
     public static class PushCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<FileInfo> PackagePath = new Option<FileInfo>("--pkg", description: "The path of the package to push.") { IsRequired = true };
             public Option<string> PackageTag = new Option<string>("--tag", description: "The registry tag to push it to.") { IsRequired = true };
@@ -37,7 +37,7 @@
             return command;
         }
 
-        private class PushCommandInstance : ICommandInstance
+        private sealed class PushCommandInstance : ICommandInstance
         {
             private readonly IFileHasher _fileHasher;
             private readonly IMonitorFactory _monitorFactory;

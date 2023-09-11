@@ -14,7 +14,7 @@
     using Redpoint.Uefs.Protocol;
     using System.Text.Json;
 
-    internal class UefsDaemon : IUefsDaemon, IAsyncDisposable
+    internal sealed class UefsDaemon : IUefsDaemon, IAsyncDisposable
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<UefsDaemon> _logger;

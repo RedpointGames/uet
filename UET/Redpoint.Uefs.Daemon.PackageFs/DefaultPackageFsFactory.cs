@@ -9,7 +9,7 @@
     using Redpoint.Vfs.Driver;
     using System.Runtime.Versioning;
 
-    internal class DefaultPackageFsFactory : IPackageFsFactory
+    internal sealed class DefaultPackageFsFactory : IPackageFsFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

@@ -11,7 +11,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class GauntletProjectTestProvider : IProjectTestProvider
+    internal sealed class GauntletProjectTestProvider : IProjectTestProvider
     {
         public GauntletProjectTestProvider()
         {

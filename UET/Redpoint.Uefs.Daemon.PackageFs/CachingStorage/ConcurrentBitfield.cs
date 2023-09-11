@@ -2,7 +2,7 @@
 {
     using System.Text;
 
-    internal class ConcurrentBitfield
+    internal sealed class ConcurrentBitfield
     {
         private ulong[] _index;
 

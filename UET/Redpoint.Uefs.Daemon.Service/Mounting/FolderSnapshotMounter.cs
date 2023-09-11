@@ -15,7 +15,7 @@
     using System.Threading.Tasks;
     using Redpoint.Concurrency;
 
-    internal class FolderSnapshotMounter : IMounter<MountFolderSnapshotRequest>
+    internal sealed class FolderSnapshotMounter : IMounter<MountFolderSnapshotRequest>
     {
         private readonly ILogger<FolderSnapshotMounter> _logger;
         private readonly IFolderVfsLayerFactory _folderVfsLayerFactory;

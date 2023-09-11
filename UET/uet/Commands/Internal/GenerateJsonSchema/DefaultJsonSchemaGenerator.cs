@@ -17,7 +17,7 @@
     using System.IO;
     using Microsoft.Extensions.Logging;
 
-    internal class DefaultJsonSchemaGenerator : IJsonSchemaGenerator
+    internal sealed class DefaultJsonSchemaGenerator : IJsonSchemaGenerator
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<DefaultJsonSchemaGenerator> _logger;

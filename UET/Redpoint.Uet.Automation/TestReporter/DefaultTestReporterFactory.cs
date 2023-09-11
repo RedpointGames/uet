@@ -3,7 +3,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
 
-    internal class DefaultTestReporterFactory : ITestReporterFactory
+    internal sealed class DefaultTestReporterFactory : ITestReporterFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

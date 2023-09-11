@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class BuildConfigProjectPrepareDownloadPluginSource
+    internal sealed class BuildConfigProjectPrepareDownloadPluginSource
     {
         /// <summary>
         /// The Git URL to clone the plugin from. Environment variables can be specified

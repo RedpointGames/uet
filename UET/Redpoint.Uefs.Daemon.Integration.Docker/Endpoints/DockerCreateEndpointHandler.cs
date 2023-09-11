@@ -7,7 +7,7 @@
 
     [SupportedOSPlatform("windows")]
     [Endpoint("/VolumeDriver.Create")]
-    internal class DockerCreateEndpointHandler : IEndpointHandler<DockerCreateRequest, DockerCreateResponse>
+    internal sealed class DockerCreateEndpointHandler : IEndpointHandler<DockerCreateRequest, DockerCreateResponse>
     {
         public ValueTask<DockerCreateResponse> HandleAsync(IUefsDaemon plugin, DockerCreateRequest request)
         {

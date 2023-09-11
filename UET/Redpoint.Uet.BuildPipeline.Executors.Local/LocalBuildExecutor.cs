@@ -17,7 +17,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class LocalBuildExecutor : IBuildExecutor
+    internal sealed class LocalBuildExecutor : IBuildExecutor
     {
         private readonly ILogger<LocalBuildExecutor> _logger;
         private readonly IBuildGraphExecutor _buildGraphExecutor;
@@ -49,7 +49,7 @@
             return string.Empty;
         }
 
-        private class DAGNode
+        private sealed class DAGNode
         {
             public required BuildGraphExportNode Node { get; set; }
 
@@ -60,7 +60,7 @@
             public DAGDependency[]? DependsTasks { get; set; }
         }
 
-        private class DAGDependency
+        private sealed class DAGDependency
         {
             public required DAGNode Node { get; set; }
         }

@@ -8,7 +8,7 @@
     using System.Runtime.ExceptionServices;
     using System.Threading.Tasks;
 
-    internal class DefaultTransactionalDatabase : ITransactionalDatabase
+    internal sealed class DefaultTransactionalDatabase : ITransactionalDatabase
     {
         private IServiceProvider _serviceProvider;
         private KeyedSemaphoresCollection<string> _semaphores;
@@ -230,7 +230,7 @@
         }
 
         public async Task<ITransactionHandle?> AddListenerToExistingTransactionAsync(
-            string transactionId, 
+            string transactionId,
             TransactionListenerDelegate transactionListener,
             CancellationToken cancellationToken)
         {
@@ -254,7 +254,7 @@
         }
 
         public async Task<ITransactionHandle<TResult>?> AddListenerToExistingTransactionAsync<TResult>(
-            string transactionId, 
+            string transactionId,
             TransactionListenerDelegate<TResult> transactionListener,
             CancellationToken cancellationToken) where TResult : class
         {

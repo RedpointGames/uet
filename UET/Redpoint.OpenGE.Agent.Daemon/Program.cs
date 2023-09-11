@@ -41,7 +41,7 @@
 
             // Now build and run the host.
             var host = builder.Build();
-            await host.RunAsync();
+            await host.RunAsync().ConfigureAwait(false);
             return 0;
         }
 

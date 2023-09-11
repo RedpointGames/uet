@@ -5,7 +5,7 @@
     using Redpoint.Uefs.Daemon.PackageFs;
     using System.ServiceProcess;
 
-    internal class DefaultPackageStorage : IPackageStorage
+    internal sealed class DefaultPackageStorage : IPackageStorage
     {
         private readonly ILogger<DefaultPackageStorage> _logger;
         private readonly IGitRepoManager _gitRepoManager;

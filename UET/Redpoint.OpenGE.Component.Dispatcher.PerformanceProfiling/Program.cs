@@ -82,7 +82,7 @@ for (int i = 1; i <= 5; i++)
         var taskDescriptorFactory = provider.GetRequiredService<LocalTaskDescriptorFactory>();
 
         var worker = workerFactory.Create(true);
-        await worker.StartAsync(cancellationToken);
+        await worker.StartAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var workerClient = new TaskApi.TaskApiClient(
@@ -133,13 +133,13 @@ for (int i = 1; i <= 5; i++)
                     ForceRemotingForLocalWorker = false,
                 },
                 nullResponseStream,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             executeSt.Stop();
             globalLogger.LogInformation($"Iteration {i}: Took {executeSt.ElapsedMilliseconds:0}ms to execute graph.");
         }
         finally
         {
-            await worker.StopAsync();
+            await worker.StopAsync().ConfigureAwait(false);
         }
     }
     catch (Exception ex)
@@ -237,7 +237,7 @@ Graph CreateGraphForJobCount(
     return graph;
 }
 
-class TestPreprocessorCacheAccessor : IPreprocessorCacheAccessor
+sealed class TestPreprocessorCacheAccessor : IPreprocessorCacheAccessor
 {
     private readonly IPreprocessorCache _preprocessorCache;
 
@@ -252,7 +252,7 @@ class TestPreprocessorCacheAccessor : IPreprocessorCacheAccessor
     }
 }
 
-class NullGuardedResponseStream<T> : IGuardedResponseStream<T>
+sealed class NullGuardedResponseStream<T> : IGuardedResponseStream<T>
 {
     public Task WriteAsync(T response, CancellationToken cancellationToken = default)
     {

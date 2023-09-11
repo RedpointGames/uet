@@ -6,7 +6,7 @@
     using Redpoint.Uefs.Protocol;
 
     [SupportedOSPlatform("macos")]
-    internal class SparseImagePackageMounter : IPackageMounter
+    internal sealed class SparseImagePackageMounter : IPackageMounter
     {
         private bool _isMounted = false;
         private string? _mountPath;

@@ -9,9 +9,9 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal class ConfigCommand
+    internal sealed class ConfigCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<bool> List;
             public Option<bool> On;
@@ -49,7 +49,7 @@
             return command;
         }
 
-        private class ConfigCommandInstance : ICommandInstance
+        private sealed class ConfigCommandInstance : ICommandInstance
         {
             private readonly ILogger<ConfigCommandInstance> _logger;
             private readonly IBooleanConfigSetting[] _booleanConfigSettings;

@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class CachingInfoJson
+    internal sealed class CachingInfoJson
     {
         [JsonPropertyName("type")]
         public string Type { get; set; } = string.Empty;

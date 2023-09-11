@@ -10,7 +10,7 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class WindowsFileDesc
+    internal sealed class WindowsFileDesc
     {
         protected const int _allocationUnit = 4096;
 

@@ -2,7 +2,7 @@
 {
     using System;
 
-    internal class DefaultUtilities : IUtilities
+    internal sealed class DefaultUtilities : IUtilities
     {
         public string FormatDataAmount(long totalBytes)
         {

@@ -16,7 +16,7 @@
 
     [SupportedOSPlatform("windows")]
     [Endpoint("/VolumeDriver.Mount")]
-    internal class DockerMountEndpointHandler : IEndpointHandler<DockerMountRequest, DockerMountResponse>
+    internal sealed class DockerMountEndpointHandler : IEndpointHandler<DockerMountRequest, DockerMountResponse>
     {
         private readonly IPackageMounterDetector _packageMounterDetector;
         private readonly ILogger<DockerMountEndpointHandler> _logger;

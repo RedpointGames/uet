@@ -9,7 +9,7 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class WindowsOffsetVfsFile : IVfsFile, IVfsFileHandle<IVfsFile>, IAsyncIoHandle
+    internal sealed class WindowsOffsetVfsFile : IVfsFile, IVfsFileHandle<IVfsFile>, IAsyncIoHandle
     {
         private readonly ILogger _logger;
         private readonly SafeFileHandle _handle;

@@ -4,7 +4,7 @@
     using System.Runtime.Serialization;
 
     [Serializable]
-    internal class BuildMisconfigurationException : Exception
+    internal sealed class BuildMisconfigurationException : Exception
     {
         public BuildMisconfigurationException()
         {

@@ -92,18 +92,6 @@
             };
         }
 
-        [LoggerMessage(
-            EventId = 0,
-            Level = LogLevel.Trace,
-            Message = "Remote reports that it is not missing any blobs.")]
-        static partial void LogRemoteNotMissingBlobs(ILogger logger);
-
-        [LoggerMessage(
-            EventId = 1,
-            Level = LogLevel.Trace,
-            Message = "Remote reports that it is missing {blobCount} blobs.")]
-        static partial void LogRemoteMissingBlobs(ILogger logger, int blobCount);
-
         public async Task<BlobSynchronisationResult<InputFilesByBlobXxHash64>> SynchroniseInputBlobsAsync(
             ITaskApiWorkerCore workerCore,
             BlobHashingResult hashingResult,
@@ -129,7 +117,7 @@
             if (response.QueryMissingBlobs.MissingBlobXxHash64.Count == 0)
             {
                 // We don't have any blobs to transfer.
-                LogRemoteNotMissingBlobs(_logger);
+                Log.RemoteNotMissingBlobs(_logger);
                 return new BlobSynchronisationResult<InputFilesByBlobXxHash64>
                 {
                     ElapsedUtcTicksHashingInputFiles = hashingResult.ElapsedUtcTicksHashingInputFiles,
@@ -143,7 +131,7 @@
             // Create a stream from the content blobs, and then copy from that stream
             // through the compressor stream, and then read chunks from that stream
             // and send them to the server.
-            LogRemoteMissingBlobs(_logger, response.QueryMissingBlobs.MissingBlobXxHash64.Count);
+            Log.RemoteMissingBlobs(_logger, response.QueryMissingBlobs.MissingBlobXxHash64.Count);
             stopwatchSyncing.Start();
             await using (new SendCompressedBlobsWritableBinaryChunkStream(
                 workerCore.Request.RequestStream).AsAsyncDisposable(out var destination).ConfigureAwait(false))

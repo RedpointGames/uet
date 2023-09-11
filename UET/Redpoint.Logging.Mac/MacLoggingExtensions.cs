@@ -21,6 +21,8 @@
         public static ILoggingBuilder AddMac(
             this ILoggingBuilder builder)
         {
+            if (builder == null) throw new ArgumentNullException(nameof(builder));
+
             builder.AddConfiguration();
 
             builder.Services.TryAddEnumerable(
@@ -39,6 +41,8 @@
             this ILoggingBuilder builder,
             Action<MacLoggerOptions> configure)
         {
+            if (builder == null) throw new ArgumentNullException(nameof(builder));
+
             builder.AddMac();
             builder.Services.Configure(configure);
 

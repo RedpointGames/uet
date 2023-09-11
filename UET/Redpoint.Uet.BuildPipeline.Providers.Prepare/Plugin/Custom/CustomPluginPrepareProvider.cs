@@ -17,7 +17,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class CustomPluginPrepareProvider : IPluginPrepareProvider
+    internal sealed class CustomPluginPrepareProvider : IPluginPrepareProvider
     {
         private readonly ILogger<CustomPluginPrepareProvider> _logger;
         private readonly IScriptExecutor _scriptExecutor;

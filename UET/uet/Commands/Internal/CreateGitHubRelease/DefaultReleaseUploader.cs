@@ -12,7 +12,7 @@
     using System.Threading.Tasks;
     using System.Web;
 
-    internal class DefaultReleaseUploader : IReleaseUploader
+    internal sealed class DefaultReleaseUploader : IReleaseUploader
     {
         private readonly ILogger<DefaultReleaseUploader> _logger;
         private readonly IMonitorFactory _monitorFactory;

@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class UPluginFile
+    internal sealed class UPluginFile
     {
         [JsonPropertyName("CreatedBy")]
         public string? CreatedBy { get; set; }

@@ -7,9 +7,9 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal class GenerateJsonSchemaCommand
+    internal sealed class GenerateJsonSchemaCommand
     {
-        public class Options
+        public sealed class Options
         {
             public Option<FileInfo?> OutputPath = new Option<FileInfo?>("--output-path");
         }
@@ -26,7 +26,7 @@
             return command;
         }
 
-        private class GenerateJsonSchemaCommandInstance : ICommandInstance
+        private sealed class GenerateJsonSchemaCommandInstance : ICommandInstance
         {
             private readonly ILogger<GenerateJsonSchemaCommandInstance> _logger;
             private readonly IJsonSchemaGenerator _jsonSchemaGenerator;

@@ -3,7 +3,7 @@
     using Microsoft.Extensions.Logging;
     using System;
 
-    internal class FilesystemScratchIndex : IDisposable
+    internal sealed class FilesystemScratchIndex : IDisposable
     {
         private readonly ILogger<FilesystemScratchIndex> _logger;
         private readonly FilesystemScratchCache _fsScratchCache;

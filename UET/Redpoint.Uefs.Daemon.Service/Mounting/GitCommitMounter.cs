@@ -13,7 +13,7 @@
     using System.Threading.Tasks;
     using Redpoint.Concurrency;
 
-    internal class GitCommitMounter : IMounter<MountGitCommitRequest>
+    internal sealed class GitCommitMounter : IMounter<MountGitCommitRequest>
     {
         private readonly ILogger<GitCommitMounter> _logger;
         private readonly IVfsDriverFactory? _vfsDriverFactory;

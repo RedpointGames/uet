@@ -12,7 +12,7 @@
 
     public static class WaitCommand
     {
-        internal class Options
+        internal sealed class Options
         {
         }
 
@@ -25,7 +25,7 @@
             return command;
         }
 
-        private class WaitCommandInstance : ICommandInstance
+        private sealed class WaitCommandInstance : ICommandInstance
         {
             private readonly IRetryableGrpc _retryableGrpc;
             private readonly IMonitorFactory _monitorFactory;

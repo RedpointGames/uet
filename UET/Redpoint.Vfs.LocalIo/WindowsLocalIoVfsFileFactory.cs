@@ -6,7 +6,7 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class WindowsLocalIoVfsFileFactory : ILocalIoVfsFileFactory
+    internal sealed class WindowsLocalIoVfsFileFactory : ILocalIoVfsFileFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

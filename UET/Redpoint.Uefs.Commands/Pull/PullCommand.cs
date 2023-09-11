@@ -14,7 +14,7 @@
 
     public static class PullCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> PackageTag = new Option<string>("--tag", description: "The registry tag to pull.");
             public Option<string> GitUrl = new Option<string>("--git-url", description: "The Git repository URL to pull.");
@@ -31,7 +31,7 @@
             return command;
         }
 
-        private class PullCommandInstance : ICommandInstance
+        private sealed class PullCommandInstance : ICommandInstance
         {
             private readonly ICredentialDiscovery _credentialDiscovery;
             private readonly IRetryableGrpc _retryableGrpc;

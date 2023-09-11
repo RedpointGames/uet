@@ -4,7 +4,7 @@
     using System;
     using System.Threading.Tasks;
 
-    internal class DefaultTransactionHandle : ITransactionHandle
+    internal sealed class DefaultTransactionHandle : ITransactionHandle
     {
         private readonly string _transactionId;
         private readonly IWaitableTransaction _transaction;

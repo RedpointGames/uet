@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class GitHubNewRelease
+    internal sealed class GitHubNewRelease
     {
         [JsonPropertyName("tag_name")]
         public string? TagName { get; set; }

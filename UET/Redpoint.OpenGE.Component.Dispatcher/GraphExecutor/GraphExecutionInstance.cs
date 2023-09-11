@@ -102,7 +102,7 @@
         internal async ValueTask FinishTaskAsync(GraphTask task, TaskCompletionStatus status, GraphExecutionDownstreamScheduling schedulingBehaviour)
         {
             StallMonitor?.MadeProgress();
-            using (await _taskStatusesLock.WaitAsync().ConfigureAwait(false))
+            using (await _taskStatusesLock.WaitAsync(_cancellationTokenSource.Token).ConfigureAwait(false))
             {
                 if (status == TaskCompletionStatus.TaskCompletionSuccess)
                 {

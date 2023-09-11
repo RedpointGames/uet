@@ -2,7 +2,7 @@
 {
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
 
-    internal class DefaultTransactionalDatabaseFactory : ITransactionalDatabaseFactory
+    internal sealed class DefaultTransactionalDatabaseFactory : ITransactionalDatabaseFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

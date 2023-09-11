@@ -14,7 +14,7 @@
             return new ReferenceRemoteStorageBlobFactory(reference.Location);
         }
 
-        private class ReferenceRemoteStorageBlobFactory : IRemoteStorageBlobFactory
+        private sealed class ReferenceRemoteStorageBlobFactory : IRemoteStorageBlobFactory
         {
             private readonly FileStreamPool _pool;
             private readonly SafeFileHandlePool _sfPool;
@@ -49,7 +49,7 @@
             }
         }
 
-        internal class ReferenceRemoteStorageBlob : IRemoteStorageBlob
+        internal sealed class ReferenceRemoteStorageBlob : IRemoteStorageBlob
         {
             private IFileStreamPoolAllocation _allocation;
 
@@ -82,7 +82,7 @@
             }
         }
 
-        internal class ReferenceRemoteStorageBlobUnsafe : IRemoteStorageBlobUnsafe
+        internal sealed class ReferenceRemoteStorageBlobUnsafe : IRemoteStorageBlobUnsafe
         {
             private ISafeFileHandlePoolAllocation _allocation;
 

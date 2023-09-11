@@ -3,7 +3,7 @@
     using System.Text.Json.Serialization;
 
     [JsonSerializable(typeof(KubernetesDockerConfig))]
-    internal partial class KubernetesJsonSerializerContext : JsonSerializerContext
+    internal partial sealed class KubernetesJsonSerializerContext : JsonSerializerContext
     {
     }
 }

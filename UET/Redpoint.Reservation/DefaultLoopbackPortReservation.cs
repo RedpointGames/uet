@@ -3,7 +3,7 @@
     using System.Net;
     using System.Threading.Tasks;
 
-    internal class DefaultLoopbackPortReservation : ILoopbackPortReservation
+    internal sealed class DefaultLoopbackPortReservation : ILoopbackPortReservation
     {
         private readonly IPEndPoint _endpoint;
         private readonly IGlobalMutexReservation _reservation;

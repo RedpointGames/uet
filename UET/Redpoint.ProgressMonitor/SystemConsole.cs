@@ -10,7 +10,7 @@
     /// </summary>
     public static class SystemConsole
     {
-        private class SystemConsoleInformation : IConsoleInformation
+        private sealed class SystemConsoleInformation : IConsoleInformation
         {
             public int? Width => ConsoleWidth;
         }

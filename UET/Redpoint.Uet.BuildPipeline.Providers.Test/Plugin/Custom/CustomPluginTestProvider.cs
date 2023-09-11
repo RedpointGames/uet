@@ -11,7 +11,7 @@
     using System.Text.Json.Serialization;
     using Redpoint.RuntimeJson;
 
-    internal class CustomPluginTestProvider : IPluginTestProvider
+    internal sealed class CustomPluginTestProvider : IPluginTestProvider
     {
         private readonly IPluginTestProjectEmitProvider _pluginTestProjectEmitProvider;
 

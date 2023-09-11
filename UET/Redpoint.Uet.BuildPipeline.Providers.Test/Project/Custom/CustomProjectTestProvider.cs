@@ -11,7 +11,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class CustomProjectTestProvider : IProjectTestProvider
+    internal sealed class CustomProjectTestProvider : IProjectTestProvider
     {
         public CustomProjectTestProvider()
         {

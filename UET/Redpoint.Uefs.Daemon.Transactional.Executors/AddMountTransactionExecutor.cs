@@ -7,7 +7,7 @@
     using System.Diagnostics;
     using System.Threading.Tasks;
 
-    internal class AddMountTransactionExecutor : ITransactionExecutor<AddMountTransactionRequest>
+    internal sealed class AddMountTransactionExecutor : ITransactionExecutor<AddMountTransactionRequest>
     {
         private readonly IMountTracking _mountTracking;
         private readonly ILogger<AddMountTransactionExecutor> _logger;

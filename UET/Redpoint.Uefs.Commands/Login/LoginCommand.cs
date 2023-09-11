@@ -10,7 +10,7 @@
 
     public static class LoginCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> Host;
             public Option<string> Username;
@@ -44,7 +44,7 @@
             return command;
         }
 
-        private class LoginCommandInstance : ICommandInstance
+        private sealed class LoginCommandInstance : ICommandInstance
         {
             private readonly Options _options;
 

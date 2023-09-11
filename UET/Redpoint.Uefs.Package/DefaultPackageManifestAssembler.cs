@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.Uefs.Package
 {
-    internal class DefaultPackageManifestAssembler : IPackageManifestAssembler
+    internal sealed class DefaultPackageManifestAssembler : IPackageManifestAssembler
     {
         public PackageManifest CreateManifestFromSourceDirectory(IPackageWriter packageWriter, string path)
         {

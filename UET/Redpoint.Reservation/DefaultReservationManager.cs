@@ -12,7 +12,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DefaultReservationManager : IReservationManager
+    internal sealed class DefaultReservationManager : IReservationManager
     {
         private readonly string _rootPath;
         private readonly string _lockPath;
@@ -90,7 +90,7 @@
             _logger = logger;
         }
 
-        private class Reservation : IReservation
+        private sealed class Reservation : IReservation
         {
             private readonly SafeFileHandle _handle;
             private readonly string _metaPath;

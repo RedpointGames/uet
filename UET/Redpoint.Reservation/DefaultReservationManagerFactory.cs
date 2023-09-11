@@ -2,7 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
 
-    internal class DefaultReservationManagerFactory : IReservationManagerFactory
+    internal sealed class DefaultReservationManagerFactory : IReservationManagerFactory
     {
         private readonly ILogger<DefaultReservationManager> _logger;
 

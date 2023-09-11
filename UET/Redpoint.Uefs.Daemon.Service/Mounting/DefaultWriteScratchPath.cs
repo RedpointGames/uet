@@ -2,7 +2,7 @@
 {
     using Redpoint.Uefs.Protocol;
 
-    internal class DefaultWriteScratchPath : IWriteScratchPath
+    internal sealed class DefaultWriteScratchPath : IWriteScratchPath
     {
         public string ComputeWriteScratchPath(MountRequest request, string targetPath)
         {

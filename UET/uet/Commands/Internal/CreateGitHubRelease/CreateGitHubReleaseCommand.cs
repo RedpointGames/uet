@@ -13,9 +13,9 @@
     using System.Web;
     using UET.Commands.Internal.GenerateJsonSchema;
 
-    internal class CreateGitHubReleaseCommand
+    internal sealed class CreateGitHubReleaseCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> Version;
             public Option<string[]> Files;
@@ -52,7 +52,7 @@
             return command;
         }
 
-        private class CreateGitHubReleaseCommandInstance : ICommandInstance
+        private sealed class CreateGitHubReleaseCommandInstance : ICommandInstance
         {
             private readonly ILogger<CreateGitHubReleaseCommandInstance> _logger;
             private readonly Options _options;

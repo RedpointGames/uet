@@ -6,7 +6,7 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class VhdPackageMounterFactory : IPackageMounterFactory
+    internal sealed class VhdPackageMounterFactory : IPackageMounterFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

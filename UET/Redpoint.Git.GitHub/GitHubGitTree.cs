@@ -6,9 +6,8 @@
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;
     using System.Threading;
-    using static Redpoint.Git.Abstractions.IGitTree;
 
-    internal class GitHubGitTree : IGitTree
+    internal sealed class GitHubGitTree : IGitTree
     {
         private GitHubClient _client;
         private string _owner;
@@ -98,16 +97,16 @@
         private async IAsyncEnumerable<GitVfsEntry> EnumerateRecursivelyAsync(
             string sha,
             string path,
-            IGitTree.GitTreeEnumerationMetrics? metrics,
+            GitTreeEnumerationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            var fullTree = await _client.Git.Tree.GetRecursive(_owner, _repo, sha);
+            var fullTree = await _client.Git.Tree.GetRecursive(_owner, _repo, sha).ConfigureAwait(false);
             if (fullTree.Truncated)
             {
                 // We couldn't recursively get the whole tree in a single call. Instead
                 // do a non-recursive API call for this tree, and then enumerate through
                 // the directories that are returned to 
-                var nonRecursiveTree = await _client.Git.Tree.Get(_owner, _repo, sha);
+                var nonRecursiveTree = await _client.Git.Tree.Get(_owner, _repo, sha).ConfigureAwait(false);
                 foreach (var entry in nonRecursiveTree.Tree)
                 {
                     // Emit for the entry itself.

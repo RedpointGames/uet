@@ -6,7 +6,7 @@
     using System.Security.Principal;
     using System.Threading.Tasks;
 
-    internal class DefaultWorldPermissionApplier : IWorldPermissionApplier
+    internal sealed class DefaultWorldPermissionApplier : IWorldPermissionApplier
     {
         private readonly ILogger<DefaultWorldPermissionApplier> _logger;
 

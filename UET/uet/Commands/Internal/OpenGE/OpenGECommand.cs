@@ -11,9 +11,9 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal class OpenGECommand
+    internal sealed class OpenGECommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<FileInfo> TaskFile;
             public Option<bool> Forever;
@@ -34,7 +34,7 @@
             return command;
         }
 
-        private class OpenGECommandInstance : ICommandInstance
+        private sealed class OpenGECommandInstance : ICommandInstance
         {
             private readonly IProcessExecutor _processExecutor;
             private readonly Options _options;

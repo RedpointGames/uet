@@ -1,9 +1,10 @@
 ﻿namespace Redpoint.OpenGE.Component.Dispatcher.WorkerPool.Tests
 {
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DyingDynamicCoreProvider : IWorkerCoreProvider<IWorkerCore>
+    internal sealed class DyingDynamicCoreProvider : IWorkerCoreProvider<IWorkerCore>
     {
         private Concurrency.Semaphore _provideCore = new Concurrency.Semaphore(0);
 
@@ -17,15 +18,16 @@
 
         public async Task<IWorkerCore> RequestCoreAsync(CancellationToken cancellationToken)
         {
-            await _provideCore.WaitAsync(cancellationToken);
+            await _provideCore.WaitAsync(cancellationToken).ConfigureAwait(false);
             return new DyingDynamicWorkerCore(this);
         }
 
-        private class DyingDynamicWorkerCore : IWorkerCoreWithLiveness
+        private sealed class DyingDynamicWorkerCore : IWorkerCoreWithLiveness
         {
             private readonly DyingDynamicCoreProvider _provider;
             private readonly bool _dead;
 
+            [SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Random.Shared is not used for security-related purposes.")]
             public DyingDynamicWorkerCore(DyingDynamicCoreProvider provider)
             {
                 _provider = provider;

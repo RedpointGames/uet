@@ -13,7 +13,7 @@
 
     public static class VerifyCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<bool> NoWait = new Option<bool>("--no-wait", description: "Start the verify operation on the daemon, but don't poll until it finishes.");
             public Option<bool> Fix = new Option<bool>("--fix", description: "Clear cached chunks that are invalid so that they are re-fetched from remote source when needed.");
@@ -28,7 +28,7 @@
             return command;
         }
 
-        private class VerifyCommandInstance : ICommandInstance
+        private sealed class VerifyCommandInstance : ICommandInstance
         {
             private readonly ILogger<VerifyCommandInstance> _logger;
             private readonly IRetryableGrpc _retryableGrpc;

@@ -39,7 +39,7 @@
                 return _listeningPort.Value;
             }
 
-            using (await _startLock.WaitAsync().ConfigureAwait(false))
+            using (await _startLock.WaitAsync(CancellationToken.None).ConfigureAwait(false))
             {
                 var builder = WebApplication.CreateBuilder();
                 builder.Logging.ClearProviders();
@@ -77,11 +77,12 @@
 
         public async ValueTask DisposeAsync()
         {
-            using (await _startLock.WaitAsync().ConfigureAwait(false))
+            using (await _startLock.WaitAsync(CancellationToken.None).ConfigureAwait(false))
             {
                 if (_app != null)
                 {
                     await _app.StopAsync().ConfigureAwait(false);
+                    await _app.DisposeAsync().ConfigureAwait(false);
                 }
                 _app = null;
                 _listeningPort = null;

@@ -12,7 +12,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class BackblazeB2PluginDeploymentProvider : IPluginDeploymentProvider
+    internal sealed class BackblazeB2PluginDeploymentProvider : IPluginDeploymentProvider
     {
         private readonly IGlobalArgsProvider? _globalArgsProvider;
 

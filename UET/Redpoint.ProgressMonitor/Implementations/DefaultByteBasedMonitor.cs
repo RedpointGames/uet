@@ -4,7 +4,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DefaultByteBasedMonitor : IByteBasedMonitor
+    internal sealed class DefaultByteBasedMonitor : IByteBasedMonitor
     {
         private readonly IUtilities _utilities;
 

@@ -12,7 +12,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class LocalGauntletWorker : LocalWorker, ICaptureSpecification
+    internal sealed class LocalGauntletWorker : LocalWorker, ICaptureSpecification
     {
         private readonly ILogger<LocalGauntletWorker> _logger;
         private readonly IProcessExecutor _processExecutor;

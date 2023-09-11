@@ -11,7 +11,7 @@
 
     public static class UnmountCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> MountPath = new Option<string>("--dir", description: "The path that is mounted. You must specify this, the ID or --all.");
             public Option<string> Id = new Option<string>("--id", description: "The ID of the mount.");
@@ -27,7 +27,7 @@
             return command;
         }
 
-        private class UnmountCommandInstance : ICommandInstance
+        private sealed class UnmountCommandInstance : ICommandInstance
         {
             private readonly IRetryableGrpc _retryableGrpc;
             private readonly UefsClient _uefsClient;

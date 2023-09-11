@@ -19,7 +19,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DefaultAutomationRunner : IAutomationRunner
+    internal sealed class DefaultAutomationRunner : IAutomationRunner
     {
         private readonly ILogger<DefaultAutomationRunner> _logger;
         private readonly IWorkerPoolFactory _workerPoolFactory;
@@ -35,7 +35,7 @@
         private readonly Task _runTask;
         private IWorkerPool? _workerPool;
 
-        private class WorkerState
+        private sealed class WorkerState
         {
             public required TcpMessageTransportConnection TransportConnection { get; set; }
 
@@ -54,7 +54,7 @@
             public required Stopwatch StartupStopwatch { get; set; }
         }
 
-        private class WorkerGroupState
+        private sealed class WorkerGroupState
         {
             public required DesiredWorkerDescriptor Descriptor { get; set; }
 

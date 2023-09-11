@@ -19,7 +19,7 @@
             CancellationToken cancellationToken = default(CancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await _semaphore.WaitAsync();
+            await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 await _responseStream.WriteAsync(response, cancellationToken).ConfigureAwait(false);

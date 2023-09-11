@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class GitHubNewCommit
+    internal sealed class GitHubNewCommit
     {
         [JsonPropertyName("message")]
         public string? Message { get; set; }

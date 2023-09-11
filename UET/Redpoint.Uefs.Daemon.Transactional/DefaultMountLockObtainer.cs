@@ -5,7 +5,7 @@
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using System.Threading.Tasks;
 
-    internal class DefaultMountLockObtainer : IMountLockObtainer
+    internal sealed class DefaultMountLockObtainer : IMountLockObtainer
     {
         private readonly ILogger<DefaultMountLockObtainer> _logger;
 
@@ -15,7 +15,7 @@
             _logger = logger;
         }
 
-        private class CurrentOperationLockWrapper : IDisposable
+        private sealed class CurrentOperationLockWrapper : IDisposable
         {
             private readonly ITransactionContext _context;
             private readonly IDisposable _wrappedLock;

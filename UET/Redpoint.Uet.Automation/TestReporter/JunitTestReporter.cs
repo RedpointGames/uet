@@ -7,7 +7,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class JunitTestReporter : ITestReporter
+    internal sealed class JunitTestReporter : ITestReporter
     {
         private readonly ILogger<JunitTestReporter> _logger;
         private readonly string _path;

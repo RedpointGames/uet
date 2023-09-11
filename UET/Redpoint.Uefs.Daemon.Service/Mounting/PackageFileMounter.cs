@@ -13,7 +13,7 @@
     using System.Threading.Tasks;
     using Redpoint.Concurrency;
 
-    internal class PackageFileMounter : IMounter<MountPackageFileRequest>
+    internal sealed class PackageFileMounter : IMounter<MountPackageFileRequest>
     {
         private readonly ILogger<PackageFileMounter> _logger;
         private readonly IPackageMounterDetector _packageMounterDetector;

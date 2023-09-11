@@ -8,7 +8,7 @@
     using System.Threading.Tasks;
     using UETAutomation;
 
-    internal class GrpcTestLogger : ITestLogger
+    internal sealed class GrpcTestLogger : ITestLogger
     {
         private readonly TestReporting.TestReportingClient _client;
 

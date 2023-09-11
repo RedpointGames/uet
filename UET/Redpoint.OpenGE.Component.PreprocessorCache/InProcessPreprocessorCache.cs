@@ -62,7 +62,7 @@
                 }
                 if (_reservation != null)
                 {
-                    await _reservation.DisposeAsync();
+                    await _reservation.DisposeAsync().ConfigureAwait(false);
                     _reservation = null;
                 }
                 _disposed = true;
@@ -96,7 +96,7 @@
                     return;
                 }
 
-                _reservation = await _openGEReservationManagerProvider.ReservationManager.TryReserveExactAsync("Preprocessor");
+                _reservation = await _openGEReservationManagerProvider.ReservationManager.TryReserveExactAsync("Preprocessor").ConfigureAwait(false);
                 if (_reservation == null)
                 {
                     throw new PreprocessorCacheAlreadyRunningException();
@@ -121,7 +121,7 @@
             CompilerArchitype architype,
             CancellationToken cancellationToken)
         {
-            await EnsureAsync();
+            await EnsureAsync().ConfigureAwait(false);
             return await _preprocessorResolver.ResolveAsync(
                 _cachingScanner!,
                 filePath,
@@ -130,14 +130,14 @@
                 globalDefinitions,
                 buildStartTicks,
                 architype,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
         }
 
         public async override Task<PreprocessorScanResultWithCacheMetadata> GetUnresolvedDependenciesAsync(
             string filePath,
             CancellationToken cancellationToken)
         {
-            await EnsureAsync();
+            await EnsureAsync().ConfigureAwait(false);
             return _cachingScanner!.ParseIncludes(filePath);
         }
 
@@ -175,7 +175,7 @@
                     request.GlobalDefinitions.ToDictionary(k => k.Key, v => v.Value),
                     request.BuildStartTicks,
                     request.Architype,
-                    context.CancellationToken);
+                    context.CancellationToken).ConfigureAwait(false);
                 LastGrpcRequestUtc = DateTimeOffset.UtcNow;
                 return new GetResolvedDependenciesResponse
                 {

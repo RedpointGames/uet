@@ -20,9 +20,9 @@
     using System.Text.RegularExpressions;
     using Redpoint.Uet.Workspace;
 
-    internal class BuildCommand
+    internal sealed class BuildCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<EngineSpec> Engine;
             public Option<PathSpec> Path;
@@ -226,7 +226,7 @@
             return command;
         }
 
-        private class BuildCommandInstance : ICommandInstance
+        private sealed class BuildCommandInstance : ICommandInstance
         {
             private readonly ILogger<BuildCommandInstance> _logger;
             private readonly Options _options;

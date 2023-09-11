@@ -6,7 +6,7 @@
     using Tenray.ZoneTree.Exceptions;
     using Tenray.ZoneTree.Options;
 
-    internal class ScratchIndex : IDisposable
+    internal sealed class ScratchIndex : IDisposable
     {
         private IZoneTree<string, byte> _zoneTree;
 

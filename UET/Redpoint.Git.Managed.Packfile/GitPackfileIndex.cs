@@ -7,7 +7,7 @@
     /// <summary>
     /// Represents a Git packfile index.
     /// </summary>
-    public class PackfileIndex : IDisposable
+    public sealed class GitPackfileIndex : IDisposable
     {
         private static readonly byte[] _header = new byte[] { 0xFF, 0x74, 0x4F, 0x63, 0x00, 0x00, 0x00, 0x02 };
         private readonly MemoryMappedFile _file;
@@ -16,10 +16,10 @@
         private bool _disposed = false;
 
         /// <summary>
-        /// Construct a new <see cref="PackfileIndex"/> by memory mapping the file at the specified path.
+        /// Construct a new <see cref="GitPackfileIndex"/> by memory mapping the file at the specified path.
         /// </summary>
         /// <exception cref="ArgumentException">Thrown if the specified file is not a packfile index.</exception>
-        public PackfileIndex(string path)
+        public GitPackfileIndex(string path)
         {
             _file = MemoryMappedFile.CreateFromFile
                 (path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
@@ -327,7 +327,7 @@
         {
             if (_disposed)
             {
-                throw new ObjectDisposedException(nameof(PackfileIndex));
+                throw new ObjectDisposedException(nameof(GitPackfileIndex));
             }
 
             uint numberOfObjectsPreceding;
@@ -362,7 +362,7 @@
         {
             if (_disposed)
             {
-                throw new ObjectDisposedException(nameof(PackfileIndex));
+                throw new ObjectDisposedException(nameof(GitPackfileIndex));
             }
 
             var fanoutValueOffset = _header.Length + @byte * sizeof(int);
@@ -381,7 +381,7 @@
         {
             if (_disposed)
             {
-                throw new ObjectDisposedException(nameof(PackfileIndex));
+                throw new ObjectDisposedException(nameof(GitPackfileIndex));
             }
 
             if (index >= _objectCount)
@@ -405,7 +405,7 @@
         {
             if (_disposed)
             {
-                throw new ObjectDisposedException(nameof(PackfileIndex));
+                throw new ObjectDisposedException(nameof(GitPackfileIndex));
             }
 
             if (index >= _objectCount)
@@ -428,7 +428,7 @@
         {
             if (_disposed)
             {
-                throw new ObjectDisposedException(nameof(PackfileIndex));
+                throw new ObjectDisposedException(nameof(GitPackfileIndex));
             }
 
             if (index >= _objectCount)
@@ -456,14 +456,12 @@
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (_disposed)
+            if (!_disposed)
             {
-                throw new ObjectDisposedException(nameof(PackfileIndex));
+                _disposed = true;
+                _viewAccessor.Dispose();
+                _file.Dispose();
             }
-
-            _disposed = true;
-            _viewAccessor.Dispose();
-            _file.Dispose();
         }
     }
 }

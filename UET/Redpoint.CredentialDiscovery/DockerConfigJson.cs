@@ -2,9 +2,9 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class DockerConfigJson
+    internal sealed class DockerConfigJson
     {
-        internal class DockerAuthSetting
+        internal sealed class DockerAuthSetting
         {
             [JsonPropertyName("auth")]
             public string Auth { get; set; } = string.Empty;

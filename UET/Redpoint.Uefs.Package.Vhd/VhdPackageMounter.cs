@@ -15,7 +15,7 @@
     using Redpoint.Uefs.Package;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class VhdPackageMounter : IPackageMounter
+    internal sealed class VhdPackageMounter : IPackageMounter
     {
         private readonly ILogger? _logger;
         private SafeFileHandle? _vhd;

@@ -23,7 +23,7 @@
     using UET.Commands.EngineSpec;
     using UET.Services;
 
-    internal class DefaultBuildSpecificationGenerator : IBuildSpecificationGenerator
+    internal sealed class DefaultBuildSpecificationGenerator : IBuildSpecificationGenerator
     {
         private readonly ILogger<DefaultBuildSpecificationGenerator> _logger;
         private readonly ISelfLocation _selfLocation;

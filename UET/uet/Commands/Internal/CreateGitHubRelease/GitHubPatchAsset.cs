@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class GitHubPatchAsset
+    internal sealed class GitHubPatchAsset
     {
         [JsonPropertyName("name")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

@@ -13,6 +13,7 @@
     using System.Diagnostics;
     using System.Globalization;
     using System.Threading.Tasks;
+    using Redpoint.Concurrency;
 
     internal class DefaultGraphExecutor : IGraphExecutor
     {
@@ -56,141 +57,144 @@
             var graphStopwatch = Stopwatch.StartNew();
 
             // Create a task scheduler scope for running our tasks on.
-            await using var schedulerScope = _taskScheduler.CreateSchedulerScope($"ExecuteGraphAsync", cancellationToken).ConfigureAwait(false);
-
-            // Track the state of this graph execution.
-            var instance = new GraphExecutionInstance(graph, cancellationToken)
+            await using (_taskScheduler.CreateSchedulerScope($"ExecuteGraphAsync", cancellationToken).AsAsyncDisposable(out var schedulerScope).ConfigureAwait(false))
             {
-                WorkerPool = workerPool,
-            };
-
-            // Create a stall monitor which dumps information if the execution stops making progress.
-            await using var stallMonitor = _stallMonitorFactory.CreateStallMonitor(
-                schedulerScope,
-                instance).ConfigureAwait(false);
-            instance.StallMonitor = stallMonitor;
-
-            // Schedule up all of the tasks that can be immediately scheduled.
-            _logger.LogTrace("Scheduling initial tasks...");
-            await instance.ScheduleInitialTasksAsync().ConfigureAwait(false);
-
-            // At this point, if we don't have anything that can be
-            // scheduled, then the execution can never make any progress.
-            if (!await instance.AreAnyTasksScheduledAsync().ConfigureAwait(false))
-            {
-                throw new RpcException(new Status(
-                    StatusCode.InvalidArgument,
-                    "No task described by the job XML was immediately schedulable."));
-            }
-
-            // Pull tasks off the queue until we have no tasks remaining.
-            try
-            {
-                while (!instance.CancellationToken.IsCancellationRequested)
+                // Track the state of this graph execution.
+                var instance = new GraphExecutionInstance(graph, cancellationToken)
                 {
-                    // Get the next task to schedule. This queue only contains
-                    // tasks whose dependencies have all passed.
-                    var (task, terminated) = await instance.QueuedTasksForScheduling.TryDequeueAsync(instance.CancellationToken).ConfigureAwait(false);
-                    if (terminated)
+                    WorkerPool = workerPool,
+                };
+
+                // Create a stall monitor which dumps information if the execution stops making progress.
+                await using (_stallMonitorFactory.CreateStallMonitor(
+                    schedulerScope,
+                    instance).AsAsyncDisposable(out var stallMonitor).ConfigureAwait(false))
+                {
+                    instance.StallMonitor = stallMonitor;
+
+                    // Schedule up all of the tasks that can be immediately scheduled.
+                    _logger.LogTrace("Scheduling initial tasks...");
+                    await instance.ScheduleInitialTasksAsync().ConfigureAwait(false);
+
+                    // At this point, if we don't have anything that can be
+                    // scheduled, then the execution can never make any progress.
+                    if (!await instance.AreAnyTasksScheduledAsync().ConfigureAwait(false))
                     {
-                        // No more tasks to process.
-                        _logger.LogTrace("No more tasks to execute. Ending execution graph.");
-                        break;
+                        throw new RpcException(new Status(
+                            StatusCode.InvalidArgument,
+                            "No task described by the job XML was immediately schedulable."));
                     }
 
-                    // Schedule the task to run on the thread pool.
-                    _logger.LogTrace("Pulled task from the queue and scheduling it's work.");
-                    instance.ScheduledExecutions.Add(schedulerScope.RunAsync(
-                        task!.GraphTaskSpec.Task.Name,
-                        cancellationToken,
-                        async (cancellationToken) =>
-                        {
-                            await ExecuteTaskAsync(
-                                schedulerScope,
-                                instance,
-                                graph,
-                                task!,
-                                buildBehaviour,
-                                responseStream,
-                                cancellationToken).ConfigureAwait(false);
-                        }));
-                }
-
-                cancellationToken.ThrowIfCancellationRequested();
-
-                _logger.LogTrace("Checking if all tasks executed successfully...");
-                if (await instance.DidAllTasksCompleteSuccessfullyAsync().ConfigureAwait(false))
-                {
-                    // All tasks completed successfully.
-                    await responseStream.WriteAsync(new JobResponse
+                    // Pull tasks off the queue until we have no tasks remaining.
+                    try
                     {
-                        JobComplete = new JobCompleteResponse
+                        while (!instance.CancellationToken.IsCancellationRequested)
                         {
-                            Status = JobCompletionStatus.JobCompletionSuccess,
-                            TotalSeconds = graphStopwatch.Elapsed.TotalSeconds,
-                        }
-                    }, cancellationToken).ConfigureAwait(false);
-                }
-                else
-                {
-                    // Something failed.
-                    await responseStream.WriteAsync(new JobResponse
-                    {
-                        JobComplete = new JobCompleteResponse
-                        {
-                            Status = JobCompletionStatus.JobCompletionFailure,
-                            TotalSeconds = graphStopwatch.Elapsed.TotalSeconds,
-                        }
-                    }, cancellationToken).ConfigureAwait(false);
-                }
-            }
-            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
-            {
-                // Convert the RPC exception into an OperationCanceledException.
-                throw new OperationCanceledException("Cancellation via RPC", ex);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                // We're stopping because the caller cancelled the build (i.e. the client
-                // of the dispatcher RPC hit "Ctrl-C").
-                throw;
-            }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-            {
-                if (instance.IsCancelledDueToException)
-                {
-                    // This is a propagation of build cancellation due to
-                    // task failure, which can happen due to the top-level
-                    // instance.QueuedTaskAvailableForScheduling.WaitAsync call.
-                    // In this case, we want to wait until all the scheduled
-                    // executions complete so task-level failures propagate to
-                    // the stream before we issue a JobCompleteResponse.
-                    foreach (var execution in instance.ScheduledExecutions)
-                    {
-                        try
-                        {
-                            await execution.ConfigureAwait(false);
-                        }
-                        catch
-                        {
-                        }
-                    }
-                    if (!cancellationToken.IsCancellationRequested)
-                    {
-                        await responseStream.WriteAsync(new JobResponse
-                        {
-                            JobComplete = new JobCompleteResponse
+                            // Get the next task to schedule. This queue only contains
+                            // tasks whose dependencies have all passed.
+                            var (task, terminated) = await instance.QueuedTasksForScheduling.TryDequeueAsync(instance.CancellationToken).ConfigureAwait(false);
+                            if (terminated)
                             {
-                                Status = JobCompletionStatus.JobCompletionFailure,
-                                TotalSeconds = graphStopwatch.Elapsed.TotalSeconds,
-                                ExceptionMessage = instance.ExceptionMessage ?? string.Empty,
+                                // No more tasks to process.
+                                _logger.LogTrace("No more tasks to execute. Ending execution graph.");
+                                break;
                             }
-                        }, cancellationToken).ConfigureAwait(false);
+
+                            // Schedule the task to run on the thread pool.
+                            _logger.LogTrace("Pulled task from the queue and scheduling it's work.");
+                            instance.ScheduledExecutions.Add(schedulerScope.RunAsync(
+                                task!.GraphTaskSpec.Task.Name,
+                                async (cancellationToken) =>
+                                {
+                                    await ExecuteTaskAsync(
+                                        schedulerScope,
+                                        instance,
+                                        graph,
+                                        task!,
+                                        buildBehaviour,
+                                        responseStream,
+                                        cancellationToken).ConfigureAwait(false);
+                                },
+                                cancellationToken));
+                        }
+
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        _logger.LogTrace("Checking if all tasks executed successfully...");
+                        if (await instance.DidAllTasksCompleteSuccessfullyAsync().ConfigureAwait(false))
+                        {
+                            // All tasks completed successfully.
+                            await responseStream.WriteAsync(new JobResponse
+                            {
+                                JobComplete = new JobCompleteResponse
+                                {
+                                    Status = JobCompletionStatus.JobCompletionSuccess,
+                                    TotalSeconds = graphStopwatch.Elapsed.TotalSeconds,
+                                }
+                            }, cancellationToken).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            // Something failed.
+                            await responseStream.WriteAsync(new JobResponse
+                            {
+                                JobComplete = new JobCompleteResponse
+                                {
+                                    Status = JobCompletionStatus.JobCompletionFailure,
+                                    TotalSeconds = graphStopwatch.Elapsed.TotalSeconds,
+                                }
+                            }, cancellationToken).ConfigureAwait(false);
+                        }
                     }
-                }
-                else
-                {
-                    throw;
+                    catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+                    {
+                        // Convert the RPC exception into an OperationCanceledException.
+                        throw new OperationCanceledException("Cancellation via RPC", ex);
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        // We're stopping because the caller cancelled the build (i.e. the client
+                        // of the dispatcher RPC hit "Ctrl-C").
+                        throw;
+                    }
+                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                    {
+                        if (instance.IsCancelledDueToException)
+                        {
+                            // This is a propagation of build cancellation due to
+                            // task failure, which can happen due to the top-level
+                            // instance.QueuedTaskAvailableForScheduling.WaitAsync call.
+                            // In this case, we want to wait until all the scheduled
+                            // executions complete so task-level failures propagate to
+                            // the stream before we issue a JobCompleteResponse.
+                            foreach (var execution in instance.ScheduledExecutions)
+                            {
+                                try
+                                {
+                                    await execution.ConfigureAwait(false);
+                                }
+                                catch
+                                {
+                                }
+                            }
+                            if (!cancellationToken.IsCancellationRequested)
+                            {
+                                await responseStream.WriteAsync(new JobResponse
+                                {
+                                    JobComplete = new JobCompleteResponse
+                                    {
+                                        Status = JobCompletionStatus.JobCompletionFailure,
+                                        TotalSeconds = graphStopwatch.Elapsed.TotalSeconds,
+                                        ExceptionMessage = instance.ExceptionMessage ?? string.Empty,
+                                    }
+                                }, cancellationToken).ConfigureAwait(false);
+                            }
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
                 }
             }
 
@@ -329,18 +333,18 @@
                                         // data with a reservation open because remote workers will kick us for
                                         // being idle.
                                         await Task.WhenAll(
-                                            schedulerScope.RunAsync($"{task.GraphTaskSpec.Task.Name}:HashTool", instance.CancellationToken, async (cancellationToken) =>
+                                            schedulerScope.RunAsync($"{task.GraphTaskSpec.Task.Name}:HashTool", async (cancellationToken) =>
                                             {
                                                 describingGraphTask.ToolHashingResult = await _toolSynchroniser.HashToolAsync(
                                                     describingGraphTask.TaskDescriptor.Remote,
                                                     cancellationToken).ConfigureAwait(false);
-                                            }),
-                                            schedulerScope.RunAsync($"{task.GraphTaskSpec.Task.Name}:HashInputBlobs", instance.CancellationToken, async (cancellationToken) =>
+                                            }, instance.CancellationToken),
+                                            schedulerScope.RunAsync($"{task.GraphTaskSpec.Task.Name}:HashInputBlobs", async (cancellationToken) =>
                                             {
                                                 describingGraphTask.BlobHashingResult = await _blobSynchroniser.HashInputBlobsAsync(
                                                     describingGraphTask.TaskDescriptor.Remote,
                                                     cancellationToken).ConfigureAwait(false);
-                                            })).ConfigureAwait(false);
+                                            }, instance.CancellationToken)).ConfigureAwait(false);
                                     }
                                 }
                                 finally
@@ -387,13 +391,13 @@
                                     // data with a reservation open because remote workers will kick us for
                                     // being idle.
                                     await Task.WhenAll(
-                                        schedulerScope.RunAsync($"{task.GraphTaskSpec.Task.Name}:HashTool", instance.CancellationToken, async (cancellationToken) =>
+                                        schedulerScope.RunAsync($"{task.GraphTaskSpec.Task.Name}:HashTool", async (cancellationToken) =>
                                         {
                                             fastExecutableGraphTask.ToolHashingResult = await _toolSynchroniser.HashToolAsync(
                                                 taskDescriptor.Remote,
                                                 cancellationToken).ConfigureAwait(false);
-                                        }),
-                                        schedulerScope.RunAsync($"{task.GraphTaskSpec.Task.Name}:HashInputBlobs", instance.CancellationToken, async (cancellationToken) =>
+                                        }, instance.CancellationToken),
+                                        schedulerScope.RunAsync($"{task.GraphTaskSpec.Task.Name}:HashInputBlobs", async (cancellationToken) =>
                                         {
                                             if (taskDescriptor.Remote.StorageLayerCase == RemoteTaskDescriptor.StorageLayerOneofCase.TransferringStorageLayer)
                                             {
@@ -401,7 +405,7 @@
                                                     taskDescriptor.Remote,
                                                     cancellationToken).ConfigureAwait(false);
                                             }
-                                        })).ConfigureAwait(false);
+                                        }, instance.CancellationToken)).ConfigureAwait(false);
                                 }
                                 break;
                             case ExecutableGraphTask executableGraphTask:
@@ -577,7 +581,7 @@
 
                                         // Stream the results until we get an exit code.
                                         ExecuteTaskResponse? finalExecuteTaskResponse = null;
-                                        await using (var enumerable = core.Request.GetAsyncEnumerator(instance.CancellationToken).ConfigureAwait(false))
+                                        await using (core.Request.GetAsyncEnumerator(instance.CancellationToken).AsAsyncDisposable(out var enumerable).ConfigureAwait(false))
                                         {
                                             while (!didComplete && await enumerable.MoveNextAsync(instance.CancellationToken).ConfigureAwait(false))
                                             {
@@ -773,7 +777,7 @@
                 {
                     // We're stopping because something else cancelled the build.
                 }
-                catch (ObjectDisposedException ex) when (ex.Message.Contains("Request has finished and HttpContext disposed."))
+                catch (ObjectDisposedException ex) when (ex.Message.Contains("Request has finished and HttpContext disposed.", StringComparison.Ordinal))
                 {
                     // We can't send further messages because the response stream has died.
                 }

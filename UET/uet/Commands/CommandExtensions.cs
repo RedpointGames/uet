@@ -140,7 +140,7 @@
             }
         }
 
-        private class CommandUETGlobalArgsProvider : IGlobalArgsProvider
+        private sealed class CommandUETGlobalArgsProvider : IGlobalArgsProvider
         {
             public CommandUETGlobalArgsProvider(string globalArgsString, string[] globalArgsArray)
             {

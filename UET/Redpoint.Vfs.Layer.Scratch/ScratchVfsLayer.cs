@@ -11,7 +11,7 @@
     using Redpoint.Vfs.LocalIo;
     using System.Collections.Concurrent;
 
-    internal class ScratchVfsLayer : IScratchVfsLayer
+    internal sealed class ScratchVfsLayer : IScratchVfsLayer
     {
         private readonly ILogger<ScratchVfsLayer> _logger;
         private readonly ILocalIoVfsFileFactory _localIoVfsFileFactory;

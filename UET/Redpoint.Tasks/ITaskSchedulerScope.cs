@@ -4,8 +4,8 @@
     {
         Task RunAsync(
             string taskName,
-            CancellationToken taskCancellationToken,
-            Func<CancellationToken, Task> backgroundTask);
+            Func<CancellationToken, Task> backgroundTask,
+            CancellationToken taskCancellationToken);
 
         string[] GetCurrentlyExecutingTasks();
     }

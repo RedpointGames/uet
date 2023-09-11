@@ -42,16 +42,16 @@
         {
             if (_recognisedClangCompilers.Contains(Path.GetFileName(spec.Tool.Path)))
             {
-                if (spec.Arguments.Any(x => x.StartsWith("-p=")) &&
-                    spec.Arguments.Any(x => !x.StartsWith("-") &&
-                        (x.EndsWith(".cpp") || x.EndsWith(".c"))))
+                if (spec.Arguments.Any(x => x.StartsWith("-p=", StringComparison.Ordinal)) &&
+                    spec.Arguments.Any(x => !x.StartsWith("-", StringComparison.Ordinal) &&
+                        (x.EndsWith(".cpp", StringComparison.Ordinal) || x.EndsWith(".c", StringComparison.Ordinal))))
                 {
                     var compileCommandDatabase = spec.Arguments
-                        .Where(x => x.StartsWith("-p="))
+                        .Where(x => x.StartsWith("-p=", StringComparison.Ordinal))
                         .Select(x => x.Split('=', 2)[1])
                         .First();
                     var inputFile = spec.Arguments
-                        .Where(x => !x.StartsWith("-") && (x.EndsWith(".cpp") || x.EndsWith(".c")))
+                        .Where(x => !x.StartsWith("-", StringComparison.Ordinal) && (x.EndsWith(".cpp", StringComparison.Ordinal) || x.EndsWith(".c", StringComparison.Ordinal)))
                         .First();
                     if (File.Exists(compileCommandDatabase) &&
                         File.Exists(inputFile))
@@ -78,7 +78,7 @@
             }
 
             var luaScriptFiles = spec.Arguments
-                .Where(x => x.StartsWith("--lua-script-path="))
+                .Where(x => x.StartsWith("--lua-script-path=", StringComparison.Ordinal))
                 .Select(x => x.Split('=', 2)[1])
                 .Select(x =>
                 {
@@ -90,7 +90,7 @@
                 })
                 .ToArray();
             var compileCommandDatabase = spec.Arguments
-                .Where(x => x.StartsWith("-p="))
+                .Where(x => x.StartsWith("-p=", StringComparison.Ordinal))
                 .Select(x => x.Split('=', 2)[1])
                 .Select(x =>
                 {
@@ -102,7 +102,7 @@
                 })
                 .First();
             var inputFile = spec.Arguments
-                .Where(x => !x.StartsWith("-") && (x.EndsWith(".cpp") || x.EndsWith(".c")))
+                .Where(x => !x.StartsWith("-", StringComparison.Ordinal) && (x.EndsWith(".cpp", StringComparison.Ordinal) || x.EndsWith(".c", StringComparison.Ordinal)))
                 .Select(x =>
                 {
                     if (!Path.IsPathRooted(x))
@@ -113,7 +113,7 @@
                 })
                 .First();
             var touchPathFile = spec.Arguments
-                .Where(x => x.StartsWith("--touch-path="))
+                .Where(x => x.StartsWith("--touch-path=", StringComparison.Ordinal))
                 .Select(x => x.Split('=', 2)[1])
                 .Select(x =>
                 {
@@ -129,7 +129,7 @@
             try
             {
                 var compileCommands = JsonSerializer.Deserialize(
-                    File.ReadAllText(compileCommandDatabase).Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("'", "\""),
+                    File.ReadAllText(compileCommandDatabase).Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal).Replace("'", "\"", StringComparison.Ordinal),
                     ClangCompileCommandJsonSerializerContext.Default.ClangCompileCommandArray);
                 compileCommand = compileCommands!.First(x => string.Equals(x.File, inputFile, StringComparison.OrdinalIgnoreCase));
             }
@@ -165,7 +165,7 @@
                 }
             };
             _commonPlatformDefines.ApplyDefines("Win64", compilerArchitype);
-            foreach (var arg in commandArguments.Where(x => x.StartsWith("/D")))
+            foreach (var arg in commandArguments.Where(x => x.StartsWith("/D", StringComparison.Ordinal)))
             {
                 var define = arg[2..].Split('=', 2);
                 if (define.Length == 1)

@@ -8,9 +8,9 @@
     using System.Threading.Tasks;
     using UET.Services;
 
-    internal class OpenGEPreprocessorCacheClientUnresolvedCommand
+    internal sealed class OpenGEPreprocessorCacheClientUnresolvedCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<FileInfo> File;
 
@@ -29,7 +29,7 @@
             return command;
         }
 
-        private class OpenGEPreprocessorCacheClientUnresolvedCommandInstance : ICommandInstance
+        private sealed class OpenGEPreprocessorCacheClientUnresolvedCommandInstance : ICommandInstance
         {
             private readonly ILogger<OpenGEPreprocessorCacheClientUnresolvedCommandInstance> _logger;
             private readonly IPreprocessorCacheFactory _preprocessorCacheFactory;

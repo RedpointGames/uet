@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.RuntimeJson.SourceGenerator
 {
-    internal class RuntimeJsonSerializerEntry
+    internal sealed class RuntimeJsonSerializerEntry
     {
         public string? Namespace { get; set; }
         public string? Class { get; set; }

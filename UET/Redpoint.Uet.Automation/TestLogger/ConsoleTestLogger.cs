@@ -6,7 +6,7 @@
     using System;
     using static Crayon.Output;
 
-    internal class ConsoleTestLogger : ITestLogger
+    internal sealed class ConsoleTestLogger : ITestLogger
     {
         private readonly ILogger<ConsoleTestLogger> _logger;
 

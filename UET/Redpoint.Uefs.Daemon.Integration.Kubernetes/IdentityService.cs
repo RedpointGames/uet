@@ -4,7 +4,7 @@
     using Grpc.Core;
     using System.Threading.Tasks;
 
-    internal class IdentityService : Identity.IdentityBase
+    internal sealed class IdentityService : Identity.IdentityBase
     {
         public override Task<ProbeResponse> Probe(ProbeRequest request, ServerCallContext context)
         {

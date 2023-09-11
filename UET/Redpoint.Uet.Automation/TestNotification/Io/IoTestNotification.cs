@@ -10,7 +10,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class IoTestNotification : ITestNotification
+    internal sealed class IoTestNotification : ITestNotification
     {
         private readonly Task _submitTask;
         private readonly ConcurrentQueue<IoChange> _changeQueue;

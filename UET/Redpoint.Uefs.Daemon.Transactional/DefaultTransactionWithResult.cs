@@ -6,22 +6,22 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DefaultTransactionWithResult<TRequest, TResult> : 
-        AbstractTransaction<TRequest, TransactionListenerDelegate<TResult>>, 
-        ITransaction<TRequest, TResult>, 
-        IWaitableTransaction<TResult> 
+    internal sealed class DefaultTransactionWithResult<TRequest, TResult> :
+        AbstractTransaction<TRequest, TransactionListenerDelegate<TResult>>,
+        ITransaction<TRequest, TResult>,
+        IWaitableTransaction<TResult>
         where TRequest : class, ITransactionRequest<TResult> where TResult : class
     {
         public DefaultTransactionWithResult(
-            TRequest request, 
+            TRequest request,
             TransactionListenerDelegate<TResult> initialListener,
-            CancellationTokenSource executorCancellationTokenSource, 
-            bool backgroundable, 
+            CancellationTokenSource executorCancellationTokenSource,
+            bool backgroundable,
             SemaphoreSlim executorCompleteSemaphore) : base(
                 request,
-                initialListener, 
-                executorCancellationTokenSource, 
-                backgroundable, 
+                initialListener,
+                executorCancellationTokenSource,
+                backgroundable,
                 executorCompleteSemaphore)
         {
         }
@@ -39,7 +39,7 @@
         }
 
         public void UpdatePollingResponse(
-            PollingResponse pollingResponse, 
+            PollingResponse pollingResponse,
             TResult? result)
         {
             if (result != null)
@@ -50,7 +50,7 @@
         }
 
         protected override Task InvokeListenerAsync(
-            TransactionListenerDelegate<TResult> @delegate, 
+            TransactionListenerDelegate<TResult> @delegate,
             PollingResponse response)
         {
             return @delegate(response, Result);

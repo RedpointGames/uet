@@ -9,9 +9,9 @@
     using System.Threading.Tasks;
     using UET.Services;
 
-    internal class OpenGEPreprocessorCacheClientResolvedCommand
+    internal sealed class OpenGEPreprocessorCacheClientResolvedCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<FileInfo> File;
             public Option<FileInfo[]> ForceIncludesFromPch;
@@ -38,7 +38,7 @@
             return command;
         }
 
-        private class OpenGEPreprocessorCacheClientResolvedCommandInstance : ICommandInstance
+        private sealed class OpenGEPreprocessorCacheClientResolvedCommandInstance : ICommandInstance
         {
             private readonly ILogger<OpenGEPreprocessorCacheClientResolvedCommandInstance> _logger;
             private readonly IPreprocessorCacheFactory _preprocessorCacheFactory;

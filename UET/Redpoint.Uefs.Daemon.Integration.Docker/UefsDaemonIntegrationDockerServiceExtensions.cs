@@ -33,7 +33,7 @@
     }
 
     [SupportedOSPlatform("windows")]
-    internal class DockerPluginHostedService : IHostedService
+    internal sealed class DockerPluginHostedService : IHostedService
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILoggerFactory _loggerFactory;
@@ -52,7 +52,7 @@
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
-        {   
+        {
             // We only run the Docker integration if Docker is installed.
             var dockerRoot = Path.Combine(
                 Environment.GetEnvironmentVariable("PROGRAMDATA")!,
@@ -81,7 +81,7 @@
                         listenOptions.Protocols = HttpProtocols.Http1;
                     });
             });
-            
+
             // Map all our endpoints across.
             var endpointHandlerTypes = new List<Type>
             {

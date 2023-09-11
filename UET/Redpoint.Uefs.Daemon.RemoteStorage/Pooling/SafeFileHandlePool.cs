@@ -22,7 +22,7 @@
             _allSafeFileHandles = new ConcurrentBag<SafeFileHandle>();
         }
 
-        private class SafeFileHandlePoolAllocation : ISafeFileHandlePoolAllocation
+        private sealed class SafeFileHandlePoolAllocation : ISafeFileHandlePoolAllocation
         {
             private readonly SafeFileHandlePool _pool;
 

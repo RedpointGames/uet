@@ -8,8 +8,8 @@
         [Fact]
         public void CanReadBlobFromPackfile()
         {
-            using var index = new PackfileIndex("pack-a3937f64bd05eea333e59ce57f47f3cdd76664b1.idx");
-            using var pack = new Packfile("pack-a3937f64bd05eea333e59ce57f47f3cdd76664b1.pack");
+            using var index = new GitPackfileIndex("pack-a3937f64bd05eea333e59ce57f47f3cdd76664b1.idx");
+            using var pack = new GitPackfile("pack-a3937f64bd05eea333e59ce57f47f3cdd76664b1.pack");
 
             Assert.True(
                 pack.GetRawPackfileEntry(

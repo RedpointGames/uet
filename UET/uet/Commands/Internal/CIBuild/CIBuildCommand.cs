@@ -16,9 +16,9 @@
     using System.Threading.Tasks;
     using UET.Commands.EngineSpec;
 
-    internal class CIBuildCommand
+    internal sealed class CIBuildCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> Executor;
 
@@ -42,7 +42,7 @@
             return command;
         }
 
-        private class CIBuildCommandInstance : ICommandInstance
+        private sealed class CIBuildCommandInstance : ICommandInstance
         {
             private readonly ILogger<CIBuildCommandInstance> _logger;
             private readonly Options _options;

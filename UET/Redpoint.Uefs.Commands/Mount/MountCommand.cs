@@ -14,7 +14,7 @@
 
     public static class MountCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<FileInfo> PackagePath = new Option<FileInfo>("--pkg", description: "The path to the package to mount.");
             public Option<string> PackageTag = new Option<string>("--tag", description: "The tag of the package to mount. The package will be pulled from the registry if the local copy is out of date.");
@@ -37,7 +37,7 @@
             return command;
         }
 
-        private class MountCommandInstance : ICommandInstance
+        private sealed class MountCommandInstance : ICommandInstance
         {
             private readonly IMonitorFactory _monitorFactory;
             private readonly IProcessTree _processTree;

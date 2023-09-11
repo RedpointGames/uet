@@ -9,7 +9,7 @@
 
     public static class ListCommand
     {
-        internal class Options
+        internal sealed class Options
         {
         }
 
@@ -22,7 +22,7 @@
             return command;
         }
 
-        private class ListCommandInstance : ICommandInstance
+        private sealed class ListCommandInstance : ICommandInstance
         {
             private readonly UefsClient _client;
 

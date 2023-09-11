@@ -8,7 +8,7 @@
 
     [SupportedOSPlatform("windows")]
     [Endpoint("/Plugin.Activate")]
-    internal class DockerHandshakeEndpointHandler : IEndpointHandler<EmptyRequest, DockerHandshakeResponse>
+    internal sealed class DockerHandshakeEndpointHandler : IEndpointHandler<EmptyRequest, DockerHandshakeResponse>
     {
         public ValueTask<DockerHandshakeResponse> HandleAsync(IUefsDaemon plugin, EmptyRequest request)
         {

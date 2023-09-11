@@ -5,9 +5,9 @@
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal class RunDownstreamTestCommand
+    internal sealed class RunDownstreamTestCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> DownstreamTest;
             public Option<string> EnginePath;
@@ -32,7 +32,7 @@
             return command;
         }
 
-        private class RunDownstreamTestCommandInstance : ICommandInstance
+        private sealed class RunDownstreamTestCommandInstance : ICommandInstance
         {
             private readonly ILogger<RunDownstreamTestCommandInstance> _logger;
 

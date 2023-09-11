@@ -7,7 +7,7 @@
 
     [SupportedOSPlatform("windows")]
     [Endpoint("/VolumeDriver.Remove")]
-    internal class DockerRemoveEndpointHandler : IEndpointHandler<DockerRemoveRequest, DockerRemoveResponse>
+    internal sealed class DockerRemoveEndpointHandler : IEndpointHandler<DockerRemoveRequest, DockerRemoveResponse>
     {
         public async ValueTask<DockerRemoveResponse> HandleAsync(IUefsDaemon plugin, DockerRemoveRequest request)
         {

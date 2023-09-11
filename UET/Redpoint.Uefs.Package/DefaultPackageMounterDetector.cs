@@ -2,7 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
 
-    internal class DefaultPackageMounterDetector : IPackageMounterDetector
+    internal sealed class DefaultPackageMounterDetector : IPackageMounterDetector
     {
         private readonly IServiceProvider _serviceProvider;
 

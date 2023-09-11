@@ -11,7 +11,7 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal class LocalEditorWorker : LocalWorker, ICaptureSpecification
+    internal sealed class LocalEditorWorker : LocalWorker, ICaptureSpecification
     {
         private readonly ILogger<LocalEditorWorker> _logger;
         private readonly IProcessExecutor _processExecutor;

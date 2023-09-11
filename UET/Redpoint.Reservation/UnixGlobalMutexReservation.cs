@@ -5,7 +5,7 @@
 
     [SupportedOSPlatform("macos")]
     [SupportedOSPlatform("linux")]
-    internal class UnixGlobalMutexReservation : IGlobalMutexReservation
+    internal sealed class UnixGlobalMutexReservation : IGlobalMutexReservation
     {
         private readonly IReservation _reservation;
 

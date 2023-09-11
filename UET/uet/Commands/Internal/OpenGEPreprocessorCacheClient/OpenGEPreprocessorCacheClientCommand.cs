@@ -2,7 +2,7 @@
 {
     using System.CommandLine;
 
-    internal class OpenGEPreprocessorCacheClientCommand
+    internal sealed class OpenGEPreprocessorCacheClientCommand
     {
         public static Command CreateOpenGEPreprocessorCacheClientCommand()
         {

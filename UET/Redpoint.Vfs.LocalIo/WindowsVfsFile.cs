@@ -8,7 +8,7 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class WindowsVfsFile : IVfsFile, IVfsFileHandle<IVfsFile>, IAsyncIoHandle
+    internal sealed class WindowsVfsFile : IVfsFile, IVfsFileHandle<IVfsFile>, IAsyncIoHandle
     {
         private readonly ILogger _logger;
         private readonly IVfsFileWriteCallbacks? _callbacks;

@@ -11,7 +11,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class CustomProjectDeploymentProvider : IProjectDeploymentProvider
+    internal sealed class CustomProjectDeploymentProvider : IProjectDeploymentProvider
     {
         public string Type => "Custom";
 

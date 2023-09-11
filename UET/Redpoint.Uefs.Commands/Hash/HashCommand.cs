@@ -6,7 +6,7 @@
 
     public static class HashCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<FileInfo> PackagePath;
 
@@ -28,7 +28,7 @@
             return command;
         }
 
-        private class HashCommandInstance : ICommandInstance
+        private sealed class HashCommandInstance : ICommandInstance
         {
             private readonly IFileHasher _fileHasher;
             private readonly Options _options;

@@ -6,7 +6,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class UefsHostedService : IHostedService
+    internal sealed class UefsHostedService : IHostedService
     {
         private readonly IUefsDaemon _uefsDaemon;
         private bool _disposed;

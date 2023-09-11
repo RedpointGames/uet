@@ -5,9 +5,9 @@
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal class ExtractGauntletHelpersCommand
+    internal sealed class ExtractGauntletHelpersCommand
     {
-        internal class Options
+        internal sealed class Options
         {
             public Option<string> Path;
 
@@ -26,7 +26,7 @@
             return command;
         }
 
-        private class ExtractGauntletHelpersCommandInstance : ICommandInstance
+        private sealed class ExtractGauntletHelpersCommandInstance : ICommandInstance
         {
             private readonly ILogger<ExtractGauntletHelpersCommandInstance> _logger;
 

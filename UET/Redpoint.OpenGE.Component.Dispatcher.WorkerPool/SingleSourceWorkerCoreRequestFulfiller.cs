@@ -33,6 +33,8 @@
             bool canFulfillLocalRequests,
             int remoteDelayMilliseconds)
         {
+            if (taskScheduler == null) throw new ArgumentNullException(nameof(taskScheduler));
+
             _logger = logger;
             _enableTracing = _logger.IsEnabled(LogLevel.Trace);
             _taskSchedulerScope = taskScheduler.CreateSchedulerScope("SingleSourceWorkerCoreRequestFulfiller", CancellationToken.None);
@@ -44,19 +46,12 @@
             _coresAcquired = new ConcurrentQueue<TWorkerCore>();
             _coreAcquiringCount = 0;
             _requestProcessingLock = new Mutex();
-            _backgroundTask = _taskSchedulerScope.RunAsync("BackgroundTask", CancellationToken.None, RunAsync);
+            _backgroundTask = _taskSchedulerScope.RunAsync("BackgroundTask", RunAsync, CancellationToken.None);
         }
 
-        public class Statistics
+        public SingleSourceWorkerCoreRequestFulfillerStatistics<TWorkerCore> GetStatistics()
         {
-            public required long CoreAcquiringCount;
-            public required int CoresCurrentlyAcquiredCount;
-            public required TWorkerCore[] CoresCurrentlyAcquired;
-        }
-
-        public Statistics GetStatistics()
-        {
-            return new Statistics
+            return new SingleSourceWorkerCoreRequestFulfillerStatistics<TWorkerCore>
             {
                 CoreAcquiringCount = (int)Interlocked.Read(ref _coreAcquiringCount),
                 CoresCurrentlyAcquiredCount = _coresAcquired.Count,
@@ -71,11 +66,12 @@
 
         public async ValueTask DisposeAsync()
         {
-            await _taskSchedulerScope.DisposeAsync();
-            await _requestCollection.OnRequestsChanged.RemoveAsync(OnNotifiedRequestsChanged);
+            GC.SuppressFinalize(this);
+            await _taskSchedulerScope.DisposeAsync().ConfigureAwait(false);
+            await _requestCollection.OnRequestsChanged.RemoveAsync(OnNotifiedRequestsChanged).ConfigureAwait(false);
             try
             {
-                await _backgroundTask;
+                await _backgroundTask.ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -99,7 +95,7 @@
             {
                 try
                 {
-                    await _requestCollection.OnRequestsChanged.AddAsync(OnNotifiedRequestsChanged);
+                    await _requestCollection.OnRequestsChanged.AddAsync(OnNotifiedRequestsChanged).ConfigureAwait(false);
                     break;
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -109,7 +105,7 @@
                 catch (Exception ex)
                 {
                     _logger.LogCritical(ex, ex.Message);
-                    await Task.Delay(1000);
+                    await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                 }
             }
 
@@ -132,7 +128,7 @@
                             {
                                 await _processRequestsSemaphore.WaitAsync(CancellationTokenSource.CreateLinkedTokenSource(
                                     new CancellationTokenSource(_remoteDelayMilliseconds).Token,
-                                    cancellationToken).Token);
+                                    cancellationToken).Token).ConfigureAwait(false);
                             }
                             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                             {
@@ -144,24 +140,24 @@
                         {
                             // We never defer remote preferred requests in this case, so we only
                             // need to wait until we're notified.
-                            await _processRequestsSemaphore.WaitAsync(cancellationToken);
+                            await _processRequestsSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                         }
 
                         if (_enableTracing)
                         {
                             _logger.LogTrace($"{nameof(SingleSourceWorkerCoreRequestFulfiller<TWorkerCore>)}.{nameof(RunAsync)}: Waiting to obtain the request processing lock.");
                         }
-                        using (await _requestProcessingLock.WaitAsync(cancellationToken))
+                        using (await _requestProcessingLock.WaitAsync(cancellationToken).ConfigureAwait(false))
                         {
                             // Step 1: Get the list of local only requests we haven't fulfilled yet.
                             int pendingRequestCount = 0;
                             var seenRequests = new HashSet<IWorkerCoreRequest<TWorkerCore>>();
                             if (_fulfillsLocalRequests)
                             {
-                                await using (var unfulfilledRequests = await _requestCollection
+                                await using ((await _requestCollection
                                     .GetAllUnfulfilledRequestsAsync(
                                         CoreFulfillerConstraint.LocalRequiredAndPreferred,
-                                        cancellationToken))
+                                        cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var unfulfilledRequests).ConfigureAwait(false))
                                 {
                                     // Step 2: Fulfill any unfulfilled requests that we can immediately fulfill
                                     // now (because our background tasks have obtained cores).
@@ -178,16 +174,16 @@
                                         {
                                             // Fulfill the request.
                                             if (core is IWorkerCoreWithLiveness coreWithLiveness &&
-                                                !(await coreWithLiveness.IsAliveAsync(cancellationToken)))
+                                                !(await coreWithLiveness.IsAliveAsync(cancellationToken).ConfigureAwait(false)))
                                             {
                                                 // This core is dead. Do not use it.
-                                                await core.DisposeAsync();
+                                                await core.DisposeAsync().ConfigureAwait(false);
                                                 goto retryCore;
                                             }
                                             else
                                             {
                                                 // Assign the core.
-                                                await request.FulfillRequestAsync(core);
+                                                await request.FulfillRequestAsync(core).ConfigureAwait(false);
                                             }
                                         }
                                     }
@@ -196,12 +192,12 @@
 
                             // Step 3: Get the list of remote preferred requests we haven't fulfilled yet,
                             // only if the requests are old enough.
-                            await using (var unfulfilledRequests = await _requestCollection
+                            await using ((await _requestCollection
                                 .GetAllUnfulfilledRequestsAsync(
                                     _fulfillsLocalRequests
                                         ? CoreFulfillerConstraint.All
                                         : CoreFulfillerConstraint.LocalPreferredAndRemote,
-                                    cancellationToken))
+                                    cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var unfulfilledRequests).ConfigureAwait(false))
                             {
                                 foreach (var request in unfulfilledRequests.Requests)
                                 {
@@ -227,16 +223,16 @@
                                     {
                                         // Fulfill the request.
                                         if (core is IWorkerCoreWithLiveness coreWithLiveness &&
-                                            !(await coreWithLiveness.IsAliveAsync(cancellationToken)))
+                                            !(await coreWithLiveness.IsAliveAsync(cancellationToken).ConfigureAwait(false)))
                                         {
                                             // This core is dead. Do not use it.
-                                            await core.DisposeAsync();
+                                            await core.DisposeAsync().ConfigureAwait(false);
                                             goto retryCore;
                                         }
                                         else
                                         {
                                             // Assign the core.
-                                            await request.FulfillRequestAsync(core);
+                                            await request.FulfillRequestAsync(core).ConfigureAwait(false);
                                         }
                                     }
                                 }
@@ -261,7 +257,6 @@
                                     Interlocked.Increment(ref _coreAcquiringCount);
                                     _ = _taskSchedulerScope.RunAsync(
                                         "ObtainCore",
-                                        cancellationToken,
                                         async (cancellationToken) =>
                                         {
                                             try
@@ -275,7 +270,7 @@
                                                 TWorkerCore? obtainedCore = default;
                                                 try
                                                 {
-                                                    obtainedCore = await _coreProvider.RequestCoreAsync(cancellationToken);
+                                                    obtainedCore = await _coreProvider.RequestCoreAsync(cancellationToken).ConfigureAwait(false);
                                                 }
                                                 catch (Exception ex)
                                                 {
@@ -296,7 +291,8 @@
                                                 Interlocked.Decrement(ref _coreAcquiringCount);
                                                 _processRequestsSemaphore.Release();
                                             }
-                                        });
+                                        },
+                                        cancellationToken);
                                 }
                             }
                             else
@@ -318,7 +314,7 @@
                 catch (Exception ex)
                 {
                     _logger.LogCritical(ex, ex.Message);
-                    await Task.Delay(1000);
+                    await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                 }
             }
         }

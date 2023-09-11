@@ -13,7 +13,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class LocalWorkerPool : IWorkerPool
+    internal sealed class LocalWorkerPool : IWorkerPool
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<LocalWorkerPool> _logger;
@@ -72,7 +72,7 @@
             return Task.FromResult<IAsyncDisposable>(new WorkerReservation(this, (LocalWorker)worker));
         }
 
-        private class WorkerReservation : IAsyncDisposable
+        private sealed class WorkerReservation : IAsyncDisposable
         {
             private readonly LocalWorkerPool _workerPool;
             private readonly LocalWorker _worker;

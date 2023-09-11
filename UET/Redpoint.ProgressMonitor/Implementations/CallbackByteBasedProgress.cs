@@ -2,7 +2,7 @@
 {
     using System;
 
-    internal class CallbackByteBasedProgress : IByteBasedProgress
+    internal sealed class CallbackByteBasedProgress : IByteBasedProgress
     {
         private readonly Func<long> _getPosition;
         private readonly Func<long> _getLength;

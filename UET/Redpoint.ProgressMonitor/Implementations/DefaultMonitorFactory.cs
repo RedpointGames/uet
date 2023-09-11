@@ -3,7 +3,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using System;
 
-    internal class DefaultMonitorFactory : IMonitorFactory
+    internal sealed class DefaultMonitorFactory : IMonitorFactory
     {
         private readonly IServiceProvider _serviceProvider;
 

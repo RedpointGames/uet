@@ -7,7 +7,7 @@
     using static Redpoint.Uefs.Protocol.Uefs;
     using Grpc.Core;
 
-    internal class UefsHealthCheckService : IHostedService
+    internal sealed class UefsHealthCheckService : IHostedService
     {
         private readonly ILogger<UefsHealthCheckService> _logger;
         private readonly IGrpcPipeFactory _grpcPipeFactory;

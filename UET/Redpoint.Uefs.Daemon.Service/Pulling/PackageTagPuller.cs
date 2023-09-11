@@ -8,7 +8,7 @@
     using System.Threading.Tasks;
     using Redpoint.Concurrency;
 
-    internal class PackageTagPuller : IPuller<PullPackageTagRequest>
+    internal sealed class PackageTagPuller : IPuller<PullPackageTagRequest>
     {
         public async Task<PullResult> PullAsync(
             IUefsDaemon daemon,

@@ -7,7 +7,7 @@
     using System.Collections.Concurrent;
 
 
-    internal class FolderVfsLayer : IVfsLayer
+    internal sealed class FolderVfsLayer : IVfsLayer
     {
         private readonly ILogger<FolderVfsLayer> _logger;
         private readonly ILocalIoVfsFileFactory _localIoVfsFileFactory;

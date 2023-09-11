@@ -5,7 +5,7 @@
 
     public partial class GraphExecutionTests
     {
-        internal class NullGuardedResponseStream<T> : IGuardedResponseStream<T>
+        internal sealed class NullGuardedResponseStream<T> : IGuardedResponseStream<T>
         {
             public Task WriteAsync(T response, CancellationToken cancellationToken = default)
             {

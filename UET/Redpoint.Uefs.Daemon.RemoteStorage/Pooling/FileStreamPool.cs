@@ -21,7 +21,7 @@
             _allFileStreams = new ConcurrentBag<FileStream>();
         }
 
-        private class FileStreamPoolAllocation : IFileStreamPoolAllocation
+        private sealed class FileStreamPoolAllocation : IFileStreamPoolAllocation
         {
             private readonly FileStreamPool _pool;
 

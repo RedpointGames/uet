@@ -20,7 +20,7 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal class DownloadPluginProjectPrepareProvider : IProjectPrepareProvider, IDynamicReentrantExecutor<BuildConfigProjectDistribution, BuildConfigProjectPrepareDownloadPlugin>
+    internal sealed class DownloadPluginProjectPrepareProvider : IProjectPrepareProvider, IDynamicReentrantExecutor<BuildConfigProjectDistribution, BuildConfigProjectPrepareDownloadPlugin>
     {
         private readonly ILogger<DownloadPluginProjectPrepareProvider> _logger;
         private readonly IPhysicalGitCheckout _physicalGitCheckout;

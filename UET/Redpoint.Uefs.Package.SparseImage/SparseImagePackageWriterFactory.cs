@@ -3,7 +3,7 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("macos")]
-    internal class SparseImagePackageWriterFactory : IPackageWriterFactory
+    internal sealed class SparseImagePackageWriterFactory : IPackageWriterFactory
     {
         public string Format => "sparseimage";
 

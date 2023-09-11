@@ -31,7 +31,7 @@
             _disposed = false;
         }
 
-        private class LockWrapper : IDisposable
+        private sealed class LockWrapper : IDisposable
         {
             private readonly DefaultTransactionContext _context;
             private readonly string _key;

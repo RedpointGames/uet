@@ -9,7 +9,7 @@ namespace Redpoint.Uefs.Daemon.PackageFs
     using Redpoint.Uefs.Daemon.RemoteStorage;
     using System.Security.Cryptography;
 
-    internal class StreamCopier : IDisposable
+    internal sealed class StreamCopier : IDisposable
     {
         // This class does not own these disposable objects.
 #pragma warning disable CA2213

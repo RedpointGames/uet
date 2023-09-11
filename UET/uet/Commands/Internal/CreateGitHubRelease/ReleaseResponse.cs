@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class ReleaseResponse
+    internal sealed class ReleaseResponse
     {
         [JsonPropertyName("id")]
         public long? Id { get; set; }

@@ -20,7 +20,7 @@
     [JsonSerializable(typeof(BuildConfigProjectTestAutomation))]
     [JsonSerializable(typeof(BuildConfigProjectTestCustom))]
     [JsonSerializable(typeof(BuildConfigProjectTestGauntlet))]
-    internal partial class TestProviderRuntimeJson
+    internal partial sealed class TestProviderRuntimeJson
     {
     }
 }

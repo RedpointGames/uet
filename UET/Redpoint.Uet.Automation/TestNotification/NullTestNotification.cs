@@ -3,7 +3,7 @@
     using Redpoint.Uet.Automation.Model;
     using System.Threading.Tasks;
 
-    internal class NullTestNotification : ITestNotification
+    internal sealed class NullTestNotification : ITestNotification
     {
         public void TestDiscovered(TestResult testResult)
         {

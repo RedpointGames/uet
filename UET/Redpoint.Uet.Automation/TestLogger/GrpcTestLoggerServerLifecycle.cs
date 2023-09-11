@@ -13,7 +13,7 @@
     using System.Threading.Tasks;
     using UETAutomation;
 
-    internal class GrpcTestLoggerServerLifecycle : IAutomationLogForwarder
+    internal sealed class GrpcTestLoggerServerLifecycle : IAutomationLogForwarder
     {
         private readonly ITestLoggerFactory _testLoggerFactory;
         private readonly IGrpcPipeFactory _grpcPipeFactory;
@@ -49,9 +49,9 @@
             _loggerServer = null;
         }
 
-        private class GrpcTestLoggerServer : TestReporting.TestReportingBase
+        private sealed class GrpcTestLoggerServer : TestReporting.TestReportingBase
         {
-            private class FakeWorker : IWorker
+            private sealed class FakeWorker : IWorker
             {
                 private readonly string _name;
 

@@ -14,7 +14,7 @@
     using System.Threading.Tasks;
     using Redpoint.Concurrency;
 
-    internal class GitHubCommitMounter : IMounter<MountGitHubCommitRequest>
+    internal sealed class GitHubCommitMounter : IMounter<MountGitHubCommitRequest>
     {
         private readonly ILogger<GitHubCommitMounter> _logger;
         private readonly IGitVfsLayerFactory _gitVfsLayerFactory;

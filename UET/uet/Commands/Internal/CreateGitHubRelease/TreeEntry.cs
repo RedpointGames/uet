@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class TreeEntry
+    internal sealed class TreeEntry
     {
         [JsonPropertyName("path")]
         public string? Path { get; set; }

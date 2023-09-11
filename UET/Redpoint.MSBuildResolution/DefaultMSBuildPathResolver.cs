@@ -5,7 +5,7 @@
     using Redpoint.Registry;
     using System.Runtime.Versioning;
 
-    internal class DefaultMSBuildPathResolver : IMSBuildPathResolver
+    internal sealed class DefaultMSBuildPathResolver : IMSBuildPathResolver
     {
         private readonly IPathResolver _pathResolver;
         private readonly IProcessExecutor _processExecutor;
@@ -19,7 +19,7 @@
         }
 
         [SupportedOSPlatform("windows")]
-        private string? GetMSBuildFromRegistry(string path, string key, string suffix)
+        private static string? GetMSBuildFromRegistry(string path, string key, string suffix)
         {
             var pathsToTry = new[]
             {
@@ -50,7 +50,7 @@
             if (OperatingSystem.IsMacOS())
             {
                 return (
-                    await _pathResolver.ResolveBinaryPath("dotnet"),
+                    await _pathResolver.ResolveBinaryPath("dotnet").ConfigureAwait(false),
                     new[] { "msbuild" });
             }
             else if (OperatingSystem.IsWindows())
@@ -87,7 +87,7 @@
                                 return false;
                             }
                         }),
-                        CancellationToken.None);
+                        CancellationToken.None).ConfigureAwait(false);
                     installationPath = installationPath.Trim();
                     var currentPath = Path.Combine(installationPath, "MSBuild", "Current", "Bin", "MSBuild.exe");
                     var versionedPath = Path.Combine(installationPath, "MSBuild", "15.0", "Bin", "MSBuild.exe");

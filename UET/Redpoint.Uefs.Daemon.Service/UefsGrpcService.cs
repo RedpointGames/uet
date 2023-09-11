@@ -14,7 +14,7 @@
     using static Redpoint.Uefs.Protocol.Uefs;
     using Redpoint.Concurrency;
 
-    internal class UefsGrpcService : UefsBase
+    internal sealed class UefsGrpcService : UefsBase
     {
         private readonly ILogger<UefsGrpcService> _logger;
         private readonly IUefsDaemon _daemon;

@@ -5,28 +5,28 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DefaultTransaction<TRequest> :
+    internal sealed class DefaultTransaction<TRequest> :
         AbstractTransaction<TRequest, TransactionListenerDelegate>,
         ITransaction<TRequest>,
         IWaitableTransaction
         where TRequest : class, ITransactionRequest
     {
         public DefaultTransaction(
-            TRequest request, 
+            TRequest request,
             TransactionListenerDelegate initialListener,
-            CancellationTokenSource executorCancellationTokenSource, 
-            bool backgroundable, 
+            CancellationTokenSource executorCancellationTokenSource,
+            bool backgroundable,
             SemaphoreSlim executorCompleteSemaphore) : base(
-                request, 
-                initialListener, 
-                executorCancellationTokenSource, 
-                backgroundable, 
+                request,
+                initialListener,
+                executorCancellationTokenSource,
+                backgroundable,
                 executorCompleteSemaphore)
         {
         }
 
         protected override Task InvokeListenerAsync(
-            TransactionListenerDelegate @delegate, 
+            TransactionListenerDelegate @delegate,
             PollingResponse response)
         {
             return @delegate(response);

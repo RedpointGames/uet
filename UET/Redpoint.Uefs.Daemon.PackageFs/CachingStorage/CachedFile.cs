@@ -15,7 +15,7 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("windows6.2")]
-    internal class CachedFile : ICachedFile, IDisposable
+    internal sealed class CachedFile : ICachedFile, IDisposable
     {
         private readonly ILogger _logger;
 

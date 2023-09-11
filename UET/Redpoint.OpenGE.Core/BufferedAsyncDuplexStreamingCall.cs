@@ -37,7 +37,7 @@
         {
             if (_bgTask == null)
             {
-                _bgTask = _taskSchedulerScope.RunAsync("ProcessResponseStream", CancellationToken.None, ProcessResponseStreamAsync);
+                _bgTask = _taskSchedulerScope.RunAsync("ProcessResponseStream", ProcessResponseStreamAsync, CancellationToken.None);
             }
         }
 

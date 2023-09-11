@@ -11,7 +11,7 @@
     using Redpoint.Uefs.Protocol;
     using Redpoint.Hashing;
 
-    internal class LocalPackageFs : IPackageFs
+    internal sealed class LocalPackageFs : IPackageFs
     {
         private readonly ILogger<LocalPackageFs> _logger;
         private readonly string _storagePath;
