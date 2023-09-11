@@ -22,13 +22,15 @@
       exit $LastExitCode 
     }
     foreach ($Item in (Get-ChildItem UET -Filter *.Tests)) {
-      Write-Host "============ STARTING: $($Item.Name) ============"
-      dotnet test --no-restore --no-build --logger:"console" --logger:"junit;LogFilePath=$((Get-Location).Path)\TestResults\$($Item.Name).test-result.xml" "$($Item.FullName)/bin/Release/net7.0/$($Item.Name).dll"
-      if ($LastExitCode -ne 0) {
-        Write-Host "============ FAILED:   $($Item.Name) ============"
-        exit $LastExitCode
+      if (Test-Path "$($Item.FullName)/$($Item.Name).csproj") {
+        Write-Host "============ STARTING: $($Item.Name) ============"
+        dotnet test --logger:"console" --logger:"junit;LogFilePath=$((Get-Location).Path)\TestResults\$($Item.Name).test-result.xml" "$($Item.FullName)/bin/Release/net7.0/$($Item.Name).dll"
+        if ($LastExitCode -ne 0) {
+          Write-Host "============ FAILED:   $($Item.Name) ============"
+          exit $LastExitCode
+        }
+        Write-Host "============ PASSED:   $($Item.Name) ============"
       }
-      Write-Host "============ PASSED:   $($Item.Name) ============"
     }
   artifacts:
     reports:
@@ -60,7 +62,9 @@
     for TEST_PATH in $(find UET -type d -name "*.Tests"); do
       TEST_NAME=${TEST_PATH:4}
       Write-Host "============ STARTING: $TEST_NAME ============"
-      dotnet test --no-restore --no-build --logger:"console" --logger:"junit;LogFilePath=$(pwd)/TestResults/$TEST_NAME.test-result.xml" "$TEST_PATH/bin/Release/net7.0/$(Item.Name).dll"
+      if [ -e "$TEST_PATH/$TEST_NAME.csproj" ]; then
+        dotnet test --logger:"console" --logger:"junit;LogFilePath=$(pwd)/TestResults/$TEST_NAME.test-result.xml" "$TEST_PATH/bin/Release/net7.0/$TEST_NAME.dll"
+      fi
       Write-Host "============ PASSED:   $TEST_NAME ============"
     done
   artifacts:
