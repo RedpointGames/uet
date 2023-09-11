@@ -43,7 +43,7 @@
             {
                 throw new ObjectDisposedException(nameof(InProcessPreprocessorCache));
             }
-            await _initSemaphore.WaitAsync();
+            await _initSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (_disposed)
@@ -84,7 +84,7 @@
             {
                 return;
             }
-            await _initSemaphore.WaitAsync();
+            await _initSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (_disposed)

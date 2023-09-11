@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.ProgressMonitor.Implementations
 {
     using System;
+    using System.Globalization;
 
     internal sealed class DefaultUtilities : IUtilities
     {
@@ -23,7 +24,7 @@
                 totalBytesDouble /= 1024;
                 unit = "GB";
             }
-            return $"{totalBytesDouble.ToString("#####0.00")} {unit}";
+            return $"{totalBytesDouble.ToString("#####0.00", CultureInfo.InvariantCulture)} {unit}";
         }
 
         public string FormatDataTransferRate(double bytesPerSecond)
@@ -44,7 +45,7 @@
                 bytesPerSecond /= 1024;
                 rate = "GB/s";
             }
-            return $"{bytesPerSecond.ToString("#####0.00")} {rate}";
+            return $"{bytesPerSecond.ToString("#####0.00", CultureInfo.InvariantCulture)} {rate}";
         }
 
         public TimeSpan ComputeRemainingTime(DateTimeOffset startTime, DateTimeOffset currentTime, double progress)

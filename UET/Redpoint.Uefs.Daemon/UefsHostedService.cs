@@ -53,13 +53,13 @@
             }
 
             _inited = true;
-            await _uefsDaemon.StartAsync();
+            await _uefsDaemon.StartAsync().ConfigureAwait(false);
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
             _disposed = true;
-            await _uefsDaemon.DisposeAsync();
+            await _uefsDaemon.DisposeAsync().ConfigureAwait(false);
         }
     }
 }

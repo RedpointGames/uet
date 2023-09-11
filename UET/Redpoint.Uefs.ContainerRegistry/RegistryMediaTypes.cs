@@ -3,7 +3,7 @@
     /// <summary>
     /// Various media type and constants used by UEFS when interacting with Docker registries.
     /// </summary>
-    public class RegistryConstants
+    public static class RegistryConstants
     {
         /// <summary>
         /// A VHD stored directly in the Docker registry.

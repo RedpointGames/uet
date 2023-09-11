@@ -8,7 +8,7 @@
     /// <summary>
     /// Decodes a binary byte stream known as "Sequential Version 1" format into a bunch of blobs, invoking the callbacks passed in the construct as the stream is written to. In actual transfers, this is decompressed from Brotli compression, where the original stream is known as the "Brotli Sequential Version 1" format.
     /// </summary>
-    public class SequentialVersion1Decoder : Stream
+    public class SequentialVersion1DecoderStream : Stream
     {
         private readonly SequentialVersion1DecoderReadHeader _onHeaderRead;
         private readonly SequentialVersion1DecoderReadData _onDataRead;
@@ -20,7 +20,7 @@
         private long _currentHash;
         private byte[] _headerBuffer;
 
-        public SequentialVersion1Decoder(
+        public SequentialVersion1DecoderStream(
             SequentialVersion1DecoderReadHeader onHeaderRead,
             SequentialVersion1DecoderReadData onDataRead)
         {

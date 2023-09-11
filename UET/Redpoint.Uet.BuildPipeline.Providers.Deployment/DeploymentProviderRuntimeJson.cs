@@ -9,7 +9,7 @@
     [JsonSerializable(typeof(BuildConfigPluginDeploymentBackblazeB2))]
     [JsonSerializable(typeof(BuildConfigProjectDeploymentCustom))]
     [JsonSerializable(typeof(BuildConfigProjectDeploymentSteam))]
-    internal partial sealed class DeploymentProviderRuntimeJson
+    internal sealed partial class DeploymentProviderRuntimeJson
     {
     }
 }

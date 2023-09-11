@@ -1,4 +1,5 @@
 ﻿#pragma warning disable CA1849
+#pragma warning disable CA1062 // Validate arguments of public methods
 
 namespace Redpoint.Rfs.WinFsp
 {

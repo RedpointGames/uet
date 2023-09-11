@@ -9,7 +9,7 @@
     {
         internal const int _cacheVersion = 8;
 
-        public PreprocessorScanResult ParseIncludes(string filePath)
+        public static PreprocessorScanResult ParseIncludes(string filePath)
         {
             var lines = File.ReadAllLines(filePath);
             DateTimeOffset ticks = File.GetLastWriteTimeUtc(filePath);

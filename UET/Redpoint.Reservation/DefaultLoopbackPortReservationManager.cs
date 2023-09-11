@@ -2,6 +2,7 @@
 {
     using System;
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.Net;
     using System.Threading.Tasks;
 
@@ -15,6 +16,7 @@
             _globalMutexReservationManager = globalMutexReservationManager;
         }
 
+        [SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Random.Shared is not used for security-related purposes.")]
         public async ValueTask<ILoopbackPortReservation> ReserveAsync()
         {
             do

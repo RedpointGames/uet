@@ -10,6 +10,7 @@
     internal sealed class LinuxServiceControl : IServiceControl
     {
         [DllImport("libc")]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
         internal static extern uint geteuid();
 
         public bool HasPermissionToInstall => geteuid() == 0;

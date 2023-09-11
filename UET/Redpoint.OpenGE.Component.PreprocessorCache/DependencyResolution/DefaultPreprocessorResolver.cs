@@ -767,10 +767,9 @@
             HashSet<long> dependentConditions)
         {
             // Add immediate condition dependents.
-            if (state.ConditionDependentsOfIdentifiers.ContainsKey(identifier))
+            if (state.ConditionDependentsOfIdentifiers.TryGetValue(identifier, out var value))
             {
-                dependentConditions.UnionWith(
-                    state.ConditionDependentsOfIdentifiers[identifier]);
+                dependentConditions.UnionWith(value);
             }
 
             // If no definition depends on the value of this define, we only need
@@ -787,10 +786,9 @@
             foreach (var upstreamDefine in upstreamDefines)
             {
                 // Add upstream condition dependents.
-                if (state.ConditionDependentsOfIdentifiers.ContainsKey(upstreamDefine))
+                if (state.ConditionDependentsOfIdentifiers.TryGetValue(upstreamDefine, out var upstreamValue))
                 {
-                    dependentConditions.UnionWith(
-                        state.ConditionDependentsOfIdentifiers[upstreamDefine]);
+                    dependentConditions.UnionWith(upstreamValue);
                 }
             }
         }
@@ -1006,8 +1004,8 @@
                     string? foundPath;
                     string? searchValue;
                     if (forwardScannerLookup != null &&
-                        forwardScannerLookup.ContainsKey(directive.Include.DirectiveId) &&
-                        ForwardIncludeScanner.TryPullRequest(forwardScannerLookup[directive.Include.DirectiveId], out var request))
+                        forwardScannerLookup.TryGetValue(directive.Include.DirectiveId, out var foundScanResult) &&
+                        ForwardIncludeScanner.TryPullRequest(foundScanResult, out var request))
                     {
                         if (request.Completed.TryWait(0, CancellationToken.None))
                         {

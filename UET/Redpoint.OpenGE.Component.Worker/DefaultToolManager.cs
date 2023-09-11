@@ -31,7 +31,7 @@
             string toolExecutableName,
             CancellationToken cancellationToken)
         {
-            var toolsPath = await GetToolsPath().ConfigureAwait(false);
+            var toolsPath = await GetToolsPath(cancellationToken).ConfigureAwait(false);
             return Path.Combine(
                 toolsPath,
                 toolXxHash64.HexString(),
@@ -42,7 +42,7 @@
             QueryToolRequest request,
             CancellationToken cancellationToken)
         {
-            var toolsPath = await GetToolsPath().ConfigureAwait(false);
+            var toolsPath = await GetToolsPath(cancellationToken).ConfigureAwait(false);
 
             return new QueryToolResponse
             {
@@ -54,7 +54,7 @@
             HasToolBlobsRequest request,
             CancellationToken cancellationToken)
         {
-            var toolBlobsPath = await GetToolBlobsPath().ConfigureAwait(false);
+            var toolBlobsPath = await GetToolBlobsPath(cancellationToken).ConfigureAwait(false);
 
             var requested = new HashSet<long>(request.ToolBlobs.Select(x => x.XxHash64));
             var exists = new HashSet<long>();
@@ -108,7 +108,7 @@
             IWorkerRequestStream requestStream,
             CancellationToken cancellationToken)
         {
-            var toolBlobsPath = await GetToolBlobsPath().ConfigureAwait(false);
+            var toolBlobsPath = await GetToolBlobsPath(cancellationToken).ConfigureAwait(false);
 
             if (initialRequest.InitialOrSubsequentCase != WriteToolBlobRequest.InitialOrSubsequentOneofCase.ToolBlobXxHash64)
             {
@@ -223,8 +223,8 @@
             ConstructToolRequest request,
             CancellationToken cancellationToken)
         {
-            var toolsPath = await GetToolsPath().ConfigureAwait(false);
-            var toolBlobsPath = await GetToolBlobsPath().ConfigureAwait(false);
+            var toolsPath = await GetToolsPath(cancellationToken).ConfigureAwait(false);
+            var toolBlobsPath = await GetToolBlobsPath(cancellationToken).ConfigureAwait(false);
 
             var hash = request.ToolXxHash64.HexString();
             var targetPath = Path.Combine(toolsPath, hash);
@@ -302,7 +302,7 @@
             }
         }
 
-        private void DeleteRecursive(string path)
+        private static void DeleteRecursive(string path)
         {
             try
             {
@@ -333,7 +333,7 @@
             }
         }
 
-        private async Task<string> GetToolsPath()
+        private async Task<string> GetToolsPath(CancellationToken cancellationToken)
         {
             if (_disposed)
             {
@@ -343,7 +343,7 @@
             {
                 return _toolsReservation.ReservedPath;
             }
-            await _toolsReservationSemaphore.WaitAsync();
+            await _toolsReservationSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 if (_disposed)
@@ -363,7 +363,7 @@
             }
         }
 
-        private async Task<string> GetToolBlobsPath()
+        private async Task<string> GetToolBlobsPath(CancellationToken cancellationToken)
         {
             if (_disposed)
             {
@@ -373,7 +373,7 @@
             {
                 return _toolBlobsReservation.ReservedPath;
             }
-            await _toolsReservationSemaphore.WaitAsync();
+            await _toolsReservationSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 if (_disposed)
@@ -395,7 +395,7 @@
 
         public async ValueTask DisposeAsync()
         {
-            await _toolsReservationSemaphore.WaitAsync();
+            await _toolsReservationSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 if (_toolBlobsReservation != null)

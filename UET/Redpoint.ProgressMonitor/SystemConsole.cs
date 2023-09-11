@@ -30,7 +30,7 @@
 
         private static Lazy<IConsoleInformation> _consoleInformation = new Lazy<IConsoleInformation>(() => new SystemConsoleInformation());
 
-        private static Lazy<ProgressEmitDelegate> _writeProgressToConsole = new Lazy<ProgressEmitDelegate>(() => (string message, long count) =>
+        private static Lazy<ProgressEmit> _writeProgressToConsole = new Lazy<ProgressEmit>(() => (string message, long count) =>
         {
             if (ConsoleWidth.HasValue)
             {
@@ -61,9 +61,9 @@
         public static IConsoleInformation? ConsoleInformation => ConsoleWidth.HasValue ? _consoleInformation.Value : null;
 
         /// <summary>
-        /// Provides a helper function which can be passed into <see cref="IMonitor{T}.MonitorAsync(T, IConsoleInformation?, ProgressEmitDelegate, System.Threading.CancellationToken)"/> as the progress emit delegate if you want to perform the simple task of emitting progress information to the console. If the console is not redirected, the progress is updated in-place; if the console is redirected, progress is written to a new line every 5 seconds.
+        /// Provides a helper function which can be passed into <see cref="IMonitor{T}.MonitorAsync(T, IConsoleInformation?, ProgressEmit, System.Threading.CancellationToken)"/> as the progress emit delegate if you want to perform the simple task of emitting progress information to the console. If the console is not redirected, the progress is updated in-place; if the console is redirected, progress is written to a new line every 5 seconds.
         /// </summary>
-        public static ProgressEmitDelegate WriteProgressToConsole => _writeProgressToConsole.Value;
+        public static ProgressEmit WriteProgressToConsole => _writeProgressToConsole.Value;
 
         /// <summary>
         /// Cancel a monitoring task and wait for it to finish. If console output is not redirected, emit a final new line to ensure
@@ -74,11 +74,13 @@
         /// <returns>The awaitable task.</returns>
         public static async Task CancelAndWaitForConsoleMonitoringTaskAsync(Task task, CancellationTokenSource cts)
         {
+            if (cts == null) throw new ArgumentNullException(nameof(cts));
+
             // Stop monitoring.
             cts.Cancel();
             try
             {
-                await task;
+                await task.ConfigureAwait(false);
             }
             catch (OperationCanceledException) { }
 

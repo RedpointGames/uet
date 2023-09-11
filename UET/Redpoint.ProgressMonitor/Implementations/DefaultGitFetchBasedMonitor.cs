@@ -91,7 +91,7 @@
         public async Task MonitorAsync(
             IGitFetchBasedProgress progress,
             IConsoleInformation? consoleInfo,
-            ProgressEmitDelegate onProgressEmit,
+            ProgressEmit onProgressEmit,
             CancellationToken ct)
         {
             var startTime = DateTimeOffset.UtcNow;
@@ -119,7 +119,7 @@
 
                 try
                 {
-                    await Task.Delay(100, ct);
+                    await Task.Delay(100, ct).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {

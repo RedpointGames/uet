@@ -113,7 +113,7 @@
             }
 #endif
 
-            var freshValue = _onDiskPreprocessorScanner.ParseIncludes(filePath);
+            var freshValue = OnDiskPreprocessorScanner.ParseIncludes(filePath);
             _disk.Upsert(filePath, freshValue);
             return new PreprocessorScanResultWithCacheMetadata
             {

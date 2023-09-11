@@ -12,7 +12,7 @@
     /// individual files without requiring the use of asynchronous APIs or
     /// dependency injection.
     /// </summary>
-    public class LockFile : IDisposable
+    public sealed class LockFile : IDisposable
     {
         private static ConcurrentDictionary<string, bool> _localLocks = new ConcurrentDictionary<string, bool>(OperatingSystem.IsWindows() ? StringComparer.InvariantCultureIgnoreCase : StringComparer.InvariantCulture);
         private readonly SafeFileHandle _handle;

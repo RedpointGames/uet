@@ -366,7 +366,7 @@
                         { "_M_HYBRID", 0 },
                     }
                 },
-                CancellationToken.None);
+                CancellationToken.None).ConfigureAwait(false);
             Assert.True(result.DependsOnPaths.Count >= 2, "Expected at least two paths to be depended on.");
         }
 
@@ -733,7 +733,7 @@
                         { "_M_HYBRID", 0 },
                     }
                 },
-                CancellationToken.None);
+                CancellationToken.None).ConfigureAwait(false);
             Assert.True(result.DependsOnPaths.Count > 0, "Expected at least one path to be depended on.");
         }
     }

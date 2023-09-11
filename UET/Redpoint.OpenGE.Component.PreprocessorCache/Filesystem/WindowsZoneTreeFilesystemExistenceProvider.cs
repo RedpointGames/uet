@@ -110,10 +110,6 @@
             }
         }
 
-        public void Dispose()
-        {
-        }
-
         public async ValueTask DisposeAsync()
         {
             _disk?.Dispose();

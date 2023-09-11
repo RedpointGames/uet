@@ -56,7 +56,7 @@
 
             public async ValueTask DisposeAsync()
             {
-                using (await _manager._currentPeerRemoteFsLock.WaitAsync().ConfigureAwait(false))
+                using (await _manager._currentPeerRemoteFsLock.WaitAsync(CancellationToken.None).ConfigureAwait(false))
                 {
                     _state.Fs.RemoveAdditionalReparsePoints(_additionalReparsePoints);
                     _state.HandleCount--;
@@ -83,19 +83,20 @@
         public async ValueTask<IPeerRemoteFsHandle> AcquirePeerRemoteFs(
             IPAddress ipAddress,
             int port,
-            string[] additionalReparsePoints)
+            string[] additionalReparsePoints,
+            CancellationToken cancellationToken)
         {
             if (!OperatingSystem.IsWindowsVersionAtLeast(6, 2))
             {
                 throw new PlatformNotSupportedException("AcquirePeerRemoteFs can not be called on this platform.");
             }
 
-            using (await _currentPeerRemoteFsLock.WaitAsync().ConfigureAwait(false))
+            using (await _currentPeerRemoteFsLock.WaitAsync(cancellationToken).ConfigureAwait(false))
             {
                 var endpoint = new IPEndPoint(ipAddress, port);
-                if (_currentPeerRemoteFs.ContainsKey(endpoint))
+                if (_currentPeerRemoteFs.TryGetValue(endpoint, out var value))
                 {
-                    return new PeerRemoteFsStateHandle(this, _currentPeerRemoteFs[endpoint], additionalReparsePoints);
+                    return new PeerRemoteFsStateHandle(this, value, additionalReparsePoints);
                 }
                 else
                 {

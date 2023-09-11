@@ -33,14 +33,14 @@
             var statuses = await instance.GetTaskStatusesAsync().ConfigureAwait(false);
 
             _logger.LogInformation("Capturing stall diagnostics: Request collection...");
-            WorkerCoreRequestCollection<ITaskApiWorkerCore>.WorkerCoreRequest[] requests;
+            WorkerCoreRequest<ITaskApiWorkerCore>[] requests;
             if (requestCollection != null)
             {
                 requests = await requestCollection.GetAllRequestsAsync().ConfigureAwait(false);
             }
             else
             {
-                requests = Array.Empty<WorkerCoreRequestCollection<ITaskApiWorkerCore>.WorkerCoreRequest>();
+                requests = Array.Empty<WorkerCoreRequest<ITaskApiWorkerCore>>();
             }
 
             _logger.LogInformation("Capturing stall diagnostics: Local worker fulfiller...");

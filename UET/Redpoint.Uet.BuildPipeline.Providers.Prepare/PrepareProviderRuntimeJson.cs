@@ -10,7 +10,7 @@
     [JsonSerializable(typeof(BuildConfigPluginPrepareCustom))]
     [JsonSerializable(typeof(BuildConfigProjectPrepareCustom))]
     [JsonSerializable(typeof(BuildConfigProjectPrepareDownloadPlugin))]
-    internal partial sealed class PrepareProviderRuntimeJson
+    internal sealed partial class PrepareProviderRuntimeJson
     {
     }
 }

@@ -9,7 +9,7 @@
     /// compressed with Brotli compression to result in the "Brotli Sequential 
     /// Version 1" format.
     /// </summary>
-    public class SequentialVersion1Encoder : Stream
+    public class SequentialVersion1EncoderStream : Stream
     {
         private readonly IReadOnlyDictionary<long, BlobInfo> _allEntriesByBlobHash;
         private readonly long[] _orderedMissingBlobHashes;
@@ -19,7 +19,7 @@
         private int _currentEntryIndex;
         private int _currentEntryPosition;
 
-        public SequentialVersion1Encoder(
+        public SequentialVersion1EncoderStream(
             IReadOnlyDictionary<long, BlobInfo> allEntriesByBlobHash,
             IEnumerable<long> missingBlobHashes)
         {

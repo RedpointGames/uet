@@ -37,7 +37,7 @@
 
         private async Task<PreprocessorCacheApi.PreprocessorCacheApiClient> GetClientAsync(bool spawn = false)
         {
-            await _clientCreatingSemaphore.WaitAsync();
+            await _clientCreatingSemaphore.WaitAsync(_daemonCancellationTokenSource.Token).ConfigureAwait(false);
             try
             {
                 if (spawn && (_daemonProcess == null || _daemonProcess.IsCompleted))
@@ -160,6 +160,7 @@
                 {
                 }
             }
+            _daemonCancellationTokenSource.Dispose();
         }
     }
 }

@@ -22,8 +22,8 @@ rootCommand.AddCommand(WaitCommand.CreateWaitCommand());
 rootCommand.AddCommand(VerifyCommand.CreateVerifyCommand());
 rootCommand.AddCommand(LoginCommand.CreateLoginCommand());
 
-var exitCode = await rootCommand.InvokeAsync(args);
-await Console.Out.FlushAsync();
-await Console.Error.FlushAsync();
+var exitCode = await rootCommand.InvokeAsync(args).ConfigureAwait(false);
+await Console.Out.FlushAsync().ConfigureAwait(false);
+await Console.Error.FlushAsync().ConfigureAwait(false);
 Environment.Exit(exitCode);
 throw new BadImageFormatException();

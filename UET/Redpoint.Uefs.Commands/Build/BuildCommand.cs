@@ -7,6 +7,7 @@
     using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.Globalization;
     using System.Threading.Tasks;
 
     public static class BuildCommand
@@ -112,11 +113,11 @@
                 Console.WriteLine();
                 if (duration.Hours == 0)
                 {
-                    Console.WriteLine($"package created successfully in {duration.Minutes}:{duration.Seconds.ToString().PadLeft(2, '0')}");
+                    Console.WriteLine($"package created successfully in {duration.Minutes}:{duration.Seconds.ToString(CultureInfo.InvariantCulture).PadLeft(2, '0')}");
                 }
                 else
                 {
-                    Console.WriteLine($"package created successfully in {duration.Hours}:{duration.Minutes.ToString().PadLeft(2, '0')}:{duration.Seconds.ToString().PadLeft(2, '0')}");
+                    Console.WriteLine($"package created successfully in {duration.Hours}:{duration.Minutes.ToString(CultureInfo.InvariantCulture).PadLeft(2, '0')}:{duration.Seconds.ToString(CultureInfo.InvariantCulture).PadLeft(2, '0')}");
                 }
 
                 // Hash by default now since basically all use cases require

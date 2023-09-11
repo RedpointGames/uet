@@ -9,10 +9,11 @@
     using System.Text;
     using System.Threading.Tasks;
     using Xunit;
+    using Redpoint.Concurrency;
 
     public class MultipleSourceWorkerCoreRequestFulfillerTests
     {
-        private IServiceProvider BuildServiceProvider()
+        private static IServiceProvider BuildServiceProvider()
         {
             var services = new ServiceCollection();
             services.AddLogging();
@@ -148,12 +149,12 @@
                     var provider2 = new DynamicCoreProvider(1);
                     await providerCollection.AddAsync(provider2).ConfigureAwait(false);
 
-                    await using (var fulfiller = new MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
+                    await using (new MultipleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                         logger,
                         sp.GetRequiredService<ITaskScheduler>(),
                         requestCollection,
                         providerCollection,
-                        true).ConfigureAwait(false))
+                        true).AsAsyncDisposable(out var fulfiller).ConfigureAwait(false))
                     {
                         fulfiller.SetTracer(tracer);
                         await using (var request1 = (await requestCollection.CreateFulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken).ConfigureAwait(false)).ConfigureAwait(false))

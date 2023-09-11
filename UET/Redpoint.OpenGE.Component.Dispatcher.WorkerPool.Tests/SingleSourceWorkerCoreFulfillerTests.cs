@@ -1,20 +1,19 @@
-﻿namespace Redpoint.OpenGE.Component.Dispatcher.WorkerPool.Tests
+﻿#pragma warning disable CA5394 // Do not use insecure randomness
+
+namespace Redpoint.OpenGE.Component.Dispatcher.WorkerPool.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
     using Redpoint.Tasks;
     using System;
-    using System.Collections.Generic;
     using System.Linq;
-    using System.
-        Text;
     using System.Threading.Tasks;
     using Xunit;
 
     public class SingleSourceWorkerCoreFulfillerTests
     {
-        private IServiceProvider BuildServiceProvider()
+        private static IServiceProvider BuildServiceProvider()
         {
             var services = new ServiceCollection();
             services.AddLogging();
@@ -135,7 +134,7 @@
                         Assert.Equal(0, stats.FulfilledRemotableRequests);
                     }
 
-                    await using (var localRequest = (await collection.CreateUnfulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken).ConfigureAwait(false)).ConfigureAwait(false))
+                    await using ((await collection.CreateUnfulfilledRequestAsync(CoreAllocationPreference.RequireLocal, cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var localRequest).ConfigureAwait(false))
                     {
                         {
                             var stats = await collection.GetCurrentStatisticsAsync(cancellationToken).ConfigureAwait(false);
@@ -232,13 +231,13 @@
 
                     var collection = new WorkerCoreRequestCollection<IWorkerCore>();
                     collection.SetTracer(tracer);
-                    await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
+                    await using (new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                         logger,
                         sp.GetRequiredService<ITaskScheduler>(),
                         collection,
                         testProvider,
                         true,
-                        0).ConfigureAwait(false))
+                        0).AsAsyncDisposable(out var fulfiller).ConfigureAwait(false))
                     {
                         fulfiller.SetTracer(tracer);
                         long coresFulfilled = 0;
@@ -288,13 +287,13 @@
 
                     var collection = new WorkerCoreRequestCollection<IWorkerCore>();
                     collection.SetTracer(tracer);
-                    await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
+                    await using (new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                         logger,
                         sp.GetRequiredService<ITaskScheduler>(),
                         collection,
                         testProvider,
                         true,
-                        100).ConfigureAwait(false))
+                        100).AsAsyncDisposable(out var fulfiller).ConfigureAwait(false))
                     {
                         fulfiller.SetTracer(tracer);
                         long coresFulfilled = 0;
@@ -343,13 +342,13 @@
 
                     var collection = new WorkerCoreRequestCollection<IWorkerCore>();
                     collection.SetTracer(tracer);
-                    await using (var fulfiller = new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
+                    await using (new SingleSourceWorkerCoreRequestFulfiller<IWorkerCore>(
                         logger,
                         sp.GetRequiredService<ITaskScheduler>(),
                         collection,
                         testProvider,
                         true,
-                        0).ConfigureAwait(false))
+                        0).AsAsyncDisposable(out var fulfiller).ConfigureAwait(false))
                     {
                         fulfiller.SetTracer(tracer);
                         long coresFulfilled = 0;

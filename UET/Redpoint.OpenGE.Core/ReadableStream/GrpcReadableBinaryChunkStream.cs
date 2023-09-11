@@ -33,7 +33,7 @@
             _finished = false;
         }
 
-        public GrpcReadableBinaryChunkStream(
+        protected GrpcReadableBinaryChunkStream(
             TOutbound initial,
             IAsyncStreamReader<TOutbound> receivingStream)
         {

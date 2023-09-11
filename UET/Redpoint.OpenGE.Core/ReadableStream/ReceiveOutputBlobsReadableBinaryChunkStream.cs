@@ -25,6 +25,7 @@
 
         protected override void ValidateOutbound(ExecutionResponse outbound)
         {
+            if (outbound == null) throw new ArgumentNullException(nameof(outbound));
             if (outbound.ResponseCase != ExecutionResponse.ResponseOneofCase.ReceiveOutputBlobs)
             {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Expected only ReceiveOutputBlobsResponse at this time."));
@@ -33,11 +34,13 @@
 
         protected override ByteString GetData(ExecutionResponse outbound)
         {
+            if (outbound == null) throw new ArgumentNullException(nameof(outbound));
             return outbound.ReceiveOutputBlobs.Data;
         }
 
         protected override bool GetFinished(ExecutionResponse outbound)
         {
+            if (outbound == null) throw new ArgumentNullException(nameof(outbound));
             return outbound.ReceiveOutputBlobs.FinishWrite;
         }
     }

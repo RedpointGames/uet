@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.Uefs.Daemon.Service.Mounting
 {
-    internal record sealed class MountContext
+    internal record class MountContext
     {
         public required string MountId { get; set; }
         public required int? TrackedPid { get; set; }

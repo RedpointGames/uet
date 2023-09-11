@@ -1,9 +1,10 @@
 ﻿namespace Redpoint.OpenGE.Component.Worker
 {
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading.Tasks;
 
-    internal class ConnectionIdleTracker
+    internal sealed class ConnectionIdleTracker : IDisposable
     {
         private CancellationTokenSource _idledTooLong;
         private readonly CancellationTokenSource _waitingForRequest;
@@ -13,6 +14,7 @@
         private CancellationTokenSource _cancelIdling;
         private Task? _idleCheckingTask;
 
+        [SuppressMessage("Design", "CA1068:CancellationToken parameters must come last", Justification = "The cancellation token is intentionally the first parameter.")]
         public ConnectionIdleTracker(
             CancellationToken clientInitiatedRequestCancellation,
             int idleTimeoutMilliseconds,
@@ -64,7 +66,7 @@
             {
                 return;
             }
-            _threadSafety.Wait();
+            _threadSafety.Wait(CancellationToken.None);
             try
             {
                 if (newIdleTimeoutMilliseconds != null)
@@ -93,7 +95,7 @@
 
         public void StopIdling()
         {
-            _threadSafety.Wait();
+            _threadSafety.Wait(CancellationToken.None);
             try
             {
                 _cancelIdling!.Cancel();
@@ -103,6 +105,13 @@
             {
                 _threadSafety.Release();
             }
+        }
+
+        public void Dispose()
+        {
+            _idledTooLong.Dispose();
+            _waitingForRequest.Dispose();
+            _cancelIdling.Dispose();
         }
     }
 }

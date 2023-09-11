@@ -78,8 +78,8 @@
                     return 1;
                 }
 
-                if (!packagePath.Name.EndsWith(RegistryConstants.FileExtensionVHD) &&
-                    !packagePath.Name.EndsWith(RegistryConstants.FileExtensionSparseImage))
+                if (!packagePath.Name.EndsWith(RegistryConstants.FileExtensionVHD, StringComparison.OrdinalIgnoreCase) &&
+                    !packagePath.Name.EndsWith(RegistryConstants.FileExtensionSparseImage, StringComparison.OrdinalIgnoreCase))
                 {
                     Console.Error.WriteLine($"error: package name should end in {RegistryConstants.FileExtensionVHD} or {RegistryConstants.FileExtensionSparseImage}");
                     return 1;

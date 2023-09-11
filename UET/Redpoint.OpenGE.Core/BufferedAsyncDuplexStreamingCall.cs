@@ -24,6 +24,8 @@
             ITaskScheduler taskScheduler,
             AsyncDuplexStreamingCall<TRequest, TResponse> underlyingCall)
         {
+            if (taskScheduler == null) throw new ArgumentNullException(nameof(taskScheduler));
+
             _logger = logger;
             _taskSchedulerScope = taskScheduler.CreateSchedulerScope("BufferedAsyncDuplexStreamingCall", CancellationToken.None);
             _call = underlyingCall;
@@ -139,6 +141,7 @@
 
         public async ValueTask DisposeAsync()
         {
+            GC.SuppressFinalize(this);
             _logger.LogTrace($"AsyncDuplexStreamingCall being disposed");
             await _taskSchedulerScope.DisposeAsync().ConfigureAwait(false);
         }

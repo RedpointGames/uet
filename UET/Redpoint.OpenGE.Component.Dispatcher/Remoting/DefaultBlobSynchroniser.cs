@@ -138,7 +138,7 @@
             {
                 await using (new BrotliStream(destination, CompressionMode.Compress).AsAsyncDisposable(out var compressor).ConfigureAwait(false))
                 {
-                    using (var source = new SequentialVersion1Encoder(
+                    using (var source = new SequentialVersion1EncoderStream(
                         hashingResult.ContentHashesToContent,
                         response.QueryMissingBlobs.MissingBlobXxHash64))
                     {
@@ -236,7 +236,7 @@
             long currentBytesRemaining = 0;
             try
             {
-                using (var destination = new SequentialVersion1Decoder(
+                using (var destination = new SequentialVersion1DecoderStream(
                     (blobHash, blobLength) =>
                     {
                         foreach (var currentStream in currentStreams)

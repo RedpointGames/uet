@@ -17,10 +17,10 @@
             var serviceControl = sp.GetRequiredService<IServiceControl>();
 
             Assert.True(
-                await serviceControl.IsServiceRunning("EventLog"),
+                await serviceControl.IsServiceRunning("EventLog").ConfigureAwait(false),
                 "Expected 'EventLog' service to be running.");
             Assert.False(
-                await serviceControl.IsServiceRunning("SDRSVC"),
+                await serviceControl.IsServiceRunning("SDRSVC").ConfigureAwait(false),
                 "Expected 'SDRSVC' (Windows Backup) service to not be running.");
         }
     }

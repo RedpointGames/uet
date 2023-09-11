@@ -228,12 +228,12 @@
                 }
                 foreach (var key in _knownDirectoryEnvironmentVariables)
                 {
-                    if (effectiveEnvironmentVariables.ContainsKey(key) &&
-                        !string.IsNullOrWhiteSpace(effectiveEnvironmentVariables[key]))
+                    if (effectiveEnvironmentVariables.TryGetValue(key, out var value) &&
+                        !string.IsNullOrWhiteSpace(value))
                     {
                         var targetPath = _blobManager.ConvertAbsolutePathToBuildDirectoryPath(
                             reservation.ReservedPath,
-                            effectiveEnvironmentVariables[key]);
+                            value);
                         if (!Path.Exists(targetPath))
                         {
                             Directory.CreateDirectory(targetPath);
@@ -378,7 +378,8 @@
                 (await _peerRemoteFsManager.AcquirePeerRemoteFs(
                     peerAddress,
                     descriptor.RemoteFsStorageLayer.RemotePort,
-                    junctions.ToArray())
+                    junctions.ToArray(),
+                    cancellationToken)
                 .ConfigureAwait(false))
                     .AsAsyncDisposable(out var handle)
                     .ConfigureAwait(false))

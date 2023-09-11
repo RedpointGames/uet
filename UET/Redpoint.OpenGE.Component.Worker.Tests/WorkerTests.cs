@@ -30,7 +30,7 @@
 
             var factory = sp.GetRequiredService<IWorkerComponentFactory>();
             var worker = factory.Create(true);
-            await worker.StartAsync(CancellationToken.None);
+            await worker.StartAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
                 var taskClient = new TaskApi.TaskApiClient(
@@ -43,9 +43,9 @@
                     ReserveCore = new ReserveCoreRequest
                     {
                     },
-                });
+                }).ConfigureAwait(false);
                 Assert.True(
-                    await duplex.ResponseStream.MoveNext(CancellationToken.None),
+                    await duplex.ResponseStream.MoveNext(CancellationToken.None).ConfigureAwait(false),
                     "Expected response from worker");
                 Assert.Equal(
                     ExecutionResponse.ResponseOneofCase.ReserveCore,
@@ -69,13 +69,13 @@
                             }
                         }
                     }
-                });
+                }).ConfigureAwait(false);
 
                 var stdout = new StringBuilder();
                 var stderr = new StringBuilder();
                 int exitCode = -1;
                 while (exitCode == -1 &&
-                    await duplex.ResponseStream.MoveNext(CancellationToken.None))
+                    await duplex.ResponseStream.MoveNext(CancellationToken.None).ConfigureAwait(false))
                 {
                     Assert.Equal(
                         ExecutionResponse.ResponseOneofCase.ExecuteTask,
@@ -98,11 +98,11 @@
                 Assert.Equal(string.Empty, stderr.ToString().Trim());
                 Assert.Equal(0, exitCode);
 
-                await duplex.RequestStream.CompleteAsync();
+                await duplex.RequestStream.CompleteAsync().ConfigureAwait(false);
             }
             finally
             {
-                await worker.StopAsync();
+                await worker.StopAsync().ConfigureAwait(false);
             }
         }
     }

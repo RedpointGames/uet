@@ -7,7 +7,7 @@
     using static Redpoint.Uefs.Protocol.Uefs;
     using Grpc.Core;
 
-    internal sealed class UefsHealthCheckService : IHostedService
+    internal sealed class UefsHealthCheckService : IHostedService, IDisposable
     {
         private readonly ILogger<UefsHealthCheckService> _logger;
         private readonly IGrpcPipeFactory _grpcPipeFactory;
@@ -25,7 +25,7 @@
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _healthCheckTask = Task.Run(HealthCheckAsync);
+            _healthCheckTask = Task.Run(HealthCheckAsync, _cts.Token);
             return Task.CompletedTask;
         }
 
@@ -68,7 +68,7 @@
                     _logger.LogCritical(ex, $"Unexpected exception during gRPC health check: {ex}");
                 }
 
-                await Task.Delay(1000, _cts.Token);
+                await Task.Delay(1000, _cts.Token).ConfigureAwait(false);
             }
         }
 
@@ -79,12 +79,17 @@
                 _cts.Cancel();
                 try
                 {
-                    await _healthCheckTask;
+                    await _healthCheckTask.ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            _cts.Dispose();
         }
     }
 }

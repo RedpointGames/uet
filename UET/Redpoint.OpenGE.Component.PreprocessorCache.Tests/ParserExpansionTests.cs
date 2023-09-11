@@ -6,7 +6,7 @@
 
     public class ParserExpansionTests
     {
-        private PreprocessorExpression[] AssertChain(PreprocessorExpression result, int expectedLength)
+        private static PreprocessorExpression[] AssertChain(PreprocessorExpression result, int expectedLength)
         {
             if (expectedLength == 1)
             {
@@ -19,27 +19,27 @@
             }
         }
 
-        private PreprocessorExpression[] AssertInvocation(PreprocessorExpression result, string identifier)
+        private static PreprocessorExpression[] AssertInvocation(PreprocessorExpression result, string identifier)
         {
             Assert.Equal(PreprocessorExpression.ExprOneofCase.Invoke, result.ExprCase);
             Assert.Equal(identifier, result.Invoke.Identifier);
             return result.Invoke.Arguments.ToArray();
         }
 
-        private void AssertIdentifier(PreprocessorExpression value, string identifier)
+        private static void AssertIdentifier(PreprocessorExpression value, string identifier)
         {
             Assert.Equal(PreprocessorExpression.ExprOneofCase.Token, value.ExprCase);
             Assert.Equal(PreprocessorExpressionToken.DataOneofCase.Identifier, value.Token.DataCase);
             Assert.Equal(identifier, value.Token.Identifier);
         }
 
-        private void AssertWhitespace(PreprocessorExpression value, string whitespace)
+        private static void AssertWhitespace(PreprocessorExpression value, string whitespace)
         {
             Assert.Equal(PreprocessorExpression.ExprOneofCase.Whitespace, value.ExprCase);
             Assert.Equal(whitespace, value.Whitespace);
         }
 
-        private void AssertText(PreprocessorExpression value, string identifier)
+        private static void AssertText(PreprocessorExpression value, string identifier)
         {
             Assert.Equal(PreprocessorExpression.ExprOneofCase.Token, value.ExprCase);
             Assert.Equal(PreprocessorExpressionToken.DataOneofCase.Text, value.Token.DataCase);

@@ -11,6 +11,7 @@
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO.Compression;
     using System.IO.Hashing;
     using System.Net;
@@ -165,6 +166,7 @@
             return _remoteHostLocks.TryGetValue(peerHost, out _);
         }
 
+        [SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Random.Shared is not used for security-related purposes.")]
         public async Task QueryMissingBlobsAsync(
             ServerCallContext context,
             QueryMissingBlobsRequest request,
@@ -251,7 +253,7 @@
             XxHash64? hash = null;
             try
             {
-                using (var destination = new SequentialVersion1Decoder(
+                using (var destination = new SequentialVersion1DecoderStream(
                     (blobHash, blobLength) =>
                     {
                         if (lockFile != null)
@@ -466,7 +468,7 @@
             {
                 await using (new BrotliStream(destination, CompressionMode.Compress).AsAsyncDisposable(out var compressor).ConfigureAwait(false))
                 {
-                    using (var source = new SequentialVersion1Encoder(
+                    using (var source = new SequentialVersion1EncoderStream(
                         allEntriesByBlobHash,
                         requestedBlobHashes))
                     {

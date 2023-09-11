@@ -14,7 +14,7 @@
             return Execute(descriptor, cancellationToken).ToAsyncEnumerable();
         }
 
-        private IEnumerable<ExecuteTaskResponse> Execute(
+        private static IEnumerable<ExecuteTaskResponse> Execute(
             CopyTaskDescriptor descriptor,
             CancellationToken cancellationToken)
         {

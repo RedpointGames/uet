@@ -24,7 +24,7 @@
         public PreprocessorScanResultWithCacheMetadata ParseIncludes(string filePath)
         {
             var st = Stopwatch.StartNew();
-            var result = _onDiskPreprocessorScanner.ParseIncludes(filePath);
+            var result = OnDiskPreprocessorScanner.ParseIncludes(filePath);
             return new PreprocessorScanResultWithCacheMetadata
             {
                 Result = result,
