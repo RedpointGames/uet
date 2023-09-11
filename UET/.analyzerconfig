@@ -53,6 +53,10 @@ dotnet_diagnostic.CA2227.severity = none
 # static method is required by an interface.
 dotnet_diagnostic.CA1000.severity = none
 
+# When building on macOS and Linux, this incorrectly detects Program.cs as being sealable, even
+# though it's using top-level statements.
+dotnet_diagnostic.CA1852.severity = none
+
 #### Gradually turn these on ####
 
 # Turn off warnings around usage of logging APIs.
