@@ -34,6 +34,7 @@
         private readonly Task _timeoutTask;
         private readonly Task _runTask;
         private IWorkerPool? _workerPool;
+        private bool _disposed;
 
         private sealed class WorkerState
         {
@@ -662,37 +663,41 @@
 
         public async ValueTask DisposeAsync()
         {
-            try
+            if (!_disposed)
             {
-                _cancellationTokenSource.Cancel();
+                _disposed = true;
                 try
                 {
-                    await _timeoutTask.ConfigureAwait(false);
+                    _cancellationTokenSource.Cancel();
+                    try
+                    {
+                        await _timeoutTask.ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
+                    try
+                    {
+                        await _runTask.ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
                 }
-                catch (OperationCanceledException)
+                finally
                 {
-                }
-                try
-                {
-                    await _runTask.ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                }
-            }
-            finally
-            {
-                if (_workerPool != null)
-                {
-                    await _workerPool.DisposeAsync().ConfigureAwait(false);
-                }
+                    if (_workerPool != null)
+                    {
+                        await _workerPool.DisposeAsync().ConfigureAwait(false);
+                    }
 
-                foreach (var kv in _workers)
-                {
-                    await kv.Value.TransportConnection.DisposeAsync().ConfigureAwait(false);
+                    foreach (var kv in _workers)
+                    {
+                        await kv.Value.TransportConnection.DisposeAsync().ConfigureAwait(false);
+                    }
                 }
+                _cancellationTokenSource.Dispose();
             }
-            _cancellationTokenSource.Dispose();
         }
 
         public async Task<TestResult[]> WaitForResultsAsync()

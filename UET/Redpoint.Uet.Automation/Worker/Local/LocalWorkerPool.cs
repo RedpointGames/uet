@@ -29,6 +29,7 @@
         private readonly HashSet<DesiredWorkerDescriptor> _descriptorsWindingDown;
         private readonly ILoopbackPortReservationManager _loopbackPortReservationManager;
         private Task _runLoopTask;
+        private bool _disposed;
 
         public LocalWorkerPool(
             IServiceProvider serviceProvider,
@@ -221,16 +222,20 @@
 
         public async ValueTask DisposeAsync()
         {
-            _cancellationTokenSource.Cancel();
-            try
+            if (!_disposed)
             {
-                await _runLoopTask.ConfigureAwait(false);
+                _disposed = true;
+                _cancellationTokenSource.Cancel();
+                try
+                {
+                    await _runLoopTask.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // This is expected.
+                }
+                _cancellationTokenSource.Dispose();
             }
-            catch (OperationCanceledException)
-            {
-                // This is expected.
-            }
-            _cancellationTokenSource.Dispose();
         }
 
         public void FinishedWithWorker(IWorker worker)
