@@ -17,7 +17,7 @@
     using System.Web;
 
     [SupportedOSPlatform("windows")]
-    internal class WindowsSdkInstaller
+    public class WindowsSdkInstaller
     {
         private readonly ISimpleDownloadProgress _simpleDownloadProgress;
         private readonly IProcessExecutor _processExecutor;

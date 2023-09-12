@@ -13,7 +13,7 @@
     using System.Threading.Tasks;
 
     [SupportedOSPlatform("windows")]
-    internal class ConfidentialSdkSetup : ISdkSetup
+    public class ConfidentialSdkSetup : ISdkSetup
     {
         protected readonly ConfidentialPlatformConfig _config;
         private readonly IProcessExecutor _processExecutor;

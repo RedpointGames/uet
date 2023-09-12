@@ -3,8 +3,7 @@
     using System.Text.Json.Serialization;
 
     [JsonSerializable(typeof(ConfidentialPlatformConfig))]
-    internal partial class ConfidentialPlatformJsonSerializerContext : JsonSerializerContext
+    public partial class ConfidentialPlatformJsonSerializerContext : JsonSerializerContext
     {
-
     }
 }

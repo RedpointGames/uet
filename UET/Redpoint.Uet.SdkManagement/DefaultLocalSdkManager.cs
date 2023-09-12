@@ -89,6 +89,19 @@
                 return new Dictionary<string, string>();
             }
 
+            return await SetupEnvironmentForSdkSetups(
+                enginePath,
+                sdksPath,
+                sdkSetups,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        public async Task<Dictionary<string, string>> SetupEnvironmentForSdkSetups(
+            string enginePath,
+            string sdksPath,
+            ISet<ISdkSetup> sdkSetups,
+            CancellationToken cancellationToken)
+        {
             var reservationManager = _reservationManagers.GetOrAdd(
                 sdksPath.TrimEnd(new[] { '\\', '/' }),
                 _reservationManagerFactory.CreateReservationManager);
