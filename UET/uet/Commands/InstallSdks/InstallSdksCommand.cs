@@ -138,7 +138,10 @@
                 foreach (var kv in envVars)
                 {
                     _logger.LogInformation($"  {kv.Key} = {kv.Value}");
-                    Environment.SetEnvironmentVariable(kv.Key, kv.Value, EnvironmentVariableTarget.User);
+                    if (Environment.GetEnvironmentVariable(kv.Key, EnvironmentVariableTarget.User) != kv.Value)
+                    {
+                        Environment.SetEnvironmentVariable(kv.Key, kv.Value, EnvironmentVariableTarget.User);
+                    }
                     context.GetCancellationToken().ThrowIfCancellationRequested();
                 }
 
