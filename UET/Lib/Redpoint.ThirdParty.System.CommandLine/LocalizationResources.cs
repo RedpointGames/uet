@@ -141,6 +141,12 @@ namespace System.CommandLine
             GetResourceString(Redpoint.ThirdParty.System.CommandLine.Properties.Resources.HelpDescriptionTitle);
 
         /// <summary>
+        ///   Interpolates values into a localized string similar to Description:.
+        /// </summary>
+        public virtual string HelpFullDescriptionTitle() =>
+            GetResourceString(Redpoint.ThirdParty.System.CommandLine.Properties.Resources.HelpFullDescriptionTitle);
+
+        /// <summary>
         ///   Interpolates values into a localized string similar to [options].
         /// </summary>
         public virtual string HelpUsageOptions() =>

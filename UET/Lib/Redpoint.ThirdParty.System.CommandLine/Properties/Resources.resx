@@ -187,7 +187,7 @@
     <value>Usage:</value>
   </data>
   <data name="HelpDescriptionTitle" xml:space="preserve">
-    <value>Description:</value>
+    <value>Synopsis:</value>
   </data>
   <data name="HelpArgumentDefaultValueLabel" xml:space="preserve">
     <value>default</value>
@@ -230,5 +230,8 @@
   </data>
   <data name="ArgumentConversionCannotParseForOption" xml:space="preserve">
     <value>Cannot parse argument '{0}' for option '{1}' as expected type '{2}'.</value>
+  </data>
+  <data name="HelpFullDescriptionTitle" xml:space="preserve">
+    <value>Description:</value>
   </data>
 </root>
