@@ -335,7 +335,10 @@
             // makes this work with AutoSDK.
             foreach (var directory in new DirectoryInfo(Path.Combine(sdkPackagePath, "VS2022", "VC", "Tools", "MSVC")).GetDirectories())
             {
-                Directory.CreateSymbolicLink(Path.Combine(sdkPackagePath, "VS2022", directory.Name), directory.FullName);
+                var linkLocation = Path.Combine(sdkPackagePath, "VS2022", directory.Name);
+                var linkTarget = Path.Combine("VC", "Tools", "MSVC", directory.Name);
+                _logger.LogInformation($"Creating symbolic link for Windows AutoSDK '{linkLocation}' to point to: {linkTarget}");
+                Directory.CreateSymbolicLink(linkLocation, linkTarget);
             }
         }
 
