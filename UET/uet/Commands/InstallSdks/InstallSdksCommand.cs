@@ -14,6 +14,7 @@
     using System.Threading.Tasks;
     using UET.Commands.EngineSpec;
     using Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk;
+    using Redpoint.Uet.Core.Permissions;
 
     internal static class InstallSdksCommand
     {
@@ -54,17 +55,20 @@
             private readonly Options _options;
             private readonly ILocalSdkManager _localSdkManager;
             private readonly IServiceProvider _serviceProvider;
+            private readonly IWorldPermissionApplier _worldPermissionApplier;
 
             public InstallSdksCommandInstance(
                 ILogger<InstallSdksCommandInstance> logger,
                 Options options,
                 ILocalSdkManager localSdkManager,
-                IServiceProvider serviceProvider)
+                IServiceProvider serviceProvider,
+                IWorldPermissionApplier worldPermissionApplier)
             {
                 _logger = logger;
                 _options = options;
                 _localSdkManager = localSdkManager;
                 _serviceProvider = serviceProvider;
+                _worldPermissionApplier = worldPermissionApplier;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
@@ -133,6 +137,9 @@
                     packagePath,
                     sdkSetups.ToHashSet(),
                     context.GetCancellationToken()).ConfigureAwait(false);
+
+                _logger.LogInformation("Updating permissions on SDK directories so all users have read/write access...");
+                await _worldPermissionApplier.GrantEveryonePermissionAsync(packagePath, context.GetCancellationToken()).ConfigureAwait(false);
 
                 _logger.LogInformation("Setting environment variables to user scope...");
                 foreach (var kv in envVars)
