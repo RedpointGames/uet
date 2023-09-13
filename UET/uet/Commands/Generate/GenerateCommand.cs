@@ -148,7 +148,8 @@
                             "; Managed by UET",
                         };
                         var wantedHoldingDirectory = false;
-                        var uetManagedProjectsDirectory = Path.Combine(engine.Path!, "UETProjects");
+                        // @note: We intentionally use a tiny folder name here to reduce path lengths.
+                        var uetManagedProjectsDirectory = Path.Combine(engine.Path!, "P");
                         foreach (var path in paths)
                         {
                             if (path!.Type != PathSpecType.UProject)
