@@ -24,6 +24,12 @@ namespace System.CommandLine
         public virtual string? Description { get; set; }
 
         /// <summary>
+        /// Gets or sets the full description of the symbol, to be shown for the full
+        /// help displayed on the command (and not part when subcommands are being listed).
+        /// </summary>
+        public virtual string? FullDescription { get; set; }
+
+        /// <summary>
         /// Gets or sets the name of the symbol.
         /// </summary>
         public virtual string Name
@@ -38,7 +44,7 @@ namespace System.CommandLine
         /// Represents the first parent node.
         /// </summary>
         internal ParentNode? FirstParent => _firstParent;
-        
+
         internal void AddParent(Symbol symbol)
         {
             if (_firstParent == null)
@@ -80,7 +86,7 @@ namespace System.CommandLine
         /// <summary>
         /// Gets completions for the symbol.
         /// </summary>
-        public IEnumerable<CompletionItem> GetCompletions() => 
+        public IEnumerable<CompletionItem> GetCompletions() =>
             GetCompletions(CompletionContext.Empty());
 
         /// <inheritdoc />

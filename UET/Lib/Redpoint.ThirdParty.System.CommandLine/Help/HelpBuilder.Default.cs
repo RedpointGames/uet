@@ -144,6 +144,7 @@ public partial class HelpBuilder
         public static IEnumerable<HelpSectionDelegate> GetLayout()
         {
             yield return SynopsisSection();
+            yield return FullDescriptionSection();
             yield return CommandUsageSection();
             yield return CommandArgumentsSection();
             yield return OptionsSection();
@@ -158,6 +159,18 @@ public partial class HelpBuilder
             ctx =>
             {
                 ctx.HelpBuilder.WriteHeading(ctx.HelpBuilder.LocalizationResources.HelpDescriptionTitle(), ctx.Command.Description, ctx.Output);
+            };
+
+        /// <summary>
+        /// Writes a help section describing a command's full description.
+        /// </summary>
+        public static HelpSectionDelegate FullDescriptionSection() =>
+            ctx =>
+            {
+                if (ctx.Command.FullDescription != null)
+                {
+                    ctx.HelpBuilder.WriteHeading(ctx.HelpBuilder.LocalizationResources.HelpFullDescriptionTitle(), ctx.Command.FullDescription, ctx.Output);
+                }
             };
 
         /// <summary>

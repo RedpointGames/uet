@@ -214,11 +214,20 @@ namespace Redpoint.ThirdParty.System.CommandLine.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Description:.
+        ///   Looks up a localized string similar to Synopsis:.
         /// </summary>
         internal static string HelpDescriptionTitle {
             get {
                 return ResourceManager.GetString("HelpDescriptionTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Description:.
+        /// </summary>
+        internal static string HelpFullDescriptionTitle {
+            get {
+                return ResourceManager.GetString("HelpFullDescriptionTitle", resourceCulture);
             }
         }
         

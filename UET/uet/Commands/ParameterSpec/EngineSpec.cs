@@ -18,7 +18,28 @@
         private static Regex _versionRegex = new Regex("^[45]\\.[0-9]+(EA)?$");
 
         public static ParseArgument<EngineSpec> ParseEngineSpec(
+            Option<PathSpec[]> pathSpecs,
+            Option<DistributionSpec?>? distributionOpt)
+        {
+            return ParseEngineSpec(
+                result => (result.GetValueForOption(pathSpecs) ?? Array.Empty<PathSpec>()).FirstOrDefault(),
+                pathSpecs.Name,
+                distributionOpt);
+        }
+
+        public static ParseArgument<EngineSpec> ParseEngineSpec(
             Option<PathSpec> pathSpec,
+            Option<DistributionSpec?>? distributionOpt)
+        {
+            return ParseEngineSpec(
+                result => result.GetValueForOption(pathSpec),
+                pathSpec.Name,
+                distributionOpt);
+        }
+
+        private static ParseArgument<EngineSpec> ParseEngineSpec(
+            Func<ArgumentResult, PathSpec?> getPathSpec,
+            string pathSpecOptionName,
             Option<DistributionSpec?>? distributionOpt)
         {
             return (result) =>
@@ -29,13 +50,28 @@
                     return ParseEngineSpecWithoutPath(result);
                 }
 
+                // If the current directory contains an engine, use the current
+                // directory. The intent in this case is clearly preferencing the
+                // engine folder you're working out of over any auto-detected engine
+                // specified in project files.
+                var buildVersion = System.IO.Path.Combine(Environment.CurrentDirectory, "Engine", "Build", "Build.version");
+                if (File.Exists(buildVersion))
+                {
+                    return new EngineSpec
+                    {
+                        Type = EngineSpecType.Path,
+                        OriginalSpec = string.Empty,
+                        Path = Environment.CurrentDirectory,
+                    };
+                }
+
                 // Otherwise, take a look at the path spec value to see if we
                 // can figure out the target engine from the project file.
                 PathSpec? path = null;
                 DistributionSpec? distribution = null;
                 try
                 {
-                    path = result.GetValueForOption(pathSpec);
+                    path = getPathSpec(result);
                 }
                 catch (InvalidOperationException)
                 {
@@ -54,7 +90,7 @@
                 }
                 if (path == null)
                 {
-                    result.ErrorMessage = $"Can't automatically detect the appropriate engine because the --{pathSpec.Name} option was invalid.";
+                    result.ErrorMessage = $"Can't automatically detect the appropriate engine because the --{pathSpecOptionName} option was invalid.";
                     return null!;
                 }
                 switch (path.Type)
@@ -100,7 +136,14 @@
                         var selectedProjectDistribution = distribution?.Distribution as BuildConfigProjectDistribution;
                         if (selectedProjectDistribution == null || distributionOpt == null)
                         {
-                            result.ErrorMessage = $"The engine version can not be inferred automatically for plugins; use --{result.Argument.Name} to specify the engine instead.";
+                            if (distribution?.Distribution == null)
+                            {
+                                result.ErrorMessage = $"The engine version can not be inferred automatically; use --{result.Argument.Name} to specify the engine instead.";
+                            }
+                            else
+                            {
+                                result.ErrorMessage = $"The engine version can not be inferred automatically for plugins; use --{result.Argument.Name} to specify the engine instead.";
+                            }
                             return null!;
                         }
 
@@ -131,7 +174,7 @@
                         }
                 }
 
-                result.ErrorMessage = $"Can't automatically detect the appropriate engine because the --{pathSpec.Name} option was invalid.";
+                result.ErrorMessage = $"Can't automatically detect the appropriate engine because the --{pathSpecOptionName} option was invalid.";
                 return null!;
             };
         }

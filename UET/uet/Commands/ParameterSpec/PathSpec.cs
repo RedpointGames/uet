@@ -31,6 +31,60 @@
 
             var isCurrentDirectory = path == Environment.CurrentDirectory;
 
+            return ParsePathSpecInternal(result, path, isCurrentDirectory, ignoreBuildJson);
+        }
+
+        public static PathSpec[] ParsePathSpecs(ArgumentResult result)
+        {
+            return ParsePathSpecs(result, false);
+        }
+
+        public static PathSpec[] ParsePathSpecs(ArgumentResult result, bool ignoreBuildJson)
+        {
+            var pathSpecs = new List<PathSpec>();
+            if (result.Argument.Arity.MinimumNumberOfValues >= 1 &&
+                result.Tokens.Count == 0)
+            {
+                // We must always have a path spec; if one isn't specified
+                // we infer it from the current directory.
+                var isCurrentDirectory = true;
+                var pathSpec = ParsePathSpecInternal(result, Environment.CurrentDirectory, isCurrentDirectory, ignoreBuildJson);
+                if (pathSpec == null || result.ErrorMessage != null)
+                {
+                    if (result.ErrorMessage != null &&
+                        result.ErrorMessage.StartsWith("The current directory does not", StringComparison.Ordinal))
+                    {
+                        // Allow fallthrough.
+                        result.ErrorMessage = null;
+                    }
+                    else
+                    {
+                        return Array.Empty<PathSpec>();
+                    }
+                }
+                else
+                {
+                    pathSpecs.Add(pathSpec);
+                }
+            }
+            foreach (var path in result.Tokens)
+            {
+                var isCurrentDirectory = path.ToString() == Environment.CurrentDirectory;
+                var pathSpec = ParsePathSpecInternal(result, path.ToString(), isCurrentDirectory, ignoreBuildJson);
+                if (pathSpec == null || result.ErrorMessage != null)
+                {
+                    return Array.Empty<PathSpec>();
+                }
+                else
+                {
+                    pathSpecs.Add(pathSpec);
+                }
+            }
+            return pathSpecs.ToArray();
+        }
+
+        private static PathSpec ParsePathSpecInternal(ArgumentResult result, string path, bool isCurrentDirectory, bool ignoreBuildJson)
+        {
             if (Directory.Exists(path))
             {
                 var info = new DirectoryInfo(path);
@@ -151,7 +205,7 @@
             }
             else
             {
-                result.ErrorMessage = $"The path specified by --{result.Argument.Name} does not exist.";
+                result.ErrorMessage = $"The path specified by --{result.Argument.Name} ('{path}') does not exist.";
                 return null!;
             }
         }
