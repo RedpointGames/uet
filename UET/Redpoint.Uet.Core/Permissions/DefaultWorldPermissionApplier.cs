@@ -106,13 +106,20 @@
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            await Parallel.ForEachAsync(
-                directory.GetFiles().ToAsyncEnumerable(),
-                GrantEveryonePermissionToFileAsync).ConfigureAwait(false);
+            try
+            {
+                await Parallel.ForEachAsync(
+                    directory.GetFiles().ToAsyncEnumerable(),
+                    GrantEveryonePermissionToFileAsync).ConfigureAwait(false);
 
-            await Parallel.ForEachAsync(
-                directory.GetDirectories().ToAsyncEnumerable(),
-                GrantEveryonePermissionToDirectoryAsync).ConfigureAwait(false);
+                await Parallel.ForEachAsync(
+                    directory.GetDirectories().ToAsyncEnumerable(),
+                    GrantEveryonePermissionToDirectoryAsync).ConfigureAwait(false);
+            }
+            catch (DirectoryNotFoundException)
+            {
+                // This happens when we have directory symbolic links that don't point to a valid target.
+            }
         }
     }
 }
