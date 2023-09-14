@@ -72,7 +72,7 @@
                         {
                             if (timeoutSeconds.HasValue)
                             {
-                                cts = new CancellationTokenSource(timeoutSeconds.Value);
+                                cts = new CancellationTokenSource(timeoutSeconds.Value * 1000);
                             }
                             using var linkedCts = cts != null
                                 ? CancellationTokenSource.CreateLinkedTokenSource(context.GetCancellationToken(), cts.Token)
