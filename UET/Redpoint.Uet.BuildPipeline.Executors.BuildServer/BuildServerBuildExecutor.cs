@@ -108,6 +108,8 @@
                 try
                 {
                     var targetFolder = Path.Combine(localOsSharedStoragePath, targetFolderName);
+                    var st = Stopwatch.StartNew();
+                    _logger.LogTrace($"Copying UET binaries and resources to: {targetFolder}");
                     Directory.CreateDirectory(targetFolder);
                     await _worldPermissionApplier.GrantEveryonePermissionAsync(targetFolder, CancellationToken.None).ConfigureAwait(false);
 
@@ -275,6 +277,9 @@
                             }
                         }
                     }
+
+                    _logger.LogTrace($"Successfully copied UET binaries and resources to '{targetFolder}' in {st.Elapsed.TotalSeconds} seconds.");
+                    st.Stop();
                     break;
                 }
                 catch (IOException ex) when (ex.Message.Contains("being used by another process", StringComparison.Ordinal))
@@ -433,6 +438,7 @@
             {
                 // @note: Generating the BuildGraph doesn't require any files from the workspace, so we don't bother
                 // setting up a Git workspace for it.
+                var st = Stopwatch.StartNew();
                 await using ((await _workspaceProvider.GetWorkspaceAsync(
                     new TemporaryWorkspaceDescriptor { Name = "Generate BuildGraph JSON" },
                     cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var temporaryWorkspace).ConfigureAwait(false))
@@ -453,6 +459,8 @@
                         generationCaptureSpecification,
                         cancellationToken).ConfigureAwait(false);
                 }
+                _logger.LogTrace($"Generated BuildGraph JSON in {st.Elapsed.TotalSeconds} total seconds.");
+                st.Stop();
             }
 
             var agentTypeMapping = new Dictionary<string, BuildServerJobPlatform>

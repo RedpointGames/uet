@@ -4,6 +4,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.OpenGE.Component.Worker.TaskDescriptorExecutors;
     using Redpoint.OpenGE.Protocol;
+    using System.Diagnostics;
     using System.Net;
     using System.Threading.Tasks;
 
@@ -32,6 +33,14 @@
             IServerStreamWriter<ExecutionResponse> responseStream,
             CancellationToken cancellationToken)
         {
+            string executionGuid = string.Empty;
+            Stopwatch? st = null;
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                executionGuid = Guid.NewGuid().ToString();
+                st = Stopwatch.StartNew();
+                _logger.LogTrace($"{executionGuid}: Starting execution of: {request}");
+            }
             try
             {
                 var shouldRestart = false;
@@ -60,11 +69,19 @@
                 do
                 {
                     shouldRestart = false;
+                    if (_logger.IsEnabled(LogLevel.Trace))
+                    {
+                        _logger.LogTrace($"{executionGuid}: Getting process response stream for request.");
+                    }
                     var processResponseStream = GetProcessResponseStreamFromRequest(
                         peerAddress,
                         request,
                         restartingCancellationTokenSource.Token);
                     var didGetExitCode = false;
+                    if (_logger.IsEnabled(LogLevel.Trace))
+                    {
+                        _logger.LogTrace($"{executionGuid}: Starting enumeration of returned response stream.");
+                    }
                     await foreach (var response in processResponseStream)
                     {
                         if (_logger.IsEnabled(LogLevel.Trace))
@@ -143,6 +160,10 @@
                             }
                         }
                     }
+                    if (_logger.IsEnabled(LogLevel.Trace))
+                    {
+                        _logger.LogTrace($"{executionGuid}: Finished enumeration of returned response stream.");
+                    }
                     if (!didGetExitCode && !shouldRestart)
                     {
                         throw new RpcException(new Status(StatusCode.Internal, "All task executors must emit an ExitCode as their final response."));
@@ -160,6 +181,13 @@
             catch (Exception ex)
             {
                 throw new RpcException(new Status(StatusCode.Internal, ex.ToString()));
+            }
+            finally
+            {
+                if (_logger.IsEnabled(LogLevel.Trace))
+                {
+                    _logger.LogTrace($"{executionGuid}: Finished execution in {st?.Elapsed} of: {request}");
+                }
             }
         }
 

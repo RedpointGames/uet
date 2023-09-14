@@ -66,9 +66,13 @@
 
         public async ValueTask DisposeAsync()
         {
+            _logger.LogTrace("SingleSourceWorkerCoreRequestFulfiller.DisposeAsync: Suppressing finalization...");
             GC.SuppressFinalize(this);
+            _logger.LogTrace("SingleSourceWorkerCoreRequestFulfiller.DisposeAsync: Disposing task scheduler scope...");
             await _taskSchedulerScope.DisposeAsync().ConfigureAwait(false);
+            _logger.LogTrace("SingleSourceWorkerCoreRequestFulfiller.DisposeAsync: Removing event notification handler...");
             await _requestCollection.OnRequestsChanged.RemoveAsync(OnNotifiedRequestsChanged).ConfigureAwait(false);
+            _logger.LogTrace("SingleSourceWorkerCoreRequestFulfiller.DisposeAsync: Waiting background task...");
             try
             {
                 await _backgroundTask.ConfigureAwait(false);
@@ -76,6 +80,7 @@
             catch (OperationCanceledException)
             {
             }
+            _logger.LogTrace("SingleSourceWorkerCoreRequestFulfiller.DisposeAsync: Dispose complete.");
         }
 
         private Task OnNotifiedRequestsChanged(WorkerCoreRequestStatistics statistics, CancellationToken token)
