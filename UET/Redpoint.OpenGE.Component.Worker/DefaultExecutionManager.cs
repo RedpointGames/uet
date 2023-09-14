@@ -39,7 +39,7 @@
             {
                 executionGuid = Guid.NewGuid().ToString();
                 st = Stopwatch.StartNew();
-                _logger.LogTrace($"{executionGuid}: Starting execution of: {request}");
+                _logger.LogTrace($"{executionGuid}: Starting execution of request.");
             }
             try
             {
