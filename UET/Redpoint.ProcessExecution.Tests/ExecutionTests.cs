@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.ProcessExecution.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.ProcessExecution.Enumerable;
     using Redpoint.ProcessExecution.Windows;
     using System.Runtime.Versioning;
     using System.Text;
@@ -382,6 +383,48 @@
             Assert.Equal(0, exitCode);
             var lines = stdout.ToString().Split("\r\n");
             Assert.Contains(lines, x => x.Contains("Redpoint.ProcessExecution.Tests.dll", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public async Task CanReliablyUseProcessExecutionEnumerable()
+        {
+            for (var i = 0; i < 100; i++)
+            {
+                using var cancellationTokenSource = new CancellationTokenSource(5000);
+
+                var services = new ServiceCollection();
+                services.AddLogging();
+                services.AddProcessExecution();
+                var sp = services.BuildServiceProvider();
+
+                var executor = sp.GetRequiredService<IProcessExecutor>();
+
+                var gotStdout = false;
+                var gotExitCode = false;
+
+                await foreach (var entry in executor.ExecuteAsync(new ProcessSpecification
+                {
+                    FilePath = OperatingSystem.IsWindows() ? @"C:\Windows\system32\cmd.exe" : "/bin/bash",
+                    Arguments = OperatingSystem.IsWindows() ? new[] { "/C", "echo", "ok" } : new[] { "-c", "echo ok" },
+                }, cancellationTokenSource.Token))
+                {
+                    switch (entry)
+                    {
+                        case StandardOutputResponse r:
+                            if (r.Data.Trim() == "ok")
+                            {
+                                gotStdout = true;
+                            }
+                            break;
+                        case ExitCodeResponse e:
+                            gotExitCode = e.ExitCode == 0;
+                            break;
+                    }
+                }
+
+                Assert.True(gotStdout, $"Iteration {i + 1} expected to see stdout 'ok'.");
+                Assert.True(gotExitCode, $"Iteration {i + 1} expected to get exit code.");
+            }
         }
     }
 }

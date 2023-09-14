@@ -51,6 +51,7 @@
                 RunDriveMappedProcessCommand.CreateRunDriveMappedProcessCommand(),
                 CreateJunctionCommand.CreateCreateJunctionCommand(),
                 RunRfsCommand.CreateRunRfsCommand(),
+                StressTestProcessCommand.CreateStressTestProcessCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
