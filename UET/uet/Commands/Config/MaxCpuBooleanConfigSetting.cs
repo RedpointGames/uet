@@ -4,11 +4,11 @@
     using System.Threading.Tasks;
     using System.Xml;
 
-    internal sealed class IwyuBooleanConfigSetting : IBooleanConfigSetting
+    internal sealed class MaxCpuBooleanConfigSetting : IBooleanConfigSetting
     {
-        public string Name => "iwyu";
+        public string Name => "maxcpu";
 
-        public string Description => "When enabled, the Unreal Engine build process will build each C++ file individually, without unifying build inputs. The build will take much longer, but it will guarantee that all of the include paths in each file are correct.";
+        public string Description => "When enabled, the Unreal Engine build process will use all CPU cores (regardless of the available memory) and will treat each hyperthread as a CPU (instead of counting physical CPU cores). Expect the performance of background tasks to suffer when Unreal Engine is compiling with this option on. You may also need to increase your paging file size if you see compiler errors relating to available memory.";
 
         private static readonly string _xmlConfigFilePath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -28,11 +28,10 @@
             var document = new XmlDocument();
             document.Load(_xmlConfigFilePath);
 
-            var bUseUnityBuild = document.SelectSingleNode("/Configuration/BuildConfiguration/bUseUnityBuild")?.InnerText;
-            var bUseSharedPCHs = document.SelectSingleNode("/Configuration/BuildConfiguration/bUseSharedPCHs")?.InnerText;
-            var bUsePCHFiles = document.SelectSingleNode("/Configuration/BuildConfiguration/bUsePCHFiles")?.InnerText;
+            var bAllCores = document.SelectSingleNode("/Configuration/BuildConfiguration/bAllCores")?.InnerText;
+            var MemoryPerActionBytes = document.SelectSingleNode("/Configuration/ParallelExecutor/MemoryPerActionBytes")?.InnerText;
 
-            return Task.FromResult(bUseUnityBuild == "false" && bUseSharedPCHs == "false" && bUsePCHFiles == "false");
+            return Task.FromResult(bAllCores == "true" && MemoryPerActionBytes == "0");
         }
 
         public Task SetValueAsync(bool value, CancellationToken cancellationToken)
@@ -64,15 +63,15 @@
             }
 
             {
-                var element = buildConfiguration.SelectSingleNode("/bUseUnityBuild");
+                var element = buildConfiguration.SelectSingleNode("/bAllCores");
                 if (value)
                 {
                     if (element == null)
                     {
-                        element = document.CreateElement("bUseUnityBuild", _ns);
+                        element = document.CreateElement("bAllCores", _ns);
                         buildConfiguration.AppendChild(element);
                     }
-                    element.InnerText = "false";
+                    element.InnerText = "true";
                 }
                 else if (element != null)
                 {
@@ -80,33 +79,23 @@
                 }
             }
 
+            var parallelExecutor = configuration.SelectSingleNode("/ParallelExecutor");
+            if (parallelExecutor == null)
             {
-                var element = buildConfiguration.SelectSingleNode("/bUseSharedPCHs");
-                if (value)
-                {
-                    if (element == null)
-                    {
-                        element = document.CreateElement("bUseSharedPCHs", _ns);
-                        buildConfiguration.AppendChild(element);
-                    }
-                    element.InnerText = "false";
-                }
-                else if (element != null)
-                {
-                    element.ParentNode!.RemoveChild(element);
-                }
+                parallelExecutor = document.CreateElement("ParallelExecutor", _ns);
+                configuration.AppendChild(parallelExecutor);
             }
 
             {
-                var element = buildConfiguration.SelectSingleNode("/bUsePCHFiles");
+                var element = parallelExecutor.SelectSingleNode("/MemoryPerActionBytes");
                 if (value)
                 {
                     if (element == null)
                     {
-                        element = document.CreateElement("bUsePCHFiles", _ns);
-                        buildConfiguration.AppendChild(element);
+                        element = document.CreateElement("MemoryPerActionBytes", _ns);
+                        parallelExecutor.AppendChild(element);
                     }
-                    element.InnerText = "false";
+                    element.InnerText = "0";
                 }
                 else if (element != null)
                 {

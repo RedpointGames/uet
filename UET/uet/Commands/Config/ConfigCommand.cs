@@ -44,6 +44,7 @@
             command.AddServicedOptionsHandler<ConfigCommandInstance, Options>(extraParsingServices: services =>
             {
                 services.AddSingleton<IBooleanConfigSetting, IwyuBooleanConfigSetting>();
+                services.AddSingleton<IBooleanConfigSetting, MaxCpuBooleanConfigSetting>();
                 services.AddSingleton(sp => sp.GetServices<IBooleanConfigSetting>().ToArray());
             });
             return command;
