@@ -48,7 +48,8 @@
             PathSpec pathSpec,
             bool shipping,
             bool strictIncludes,
-            string[] extraPlatforms);
+            string[] extraPlatforms,
+            string? projectStagingDirectory);
 
         Task<BuildSpecification> PluginPathSpecToBuildSpecAsync(
             BuildEngineSpecification engineSpec,

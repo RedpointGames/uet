@@ -671,7 +671,8 @@
             PathSpec pathSpec,
             bool shipping,
             bool strictIncludes,
-            string[] extraPlatforms)
+            string[] extraPlatforms,
+            string? alternateStagingDirectory)
         {
             // Use heuristics to guess the targets for this build.
             string editorTarget;
@@ -732,7 +733,7 @@
                     { $"StrictIncludes", strictIncludes ? "true" : "false" },
 
                     // Stage options
-                    { $"StageDirectory", $"__REPOSITORY_ROOT__/Saved/StagedBuilds" },
+                    { $"StageDirectory", string.IsNullOrWhiteSpace(alternateStagingDirectory) ? $"__REPOSITORY_ROOT__/Saved/StagedBuilds" : alternateStagingDirectory },
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = pathSpec.DirectoryPath,
