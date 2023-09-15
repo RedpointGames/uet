@@ -554,7 +554,7 @@
                 UETPath = _selfLocation.GetUETLocalLocation(),
                 ProjectFolderName = distribution.FolderName,
                 ArtifactExportPath = Environment.CurrentDirectory,
-                MobileProvisions = Array.Empty<BuildConfigMobileProvision>(),
+                MobileProvisions = distribution.MobileProvisions,
             };
         }
 
