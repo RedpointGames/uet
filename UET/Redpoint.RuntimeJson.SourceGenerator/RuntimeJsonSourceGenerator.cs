@@ -18,8 +18,10 @@
                 return;
             }
 
-            var sourceBuilder = new StringBuilder();
-            sourceBuilder.Append($@"using System;
+            foreach (var entry in receiver.Entries)
+            {
+                var sourceBuilder = new StringBuilder();
+                sourceBuilder.Append($@"using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
@@ -27,8 +29,7 @@ using Redpoint.RuntimeJson;
 
 #nullable enable
 ");
-            foreach (var entry in receiver.Entries)
-            {
+
                 sourceBuilder.Append($@"
 namespace {entry.Namespace}
 {{
@@ -39,7 +40,7 @@ namespace {entry.Namespace}
                 foreach (var type in entry.SerializableClassNames)
                 {
                     var typeSafe = type.Replace('.', '_');
-                    sourceBuilder.Append($@"_instance{typeSafe} = new {typeSafe}(context);");
+                    sourceBuilder.AppendLine($@"            _instance{typeSafe} = new RuntimeJson_{typeSafe}(context);");
                 }
                 sourceBuilder.Append($@"
         }}");
@@ -48,15 +49,15 @@ namespace {entry.Namespace}
                     var typeSafe = type.Replace('.', '_');
                     var typeLast = type.Split('.').Last();
                     sourceBuilder.Append($@"
-        private {typeSafe} _instance{typeSafe};
+        private RuntimeJson_{typeSafe} _instance{typeSafe};
 
         public IRuntimeJson<{type}> {typeLast} => _instance{typeSafe};
 
-        private class {typeSafe} : IRuntimeJson<{type}>
+        private class RuntimeJson_{typeSafe} : IRuntimeJson<{type}>
         {{
             private {entry.JsonSerializerContextType} _serializer;
 
-            public {typeSafe}({entry.JsonSerializerContextType} serializer)
+            public RuntimeJson_{typeSafe}({entry.JsonSerializerContextType} serializer)
             {{
                 _serializer = serializer;
             }}
@@ -82,8 +83,9 @@ namespace {entry.Namespace}
     }}
 }}
 ");
+
+                context.AddSource($"{entry.Class}.RuntimeJsonProviders.g.cs", sourceBuilder.ToString());
             }
-            context.AddSource("RuntimeJsonProviders.g.cs", sourceBuilder.ToString());
         }
 
         public void Initialize(GeneratorInitializationContext context)

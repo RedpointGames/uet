@@ -7,6 +7,7 @@
     using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Downstream;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Gauntlet;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Project.Automation;
+    using Redpoint.Uet.BuildPipeline.Providers.Test.Project.Commandlet;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Project.Custom;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Project.Gauntlet;
     using System.Text.Json.Serialization;
@@ -20,6 +21,7 @@
     [JsonSerializable(typeof(BuildConfigProjectTestAutomation))]
     [JsonSerializable(typeof(BuildConfigProjectTestCustom))]
     [JsonSerializable(typeof(BuildConfigProjectTestGauntlet))]
+    [JsonSerializable(typeof(BuildConfigProjectTestCommandlet))]
     internal sealed partial class TestProviderRuntimeJson
     {
     }
