@@ -66,7 +66,16 @@ namespace Microsoft.Extensions.Logging.Console
 
         public bool IsEnabled(LogLevel logLevel)
         {
-            return logLevel != LogLevel.None;
+            if (Options.IncludeTracing)
+            {
+                return logLevel != LogLevel.None;
+            }
+            else
+            {
+                return logLevel != LogLevel.None &&
+                    logLevel != LogLevel.Debug &&
+                    logLevel != LogLevel.Trace;
+            }
         }
 
         public IDisposable BeginScope<TState>(TState state) where TState : notnull => ScopeProvider?.Push(state) ?? NullScope.Instance;

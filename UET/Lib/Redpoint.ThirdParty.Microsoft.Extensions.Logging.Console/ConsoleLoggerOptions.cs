@@ -21,6 +21,11 @@ namespace Microsoft.Extensions.Logging.Console
         /// </summary>
         public bool ForceColors { get; set; }
 
+        /// <summary>
+        /// Whether to emit tracing/debug logs to the console.
+        /// </summary>
+        public bool IncludeTracing { get; set; }
+
 #pragma warning disable CS0618
         private ConsoleLoggerFormat _format = ConsoleLoggerFormat.Default;
         /// <summary>

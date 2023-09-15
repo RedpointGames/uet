@@ -7,6 +7,7 @@
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.BuildServer;
     using Redpoint.Uet.BuildPipeline.Executors.GitLab;
+    using Redpoint.Uet.Core;
     using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.Workspace;
     using System.CommandLine;
@@ -15,6 +16,7 @@
     using System.Text.Json;
     using System.Threading.Tasks;
     using UET.Commands.EngineSpec;
+    using UET.Commands.Internal.Runback;
 
     internal sealed class CIBuildCommand
     {
@@ -83,6 +85,24 @@
                 {
                     _logger.LogError("The UET_BUILD_JSON environment variable does not contain a valid build job description.");
                     return 1;
+                }
+
+                // If we have runbacks enabled, serialize our runback information and emit the ID
+                // to the console.
+                if (Environment.GetEnvironmentVariable("UET_RUNBACKS") == "1")
+                {
+                    var runbackJson = new RunbackJson
+                    {
+                        RunbackId = RunbackGlobalState.RunbackId.ToString(),
+                        BuildJson = buildJson,
+                        EnvironmentVariables = Environment.GetEnvironmentVariables().OfType<KeyValuePair<string, string>>().ToDictionary(k => k.Key, v => v.Value),
+                        WorkingDirectory = Environment.CurrentDirectory,
+                    };
+                    Directory.CreateDirectory(RunbackGlobalState.RunbackDirectoryPath);
+                    await File.WriteAllTextAsync(
+                        RunbackGlobalState.RunbackPath,
+                        JsonSerializer.Serialize(runbackJson, RunbackJsonSerializerContext.Default.RunbackJson)).ConfigureAwait(false);
+                    _logger.LogInformation($"Runback information saved. You can run this job again on this machine outside CI by running: 'uet internal runback {RunbackGlobalState.RunbackId}'.");
                 }
 
                 // Configure the dynamic workspace provider to use workspace virtualisation

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Redpoint.Concurrency;
 using Redpoint.ProcessExecution;
 using Redpoint.Tasks;
 using Redpoint.Uet.Core;
@@ -70,113 +71,115 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
         }
 
         var services = new ServiceCollection();
-        services.AddUETCore();
+        services.AddUETCore(permitRunbackLogging: args.Contains("ci-build", StringComparer.Ordinal));
         services.AddTasks();
         services.AddProcessExecution();
-        var sp = services.BuildServiceProvider();
-        var logger = sp.GetRequiredService<ILogger<Program>>();
-        var processExecutor = sp.GetRequiredService<IProcessExecutor>();
-
-        var versionRegex = new Regex("^[0-9\\.]+$");
-        if (targetVersion != null && targetVersion != "BleedingEdge" && !versionRegex.IsMatch(targetVersion))
+        await using (services.BuildServiceProvider().AsAsyncDisposable(out var sp).ConfigureAwait(false))
         {
-            logger.LogError($"The BuildConfig.json file requested version '{targetVersion}', but this isn't a valid version string.");
-            return 1;
-        }
+            var logger = sp.GetRequiredService<ILogger<Program>>();
+            var processExecutor = sp.GetRequiredService<IProcessExecutor>();
 
-        if (targetVersion != null && (targetVersion != currentVersionAttribute.InformationalVersion || targetVersion == "BleedingEdge"))
-        {
-            if (Debugger.IsAttached)
+            var versionRegex = new Regex("^[0-9\\.]+$");
+            if (targetVersion != null && targetVersion != "BleedingEdge" && !versionRegex.IsMatch(targetVersion))
             {
-                logger.LogWarning($"The BuildConfig.json file requested version {targetVersion}, but we are running under a debugger, so this is being ignored.");
+                logger.LogError($"The BuildConfig.json file requested version '{targetVersion}', but this isn't a valid version string.");
+                return 1;
             }
-            else if (currentVersionAttribute.InformationalVersion.EndsWith("-pre", StringComparison.Ordinal))
+
+            if (targetVersion != null && (targetVersion != currentVersionAttribute.InformationalVersion || targetVersion == "BleedingEdge"))
             {
-                logger.LogWarning($"The BuildConfig.json file requested version {targetVersion}, but we are running a pre-release or development version of UET, so this is being ignored.");
-            }
-            else
-            {
-                if (targetVersion == "BleedingEdge")
+                if (Debugger.IsAttached)
                 {
-                    logger.LogInformation($"The BuildConfig.json file requested the bleeding-edge version of UET, so we need to check what the newest available version is...");
+                    logger.LogWarning($"The BuildConfig.json file requested version {targetVersion}, but we are running under a debugger, so this is being ignored.");
+                }
+                else if (currentVersionAttribute.InformationalVersion.EndsWith("-pre", StringComparison.Ordinal))
+                {
+                    logger.LogWarning($"The BuildConfig.json file requested version {targetVersion}, but we are running a pre-release or development version of UET, so this is being ignored.");
                 }
                 else
                 {
-                    logger.LogInformation($"The BuildConfig.json file requested version {targetVersion}, but we are running {currentVersionAttribute.InformationalVersion}. Obtaining the right version for this build and re-executing the requested command as version {targetVersion}...");
-                }
-                var didInstall = false;
-                var isBleedingEdgeTheSame = false;
-                do
-                {
-                    try
+                    if (targetVersion == "BleedingEdge")
                     {
-                        var upgradeRootCommand = new RootCommand("An unofficial tool for Unreal Engine.");
-                        upgradeRootCommand.AddCommand(UpgradeCommand.CreateUpgradeCommand(new HashSet<Command>()));
-                        var upgradeArgs = new[] { "upgrade", "--version", targetVersion!, "--do-not-set-as-current" };
-                        if (targetVersion == "BleedingEdge")
+                        logger.LogInformation($"The BuildConfig.json file requested the bleeding-edge version of UET, so we need to check what the newest available version is...");
+                    }
+                    else
+                    {
+                        logger.LogInformation($"The BuildConfig.json file requested version {targetVersion}, but we are running {currentVersionAttribute.InformationalVersion}. Obtaining the right version for this build and re-executing the requested command as version {targetVersion}...");
+                    }
+                    var didInstall = false;
+                    var isBleedingEdgeTheSame = false;
+                    do
+                    {
+                        try
                         {
-                            upgradeArgs = new[] { "upgrade", "--do-not-set-as-current" };
+                            var upgradeRootCommand = new RootCommand("An unofficial tool for Unreal Engine.");
+                            upgradeRootCommand.AddCommand(UpgradeCommand.CreateUpgradeCommand(new HashSet<Command>()));
+                            var upgradeArgs = new[] { "upgrade", "--version", targetVersion!, "--do-not-set-as-current" };
+                            if (targetVersion == "BleedingEdge")
+                            {
+                                upgradeArgs = new[] { "upgrade", "--do-not-set-as-current" };
+                            }
+                            var upgradeResult = await upgradeRootCommand.InvokeAsync(upgradeArgs).ConfigureAwait(false);
+                            if (upgradeResult != 0)
+                            {
+                                logger.LogError($"Failed to install the requested UET version {targetVersion}. See above for details.");
+                                return 1;
+                            }
+
+                            didInstall = true;
+                            if (targetVersion == "BleedingEdge")
+                            {
+                                targetVersion = UpgradeCommandImplementation.LastInstalledVersion!;
+                                if (targetVersion == currentVersionAttribute.InformationalVersion)
+                                {
+                                    isBleedingEdgeTheSame = true;
+                                }
+                                else
+                                {
+                                    logger.LogInformation($"The bleeding-edge version of UET is {targetVersion}, but we are running {currentVersionAttribute.InformationalVersion}. Re-executing the requested command as version {targetVersion}...");
+                                }
+                            }
                         }
-                        var upgradeResult = await upgradeRootCommand.InvokeAsync(upgradeArgs).ConfigureAwait(false);
-                        if (upgradeResult != 0)
+                        catch (IOException ex) when (ex.Message.Contains("used by another process", StringComparison.Ordinal))
                         {
-                            logger.LogError($"Failed to install the requested UET version {targetVersion}. See above for details.");
+                            logger.LogWarning($"Another UET instance is downloading {targetVersion}, checking if it is ready in another 2 seconds...");
+                            await Task.Delay(2000).ConfigureAwait(false);
+                            continue;
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, $"Failed to install the requested UET version {targetVersion}. Exception was: {ex.Message}");
                             return 1;
                         }
+                        break;
+                    } while (true);
 
-                        didInstall = true;
-                        if (targetVersion == "BleedingEdge")
+                    if (didInstall && !isBleedingEdgeTheSame)
+                    {
+                        var cts = new CancellationTokenSource();
+                        Console.CancelKeyPress += (sender, args) =>
                         {
-                            targetVersion = UpgradeCommandImplementation.LastInstalledVersion!;
-                            if (targetVersion == currentVersionAttribute.InformationalVersion)
+                            cts.Cancel();
+                        };
+                        // @note: We use Environment.Exit so fire-and-forget tasks that contain stallable code won't prevent the process from exiting.
+                        var nestedExitCode = await processExecutor.ExecuteAsync(
+                            new ProcessSpecification
                             {
-                                isBleedingEdgeTheSame = true;
-                            }
-                            else
-                            {
-                                logger.LogInformation($"The bleeding-edge version of UET is {targetVersion}, but we are running {currentVersionAttribute.InformationalVersion}. Re-executing the requested command as version {targetVersion}...");
-                            }
-                        }
-                    }
-                    catch (IOException ex) when (ex.Message.Contains("used by another process", StringComparison.Ordinal))
-                    {
-                        logger.LogWarning($"Another UET instance is downloading {targetVersion}, checking if it is ready in another 2 seconds...");
-                        await Task.Delay(2000).ConfigureAwait(false);
-                        continue;
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, $"Failed to install the requested UET version {targetVersion}. Exception was: {ex.Message}");
-                        return 1;
-                    }
-                    break;
-                } while (true);
-
-                if (didInstall && !isBleedingEdgeTheSame)
-                {
-                    var cts = new CancellationTokenSource();
-                    Console.CancelKeyPress += (sender, args) =>
-                    {
-                        cts.Cancel();
-                    };
-                    // @note: We use Environment.Exit so fire-and-forget tasks that contain stallable code won't prevent the process from exiting.
-                    var nestedExitCode = await processExecutor.ExecuteAsync(
-                        new ProcessSpecification
-                        {
-                            FilePath = UpgradeCommandImplementation.GetAssemblyPathForVersion(targetVersion),
-                            Arguments = args,
-                            WorkingDirectory = Environment.CurrentDirectory,
-                            EnvironmentVariables = new Dictionary<string, string>
-                            {
+                                FilePath = UpgradeCommandImplementation.GetAssemblyPathForVersion(targetVersion),
+                                Arguments = args,
+                                WorkingDirectory = Environment.CurrentDirectory,
+                                EnvironmentVariables = new Dictionary<string, string>
+                                {
                                 { "UET_VERSION_CHECK_COMPLETE", "true" }
-                            }
-                        },
-                        CaptureSpecification.Passthrough,
-                        cts.Token).ConfigureAwait(false);
-                    await Console.Out.FlushAsync().ConfigureAwait(false);
-                    await Console.Error.FlushAsync().ConfigureAwait(false);
-                    Environment.Exit(nestedExitCode);
-                    throw new BadImageFormatException();
+                                }
+                            },
+                            CaptureSpecification.Passthrough,
+                            cts.Token).ConfigureAwait(false);
+                        await Console.Out.FlushAsync().ConfigureAwait(false);
+                        await Console.Error.FlushAsync().ConfigureAwait(false);
+                        Environment.Exit(nestedExitCode);
+                        throw new BadImageFormatException();
+                    }
                 }
             }
         }
@@ -196,25 +199,27 @@ if (OperatingSystem.IsMacOS())
     if (!Directory.Exists("/Library/Developer/CommandLineTools"))
     {
         var macosXcodeSelectServices = new ServiceCollection();
-        macosXcodeSelectServices.AddUETCore();
+        macosXcodeSelectServices.AddUETCore(permitRunbackLogging: args.Contains("ci-build", StringComparer.Ordinal));
         macosXcodeSelectServices.AddProcessExecution();
-        var macosXcodeSelectProvider = macosXcodeSelectServices.BuildServiceProvider();
-        var macosXcodeProcessExecution = macosXcodeSelectProvider.GetRequiredService<IProcessExecutor>();
-        var macosXcodeSelectLogger = macosXcodeSelectProvider.GetRequiredService<ILogger<Program>>();
+        await using (macosXcodeSelectServices.BuildServiceProvider().AsAsyncDisposable(out var macosXcodeSelectProvider).ConfigureAwait(false))
+        {
+            var macosXcodeProcessExecution = macosXcodeSelectProvider.GetRequiredService<IProcessExecutor>();
+            var macosXcodeSelectLogger = macosXcodeSelectProvider.GetRequiredService<ILogger<Program>>();
 
-        macosXcodeSelectLogger.LogInformation("Installing macOS Command Line Tools...");
-        await macosXcodeProcessExecution.ExecuteAsync(
-            new ProcessSpecification
-            {
-                FilePath = "/usr/bin/sudo",
-                Arguments = new[]
+            macosXcodeSelectLogger.LogInformation("Installing macOS Command Line Tools...");
+            await macosXcodeProcessExecution.ExecuteAsync(
+                new ProcessSpecification
                 {
-                    "xcode-select",
-                    "--install"
-                }
-            },
-            CaptureSpecification.Passthrough,
-            CancellationToken.None).ConfigureAwait(false);
+                    FilePath = "/usr/bin/sudo",
+                    Arguments = new[]
+                    {
+                        "xcode-select",
+                        "--install"
+                    }
+                },
+                CaptureSpecification.Passthrough,
+                CancellationToken.None).ConfigureAwait(false);
+        }
     }
 
     Environment.SetEnvironmentVariable("DEVELOPER_DIR", "/Library/Developer/CommandLineTools");

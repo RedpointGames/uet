@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.IO\Redpoint.IO.csproj" />
+    <ProjectReference Include="..\Redpoint.Logging.File\Redpoint.Logging.File.csproj" />
     <ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.Configuration\Redpoint.Uet.Configuration.csproj" />
   </ItemGroup>

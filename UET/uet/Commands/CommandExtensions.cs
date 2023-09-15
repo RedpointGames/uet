@@ -38,6 +38,7 @@
     using Redpoint.OpenGE.Agent;
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
+    using Redpoint.Concurrency;
 
     internal static class CommandExtensions
     {
@@ -51,7 +52,7 @@
             return _trace;
         }
 
-        private static void AddGeneralServices(IServiceCollection services, LogLevel minimumLogLevel)
+        private static void AddGeneralServices(IServiceCollection services, LogLevel minimumLogLevel, bool permitRunbackLogging)
         {
             services.AddAutoDiscovery();
             services.AddPathResolution();
@@ -82,7 +83,7 @@
             services.AddUETBuildPipelineProvidersTest();
             services.AddUETBuildPipelineProvidersDeployment();
             services.AddUETWorkspace();
-            services.AddUETCore(minimumLogLevel: minimumLogLevel);
+            services.AddUETCore(minimumLogLevel: minimumLogLevel, permitRunbackLogging: permitRunbackLogging);
             services.AddCredentialDiscovery();
             services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
             services.AddSingleton<IPluginVersioning, DefaultPluginVersioning>();
@@ -95,13 +96,13 @@
         {
             // We need a service provider for distribution option parsing, omitting services that are post-parsing specific.
             var parsingServices = new ServiceCollection();
-            AddGeneralServices(parsingServices, LogLevel.Information);
+            AddGeneralServices(parsingServices, LogLevel.Information, false);
             parsingServices.AddTransient<TOptions, TOptions>();
             if (extraParsingServices != null)
             {
                 extraParsingServices(parsingServices);
             }
-            var minimalServiceProvider = parsingServices.BuildServiceProvider();
+            using var minimalServiceProvider = parsingServices.BuildServiceProvider();
 
             // Get the options instance from the minimal service provider.
             var options = minimalServiceProvider.GetRequiredService<TOptions>();
@@ -160,7 +161,10 @@
                 var services = new ServiceCollection();
                 services.AddSingleton(sp => context);
                 services.AddSingleton(options.GetType(), sp => options);
-                AddGeneralServices(services, minimumLogLevel: context.ParseResult.GetValueForOption(GetTraceOption()) ? LogLevel.Trace : LogLevel.Information);
+                AddGeneralServices(
+                    services,
+                    minimumLogLevel: context.ParseResult.GetValueForOption(GetTraceOption()) ? LogLevel.Trace : LogLevel.Information,
+                    permitRunbackLogging: string.Equals(context.ParseResult.CommandResult?.Command?.Name, "ci-build", StringComparison.Ordinal));
                 services.AddSingleton<TCommand>();
                 if (context.ParseResult.GetValueForOption(GetTraceOption()))
                 {
@@ -186,61 +190,63 @@
                     // Run commands with an automation logger shim if we don't already have one.
                     services.AddSingleton<IApplicationLifecycle>(sp => sp.GetRequiredService<IAutomationLogForwarder>());
                 }
-                var sp = services.BuildServiceProvider();
-                var instance = sp.GetRequiredService<TCommand>();
-
-                // Run the command with all the lifecycles started and stopped around it.
-                var logger = sp.GetRequiredService<ILogger<TCommand>>();
-                var lifecycles = sp.GetServices<IApplicationLifecycle>();
-                var startedLifecycles = new List<IApplicationLifecycle>();
-                try
+                await using (services.BuildServiceProvider().AsAsyncDisposable(out var sp).ConfigureAwait(false))
                 {
-                    try
-                    {
-                        foreach (var lifecycle in lifecycles)
-                        {
-                            await lifecycle.StartAsync(context.GetCancellationToken()).ConfigureAwait(false);
-                            startedLifecycles.Add(lifecycle);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, $"Uncaught exception during application lifecycle startup: {ex}");
-                        throw;
-                    }
+                    var instance = sp.GetRequiredService<TCommand>();
 
+                    // Run the command with all the lifecycles started and stopped around it.
+                    var logger = sp.GetRequiredService<ILogger<TCommand>>();
+                    var lifecycles = sp.GetServices<IApplicationLifecycle>();
+                    var startedLifecycles = new List<IApplicationLifecycle>();
                     try
-                    {
-                        context.ExitCode = await instance.ExecuteAsync(context).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, $"Uncaught exception during command execution: {ex}");
-                        throw;
-                    }
-                }
-                finally
-                {
-                    foreach (var lifecycle in startedLifecycles)
                     {
                         try
                         {
-                            await lifecycle.StopAsync().ConfigureAwait(false);
+                            foreach (var lifecycle in lifecycles)
+                            {
+                                await lifecycle.StartAsync(context.GetCancellationToken()).ConfigureAwait(false);
+                                startedLifecycles.Add(lifecycle);
+                            }
                         }
                         catch (Exception ex)
                         {
-                            logger.LogError(ex, $"Uncaught exception during application lifecycle shutdown: {ex}");
+                            logger.LogError(ex, $"Uncaught exception during application lifecycle startup: {ex}");
+                            throw;
+                        }
+
+                        try
+                        {
+                            context.ExitCode = await instance.ExecuteAsync(context).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, $"Uncaught exception during command execution: {ex}");
+                            throw;
                         }
                     }
-                }
+                    finally
+                    {
+                        foreach (var lifecycle in startedLifecycles)
+                        {
+                            try
+                            {
+                                await lifecycle.StopAsync().ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, $"Uncaught exception during application lifecycle shutdown: {ex}");
+                            }
+                        }
+                    }
 
-                // BuildGraph misses the last line of a command's output if it does
-                // not have a final newline, but the .NET console logger does not do
-                // this by default. Ensure we see all the output when we're running
-                // under BuildGraph.
-                if (Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BUILDGRAPH") == "1")
-                {
-                    Console.WriteLine();
+                    // BuildGraph misses the last line of a command's output if it does
+                    // not have a final newline, but the .NET console logger does not do
+                    // this by default. Ensure we see all the output when we're running
+                    // under BuildGraph.
+                    if (Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BUILDGRAPH") == "1")
+                    {
+                        Console.WriteLine();
+                    }
                 }
             });
         }
