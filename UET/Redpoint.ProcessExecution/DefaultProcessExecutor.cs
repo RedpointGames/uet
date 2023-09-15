@@ -229,12 +229,12 @@
                             {
                                 if (enableTracing)
                                 {
-                                    _logger.LogTrace($"{executionId}: Performing tree process kill as process has not exited, but cancellation token is cancelled and this process is 'cl.exe'...");
+                                    _logger.LogTrace($"{executionId}: Performing tree process kill as process has not exited, but cancellation token is cancelled...");
                                 }
                                 process.Kill(true);
                                 if (enableTracing)
                                 {
-                                    _logger.LogTrace($"{executionId}: Performed tree process kill as process has not exited, but cancellation token is cancelled and this process is 'cl.exe'.");
+                                    _logger.LogTrace($"{executionId}: Performed tree process kill as process has not exited, but cancellation token is cancelled.");
                                 }
                             }
                         }
