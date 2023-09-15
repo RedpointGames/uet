@@ -38,6 +38,7 @@
     using Redpoint.OpenGE.Agent;
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
+    using Redpoint.Concurrency;
 
     internal static class CommandExtensions
     {
@@ -101,7 +102,7 @@
             {
                 extraParsingServices(parsingServices);
             }
-            var minimalServiceProvider = parsingServices.BuildServiceProvider();
+            using var minimalServiceProvider = parsingServices.BuildServiceProvider();
 
             // Get the options instance from the minimal service provider.
             var options = minimalServiceProvider.GetRequiredService<TOptions>();
@@ -189,61 +190,63 @@
                     // Run commands with an automation logger shim if we don't already have one.
                     services.AddSingleton<IApplicationLifecycle>(sp => sp.GetRequiredService<IAutomationLogForwarder>());
                 }
-                var sp = services.BuildServiceProvider();
-                var instance = sp.GetRequiredService<TCommand>();
-
-                // Run the command with all the lifecycles started and stopped around it.
-                var logger = sp.GetRequiredService<ILogger<TCommand>>();
-                var lifecycles = sp.GetServices<IApplicationLifecycle>();
-                var startedLifecycles = new List<IApplicationLifecycle>();
-                try
+                await using (services.BuildServiceProvider().AsAsyncDisposable(out var sp).ConfigureAwait(false))
                 {
-                    try
-                    {
-                        foreach (var lifecycle in lifecycles)
-                        {
-                            await lifecycle.StartAsync(context.GetCancellationToken()).ConfigureAwait(false);
-                            startedLifecycles.Add(lifecycle);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, $"Uncaught exception during application lifecycle startup: {ex}");
-                        throw;
-                    }
+                    var instance = sp.GetRequiredService<TCommand>();
 
+                    // Run the command with all the lifecycles started and stopped around it.
+                    var logger = sp.GetRequiredService<ILogger<TCommand>>();
+                    var lifecycles = sp.GetServices<IApplicationLifecycle>();
+                    var startedLifecycles = new List<IApplicationLifecycle>();
                     try
-                    {
-                        context.ExitCode = await instance.ExecuteAsync(context).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, $"Uncaught exception during command execution: {ex}");
-                        throw;
-                    }
-                }
-                finally
-                {
-                    foreach (var lifecycle in startedLifecycles)
                     {
                         try
                         {
-                            await lifecycle.StopAsync().ConfigureAwait(false);
+                            foreach (var lifecycle in lifecycles)
+                            {
+                                await lifecycle.StartAsync(context.GetCancellationToken()).ConfigureAwait(false);
+                                startedLifecycles.Add(lifecycle);
+                            }
                         }
                         catch (Exception ex)
                         {
-                            logger.LogError(ex, $"Uncaught exception during application lifecycle shutdown: {ex}");
+                            logger.LogError(ex, $"Uncaught exception during application lifecycle startup: {ex}");
+                            throw;
+                        }
+
+                        try
+                        {
+                            context.ExitCode = await instance.ExecuteAsync(context).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, $"Uncaught exception during command execution: {ex}");
+                            throw;
                         }
                     }
-                }
+                    finally
+                    {
+                        foreach (var lifecycle in startedLifecycles)
+                        {
+                            try
+                            {
+                                await lifecycle.StopAsync().ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, $"Uncaught exception during application lifecycle shutdown: {ex}");
+                            }
+                        }
+                    }
 
-                // BuildGraph misses the last line of a command's output if it does
-                // not have a final newline, but the .NET console logger does not do
-                // this by default. Ensure we see all the output when we're running
-                // under BuildGraph.
-                if (Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BUILDGRAPH") == "1")
-                {
-                    Console.WriteLine();
+                    // BuildGraph misses the last line of a command's output if it does
+                    // not have a final newline, but the .NET console logger does not do
+                    // this by default. Ensure we see all the output when we're running
+                    // under BuildGraph.
+                    if (Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BUILDGRAPH") == "1")
+                    {
+                        Console.WriteLine();
+                    }
                 }
             });
         }

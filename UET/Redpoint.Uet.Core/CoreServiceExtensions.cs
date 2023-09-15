@@ -3,8 +3,8 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.Logging.SingleLine;
+    using Redpoint.Logging.File;
     using Redpoint.Uet.Core.Permissions;
-    using Serilog;
     using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
 
@@ -41,11 +41,7 @@
                             options.IncludeTracing = minimumLogLevel == LogLevel.Trace;
                         });
                         Directory.CreateDirectory(RunbackGlobalState.RunbackDirectoryPath);
-                        var logger = new LoggerConfiguration()
-                            .MinimumLevel.Verbose()
-                            .WriteTo.File(RunbackGlobalState.RunbackLogPath, formatProvider: CultureInfo.InvariantCulture)
-                            .CreateLogger();
-                        builder.AddSerilog(logger, dispose: true);
+                        builder.AddFile(new FileStream(RunbackGlobalState.RunbackLogPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read | FileShare.Delete));
                     }
                     else
                     {
