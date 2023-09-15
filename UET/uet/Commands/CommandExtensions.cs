@@ -51,7 +51,7 @@
             return _trace;
         }
 
-        private static void AddGeneralServices(IServiceCollection services, LogLevel minimumLogLevel)
+        private static void AddGeneralServices(IServiceCollection services, LogLevel minimumLogLevel, bool permitRunbackLogging)
         {
             services.AddAutoDiscovery();
             services.AddPathResolution();
@@ -82,7 +82,7 @@
             services.AddUETBuildPipelineProvidersTest();
             services.AddUETBuildPipelineProvidersDeployment();
             services.AddUETWorkspace();
-            services.AddUETCore(minimumLogLevel: minimumLogLevel);
+            services.AddUETCore(minimumLogLevel: minimumLogLevel, permitRunbackLogging: permitRunbackLogging);
             services.AddCredentialDiscovery();
             services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
             services.AddSingleton<IPluginVersioning, DefaultPluginVersioning>();
@@ -95,7 +95,7 @@
         {
             // We need a service provider for distribution option parsing, omitting services that are post-parsing specific.
             var parsingServices = new ServiceCollection();
-            AddGeneralServices(parsingServices, LogLevel.Information);
+            AddGeneralServices(parsingServices, LogLevel.Information, false);
             parsingServices.AddTransient<TOptions, TOptions>();
             if (extraParsingServices != null)
             {
@@ -160,7 +160,10 @@
                 var services = new ServiceCollection();
                 services.AddSingleton(sp => context);
                 services.AddSingleton(options.GetType(), sp => options);
-                AddGeneralServices(services, minimumLogLevel: context.ParseResult.GetValueForOption(GetTraceOption()) ? LogLevel.Trace : LogLevel.Information);
+                AddGeneralServices(
+                    services,
+                    minimumLogLevel: context.ParseResult.GetValueForOption(GetTraceOption()) ? LogLevel.Trace : LogLevel.Information,
+                    permitRunbackLogging: string.Equals(context.ParseResult.CommandResult?.Command?.Name, "ci-build", StringComparison.Ordinal));
                 services.AddSingleton<TCommand>();
                 if (context.ParseResult.GetValueForOption(GetTraceOption()))
                 {

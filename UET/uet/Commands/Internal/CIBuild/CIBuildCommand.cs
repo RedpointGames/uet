@@ -7,6 +7,7 @@
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.BuildServer;
     using Redpoint.Uet.BuildPipeline.Executors.GitLab;
+    using Redpoint.Uet.Core;
     using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.Workspace;
     using System.CommandLine;
@@ -90,33 +91,18 @@
                 // to the console.
                 if (Environment.GetEnvironmentVariable("UET_RUNBACKS") == "1")
                 {
-                    var runbackId = Guid.NewGuid().ToString();
-                    var runbackPath = true switch
-                    {
-                        var v when v == OperatingSystem.IsWindows() => Path.Combine(
-                            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                            "UET",
-                            "Runbacks",
-                            $"{runbackId}.json"),
-                        var v when v == OperatingSystem.IsMacOS() => Path.Combine(
-                            "/Users/Shared",
-                            "UET",
-                            "Runbacks",
-                            $"{runbackId}.json"),
-                        _ => throw new PlatformNotSupportedException("This platform is not supported for runbacks.")
-                    };
                     var runbackJson = new RunbackJson
                     {
-                        RunbackId = runbackId,
+                        RunbackId = RunbackGlobalState.RunbackId.ToString(),
                         BuildJson = buildJson,
                         EnvironmentVariables = Environment.GetEnvironmentVariables().OfType<KeyValuePair<string, string>>().ToDictionary(k => k.Key, v => v.Value),
                         WorkingDirectory = Environment.CurrentDirectory,
                     };
-                    Directory.CreateDirectory(Path.GetDirectoryName(runbackPath)!);
+                    Directory.CreateDirectory(RunbackGlobalState.RunbackDirectoryPath);
                     await File.WriteAllTextAsync(
-                        runbackPath,
+                        RunbackGlobalState.RunbackPath,
                         JsonSerializer.Serialize(runbackJson, RunbackJsonSerializerContext.Default.RunbackJson)).ConfigureAwait(false);
-                    _logger.LogInformation($"Runback information saved. You can run this job again on this machine outside CI by running: 'uet internal runback {runbackId}'.");
+                    _logger.LogInformation($"Runback information saved. You can run this job again on this machine outside CI by running: 'uet internal runback {RunbackGlobalState.RunbackId}'.");
                 }
 
                 // Configure the dynamic workspace provider to use workspace virtualisation

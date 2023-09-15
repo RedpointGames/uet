@@ -70,7 +70,7 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
         }
 
         var services = new ServiceCollection();
-        services.AddUETCore();
+        services.AddUETCore(permitRunbackLogging: args.Contains("ci-build", StringComparer.Ordinal));
         services.AddTasks();
         services.AddProcessExecution();
         var sp = services.BuildServiceProvider();
@@ -196,7 +196,7 @@ if (OperatingSystem.IsMacOS())
     if (!Directory.Exists("/Library/Developer/CommandLineTools"))
     {
         var macosXcodeSelectServices = new ServiceCollection();
-        macosXcodeSelectServices.AddUETCore();
+        macosXcodeSelectServices.AddUETCore(permitRunbackLogging: args.Contains("ci-build", StringComparer.Ordinal));
         macosXcodeSelectServices.AddProcessExecution();
         var macosXcodeSelectProvider = macosXcodeSelectServices.BuildServiceProvider();
         var macosXcodeProcessExecution = macosXcodeSelectProvider.GetRequiredService<IProcessExecutor>();
