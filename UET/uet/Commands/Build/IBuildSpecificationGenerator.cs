@@ -18,7 +18,8 @@
             bool executeTests,
             bool executeDeployment,
             bool strictIncludes,
-            bool localExecutor);
+            bool localExecutor,
+            string? alternateStagingDirectory);
 
         Task<BuildSpecification> BuildConfigPluginToBuildSpecAsync(
             BuildEngineSpecification engineSpec,

@@ -490,7 +490,8 @@
             bool executeTests,
             bool executeDeployment,
             bool strictIncludes,
-            bool localExecutor)
+            bool localExecutor,
+            string? alternateStagingDirectory)
         {
             // Determine build matrix.
             var editorTarget = distribution.Build.Editor?.Target ?? "UnrealEditor";
@@ -547,7 +548,7 @@
                     { $"StrictIncludes", strictIncludes ? "true" : "false" },
 
                     // Stage options
-                    { $"StageDirectory", $"__REPOSITORY_ROOT__/{distribution.FolderName}/Saved/StagedBuilds" },
+                    { $"StageDirectory", string.IsNullOrWhiteSpace(alternateStagingDirectory) ? $"__REPOSITORY_ROOT__/{distribution.FolderName}/Saved/StagedBuilds" : alternateStagingDirectory.Replace("__REPOSITORY_ROOT__", $"__REPOSITORY_ROOT__/{distribution.FolderName}", StringComparison.Ordinal) },
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = repositoryRoot,

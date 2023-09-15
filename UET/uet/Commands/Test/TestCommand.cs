@@ -223,7 +223,8 @@
                                 executeTests: true,
                                 executeDeployment: false,
                                 strictIncludes: false,
-                                localExecutor: true).ConfigureAwait(false);
+                                localExecutor: true,
+                                alternateStagingDirectory: null).ConfigureAwait(false);
                             break;
                         case PathSpecType.UPlugin:
                             var buildConfigPlugin = new BuildConfigPlugin
