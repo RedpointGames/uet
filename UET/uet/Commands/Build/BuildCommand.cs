@@ -36,6 +36,8 @@
             public Option<bool> Shipping;
             public Option<string[]> Platform;
 
+            public Option<string> ProjectStagingDirectory;
+
             public Option<string> PluginPackage;
             public Option<string?> PluginVersionName;
             public Option<long?> PluginVersionNumber;
@@ -137,6 +139,11 @@
                     "--platform",
                     description: "Add this platform to the build. You can pass this option multiple times to target many platforms. The host platform is always built.");
                 Platform.ArgumentGroupName = uprojectpluginOptions;
+
+                ProjectStagingDirectory = new Option<string>(
+                    "--project-staging-directory",
+                    description: "When building a .uproject file, overrides the path that project builds are staged to. The default is __REPOSITORY_ROOT__/Saved/StagedBuilds which places builds underneath the 'Saved/StagedBuilds' folder in the project. You can use absolute paths here and you can use __REPOSITORY_ROOT__ to refer to the project folder.");
+                ProjectStagingDirectory.ArgumentGroupName = uprojectpluginOptions;
 
                 PluginPackage = new Option<string>(
                     "--plugin-package",
@@ -273,6 +280,7 @@
                 var strictIncludes = context.ParseResult.GetValueForOption(_options.StrictIncludes);
                 var storageVirtualisation = context.ParseResult.GetValueForOption(_options.StorageVirtualisation);
                 var platforms = context.ParseResult.GetValueForOption(_options.Platform);
+                var projectStagingDirectory = context.ParseResult.GetValueForOption(_options.ProjectStagingDirectory);
                 var pluginPackage = context.ParseResult.GetValueForOption(_options.PluginPackage);
                 var pluginVersionName = context.ParseResult.GetValueForOption(_options.PluginVersionName);
                 var pluginVersionNumber = context.ParseResult.GetValueForOption(_options.PluginVersionNumber);
@@ -514,7 +522,8 @@
                                 path,
                                 shipping,
                                 strictIncludes,
-                                platforms ?? Array.Empty<string>());
+                                platforms ?? Array.Empty<string>(),
+                                projectStagingDirectory);
                             break;
                         case PathSpecType.UPlugin:
                             buildSpec = await _buildSpecificationGenerator.PluginPathSpecToBuildSpecAsync(
