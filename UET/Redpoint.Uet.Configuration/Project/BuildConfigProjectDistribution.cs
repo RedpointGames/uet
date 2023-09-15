@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.Configuration.Project
 {
     using Redpoint.Uet.Configuration.Dynamic;
+    using Redpoint.Uet.Configuration.Engine;
     using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
@@ -53,5 +54,12 @@
         [JsonPropertyName("Deployments"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public BuildConfigDynamic<BuildConfigProjectDistribution, IDeploymentProvider>[]? Deployments { get; set; }
+
+        /// <summary>
+        /// A list of mobile provisions to install to the local machine before building this project.
+        /// </summary>
+        [JsonPropertyName("MobileProvisions")]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        public BuildConfigMobileProvision[] MobileProvisions { get; set; } = Array.Empty<BuildConfigMobileProvision>();
     }
 }
