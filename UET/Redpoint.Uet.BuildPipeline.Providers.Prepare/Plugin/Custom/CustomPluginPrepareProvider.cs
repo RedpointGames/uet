@@ -70,6 +70,7 @@
                                             {
                                                 "-ExecutionPolicy",
                                                 "Bypass",
+                                                "-File",
                                                 $@"""$(ProjectRoot)/{entry.settings.ScriptPath}""",
                                                 "-PackagePath",
                                                 @"""$(PackagePath)""",
@@ -107,6 +108,7 @@
                                             {
                                                 "-ExecutionPolicy",
                                                 "Bypass",
+                                                "-File",
                                                 $@"""$(ProjectRoot)/{entry.settings.ScriptPath}""",
                                                 "-TargetType",
                                                 @"""$(TargetType)""",
