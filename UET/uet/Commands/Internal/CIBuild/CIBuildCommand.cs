@@ -15,6 +15,7 @@
     using System.Text.Json;
     using System.Threading.Tasks;
     using UET.Commands.EngineSpec;
+    using UET.Commands.Internal.Runback;
 
     internal sealed class CIBuildCommand
     {
@@ -83,6 +84,39 @@
                 {
                     _logger.LogError("The UET_BUILD_JSON environment variable does not contain a valid build job description.");
                     return 1;
+                }
+
+                // If we have runbacks enabled, serialize our runback information and emit the ID
+                // to the console.
+                if (Environment.GetEnvironmentVariable("UET_RUNBACKS") == "1")
+                {
+                    var runbackId = Guid.NewGuid().ToString();
+                    var runbackPath = true switch
+                    {
+                        var v when v == OperatingSystem.IsWindows() => Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                            "UET",
+                            "Runbacks",
+                            $"{runbackId}.json"),
+                        var v when v == OperatingSystem.IsMacOS() => Path.Combine(
+                            "/Users/Shared",
+                            "UET",
+                            "Runbacks",
+                            $"{runbackId}.json"),
+                        _ => throw new PlatformNotSupportedException("This platform is not supported for runbacks.")
+                    };
+                    var runbackJson = new RunbackJson
+                    {
+                        RunbackId = runbackId,
+                        BuildJson = buildJson,
+                        EnvironmentVariables = Environment.GetEnvironmentVariables().OfType<KeyValuePair<string, string>>().ToDictionary(k => k.Key, v => v.Value),
+                        WorkingDirectory = Environment.CurrentDirectory,
+                    };
+                    Directory.CreateDirectory(Path.GetDirectoryName(runbackPath)!);
+                    await File.WriteAllTextAsync(
+                        runbackPath,
+                        JsonSerializer.Serialize(runbackJson, RunbackJsonSerializerContext.Default.RunbackJson)).ConfigureAwait(false);
+                    _logger.LogInformation($"Runback information saved. You can run this job again on this machine outside CI by running: 'uet internal runback {runbackId}'.");
                 }
 
                 // Configure the dynamic workspace provider to use workspace virtualisation
