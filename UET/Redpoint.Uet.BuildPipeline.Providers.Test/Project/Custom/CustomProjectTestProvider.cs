@@ -1,6 +1,9 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Project.Custom
 {
+    using Microsoft.Extensions.Logging;
+    using Redpoint.ProcessExecution;
     using Redpoint.RuntimeJson;
+    using Redpoint.Uet.BuildGraph;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Project;
     using System;
@@ -13,21 +16,74 @@
 
     internal sealed class CustomProjectTestProvider : IProjectTestProvider
     {
-        public CustomProjectTestProvider()
+        private readonly ILogger<CustomProjectTestProvider> _logger;
+        private readonly IScriptExecutor _scriptExecutor;
+
+        public CustomProjectTestProvider(
+            ILogger<CustomProjectTestProvider> logger,
+            IScriptExecutor scriptExecutor)
         {
+            _logger = logger;
+            _scriptExecutor = scriptExecutor;
         }
 
         public string Type => "Custom";
 
         public IRuntimeJson DynamicSettings { get; } = new TestProviderRuntimeJson(TestProviderSourceGenerationContext.WithStringEnum).BuildConfigProjectTestCustom;
 
-        public Task WriteBuildGraphNodesAsync(
+        public async Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,
             XmlWriter writer,
             BuildConfigProjectDistribution buildConfigDistribution,
             IEnumerable<BuildConfigDynamic<BuildConfigProjectDistribution, ITestProvider>> dynamicSettings)
         {
-            throw new NotImplementedException();
+            var castedSettings = dynamicSettings
+                .Select(x => (name: x.Name, settings: (BuildConfigProjectTestCustom)x.DynamicSettings))
+                .ToList();
+
+            foreach (var entry in castedSettings)
+            {
+                await writer.WriteAgentAsync(
+                new AgentElementProperties
+                {
+                    Name = $"Custom {entry.name}",
+                    Type = "Win64",
+                },
+                async writer =>
+                {
+                    await writer.WriteNodeAsync(
+                            new NodeElementProperties
+                            {
+                                Name = $"Custom {entry.name}",
+                                Requires = "$(GameStaged);$(ClientStaged);$(ServerStaged)",
+                            },
+                            async writer =>
+                            {
+                                await writer.WriteSpawnAsync(
+                                    new SpawnElementProperties
+                                    {
+                                        Exe = "powershell.exe",
+                                        Arguments = new[]
+                                        {
+                                            "-ExecutionPolicy",
+                                            "Bypass",
+                                            "-File",
+                                            $@"""$(RepositoryRoot)/{entry.settings.ScriptPath}""",
+                                            "-EnginePath",
+                                            $@"""$(EnginePath)""",
+                                            "-StageDirectory",
+                                            $@"""$(StageDirectory)""",
+                                        }
+                                    }).ConfigureAwait(false);
+                            }).ConfigureAwait(false);
+                    await writer.WriteDynamicNodeAppendAsync(
+                        new DynamicNodeAppendElementProperties
+                        {
+                            NodeName = $"Custom {entry.name}",
+                            MustPassForLaterDeployment = true,
+                        }).ConfigureAwait(false);
+                }).ConfigureAwait(false);
+            }
         }
     }
 }

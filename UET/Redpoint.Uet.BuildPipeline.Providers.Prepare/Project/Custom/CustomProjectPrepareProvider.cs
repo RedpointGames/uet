@@ -73,6 +73,7 @@
                                             {
                                                 "-ExecutionPolicy",
                                                 "Bypass",
+                                                "-File",
                                                 $@"""$(RepositoryRoot)/{entry.settings.ScriptPath}""",
                                                 "-TargetType",
                                                 @"""$(TargetType)""",
