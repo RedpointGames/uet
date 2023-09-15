@@ -35,12 +35,12 @@
 
             public Option<bool> Shipping;
             public Option<string[]> Platform;
-
-            public Option<string> ProjectStagingDirectory;
-
             public Option<string> PluginPackage;
+
             public Option<string?> PluginVersionName;
             public Option<long?> PluginVersionNumber;
+
+            public Option<string> ProjectStagingDirectory;
 
             public Option<string> Executor;
             public Option<string> ExecutorOutputFile;
@@ -57,6 +57,7 @@
                 const string buildConfigOptions = "Options when targeting a BuildConfig.json file:";
                 const string uprojectpluginOptions = "Options when targeting a .uplugin or .uproject file:";
                 const string pluginOptions = "Options when building a plugin:";
+                const string projectOptions = "Options when building a project:";
                 const string cicdOptions = "Options when building on CI/CD:";
                 const string cicdEngineOptions = "Options when building the engine on CI/CD:";
 
@@ -140,11 +141,6 @@
                     description: "Add this platform to the build. You can pass this option multiple times to target many platforms. The host platform is always built.");
                 Platform.ArgumentGroupName = uprojectpluginOptions;
 
-                ProjectStagingDirectory = new Option<string>(
-                    "--project-staging-directory",
-                    description: "When building a .uproject file, overrides the path that project builds are staged to. The default is __REPOSITORY_ROOT__/Saved/StagedBuilds which places builds underneath the 'Saved/StagedBuilds' folder in the project. You can use absolute paths here and you can use __REPOSITORY_ROOT__ to refer to the project folder.");
-                ProjectStagingDirectory.ArgumentGroupName = uprojectpluginOptions;
-
                 PluginPackage = new Option<string>(
                     "--plugin-package",
                     description: "When building a .uplugin file, specifies if and how the plugin should be packaged.");
@@ -174,6 +170,13 @@
                         If this option is not provided, and you are building on a CI server, UET will compute a version number from the UNIX timestamp and engine version number.
                         """);
                 PluginVersionNumber.ArgumentGroupName = pluginOptions;
+
+                // ==== Project options, regardless of build type
+
+                ProjectStagingDirectory = new Option<string>(
+                    "--project-staging-directory",
+                    description: "When building a project, either as a .uproject or via BuildConfig.json, overrides the path that project builds are staged to. The default is __REPOSITORY_ROOT__/Saved/StagedBuilds which places builds underneath the 'Saved/StagedBuilds' folder in the project. You can use absolute paths here and you can use __REPOSITORY_ROOT__ to refer to the project folder.");
+                ProjectStagingDirectory.ArgumentGroupName = projectOptions;
 
                 // ==== CI/CD options
 
@@ -478,7 +481,8 @@
                                         executeTests: test,
                                         executeDeployment: deploy,
                                         strictIncludes: strictIncludes,
-                                        localExecutor: executorName == "local").ConfigureAwait(false);
+                                        localExecutor: executorName == "local",
+                                        alternateStagingDirectory: projectStagingDirectory).ConfigureAwait(false);
                                     prepareProject = projectDistribution.Prepare;
                                     break;
                                 case BuildConfigPluginDistribution pluginDistribution:
