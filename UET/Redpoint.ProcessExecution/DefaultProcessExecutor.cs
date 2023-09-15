@@ -58,6 +58,10 @@
                 }
             }
 
+            // @note: Used during clean up to ensure standard output/error tasks don't stall the parent
+            // process after the child process exits.
+            using var processExitWindDownCancellationTokenSource = new CancellationTokenSource();
+
             try
             {
                 Task? outputReadingTask = null;
@@ -133,7 +137,7 @@
                     {
                         while (!process.StandardOutput.EndOfStream)
                         {
-                            var line = (await process.StandardOutput.ReadLineAsync().ConfigureAwait(false))?.TrimEnd();
+                            var line = (await process.StandardOutput.ReadLineAsync(processExitWindDownCancellationTokenSource.Token).ConfigureAwait(false))?.TrimEnd();
                             if (!string.IsNullOrWhiteSpace(line))
                             {
                                 captureSpecification.OnReceiveStandardOutput(line);
@@ -147,7 +151,7 @@
                     {
                         while (!process.StandardError.EndOfStream)
                         {
-                            var line = (await process.StandardError.ReadLineAsync().ConfigureAwait(false))?.TrimEnd();
+                            var line = (await process.StandardError.ReadLineAsync(processExitWindDownCancellationTokenSource.Token).ConfigureAwait(false))?.TrimEnd();
                             if (!string.IsNullOrWhiteSpace(line))
                             {
                                 captureSpecification.OnReceiveStandardError(line);
@@ -260,6 +264,7 @@
                         return int.MaxValue;
                     }
                 }
+                processExitWindDownCancellationTokenSource.CancelAfter(1000);
                 if (outputReadingTask != null)
                 {
                     try
@@ -301,6 +306,10 @@
             }
             finally
             {
+                // Ensure standard output/error tasks always get cancelled, even if we didn't go down
+                // the cleanup path yet.
+                processExitWindDownCancellationTokenSource.Cancel();
+
                 foreach (var disposable in disposables)
                 {
                     if (enableTracing)
