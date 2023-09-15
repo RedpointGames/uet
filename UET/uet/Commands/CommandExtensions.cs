@@ -102,7 +102,10 @@
             {
                 extraParsingServices(parsingServices);
             }
-            using var minimalServiceProvider = parsingServices.BuildServiceProvider();
+            // @note: This service provider MUST NOT be disposed, as references are held to it by the
+            // command arguments and options set up in the Options object, which exists beyond the
+            // lifetime of AddServicedOptionsHandler.
+            var minimalServiceProvider = parsingServices.BuildServiceProvider();
 
             // Get the options instance from the minimal service provider.
             var options = minimalServiceProvider.GetRequiredService<TOptions>();

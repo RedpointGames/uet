@@ -61,7 +61,7 @@
                 using (_provider._mutex.Wait(CancellationToken.None))
                 {
                     var logTime = DateTime.Now;
-                    _provider._streamWriter.WriteLine($"[{logTime.ToString("yyyy-MM-dd HH:mm:ss.FFF", CultureInfo.InvariantCulture)}] [{GetLogLevelString(logLevel)}] [{_categoryName}] {formatter(state, exception)}");
+                    _provider._streamWriter.WriteLine($"[{logTime.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture)}] [{GetLogLevelString(logLevel)}] [{_categoryName}] {formatter(state, exception)}");
                 }
             }
         }

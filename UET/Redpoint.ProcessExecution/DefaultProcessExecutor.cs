@@ -37,13 +37,24 @@
             ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken)
         {
+            var executionId = Guid.NewGuid().ToString();
+            var enableTracing = _logger.IsEnabled(LogLevel.Trace);
+
             var disposables = new List<IAsyncDisposable>();
             foreach (var hook in _serviceProvider.GetServices<IProcessExecutorHook>())
             {
+                if (enableTracing)
+                {
+                    _logger.LogTrace($"{executionId}: Calling ModifyProcessSpecificationWithCleanupAsync on {hook.GetType().FullName}...");
+                }
                 var disposable = await hook.ModifyProcessSpecificationWithCleanupAsync(processSpecification, cancellationToken).ConfigureAwait(false);
                 if (disposable != null)
                 {
                     disposables.Add(disposable);
+                }
+                if (enableTracing)
+                {
+                    _logger.LogTrace($"{executionId}: Called ModifyProcessSpecificationWithCleanupAsync on {hook.GetType().FullName}.");
                 }
             }
 
@@ -83,7 +94,10 @@
                         }
                     }
                 }
-                _logger.LogTrace($"Starting process: {EscapeArgumentForLogging(processSpecification.FilePath)} {string.Join(" ", argumentsEvaluated.Select(EscapeArgumentForLogging))}");
+                if (enableTracing)
+                {
+                    _logger.LogTrace($"{executionId}: Starting process: {EscapeArgumentForLogging(processSpecification.FilePath)} {string.Join(" ", argumentsEvaluated.Select(EscapeArgumentForLogging))}");
+                }
                 var process = Process.Start(startInfo);
                 if (process == null)
                 {
@@ -103,7 +117,15 @@
                             process.StandardInput.Write(data);
                         }
                     }
+                    if (enableTracing)
+                    {
+                        _logger.LogTrace($"{executionId}: Closing standard input stream...");
+                    }
                     process.StandardInput.Close();
+                    if (enableTracing)
+                    {
+                        _logger.LogTrace($"{executionId}: Closed standard input stream.");
+                    }
                 }
                 if (startInfo.RedirectStandardOutput)
                 {
@@ -141,16 +163,40 @@
                     var exitSemaphore = new SemaphoreSlim(0);
                     process.Exited += (sender, args) =>
                     {
+                        if (enableTracing)
+                        {
+                            _logger.LogTrace($"{executionId}: Received 'process.Exited' event; releasing exit semaphore...");
+                        }
                         exitSemaphore.Release();
+                        if (enableTracing)
+                        {
+                            _logger.LogTrace($"{executionId}: Received 'process.Exited' event; released exit semaphore.");
+                        }
                     };
                     process.EnableRaisingEvents = true;
                     if (process.HasExited)
                     {
+                        if (enableTracing)
+                        {
+                            _logger.LogTrace($"{executionId}: Checked HasExited after EnableRaisingEvents and the process has already exited; releasing exit semaphore...");
+                        }
                         exitSemaphore.Release();
+                        if (enableTracing)
+                        {
+                            _logger.LogTrace($"{executionId}: Checked HasExited after EnableRaisingEvents and the process has already exited; released exit semaphore.");
+                        }
                     }
 
                     // Wait for the process to exit or until cancellation.
+                    if (enableTracing)
+                    {
+                        _logger.LogTrace($"{executionId}: Waiting for process exit...");
+                    }
                     await exitSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    if (enableTracing)
+                    {
+                        _logger.LogTrace($"{executionId}: Received process exit notification via exit semaphore.");
+                    }
                 }
                 finally
                 {
@@ -169,11 +215,27 @@
                             // if that's what we're running (it won't spawn child processes anyway).
                             if (Path.GetFileNameWithoutExtension(processSpecification.FilePath) == "cl")
                             {
+                                if (enableTracing)
+                                {
+                                    _logger.LogTrace($"{executionId}: Performing non-tree process kill as process has not exited, but cancellation token is cancelled and this process is 'cl.exe'...");
+                                }
                                 process.Kill();
+                                if (enableTracing)
+                                {
+                                    _logger.LogTrace($"{executionId}: Performed non-tree process kill as process has not exited, but cancellation token is cancelled and this process is 'cl.exe'.");
+                                }
                             }
                             else
                             {
+                                if (enableTracing)
+                                {
+                                    _logger.LogTrace($"{executionId}: Performing tree process kill as process has not exited, but cancellation token is cancelled and this process is 'cl.exe'...");
+                                }
                                 process.Kill(true);
+                                if (enableTracing)
+                                {
+                                    _logger.LogTrace($"{executionId}: Performed tree process kill as process has not exited, but cancellation token is cancelled and this process is 'cl.exe'.");
+                                }
                             }
                         }
                     }
@@ -182,10 +244,18 @@
                 {
                     // Give the process one last chance to exit normally
                     // so we can try to get the exit code.
+                    if (enableTracing)
+                    {
+                        _logger.LogTrace($"{executionId}: Process has still not exited, waiting another second to see if it will move to an exited state so we can retrieve the exit code...");
+                    }
                     process.WaitForExit(1000);
                     if (!process.HasExited)
                     {
                         // We can't get the return code for this process.
+                        if (enableTracing)
+                        {
+                            _logger.LogTrace($"{executionId}: Process still hadn't exited after waiting more time. We can't get the exit code, so int.MaxValue will be returned.");
+                        }
                         cancellationToken.ThrowIfCancellationRequested();
                         return int.MaxValue;
                     }
@@ -194,7 +264,15 @@
                 {
                     try
                     {
+                        if (enableTracing)
+                        {
+                            _logger.LogTrace($"{executionId}: Process has exited, awaiting the standard output reading task to completion...");
+                        }
                         await outputReadingTask.ConfigureAwait(false);
+                        if (enableTracing)
+                        {
+                            _logger.LogTrace($"{executionId}: Process has exited; the standard output reading task is complete.");
+                        }
                     }
                     catch { }
                 }
@@ -202,18 +280,38 @@
                 {
                     try
                     {
+                        if (enableTracing)
+                        {
+                            _logger.LogTrace($"{executionId}: Process has exited, awaiting the standard error reading task to completion...");
+                        }
                         await errorReadingTask.ConfigureAwait(false);
+                        if (enableTracing)
+                        {
+                            _logger.LogTrace($"{executionId}: Process has exited; the standard error reading task is complete.");
+                        }
                     }
                     catch { }
                 }
                 cancellationToken.ThrowIfCancellationRequested();
+                if (enableTracing)
+                {
+                    _logger.LogTrace($"{executionId}: Process has exited with exit code {process.ExitCode}.");
+                }
                 return process.ExitCode;
             }
             finally
             {
                 foreach (var disposable in disposables)
                 {
+                    if (enableTracing)
+                    {
+                        _logger.LogTrace($"{executionId}: Calling DisposeAsync on {disposable.GetType().FullName}...");
+                    }
                     await disposable.DisposeAsync().ConfigureAwait(false);
+                    if (enableTracing)
+                    {
+                        _logger.LogTrace($"{executionId}: Called DisposeAsync on {disposable.GetType().FullName}.");
+                    }
                 }
             }
         }

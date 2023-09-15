@@ -35,6 +35,7 @@
                         builder.AddSingleLineConsoleFormatter(options =>
                         {
                             options.OmitLogPrefix = omitLogPrefix;
+                            options.TimestampFormat = minimumLogLevel == LogLevel.Trace ? "HH:mm:ss.fff " : null;
                         });
                         builder.AddSingleLineConsole(options =>
                         {
@@ -50,8 +51,12 @@
                         builder.AddSingleLineConsoleFormatter(options =>
                         {
                             options.OmitLogPrefix = omitLogPrefix;
+                            options.TimestampFormat = minimumLogLevel == LogLevel.Trace ? "HH:mm:ss.fff " : null;
                         });
-                        builder.AddSingleLineConsole();
+                        builder.AddSingleLineConsole(options =>
+                        {
+                            options.IncludeTracing = true;
+                        });
                     }
                 });
             }
