@@ -1,8 +1,9 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Prepare.Project.DownloadPlugin
 {
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
-    internal sealed class BuildConfigProjectPrepareDownloadPluginSource
+    public sealed class BuildConfigProjectPrepareDownloadPluginSource
     {
         /// <summary>
         /// The Git URL to clone the plugin from. Environment variables can be specified
@@ -10,6 +11,7 @@
         /// if all the environment variables used in the URL are set.
         /// </summary>
         [JsonPropertyName("GitUrl"), JsonRequired]
+        [SuppressMessage("Design", "CA1056:URI-like properties should not be strings", Justification = "This is a JSON property.")]
         public string? GitUrl { get; set; }
 
         /// <summary>

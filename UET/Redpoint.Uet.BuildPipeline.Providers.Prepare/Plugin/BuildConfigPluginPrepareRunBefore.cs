@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Prepare.Plugin
 {
-    internal enum BuildConfigPluginPrepareRunBefore
+    public enum BuildConfigPluginPrepareRunBefore
     {
         /// <summary>
         /// Run this script before BuildGraph is invoked by UET on each build job.
