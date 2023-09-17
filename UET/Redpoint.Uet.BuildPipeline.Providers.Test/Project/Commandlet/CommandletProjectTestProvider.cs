@@ -174,6 +174,7 @@
                                 {
                                     runtimeValues["UProjectPath"],
                                     $"-run={config.Name}",
+                                    "-unattended",
                                     "-NullRHI",
                                     "-log",
                                     "-stdout",
