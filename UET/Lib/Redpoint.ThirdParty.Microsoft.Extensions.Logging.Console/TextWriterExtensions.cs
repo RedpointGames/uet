@@ -28,6 +28,10 @@ namespace Microsoft.Extensions.Logging.Console
             {
                 textWriter.Write(AnsiParser.DefaultBackgroundColor); // reset to the background color
             }
+            if (foreground.HasValue || background.HasValue)
+            {
+                textWriter.Write("\x1B[0m");
+            }
         }
     }
 }
