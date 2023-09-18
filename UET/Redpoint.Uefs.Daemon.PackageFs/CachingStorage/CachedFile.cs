@@ -92,15 +92,22 @@
             // Try to load the index and cache file from the existing data.
             if (File.Exists(_indexFile))
             {
-                var newIndex = ConcurrentBitfield.LoadFromFile(_indexFile, _maximumSourceFileSize / _chunkSize);
-                if (newIndex != null)
+                try
                 {
-                    _index = newIndex;
-                    initializeNewIndex = false;
+                    var newIndex = ConcurrentBitfield.LoadFromFile(_indexFile, _maximumSourceFileSize / _chunkSize);
+                    if (newIndex != null)
+                    {
+                        _index = newIndex;
+                        initializeNewIndex = false;
 
-                    // No need to touch the cache file.
+                        // No need to touch the cache file.
+                    }
+                    else
+                    {
+                        // Index is corrupt, needs re-initialization.
+                    }
                 }
-                else
+                catch
                 {
                     // Index is corrupt, needs re-initialization.
                 }
