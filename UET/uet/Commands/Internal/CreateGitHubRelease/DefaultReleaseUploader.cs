@@ -165,8 +165,8 @@
 
                 The file you want to download is either:
 
-                    - **[UET for Windows](https://github.com/RedpointGames/uet/releases/download/latest/uet.exe)**, or
-                    - **[UET for macOS](https://github.com/RedpointGames/uet/releases/download/latest/uet)**.
+                - **[UET for Windows](https://github.com/RedpointGames/uet/releases/download/latest/uet.exe)**, or
+                - **[UET for macOS](https://github.com/RedpointGames/uet/releases/download/latest/uet)**.
 
                 The other files in this release are exist so they can be fetched on-demand by UET, or they are for specific use cases where the general UET binary is not suitable.
                 """;
