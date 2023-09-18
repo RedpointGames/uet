@@ -195,34 +195,80 @@
             {
                 var filename = path;
 
+                if (_resolvedBlobs == null)
+                {
+                    throw new InvalidOperationException($"The resolved blobs cache is null.");
+                }
                 var blobFactory = _resolvedBlobs.GetOrAdd(filename, _ =>
                 {
+                    var infoFilePath = Path.Combine(
+                        _infoStoragePath,
+                        Path.GetFileNameWithoutExtension(filename) + ".info");
                     var info = JsonSerializer.Deserialize(
-                        File.ReadAllText(Path.Combine(
-                            _infoStoragePath,
-                            Path.GetFileNameWithoutExtension(filename) + ".info")).Trim(),
+                        File.ReadAllText(infoFilePath).Trim(),
                         PackageFsInternalJsonSerializerContext.Default.CachingInfoJson);
+                    if (info == null)
+                    {
+                        throw new InvalidOperationException($"The info file at '{infoFilePath}' is corrupt and can't be deserialized to a CachingInfoJson.");
+                    }
 
                     IRemoteStorageBlobFactory blobFactory;
-                    switch (info!.Type)
+                    switch (info.Type)
                     {
                         case "reference":
-                            blobFactory = _storageFS._referenceRemoteStorage.GetFactory(JsonSerializer.Deserialize(
+                            var referenceInfo = JsonSerializer.Deserialize(
                                 info.SerializedObject,
-                                UefsRegistryJsonSerializerContext.Default.RegistryReferenceInfo)!);
+                                UefsRegistryJsonSerializerContext.Default.RegistryReferenceInfo);
+                            if (referenceInfo == null)
+                            {
+                                throw new InvalidOperationException($"The info file at '{infoFilePath}' contains an invalid serialized object and can't be deserialized to a RegistryReferenceInfo.");
+                            }
+                            blobFactory = _storageFS._referenceRemoteStorage.GetFactory(referenceInfo);
                             break;
                         case "registry":
-                            blobFactory = _storageFS._registryRemoteStorage.GetFactory(JsonSerializer.Deserialize(
+                            var registryInfo = JsonSerializer.Deserialize(
                                 info.SerializedObject,
-                                PackageFsJsonSerializerContext.Default.ManifestLayer)!);
+                                PackageFsJsonSerializerContext.Default.ManifestLayer);
+                            if (registryInfo == null)
+                            {
+                                throw new InvalidOperationException($"The info file at '{infoFilePath}' contains an invalid serialized object and can't be deserialized to a ManifestLayer.");
+                            }
+                            blobFactory = _storageFS._registryRemoteStorage.GetFactory(registryInfo);
                             break;
                         default:
                             throw new InvalidOperationException($"Unsupported info type for {filename}: {info!.Type}");
                     }
+                    if (blobFactory == null)
+                    {
+                        throw new InvalidOperationException($"The returned blob factory from the remote storage was null.");
+                    }
                     return blobFactory;
                 });
 
-                var handle = _storageFS._cachedFilePool.Open(blobFactory, Path.GetFileNameWithoutExtension(filename));
+                if (_storageFS == null)
+                {
+                    throw new InvalidOperationException($"The current storage filesystem is null.");
+                }
+                if (_storageFS._cachedFilePool == null)
+                {
+                    throw new InvalidOperationException($"The cached file pool in the current storage filesystem is null.");
+                }
+
+                var filenameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
+                if (filenameWithoutExtension == null)
+                {
+                    throw new InvalidOperationException($"The filename '{filename}' does not return a version without an extension from Path.GetFileNameWithoutExtension.");
+                }
+
+                var handle = _storageFS._cachedFilePool.Open(blobFactory, filenameWithoutExtension);
+                if (handle == null)
+                {
+                    throw new InvalidOperationException($"The cached file pool returned a null handle, which should be impossible.");
+                }
+                if (handle.VfsFile == null)
+                {
+                    throw new InvalidOperationException($"The cached file pool returned a handle with a null VfsFile, which should not exist in the cached file pool.");
+                }
                 metadata = new VfsEntry
                 {
                     Name = filename,
