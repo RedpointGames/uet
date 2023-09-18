@@ -41,7 +41,7 @@
 
         public void SaveToFile(string path)
         {
-            using (var writer = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 4096))
+            using (var writer = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None, 4096))
             {
                 using (var binary = new BinaryWriter(writer, Encoding.UTF8, true))
                 {

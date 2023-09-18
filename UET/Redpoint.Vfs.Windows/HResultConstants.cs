@@ -8,5 +8,6 @@
         public const int NotSupported = unchecked((int)0x80070032);
         public const int IoPending = unchecked((int)0x800703E5);
         public const int OperationAborted = unchecked((int)0x800703E3);
+        public const int DiskFull = unchecked((int)0x80070070);
     }
 }

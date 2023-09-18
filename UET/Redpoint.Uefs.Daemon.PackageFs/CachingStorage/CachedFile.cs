@@ -371,7 +371,7 @@
             return true;
         }
 
-        private void EnsureChunk(uint chunk)
+        private int EnsureChunk(uint chunk)
         {
             var sourceUnsafe = _sourceFactory.OpenUnsafe();
             if (sourceUnsafe != null)
@@ -401,9 +401,14 @@
                             {
                                 bytesRead = 0;
                                 var hresult = Marshal.GetHRForLastWin32Error();
+                                if (hresult == HResultConstants.DiskFull)
+                                {
+                                    _logger.LogError($"EnsureChunk is failing because the local disk is out of disk space (so we can't cache data from the remote server).");
+                                }
                                 if (hresult != HResultConstants.EOF)
                                 {
                                     _logger.LogError($"CachedFile NativeMethods.ReadFile: {position} {hresult:X}");
+                                    return hresult;
                                 }
                             }
                             AsyncIoNativeOverlapped writeOverlapped = new AsyncIoNativeOverlapped()
@@ -415,9 +420,14 @@
                             {
                                 bytesWritten = 0;
                                 var hresult = Marshal.GetHRForLastWin32Error();
+                                if (hresult == HResultConstants.DiskFull)
+                                {
+                                    _logger.LogError($"EnsureChunk is failing because the local disk is out of disk space (so we can't cache data from the remote server).");
+                                }
                                 if (hresult != HResultConstants.EOF)
                                 {
                                     _logger.LogError($"CachedFile NativeMethods.WriteFile: {position} {hresult:X}");
+                                    return hresult;
                                 }
                             }
                         }
@@ -463,6 +473,7 @@
                     }
                 }
             }
+            return 0;
         }
 
         public int ReadFile(byte[] buffer, out uint bytesRead, long offset)
@@ -494,7 +505,12 @@
             {
                 if (!GetIndexBit(startingChunk))
                 {
-                    EnsureChunk(startingChunk);
+                    var hresult = EnsureChunk(startingChunk);
+                    if (hresult != 0)
+                    {
+                        bytesRead = 0;
+                        return hresult;
+                    }
                     SetIndexBit(startingChunk);
                 }
             }
@@ -504,7 +520,12 @@
                 {
                     if (!GetIndexBit(i))
                     {
-                        EnsureChunk(i);
+                        var hresult = EnsureChunk(i);
+                        if (hresult != 0)
+                        {
+                            bytesRead = 0;
+                            return hresult;
+                        }
                         SetIndexBit(i);
                     }
                 }
