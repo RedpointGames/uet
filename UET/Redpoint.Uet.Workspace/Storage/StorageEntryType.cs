@@ -1,6 +1,6 @@
-﻿namespace UET.Commands.Storage
+﻿namespace Redpoint.Uet.Workspace.Storage
 {
-    internal enum StorageEntryType
+    public enum StorageEntryType
     {
         Generic,
         WriteScratchLayer,

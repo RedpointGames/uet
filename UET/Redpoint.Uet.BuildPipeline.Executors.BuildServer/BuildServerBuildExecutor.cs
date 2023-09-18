@@ -25,6 +25,8 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Redpoint.Hashing;
+    using Redpoint.Uet.Workspace.Reservation;
+    using Redpoint.Uet.Workspace.Storage;
 
     public abstract class BuildServerBuildExecutor : IBuildExecutor
     {
@@ -33,6 +35,7 @@
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
         private readonly IDynamicWorkspaceProvider _workspaceProvider;
         private readonly IWorldPermissionApplier _worldPermissionApplier;
+        private readonly IStorageManagement _storageManagement;
         private readonly IGlobalArgsProvider? _globalArgsProvider;
         private readonly string _buildServerOutputFilePath;
         private readonly BuildJobJsonSourceGenerationContext _buildJobJsonSourceGenerationContext;
@@ -46,6 +49,7 @@
             _engineWorkspaceProvider = serviceProvider.GetRequiredService<IEngineWorkspaceProvider>();
             _workspaceProvider = serviceProvider.GetRequiredService<IDynamicWorkspaceProvider>();
             _worldPermissionApplier = serviceProvider.GetRequiredService<IWorldPermissionApplier>();
+            _storageManagement = serviceProvider.GetRequiredService<IStorageManagement>();
             _globalArgsProvider = serviceProvider.GetService<IGlobalArgsProvider>();
             _buildServerOutputFilePath = buildServerOutputFilePath;
             _buildJobJsonSourceGenerationContext = BuildJobJsonSourceGenerationContext.Create(serviceProvider);
@@ -429,6 +433,8 @@
             {
                 throw new BuildPipelineExecutionFailureException("This build executor requires BuildServerOutputFilePath to be set.");
             }
+
+            await _storageManagement.AutoPurgeStorageAsync(cancellationToken).ConfigureAwait(false);
 
             BuildGraphExport buildGraph;
             await using ((await _engineWorkspaceProvider.GetEngineWorkspace(

@@ -1,6 +1,6 @@
-﻿namespace UET.Commands.Storage
+﻿namespace Redpoint.Uet.Workspace.Storage
 {
-    internal sealed class StorageEntry
+    public sealed class StorageEntry
     {
         public required string Id;
         public required string Path;

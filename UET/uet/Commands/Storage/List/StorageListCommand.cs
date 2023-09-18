@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.Uet.Workspace.Reservation;
+    using Redpoint.Uet.Workspace.Storage;
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
@@ -14,6 +15,7 @@
     using System.Text;
     using System.Threading.Tasks;
     using UET.Commands.Build;
+    using UET.Services;
 
     internal sealed class StorageListCommand
     {
@@ -37,211 +39,42 @@
         private sealed class StorageListCommandInstance : ICommandInstance
         {
             private readonly ILogger<StorageListCommandInstance> _logger;
-            private readonly IReservationManagerForUet _reservationManager;
+            private readonly IStorageManagement _storageManagement;
             private readonly Options _options;
-            private readonly string _reservationManagerRootPath;
-            private readonly string? _uefsStoragePath;
 
             public StorageListCommandInstance(
                 ILogger<StorageListCommandInstance> logger,
-                IReservationManagerForUet reservationManager,
+                IStorageManagement storageManagement,
                 Options options)
             {
                 _logger = logger;
-                _reservationManager = reservationManager;
+                _storageManagement = storageManagement;
                 _options = options;
-                if (OperatingSystem.IsWindows())
-                {
-                    _reservationManagerRootPath = Path.Combine($"{Environment.GetEnvironmentVariable("SYSTEMDRIVE")}\\", "UES");
-                    _uefsStoragePath = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                        "UEFS");
-                }
-                else if (OperatingSystem.IsMacOS())
-                {
-                    _reservationManagerRootPath = "/Users/Shared/.ues";
-                    _uefsStoragePath = Path.Combine("/Users", "Shared", "UEFS");
-                }
-                else
-                {
-                    _reservationManagerRootPath = "/tmp/.ues";
-                }
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
                 var noDiskUsage = context.ParseResult.GetValueForOption(_options.NoDiskUsage);
 
-                var scan = new List<(DirectoryInfo dir, FileInfo? metaFile, StorageEntryType type)>();
-                var reservationRoot = new DirectoryInfo(_reservationManagerRootPath);
-                if (reservationRoot.Exists)
-                {
-                    scan.AddRange(reservationRoot.GetDirectories()
-                        .Where(x => x.Name != ".lock" && x.Name != ".meta")
-                        .Select(x => (
-                            x,
-                            (FileInfo?)new FileInfo(Path.Combine(reservationRoot.FullName, ".meta", "date." + x.Name)),
-                            StorageEntryType.Generic)));
-                }
-                if (_uefsStoragePath != null && Directory.Exists(_uefsStoragePath))
-                {
-                    scan.AddRange(new[]
+                var result = await _storageManagement.ListStorageAsync(
+                    !noDiskUsage,
+                    (int total) =>
                     {
-                        (new DirectoryInfo(Path.Combine(_uefsStoragePath, "git-blob")), (FileInfo?)null, StorageEntryType.UefsGitSharedBlobs),
-                        (new DirectoryInfo(Path.Combine(_uefsStoragePath, "git-deps")), null, StorageEntryType.UefsGitSharedDependencies),
-                        (new DirectoryInfo(Path.Combine(_uefsStoragePath, "git-index-cache")), null,  StorageEntryType.UefsGitSharedIndexCache),
-                        (new DirectoryInfo(Path.Combine(_uefsStoragePath, "git-repo")), null, StorageEntryType.UefsGitSharedRepository),
-                        (new DirectoryInfo(Path.Combine(_uefsStoragePath, "hostpkgs", "cache")), null, StorageEntryType.UefsHostPackagesCache),
-                    });
-                }
-
-                if (scan.Count > 0 && !noDiskUsage)
-                {
-                    Console.WriteLine($"UET is now scanning {scan.Count} directories to compute disk space usage...  (this might take a while)");
-                }
-
-                var maxIdLength = 0;
-                var maxPathLength = 0;
-                var maxTypeLength = 0;
-                var remaining = scan.Count;
-
-                void EmitRemaining()
-                {
-                    if (!noDiskUsage)
+                        Console.WriteLine($"UET is now scanning {total} directories to compute disk space usage...  (this might take a while)");
+                    },
+                    ((int total, int remaining) info) =>
                     {
-                        Console.WriteLine($"UET is now scanning {scan!.Count} directories to compute disk space usage...  ({remaining} to go)");
-                    }
-                }
-
-                var entries = new List<StorageEntry>();
-                var semaphore = new SemaphoreSlim(1);
-                await Parallel.ForEachAsync(
-                    scan.ToAsyncEnumerable(),
-                    context.GetCancellationToken(),
-                    async (entry, ct) =>
-                    {
-                        var directory = entry.dir;
-                        if (!directory.Exists)
-                        {
-                            await semaphore.WaitAsync(ct).ConfigureAwait(false);
-                            try
-                            {
-                                remaining--;
-                                EmitRemaining();
-                            }
-                            finally
-                            {
-                                semaphore.Release();
-                            }
-                            return;
-                        }
-
-                        ulong size = 0;
-                        if (!noDiskUsage)
-                        {
-                            try
-                            {
-                                if (OperatingSystem.IsWindows())
-                                {
-                                    foreach (var file in directory.EnumerateFiles("*", SearchOption.AllDirectories))
-                                    {
-                                        if (file.Attributes.HasFlag(FileAttributes.SparseFile))
-                                        {
-                                            uint high;
-                                            uint low;
-                                            low = GetCompressedFileSize(file.FullName, out high);
-                                            if (low != 0xFFFFFFFF)
-                                            {
-                                                size += ((ulong)high << 32) + low;
-                                            }
-                                        }
-                                        else
-                                        {
-                                            size += (ulong)file.Length;
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    foreach (var file in directory.EnumerateFiles("*", SearchOption.AllDirectories))
-                                    {
-                                        size += (ulong)file.Length;
-                                    }
-                                }
-                            }
-                            catch (DirectoryNotFoundException)
-                            {
-                                size = ulong.MaxValue;
-                            }
-                            catch (UnauthorizedAccessException)
-                            {
-                                size = ulong.MaxValue;
-                            }
-                        }
-
-                        var type = entry.type;
-                        if (type == StorageEntryType.Generic)
-                        {
-                            if (File.Exists(Path.Combine(directory.FullName, ".console-zip-extracted")))
-                            {
-                                type = StorageEntryType.ExtractedConsoleZip;
-                            }
-                            if (Directory.Exists(Path.Combine(directory.FullName, ".uefs.db")))
-                            {
-                                type = StorageEntryType.WriteScratchLayer;
-                            }
-                        }
-
-                        DateTimeOffset lastUsed = directory.LastWriteTimeUtc;
-                        if (entry.metaFile != null && entry.metaFile.Exists)
-                        {
-                            lastUsed = DateTimeOffset.FromUnixTimeSeconds(long.Parse(File.ReadAllText(entry.metaFile.FullName).Trim(), CultureInfo.InvariantCulture));
-                        }
-
-                        switch (type)
-                        {
-                            case StorageEntryType.UefsHostPackagesCache:
-                            case StorageEntryType.UefsGitSharedIndexCache:
-                            case StorageEntryType.UefsGitSharedRepository:
-                            case StorageEntryType.UefsGitSharedDependencies:
-                            case StorageEntryType.UefsGitSharedBlobs:
-                                lastUsed = DateTimeOffset.MaxValue;
-                                break;
-                        }
-
-                        await semaphore.WaitAsync(ct).ConfigureAwait(false);
-                        try
-                        {
-                            maxIdLength = Math.Max(maxIdLength, directory.Name.Length);
-                            maxPathLength = Math.Max(maxPathLength, directory.FullName.Length);
-                            maxTypeLength = Math.Max(maxTypeLength, type.ToString().Length);
-
-                            entries.Add(new StorageEntry
-                            {
-                                Id = directory.Name,
-                                Path = directory.FullName,
-                                Type = type,
-                                DiskSpaceConsumed = size,
-                                LastUsed = lastUsed,
-                            });
-                            remaining--;
-                            EmitRemaining();
-                        }
-                        finally
-                        {
-                            semaphore.Release();
-                        }
-
-                        return;
-                    }).ConfigureAwait(false);
+                        Console.WriteLine($"UET is now scanning {info.total} directories to compute disk space usage...  ({info.remaining} to go)");
+                    },
+                    context.GetCancellationToken()).ConfigureAwait(false);
 
                 var now = DateTimeOffset.UtcNow;
-                if (entries.Count > 0)
+                if (result.Entries.Count > 0)
                 {
                     if (!noDiskUsage)
                     {
-                        Console.WriteLine($"{"Id".PadRight(maxIdLength)} | {"Path".PadRight(maxPathLength)} | {"Type".ToString().PadRight(maxTypeLength)} | Disk Space   | Last Used");
-                        foreach (var entry in entries.OrderByDescending(x => x.DiskSpaceConsumed))
+                        Console.WriteLine($"{"Id".PadRight(result.MaxIdLength)} | {"Path".PadRight(result.MaxPathLength)} | {"Type".ToString().PadRight(result.MaxTypeLength)} | Disk Space   | Last Used");
+                        foreach (var entry in result.Entries.OrderByDescending(x => x.DiskSpaceConsumed))
                         {
                             var since = now - entry.LastUsed;
                             var sinceString = since.TotalHours > 24
@@ -258,13 +91,13 @@
                                     break;
                             }
 
-                            Console.WriteLine($"{entry.Id.PadRight(maxIdLength)} | {entry.Path.PadRight(maxPathLength)} | {entry.Type.ToString().PadRight(maxTypeLength)} | {entry.DiskSpaceConsumed / 1024 / 1024,9:F1} MB | {sinceString}");
+                            Console.WriteLine($"{entry.Id.PadRight(result.MaxIdLength)} | {entry.Path.PadRight(result.MaxPathLength)} | {entry.Type.ToString().PadRight(result.MaxTypeLength)} | {entry.DiskSpaceConsumed / 1024 / 1024,9:F1} MB | {sinceString}");
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"{"Id".PadRight(maxIdLength)} | {"Path".PadRight(maxPathLength)} | {"Type".ToString().PadRight(maxTypeLength)} | Last Used");
-                        foreach (var entry in entries.OrderByDescending(x => (now - x.LastUsed).TotalHours))
+                        Console.WriteLine($"{"Id".PadRight(result.MaxIdLength)} | {"Path".PadRight(result.MaxPathLength)} | {"Type".ToString().PadRight(result.MaxTypeLength)} | Last Used");
+                        foreach (var entry in result.Entries.OrderByDescending(x => (now - x.LastUsed).TotalHours))
                         {
                             var since = now - entry.LastUsed;
                             var sinceString = since.TotalHours > 24
@@ -281,7 +114,7 @@
                                     break;
                             }
 
-                            Console.WriteLine($"{entry.Id.PadRight(maxIdLength)} | {entry.Path.PadRight(maxPathLength)} | {entry.Type.ToString().PadRight(maxTypeLength)} | {sinceString}");
+                            Console.WriteLine($"{entry.Id.PadRight(result.MaxIdLength)} | {entry.Path.PadRight(result.MaxPathLength)} | {entry.Type.ToString().PadRight(result.MaxTypeLength)} | {sinceString}");
                         }
                     }
                 }

@@ -4,14 +4,19 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class DefaultReservationManagerForUET : IReservationManagerForUet
+    internal class DefaultReservationManagerForUet : IReservationManagerForUet
     {
         private readonly IReservationManager _reservationManager;
 
-        public DefaultReservationManagerForUET(IReservationManager reservationManager)
+        public DefaultReservationManagerForUet(
+            IReservationManager reservationManager,
+            string path)
         {
             _reservationManager = reservationManager;
+            RootPath = path;
         }
+
+        public string RootPath { get; }
 
         public Task<IReservation> ReserveAsync(string @namespace, params string[] parameters)
         {

@@ -5,6 +5,7 @@
     using Redpoint.Uet.Workspace.ParallelCopy;
     using Redpoint.Uet.Workspace.PhysicalGit;
     using Redpoint.Uet.Workspace.Reservation;
+    using Redpoint.Uet.Workspace.Storage;
 
     public static class WorkspaceServiceExtensions
     {
@@ -31,8 +32,9 @@
                 {
                     rootPath = "/tmp/.ues";
                 }
-                return new DefaultReservationManagerForUET(factory.CreateReservationManager(rootPath));
+                return new DefaultReservationManagerForUet(factory.CreateReservationManager(rootPath), rootPath);
             });
+            services.AddSingleton<IStorageManagement, DefaultStorageManagement>();
         }
     }
 }
