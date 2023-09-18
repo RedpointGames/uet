@@ -295,6 +295,7 @@
         }
 
         public async Task AutoPurgeStorageAsync(
+            bool verbose,
             CancellationToken cancellationToken)
         {
             const long fixedBytesThreshold = 512 * 1024 * 1024L;
@@ -302,12 +303,12 @@
 
             for (int daysThreshold = 7; daysThreshold >= 1; daysThreshold--)
             {
-                long diskSpaceUsedBytes;
+                long diskSpaceAvailableBytes;
                 long diskSpaceTotalBytes;
                 try
                 {
                     var drive = new DriveInfo(Path.GetFullPath(_reservationManagerRootPath));
-                    diskSpaceUsedBytes = drive.AvailableFreeSpace;
+                    diskSpaceAvailableBytes = drive.AvailableFreeSpace;
                     diskSpaceTotalBytes = drive.TotalSize;
                 }
                 catch
@@ -316,11 +317,17 @@
                     return;
                 }
 
-                if ((diskSpaceTotalBytes - diskSpaceUsedBytes) < fixedBytesThreshold)
+                double diskSpacePercentAvailable = diskSpaceAvailableBytes / (double)diskSpaceTotalBytes;
+                if (verbose)
+                {
+                    _logger.LogInformation($"Disk space available: {diskSpaceAvailableBytes / 1024 / 1024} MB ({diskSpacePercentAvailable * 100.0:#.00} %)");
+                }
+
+                if (diskSpaceAvailableBytes < fixedBytesThreshold)
                 {
                     _logger.LogInformation($"Performing automatic storage cleanup for data older than {daysThreshold} days, as the the reservation path has less than {fixedBytesThreshold / 1024 / 1024}MB of disk space left.");
                 }
-                else if (diskSpaceUsedBytes / (double)diskSpaceTotalBytes > (1.0 - percentThreshold))
+                else if (diskSpacePercentAvailable < percentThreshold)
                 {
                     _logger.LogInformation($"Performing automatic storage cleanup for data older than {daysThreshold} days, as the the reservation path has less than {percentThreshold * 100}% of disk space left.");
                 }

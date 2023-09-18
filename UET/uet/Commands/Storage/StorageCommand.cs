@@ -13,6 +13,7 @@
             {
                 StorageListCommand.CreateListCommand(),
                 StoragePurgeCommand.CreatePurgeCommand(),
+                StorageAutoPurgeCommand.CreateAutoPurgeCommand(),
             };
 
             var command = new Command("storage", "View or remove storage used by UET.");

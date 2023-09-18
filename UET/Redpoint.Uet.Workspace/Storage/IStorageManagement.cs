@@ -16,6 +16,8 @@
             int daysThreshold,
             CancellationToken cancellationToken);
 
-        Task AutoPurgeStorageAsync(CancellationToken cancellationToken);
+        Task AutoPurgeStorageAsync(
+            bool verbose,
+            CancellationToken cancellationToken);
     }
 }

@@ -434,7 +434,7 @@
                 throw new BuildPipelineExecutionFailureException("This build executor requires BuildServerOutputFilePath to be set.");
             }
 
-            await _storageManagement.AutoPurgeStorageAsync(cancellationToken).ConfigureAwait(false);
+            await _storageManagement.AutoPurgeStorageAsync(false, cancellationToken).ConfigureAwait(false);
 
             BuildGraphExport buildGraph;
             await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
