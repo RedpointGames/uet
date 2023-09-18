@@ -583,9 +583,11 @@
                                         ExecuteTaskResponse? finalExecuteTaskResponse = null;
                                         await using (core.Request.GetAsyncEnumerator(instance.CancellationToken).AsAsyncDisposable(out var enumerable).ConfigureAwait(false))
                                         {
+                                            _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Begin streaming execution events from worker.");
                                             while (!didComplete && await enumerable.MoveNextAsync(instance.CancellationToken).ConfigureAwait(false))
                                             {
                                                 var current = enumerable.Current;
+                                                _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Received message type: {current.ResponseCase}");
                                                 if (current.ResponseCase != ExecutionResponse.ResponseOneofCase.ExecuteTask)
                                                 {
                                                     throw new RpcException(new Status(
@@ -624,7 +626,9 @@
                                                         break;
                                                 }
                                             }
+                                            _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Finished streaming execution events from worker, releasing reservation request...");
                                         }
+                                        _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Released core reservation request after execution finished.");
 
                                         if (!didComplete)
                                         {
