@@ -112,7 +112,8 @@
                 Request = new BufferedAsyncDuplexStreamingCall<ExecutionRequest, ExecutionResponse>(
                     logger,
                     taskScheduler,
-                    call);
+                    call,
+                    workerCoreUniqueAssignmentId);
                 Request.OnTerminated.Add(OnTerminated);
                 Request.StartObserving();
             }
