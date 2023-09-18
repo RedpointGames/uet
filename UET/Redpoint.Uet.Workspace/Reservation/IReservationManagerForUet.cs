@@ -4,5 +4,9 @@
 
     public interface IReservationManagerForUet : IReservationManager
     {
+        /// <summary>
+        /// The directory under which reservations are made.
+        /// </summary>
+        string RootPath { get; }
     }
 }
