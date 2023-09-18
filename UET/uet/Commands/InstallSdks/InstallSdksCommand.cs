@@ -31,6 +31,7 @@
                     parseArgument: EngineSpec.ParseEngineSpecWithoutPath);
                 Engine.AddAlias("-e");
                 Engine.Arity = ArgumentArity.ExactlyOne;
+                Engine.IsRequired = true;
 
                 ConsolePlatforms = new Option<string[]>(
                     "--console",
