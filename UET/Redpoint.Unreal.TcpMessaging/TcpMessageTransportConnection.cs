@@ -369,6 +369,10 @@ namespace Redpoint.Unreal.TcpMessaging
                 {
                     // This is expected when the connection is being intentionally closed.
                 }
+                catch (OperationCanceledException) when (_disposeCancellationTokenSource.IsCancellationRequested)
+                {
+                    // This is expected when the connection is being intentionally closed.
+                }
                 catch (Exception ex)
                 {
                     _logger?.LogCritical(ex, $"Failed to serialize message: {ex.Message}");
