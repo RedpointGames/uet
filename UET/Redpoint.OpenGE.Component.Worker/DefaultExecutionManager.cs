@@ -64,6 +64,9 @@
                         // "LINK : fatal error LNK1171: unable to load mspdbcore.dll (error code: 1455)"
                         // which can happen under high loads.
                         autoRecover.Add("LNK1171");
+                        // "LINK : fatal error LNK1000: Internal error during CImplib::EmitImportThunk"
+                        // which seems to be a random rare failure inside the MSVC linker.
+                        autoRecover.Add("LNK1000: Internal error");
                     }
                 }
                 do
