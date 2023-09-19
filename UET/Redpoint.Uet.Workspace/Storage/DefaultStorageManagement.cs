@@ -43,6 +43,19 @@
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         static extern uint GetCompressedFileSize(string lpFileName, out uint lpFileSizeHigh);
 
+        private static DateTimeOffset GetLastUsedFromMetaFile(DirectoryInfo directory, FileInfo? metaFile)
+        {
+            DateTimeOffset lastUsed = directory.LastWriteTimeUtc;
+            if (metaFile != null && metaFile.Exists)
+            {
+                if (long.TryParse(File.ReadAllText(metaFile.FullName).Trim(), CultureInfo.InvariantCulture, out var timestamp))
+                {
+                    lastUsed = DateTimeOffset.FromUnixTimeSeconds(timestamp);
+                }
+            }
+            return lastUsed;
+        }
+
         public async Task<ListStorageResult> ListStorageAsync(
             bool includeDiskUsage,
             Action<int> onStart,
@@ -169,11 +182,7 @@
                         }
                     }
 
-                    DateTimeOffset lastUsed = directory.LastWriteTimeUtc;
-                    if (entry.metaFile != null && entry.metaFile.Exists)
-                    {
-                        lastUsed = DateTimeOffset.FromUnixTimeSeconds(long.Parse(File.ReadAllText(entry.metaFile.FullName).Trim(), CultureInfo.InvariantCulture));
-                    }
+                    var lastUsed = GetLastUsedFromMetaFile(directory, entry.metaFile);
 
                     switch (type)
                     {
@@ -255,11 +264,7 @@
                         return;
                     }
 
-                    DateTimeOffset lastUsed = directory.LastWriteTimeUtc;
-                    if (entry.metaFile != null && entry.metaFile.Exists)
-                    {
-                        lastUsed = DateTimeOffset.FromUnixTimeSeconds(long.Parse(File.ReadAllText(entry.metaFile.FullName).Trim(), CultureInfo.InvariantCulture));
-                    }
+                    var lastUsed = GetLastUsedFromMetaFile(directory, entry.metaFile);
 
                     var lastUsedDays = now - lastUsed;
                     if (Math.Ceiling(lastUsedDays.TotalDays) >= daysThreshold)
