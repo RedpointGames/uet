@@ -182,7 +182,14 @@
                 5000,
                 () =>
                 {
-                    if (_blobManager.IsTransferringFromPeer(context))
+                    if (OperatingSystem.IsMacOS())
+                    {
+                        // @note: It looks like there might be a macOS-specific bug where a server cancelling a streaming RPC
+                        // request causes all other streaming RPC calls to stall indefinitely. See the GitHub issue for
+                        // more information: https://github.com/grpc/grpc-dotnet/issues/2280
+                        return ConnectionIdleEventOutcome.ResetIdleTimer;
+                    }
+                    else if (_blobManager.IsTransferringFromPeer(context))
                     {
                         return ConnectionIdleEventOutcome.ResetIdleTimer;
                     }
