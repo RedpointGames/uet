@@ -89,7 +89,7 @@
                     {
                         if (_logger.IsEnabled(LogLevel.Trace))
                         {
-                            _logger.LogTrace("Worker process response stream: " + response.ToString());
+                            _logger.LogTrace($"{executionGuid}: Worker process response stream: " + response.ToString());
                         }
                         if (didGetExitCode)
                         {
