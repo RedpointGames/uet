@@ -117,6 +117,10 @@
                         if (shouldAutoRecover)
                         {
                             // We must auto-recover and restart the process.
+                            if (_logger.IsEnabled(LogLevel.Trace))
+                            {
+                                _logger.LogTrace($"{executionGuid}: Detecting auto-recovery required due to output content. Automatically restarting process...");
+                            }
                             restartingCancellationTokenSource.Cancel();
                             restartingCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
                                 cancellationToken);
