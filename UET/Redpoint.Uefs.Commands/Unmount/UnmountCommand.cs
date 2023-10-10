@@ -72,7 +72,7 @@
 
                     return 0;
                 }
-                else if (string.IsNullOrWhiteSpace(id))
+                else if (!string.IsNullOrWhiteSpace(id))
                 {
                     var mount = response.Mounts.FirstOrDefault(x => x.Id == id);
                     if (mount == null)
@@ -92,7 +92,7 @@
                     Console.WriteLine($"successfully unmounted: {mount.MountPath}");
                     return 0;
                 }
-                else if (string.IsNullOrWhiteSpace(mountPath))
+                else if (!string.IsNullOrWhiteSpace(mountPath))
                 {
                     var mount = response.Mounts.FirstOrDefault(x => x.MountPath.Equals(mountPath, StringComparison.OrdinalIgnoreCase));
                     if (mount == null)
