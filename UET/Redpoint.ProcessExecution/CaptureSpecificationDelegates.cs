@@ -1,5 +1,8 @@
 ﻿namespace Redpoint.ProcessExecution
 {
+    /// <summary>
+    /// Encapsulates delegates for <see cref="CaptureSpecification.CreateFromDelegates(CaptureSpecificationDelegates)"/>.
+    /// </summary>
     public class CaptureSpecificationDelegates
     {
         /// <summary>

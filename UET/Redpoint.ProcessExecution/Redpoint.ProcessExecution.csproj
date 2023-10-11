@@ -4,6 +4,12 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>Provides better APIs for executing processes in C#, including asynchronous enumerators over process execution.</Description>
+    <PackageTags>process, execution</PackageTags>
+  </PropertyGroup>
+
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <ItemGroup>
