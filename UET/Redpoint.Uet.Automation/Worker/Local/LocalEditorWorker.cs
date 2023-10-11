@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.Automation.Worker.Local
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Concurrency;
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
     using System;
@@ -21,6 +22,8 @@
         private readonly CancellationTokenSource _cancellationTokenSource;
         private Task? _backgroundTask;
         private TimeSpan _startupDuration;
+        private bool _disposed;
+        private Mutex _disposeMutex;
 
         public LocalEditorWorker(
             ILogger<LocalEditorWorker> logger,
@@ -43,6 +46,8 @@
             _onWorkerStarted = onWorkerStarted;
             _onWorkerExited = onWorkerExited;
             _cancellationTokenSource = new CancellationTokenSource();
+            _disposed = false;
+            _disposeMutex = new Mutex();
         }
 
         public override string Id { get; }
@@ -311,19 +316,33 @@
 
         public override async ValueTask DisposeAsync()
         {
-            _cancellationTokenSource.Cancel();
-            if (_backgroundTask != null)
+            if (_disposed)
             {
-                try
-                {
-                    await _backgroundTask.ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                }
+                return;
             }
-            await _portReservation.DisposeAsync().ConfigureAwait(false);
-            _cancellationTokenSource.Dispose();
+
+            using (await _disposeMutex.WaitAsync(CancellationToken.None).ConfigureAwait(false))
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                _cancellationTokenSource.Cancel();
+                if (_backgroundTask != null)
+                {
+                    try
+                    {
+                        await _backgroundTask.ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
+                }
+                await _portReservation.DisposeAsync().ConfigureAwait(false);
+                _cancellationTokenSource.Dispose();
+                _disposed = true;
+            }
         }
 
         bool ICaptureSpecification.InterceptStandardInput => true;
