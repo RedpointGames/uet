@@ -7,9 +7,20 @@
     using Windows.Win32;
     using Windows.Win32.Storage.FileSystem;
 
+    /// <summary>
+    /// Provides APIs for interacting with junctions on Windows.
+    /// </summary>
     [SupportedOSPlatform("windows5.1.2600")]
     public static class Junction
     {
+        /// <summary>
+        /// Creates a junction on Windows. <paramref name="junctionTarget"/> will be resolved to the fully qualified DOS device path automatically.
+        /// </summary>
+        /// <param name="pathOfJunction">The path that the junction should be created at.</param>
+        /// <param name="junctionTarget">The target directory that the junction should point at.</param>
+        /// <param name="overwrite">If true and there is an existing junction at <paramref name="pathOfJunction"/>, it will be removed.</param>
+        /// <exception cref="ArgumentException">The junction target is not a fully qualified absolute path.</exception>
+        /// <exception cref="IOException">A directory already exists at <paramref name="pathOfJunction"/> and <paramref name="overwrite"/> is false.</exception>
         public static void CreateJunction(
             string pathOfJunction,
             string junctionTarget,
@@ -95,6 +106,14 @@
             }
         }
 
+        /// <summary>
+        /// Creates a junction on Windows, with the raw <paramref name="junctionRawTarget"/> set as the target. You must provide an already valid target for the junction in <paramref name="junctionRawTarget"/> or the junction will not work correctly when applications try to use it.
+        /// </summary>
+        /// <param name="pathOfJunction">The path that the junction should be created at.</param>
+        /// <param name="junctionRawTarget">The raw value that should be set into the junction.</param>
+        /// <param name="overwrite">If true and there is an existing junction at <paramref name="pathOfJunction"/>, it will be removed.</param>
+        /// <exception cref="ArgumentException">The junction target is not a fully qualified absolute path.</exception>
+        /// <exception cref="IOException">A directory already exists at <paramref name="pathOfJunction"/> and <paramref name="overwrite"/> is false.</exception>
         public static void CreateRawJunction(
             string pathOfJunction,
             string junctionRawTarget,

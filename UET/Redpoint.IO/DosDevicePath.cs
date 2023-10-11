@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Redpoint.IO
+﻿namespace Redpoint.IO
 {
     using System;
     using System.ComponentModel;
@@ -8,8 +6,22 @@ namespace Redpoint.IO
     using System.Runtime.Versioning;
     using Windows.Win32;
 
+    /// <summary>
+    /// Provides APIs for interacting with DOS device paths on Windows.
+    /// </summary>
     public static class DosDevicePath
     {
+        /// <summary>
+        /// Returns the fully qualified DOS device path (such as \Device\HarddiskVolume3\Directory\File)
+        /// for the specified input path (such as C:\Directory\File). DOS device paths always refer
+        /// to the same file on the same hard disk volume, regardless of drive letter mappings, which
+        /// makes them suitable for junction targets.
+        /// </summary>
+        /// <param name="path">The original path, such as C:\Directory\File.</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">The <paramref name="path"/> value is null.</exception>
+        /// <exception cref="Win32Exception">A native error was returned from the Win32 QueryDosDevice call.</exception>
+        /// <exception cref="InvalidOperationException">The QueryDosDevice call did not return a device name for the specified path.</exception>
         [SupportedOSPlatform("windows5.1.2600")]
         public unsafe static string GetFullyQualifiedDosDevicePath(string path)
         {

@@ -1,6 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>Provides additional APIs for interacting with Windows filesystem features such as junctions and hard links.</Description>
+    <PackageTags>junction, hard link, dos device path, windows, io, filesystem</PackageTags>
+  </PropertyGroup>
   
   <ItemGroup>
     <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.18-beta">

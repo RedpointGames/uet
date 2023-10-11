@@ -6,9 +6,20 @@
     using Windows.Win32;
     using Windows.Win32.Foundation;
 
+    /// <summary>
+    /// Provides APIs for interacting with hard links on Windows.
+    /// </summary>
     [SupportedOSPlatform("windows5.1.2600")]
     public static class HardLink
     {
+        /// <summary>
+        /// Creates a file hard link on Windows.
+        /// </summary>
+        /// <param name="pathOfLink">The path that the hard link should be created at.</param>
+        /// <param name="existingFile">The target file that the hard link should point at.</param>
+        /// <param name="overwrite">If true and there is an existing file at <paramref name="pathOfLink"/>, it will be removed.</param>
+        /// <exception cref="ArgumentNullException">One or more arguments have null values.</exception>
+        /// <exception cref="IOException">The hard link could not be created due to a native Win32 error.</exception>
         public static void CreateHardLink(
             string pathOfLink,
             string existingFile,
