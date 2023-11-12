@@ -10,7 +10,7 @@ namespace Redpoint.Windows.HandleManagement.Tests
             public int HandlePathsQueriedSuccessfully;
         }
 
-        [SkippableFact]
+        [Fact(Skip = "This test is unreliable.")]
         [SupportedOSPlatform("windows6.2")]
         public async Task CanQuerySystemHandlesInternal()
         {
@@ -46,7 +46,7 @@ namespace Redpoint.Windows.HandleManagement.Tests
             Assert.True(holder.HandlePathsQueriedSuccessfully > 0, "Expected to be able to get the path of at least one handle on the system.");
         }
 
-        [SkippableFact]
+        [Fact(Skip = "This test is unreliable.")]
         [SupportedOSPlatform("windows6.2")]
         public async Task CanQueryRawHandles()
         {
@@ -55,7 +55,7 @@ namespace Redpoint.Windows.HandleManagement.Tests
             Assert.NotEmpty(await NativeHandles.GetAllHandlesAsync(CancellationToken.None).ToListAsync());
         }
 
-        [SkippableFact]
+        [Fact(Skip = "This test is unreliable.")]
         [SupportedOSPlatform("windows6.2")]
         public async Task CanQueryFileHandles()
         {
@@ -64,7 +64,7 @@ namespace Redpoint.Windows.HandleManagement.Tests
             Assert.NotEmpty(await NativeHandles.GetAllFileHandlesAsync(CancellationToken.None).ToListAsync());
         }
 
-        [SkippableFact]
+        [Fact(Skip = "This test is unreliable.")]
         [SupportedOSPlatform("windows6.2")]
         public async Task CanSeeOurOwnHandle()
         {
@@ -90,7 +90,7 @@ namespace Redpoint.Windows.HandleManagement.Tests
             Assert.True(found);
         }
 
-        [SkippableFact]
+        [Fact(Skip = "This test is unreliable.")]
         [SupportedOSPlatform("windows6.2")]
         public async Task CanCloseOurOwnHandle()
         {

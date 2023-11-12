@@ -27,6 +27,7 @@
         /// <inheritdoc />
         public void Add(Func<CancellationToken, Task> handler)
         {
+            ArgumentNullException.ThrowIfNull(handler);
             using var _ = _handlersLock.Wait(CancellationToken.None);
             _handlers.Add(handler);
         }
@@ -34,6 +35,7 @@
         /// <inheritdoc />
         public async Task AddAsync(Func<CancellationToken, Task> handler)
         {
+            ArgumentNullException.ThrowIfNull(handler);
             using var _ = await _handlersLock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             _handlers.Add(handler);
         }
@@ -41,6 +43,7 @@
         /// <inheritdoc />
         public void Remove(Func<CancellationToken, Task> handler)
         {
+            ArgumentNullException.ThrowIfNull(handler);
             using var _ = _handlersLock.Wait(CancellationToken.None);
             _handlers.Remove(handler);
         }
@@ -48,6 +51,7 @@
         /// <inheritdoc />
         public async Task RemoveAsync(Func<CancellationToken, Task> handler)
         {
+            ArgumentNullException.ThrowIfNull(handler);
             using var _ = await _handlersLock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             _handlers.Remove(handler);
         }
@@ -64,13 +68,20 @@
             {
                 handlers = _handlers.ToArray();
             }
-            await Parallel.ForEachAsync(
+            if (handlers != null && handlers.Length > 0)
+            {
+                await Parallel.ForEachAsync(
                 handlers,
                 cancellationToken,
                 async (handler, ct) =>
                 {
+                    if (handler == null)
+                    {
+                        throw new InvalidOperationException($"'handler' is null in BroadcastAsync, which should not be possible.");
+                    }
                     await handler(ct).ConfigureAwait(false);
                 }).ConfigureAwait(false);
+            }
         }
     }
 
@@ -95,6 +106,7 @@
         /// <inheritdoc />
         public void Add(Func<TArgs, CancellationToken, Task> handler)
         {
+            ArgumentNullException.ThrowIfNull(handler);
             using var _ = _handlersLock.Wait(CancellationToken.None);
             _handlers.Add(handler);
         }
@@ -102,6 +114,7 @@
         /// <inheritdoc />
         public async Task AddAsync(Func<TArgs, CancellationToken, Task> handler)
         {
+            ArgumentNullException.ThrowIfNull(handler);
             using var _ = await _handlersLock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             _handlers.Add(handler);
         }
@@ -109,6 +122,7 @@
         /// <inheritdoc />
         public void Remove(Func<TArgs, CancellationToken, Task> handler)
         {
+            ArgumentNullException.ThrowIfNull(handler);
             using var _ = _handlersLock.Wait(CancellationToken.None);
             _handlers.Remove(handler);
         }
@@ -116,6 +130,7 @@
         /// <inheritdoc />
         public async Task RemoveAsync(Func<TArgs, CancellationToken, Task> handler)
         {
+            ArgumentNullException.ThrowIfNull(handler);
             using var _ = await _handlersLock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             _handlers.Remove(handler);
         }
@@ -133,13 +148,20 @@
             {
                 handlers = _handlers.ToArray();
             }
-            await Parallel.ForEachAsync(
-                handlers,
-                cancellationToken,
-                async (handler, ct) =>
-                {
-                    await handler(args, ct).ConfigureAwait(false);
-                }).ConfigureAwait(false);
+            if (handlers != null && handlers.Length > 0)
+            {
+                await Parallel.ForEachAsync(
+                    handlers,
+                    cancellationToken,
+                    async (handler, ct) =>
+                    {
+                        if (handler == null)
+                        {
+                            throw new InvalidOperationException($"'handler' is null in BroadcastAsync, which should not be possible.");
+                        }
+                        await handler(args, ct).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
+            }
         }
     }
 }
