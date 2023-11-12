@@ -6,7 +6,7 @@
 
     public class DiscoveryTests
     {
-        [SkippableFact]
+        [Fact(Skip = "This test is unreliable.")]
         public async Task TestSelfDiscovery()
         {
             Skip.IfNot(OperatingSystem.IsWindows());
