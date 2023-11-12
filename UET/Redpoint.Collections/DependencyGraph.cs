@@ -33,11 +33,13 @@
 
             foreach (var downstream in _keyDependsOn[key])
             {
-                if (!_dependsOnKey.ContainsKey(downstream))
+                if (!_dependsOnKey.TryGetValue(downstream, out HashSet<TValue>? value))
                 {
-                    _dependsOnKey[downstream] = new HashSet<TValue>();
+                    value = new HashSet<TValue>();
+                    _dependsOnKey[downstream] = value;
                 }
-                _dependsOnKey[downstream].Add(key);
+
+                value.Add(key);
             }
         }
 
@@ -54,15 +56,14 @@
         /// <inheritdoc />
         public void WhatTargetDependsOnRecursive(TValue target, HashSet<TValue> dependencies)
         {
-            if (dependencies == null) throw new ArgumentNullException(nameof(dependencies));
+            ArgumentNullException.ThrowIfNull(dependencies);
 
             if (_keyDependsOn.TryGetValue(target, out var iter))
             {
                 foreach (var downstream in iter)
                 {
-                    if (!dependencies.Contains(downstream))
+                    if (dependencies.Add(downstream))
                     {
-                        dependencies.Add(downstream);
                         WhatTargetDependsOnRecursive(downstream, dependencies);
                     }
                 }
@@ -82,15 +83,14 @@
         /// <inheritdoc />
         public void WhatDependsOnTargetRecursive(TValue target, HashSet<TValue> dependents)
         {
-            if (dependents == null) throw new ArgumentNullException(nameof(dependents));
+            ArgumentNullException.ThrowIfNull(dependents);
 
             if (_dependsOnKey.TryGetValue(target, out var iter))
             {
                 foreach (var upstream in iter)
                 {
-                    if (!dependents.Contains(upstream))
+                    if (dependents.Add(upstream))
                     {
-                        dependents.Add(upstream);
                         WhatDependsOnTargetRecursive(upstream, dependents);
                     }
                 }

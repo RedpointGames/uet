@@ -169,11 +169,11 @@
                     await _iterationMutex.WaitAsync(cancellationToken).ConfigureAwait(false);
                     try
                     {
-                        if (_buffers.ContainsKey(classification))
+                        if (_buffers.TryGetValue(classification, out Queue<T>? earlyValue))
                         {
-                            if (_buffers[classification].Count > 0)
+                            if (earlyValue.Count > 0)
                             {
-                                return (true, _buffers[classification].Dequeue());
+                                return (true, earlyValue.Dequeue());
                             }
                         }
 
@@ -198,11 +198,13 @@
                             }
                             else
                             {
-                                if (!_buffers.ContainsKey(nextClassification))
+                                if (!_buffers.TryGetValue(nextClassification, out Queue<T>? newValue))
                                 {
-                                    _buffers[nextClassification] = new Queue<T>();
+                                    newValue = new Queue<T>();
+                                    _buffers[nextClassification] = newValue;
                                 }
-                                _buffers[nextClassification].Enqueue(_source.Current);
+
+                                newValue.Enqueue(_source.Current);
 
                                 // Try to get another item that matches the classification the caller wants.
                                 continue;
