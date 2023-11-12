@@ -17,7 +17,7 @@
         [SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Shuffle() is not intended to be used in security-related scenarios.")]
         public static void Shuffle<T>(this List<T> list)
         {
-            if (list == null) throw new ArgumentNullException(nameof(list));
+            ArgumentNullException.ThrowIfNull(list);
 
             for (var i = list.Count - 1; i > 0; i--)
             {
