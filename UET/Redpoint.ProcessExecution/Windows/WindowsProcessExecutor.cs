@@ -369,7 +369,7 @@
                         while (!standardOutput!.EndOfStream)
                         {
                             var line = (await standardOutput.ReadLineAsync().ConfigureAwait(false))?.TrimEnd();
-                            if (!string.IsNullOrWhiteSpace(line))
+                            if (line != null)
                             {
                                 captureSpecification.OnReceiveStandardOutput(line);
                             }
@@ -383,7 +383,7 @@
                         while (!standardError!.EndOfStream)
                         {
                             var line = (await standardError.ReadLineAsync().ConfigureAwait(false))?.TrimEnd();
-                            if (!string.IsNullOrWhiteSpace(line))
+                            if (line != null)
                             {
                                 captureSpecification.OnReceiveStandardError(line);
                             }

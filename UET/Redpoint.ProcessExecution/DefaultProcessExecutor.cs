@@ -138,7 +138,7 @@
                         while (!process.StandardOutput.EndOfStream)
                         {
                             var line = (await process.StandardOutput.ReadLineAsync(processExitWindDownCancellationTokenSource.Token).ConfigureAwait(false))?.TrimEnd();
-                            if (!string.IsNullOrWhiteSpace(line))
+                            if (line != null)
                             {
                                 captureSpecification.OnReceiveStandardOutput(line);
                             }
@@ -152,7 +152,7 @@
                         while (!process.StandardError.EndOfStream)
                         {
                             var line = (await process.StandardError.ReadLineAsync(processExitWindDownCancellationTokenSource.Token).ConfigureAwait(false))?.TrimEnd();
-                            if (!string.IsNullOrWhiteSpace(line))
+                            if (line != null)
                             {
                                 captureSpecification.OnReceiveStandardError(line);
                             }
