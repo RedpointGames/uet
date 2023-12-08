@@ -57,8 +57,8 @@
 
         public static async ValueTask Serialize(this Archive ar, Store<Guid> value)
         {
-            if (ar == null) throw new ArgumentNullException(nameof(ar));
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(ar);
+            ArgumentNullException.ThrowIfNull(value);
 
             if (ar.IsLoading)
             {

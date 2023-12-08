@@ -4,7 +4,7 @@
     {
         public TopLevelAssetPathNotFoundException(TopLevelAssetPath assetPath) : base($"No class mapping for [TopLevelAssetPath] PackageName={assetPath?.PackageName} AssetName={assetPath?.AssetName}")
         {
-            if (assetPath == null) throw new ArgumentNullException(nameof(assetPath));
+            ArgumentNullException.ThrowIfNull(assetPath);
 
             AssetPath = assetPath;
         }

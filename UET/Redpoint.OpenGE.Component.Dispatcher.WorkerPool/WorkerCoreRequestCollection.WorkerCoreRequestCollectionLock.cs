@@ -30,10 +30,7 @@
 
             public ValueTask DisposeAsync()
             {
-                if (_disposed)
-                {
-                    throw new ObjectDisposedException("WorkerCoreRequestCollectionLock");
-                }
+                ObjectDisposedException.ThrowIf(_disposed, this);
 
                 _disposed = true;
                 _lock.Dispose();
@@ -57,20 +54,14 @@
 
                 public async Task FulfillRequestAsync(TWorkerCore core)
                 {
-                    if (_lock._disposed)
-                    {
-                        throw new ObjectDisposedException("WorkerCoreRequestCollectionLock");
-                    }
+                    ObjectDisposedException.ThrowIf(_lock._disposed, _lock);
 
                     await ((WorkerCoreRequest<TWorkerCore>)_request).FulfillRequestWithinLockAsync(core).ConfigureAwait(false);
                 }
 
                 public ValueTask DisposeAsync()
                 {
-                    if (_lock._disposed)
-                    {
-                        throw new ObjectDisposedException("WorkerCoreRequestCollectionLock");
-                    }
+                    ObjectDisposedException.ThrowIf(_lock._disposed, _lock);
 
                     return ValueTask.CompletedTask;
                 }

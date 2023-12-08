@@ -19,7 +19,7 @@
             internal IntPtr _inheritedFromUniqueProcessId;
         }
 
-        [LibraryImport("ntdll.dll")]
+        [LibraryImport("ntdll.dll"), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         private static partial int NtQueryInformationProcess(IntPtr processHandle, int processInformationClass, ref ProcessBasicInformation processInformation, int processInformationLength, out int returnLength);
 
         private static Process? GetParentProcess(IntPtr handle)

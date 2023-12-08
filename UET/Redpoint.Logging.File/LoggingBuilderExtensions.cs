@@ -16,7 +16,7 @@
         /// <returns>The logging builder.</returns>
         public static ILoggingBuilder AddFile(this ILoggingBuilder builder, FileStream logFile)
         {
-            if (builder == null) throw new ArgumentNullException(nameof(builder));
+            ArgumentNullException.ThrowIfNull(builder);
             builder.Services.AddSingleton<ILoggerProvider, FileLoggerProvider>(services => new FileLoggerProvider(logFile));
             return builder;
         }

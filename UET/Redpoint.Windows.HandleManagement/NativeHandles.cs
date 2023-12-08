@@ -466,7 +466,7 @@ namespace Redpoint.Windows.HandleManagement
         /// <exception cref="NTSTATUSException">Thrown if the handle can not be forcibly closed.</exception>
         public static Task ForciblyCloseHandleAsync(INativeHandle nativeHandle, CancellationToken cancellationToken)
         {
-            if (nativeHandle == null) throw new ArgumentNullException(nameof(nativeHandle));
+            ArgumentNullException.ThrowIfNull(nativeHandle);
 
             INativeHandleInternal nativeHandleInternal = (INativeHandleInternal)nativeHandle;
 

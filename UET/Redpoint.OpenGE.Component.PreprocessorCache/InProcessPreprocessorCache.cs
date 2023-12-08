@@ -39,17 +39,11 @@
 
         public async override ValueTask DisposeAsync()
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(InProcessPreprocessorCache));
-            }
+            ObjectDisposedException.ThrowIf(_disposed, this);
             await _initSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
-                if (_disposed)
-                {
-                    throw new ObjectDisposedException(nameof(InProcessPreprocessorCache));
-                }
+                ObjectDisposedException.ThrowIf(_disposed, this);
                 if (!_inited)
                 {
                     _disposed = true;
@@ -76,10 +70,7 @@
 
         public async override Task EnsureAsync()
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(InProcessPreprocessorCache));
-            }
+            ObjectDisposedException.ThrowIf(_disposed, this);
             if (_inited)
             {
                 return;
@@ -87,10 +78,7 @@
             await _initSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
-                if (_disposed)
-                {
-                    throw new ObjectDisposedException(nameof(InProcessPreprocessorCache));
-                }
+                ObjectDisposedException.ThrowIf(_disposed, this);
                 if (_inited)
                 {
                     return;

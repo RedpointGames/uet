@@ -170,7 +170,7 @@
             WorkerCoreProviderCollection<TWorkerCore> providerCollection,
             bool canFulfillLocalRequests)
         {
-            if (taskScheduler == null) throw new ArgumentNullException(nameof(taskScheduler));
+            ArgumentNullException.ThrowIfNull(taskScheduler);
 
             _logger = logger;
             _taskSchedulerScope = taskScheduler.CreateSchedulerScope("MultipleSourceWorkerCoreRequestFulfiller", CancellationToken.None);

@@ -25,7 +25,7 @@
 
         protected override void ValidateOutbound(ExecutionRequest outbound)
         {
-            if (outbound == null) throw new ArgumentNullException(nameof(outbound));
+            ArgumentNullException.ThrowIfNull(outbound);
             if (outbound.RequestCase != ExecutionRequest.RequestOneofCase.SendCompressedBlobs)
             {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Expected only SendCompressedBlobsRequest at this time."));
@@ -34,13 +34,13 @@
 
         protected override ByteString GetData(ExecutionRequest outbound)
         {
-            if (outbound == null) throw new ArgumentNullException(nameof(outbound));
+            ArgumentNullException.ThrowIfNull(outbound);
             return outbound.SendCompressedBlobs.Data;
         }
 
         protected override bool GetFinished(ExecutionRequest outbound)
         {
-            if (outbound == null) throw new ArgumentNullException(nameof(outbound));
+            ArgumentNullException.ThrowIfNull(outbound);
             return outbound.SendCompressedBlobs.FinishWrite;
         }
     }

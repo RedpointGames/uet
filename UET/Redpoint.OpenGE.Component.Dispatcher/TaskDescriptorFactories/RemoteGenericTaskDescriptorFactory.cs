@@ -12,7 +12,7 @@
 
     internal class RemoteGenericTaskDescriptorFactory : RemoteTaskDescriptorFactory
     {
-        private ISet<string> _recognisedTools = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        private HashSet<string> _recognisedTools = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "cl.exe",
         };

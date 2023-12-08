@@ -18,6 +18,7 @@
     using System.Text.Json.Serialization;
     using Redpoint.Uet.Configuration;
     using Redpoint.RuntimeJson;
+    using System.Globalization;
 
     internal sealed class AutomationProjectTestProvider : IProjectTestProvider, IDynamicReentrantExecutor<BuildConfigProjectDistribution, BuildConfigProjectTestAutomation>
     {
@@ -84,7 +85,7 @@
                                         arguments.AddRange(new string[]
                                         {
                                             "--min-worker-count",
-                                            test.settings.MinWorkerCount.ToString()!
+                                            test.settings.MinWorkerCount.Value.ToString(CultureInfo.InvariantCulture)
                                         });
                                     }
                                     if (test.settings.TestRunTimeoutMinutes != null)
@@ -92,7 +93,7 @@
                                         arguments.AddRange(new string[]
                                         {
                                             "--test-run-timeout-minutes",
-                                            test.settings.TestRunTimeoutMinutes.ToString()!
+                                            test.settings.TestRunTimeoutMinutes.Value.ToString(CultureInfo.InvariantCulture)
                                         });
                                     }
                                     if (test.settings.TestTimeoutMinutes != null)
@@ -100,7 +101,7 @@
                                         arguments.AddRange(new string[]
                                         {
                                             "--test-timeout-minutes",
-                                            test.settings.TestTimeoutMinutes.ToString()!
+                                            test.settings.TestTimeoutMinutes.Value.ToString(CultureInfo.InvariantCulture)
                                         });
                                     }
                                     if (test.settings.TestAttemptCount != null)
@@ -108,7 +109,7 @@
                                         arguments.AddRange(new string[]
                                         {
                                             "--test-attempt-count",
-                                            test.settings.TestAttemptCount.ToString()!
+                                            test.settings.TestAttemptCount.Value.ToString(CultureInfo.InvariantCulture)
                                         });
                                     }
 

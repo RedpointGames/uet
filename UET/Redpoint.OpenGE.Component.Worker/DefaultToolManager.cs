@@ -335,10 +335,7 @@
 
         private async Task<string> GetToolsPath(CancellationToken cancellationToken)
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(DefaultToolManager));
-            }
+            ObjectDisposedException.ThrowIf(_disposed, this);
             if (_toolsReservation != null)
             {
                 return _toolsReservation.ReservedPath;
@@ -346,10 +343,7 @@
             await _toolsReservationSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                if (_disposed)
-                {
-                    throw new ObjectDisposedException(nameof(DefaultToolManager));
-                }
+                ObjectDisposedException.ThrowIf(_disposed, this);
                 if (_toolsReservation != null)
                 {
                     return _toolsReservation.ReservedPath;
@@ -365,10 +359,7 @@
 
         private async Task<string> GetToolBlobsPath(CancellationToken cancellationToken)
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(DefaultToolManager));
-            }
+            ObjectDisposedException.ThrowIf(_disposed, this);
             if (_toolBlobsReservation != null)
             {
                 return _toolBlobsReservation.ReservedPath;
@@ -376,10 +367,7 @@
             await _toolsReservationSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                if (_disposed)
-                {
-                    throw new ObjectDisposedException(nameof(DefaultToolManager));
-                }
+                ObjectDisposedException.ThrowIf(_disposed, this);
                 if (_toolBlobsReservation != null)
                 {
                     return _toolBlobsReservation.ReservedPath;

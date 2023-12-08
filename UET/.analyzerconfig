@@ -65,3 +65,7 @@ dotnet_diagnostic.CA2254.severity = none
 
 # We should eventually convert Flush/Dispose calls to FlushAsync/DisposeAsync.
 dotnet_diagnostic.CA1849.severity = none
+
+# Constant arrays are better supported in .NET 8 (and don't require static readonly), so we'll
+# move to using those instead of static readonly fields everywhere.
+dotnet_diagnostic.CA1861.severity = none

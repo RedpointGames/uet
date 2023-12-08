@@ -13,7 +13,7 @@
 
     public class MultipleSourceWorkerCoreRequestFulfillerTests
     {
-        private static IServiceProvider BuildServiceProvider()
+        private static ServiceProvider BuildServiceProvider()
         {
             var services = new ServiceCollection();
             services.AddLogging();

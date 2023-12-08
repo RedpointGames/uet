@@ -43,7 +43,7 @@
 
         public static BuildGraphScriptSpecification FromReparsableString(string input)
         {
-            if (input == null) throw new ArgumentNullException(nameof(input));
+            ArgumentNullException.ThrowIfNull(input);
 
             if (input == "plugin")
             {

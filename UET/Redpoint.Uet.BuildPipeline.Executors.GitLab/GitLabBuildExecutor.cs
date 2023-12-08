@@ -35,7 +35,7 @@
             BuildServerPipeline buildServerPipeline,
             string buildServerOutputFilePath)
         {
-            if (buildServerPipeline == null) throw new ArgumentNullException(nameof(buildServerPipeline));
+            ArgumentNullException.ThrowIfNull(buildServerPipeline);
 
             _logger.LogInformation("Generating .gitlab-ci.yml content...");
 

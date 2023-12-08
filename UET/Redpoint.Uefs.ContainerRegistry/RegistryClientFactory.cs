@@ -99,7 +99,7 @@
         /// <returns>The new <see cref="IRegistryClient"/> instance.</returns>
         public static IRegistryClient GetRegistryClient(string host, RegistryCredential credential)
         {
-            if (credential == null) throw new ArgumentNullException(nameof(credential));
+            ArgumentNullException.ThrowIfNull(credential);
 
             var configuration = new RegistryClientConfiguration(host);
             return configuration.CreateClient(new GetPasswordOAuthAuthenticationProvider(credential.Username, credential.Password));

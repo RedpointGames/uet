@@ -56,8 +56,8 @@
             string nodeName,
             CancellationToken cancellationToken)
         {
-            if (buildSpecification == null) throw new ArgumentNullException(nameof(buildSpecification));
-            if (buildExecutionEvents == null) throw new ArgumentNullException(nameof(buildExecutionEvents));
+            ArgumentNullException.ThrowIfNull(buildSpecification);
+            ArgumentNullException.ThrowIfNull(buildExecutionEvents);
 
             var repository = System.Environment.GetEnvironmentVariable("CI_REPOSITORY_URL")!;
             var commit = System.Environment.GetEnvironmentVariable("CI_COMMIT_SHA")!;

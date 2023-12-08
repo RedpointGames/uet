@@ -25,8 +25,8 @@
             string existingFile,
             bool overwrite)
         {
-            if (pathOfLink == null) throw new ArgumentNullException(nameof(pathOfLink));
-            if (existingFile == null) throw new ArgumentNullException(nameof(existingFile));
+            ArgumentNullException.ThrowIfNull(pathOfLink);
+            ArgumentNullException.ThrowIfNull(existingFile);
 
             if (!Path.IsPathFullyQualified(pathOfLink))
             {

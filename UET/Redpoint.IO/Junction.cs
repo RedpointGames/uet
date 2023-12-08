@@ -119,8 +119,8 @@
             string junctionRawTarget,
             bool overwrite)
         {
-            if (pathOfJunction == null) throw new ArgumentNullException(nameof(pathOfJunction));
-            if (junctionRawTarget == null) throw new ArgumentNullException(nameof(junctionRawTarget));
+            ArgumentNullException.ThrowIfNull(pathOfJunction);
+            ArgumentNullException.ThrowIfNull(junctionRawTarget);
 
             if (Directory.Exists(pathOfJunction))
             {

@@ -227,7 +227,7 @@
                     var firstAt = value.IndexOf('@', StringComparison.Ordinal);
                     var commit = value[..firstAt];
                     value = value[(firstAt + 1)..];
-                    var firstComma = value.IndexOf(",", StringComparison.Ordinal);
+                    var firstComma = value.IndexOf(',', StringComparison.Ordinal);
                     var url = firstComma == -1 ? value : value[..firstComma];
                     (string type, string value)[] layers;
                     if (firstComma != -1)

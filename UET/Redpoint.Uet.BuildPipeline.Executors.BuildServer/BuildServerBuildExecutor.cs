@@ -427,7 +427,7 @@
             ICaptureSpecification generationCaptureSpecification,
             CancellationToken cancellationToken)
         {
-            if (buildSpecification == null) throw new ArgumentNullException(nameof(buildSpecification));
+            ArgumentNullException.ThrowIfNull(buildSpecification);
 
             if (string.IsNullOrWhiteSpace(_buildServerOutputFilePath))
             {
@@ -497,12 +497,11 @@
             foreach (var group in buildGraph.Groups)
             {
                 if (group.AgentTypes.Length == 0 ||
-                    !agentTypeMapping.ContainsKey(group.AgentTypes[0]))
+                    !agentTypeMapping.TryGetValue(group.AgentTypes[0], out BuildServerJobPlatform targetPlatform))
                 {
                     throw new NotSupportedException($"Unknown AgentType specified in BuildGraph: {string.Join(",", group.AgentTypes)}");
                 }
 
-                var targetPlatform = agentTypeMapping[group.AgentTypes[0]];
                 if (targetPlatform == BuildServerJobPlatform.Mac && !OperatingSystem.IsMacOS())
                 {
                     requiresCrossPlatformBuild = true;
@@ -523,7 +522,7 @@
             foreach (var group in buildGraph.Groups)
             {
                 if (group.AgentTypes.Length == 0 ||
-                    !agentTypeMapping.ContainsKey(group.AgentTypes[0]))
+                    !agentTypeMapping.TryGetValue(group.AgentTypes[0], out BuildServerJobPlatform targetPlatform))
                 {
                     throw new NotSupportedException($"Unknown AgentType specified in BuildGraph: {string.Join(",", group.AgentTypes)}");
                 }
@@ -545,7 +544,7 @@
                         Name = node.Name,
                         Stage = group.Name,
                         Needs = needs.ToArray(),
-                        Platform = agentTypeMapping[group.AgentTypes[0]],
+                        Platform = targetPlatform,
                         IsManual = group.AgentTypes[0].EndsWith("_Manual", StringComparison.Ordinal),
                     };
 
@@ -640,7 +639,7 @@
                 .ToDictionary(k => k.Name, v => v);
         }
 
-        private void GetFullDependenciesOfNode(
+        private static void GetFullDependenciesOfNode(
             Dictionary<string, BuildGraphExportNode> nodeMap,
             BuildGraphExportNode node,
             HashSet<string> allDependencies)

@@ -410,7 +410,7 @@
                         }
                         return state.CurrentDefinitions.ContainsKey(buffer) ? 1 : 0;
                     }
-                    else if (!state.CurrentDefinitions.ContainsKey(condition.Invoke.Identifier))
+                    else if (!state.CurrentDefinitions.TryGetValue(condition.Invoke.Identifier, out PreprocessorDirectiveDefine? define))
                     {
                         throw new PreprocessorIdentifierNotDefinedException($"Macro function identifier '{condition.Invoke.Identifier}' is not defined during condition.");
                     }
@@ -424,7 +424,7 @@
                             new Dictionary<string, PreprocessorExpression>());
                         var expanded = EvaluateExpansion(
                             state,
-                            state.CurrentDefinitions[condition.Invoke.Identifier].Expansion,
+                            define.Expansion,
                             replacements);
                         return EvaluateCondition(
                             state,
@@ -436,7 +436,7 @@
                     switch (condition.Token.DataCase)
                     {
                         case PreprocessorExpressionToken.DataOneofCase.Identifier:
-                            if (!state.CurrentDefinitions.ContainsKey(condition.Token.Identifier))
+                            if (!state.CurrentDefinitions.TryGetValue(condition.Token.Identifier, out PreprocessorDirectiveDefine? define))
                             {
                                 // The C/C++ standard says that undefined preprocessor identifiers
                                 // evaluate to 0 by default.
@@ -447,7 +447,7 @@
                             // it as an expression.
                             var expanded = EvaluateExpansion(
                                 state,
-                                state.CurrentDefinitions[condition.Token.Identifier].Expansion,
+                                define.Expansion,
                                 new Dictionary<string, PreprocessorExpression>());
                             return EvaluateCondition(
                                 state,
@@ -705,14 +705,14 @@
                 case PreprocessorExpression.ExprOneofCase.Whitespace:
                     return expression.Whitespace;
                 case PreprocessorExpression.ExprOneofCase.Invoke:
-                    if (state.CurrentDefinitions.ContainsKey(expression.Invoke.Identifier))
+                    if (state.CurrentDefinitions.TryGetValue(expression.Invoke.Identifier, out PreprocessorDirectiveDefine? define))
                     {
-                        if (state.CurrentDefinitions[expression.Invoke.Identifier].IsFunction)
+                        if (define.IsFunction)
                         {
                             Dictionary<string, PreprocessorExpression> replacements = ComputeReplacements(state, expression.Invoke, localReplacements);
                             return EvaluateExpansion(
                                 state,
-                                state.CurrentDefinitions[expression.Invoke.Identifier].Expansion,
+                                define.Expansion,
                                 replacements);
                         }
                     }
@@ -726,20 +726,20 @@
                             return expression.Token.Text;
                         case PreprocessorExpressionToken.DataOneofCase.Identifier:
                             PreprocessorExpression expressionSource;
-                            if (localReplacements.ContainsKey(expression.Token.Identifier))
+                            if (localReplacements.TryGetValue(expression.Token.Identifier, out PreprocessorExpression? localReplacement))
                             {
-                                expressionSource = localReplacements[expression.Token.Identifier];
+                                expressionSource = localReplacement;
                             }
-                            else if (state.CurrentDefinitions.ContainsKey(expression.Token.Identifier))
+                            else if (state.CurrentDefinitions.TryGetValue(expression.Token.Identifier, out PreprocessorDirectiveDefine? lookupDefine))
                             {
-                                if (state.CurrentDefinitions[expression.Token.Identifier].IsFunction)
+                                if (lookupDefine.IsFunction)
                                 {
                                     // In this case, it's treated as-is.
                                     return expression.Token.Identifier;
                                 }
                                 else
                                 {
-                                    expressionSource = state.CurrentDefinitions[expression.Token.Identifier].Expansion;
+                                    expressionSource = lookupDefine.Expansion;
                                 }
                             }
                             else
@@ -817,17 +817,18 @@
             // the condition state.
             foreach (var condition in unresolvedState.Result.Conditions)
             {
-                if (!state.Conditions.ContainsKey(condition.ConditionHash))
+                if (state.Conditions.TryAdd(condition.ConditionHash, condition))
                 {
-                    state.Conditions.Add(condition.ConditionHash, condition);
                     state.ConditionStates.Add(condition.ConditionHash, EvaluateErrorableCondition(state, path, condition.Condition));
                     foreach (var identifier in condition.DependentOnIdentifiers)
                     {
-                        if (!state.ConditionDependentsOfIdentifiers.ContainsKey(identifier))
+                        if (!state.ConditionDependentsOfIdentifiers.TryGetValue(identifier, out HashSet<long>? dependents))
                         {
-                            state.ConditionDependentsOfIdentifiers.Add(identifier, new HashSet<long>());
+                            dependents = new HashSet<long>();
+                            state.ConditionDependentsOfIdentifiers.Add(identifier, dependents);
                         }
-                        state.ConditionDependentsOfIdentifiers[identifier].Add(condition.ConditionHash);
+
+                        dependents.Add(condition.ConditionHash);
                     }
                 }
             }

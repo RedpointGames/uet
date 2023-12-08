@@ -499,10 +499,7 @@
 
         private async Task<string> GetBlobsPath()
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(DefaultToolManager));
-            }
+            ObjectDisposedException.ThrowIf(_disposed, this);
             if (_blobsReservation != null)
             {
                 return _blobsReservation.ReservedPath;
@@ -510,10 +507,7 @@
             await _blobsReservationSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
-                if (_disposed)
-                {
-                    throw new ObjectDisposedException(nameof(DefaultToolManager));
-                }
+                ObjectDisposedException.ThrowIf(_disposed, this);
                 if (_blobsReservation != null)
                 {
                     return _blobsReservation.ReservedPath;

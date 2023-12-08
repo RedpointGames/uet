@@ -9,7 +9,7 @@
             this PollingResponse op,
             GitFetchProgressInfo progress)
         {
-            if (op == null) throw new ArgumentNullException(nameof(op));
+            ArgumentNullException.ThrowIfNull(op);
 
             op.GitServerProgressMessage = progress.ServerProgressMessage ?? string.Empty;
             op.GitTotalObjects = progress.TotalObjects ?? 0;

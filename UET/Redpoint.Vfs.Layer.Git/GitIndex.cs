@@ -35,20 +35,21 @@
                     continue;
                 }
 
-                if (!directoriesUnsorted.ContainsKey(entry.AbsoluteParentPath))
+                if (!directoriesUnsorted.TryGetValue(entry.AbsoluteParentPath, out List<VfsEntry>? vfsEntries))
                 {
-                    directoriesUnsorted.Add(entry.AbsoluteParentPath, new List<VfsEntry>());
+                    vfsEntries = new List<VfsEntry>();
+                    directoriesUnsorted.Add(entry.AbsoluteParentPath, vfsEntries);
                 }
 
                 if (entry.IsDirectory)
                 {
                     _paths[entry.AbsolutePath] = entry;
-                    directoriesUnsorted[entry.AbsoluteParentPath].Add(entry);
+                    vfsEntries.Add(entry);
                 }
                 else
                 {
                     _paths[entry.AbsolutePath] = entry;
-                    directoriesUnsorted[entry.AbsoluteParentPath].Add(entry);
+                    vfsEntries.Add(entry);
                     if (entry.BlobSha == null)
                     {
                         throw new InvalidOperationException("BlobSha must be set for files!");

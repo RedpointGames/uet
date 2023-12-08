@@ -19,6 +19,7 @@
     using Redpoint.Uefs.Package;
     using Microsoft.AspNetCore.Http;
     using Newtonsoft.Json;
+    using Redpoint.Collections;
 
     public static class UefsDaemonIntegrationDockerServiceExtensions
     {
@@ -114,14 +115,13 @@
                         type: x,
                         handler: sp => (IEndpointHandler)sp.GetRequiredService(x));
                 })
-                .Where(x => x != null)
-                .Cast<(string url, Type type, Func<IServiceProvider, IEndpointHandler> handler)>()
+                .WhereNotNull()
                 .ToList();
 
             // Register all of the endpoint handler types in DI so that they can be used by other components.
             foreach (var kv in filteredEndpointHandlerTypes)
             {
-                builder.Services.AddTransient(kv.type, kv.handler);
+                builder.Services.AddTransient(kv!.Value.type, kv!.Value.handler);
             }
 
             // For services we know we'll need in our handlers, delegate them to the main
@@ -136,8 +136,8 @@
             var endpointHandlers = filteredEndpointHandlerTypes.Select(x =>
             {
                 return new KeyValuePair<string, Func<IServiceProvider, IEndpointHandler>>(
-                    x.url,
-                    x.handler);
+                    x!.Value.url,
+                    x!.Value.handler);
             }).ToDictionary(k => k.Key, v => v.Value);
             foreach (var kv in endpointHandlers)
             {

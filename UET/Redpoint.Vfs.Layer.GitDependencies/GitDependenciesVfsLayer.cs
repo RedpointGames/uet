@@ -326,12 +326,12 @@
                 }
 
                 var pathKey = path.TrimStart(new[] { '\\', '/' }).ToLowerInvariant();
-                if (!_files.ContainsKey(pathKey))
+                if (!_files.TryGetValue(pathKey, out DependencyFile? dependencyFile))
                 {
                     return _nextLayer?.OpenFile(path, fileMode, fileAccess, fileShare, ref metadata);
                 }
 
-                var blob = _blobs[_files[pathKey].Hash!];
+                var blob = _blobs[dependencyFile.Hash!];
                 var packHash = blob.PackHash;
                 using (KeyedSemaphores.KeyedSemaphore.Lock($"git-deps-pack-download:{packHash?.ToLowerInvariant()}"))
                 {

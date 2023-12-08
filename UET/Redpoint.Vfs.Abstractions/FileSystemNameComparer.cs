@@ -96,7 +96,7 @@
         /// <returns>The hash code.</returns>
         public int GetHashCode([DisallowNull] string obj)
         {
-            if (obj == null) throw new ArgumentNullException(nameof(obj));
+            ArgumentNullException.ThrowIfNull(obj);
 
             return obj.GetHashCode(StringComparison.InvariantCultureIgnoreCase);
         }

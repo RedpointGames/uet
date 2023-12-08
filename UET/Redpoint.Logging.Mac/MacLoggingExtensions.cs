@@ -21,7 +21,7 @@
         public static ILoggingBuilder AddMac(
             this ILoggingBuilder builder)
         {
-            if (builder == null) throw new ArgumentNullException(nameof(builder));
+            ArgumentNullException.ThrowIfNull(builder);
 
             builder.AddConfiguration();
 
@@ -41,7 +41,7 @@
             this ILoggingBuilder builder,
             Action<MacLoggerOptions> configure)
         {
-            if (builder == null) throw new ArgumentNullException(nameof(builder));
+            ArgumentNullException.ThrowIfNull(builder);
 
             builder.AddMac();
             builder.Services.Configure(configure);

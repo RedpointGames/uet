@@ -11,7 +11,7 @@
     {
         public async ValueTask<DockerRemoveResponse> HandleAsync(IUefsDaemon plugin, DockerRemoveRequest request)
         {
-            if (!plugin.DockerVolumes.ContainsKey(request.Name))
+            if (!plugin.DockerVolumes.TryGetValue(request.Name, out DockerVolume? volume))
             {
                 // Volume might be from a previous service run.
                 return new DockerRemoveResponse
@@ -20,7 +20,6 @@
                 };
             }
 
-            var volume = plugin.DockerVolumes[request.Name];
             await volume.Mutex.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {

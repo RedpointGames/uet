@@ -33,7 +33,7 @@
             bool canFulfillLocalRequests,
             int remoteDelayMilliseconds)
         {
-            if (taskScheduler == null) throw new ArgumentNullException(nameof(taskScheduler));
+            ArgumentNullException.ThrowIfNull(taskScheduler);
 
             _logger = logger;
             _enableTracing = _logger.IsEnabled(LogLevel.Trace);

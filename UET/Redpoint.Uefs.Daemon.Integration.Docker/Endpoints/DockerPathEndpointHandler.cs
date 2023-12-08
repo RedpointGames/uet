@@ -11,7 +11,7 @@
     {
         public ValueTask<DockerPathResponse> HandleAsync(IUefsDaemon plugin, DockerPathRequest request)
         {
-            if (!plugin.DockerVolumes.ContainsKey(request.Name))
+            if (!plugin.DockerVolumes.TryGetValue(request.Name, out DockerVolume? volume))
             {
                 throw new EndpointException<DockerPathResponse>(404, new DockerPathResponse
                 {
@@ -19,7 +19,6 @@
                 });
             }
 
-            var volume = plugin.DockerVolumes[request.Name];
             if (volume.Mountpoint == null)
             {
                 throw new EndpointException<DockerPathResponse>(400, new DockerPathResponse

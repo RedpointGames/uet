@@ -53,10 +53,8 @@
             ReadOnlyMemory<byte> buffer,
             CancellationToken cancellationToken = default)
         {
-            if (_hasSentFinish)
-            {
-                throw new ObjectDisposedException(nameof(GrpcWritableBinaryChunkStream<TInbound>));
-            }
+            ObjectDisposedException.ThrowIf(_hasSentFinish, this);
+
             if (buffer.Length == 0)
             {
                 return;
@@ -65,10 +63,7 @@
             await _writingSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
-                if (_hasSentFinish)
-                {
-                    throw new ObjectDisposedException(nameof(GrpcWritableBinaryChunkStream<TInbound>));
-                }
+                ObjectDisposedException.ThrowIf(_hasSentFinish, this);
 
                 var incomingBufferOffset = 0;
                 do

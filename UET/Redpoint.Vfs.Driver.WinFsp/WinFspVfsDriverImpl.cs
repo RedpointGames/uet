@@ -25,7 +25,7 @@
         private readonly bool _enableCorrectnessChecks;
         private readonly Concurrency.Semaphore _loggerSemaphore;
         private readonly DateTimeOffset _rootTime;
-        private readonly IComparer<string> _caseInsensitiveComparer = new FileSystemNameComparer();
+        private readonly FileSystemNameComparer _caseInsensitiveComparer = new FileSystemNameComparer();
         private readonly AutoResetEvent _pendingAsyncIo;
         private readonly ConcurrentDictionary<nint, (ulong requestHint, IAsyncIoHandle ioHandle, VfsFileAsyncCallback callback)> _pendingNativeOverlapped;
         private readonly Thread _asyncIoThread;
@@ -1370,7 +1370,7 @@
 
                 // Find the first one that matches.
                 var targetFileName = Path.GetFileName(fileName).ToLowerInvariant();
-                var entry = entries.FirstOrDefault(x => x.Name.ToLowerInvariant() == targetFileName);
+                var entry = entries.FirstOrDefault(x => x.Name.Equals(targetFileName, StringComparison.OrdinalIgnoreCase));
                 if (entry == null)
                 {
                     return Trace(fspFileNode.Path, STATUS_OBJECT_NAME_NOT_FOUND);
