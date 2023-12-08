@@ -325,10 +325,7 @@
         /// <exception cref="ObjectDisposedException"></exception>
         public uint LowLevelGetNumberOfObjectsPrecedingSectionForMostSignificantByte(byte @byte)
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(GitPackfileIndex));
-            }
+            ObjectDisposedException.ThrowIf(_disposed, this);
 
             uint numberOfObjectsPreceding;
             if (@byte == 0)
@@ -360,10 +357,7 @@
         /// <exception cref="ObjectDisposedException"></exception>
         public uint LowLevelGetCumulativeNumberOfObjectsByEndOfSectionForMostSignificantByte(byte @byte)
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(GitPackfileIndex));
-            }
+            ObjectDisposedException.ThrowIf(_disposed, this);
 
             var fanoutValueOffset = _header.Length + @byte * sizeof(int);
             var cumulativeNumberOfObjects = EndiannessHelpers.ConvertFromNetworkByteOrder(_viewAccessor.ReadUInt32(fanoutValueOffset));
@@ -379,10 +373,7 @@
         /// <exception cref="ObjectDisposedException">Thrown if the instance has already been disposed.</exception>
         public UInt160 GetShaForObjectIndex(uint index)
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(GitPackfileIndex));
-            }
+            ObjectDisposedException.ThrowIf(_disposed, this);
 
             if (index >= _objectCount)
             {
@@ -403,10 +394,7 @@
         /// <exception cref="ObjectDisposedException">Thrown if the instance has already been disposed.</exception>
         public uint GetCrcForObjectIndex(uint index)
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(GitPackfileIndex));
-            }
+            ObjectDisposedException.ThrowIf(_disposed, this);
 
             if (index >= _objectCount)
             {
@@ -426,10 +414,7 @@
         /// <exception cref="ObjectDisposedException">Thrown if the instance has already been disposed.</exception>
         public ulong GetPackfileOffsetForObjectIndex(uint index)
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(GitPackfileIndex));
-            }
+            ObjectDisposedException.ThrowIf(_disposed, this);
 
             if (index >= _objectCount)
             {

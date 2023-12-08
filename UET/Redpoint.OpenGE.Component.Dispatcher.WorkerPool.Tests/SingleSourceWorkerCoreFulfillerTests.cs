@@ -13,7 +13,7 @@ namespace Redpoint.OpenGE.Component.Dispatcher.WorkerPool.Tests
 
     public class SingleSourceWorkerCoreFulfillerTests
     {
-        private static IServiceProvider BuildServiceProvider()
+        private static ServiceProvider BuildServiceProvider()
         {
             var services = new ServiceCollection();
             services.AddLogging();

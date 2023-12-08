@@ -19,8 +19,8 @@
 
         public static async Task Serialize(Archive ar, Store<TopLevelAssetPath> value)
         {
-            if (ar == null) throw new ArgumentNullException(nameof(ar));
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(ar);
+            ArgumentNullException.ThrowIfNull(value);
 
             await ar.Serialize(value.V.PackageName).ConfigureAwait(false);
             await ar.Serialize(value.V.AssetName).ConfigureAwait(false);

@@ -25,7 +25,7 @@
 
         public static (WriteScratchPersistence scratchPersistence, StartupBehaviour startupBehaviour) ToMode(string mode, bool error = false)
         {
-            if (mode == null) throw new ArgumentNullException(nameof(mode));
+            ArgumentNullException.ThrowIfNull(mode);
 
             switch (mode.Trim())
             {

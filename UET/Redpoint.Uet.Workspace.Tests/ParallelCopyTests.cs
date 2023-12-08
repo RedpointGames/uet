@@ -13,13 +13,11 @@ namespace Redpoint.Uet.Workspace.Tests
             Skip.IfNot(Directory.Exists(@"C:\Work\internal\EOS_OSB\EOS_OSB\Plugins\EOS"));
             Directory.CreateDirectory(@"C:\Temp\TestParallelCopyFileList");
 
-            var parallelCopy = new DefaultParallelCopy();
-
             var copyItems = new ConcurrentQueue<QueuedCopy>();
             var deleteItems = new ConcurrentQueue<QueuedDelete>();
             var copyStats = new CopyStats();
 
-            await parallelCopy.RecursiveScanAsync(
+            await RecursiveScanAsync(
                 new DirectoryInfo(@"C:\Work\internal\EOS_OSB\EOS_OSB\Plugins\EOS"),
                 new DirectoryInfo(@"C:\Temp\TestParallelCopyFileList"),
                 copyItems,
@@ -83,7 +81,7 @@ namespace Redpoint.Uet.Workspace.Tests
             var deleteItems = new ConcurrentQueue<QueuedDelete>();
             var copyStats = new CopyStats();
 
-            await parallelCopy.RecursiveScanAsync(
+            await RecursiveScanAsync(
                 new DirectoryInfo(@"C:\Work\internal\EOS_OSB\EOS_OSB\Plugins\EOS"),
                 new DirectoryInfo(@"C:\Temp\CanPerformCopy"),
                 copyItems,

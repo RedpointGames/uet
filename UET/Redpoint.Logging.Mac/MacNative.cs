@@ -32,12 +32,12 @@
             return handle;
         }
 
-        [LibraryImport("System", EntryPoint = "os_log_create")]
+        [LibraryImport("System", EntryPoint = "os_log_create"), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         public static partial nint os_log_create(
             [MarshalAs(UnmanagedType.LPStr)] string subsystem,
             [MarshalAs(UnmanagedType.LPStr)] string category);
 
-        [LibraryImport("Logging", EntryPoint = "redpoint_os_log")]
+        [LibraryImport("Logging", EntryPoint = "redpoint_os_log"), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         public static partial nint redpoint_os_log(
             nint osLog,
             int type,

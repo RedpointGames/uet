@@ -6,8 +6,8 @@
     {
         public static async Task Serialize(this Archive ar, Store<DateTimeOffset> timestamp)
         {
-            if (ar == null) throw new ArgumentNullException(nameof(ar));
-            if (timestamp == null) throw new ArgumentNullException(nameof(timestamp));
+            ArgumentNullException.ThrowIfNull(ar);
+            ArgumentNullException.ThrowIfNull(timestamp);
 
             if (ar.IsLoading)
             {

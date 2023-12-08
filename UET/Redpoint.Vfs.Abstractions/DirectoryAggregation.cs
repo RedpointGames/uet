@@ -7,7 +7,7 @@
     /// </summary>
     public static class DirectoryAggregation
     {
-        private static IComparer<string> _comparer = new FileSystemNameComparer();
+        private static FileSystemNameComparer _comparer = new FileSystemNameComparer();
 
         /// <summary>
         /// Aggregate the virtual filesystem entries across two virtual filesystem layers.
@@ -22,7 +22,7 @@
             IEnumerable<VfsEntry> local,
             bool enableCorrectnessChecks = false)
         {
-            if (local == null) throw new ArgumentNullException(nameof(local));
+            ArgumentNullException.ThrowIfNull(local);
 
             var upstreamEnumerator = upstream?.GetEnumerator();
             var localEnumerator = local.GetEnumerator();

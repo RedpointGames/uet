@@ -90,15 +90,16 @@
 
                             foreach (var file in interestedLogDirectories.SelectMany(x => Directory.GetFiles(x, "*.txt").Concat(Directory.GetFiles(x, "*.log"))))
                             {
-                                if (!logFiles.ContainsKey(file))
+                                if (!logFiles.TryGetValue(file, out long logFilePosition))
                                 {
-                                    logFiles[file] = 0;
+                                    logFilePosition = 0;
+                                    logFiles[file] = logFilePosition;
                                 }
 
                                 using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
                                 {
-                                    stream.Seek(logFiles[file], SeekOrigin.Begin);
-                                    var content = new byte[stream.Length - logFiles[file]];
+                                    stream.Seek(logFilePosition, SeekOrigin.Begin);
+                                    var content = new byte[stream.Length - logFilePosition];
                                     stream.Read(content);
                                     var contentString = Encoding.UTF8.GetString(content);
                                     var lastNewline = contentString.LastIndexOf('\n');

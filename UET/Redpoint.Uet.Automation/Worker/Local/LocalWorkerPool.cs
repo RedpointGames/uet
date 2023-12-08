@@ -271,10 +271,8 @@
             {
                 if (worker.Descriptor == descriptor)
                 {
-                    if (_reservedWorkers.Contains(worker))
-                    {
-                        _reservedWorkers.Remove(worker);
-                    }
+                    _reservedWorkers.Remove(worker);
+
                     // @note: We don't wait for this to complete, because we just need to get the cancellation token cancelled.
                     // If this function was async and awaited this task, it would induce a deadlock if FinishedWithWorker was
                     // called from OnWorkerStarted.

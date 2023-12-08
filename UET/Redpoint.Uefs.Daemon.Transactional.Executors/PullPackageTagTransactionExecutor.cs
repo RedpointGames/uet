@@ -116,7 +116,7 @@
                     registryManifest = (await client.Manifest.GetManifestAsync(path, selectedManifest.Digest, true, cancellationToken).ConfigureAwait(false))?.Manifest as ImageManifest2_2;
                 }
 
-                if (registryManifest == null || !registryManifest.Layers.Any())
+                if (registryManifest == null || registryManifest.Layers.Length == 0)
                 {
                     throw new InvalidOperationException("No such package was found on the registry");
                 }

@@ -122,8 +122,8 @@
             foreach (var rawFilterRule in rawFilterRules)
             {
                 if (rawFilterRule == "[FilterPlugin]" ||
-                    rawFilterRule.StartsWith(";", StringComparison.Ordinal) ||
-                    rawFilterRule.StartsWith("-", StringComparison.Ordinal) ||
+                    rawFilterRule.StartsWith(';') ||
+                    rawFilterRule.StartsWith('-') ||
                     rawFilterRule.Trim().Length == 0)
                 {
                     continue;
@@ -146,8 +146,8 @@
             foreach (var rawFilterRule in rawFilterRules)
             {
                 if (rawFilterRule == "[FilterPlugin]" ||
-                    rawFilterRule.StartsWith(";", StringComparison.Ordinal) ||
-                    !rawFilterRule.StartsWith("-", StringComparison.Ordinal) ||
+                    rawFilterRule.StartsWith(';') ||
+                    !rawFilterRule.StartsWith('-') ||
                     rawFilterRule.Trim().Length == 0)
                 {
                     continue;

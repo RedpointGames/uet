@@ -17,8 +17,8 @@
         private readonly ILocalIoVfsFileFactory _localIoVfsFileFactory;
         private readonly string _scratchPath;
         private readonly IVfsLayer? _nextLayer;
-        private readonly IVfsLocks _openAndReadLock;
-        private readonly IVfsLocks _materializationAndTombstoningLock;
+        private readonly SemaphoreSlimVfsLocks _openAndReadLock;
+        private readonly SemaphoreSlimVfsLocks _materializationAndTombstoningLock;
         private readonly ConcurrentLru<string, (ScratchVfsPathStatus status, VfsEntryExistence existence)> _pathStatusCache;
         private readonly FilesystemScratchIndex _fsScratchIndex;
         private readonly FilesystemScratchCache _fsScratchCache;

@@ -31,7 +31,7 @@
 
         public async ValueTask<DockerMountResponse> HandleAsync(IUefsDaemon plugin, DockerMountRequest request)
         {
-            if (!plugin.DockerVolumes.ContainsKey(request.Name))
+            if (!plugin.DockerVolumes.TryGetValue(request.Name, out DockerVolume? volume))
             {
                 throw new EndpointException<DockerMountResponse>(404, new DockerMountResponse
                 {
@@ -40,7 +40,6 @@
                 });
             }
 
-            var volume = plugin.DockerVolumes[request.Name];
             await volume.Mutex.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {

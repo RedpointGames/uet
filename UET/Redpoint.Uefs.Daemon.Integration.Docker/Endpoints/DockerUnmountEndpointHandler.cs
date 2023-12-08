@@ -11,7 +11,7 @@
     {
         public async ValueTask<DockerUnmountResponse> HandleAsync(IUefsDaemon plugin, DockerUnmountRequest request)
         {
-            if (!plugin.DockerVolumes.ContainsKey(request.Name))
+            if (!plugin.DockerVolumes.TryGetValue(request.Name, out DockerVolume? volume))
             {
                 throw new EndpointException<DockerUnmountResponse>(404, new DockerUnmountResponse
                 {
@@ -19,7 +19,6 @@
                 });
             }
 
-            var volume = plugin.DockerVolumes[request.Name];
             await volume.Mutex.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {

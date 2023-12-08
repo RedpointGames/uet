@@ -37,7 +37,7 @@
             public long BytesToCopy;
         }
 
-        internal async Task RecursiveScanAsync(
+        internal static async Task RecursiveScanAsync(
             DirectoryInfo sourceDirectoryInfo,
             DirectoryInfo destinationDirectoryInfo,
             ConcurrentQueue<QueuedCopy> itemsToCopy,

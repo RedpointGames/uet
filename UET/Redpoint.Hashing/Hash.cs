@@ -47,7 +47,7 @@
         /// <returns>The lowercase hexadecimal string.</returns>
         public static string Sha256AsHexString(string value, Encoding encoding)
         {
-            if (encoding == null) throw new ArgumentNullException(nameof(encoding));
+            ArgumentNullException.ThrowIfNull(encoding);
             return HexString(SHA256.HashData(encoding.GetBytes(value)));
         }
 
@@ -69,7 +69,7 @@
         /// <returns>The lowercase hexadecimal string.</returns>
         public static string Sha1AsHexString(string value, Encoding encoding)
         {
-            if (encoding == null) throw new ArgumentNullException(nameof(encoding));
+            ArgumentNullException.ThrowIfNull(encoding);
             return HexString(SHA1.HashData(encoding.GetBytes(value)));
         }
 
@@ -128,7 +128,7 @@
         /// <returns>The xxHash64 hash value and the byte length of the original file.</returns>
         public static XxHash64WithLength XxHash64(string value, Encoding encoding)
         {
-            if (encoding == null) throw new ArgumentNullException(nameof(encoding));
+            ArgumentNullException.ThrowIfNull(encoding);
             var bytes = Encoding.UTF8.GetBytes(value);
             return new XxHash64WithLength(BitConverter.ToInt64(System.IO.Hashing.XxHash64.Hash(encoding.GetBytes(value))), bytes.Length);
         }

@@ -114,15 +114,15 @@
                 throw new InvalidOperationException("Git layer must be asynchronously initialized first!");
             }
             var gitPath = path.TrimStart(Path.DirectorySeparatorChar).ToLowerInvariant();
-            if (!_index._directories.ContainsKey(gitPath))
+            if (!_index._directories.TryGetValue(gitPath, out VfsEntry[]? vfsDirectory))
             {
                 return null;
             }
-            if (_index._directories[gitPath].Any(x => x.Name == "."))
+            if (vfsDirectory.Any(x => x.Name == "."))
             {
                 throw new InvalidOperationException("Git data is corrupt!");
             }
-            return _index._directories[gitPath];
+            return vfsDirectory;
         }
 
         public VfsEntryExistence Exists(string path)
@@ -185,7 +185,7 @@
                     throw new InvalidOperationException();
                 }
                 var gitPath = path.TrimStart(Path.DirectorySeparatorChar).ToLowerInvariant();
-                if (!_index._files.ContainsKey(gitPath))
+                if (!_index._files.TryGetValue(gitPath, out string? gitBlobName))
                 {
                     return null;
                 }
@@ -193,7 +193,7 @@
                 // The LibGit2 streams are extremely slow for repeated and large file access. As soon as we're
                 // accessing a file, expand it completely and then use a stream that is just an on-disk
                 // version from then on out.
-                var expandedPath = Path.Combine(_blobPath, _index._files[gitPath]);
+                var expandedPath = Path.Combine(_blobPath, gitBlobName);
                 // Force this to run on a background thread, as we only have a synchronous context here (we're
                 // being called from a VFS, so proper async is impossible). Then we call Task.WaitAll
                 // to block the VFS thread until we get a result.
@@ -217,7 +217,7 @@
                                 }
 
                                 var stopwatch = Stopwatch.StartNew();
-                                var fileSha = _index._files[gitPath];
+                                var fileSha = gitBlobName;
                                 var extractedSize = await _repository.MaterializeBlobToDiskByShaAsync(fileSha, expandedPath, contentAdjust, CancellationToken.None).ConfigureAwait(false);
 #if ENABLE_TRACE_LOGS
                                 _logger.LogTrace($"Materialized {gitPath} to disk ({extractedSize} bytes in {stopwatch.ElapsedMilliseconds.ToString("F2")} ms).");

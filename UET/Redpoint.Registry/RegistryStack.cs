@@ -33,7 +33,7 @@
         /// <exception cref="RegistryPathNotWellFormedException">Thrown if the registry path does not start with "HKCU:" or "HKLM:".</exception>
         public static RegistryStack OpenPath(string path, bool writable = false, bool create = false)
         {
-            if (path == null) throw new ArgumentNullException(nameof(path));
+            ArgumentNullException.ThrowIfNull(path);
 
             var openedKeys = new List<RegistryKey>();
             RegistryKey? currentKey;

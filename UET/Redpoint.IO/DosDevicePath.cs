@@ -25,7 +25,7 @@
         [SupportedOSPlatform("windows5.1.2600")]
         public unsafe static string GetFullyQualifiedDosDevicePath(string path)
         {
-            if (path == null) throw new ArgumentNullException(nameof(path));
+            ArgumentNullException.ThrowIfNull(path);
 
             if (path.StartsWith(@"\\", StringComparison.OrdinalIgnoreCase))
             {

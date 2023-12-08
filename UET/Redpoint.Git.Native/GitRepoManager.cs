@@ -174,7 +174,7 @@
                     var username = new Uri(url).UserInfo;
                     if (username.Contains(':', StringComparison.Ordinal))
                     {
-                        username = username[..username.IndexOf(":", StringComparison.Ordinal)];
+                        username = username[..username.IndexOf(':', StringComparison.Ordinal)];
                     }
 
                     CredentialsHandler credentialHandler = (string url, string usernameFromUrl, SupportedCredentialTypes types) =>
@@ -262,7 +262,7 @@
                                 .Concat(path.Split(';'));
                         var extensions = new[] { string.Empty }
                                 .Concat(pathext.Split(';')
-                                           .Where(e => e.StartsWith(".", StringComparison.Ordinal)));
+                                           .Where(e => e.StartsWith('.')));
                         var combinations = paths.SelectMany(x => extensions,
                                 (path, extension) => Path.Combine(path, filename + extension));
                         return combinations.FirstOrDefault(File.Exists);

@@ -60,7 +60,7 @@
 
         public Task OnNodeOutputReceived(string nodeName, string[] lines)
         {
-            if (lines == null) throw new ArgumentNullException(nameof(lines));
+            ArgumentNullException.ThrowIfNull(lines);
 
             foreach (var line in lines)
             {

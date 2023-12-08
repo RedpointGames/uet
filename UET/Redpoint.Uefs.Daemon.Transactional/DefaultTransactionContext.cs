@@ -51,10 +51,7 @@
 
             public void Dispose()
             {
-                if (_disposed)
-                {
-                    throw new ObjectDisposedException(typeof(LockWrapper).Name);
-                }
+                ObjectDisposedException.ThrowIf(_disposed, this);
                 _disposed = true;
                 _underlyingLock.Dispose();
                 _context._obtainedLocks.Remove(this);
@@ -71,10 +68,7 @@
 
         public ValueTask DisposeAsync()
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(typeof(DefaultTransactionContext).Name);
-            }
+            ObjectDisposedException.ThrowIf(_disposed, this);
             _disposed = true;
 
             // @note: We make a copy of obtained locks since calling Dispose will mutate it.

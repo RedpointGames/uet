@@ -67,20 +67,24 @@ namespace Redpoint.Rfs.WinFsp
                     currentPath += "\\" + components[c];
                     if (c == components.Length - 1)
                     {
-                        if (!additionalJunctionEntries.ContainsKey(parentPath))
+                        if (!additionalJunctionEntries.TryGetValue(parentPath, out Dictionary<string, string>? value))
                         {
-                            additionalJunctionEntries.Add(parentPath, new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase));
+                            value = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+                            additionalJunctionEntries.Add(parentPath, value);
                         }
-                        additionalJunctionEntries[parentPath].Add(components[c], DosDevicePath.GetFullyQualifiedDosDevicePath(reparsePoint));
+
+                        value.Add(components[c], DosDevicePath.GetFullyQualifiedDosDevicePath(reparsePoint));
                         additionalJunctions[currentPath] = DosDevicePath.GetFullyQualifiedDosDevicePath(reparsePoint);
                     }
                     else
                     {
-                        if (!additionalSubdirectoryEntries.ContainsKey(parentPath))
+                        if (!additionalSubdirectoryEntries.TryGetValue(parentPath, out HashSet<string>? value))
                         {
-                            additionalSubdirectoryEntries.Add(parentPath, new HashSet<string>(StringComparer.InvariantCultureIgnoreCase));
+                            value = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+                            additionalSubdirectoryEntries.Add(parentPath, value);
                         }
-                        additionalSubdirectoryEntries[parentPath].Add(components[c]);
+
+                        value.Add(components[c]);
                         additionalSubdirectories.Add(currentPath);
                     }
                     parentPath = currentPath;
@@ -96,10 +100,7 @@ namespace Redpoint.Rfs.WinFsp
         {
             foreach (var reparsePoint in reparsePoints)
             {
-                if (!_reparsePoints.ContainsKey(reparsePoint))
-                {
-                    _reparsePoints[reparsePoint] = 0;
-                }
+                _reparsePoints.TryAdd(reparsePoint, 0);
                 _reparsePoints[reparsePoint]++;
             }
             RecomputeReparsePointIndex();

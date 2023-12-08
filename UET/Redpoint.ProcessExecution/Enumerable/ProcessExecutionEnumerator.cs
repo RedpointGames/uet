@@ -246,10 +246,8 @@
 
             public async ValueTask DisposeAsync()
             {
-                if (_disposed)
-                {
-                    throw new ObjectDisposedException(nameof(ProcessExecutionEnumerator));
-                }
+                ObjectDisposedException.ThrowIf(_disposed, this);
+
                 _disposed = true;
                 _enumerable._enumeratorCount--;
                 if (_enumerable._enumeratorCount == 0 &&

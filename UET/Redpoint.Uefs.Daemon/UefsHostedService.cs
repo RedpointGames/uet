@@ -42,10 +42,7 @@
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(IUefsDaemon));
-            }
+            ObjectDisposedException.ThrowIf(_disposed, this);
 
             if (_inited)
             {

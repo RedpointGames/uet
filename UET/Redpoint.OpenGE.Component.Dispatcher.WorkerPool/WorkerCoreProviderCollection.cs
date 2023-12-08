@@ -45,7 +45,7 @@
 
         public async Task AddAsync(IWorkerCoreProvider<TWorkerCore> provider)
         {
-            if (provider == null) throw new ArgumentNullException(nameof(provider));
+            ArgumentNullException.ThrowIfNull(provider);
 
             using var _ = await _providerLock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
@@ -72,7 +72,7 @@
 
         public async Task RemoveAsync(IWorkerCoreProvider<TWorkerCore> provider)
         {
-            if (provider == null) throw new ArgumentNullException(nameof(provider));
+            ArgumentNullException.ThrowIfNull(provider);
 
             using var _ = await _providerLock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 

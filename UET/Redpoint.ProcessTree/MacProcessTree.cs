@@ -7,7 +7,7 @@
     [SupportedOSPlatform("macos")]
     internal sealed partial class MacProcessTree : IProcessTree
     {
-        [LibraryImport("libc")]
+        [LibraryImport("libc"), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         private static unsafe partial int sysctl(nint name, uint namelen, nint oldp, ref ulong oldlenp, nint newp, ulong newlenp);
 
         public Process? GetParentProcess(int processId)

@@ -19,7 +19,7 @@
                 });
             }
 
-            if (!request.Opts.ContainsKey("path"))
+            if (!request.Opts.TryGetValue("path", out string? path))
             {
                 throw new EndpointException<DockerCreateResponse>(409, new DockerCreateResponse
                 {
@@ -27,7 +27,7 @@
                 });
             }
 
-            if (!request.Opts["path"].StartsWith("c:\\", StringComparison.OrdinalIgnoreCase))
+            if (!path.StartsWith("c:\\", StringComparison.OrdinalIgnoreCase))
             {
                 throw new EndpointException<DockerCreateResponse>(409, new DockerCreateResponse
                 {
@@ -40,7 +40,7 @@
                 new DockerVolume
                 {
                     Name = request.Name,
-                    FilePath = request.Opts["path"],
+                    FilePath = path,
                 });
             return ValueTask.FromResult(new DockerCreateResponse
             {

@@ -171,7 +171,7 @@
                                 {
                                     var localOutputPath = Path.Combine(buildGraphProjectRoot, "Engine", "Saved", "BuildGraph", singleNodeName);
                                     if (Directory.Exists(localOutputPath) &&
-                                        Directory.GetFileSystemEntries(localOutputPath).Any())
+                                        Directory.GetFileSystemEntries(localOutputPath).Length != 0)
                                     {
                                         _logger.LogWarning($"Detected existing local output directory at '{localOutputPath}'. Deleting contents...");
                                         try
@@ -190,7 +190,7 @@
                                 }
 
                                 if (Directory.Exists(targetPath) &&
-                                    Directory.GetFileSystemEntries(targetPath).Any())
+                                    Directory.GetFileSystemEntries(targetPath).Length != 0)
                                 {
                                     _logger.LogWarning($"Detected existing output directory at '{targetPath}'. Deleting contents...");
                                     try

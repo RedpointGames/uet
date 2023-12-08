@@ -59,7 +59,7 @@
                 {
                     continue;
                 }
-                if (line.EndsWith(";", StringComparison.Ordinal))
+                if (line.EndsWith(';'))
                 {
                     currentlyIn = CurrentlyIn.None;
                 }

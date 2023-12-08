@@ -10,27 +10,27 @@
 
         // No operation should use SetFilePointerEx as it is not thread safe. All operations must use lpOverlapped!
 
-        [LibraryImport("kernel32.dll", SetLastError = true)]
+        [LibraryImport("kernel32.dll", SetLastError = true), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool ReadFile(SafeFileHandle hFile, nint lpBuffer, uint nNumberOfBytesToRead, out uint lpNumberOfBytesRead, nint lpOverlapped);
 
-        [LibraryImport("kernel32.dll", SetLastError = true)]
+        [LibraryImport("kernel32.dll", SetLastError = true), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool WriteFile(SafeFileHandle hFile, nint lpBuffer, uint nNumberOfBytesToWrite, out uint lpNumberOfBytesWritten, nint lpOverlapped);
 
-        [LibraryImport("kernel32.dll", SetLastError = true)]
+        [LibraryImport("kernel32.dll", SetLastError = true), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool FlushFileBuffers(SafeFileHandle hFile);
 
-        [LibraryImport("kernel32.dll", SetLastError = true)]
+        [LibraryImport("kernel32.dll", SetLastError = true), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool GetFileSizeEx(SafeFileHandle hFile, out long lpFileSizeHigh);
 
-        [LibraryImport("kernel32.dll", SetLastError = true)]
+        [LibraryImport("kernel32.dll", SetLastError = true), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool SetFileInformationByHandle(SafeFileHandle hFile, int FileInformationClass, in NativeFileEndOfFileInfo lpFileInformation, int dwBufferSize);
 
-        [LibraryImport("Kernel32.dll", SetLastError = true)]
+        [LibraryImport("Kernel32.dll", SetLastError = true), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool DeviceIoControl(
             SafeFileHandle hDevice,
@@ -43,7 +43,7 @@
             in AsyncIoNativeOverlapped lpOverlapped
         );
 
-        [LibraryImport("Kernel32.dll", SetLastError = true)]
+        [LibraryImport("Kernel32.dll", SetLastError = true), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool GetOverlappedResult(
             SafeFileHandle hFile,

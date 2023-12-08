@@ -46,7 +46,7 @@ namespace Redpoint.Uet.BuildPipeline.BuildGraph.Patching
             }
         }
 
-        private async Task MakeReadWriteAsync(DirectoryInfo di)
+        private static async Task MakeReadWriteAsync(DirectoryInfo di)
         {
             foreach (var subdirectory in di.GetDirectories())
             {

@@ -76,10 +76,7 @@
                     continue;
                 }
 
-                if (!componentLookup.ContainsKey(package.Id!))
-                {
-                    componentLookup.Add(package.Id!, package);
-                }
+                componentLookup.TryAdd(package.Id!, package);
             }
 
             // Generate the list of components to install.
@@ -119,12 +116,13 @@
                         {
                             if (VersionNumber.Parse(vcComponent.Version!) >= versions.VisualCppMinimumVersion)
                             {
-                                if (!vcComponentsByVersionSignifier.ContainsKey(versionSignifier))
+                                if (!vcComponentsByVersionSignifier.TryGetValue(versionSignifier, out HashSet<string>? versionIds))
                                 {
-                                    vcComponentsByVersionSignifier[versionSignifier] = new HashSet<string>();
+                                    versionIds = new HashSet<string>();
+                                    vcComponentsByVersionSignifier[versionSignifier] = versionIds;
                                 }
 
-                                vcComponentsByVersionSignifier[versionSignifier].Add(vcComponent.Id!);
+                                versionIds.Add(vcComponent.Id!);
                             }
                         }
                     }
@@ -155,15 +153,13 @@
             // Add all the components recursively that are desired.
             void RecursivelyAddComponent(string componentId, string fromComponentId)
             {
-                if (!componentLookup!.ContainsKey(componentId))
+                if (!componentLookup!.TryGetValue(componentId, out VisualStudioManifestChannelItem? component))
                 {
                     return;
                 }
 
                 if (!componentsToInstall!.Contains(componentId))
                 {
-                    var component = componentLookup![componentId];
-
                     if (component.Type != "Workload")
                     {
                         _logger.LogInformation($"Adding the following component to the install manifest: {componentId} (dependency of {fromComponentId})");
@@ -314,7 +310,7 @@
             {
                 var key = kv.Key;
                 var append = false;
-                if (kv.Key.StartsWith("+", StringComparison.Ordinal))
+                if (kv.Key.StartsWith('+'))
                 {
                     key = kv.Key[1..];
                     append = true;

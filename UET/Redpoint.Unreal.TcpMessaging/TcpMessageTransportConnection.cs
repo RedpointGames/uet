@@ -44,7 +44,7 @@ namespace Redpoint.Unreal.TcpMessaging
 
         public static async Task<TcpMessageTransportConnection> CreateAsync(Func<Task<TcpClient>> connectionFactory, ILogger? logger = null)
         {
-            if (connectionFactory == null) throw new ArgumentNullException(nameof(connectionFactory));
+            ArgumentNullException.ThrowIfNull(connectionFactory);
 
             Guid initialRemoteGuidId = Guid.Empty;
             TcpMessageTransportConnection? instance = null;
@@ -413,7 +413,7 @@ namespace Redpoint.Unreal.TcpMessaging
 
         public void Respond<T>(TcpDeserializedMessage sourceMessage, T value) where T : notnull, new()
         {
-            if (sourceMessage == null) throw new ArgumentNullException(nameof(sourceMessage));
+            ArgumentNullException.ThrowIfNull(sourceMessage);
 
             var nextMessage = new TcpDeserializedMessage
             {
@@ -431,7 +431,7 @@ namespace Redpoint.Unreal.TcpMessaging
 
         public async Task ReceiveUntilAsync(Func<TcpDeserializedMessage, Task<bool>> onMessageReceived, CancellationToken cancellationToken)
         {
-            if (onMessageReceived == null) throw new ArgumentNullException(nameof(onMessageReceived));
+            ArgumentNullException.ThrowIfNull(onMessageReceived);
 
             try
             {

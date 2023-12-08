@@ -18,9 +18,9 @@
             AgentElementProperties props,
             Func<XmlWriter, Task> writeChildren)
         {
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-            if (props == null) throw new ArgumentNullException(nameof(props));
-            if (writeChildren == null) throw new ArgumentNullException(nameof(writeChildren));
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(props);
+            ArgumentNullException.ThrowIfNull(writeChildren);
 
             await writer.WriteStartElementAsync(null, "Agent", null).ConfigureAwait(false);
             if (props.If != null)
@@ -37,8 +37,8 @@
             this XmlWriter writer,
             PropertyElementProperties props)
         {
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-            if (props == null) throw new ArgumentNullException(nameof(props));
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(props);
 
             await writer.WriteStartElementAsync(null, "Property", null).ConfigureAwait(false);
             if (props.If != null)
@@ -54,8 +54,8 @@
             this XmlWriter writer,
             ExpandElementProperties props)
         {
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-            if (props == null) throw new ArgumentNullException(nameof(props));
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(props);
 
             await writer.WriteStartElementAsync(null, "Expand", null).ConfigureAwait(false);
             await writer.WriteAttributeStringAsync(null, "Name", null, props.Name).ConfigureAwait(false);
@@ -75,9 +75,9 @@
             NodeElementProperties props,
             Func<XmlWriter, Task> writeChildren)
         {
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-            if (props == null) throw new ArgumentNullException(nameof(props));
-            if (writeChildren == null) throw new ArgumentNullException(nameof(writeChildren));
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(props);
+            ArgumentNullException.ThrowIfNull(writeChildren);
 
             await writer.WriteStartElementAsync(null, "Node", null).ConfigureAwait(false);
             await writer.WriteAttributeStringAsync(null, "Name", null, props.Name).ConfigureAwait(false);
@@ -101,8 +101,8 @@
             this XmlWriter writer,
             CompileElementProperties props)
         {
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-            if (props == null) throw new ArgumentNullException(nameof(props));
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(props);
 
             await writer.WriteStartElementAsync(null, "Compile", null).ConfigureAwait(false);
             await writer.WriteAttributeStringAsync(null, "Target", null, props.Target).ConfigureAwait(false);
@@ -121,8 +121,8 @@
             this XmlWriter writer,
             CopyElementProperties props)
         {
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-            if (props == null) throw new ArgumentNullException(nameof(props));
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(props);
 
             await writer.WriteStartElementAsync(null, "Copy", null).ConfigureAwait(false);
             await writer.WriteAttributeStringAsync(null, "Files", null, props.Files).ConfigureAwait(false);
@@ -143,8 +143,8 @@
             this XmlWriter writer,
             DeleteElementProperties props)
         {
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-            if (props == null) throw new ArgumentNullException(nameof(props));
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(props);
 
             await writer.WriteStartElementAsync(null, "Delete", null).ConfigureAwait(false);
             await writer.WriteAttributeStringAsync(null, "Files", null, props.Files).ConfigureAwait(false);
@@ -159,8 +159,8 @@
             this XmlWriter writer,
             SpawnElementProperties props)
         {
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-            if (props == null) throw new ArgumentNullException(nameof(props));
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(props);
 
             await writer.WriteStartElementAsync(null, "Spawn", null).ConfigureAwait(false);
             await writer.WriteAttributeStringAsync(null, "Exe", null, props.Exe).ConfigureAwait(false);
@@ -176,8 +176,8 @@
             this XmlWriter writer,
             TagElementProperties props)
         {
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-            if (props == null) throw new ArgumentNullException(nameof(props));
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(props);
 
             await writer.WriteStartElementAsync(null, "Tag", null).ConfigureAwait(false);
             await writer.WriteAttributeStringAsync(null, "BaseDir", null, props.BaseDir).ConfigureAwait(false);
@@ -194,8 +194,8 @@
             this XmlWriter writer,
             DynamicNodeAppendElementProperties props)
         {
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-            if (props == null) throw new ArgumentNullException(nameof(props));
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(props);
 
             await writer.WriteStartElementAsync(null, "Property", null).ConfigureAwait(false);
             if (props.If != null)
@@ -223,8 +223,8 @@
             this XmlWriter writer,
             DynamicOutputFileAppendElementProperties props)
         {
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-            if (props == null) throw new ArgumentNullException(nameof(props));
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(props);
 
             await writer.WriteStartElementAsync(null, "Property", null).ConfigureAwait(false);
             if (props.If != null)
@@ -244,9 +244,9 @@
             TConfig config,
             Dictionary<string, string> runtimeSettings) where T : IDynamicReentrantExecutor<TDistribution, TConfig>
         {
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-            if (context == null) throw new ArgumentNullException(nameof(context));
-            if (runtimeSettings == null) throw new ArgumentNullException(nameof(runtimeSettings));
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(context);
+            ArgumentNullException.ThrowIfNull(runtimeSettings);
 
             var globalArgsProvider = context.Services.GetService<IGlobalArgsProvider>();
 
@@ -318,9 +318,9 @@
             MacroElementProperties props,
             Func<XmlWriter, Task> writeChildren)
         {
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-            if (props == null) throw new ArgumentNullException(nameof(props));
-            if (writeChildren == null) throw new ArgumentNullException(nameof(writeChildren));
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(props);
+            ArgumentNullException.ThrowIfNull(writeChildren);
 
             await writer.WriteStartElementAsync(null, "Macro", null).ConfigureAwait(false);
             if (props.If != null)

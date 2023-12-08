@@ -32,7 +32,7 @@
 
         public override string PreparationOperationCompletedDescription => "parsed headers";
 
-        private readonly IReadOnlySet<string> _recognisedClangCompilers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        private readonly HashSet<string> _recognisedClangCompilers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "clang-cl.exe",
             "clang-tidy.exe"
@@ -43,7 +43,7 @@
             if (_recognisedClangCompilers.Contains(Path.GetFileName(spec.Tool.Path)))
             {
                 if (spec.Arguments.Any(x => x.StartsWith("-p=", StringComparison.Ordinal)) &&
-                    spec.Arguments.Any(x => !x.StartsWith("-", StringComparison.Ordinal) &&
+                    spec.Arguments.Any(x => !x.StartsWith('-') &&
                         (x.EndsWith(".cpp", StringComparison.Ordinal) || x.EndsWith(".c", StringComparison.Ordinal))))
                 {
                     var compileCommandDatabase = spec.Arguments
@@ -51,7 +51,7 @@
                         .Select(x => x.Split('=', 2)[1])
                         .First();
                     var inputFile = spec.Arguments
-                        .Where(x => !x.StartsWith("-", StringComparison.Ordinal) && (x.EndsWith(".cpp", StringComparison.Ordinal) || x.EndsWith(".c", StringComparison.Ordinal)))
+                        .Where(x => !x.StartsWith('-') && (x.EndsWith(".cpp", StringComparison.Ordinal) || x.EndsWith(".c", StringComparison.Ordinal)))
                         .First();
                     if (File.Exists(compileCommandDatabase) &&
                         File.Exists(inputFile))
@@ -102,7 +102,7 @@
                 })
                 .First();
             var inputFile = spec.Arguments
-                .Where(x => !x.StartsWith("-", StringComparison.Ordinal) && (x.EndsWith(".cpp", StringComparison.Ordinal) || x.EndsWith(".c", StringComparison.Ordinal)))
+                .Where(x => !x.StartsWith('-') && (x.EndsWith(".cpp", StringComparison.Ordinal) || x.EndsWith(".c", StringComparison.Ordinal)))
                 .Select(x =>
                 {
                     if (!Path.IsPathRooted(x))

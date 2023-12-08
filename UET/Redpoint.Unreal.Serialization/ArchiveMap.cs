@@ -21,8 +21,8 @@
 
         public static async Task Serialize(Archive ar, Store<ArchiveMap<TIndex, TKey, TValue>> value)
         {
-            if (ar == null) throw new ArgumentNullException(nameof(ar));
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(ar);
+            ArgumentNullException.ThrowIfNull(value);
 
             if (ar.IsLoading)
             {

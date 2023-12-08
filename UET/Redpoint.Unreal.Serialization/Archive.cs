@@ -79,7 +79,7 @@
 
         public async ValueTask Serialize(Store<SByte> value)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             var u = new Store<Byte>(ReinterpretCast<SByte, Byte>(value.V));
             await ByteOrderSerialize(u).ConfigureAwait(false);
@@ -88,7 +88,7 @@
 
         public async ValueTask Serialize(Store<Int16> value)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             var u = new Store<UInt16>(ReinterpretCast<Int16, UInt16>(value.V));
             await ByteOrderSerialize(u).ConfigureAwait(false);
@@ -97,7 +97,7 @@
 
         public async ValueTask Serialize(Store<Int32> value)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             var u = new Store<UInt32>(ReinterpretCast<Int32, UInt32>(value.V));
             await ByteOrderSerialize(u).ConfigureAwait(false);
@@ -106,7 +106,7 @@
 
         public async ValueTask Serialize(Store<Int64> value)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             var u = new Store<UInt64>(ReinterpretCast<Int64, UInt64>(value.V));
             await ByteOrderSerialize(u).ConfigureAwait(false);
@@ -115,35 +115,35 @@
 
         public async ValueTask Serialize(Store<Byte> value)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             await ByteOrderSerialize(value).ConfigureAwait(false);
         }
 
         public async ValueTask Serialize(Store<UInt16> value)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             await ByteOrderSerialize(value).ConfigureAwait(false);
         }
 
         public async ValueTask Serialize(Store<UInt32> value)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             await ByteOrderSerialize(value).ConfigureAwait(false);
         }
 
         public async ValueTask Serialize(Store<UInt64> value)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             await ByteOrderSerialize(value).ConfigureAwait(false);
         }
 
         public async ValueTask Serialize(Store<float> value)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             var u = new Store<UInt32>(ReinterpretCast<float, UInt32>(value.V));
             await ByteOrderSerialize(u).ConfigureAwait(false);
@@ -152,7 +152,7 @@
 
         public async ValueTask Serialize(Store<double> value)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             var u = new Store<UInt64>(ReinterpretCast<double, UInt64>(value.V));
             await ByteOrderSerialize(u).ConfigureAwait(false);
@@ -161,7 +161,7 @@
 
         public async ValueTask Serialize(Store<Memory<byte>> value, long length)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             if (IsLoading)
             {
@@ -176,7 +176,7 @@
 
         public async ValueTask Serialize(Store<byte[]> value, long length)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             if (IsLoading)
             {
@@ -191,7 +191,7 @@
 
         public async ValueTask Serialize(Store<bool> value)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             Store<UInt32> intValue = new Store<UInt32>(value.V ? 1u : 0u);
             await ByteOrderSerialize(intValue).ConfigureAwait(false);
@@ -200,7 +200,7 @@
 
         public async ValueTask Serialize(Store<string> value, bool encodeAsASCII = false)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             if (IsLoading)
             {
@@ -276,10 +276,7 @@
 
         private async Task InvokeSerializeOnType<T>(Type type, Store<T> value)
         {
-            if (value == null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
+            ArgumentNullException.ThrowIfNull(value);
 
             foreach (var serializerRegistry in _serializerRegistries)
             {
@@ -300,8 +297,8 @@
 
         public async Task DynamicJsonFromRemainderOfStream(Store<TopLevelAssetPath> assetPath, Store<object?> value)
         {
-            if (assetPath == null) throw new ArgumentNullException(nameof(assetPath));
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(assetPath);
+            ArgumentNullException.ThrowIfNull(value);
 
             foreach (var serializerRegistry in _serializerRegistries)
             {
@@ -329,8 +326,8 @@
 
         public async Task DynamicJsonSerialize(Store<TopLevelAssetPath> assetPath, Store<object?> value)
         {
-            if (assetPath == null) throw new ArgumentNullException(nameof(assetPath));
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(assetPath);
+            ArgumentNullException.ThrowIfNull(value);
 
             foreach (var serializerRegistry in _serializerRegistries)
             {
@@ -356,7 +353,7 @@
 
         public async Task RuntimeSerialize<T>(Store<T> value) where T : new()
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             if (value.V == null)
             {

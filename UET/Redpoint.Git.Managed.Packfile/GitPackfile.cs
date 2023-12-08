@@ -70,7 +70,7 @@
             out ulong size,
             out Stream? data)
         {
-            if (index == null) throw new ArgumentNullException(nameof(index));
+            ArgumentNullException.ThrowIfNull(index);
 
             // Locate the object index in the index file based on the SHA-1 hash.
             if (!index.GetObjectIndexForObjectSha(sha, out var objectIndex))

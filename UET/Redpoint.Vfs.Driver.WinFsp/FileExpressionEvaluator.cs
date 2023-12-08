@@ -114,7 +114,7 @@
             }
 
             var nextExpressionChars = expression[ei..];
-            var areNextExpressionCharsAllNullMatchers = expression.Any() && !string.IsNullOrEmpty(nextExpressionChars) && nextExpressionChars.All(x => _charsThatMatchEmptyStringsAtEnd.Contains(x));
+            var areNextExpressionCharsAllNullMatchers = expression.Length != 0 && !string.IsNullOrEmpty(nextExpressionChars) && nextExpressionChars.All(x => _charsThatMatchEmptyStringsAtEnd.Contains(x));
             var isNameCurrentCharTheLast = ni == name.Length;
             if (ei == expression.Length && isNameCurrentCharTheLast || isNameCurrentCharTheLast && areNextExpressionCharsAllNullMatchers)
                 return true;

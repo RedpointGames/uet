@@ -216,11 +216,13 @@
             var hashesToFiles = new Dictionary<long, List<string>>();
             foreach (var kv in filesToPull)
             {
-                if (!hashesToFiles.ContainsKey(kv.Value))
+                if (!hashesToFiles.TryGetValue(kv.Value, out List<string>? fileList))
                 {
-                    hashesToFiles[kv.Value] = new List<string>();
+                    fileList = new List<string>();
+                    hashesToFiles[kv.Value] = fileList;
                 }
-                hashesToFiles[kv.Value].Add(kv.Key);
+
+                fileList.Add(kv.Key);
             }
             stopwatchHashing.Stop();
 
