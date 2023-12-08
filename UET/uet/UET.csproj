@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
+    <PackageReference Include="p4api.net" Version="2023.1.248.4623" />
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj" />
     <PackageReference Include="Grpc.Tools" Version="2.51.0">
       <PrivateAssets>all</PrivateAssets>

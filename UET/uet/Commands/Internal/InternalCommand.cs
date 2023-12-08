@@ -16,6 +16,7 @@
     using UET.Commands.Internal.RunGauntletTestFromBuildGraph;
     using UET.Commands.Internal.RunRfs;
     using UET.Commands.Internal.SetFilterFile;
+    using UET.Commands.Internal.SyncEngineFromPerforce;
     using UET.Commands.Internal.TestAutoDiscovery;
     using UET.Commands.Internal.TestGrpcPipes;
     using UET.Commands.Internal.TestUefsConnection;
@@ -52,6 +53,7 @@
                 CreateJunctionCommand.CreateCreateJunctionCommand(),
                 RunRfsCommand.CreateRunRfsCommand(),
                 StressTestProcessCommand.CreateStressTestProcessCommand(),
+                SyncEngineFromPerforceCommand.CreateSyncEngineFromPerforceCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
