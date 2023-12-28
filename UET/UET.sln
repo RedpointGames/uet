@@ -313,7 +313,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PerformanceProfiling", "Per
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Hashing", "Redpoint.Hashing\Redpoint.Hashing.csproj", "{2B4CFA87-62D2-4D52-B407-2067D3893EFC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Logging.File", "Redpoint.Logging.File\Redpoint.Logging.File.csproj", "{7CCFE33C-98C5-4DC3-9F25-5AE5AE349960}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Logging.File", "Redpoint.Logging.File\Redpoint.Logging.File.csproj", "{7CCFE33C-98C5-4DC3-9F25-5AE5AE349960}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.LexerParser", "Redpoint.OpenGE.LexerParser\Redpoint.OpenGE.LexerParser.csproj", "{AA8B9B76-D899-4241-A5CD-2AA4AB685468}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.LexerParser.Tests", "Redpoint.OpenGE.LexerParser.Tests\Redpoint.OpenGE.LexerParser.Tests.csproj", "{2B61C9C5-0FDC-46CB-BB08-0949EF14C878}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -2017,6 +2021,30 @@ Global
 		{7CCFE33C-98C5-4DC3-9F25-5AE5AE349960}.Release|x64.Build.0 = Release|Any CPU
 		{7CCFE33C-98C5-4DC3-9F25-5AE5AE349960}.Release|x86.ActiveCfg = Release|Any CPU
 		{7CCFE33C-98C5-4DC3-9F25-5AE5AE349960}.Release|x86.Build.0 = Release|Any CPU
+		{AA8B9B76-D899-4241-A5CD-2AA4AB685468}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA8B9B76-D899-4241-A5CD-2AA4AB685468}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA8B9B76-D899-4241-A5CD-2AA4AB685468}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AA8B9B76-D899-4241-A5CD-2AA4AB685468}.Debug|x64.Build.0 = Debug|Any CPU
+		{AA8B9B76-D899-4241-A5CD-2AA4AB685468}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AA8B9B76-D899-4241-A5CD-2AA4AB685468}.Debug|x86.Build.0 = Debug|Any CPU
+		{AA8B9B76-D899-4241-A5CD-2AA4AB685468}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA8B9B76-D899-4241-A5CD-2AA4AB685468}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA8B9B76-D899-4241-A5CD-2AA4AB685468}.Release|x64.ActiveCfg = Release|Any CPU
+		{AA8B9B76-D899-4241-A5CD-2AA4AB685468}.Release|x64.Build.0 = Release|Any CPU
+		{AA8B9B76-D899-4241-A5CD-2AA4AB685468}.Release|x86.ActiveCfg = Release|Any CPU
+		{AA8B9B76-D899-4241-A5CD-2AA4AB685468}.Release|x86.Build.0 = Release|Any CPU
+		{2B61C9C5-0FDC-46CB-BB08-0949EF14C878}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B61C9C5-0FDC-46CB-BB08-0949EF14C878}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B61C9C5-0FDC-46CB-BB08-0949EF14C878}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2B61C9C5-0FDC-46CB-BB08-0949EF14C878}.Debug|x64.Build.0 = Debug|Any CPU
+		{2B61C9C5-0FDC-46CB-BB08-0949EF14C878}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2B61C9C5-0FDC-46CB-BB08-0949EF14C878}.Debug|x86.Build.0 = Debug|Any CPU
+		{2B61C9C5-0FDC-46CB-BB08-0949EF14C878}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B61C9C5-0FDC-46CB-BB08-0949EF14C878}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B61C9C5-0FDC-46CB-BB08-0949EF14C878}.Release|x64.ActiveCfg = Release|Any CPU
+		{2B61C9C5-0FDC-46CB-BB08-0949EF14C878}.Release|x64.Build.0 = Release|Any CPU
+		{2B61C9C5-0FDC-46CB-BB08-0949EF14C878}.Release|x86.ActiveCfg = Release|Any CPU
+		{2B61C9C5-0FDC-46CB-BB08-0949EF14C878}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -2128,6 +2156,8 @@ Global
 		{8698C501-2B45-47BE-B1DD-4766BEB65AB0} = {345BF757-ABB7-4869-8797-B1E11A484650}
 		{CB1C52D0-C27E-46EB-A9BA-54478A50B6C5} = {345BF757-ABB7-4869-8797-B1E11A484650}
 		{AAB64112-C522-4FD2-8A28-84E7B17EFE92} = {71CE6D4C-CA5F-42F3-8B7D-0A8DA1AE0774}
+		{AA8B9B76-D899-4241-A5CD-2AA4AB685468} = {638E6F6F-8E1A-4D41-B26D-4E21FC966FED}
+		{2B61C9C5-0FDC-46CB-BB08-0949EF14C878} = {638E6F6F-8E1A-4D41-B26D-4E21FC966FED}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}
