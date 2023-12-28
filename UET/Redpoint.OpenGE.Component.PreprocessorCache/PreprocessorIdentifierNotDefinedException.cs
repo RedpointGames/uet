@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.OpenGE.Component.PreprocessorCache
 {
     using System;
-    using System.Runtime.Serialization;
 
     [Serializable]
     public class PreprocessorIdentifierNotDefinedException : Exception
