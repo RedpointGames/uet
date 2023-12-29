@@ -14,7 +14,7 @@
         [Fact]
         public void Test()
         {
-            using var file = new ScannerOpenFile(TODO);
+            using var file = new ScannerOpenFile("");
 
             var lindexDocument = Scanner.GenerateLindexDocument(file);
             var lines = new StringBuilder();

@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <IsTrimmable Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net7.0'))">true</IsTrimmable>
+    <IsTrimmable Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsTrimmable>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>

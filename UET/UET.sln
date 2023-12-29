@@ -47,6 +47,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{39698A12-7C9
 		.editorconfig = .editorconfig
 		Lib\Common.Build.props = Lib\Common.Build.props
 		Lib\Executable.Build.props = Lib\Executable.Build.props
+		Lib\Framework.Build.props = Lib\Framework.Build.props
 		Lib\LibraryPackaging.Build.props = Lib\LibraryPackaging.Build.props
 		Lib\XunitTesting.Build.props = Lib\XunitTesting.Build.props
 	EndProjectSection
@@ -315,9 +316,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Hashing", "Redpoin
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Logging.File", "Redpoint.Logging.File\Redpoint.Logging.File.csproj", "{7CCFE33C-98C5-4DC3-9F25-5AE5AE349960}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.LexerParser", "Redpoint.OpenGE.LexerParser\Redpoint.OpenGE.LexerParser.csproj", "{AA8B9B76-D899-4241-A5CD-2AA4AB685468}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.LexerParser", "Redpoint.OpenGE.LexerParser\Redpoint.OpenGE.LexerParser.csproj", "{AA8B9B76-D899-4241-A5CD-2AA4AB685468}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.LexerParser.Tests", "Redpoint.OpenGE.LexerParser.Tests\Redpoint.OpenGE.LexerParser.Tests.csproj", "{2B61C9C5-0FDC-46CB-BB08-0949EF14C878}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.LexerParser.Tests", "Redpoint.OpenGE.LexerParser.Tests\Redpoint.OpenGE.LexerParser.Tests.csproj", "{2B61C9C5-0FDC-46CB-BB08-0949EF14C878}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
