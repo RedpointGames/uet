@@ -42,7 +42,9 @@
         //private const string _scanFromStartOfLine = "#/\\\n";
         //private const string _scanForWhitespaceOrComment = " \t/";
 
+#if !DEBUG
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         internal static int IndexOfFirstNonWhitespaceNonCommentCharacter(ReadOnlySpan<char> rangeToScan)
         {
             int skip = 0;
@@ -147,13 +149,13 @@
                 Found = true;
                 Directive = directive;
                 DirectiveStart = (int)(Unsafe.ByteOffset(
-                    ref Unsafe.AsRef(originalRange[0]),
-                    ref Unsafe.AsRef(directive[0])) / sizeof(char));
+                    ref Unsafe.AsRef(in originalRange[0]),
+                    ref Unsafe.AsRef(in directive[0])) / sizeof(char));
                 DirectiveLength = directive.Length;
                 Arguments = arguments;
                 ArgumentsStart = (int)(Unsafe.ByteOffset(
-                    ref Unsafe.AsRef(originalRange[0]),
-                    ref Unsafe.AsRef(arguments[0])) / sizeof(char));
+                    ref Unsafe.AsRef(in originalRange[0]),
+                    ref Unsafe.AsRef(in arguments[0])) / sizeof(char));
                 ArgumentsLength = arguments.Length;
             }
 
@@ -166,7 +168,9 @@
             public int ArgumentsLength;
         }
 
+#if !DEBUG
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         internal static DirectiveSpans GetNextDirective(ReadOnlySpan<char> rangeToScan)
         {
             int skip = 0;
@@ -242,7 +246,7 @@
                     // newline terminator yet so we're still on the same virtual line and
                     // can potentially start looking for the start of a directive again.
                     goto LookAtSomethingInteresting;
-                case '\r';
+                case '\r':
                     if (somethingInterestingIndex == rangeToScan.Length - 1)
                     {
                         // Can't have a \n after this as we're at the end of the range,
@@ -345,6 +349,9 @@
                 // We can get here if we get a '#' and then the end of a file.
                 return default;
             }
+
+            throw new NotImplementedException();
+        #if FALSE
             ref readonly var directiveInitialCharacter = ref rangeToScan[0];
             if ((directiveInitialCharacter >= 'a' && directiveInitialCharacter <= 'z') ||
                 (directiveInitialCharacter >= 'A' && directiveInitialCharacter <= 'Z'))
@@ -354,7 +361,7 @@
                 var directiveRange = rangeToScan;
                 var nextNonLowercase = directiveRange.IndexOfAnyExceptInRange('a', 'z');
 
-                #$*($&%($&%$(*%&
+                //#$*($&%($&%$(*%&
                 // @todo: Once we have a non-lowercase, check if it's uppercase, then jump to doing:
                 //   directiveRange.IndexOfAnyExceptInRange('A', 'Z');
                 // or if it's numeric, jump to doing:
@@ -375,10 +382,148 @@
 
             // What are we looking at?
 
-            
+            // We have the start of a directive name. Grab stuff until we have
+            // something that can no longer be part of the directive name.
+            var directiveRange = rangeToScan;
+                var nextNonLowercase = directiveRange.IndexOfAnyExceptInRange('a', 'z');
+
+//#$*($&%($&%$(*%&
+                // @todo: Once we have a non-lowercase, check if it's uppercase, then jump to doing:
+                //   directiveRange.IndexOfAnyExceptInRange('A', 'Z');
+                // or if it's numeric, jump to doing:
+                //   directiveRange.IndexOfAnyExceptInRange('0', '9');
+                // or if it's none, then we're done. Each of those calls above
+                // then also need to do their own checks to see if we should return
+                // to lowercase handling!
+            }
+#endif
         }
 
-            public bool MoveNext()
+#if !DEBUG
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+        internal static ReadOnlySpan<char> ConsumeWord(ref ReadOnlySpan<char> currentRange)
+        {
+            if (currentRange.IsEmpty)
+            {
+                return default;
+            }
+            var originalRange = currentRange;
+            var characterCount = 0;
+            ref readonly var character = ref currentRange[0];
+            if (character >= 'a' && character <= 'z')
+            {
+                goto ConsumeLowercase;
+            }
+            if (character >= 'A' && character <= 'Z')
+            {
+                goto ConsumeUppercase;
+            }
+            if (character == '_')
+            {
+                goto ConsumeUnderscore;
+            }
+            // This isn't the start of a word, so we can't consume anything.
+            return default;
+        ConsumeLowercase:
+            {
+                var afterLowercase = currentRange.IndexOfAnyExceptInRange('a', 'z');
+                if (afterLowercase == -1)
+                {
+                    return originalRange.Slice(0, characterCount + currentRange.Length);
+                }
+                character = ref currentRange[afterLowercase];
+                characterCount += afterLowercase;
+                currentRange = currentRange.Slice(afterLowercase);
+                if (character >= 'A' && character <= 'Z')
+                {
+                    goto ConsumeUppercase;
+                }
+                if (character >= '0' && character <= '9')
+                {
+                    goto ConsumeNumeric;
+                }
+                if (character == '_')
+                {
+                    goto ConsumeUnderscore;
+                }
+                return originalRange.Slice(0, characterCount);
+            }
+        ConsumeUppercase:
+            {
+                var afterUppercase = currentRange.IndexOfAnyExceptInRange('A', 'Z');
+                if (afterUppercase == -1)
+                {
+                    return originalRange.Slice(0, characterCount + currentRange.Length);
+                }
+                character = ref currentRange[afterUppercase];
+                characterCount += afterUppercase;
+                currentRange = currentRange.Slice(afterUppercase);
+                if (character >= 'a' && character <= 'z')
+                {
+                    goto ConsumeLowercase;
+                }
+                if (character >= '0' && character <= '9')
+                {
+                    goto ConsumeNumeric;
+                }
+                if (character == '_')
+                {
+                    goto ConsumeUnderscore;
+                }
+                return originalRange.Slice(0, characterCount);
+            }
+        ConsumeNumeric:
+            {
+                var afterNumeric = currentRange.IndexOfAnyExceptInRange('0', '9');
+                if (afterNumeric == -1)
+                {
+                    return originalRange.Slice(0, characterCount + currentRange.Length);
+                }
+                character = ref currentRange[afterNumeric];
+                characterCount += afterNumeric;
+                currentRange = currentRange.Slice(afterNumeric);
+                if (character >= 'a' && character <= 'z')
+                {
+                    goto ConsumeLowercase;
+                }
+                if (character >= 'A' && character <= 'Z')
+                {
+                    goto ConsumeUppercase;
+                }
+                if (character == '_')
+                {
+                    goto ConsumeUnderscore;
+                }
+                return originalRange.Slice(0, characterCount);
+            }
+        ConsumeUnderscore:
+            {
+                var afterUnderscore = currentRange.IndexOfAnyExcept('_');
+                if (afterUnderscore == -1)
+                {
+                    return originalRange.Slice(0, characterCount + currentRange.Length);
+                }
+                character = ref currentRange[afterUnderscore];
+                characterCount += afterUnderscore;
+                currentRange = currentRange.Slice(afterUnderscore);
+                if (character >= 'a' && character <= 'z')
+                {
+                    goto ConsumeLowercase;
+                }
+                if (character >= 'A' && character <= 'Z')
+                {
+                    goto ConsumeUppercase;
+                }
+                if (character >= '0' && character <= '9')
+                {
+                    goto ConsumeNumeric;
+                }
+                return originalRange.Slice(0, characterCount);
+            }
+        }
+
+        public bool MoveNext()
         {
             // Based on the enumerator state, continue at the point where
             // we left off.
