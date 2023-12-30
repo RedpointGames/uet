@@ -26,7 +26,7 @@
         [InlineData(-1, "/*\n*\n*\n*\n*\n*/")]
         [InlineData(0, "a")]
         [InlineData(0, "#")]
-        [InlineData(1, "/")]
+        [InlineData(0, "/")]
         [InlineData(2, "/*")]
         [InlineData(3, "/**")]
         [InlineData(4, "/**a")]

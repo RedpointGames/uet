@@ -11,7 +11,9 @@
 #if !DEBUG
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-        internal static ReadOnlySpan<char> ConsumeWord(ref ReadOnlySpan<char> currentRange)
+        internal static ReadOnlySpan<char> ConsumeWord(
+            ref ReadOnlySpan<char> currentRange, 
+            bool permitNumericStart = false)
         {
             if (currentRange.IsEmpty)
             {
@@ -27,6 +29,10 @@
             if (character >= 'A' && character <= 'Z')
             {
                 goto ConsumeUppercase;
+            }
+            if (permitNumericStart && character >= '0' && character <= '9')
+            {
+                goto ConsumeNumeric;
             }
             if (character == '_')
             {
@@ -151,24 +157,31 @@
                 return originalRange.Slice(0, characterCount);
             }
         ConsumeNewlineContinuations:
-            currentRange.ConsumeNewlineContinuations(ref characterCount);
-            if (character >= 'a' && character <= 'z')
             {
-                goto ConsumeLowercase;
+                // @note: We can't avoid an allocation here; we have to strip the
+                // newline continuations out of the word and then return a span
+                // without the newline continuations.
+                //
+                // However, the solution is that people shouldn't be using newline
+                // continuations mid-word in 2023 because it's really only there for
+                // legacy C support.
+                var charactersUntilAfterContinuations = 0;
+                currentRange.ConsumeNewlineContinuations(ref charactersUntilAfterContinuations);
+                if (charactersUntilAfterContinuations == 0)
+                {
+                    // There were no newline continuations (which is the case if
+                    // this slash is for some other kind of escape). Treat this as
+                    // a normal termination.
+                    return originalRange.Slice(0, characterCount);
+                }
+                // Get the part of the word after the newline continuations.
+                var contentAfterContinuations = originalRange.Slice(
+                    characterCount + charactersUntilAfterContinuations);
+                var wordAfterContinuations = ConsumeWord(ref contentAfterContinuations, true);
+                return string.Concat(
+                    originalRange.Slice(0, characterCount),
+                    wordAfterContinuations);
             }
-            if (character >= 'A' && character <= 'Z')
-            {
-                goto ConsumeUppercase;
-            }
-            if (character >= '0' && character <= '9')
-            {
-                goto ConsumeNumeric;
-            }
-            if (character == '_')
-            {
-                goto ConsumeUnderscore;
-            }
-            return originalRange.Slice(0, characterCount);
         }
     }
 }

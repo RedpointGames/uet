@@ -56,30 +56,28 @@
                 // terminator.
                 return skip + rangeToScan.Length;
             }
-
-
-            (@#$&(*@#$&(@#&$(*@#$(*@#&$)
-            // need to use IndexBeforeNewlineContinuations to see whether '*' is
-            // before the slash even if there are newline continuations in between
-
-
-            if (nextSlash == 0 || rangeToScan[nextSlash - 1] != '*')
+            if (nextSlash == 0)
             {
                 // The slash was the first character. Skip to the first
                 // star we find (instead of checking for the next slash;
                 // this avoids worst case sequences like '/////').
-                if (nextSlash != 0)
-                {
-                    rangeToScan = rangeToScan.Slice(nextSlash + 1);
-                    skip += nextSlash + 1;
-                }
                 goto StarScan;
             }
+
+            var previousChar = rangeToScan.IndexOfAnyBeforeNewlineContinuations(nextSlash);
+            if (previousChar == -1 || rangeToScan[previousChar] != '*')
+            {
+                // The character before the slash was not a '*'. Skip to
+                // the first star we find (instead of checking for the
+                // next slash; this avoids worst case sequences like '/////').
+                rangeToScan.Consume(nextSlash + 1, ref skip);
+                goto StarScan;
+            }
+
             // We're concluding a multi-line comment. After the end of
             // the multi-line comment, we then need to continue checking
             // for whitespace or more multi-line comments.
-            rangeToScan = rangeToScan.Slice(nextSlash + 1);
-            skip += nextSlash + 1;
+            rangeToScan.Consume(nextSlash + 1, ref skip);
             goto StartScanning;
         StarScan:
             var nextStar = rangeToScan.IndexOf('*');
@@ -90,20 +88,22 @@
                 // necessary to end the comment terminator.
                 return skip + rangeToScan.Length;
             }
-            if (rangeToScan[nextStar + 1] != '/')
+            var afterStarSpan = rangeToScan.Slice(nextStar + 1);
+            var afterStarNewlineContinuationsConsumed = 0;
+            afterStarSpan.ConsumeNewlineContinuations(ref afterStarNewlineContinuationsConsumed);
+            if (afterStarSpan[0] != '/')
             {
                 // No slash after the star. Skip to the first slash we
                 // find (instead of checking for the next star;
                 // this avoids worst case sequences like '******/').
-                rangeToScan = rangeToScan.Slice(nextStar + 1);
-                skip += nextStar + 1;
+                rangeToScan.Consume(nextStar + 1, ref skip);
                 goto SlashScan;
             }
+
             // We're concluding a multi-line comment. After the end of
             // the multi-line comment, we then need to continue checking
             // for whitespace or more multi-line comments.
-            rangeToScan = rangeToScan.Slice(nextStar + 2);
-            skip += nextStar + 2;
+            rangeToScan.Consume(nextStar + 1 + afterStarNewlineContinuationsConsumed + 1, ref skip);
             goto StartScanning;
         }
     }

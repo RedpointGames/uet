@@ -70,7 +70,7 @@
         /// <param name="startPosition">The start position to search at. The characters immediately prior to this must be newline continuations.</param>
         /// <returns>The index of the first character before potential newline continuations, or -1 if there is no non-newline-continuation character in the span prior to the provided index.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static int IndexBeforeNewlineContinuations(this in ReadOnlySpan<char> span, int startPosition)
+        internal static int IndexOfAnyBeforeNewlineContinuations(this in ReadOnlySpan<char> span, int startPosition)
         {
             var position = startPosition - 1;
         CheckPosition:

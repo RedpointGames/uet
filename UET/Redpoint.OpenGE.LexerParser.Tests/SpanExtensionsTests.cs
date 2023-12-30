@@ -62,9 +62,9 @@
         [InlineData(1, "test", 2)]
         [InlineData(1, "te\\\nst", 4)]
         [InlineData(2, "te\\\nst", 3)]
-        public void IndexBeforeNewlineContinuations(int expectedPosition, string source, int startPosition)
+        public void IndexOfAnyBeforeNewlineContinuations(int expectedPosition, string source, int startPosition)
         {
-            var actualPosition = source.AsSpan().IndexBeforeNewlineContinuations(startPosition);
+            var actualPosition = source.AsSpan().IndexOfAnyBeforeNewlineContinuations(startPosition);
             Assert.Equal(expectedPosition, actualPosition);
         }
 
