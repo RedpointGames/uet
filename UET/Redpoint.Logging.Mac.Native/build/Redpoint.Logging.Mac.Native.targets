@@ -9,7 +9,7 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <ExcludeFromSingleFile>false</ExcludeFromSingleFile>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\osx.11.0-arm64\native\libLogging.arm64.dylib">
+    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\osx-arm64\native\libLogging.arm64.dylib">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>libLogging.arm64.dylib</Link>
       <Visible>false</Visible>
