@@ -13,6 +13,7 @@
 #endif
         internal static ReadOnlySpan<char> ConsumeWord(
             ref ReadOnlySpan<char> currentRange, 
+            ref int totalCharactersConsumed,
             bool permitNumericStart = false)
         {
             if (currentRange.IsEmpty)
@@ -49,6 +50,7 @@
                 var afterLowercase = currentRange.IndexOfAnyExceptInRange('a', 'z');
                 if (afterLowercase == -1)
                 {
+                    totalCharactersConsumed += characterCount + currentRange.Length;
                     return originalRange.Slice(0, characterCount + currentRange.Length);
                 }
                 character = ref currentRange[afterLowercase];
@@ -70,6 +72,7 @@
                 {
                     goto ConsumeNewlineContinuations;
                 }
+                totalCharactersConsumed += characterCount;
                 return originalRange.Slice(0, characterCount);
             }
         ConsumeUppercase:
@@ -77,6 +80,7 @@
                 var afterUppercase = currentRange.IndexOfAnyExceptInRange('A', 'Z');
                 if (afterUppercase == -1)
                 {
+                    totalCharactersConsumed += characterCount + currentRange.Length;
                     return originalRange.Slice(0, characterCount + currentRange.Length);
                 }
                 character = ref currentRange[afterUppercase];
@@ -98,6 +102,7 @@
                 {
                     goto ConsumeNewlineContinuations;
                 }
+                totalCharactersConsumed += characterCount;
                 return originalRange.Slice(0, characterCount);
             }
         ConsumeNumeric:
@@ -105,6 +110,7 @@
                 var afterNumeric = currentRange.IndexOfAnyExceptInRange('0', '9');
                 if (afterNumeric == -1)
                 {
+                    totalCharactersConsumed += characterCount + currentRange.Length;
                     return originalRange.Slice(0, characterCount + currentRange.Length);
                 }
                 character = ref currentRange[afterNumeric];
@@ -126,6 +132,7 @@
                 {
                     goto ConsumeNewlineContinuations;
                 }
+                totalCharactersConsumed += characterCount;
                 return originalRange.Slice(0, characterCount);
             }
         ConsumeUnderscore:
@@ -133,6 +140,7 @@
                 var afterUnderscore = currentRange.IndexOfAnyExcept('_');
                 if (afterUnderscore == -1)
                 {
+                    totalCharactersConsumed += characterCount + currentRange.Length;
                     return originalRange.Slice(0, characterCount + currentRange.Length);
                 }
                 character = ref currentRange[afterUnderscore];
@@ -154,6 +162,7 @@
                 {
                     goto ConsumeNewlineContinuations;
                 }
+                totalCharactersConsumed += characterCount;
                 return originalRange.Slice(0, characterCount);
             }
         ConsumeNewlineContinuations:
@@ -172,12 +181,15 @@
                     // There were no newline continuations (which is the case if
                     // this slash is for some other kind of escape). Treat this as
                     // a normal termination.
+                    totalCharactersConsumed += characterCount;
                     return originalRange.Slice(0, characterCount);
                 }
                 // Get the part of the word after the newline continuations.
                 var contentAfterContinuations = originalRange.Slice(
                     characterCount + charactersUntilAfterContinuations);
-                var wordAfterContinuations = ConsumeWord(ref contentAfterContinuations, true);
+                totalCharactersConsumed += characterCount;
+                totalCharactersConsumed += charactersUntilAfterContinuations;
+                var wordAfterContinuations = ConsumeWord(ref contentAfterContinuations, ref totalCharactersConsumed, true);
                 return string.Concat(
                     originalRange.Slice(0, characterCount),
                     wordAfterContinuations);

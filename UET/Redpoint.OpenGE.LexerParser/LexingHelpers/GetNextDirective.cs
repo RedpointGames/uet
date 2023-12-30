@@ -7,22 +7,39 @@
     {
         internal ref struct DirectiveSpans
         {
-            public DirectiveSpans(
-                ReadOnlySpan<char> originalRange,
-                ReadOnlySpan<char> directive,
-                ReadOnlySpan<char> arguments)
+            public static void Assign(
+                ref DirectiveSpans result,
+                scoped in ReadOnlySpan<char> originalRange,
+                scoped in ReadOnlySpan<char> directive)
             {
-                Found = true;
-                Directive = directive;
-                DirectiveStart = (int)(Unsafe.ByteOffset(
+                result.Found = true;
+                result.Directive = directive;
+                result.DirectiveStart = (int)(Unsafe.ByteOffset(
                     ref Unsafe.AsRef(in originalRange[0]),
                     ref Unsafe.AsRef(in directive[0])) / sizeof(char));
-                DirectiveLength = directive.Length;
-                Arguments = arguments;
-                ArgumentsStart = (int)(Unsafe.ByteOffset(
+                result.DirectiveLength = directive.Length;
+                result.Arguments = default;
+                result.ArgumentsStart = 0;
+                result.ArgumentsLength = 0;
+            }
+
+            public static void Assign(
+                ref DirectiveSpans result,
+                scoped in ReadOnlySpan<char> originalRange,
+                scoped in ReadOnlySpan<char> directive,
+                scoped in ReadOnlySpan<char> arguments)
+            {
+                result.Found = true;
+                result.Directive = directive;
+                result.DirectiveStart = (int)(Unsafe.ByteOffset(
+                    ref Unsafe.AsRef(in originalRange[0]),
+                    ref Unsafe.AsRef(in directive[0])) / sizeof(char));
+                result.DirectiveLength = directive.Length;
+                result.Arguments = arguments;
+                result.ArgumentsStart = (int)(Unsafe.ByteOffset(
                     ref Unsafe.AsRef(in originalRange[0]),
                     ref Unsafe.AsRef(in arguments[0])) / sizeof(char));
-                ArgumentsLength = arguments.Length;
+                result.ArgumentsLength = arguments.Length;
             }
 
             public bool Found;
@@ -37,7 +54,10 @@
 #if !DEBUG
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-        internal static DirectiveSpans GetNextDirective(ReadOnlySpan<char> rangeToScan)
+        internal static void GetNextDirective(
+            ReadOnlySpan<char> rangeToScan,
+            ReadOnlySpan<char> originalContent,
+            ref DirectiveSpans result)
         {
             int skip = 0;
         StartScanning:
@@ -47,7 +67,8 @@
             {
                 // We can't even find a '#', which means there must be no
                 // more directives.
-                return default;
+                result = default;
+                return;
             }
 
         LookAtSomethingInteresting:
@@ -77,7 +98,8 @@
                     if (startOfDirectiveNameIndex == -1 || startOfDirectiveNameIndex == directiveRemainingRange.Length)
                     {
                         // Content ended before we got the directive name.
-                        return default;
+                        result = default;
+                        return;
                     }
                     ref readonly var startOfDirectiveName = ref directiveRemainingRange[startOfDirectiveNameIndex];
                     // Regardless of the next character, we're either skipping to the start
@@ -105,7 +127,8 @@
                         // There's no more non-whitespace, non-comment content between here
                         // and the end of the range (and the slash was the start of a comment
                         // block), therefore there can be no further directives.
-                        return default;
+                        result = default;
+                        return;
                     }
                     somethingInterestingIndex += sizeOfCommentAndWhitespace;
                     // We got a (potentially multi-line) comment, but we haven't got a true
@@ -117,7 +140,8 @@
                     {
                         // Can't have a \n after this as we're at the end of the range,
                         // which means no more directives.
-                        return default;
+                        result = default;
+                        return;
                     }
                     else if (rangeToScan[somethingInterestingIndex + 1] == '\n')
                     {
@@ -191,7 +215,8 @@
             {
                 // No more newlines before the end of the content, therefore there
                 // can be no more directives either.
-                return default;
+                result = default;
+                return;
             }
             if (nextNewlineIndex >= 1 && rangeToScan[nextNewlineIndex - 1] == '\\' ||
                 nextNewlineIndex >= 2 && rangeToScan[nextNewlineIndex - 1] == '\r' && rangeToScan[nextNewlineIndex - 2] == '\\')
@@ -213,8 +238,46 @@
             if (rangeToScan.IsEmpty)
             {
                 // We can get here if we get a '#' and then the end of a file.
-                return default;
+                result = default;
+                return;
             }
+            var directiveName = ConsumeWord(ref rangeToScan, ref skip);
+            var startOfArguments = IndexOfFirstNonWhitespaceNonCommentCharacter(rangeToScan);
+            if (startOfArguments == -1)
+            {
+                // We got the directive, and then the file ended.
+
+                // @todo: Ok, this is a legit problem. Let's say that we have a
+                // directive name that is expressed as "def\{lf}ine" and we've
+                // elided the line continuation to make "define" in ConsumeWord.
+                // Even if we know that directiveName in the normal case would be safe
+                // to escape (because originalContent would still be on the stack and
+                // that is what it's lifetime is tied to), the generated directive
+                // name from newline continuation eliding would not be.
+                //
+                // Therefore, I think we have to make ConsumeWord *not* skip
+                // newline continuations (we will report them with the continuations
+                // in them). When we want to compare those words against various
+                // types of preprocessor directives, we'll need to do something like
+                // TryConsumeSequence to see if it matches while skipping over
+                // the newline continuations.
+                //
+                // We should then write a helper method that does the logic inside
+                // DirectiveSpan:
+                //
+                // (int)(Unsafe.ByteOffset(
+                //    ref Unsafe.AsRef(in originalRange[0]),
+                //    ref Unsafe.AsRef(in directive[0])) / sizeof(char));
+                //
+                // And make sure that DirectiveSpans only returns the position and
+                // length for directives and arguments, without encapsulating
+                // ReadOnlySpan<char> and without being a `ref struct` itself.
+                DirectiveSpans.Assign(
+                    ref result,
+                    in originalContent,
+                    in directiveName);
+            }
+
 
             throw new NotImplementedException();
 #if FALSE
