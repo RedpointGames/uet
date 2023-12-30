@@ -1,9 +1,9 @@
 ﻿namespace Redpoint.OpenGE.LexerParser.Tests
 {
-    using Redpoint.OpenGE.LexerParser.LineScanning;
+    using Redpoint.OpenGE.LexerParser;
     using Xunit;
 
-    public class SpanDirectiveEnumeratorTests
+    public class LexingHelpersTests
     {
         [Theory]
         [InlineData(-1, "")]
@@ -33,9 +33,16 @@
         [InlineData(4, "/***")]
         [InlineData(4, "/** ")]
         [InlineData(5, "/* \n\n")]
+        [InlineData(-1, "\\\n/**/")]
+        [InlineData(-1, "/\\\n**/")]
+        [InlineData(-1, "/*\\\n*/")]
+        [InlineData(-1, "/**\\\n/")]
+        [InlineData(-1, "/**/\\\n")]
+        [InlineData(-1, "  \\\n \t\t \\\n/\\\n*\\\n*\\\n/\\\n \\\n \t\t")]
+        [InlineData(28, "  \\\n \t\t \\\n/\\\n*\\\n*\\\n/\\\n \\\n \t\tTEST")]
         public void IndexOfFirstNonWhitespaceNonCommentCharacter(int expected, string test)
         {
-            Assert.Equal(expected, SpanDirectiveEnumerator.IndexOfFirstNonWhitespaceNonCommentCharacter(test));
+            Assert.Equal(expected, LexingHelpers.IndexOfFirstNonWhitespaceNonCommentCharacter(test));
         }
 
         [Theory]
@@ -75,7 +82,7 @@
         public void ConsumeWord(string expected, string test)
         {
             ReadOnlySpan<char> span = test.AsSpan();
-            Assert.Equal(expected, SpanDirectiveEnumerator.ConsumeWord(ref span).ToString());
+            Assert.Equal(expected, LexingHelpers.ConsumeWord(ref span).ToString());
         }
     }
 }

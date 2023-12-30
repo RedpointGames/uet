@@ -1,0 +1,110 @@
+﻿namespace Redpoint.OpenGE.LexerParser
+{
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+
+    internal static partial class LexingHelpers
+    {
+#if !DEBUG
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+        internal static int IndexOfFirstNonWhitespaceNonCommentCharacter(ReadOnlySpan<char> rangeToScan)
+        {
+            int skip = 0;
+        StartScanning:
+            // If it's empty, then it can't contain anything not allowed.
+            if (rangeToScan.IsEmpty)
+            {
+                return -1;
+            }
+
+            var firstNonWhitespace = rangeToScan.IndexOfAnyExcept(' ', '\t');
+            if (firstNonWhitespace == -1)
+            {
+                // We only contain whitespace (no C++ comment either).
+                return -1;
+            }
+            rangeToScan.Consume(firstNonWhitespace, ref skip);
+
+            if (rangeToScan.ConsumeNewlineContinuations(ref skip) != 0)
+            {
+                // We skipped over at least one newline continuation, go back
+                // to whitespace scanning.
+                goto StartScanning;
+            }
+
+            // We've got something other than whitespace or a newline continuation.
+            // The only thing permitted is the start of a multi-line comment, so try
+            // to consume it.
+            if (rangeToScan.TryConsumeSequence("/*", ref skip, true))
+            {
+                // Start trying to find the end of the multi-line comment.
+                goto SlashScan;
+            }
+
+            // Not the start of a multi-line comment, which means this is the end.
+            return skip;
+        SlashScan:
+            var nextSlash = rangeToScan.IndexOf('/');
+            if (nextSlash == -1)
+            {
+                // No concluding '/' found, which means no matter what
+                // we can't have a '*' that would start the comment
+                // terminator.
+                return skip + rangeToScan.Length;
+            }
+
+
+            (@#$&(*@#$&(@#&$(*@#$(*@#&$)
+            // need to use IndexBeforeNewlineContinuations to see whether '*' is
+            // before the slash even if there are newline continuations in between
+
+
+            if (nextSlash == 0 || rangeToScan[nextSlash - 1] != '*')
+            {
+                // The slash was the first character. Skip to the first
+                // star we find (instead of checking for the next slash;
+                // this avoids worst case sequences like '/////').
+                if (nextSlash != 0)
+                {
+                    rangeToScan = rangeToScan.Slice(nextSlash + 1);
+                    skip += nextSlash + 1;
+                }
+                goto StarScan;
+            }
+            // We're concluding a multi-line comment. After the end of
+            // the multi-line comment, we then need to continue checking
+            // for whitespace or more multi-line comments.
+            rangeToScan = rangeToScan.Slice(nextSlash + 1);
+            skip += nextSlash + 1;
+            goto StartScanning;
+        StarScan:
+            var nextStar = rangeToScan.IndexOf('*');
+            if (nextStar == -1 || nextStar == rangeToScan.Length - 1)
+            {
+                // No concluding '*' found or it is the last character,
+                // which means no matter what we can't have the slash
+                // necessary to end the comment terminator.
+                return skip + rangeToScan.Length;
+            }
+            if (rangeToScan[nextStar + 1] != '/')
+            {
+                // No slash after the star. Skip to the first slash we
+                // find (instead of checking for the next star;
+                // this avoids worst case sequences like '******/').
+                rangeToScan = rangeToScan.Slice(nextStar + 1);
+                skip += nextStar + 1;
+                goto SlashScan;
+            }
+            // We're concluding a multi-line comment. After the end of
+            // the multi-line comment, we then need to continue checking
+            // for whitespace or more multi-line comments.
+            rangeToScan = rangeToScan.Slice(nextStar + 2);
+            skip += nextStar + 2;
+            goto StartScanning;
+        }
+    }
+}

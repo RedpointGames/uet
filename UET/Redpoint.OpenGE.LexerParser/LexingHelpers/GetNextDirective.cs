@@ -1,144 +1,10 @@
-﻿namespace Redpoint.OpenGE.LexerParser.LineScanning
+﻿namespace Redpoint.OpenGE.LexerParser
 {
     using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Linq;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-    using System.Text;
-    using System.Threading.Tasks;
 
-    public ref struct Directive
+    internal static partial class LexingHelpers
     {
-        public required uint LineNumber { get; set; }
-        public required ReadOnlySpan<char> DirectiveChars { get; set; }
-        public required ReadOnlySpan<char> ArgumentsChars { get; set; }
-    }
-
-    public ref struct SpanDirectiveEnumerator
-    {
-        private enum EnumeratorState
-        {
-            StartOfLine,
-            Done,
-        }
-
-        private ReadOnlySpan<char> _remaining;
-        //private int _position;
-        private Directive _current;
-        private EnumeratorState _state;
-
-        public SpanDirectiveEnumerator(ReadOnlySpan<char> source)
-        {
-            _remaining = source;
-            //  _position = 0;
-            _current = default;
-            _state = EnumeratorState.StartOfLine;
-        }
-
-        public Directive Current => _current;
-
-        //private const string _scanFromStartOfLine = "#/\\\n";
-        //private const string _scanForWhitespaceOrComment = " \t/";
-
-#if !DEBUG
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-        internal static int IndexOfFirstNonWhitespaceNonCommentCharacter(ReadOnlySpan<char> rangeToScan)
-        {
-            int skip = 0;
-        StartScanning:
-            // If it's empty, then it can't contain anything not allowed.
-            if (rangeToScan.IsEmpty)
-            {
-                return -1;
-            }
-
-            var firstNonWhitespace = rangeToScan.IndexOfAnyExcept(' ', '\t');
-            if (firstNonWhitespace == -1)
-            {
-                // We only contain whitespace (no C++ comment either).
-                return -1;
-            }
-
-            // Is the first non-whitespace character the start of a comment, and
-            // the remaining content has enough space to store a comment?
-            ref readonly char firstChar = ref rangeToScan[firstNonWhitespace];
-            if (firstChar != '/')
-            {
-                // Not the start of '/*'.
-                return skip + firstNonWhitespace;
-            }
-            rangeToScan = rangeToScan.Slice(firstNonWhitespace);
-            skip += firstNonWhitespace;
-            if (rangeToScan.Length < 4)
-            {
-                // Not big enough to store '/**/'.
-                return skip + rangeToScan.Length;
-            }
-            ref readonly char secondChar = ref rangeToScan[1];
-            if (secondChar != '*')
-            {
-                // We're not starting a comment which means the slash is
-                // non-whitespace content in the range.
-                return skip;
-            }
-            rangeToScan = rangeToScan.Slice(2);
-            skip += 2;
-        SlashScan:
-            var nextSlash = rangeToScan.IndexOf('/');
-            if (nextSlash == -1)
-            {
-                // No concluding '/' found, which means no matter what
-                // we can't have a '*' that would start the comment
-                // terminator.
-                return skip + rangeToScan.Length;
-            }
-            if (nextSlash == 0 || rangeToScan[nextSlash - 1] != '*')
-            {
-                // The slash was the first character. Skip to the first
-                // star we find (instead of checking for the next slash;
-                // this avoids worst case sequences like '/////').
-                if (nextSlash != 0)
-                {
-                    rangeToScan = rangeToScan.Slice(nextSlash + 1);
-                    skip += nextSlash + 1;
-                }
-                goto StarScan;
-            }
-            // We're concluding a multi-line comment. After the end of
-            // the multi-line comment, we then need to continue checking
-            // for whitespace or more multi-line comments.
-            rangeToScan = rangeToScan.Slice(nextSlash + 1);
-            skip += nextSlash + 1;
-            goto StartScanning;
-        StarScan:
-            var nextStar = rangeToScan.IndexOf('*');
-            if (nextStar == -1 || nextStar == rangeToScan.Length - 1)
-            {
-                // No concluding '*' found or it is the last character,
-                // which means no matter what we can't have the slash
-                // necessary to end the comment terminator.
-                return skip + rangeToScan.Length;
-            }
-            if (rangeToScan[nextStar + 1] != '/')
-            {
-                // No slash after the star. Skip to the first slash we
-                // find (instead of checking for the next star;
-                // this avoids worst case sequences like '******/').
-                rangeToScan = rangeToScan.Slice(nextStar + 1);
-                skip += nextStar + 1;
-                goto SlashScan;
-            }
-            // We're concluding a multi-line comment. After the end of
-            // the multi-line comment, we then need to continue checking
-            // for whitespace or more multi-line comments.
-            rangeToScan = rangeToScan.Slice(nextStar + 2);
-            skip += nextStar + 2;
-            goto StartScanning;
-        }
-
         internal ref struct DirectiveSpans
         {
             public DirectiveSpans(
@@ -327,8 +193,8 @@
                 // can be no more directives either.
                 return default;
             }
-            if ((nextNewlineIndex >= 1 && rangeToScan[nextNewlineIndex - 1] == '\\') ||
-                (nextNewlineIndex >= 2 && rangeToScan[nextNewlineIndex - 1] == '\r' && rangeToScan[nextNewlineIndex - 2] == '\\'))
+            if (nextNewlineIndex >= 1 && rangeToScan[nextNewlineIndex - 1] == '\\' ||
+                nextNewlineIndex >= 2 && rangeToScan[nextNewlineIndex - 1] == '\r' && rangeToScan[nextNewlineIndex - 2] == '\\')
             {
                 // Newline continuation, so this isn't a true newline.
                 rangeToScan = rangeToScan.Slice(nextNewlineIndex + 1);
@@ -351,7 +217,7 @@
             }
 
             throw new NotImplementedException();
-        #if FALSE
+#if FALSE
             ref readonly var directiveInitialCharacter = ref rangeToScan[0];
             if ((directiveInitialCharacter >= 'a' && directiveInitialCharacter <= 'z') ||
                 (directiveInitialCharacter >= 'A' && directiveInitialCharacter <= 'Z'))
@@ -397,177 +263,6 @@
                 // to lowercase handling!
             }
 #endif
-        }
-
-#if !DEBUG
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-        internal static ReadOnlySpan<char> ConsumeWord(ref ReadOnlySpan<char> currentRange)
-        {
-            if (currentRange.IsEmpty)
-            {
-                return default;
-            }
-            var originalRange = currentRange;
-            var characterCount = 0;
-            ref readonly var character = ref currentRange[0];
-            if (character >= 'a' && character <= 'z')
-            {
-                goto ConsumeLowercase;
-            }
-            if (character >= 'A' && character <= 'Z')
-            {
-                goto ConsumeUppercase;
-            }
-            if (character == '_')
-            {
-                goto ConsumeUnderscore;
-            }
-            // This isn't the start of a word, so we can't consume anything.
-            return default;
-        ConsumeLowercase:
-            {
-                var afterLowercase = currentRange.IndexOfAnyExceptInRange('a', 'z');
-                if (afterLowercase == -1)
-                {
-                    return originalRange.Slice(0, characterCount + currentRange.Length);
-                }
-                character = ref currentRange[afterLowercase];
-                characterCount += afterLowercase;
-                currentRange = currentRange.Slice(afterLowercase);
-                if (character >= 'A' && character <= 'Z')
-                {
-                    goto ConsumeUppercase;
-                }
-                if (character >= '0' && character <= '9')
-                {
-                    goto ConsumeNumeric;
-                }
-                if (character == '_')
-                {
-                    goto ConsumeUnderscore;
-                }
-                return originalRange.Slice(0, characterCount);
-            }
-        ConsumeUppercase:
-            {
-                var afterUppercase = currentRange.IndexOfAnyExceptInRange('A', 'Z');
-                if (afterUppercase == -1)
-                {
-                    return originalRange.Slice(0, characterCount + currentRange.Length);
-                }
-                character = ref currentRange[afterUppercase];
-                characterCount += afterUppercase;
-                currentRange = currentRange.Slice(afterUppercase);
-                if (character >= 'a' && character <= 'z')
-                {
-                    goto ConsumeLowercase;
-                }
-                if (character >= '0' && character <= '9')
-                {
-                    goto ConsumeNumeric;
-                }
-                if (character == '_')
-                {
-                    goto ConsumeUnderscore;
-                }
-                return originalRange.Slice(0, characterCount);
-            }
-        ConsumeNumeric:
-            {
-                var afterNumeric = currentRange.IndexOfAnyExceptInRange('0', '9');
-                if (afterNumeric == -1)
-                {
-                    return originalRange.Slice(0, characterCount + currentRange.Length);
-                }
-                character = ref currentRange[afterNumeric];
-                characterCount += afterNumeric;
-                currentRange = currentRange.Slice(afterNumeric);
-                if (character >= 'a' && character <= 'z')
-                {
-                    goto ConsumeLowercase;
-                }
-                if (character >= 'A' && character <= 'Z')
-                {
-                    goto ConsumeUppercase;
-                }
-                if (character == '_')
-                {
-                    goto ConsumeUnderscore;
-                }
-                return originalRange.Slice(0, characterCount);
-            }
-        ConsumeUnderscore:
-            {
-                var afterUnderscore = currentRange.IndexOfAnyExcept('_');
-                if (afterUnderscore == -1)
-                {
-                    return originalRange.Slice(0, characterCount + currentRange.Length);
-                }
-                character = ref currentRange[afterUnderscore];
-                characterCount += afterUnderscore;
-                currentRange = currentRange.Slice(afterUnderscore);
-                if (character >= 'a' && character <= 'z')
-                {
-                    goto ConsumeLowercase;
-                }
-                if (character >= 'A' && character <= 'Z')
-                {
-                    goto ConsumeUppercase;
-                }
-                if (character >= '0' && character <= '9')
-                {
-                    goto ConsumeNumeric;
-                }
-                return originalRange.Slice(0, characterCount);
-            }
-        }
-
-        public bool MoveNext()
-        {
-            // Based on the enumerator state, continue at the point where
-            // we left off.
-            switch (_state)
-            {
-                case EnumeratorState.StartOfLine:
-                    goto HandleStartOfLine;
-                case EnumeratorState.Done:
-                default:
-                    goto ReachedEnd;
-            }
-
-        // We're at the start of the content, or the start of a brand
-        // new line.
-        HandleStartOfLine:
-            var index = _remaining.IndexOfAny("#/\\\n");
-            if (index == -1)
-            {
-                goto ReachedEnd;
-            }
-        /*
-        switch (_remaining[index])
-        {
-            case '#':
-                // A potential directive, but we might have non-whitespace characters
-                // before this.
-                if (index > 0)
-                {
-                    _remaining.Slice(0, index - 1).IndexOfAnyExcept(_scanForWhitespaceOrComment)
-
-                    // If we have non-whitespace between 
-                }
-            case '/':
-            case '\\':
-            case '\n':
-        }
-        */
-
-        // When we're certain we've reached the end of the content
-        // and can produce no more results.
-        ReachedEnd:
-            _state = EnumeratorState.Done;
-            _current = default;
-            return false;
         }
     }
 }
