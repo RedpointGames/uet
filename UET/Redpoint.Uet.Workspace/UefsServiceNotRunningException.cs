@@ -15,9 +15,5 @@
         public UefsServiceNotRunningException(Exception? innerException) : base("The UEFS service is not running on this machine, so the requested workspace can not be provided.", innerException)
         {
         }
-
-        protected UefsServiceNotRunningException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-        }
     }
 }

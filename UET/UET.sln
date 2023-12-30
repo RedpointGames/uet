@@ -46,6 +46,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{39698A12-7C9
 		.analyzerconfig = .analyzerconfig
 		.editorconfig = .editorconfig
 		Lib\Common.Build.props = Lib\Common.Build.props
+		Lib\CsWin32.Build.props = Lib\CsWin32.Build.props
 		Lib\Executable.Build.props = Lib\Executable.Build.props
 		Lib\LibraryPackaging.Build.props = Lib\LibraryPackaging.Build.props
 		Lib\XunitTesting.Build.props = Lib\XunitTesting.Build.props

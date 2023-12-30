@@ -12,6 +12,6 @@
     dotnet msbuild -t:BuildAndReferenceNupkg -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.csproj
   artifacts:
     paths:
-      - "UET/Redpoint.Logging.Mac.Native/runtimes/osx.11.0-arm64/libLogging.arm64.dylib"
+      - "UET/Redpoint.Logging.Mac.Native/runtimes/osx-arm64/libLogging.arm64.dylib"
       - "UET/Redpoint.Logging.Mac.Native/runtimes/osx-x64/libLogging.x64.dylib"
       - "UET/Redpoint.Logging.Mac/bin/Redpoint.Logging.Mac.Native.*.nupkg"

@@ -30,10 +30,10 @@
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
     echo "Package version: $PACKAGE_VERSION"
-    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION UET/Redpoint.OpenGE.Agent.Daemon/Redpoint.OpenGE.Agent.Daemon.csproj
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION UET/Redpoint.OpenGE.Agent.Daemon/Redpoint.OpenGE.Agent.Daemon.csproj
   artifacts:
     paths:
-      - "UET/Redpoint.OpenGE.Agent.Daemon/bin/Release/$FRAMEWORK_TARGET/osx.11.0-arm64/publish/openge-agent"
+      - "UET/Redpoint.OpenGE.Agent.Daemon/bin/Release/$FRAMEWORK_TARGET/osx-arm64/publish/openge-agent"
 
 "Build Linux OpenGE Agent":
   stage: OpenGE

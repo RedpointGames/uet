@@ -237,7 +237,7 @@
                         }
 
                         // Is this the volume we're interested in?
-                        if (extents.Extents[0].DiskNumber == physicalPathDiskNumber)
+                        if (extents.Extents._0.DiskNumber == physicalPathDiskNumber)
                         {
                             if (hasTrailingSlash)
                             {

@@ -36,7 +36,7 @@
 
   <Target Name="BuildNativeMacLibraries">
     <Message Importance="high" Text="Building native logging libraries for macOS..." Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
-    <Exec Command="clang -dynamiclib -o &quot;$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac.Native/runtimes/osx.11.0-arm64/libLogging.arm64.dylib&quot; -arch arm64 &quot;$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac.Native/logging.c&quot;" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
+    <Exec Command="clang -dynamiclib -o &quot;$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac.Native/runtimes/osx-arm64/libLogging.arm64.dylib&quot; -arch arm64 &quot;$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac.Native/logging.c&quot;" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
     <Exec Command="clang -dynamiclib -o &quot;$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac.Native/runtimes/osx-x64/libLogging.x64.dylib&quot; -arch x86_64 &quot;$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac.Native/logging.c&quot;" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
   </Target>
 
