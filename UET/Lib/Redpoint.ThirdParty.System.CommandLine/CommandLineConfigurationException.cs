@@ -22,11 +22,6 @@ public class CommandLineConfigurationException : Exception
     }
 
     /// <inheritdoc />
-    protected CommandLineConfigurationException(SerializationInfo info, StreamingContext context) : base(info, context)
-    {
-    }
-
-    /// <inheritdoc />
     public CommandLineConfigurationException(string message, Exception innerException) : base(message, innerException)
     {
     }

@@ -17,9 +17,5 @@
         public PreprocessorIdentifierNotDefinedException(string? message, Exception? innerException) : base(message, innerException)
         {
         }
-
-        protected PreprocessorIdentifierNotDefinedException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-        }
     }
 }

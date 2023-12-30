@@ -75,8 +75,8 @@
     <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\win-x64\publish\uet.exe" Condition="'$(RuntimeIdentifier)' != 'win-x64' and '$(EmbeddingCrossPlatform)' == 'true'">
       <Link>Embedded\win-x64\uet.exe</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\osx.11.0-arm64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'osx.11.0-arm64' and '$(EmbeddingCrossPlatform)' == 'true'">
-      <Link>Embedded\osx.11.0-arm64\uet</Link>
+    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\osx-arm64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'osx-arm64' and '$(EmbeddingCrossPlatform)' == 'true'">
+      <Link>Embedded\osx-arm64\uet</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'linux-x64' and '$(EmbeddingCrossPlatform)' == 'true' and '$(EnableLinuxSupport)' == 'true'">
       <Link>Embedded\linux-x64\uet</Link>

@@ -7,14 +7,14 @@
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion "-p:OutDir=$((Get-Location).Path)\UET\Redpoint.Uet.OpenGE\shim-bin\Release\net7.0\win-x64" "-p:PublishDir=$((Get-Location).Path)\UET\Redpoint.Uet.OpenGE\shim-bin\Release\net7.0\win-x64\publish" UET/Redpoint.OpenGE.Shim/Redpoint.OpenGE.Shim.csproj
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion "-p:OutDir=$((Get-Location).Path)\UET\Redpoint.Uet.OpenGE\shim-bin\Release\net8.0\win-x64" "-p:PublishDir=$((Get-Location).Path)\UET\Redpoint.Uet.OpenGE\shim-bin\Release\net8.0\win-x64\publish" UET/Redpoint.OpenGE.Shim/Redpoint.OpenGE.Shim.csproj
     if ($LastExitCode -ne 0) {
       Write-Host "Publish win-x64 (Redpoint.OpenGE.Shim.csproj) failed with exit code $LastExitCode"
       exit $LastExitCode 
     }
   artifacts:
     paths:
-      - "UET/Redpoint.Uet.OpenGE/shim-bin/Release/net7.0/win-x64/publish"
+      - "UET/Redpoint.Uet.OpenGE/shim-bin/Release/net8.0/win-x64/publish"
 
 "Build Mac OpenGE Shim":
   stage: OpenGE
@@ -26,10 +26,10 @@
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
     echo "Package version: $PACKAGE_VERSION"
-    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION "-p:OutDir=$(pwd)/UET/Redpoint.Uet.OpenGE/shim-bin/Release/net7.0/osx.11.0-arm64" "-p:PublishDir=$(pwd)/UET/Redpoint.Uet.OpenGE/shim-bin/Release/net7.0/osx.11.0-arm64/publish" UET/Redpoint.OpenGE.Shim/Redpoint.OpenGE.Shim.csproj
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION "-p:OutDir=$(pwd)/UET/Redpoint.Uet.OpenGE/shim-bin/Release/net8.0/osx-arm64" "-p:PublishDir=$(pwd)/UET/Redpoint.Uet.OpenGE/shim-bin/Release/net8.0/osx-arm64/publish" UET/Redpoint.OpenGE.Shim/Redpoint.OpenGE.Shim.csproj
   artifacts:
     paths:
-      - "UET/Redpoint.Uet.OpenGE/shim-bin/Release/net7.0/osx.11.0-arm64/publish"
+      - "UET/Redpoint.Uet.OpenGE/shim-bin/Release/net8.0/osx-arm64/publish"
 
 "Build Linux OpenGE Shim":
   stage: OpenGE
@@ -40,11 +40,11 @@
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=linux-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion "-p:OutDir=$((Get-Location).Path)\UET\Redpoint.Uet.OpenGE\shim-bin\Release\net7.0\linux-x64" "-p:PublishDir=$((Get-Location).Path)\UET\Redpoint.Uet.OpenGE\shim-bin\Release\net7.0\linux-x64\publish" UET/Redpoint.OpenGE.Shim/Redpoint.OpenGE.Shim.csproj
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=linux-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion "-p:OutDir=$((Get-Location).Path)\UET\Redpoint.Uet.OpenGE\shim-bin\Release\net8.0\linux-x64" "-p:PublishDir=$((Get-Location).Path)\UET\Redpoint.Uet.OpenGE\shim-bin\Release\net8.0\linux-x64\publish" UET/Redpoint.OpenGE.Shim/Redpoint.OpenGE.Shim.csproj
     if ($LastExitCode -ne 0) {
       Write-Host "Publish linux-x64 (Redpoint.OpenGE.Shim.csproj) failed with exit code $LastExitCode"
       exit $LastExitCode 
     }
   artifacts:
     paths:
-      - "UET/Redpoint.Uet.OpenGE/shim-bin/Release/net7.0/linux-x64/publish"
+      - "UET/Redpoint.Uet.OpenGE/shim-bin/Release/net8.0/linux-x64/publish"

@@ -19,9 +19,5 @@
         public BuildGraphExecutionFailure(string? message, Exception? innerException) : base(message, innerException)
         {
         }
-
-        protected BuildGraphExecutionFailure(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-        }
     }
 }
