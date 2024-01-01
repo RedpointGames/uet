@@ -1,10 +1,7 @@
 ﻿namespace Redpoint.OpenGE.LexerParser
 {
+    using Redpoint.Lexer;
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
 
     internal static partial class LexingHelpers
     {
@@ -13,7 +10,7 @@
 #endif
         internal static int IndexOfFirstNonWhitespaceNonCommentCharacter(ReadOnlySpan<char> rangeToScan)
         {
-            int skip = 0;
+            LexerCursor skip = default;
         StartScanning:
             // If it's empty, then it can't contain anything not allowed.
             if (rangeToScan.IsEmpty)
@@ -39,14 +36,15 @@
             // We've got something other than whitespace or a newline continuation.
             // The only thing permitted is the start of a multi-line comment, so try
             // to consume it.
-            if (rangeToScan.TryConsumeSequence("/*", ref skip, true))
+            var startSequenceContainsNewlines = false;
+            if (rangeToScan.TryConsumeSequence("/*", ref skip, ref startSequenceContainsNewlines, true))
             {
                 // Start trying to find the end of the multi-line comment.
                 goto SlashScan;
             }
 
             // Not the start of a multi-line comment, which means this is the end.
-            return skip;
+            return skip.CharactersConsumed;
         SlashScan:
             var nextSlash = rangeToScan.IndexOf('/');
             if (nextSlash == -1)
@@ -54,7 +52,7 @@
                 // No concluding '/' found, which means no matter what
                 // we can't have a '*' that would start the comment
                 // terminator.
-                return skip + rangeToScan.Length;
+                return skip.CharactersConsumed + rangeToScan.Length;
             }
             if (nextSlash == 0)
             {
@@ -86,10 +84,10 @@
                 // No concluding '*' found or it is the last character,
                 // which means no matter what we can't have the slash
                 // necessary to end the comment terminator.
-                return skip + rangeToScan.Length;
+                return skip.CharactersConsumed + rangeToScan.Length;
             }
             var afterStarSpan = rangeToScan.Slice(nextStar + 1);
-            var afterStarNewlineContinuationsConsumed = 0;
+            LexerCursor afterStarNewlineContinuationsConsumed = default;
             afterStarSpan.ConsumeNewlineContinuations(ref afterStarNewlineContinuationsConsumed);
             if (afterStarSpan[0] != '/')
             {
@@ -103,7 +101,9 @@
             // We're concluding a multi-line comment. After the end of
             // the multi-line comment, we then need to continue checking
             // for whitespace or more multi-line comments.
-            rangeToScan.Consume(nextStar + 1 + afterStarNewlineContinuationsConsumed + 1, ref skip);
+            rangeToScan.Consume(
+                nextStar + 1 + afterStarNewlineContinuationsConsumed.CharactersConsumed + 1, 
+                ref skip);
             goto StartScanning;
         }
     }

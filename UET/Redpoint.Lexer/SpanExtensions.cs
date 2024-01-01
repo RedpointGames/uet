@@ -12,15 +12,19 @@
         /// Consume the specified number of characters from the span, updating both the span
         /// and a "total consumed" count which is useful for lexing.
         /// </summary>
-        /// <param name="span">Tfhe reference to the span, which will be updated to point at the new slice.</param>
+        /// <param name="span">The reference to the span, which will be updated to point at the new slice.</param>
         /// <param name="consume">The number of characters to consume from the span. The span must have at least this many characters left, or <see cref="ReadOnlySpan{T}.Slice(int)"/> will throw an exception.</param>
-        /// <param name="totalConsumed">The reference to the "total consumed" count, which will be updated as part of this call.</param>
+        /// <param name="cursor">The reference to the cursor that will be updated as part of consuming these characters.</param>
         /// <returns>The value of <paramref name="consume"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Consume(this ref ReadOnlySpan<char> span, int consume, ref int totalConsumed) 
+        public static int Consume(
+            this ref ReadOnlySpan<char> span, 
+            int consume, 
+            ref LexerCursor cursor)
         {
+            cursor.NewlinesConsumed += span.Slice(0, consume).Count('\n');
             span = span.Slice(consume);
-            totalConsumed += consume;
+            cursor.CharactersConsumed += consume;
             return consume;
         }
 
@@ -31,10 +35,12 @@
         /// them explicitly everywhere.
         /// </summary>
         /// <param name="span">The reference to the span, which will be moved beyond the newline continuations. The span must start with the "\" character in order for sequences to be consumed.</param>
-        /// <param name="totalConsumed">The reference to the "total consumed" count, which will be updated as part of this call.</param>
+        /// <param name="cursor">The reference to the cursor that will be updated as part of consuming these characters.</param>
         /// <returns>The number of characters consumed by this call.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ConsumeNewlineContinuations(this ref ReadOnlySpan<char> span, ref int totalConsumed)
+        public static int ConsumeNewlineContinuations(
+            this ref ReadOnlySpan<char> span, 
+            ref LexerCursor cursor)
         {
             var consumed = 0;
         AttemptConsume:
@@ -45,7 +51,7 @@
             }
             if (span[1] == '\n')
             {
-                consumed += span.Consume(2, ref totalConsumed);
+                consumed += span.Consume(2, ref cursor);
                 // Attempt to consume again in case there are multiple newline
                 // continuations.
                 goto AttemptConsume;
@@ -54,7 +60,7 @@
                 span[1] == '\r' &&
                 span[2] == '\n')
             {
-                consumed += span.Consume(3, ref totalConsumed);
+                consumed += span.Consume(3, ref cursor);
                 // Attempt to consume again in case there are multiple newline
                 // continuations.
                 goto AttemptConsume;
@@ -67,13 +73,15 @@
         /// character that isn't part of a newline continuation. That is, given a span that contains "abc\{lf}\{cr}{lf}XYZ" and a position pointing to "X", returns the position of "c".
         /// 
         /// This method should be rarely used as it is only required for reverse searching. Forward
-        /// searches should use <see cref="ConsumeNewlineContinuations(ref ReadOnlySpan{char}, ref int)"/> instead.
+        /// searches should use <see cref="ConsumeNewlineContinuations(ref ReadOnlySpan{char}, ref LexerCursor)"/> instead.
         /// </summary>
         /// <param name="span">The span to search inside.</param>
         /// <param name="startPosition">The start position to search at. The characters immediately prior to this must be newline continuations.</param>
         /// <returns>The index of the first character before potential newline continuations, or -1 if there is no non-newline-continuation character in the span prior to the provided index.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int IndexOfAnyBeforeNewlineContinuations(this in ReadOnlySpan<char> span, int startPosition)
+        public static int IndexOfAnyBeforeNewlineContinuations(
+            this ref readonly ReadOnlySpan<char> span, 
+            int startPosition)
         {
             var position = startPosition - 1;
         CheckPosition:
@@ -120,15 +128,15 @@
         /// </summary>
         /// <param name="span">The reference to the span that might have the sequence at the start of it.</param>
         /// <param name="sequence">The sequence to attempt to consume.</param>
-        /// <param name="totalConsumed">A reference to the total number of characters consumed.</param>
+        /// <param name="cursor">The reference to the cursor that will be updated as part of consuming these characters.</param>
         /// <param name="containsNewlineContinuations">This value will be set to true if the span contained newline continuations over the sequence.</param>
-        /// <param name="definitelyNotStartingWithNewlineContinuation">If true, the call to <see cref="ConsumeNewlineContinuations(ref ReadOnlySpan{char}, ref int)"/> will be skipped for the first character.</param>
-        /// <returns>If true, <paramref name="span"/> has been updated to skip over the sequence and <paramref name="totalConsumed"/> has been updated with the total number of characters (including newline continuations) skipped. If false, neither is modified.</returns>
+        /// <param name="definitelyNotStartingWithNewlineContinuation">If true, the call to <see cref="ConsumeNewlineContinuations(ref ReadOnlySpan{char}, ref LexerCursor)"/> will be skipped for the first character.</param>
+        /// <returns>If true, <paramref name="span"/> has been updated to skip over the sequence and <paramref name="cursor"/> has been updated with the total number of characters (including newline continuations) skipped. If false, neither is modified.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryConsumeSequence(
             this ref ReadOnlySpan<char> span, 
             ReadOnlySpan<char> sequence, 
-            ref int totalConsumed, 
+            ref LexerCursor cursor, 
             ref bool containsNewlineContinuations,
             bool definitelyNotStartingWithNewlineContinuation = false)
         {
@@ -146,13 +154,12 @@
                 span.StartsWith(sequence, StringComparison.Ordinal))
             {
                 // We did a quick "starts with" check to see if the literal sequence (without
-                // newline continuations) was found.
-                span = span.Slice(sequence.Length);
-                totalConsumed += sequence.Length;
+                // newline continuations) was found
+                span.Consume(sequence.Length, ref cursor);
                 return true;
             }
             var workingSpan = span;
-            var workingSpanConsumed = 0;
+            LexerCursor workingSpanConsumed = default;
             var sequencePosition = 0;
         StepForward:
             if (!definitelyNotStartingWithNewlineContinuation || sequencePosition > 0)
@@ -173,10 +180,33 @@
             {
                 // We've matched the sequence.
                 span = workingSpan;
-                totalConsumed += workingSpanConsumed;
+                cursor.Add(ref workingSpanConsumed);
                 return true;
             }
             goto StepForward;
+        }
+
+        /// <summary>
+        /// Computes the range of the current span within another one. The child span
+        /// must have originally been generated by calling <see cref="ReadOnlySpan{T}.Slice(int)"/>
+        /// on the parent (or some intermediate span), since this method works off the
+        /// relative memory addresses.
+        /// </summary>
+        /// <param name="child">The child span.</param>
+        /// <param name="parent">The parent span that contains the child span.</param>
+        /// <returns>The range of the child span within the parent span.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static LexerRange RelativeRangeWithin(
+            this ReadOnlySpan<char> child,
+            ReadOnlySpan<char> parent)
+        {
+            return new LexerRange
+            {
+                Start = (int)(Unsafe.ByteOffset(
+                    ref Unsafe.AsRef(in parent[0]),
+                    ref Unsafe.AsRef(in child[0])) / sizeof(char)),
+                Length = child.Length,
+            };
         }
     }
 }

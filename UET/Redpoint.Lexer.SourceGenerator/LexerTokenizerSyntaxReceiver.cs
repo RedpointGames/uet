@@ -66,26 +66,37 @@
                 PermitNewlineContinuations = permitNewlineContinuations,
                 MethodName = declaredSymbol.Name,
                 ContainingNamespaceName = declaredSymbol.ContainingNamespace.ToDisplayString(),
-                ContainingClassNames = GetClassNameTree(declaredSymbol.ContainingType),
+                ContainingClasses = GetClassNameTree(declaredSymbol.ContainingType),
                 DeclaringFilename = Path.GetFileNameWithoutExtension(context.Node.SyntaxTree.FilePath),
             });
         }
 
-        private static string[] GetClassNameTree(INamedTypeSymbol directParent)
+        private static LexerTokenizerClassEntry[] GetClassNameTree(INamedTypeSymbol directParent)
         {
             if (directParent.ContainingType == null)
             {
-                return new[] { directParent.Name };
+                return new[] 
+                { 
+                    new LexerTokenizerClassEntry
+                    {
+                        Name = directParent.Name,
+                        IsStatic = directParent.IsStatic,
+                    },
+                };
             }
-            var names = new List<string>();
+            var entries = new List<LexerTokenizerClassEntry>();
             var current = directParent;
             while (current != null)
             {
-                names.Add(current.Name);
+                entries.Add(new LexerTokenizerClassEntry
+                {
+                    Name = current.Name,
+                    IsStatic = current.IsStatic,
+                });
                 current = current.ContainingType;
             }
-            names.Reverse();
-            return names.ToArray();
+            entries.Reverse();
+            return entries.ToArray();
         }
 
         public void Execute(GeneratorExecutionContext context)
@@ -113,14 +124,14 @@
                         {
                         """);
                     foreach (var generationSpecByFullClassName in generationSpecsByFilename
-                        .GroupBy(x => string.Join(".", x.ContainingClassNames)))
+                        .GroupBy(x => string.Join(".", x.ContainingClasses)))
                     {
                         var indent = 4;
-                        foreach (var className in generationSpecByFullClassName.Key.Split('.'))
+                        foreach (var className in generationSpecByFullClassName.First().ContainingClasses)
                         {
                             sourceBuilder.AppendLine(
                                 $$"""
-                                partial class {{className}}
+                                {{(className.IsStatic ? "static " : "")}}partial class {{className.Name}}
                                 {
                                 """.WithIndent(indent));
                             indent += 4;
@@ -324,7 +335,7 @@
             sourceBuilder.AppendLine(
                 """
                 var currentSpan = span;
-                var characterCount = 0;
+                LexerCursor localCursor = default;
                 """.WithIndent(indent));
             for (int i = 0; i < matches.Count; i++)
             {
@@ -448,7 +459,7 @@
                             $$"""
                             if (currentSpan.TryConsumeSequence(
                                 "{{match.Literal.Replace("\\", "\\\\")}}",
-                                ref characterCount,
+                                ref localCursor,
                                 ref containsNewlineContinuations))
                             {
                             {{onOneFind.WithIndent(4)}}
@@ -467,7 +478,7 @@
                                 "{{match.Literal.Replace("\\", "\\\\")}}",
                                 StringComparison.Ordinal))
                             {
-                                currentSpan.Consume({{match.Literal.Length}}, ref characterCount);
+                                currentSpan.Consume({{match.Literal.Length}}, ref localCursor);
                             {{onOneFind.WithIndent(4)}}
                             }
                             else
@@ -493,7 +504,7 @@
                             $$"""
                             if (character == '\\')
                             {
-                                if (currentSpan.ConsumeNewlineContinuations(ref characterCount) > 0)
+                                if (currentSpan.ConsumeNewlineContinuations(ref localCursor) > 0)
                                 {
                                     containsNewlineContinuations = true;
                                 }
@@ -528,7 +539,7 @@
                         indent += 4;
                         sourceBuilder.AppendLine(
                             $$"""
-                            currentSpan.Consume(1, ref characterCount);
+                            currentSpan.Consume(1, ref localCursor);
                             """.WithIndent(indent));
                         if (match.Max == 1)
                         {
@@ -598,7 +609,7 @@
                                 $$"""
                                 if (sequenceLength != 0)
                                 {
-                                    currentSpan.Consume(sequenceLength, ref characterCount);
+                                    currentSpan.Consume(sequenceLength, ref localCursor);
                                 }
                                 {{onMultiFind}}
                                 """.WithIndent(indent));
@@ -628,9 +639,9 @@
                 $$"""
                 Segment{{matches.Count}}:
                 {
-                    var resultSpan = span.Slice(0, characterCount);
-                    span = span.Slice(characterCount);
-                    cursor.CharactersConsumed += characterCount;
+                    var resultSpan = span.Slice(0, localCursor.CharactersConsumed);
+                    span = span.Slice(localCursor.CharactersConsumed);
+                    cursor.Add(in localCursor);
                 """.WithIndent(indent));
             indent += 4;
             if (permitNewlineContinuations)

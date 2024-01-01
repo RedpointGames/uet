@@ -6,8 +6,8 @@
         public bool PermitNewlineContinuations;
         public string MethodName;
         public string ContainingNamespaceName;
-        public string[] ContainingClassNames;
+        public LexerTokenizerClassEntry[] ContainingClasses;
         public string DeclaringFilename;
-        internal string AccessibilityModifiers;
+        public string AccessibilityModifiers;
     }
 }

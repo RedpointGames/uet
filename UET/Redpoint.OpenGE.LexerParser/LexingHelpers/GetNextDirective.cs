@@ -1,65 +1,19 @@
 ﻿namespace Redpoint.OpenGE.LexerParser
 {
+    using Redpoint.Lexer;
     using System;
-    using System.Runtime.CompilerServices;
 
     internal static partial class LexingHelpers
     {
-        internal ref struct DirectiveSpans
-        {
-            public static void Assign(
-                ref DirectiveSpans result,
-                scoped in ReadOnlySpan<char> originalRange,
-                scoped in ReadOnlySpan<char> directive)
-            {
-                result.Found = true;
-                result.Directive = directive;
-                result.DirectiveStart = (int)(Unsafe.ByteOffset(
-                    ref Unsafe.AsRef(in originalRange[0]),
-                    ref Unsafe.AsRef(in directive[0])) / sizeof(char));
-                result.DirectiveLength = directive.Length;
-                result.Arguments = default;
-                result.ArgumentsStart = 0;
-                result.ArgumentsLength = 0;
-            }
-
-            public static void Assign(
-                ref DirectiveSpans result,
-                scoped in ReadOnlySpan<char> originalRange,
-                scoped in ReadOnlySpan<char> directive,
-                scoped in ReadOnlySpan<char> arguments)
-            {
-                result.Found = true;
-                result.Directive = directive;
-                result.DirectiveStart = (int)(Unsafe.ByteOffset(
-                    ref Unsafe.AsRef(in originalRange[0]),
-                    ref Unsafe.AsRef(in directive[0])) / sizeof(char));
-                result.DirectiveLength = directive.Length;
-                result.Arguments = arguments;
-                result.ArgumentsStart = (int)(Unsafe.ByteOffset(
-                    ref Unsafe.AsRef(in originalRange[0]),
-                    ref Unsafe.AsRef(in arguments[0])) / sizeof(char));
-                result.ArgumentsLength = arguments.Length;
-            }
-
-            public bool Found;
-            public ReadOnlySpan<char> Directive;
-            public int DirectiveStart;
-            public int DirectiveLength;
-            public ReadOnlySpan<char> Arguments;
-            public int ArgumentsStart;
-            public int ArgumentsLength;
-        }
-
 #if !DEBUG
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-        internal static void GetNextDirective(
-            ReadOnlySpan<char> rangeToScan,
-            ReadOnlySpan<char> originalContent,
-            ref DirectiveSpans result)
+        internal static DirectiveRange GetNextDirective(
+            ref ReadOnlySpan<char> rangeToScan,
+            ref readonly ReadOnlySpan<char> originalContent,
+            ref LexerCursor cursor)
         {
-            int skip = 0;
+            LexerCursor localCursor = default;
         StartScanning:
             // Find the start of a directive, the potential start of a comment, or a newline.
             var somethingInterestingIndex = rangeToScan.IndexOfAny("#/\r\n");
@@ -67,8 +21,7 @@
             {
                 // We can't even find a '#', which means there must be no
                 // more directives.
-                result = default;
-                return;
+                return default;
             }
 
         LookAtSomethingInteresting:
@@ -87,8 +40,7 @@
                         // treat it as a directive. Consume more characters until we get
                         // a true newline terminator.
                         var contentJump = somethingInterestingIndex + 1;
-                        rangeToScan = rangeToScan.Slice(contentJump);
-                        skip += contentJump;
+                        rangeToScan.Consume(contentJump, ref localCursor);
                         goto ConsumeUntilTrueNewline;
                     }
                     // We've got the hash required for a directive. Find the start of the
@@ -98,15 +50,13 @@
                     if (startOfDirectiveNameIndex == -1 || startOfDirectiveNameIndex == directiveRemainingRange.Length)
                     {
                         // Content ended before we got the directive name.
-                        result = default;
-                        return;
+                        return default;
                     }
                     ref readonly var startOfDirectiveName = ref directiveRemainingRange[startOfDirectiveNameIndex];
                     // Regardless of the next character, we're either skipping to the start
                     // of the directive name because it's the end of a line and we're going
                     // to restart scanning, or we're going to try and consume a directive name.
-                    rangeToScan = directiveRemainingRange.Slice(startOfDirectiveNameIndex + 1);
-                    skip += somethingInterestingIndex + 1 + startOfDirectiveNameIndex + 1;
+                    rangeToScan.Consume(somethingInterestingIndex + 1 + startOfDirectiveNameIndex + 1, ref localCursor);
                     if (startOfDirectiveName == '\r' || startOfDirectiveName == '\n')
                     {
                         // We got a newline (without a '\' for line continuation), so this
@@ -127,8 +77,7 @@
                         // There's no more non-whitespace, non-comment content between here
                         // and the end of the range (and the slash was the start of a comment
                         // block), therefore there can be no further directives.
-                        result = default;
-                        return;
+                        return default;
                     }
                     somethingInterestingIndex += sizeOfCommentAndWhitespace;
                     // We got a (potentially multi-line) comment, but we haven't got a true
@@ -140,8 +89,7 @@
                     {
                         // Can't have a \n after this as we're at the end of the range,
                         // which means no more directives.
-                        result = default;
-                        return;
+                        return default;
                     }
                     else if (rangeToScan[somethingInterestingIndex + 1] == '\n')
                     {
@@ -156,9 +104,7 @@
                         // Just a random carriage return that is not part of a newline?
                         // This makes it a non-preprocessor line so just consume until
                         // we get to a true newline again.
-                        var contentJump = somethingInterestingIndex + 1;
-                        rangeToScan = rangeToScan.Slice(contentJump);
-                        skip += contentJump;
+                        rangeToScan.Consume(somethingInterestingIndex + 1, ref localCursor);
                         goto ConsumeUntilTrueNewline;
                     }
                 case '\n':
@@ -179,9 +125,9 @@
                             // A whitespace or comment line continuing into a
                             // potential directive. Restart scanning from the start
                             // of the new line.
-                            var newlineJump = somethingInterestingIndex + (somethingInteresting == '\r' ? 2 : 1);
-                            rangeToScan = rangeToScan.Slice(newlineJump);
-                            skip += newlineJump;
+                            rangeToScan.Consume(
+                                somethingInterestingIndex + (somethingInteresting == '\r' ? 2 : 1),
+                                ref localCursor);
                             goto StartScanning;
                         }
                         else
@@ -189,9 +135,9 @@
                             // This line had non-preprocessor content on it, so we need
                             // to wait for a true newline terminator from the next line
                             // onwards.
-                            var newlineJump = somethingInterestingIndex + (somethingInteresting == '\r' ? 2 : 1);
-                            rangeToScan = rangeToScan.Slice(newlineJump);
-                            skip += newlineJump;
+                            rangeToScan.Consume(
+                                somethingInterestingIndex + (somethingInteresting == '\r' ? 2 : 1),
+                                ref localCursor);
                             goto ConsumeUntilTrueNewline;
                         }
                     }
@@ -199,9 +145,9 @@
                     {
                         // This is a true newline terminator. Skip past it and restart
                         // scanning on the next line.
-                        var newlineJump = somethingInterestingIndex + (somethingInteresting == '\r' ? 2 : 1);
-                        rangeToScan = rangeToScan.Slice(newlineJump);
-                        skip += newlineJump;
+                        rangeToScan.Consume(
+                            somethingInterestingIndex + (somethingInteresting == '\r' ? 2 : 1),
+                            ref localCursor);
                         goto StartScanning;
                     }
                 default:
@@ -215,20 +161,17 @@
             {
                 // No more newlines before the end of the content, therefore there
                 // can be no more directives either.
-                result = default;
-                return;
+                return default;
             }
             if (nextNewlineIndex >= 1 && rangeToScan[nextNewlineIndex - 1] == '\\' ||
                 nextNewlineIndex >= 2 && rangeToScan[nextNewlineIndex - 1] == '\r' && rangeToScan[nextNewlineIndex - 2] == '\\')
             {
                 // Newline continuation, so this isn't a true newline.
-                rangeToScan = rangeToScan.Slice(nextNewlineIndex + 1);
-                skip += nextNewlineIndex + 1;
+                rangeToScan.Consume(nextNewlineIndex + 1, ref localCursor);
                 goto ConsumeUntilTrueNewline;
             }
             // We've got a true newline. Jump over it and then restart scanning.
-            rangeToScan = rangeToScan.Slice(nextNewlineIndex + 1);
-            skip += nextNewlineIndex + 1;
+            rangeToScan.Consume(nextNewlineIndex + 1, ref localCursor);
             goto StartScanning;
 
         ConsumeDirectiveName:
@@ -238,14 +181,18 @@
             if (rangeToScan.IsEmpty)
             {
                 // We can get here if we get a '#' and then the end of a file.
-                result = default;
-                return;
+                return default;
             }
-            var directiveName = ConsumeWord(ref rangeToScan, ref skip);
+            var directiveName = ConsumeWord(ref rangeToScan, ref localCursor);
             var startOfArguments = IndexOfFirstNonWhitespaceNonCommentCharacter(rangeToScan);
             if (startOfArguments == -1)
             {
                 // We got the directive, and then the file ended.
+                return new DirectiveRange
+                {
+                    Found = true,
+                    Directive = directiveName.Span.RelativeRangeWithin(originalContent),
+                };
 
                 // @todo: Ok, this is a legit problem. Let's say that we have a
                 // directive name that is expressed as "def\{lf}ine" and we've

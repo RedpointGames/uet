@@ -25,5 +25,15 @@
         /// single newline.
         /// </summary>
         public int NewlinesConsumed;
+
+        /// <summary>
+        /// Add the values of another cursor to this one.
+        /// </summary>
+        /// <param name="other">The other cursor to add.</param>
+        public void Add(ref readonly LexerCursor other)
+        {
+            CharactersConsumed += other.CharactersConsumed;
+            NewlinesConsumed += other.NewlinesConsumed;
+        }
     }
 }

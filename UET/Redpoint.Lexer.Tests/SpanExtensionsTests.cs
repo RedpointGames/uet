@@ -15,10 +15,10 @@
         public void Consume(string expectedResult, int expectedConsumed, string source, int consume)
         {
             var actualResult = source.AsSpan();
-            var actualConsumed = 0;
+            LexerCursor actualConsumed = default;
             actualResult.Consume(consume, ref actualConsumed);
             Assert.Equal(expectedResult, actualResult.ToString());
-            Assert.Equal(expectedConsumed, actualConsumed);
+            Assert.Equal(expectedConsumed, actualConsumed.CharactersConsumed);
         }
 
         [Theory]
@@ -30,7 +30,7 @@
             Assert.Throws<ArgumentOutOfRangeException>(() =>
             {
                 var actualResult = source.AsSpan();
-                var actualConsumed = 0;
+                LexerCursor actualConsumed = default;
                 actualResult.Consume(consume, ref actualConsumed);
             });
         }
@@ -50,10 +50,10 @@
         public void ConsumeNewlineContinuations(string expectedResult, int expectedConsumed, string source)
         {
             var actualResult = source.AsSpan();
-            var actualConsumed = 0;
+            LexerCursor actualConsumed = default;
             actualResult.ConsumeNewlineContinuations(ref actualConsumed);
             Assert.Equal(expectedResult, actualResult.ToString());
-            Assert.Equal(expectedConsumed, actualConsumed);
+            Assert.Equal(expectedConsumed, actualConsumed.CharactersConsumed);
         }
 
         [Theory]
@@ -82,12 +82,12 @@
         public void TryConsumeSequence(bool expectedOutcome, string expectedResult, int expectedConsumed, string source, string sequence)
         {
             var actualResult = source.AsSpan();
-            var actualConsumed = 0;
+            LexerCursor actualConsumed = default;
             var containsNewlineContinuations = false;
             var actualOutcome = actualResult.TryConsumeSequence(sequence, ref actualConsumed, ref containsNewlineContinuations);
             Assert.Equal(expectedOutcome, actualOutcome);
             Assert.Equal(expectedResult, actualResult.ToString());
-            Assert.Equal(expectedConsumed, actualConsumed);
+            Assert.Equal(expectedConsumed, actualConsumed.CharactersConsumed);
         }
     }
 }
