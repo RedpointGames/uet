@@ -2,6 +2,7 @@
 {
     using Redpoint.Lexer;
     using System;
+    using System.ComponentModel.DataAnnotations;
 
     internal static partial class LexingHelpers
     {
@@ -41,6 +42,12 @@
             {
                 // Start trying to find the end of the multi-line comment.
                 goto SlashScan;
+            }
+            if (rangeToScan.TryConsumeSequence("//", ref skip, ref startSequenceContainsNewlines, true))
+            {
+                // Go past the end of this line. It can't be continued.
+                var endOfLine = rangeToScan.IndexOf('\n');
+                return skip.CharactersConsumed + Math.Min(endOfLine + 1, rangeToScan.Length);
             }
 
             // Not the start of a multi-line comment, which means this is the end.

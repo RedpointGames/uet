@@ -195,16 +195,23 @@
         /// <param name="child">The child span.</param>
         /// <param name="parent">The parent span that contains the child span.</param>
         /// <returns>The range of the child span within the parent span.</returns>
+#if !DEBUG
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         public static LexerRange RelativeRangeWithin(
             this ReadOnlySpan<char> child,
             ReadOnlySpan<char> parent)
         {
+            if (child.IsEmpty)
+            {
+                return default;
+            }
+            ref char parentChar = ref Unsafe.AsRef(in parent[0]);
+            ref char childChar = ref Unsafe.AsRef(in child[0]);
+            var byteOffset = Unsafe.ByteOffset(in parentChar, in childChar);
             return new LexerRange
             {
-                Start = (int)(Unsafe.ByteOffset(
-                    ref Unsafe.AsRef(in parent[0]),
-                    ref Unsafe.AsRef(in child[0])) / sizeof(char)),
+                Start = (int)(byteOffset / sizeof(char)),
                 Length = child.Length,
             };
         }

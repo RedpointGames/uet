@@ -25,7 +25,6 @@
                 return default;
             }
 
-        LookAtSomethingInteresting:
             // What are we looking at?
             ref readonly var somethingInteresting = ref localRange[somethingInterestingIndex];
             switch (somethingInteresting)
@@ -80,11 +79,10 @@
                         // block), therefore there can be no further directives.
                         return default;
                     }
-                    somethingInterestingIndex += sizeOfCommentAndWhitespace;
-                    // We got a (potentially multi-line) comment, but we haven't got a true
-                    // newline terminator yet so we're still on the same virtual line and
-                    // can potentially start looking for the start of a directive again.
-                    goto LookAtSomethingInteresting;
+                    // Consume the comment and scan again, in case the comment doesn't end with
+                    // something interesting again.
+                    localRange.Consume(sizeOfCommentAndWhitespace, ref localCursor);
+                    goto StartScanning;
                 case '\r':
                     if (somethingInterestingIndex == localRange.Length - 1)
                     {
@@ -233,14 +231,18 @@
             localRange.Consume(nextNewline + 1, ref localCursor);
             range = localRange;
             cursor = localCursor;
+            arguments = arguments
+                .Slice(0, localCursor.CharactersConsumed - originalConsumed - 1);
+            if (!arguments.IsEmpty && arguments[arguments.Length - 1] == '\r')
+            {
+                arguments = arguments.Slice(0, arguments.Length - 1);
+            }
             return new DirectiveRange
             {
                 Found = true,
                 Directive = directiveName.Span.RelativeRangeWithin(originalContent),
                 DirectiveHasNewlineContinuations = directiveName.ContainsNewlineContinuations,
-                Arguments = arguments
-                    .Slice(0, localCursor.CharactersConsumed - originalConsumed - 1)
-                    .RelativeRangeWithin(originalContent),
+                Arguments = arguments.RelativeRangeWithin(originalContent),
             };
         }
     }

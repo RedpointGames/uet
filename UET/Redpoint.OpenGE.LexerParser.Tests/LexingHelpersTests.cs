@@ -174,7 +174,7 @@
                     .GetManifestResourceStream("Redpoint.OpenGE.LexerParser.Tests.assert.h")!);
             yield return new object[]
             {
-                reader.ReadToEnd(),
+                reader.ReadToEnd().Replace("\r\n", "\n").Replace("\n", "\r\n"),
                 new[]
                 {
                     new ExpectedDirective("if", "defined _VCRT_BUILD && !defined _ASSERT_OK"),
@@ -192,7 +192,7 @@
                                     (!!(expression)) ||                                                              \
                                     (_wassert(_CRT_WIDE(#expression), _CRT_WIDE(__FILE__), (unsigned)(__LINE__)), 0) \
                                 )
-                        """),
+                        """.Replace("\r\n", "\n").Replace("\n", "\r\n")),
                     new ExpectedDirective("endif", ""),
                 }
             };
