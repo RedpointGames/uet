@@ -18,11 +18,30 @@
         /// <returns>The value of <paramref name="consume"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Consume(
-            this ref ReadOnlySpan<char> span, 
-            int consume, 
+            this ref ReadOnlySpan<char> span,
+            int consume,
             ref LexerCursor cursor)
         {
-            cursor.NewlinesConsumed += span.Slice(0, consume).Count('\n');
+            if (consume == 0)
+            {
+                return 0;
+            }
+            else if (consume == 1)
+            {
+                cursor.NewlinesConsumed += span[0] == '\n' ? 1 : 0;
+            }
+            else if (consume == 2)
+            {
+                cursor.NewlinesConsumed +=
+                    (span[0] == '\n' ? 1 : 0) +
+                    (span[1] == '\n' ? 1 : 0);
+            }
+            else
+            {
+                cursor.NewlinesConsumed += span
+                    .Slice(0, consume)
+                    .Count('\n');
+            }
             span = span.Slice(consume);
             cursor.CharactersConsumed += consume;
             return consume;
@@ -39,7 +58,7 @@
         /// <returns>The number of characters consumed by this call.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int ConsumeNewlineContinuations(
-            this ref ReadOnlySpan<char> span, 
+            this ref ReadOnlySpan<char> span,
             ref LexerCursor cursor)
         {
             var consumed = 0;
@@ -80,7 +99,7 @@
         /// <returns>The index of the first character before potential newline continuations, or -1 if there is no non-newline-continuation character in the span prior to the provided index.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int IndexOfAnyBeforeNewlineContinuations(
-            this ref readonly ReadOnlySpan<char> span, 
+            this ref readonly ReadOnlySpan<char> span,
             int startPosition)
         {
             var position = startPosition - 1;
@@ -134,9 +153,9 @@
         /// <returns>If true, <paramref name="span"/> has been updated to skip over the sequence and <paramref name="cursor"/> has been updated with the total number of characters (including newline continuations) skipped. If false, neither is modified.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryConsumeSequence(
-            this ref ReadOnlySpan<char> span, 
-            ReadOnlySpan<char> sequence, 
-            ref LexerCursor cursor, 
+            this ref ReadOnlySpan<char> span,
+            ReadOnlySpan<char> sequence,
+            ref LexerCursor cursor,
             ref bool containsNewlineContinuations,
             bool definitelyNotStartingWithNewlineContinuation = false)
         {

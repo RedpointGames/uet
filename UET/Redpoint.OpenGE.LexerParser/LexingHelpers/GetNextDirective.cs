@@ -82,9 +82,19 @@
                         // block), therefore there can be no further directives.
                         return default;
                     }
-                    // Consume the comment and scan again, in case the comment doesn't end with
-                    // something interesting again.
-                    localRange.Consume(sizeOfCommentAndWhitespace, ref localCursor);
+                    if (sizeOfCommentAndWhitespace == 0)
+                    {
+                        // This slash doesn't belong to a comment, so it makes it something
+                        // not interesting. We move past it so that we can search again for 
+                        // something interesting.
+                        localRange.Consume(1, ref localCursor);
+                    }
+                    else
+                    {
+                        // Consume the comment and scan again, in case the comment doesn't end with
+                        // something interesting again.
+                        localRange.Consume(sizeOfCommentAndWhitespace, ref localCursor);
+                    }
                     goto StartScanning;
                 case '\r':
                     if (somethingInterestingIndex == localRange.Length - 1)
