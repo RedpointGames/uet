@@ -324,9 +324,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Redpoint.LexerParser", "Red
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Lexer", "Redpoint.Lexer\Redpoint.Lexer.csproj", "{44A8DFCB-FA83-4CFB-9D8D-28AD2F99E888}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Lexer.SourceGenerator", "Redpoint.Lexer.SourceGenerator\Redpoint.Lexer.SourceGenerator.csproj", "{D15C8FA1-00BA-45FE-B455-1CE874E9C943}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Lexer.SourceGenerator", "Redpoint.Lexer.SourceGenerator\Redpoint.Lexer.SourceGenerator.csproj", "{D15C8FA1-00BA-45FE-B455-1CE874E9C943}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Lexer.Tests", "Redpoint.Lexer.Tests\Redpoint.Lexer.Tests.csproj", "{2C93FABF-1382-4827-A2FC-E84FA0D39438}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Lexer.Tests", "Redpoint.Lexer.Tests\Redpoint.Lexer.Tests.csproj", "{2C93FABF-1382-4827-A2FC-E84FA0D39438}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.LexerParser.Benchmark", "Redpoint.OpenGE.LexerParser.Benchmark\Redpoint.OpenGE.LexerParser.Benchmark.csproj", "{4A87371D-40D9-4B35-B070-17BF8B471E14}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -2090,6 +2092,18 @@ Global
 		{2C93FABF-1382-4827-A2FC-E84FA0D39438}.Release|x64.Build.0 = Release|Any CPU
 		{2C93FABF-1382-4827-A2FC-E84FA0D39438}.Release|x86.ActiveCfg = Release|Any CPU
 		{2C93FABF-1382-4827-A2FC-E84FA0D39438}.Release|x86.Build.0 = Release|Any CPU
+		{4A87371D-40D9-4B35-B070-17BF8B471E14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A87371D-40D9-4B35-B070-17BF8B471E14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A87371D-40D9-4B35-B070-17BF8B471E14}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4A87371D-40D9-4B35-B070-17BF8B471E14}.Debug|x64.Build.0 = Debug|Any CPU
+		{4A87371D-40D9-4B35-B070-17BF8B471E14}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4A87371D-40D9-4B35-B070-17BF8B471E14}.Debug|x86.Build.0 = Debug|Any CPU
+		{4A87371D-40D9-4B35-B070-17BF8B471E14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A87371D-40D9-4B35-B070-17BF8B471E14}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A87371D-40D9-4B35-B070-17BF8B471E14}.Release|x64.ActiveCfg = Release|Any CPU
+		{4A87371D-40D9-4B35-B070-17BF8B471E14}.Release|x64.Build.0 = Release|Any CPU
+		{4A87371D-40D9-4B35-B070-17BF8B471E14}.Release|x86.ActiveCfg = Release|Any CPU
+		{4A87371D-40D9-4B35-B070-17BF8B471E14}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -2206,6 +2220,7 @@ Global
 		{44A8DFCB-FA83-4CFB-9D8D-28AD2F99E888} = {9CFDF636-F0E5-439E-900E-EC88BD2AC63A}
 		{D15C8FA1-00BA-45FE-B455-1CE874E9C943} = {9CFDF636-F0E5-439E-900E-EC88BD2AC63A}
 		{2C93FABF-1382-4827-A2FC-E84FA0D39438} = {9CFDF636-F0E5-439E-900E-EC88BD2AC63A}
+		{4A87371D-40D9-4B35-B070-17BF8B471E14} = {638E6F6F-8E1A-4D41-B26D-4E21FC966FED}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}

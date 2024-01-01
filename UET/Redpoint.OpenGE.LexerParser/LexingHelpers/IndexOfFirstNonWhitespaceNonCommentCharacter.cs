@@ -2,7 +2,9 @@
 {
     using Redpoint.Lexer;
     using System;
-    using System.ComponentModel.DataAnnotations;
+#if !DEBUG
+    using System.Runtime.CompilerServices;
+#endif
 
     internal static partial class LexingHelpers
     {
