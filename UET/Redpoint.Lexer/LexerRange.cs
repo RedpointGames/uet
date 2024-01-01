@@ -4,7 +4,7 @@
     /// A faster version of <see cref="Range"/> that represents the
     /// offset of a child span within parent content.
     /// </summary>
-    public struct LexerRange
+    public record struct LexerRange
     {
         /// <summary>
         /// The start of the range in the parent content.

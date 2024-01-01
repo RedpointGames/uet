@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.OpenGE.LexerParser.Tests
 {
+    using Redpoint.Lexer;
     using Redpoint.OpenGE.LexerParser;
     using Xunit;
 
@@ -77,12 +78,171 @@
         [InlineData("helloWorld", "helloWorld thenAnotherThing ")]
         [InlineData("otherIdentifier0", "otherIdentifier0 thenAnotherThing ")]
         [InlineData("_SOMEWORD99", "_SOMEWORD99 thenAnotherThing ")]
-        [InlineData("multiline0Identifier", "mult\\\niline\\\n0Identifier")]
-        [InlineData("multiline0Identifier", "\\\nmultiline\\\n0Identifier")]
+        [InlineData("mult\\\niline\\\n0Identifier", "mult\\\niline\\\n0Identifier")]
+        [InlineData("\\\nmultiline\\\n0Identifier", "\\\nmultiline\\\n0Identifier")]
         public void ConsumeWord(string expected, string test)
         {
             ReadOnlySpan<char> span = test.AsSpan();
-            Assert.Equal(expected, LexingHelpers.ConsumeWord(ref span).ToString());
+            LexerCursor cursor = default;
+            Assert.Equal(expected, LexingHelpers.ConsumeWord(ref span, ref cursor).Span.ToString());
+        }
+        
+        public struct ExpectedDirective(string directive, string arguments = "")
+        {
+            public string Directive = directive;
+            public string Arguments = arguments;
+            public override string ToString()
+            {
+                return $"'{Directive}' '{Arguments}'";
+            }
+        }
+
+        public static IEnumerable<object[]> GetNextDirectiveData()
+        {
+            yield return new object[]
+            {
+                """
+                absolutely
+                no direc\
+                tives
+                in th\r\nis file
+                """,
+                new ExpectedDirective[0]
+            };
+            yield return new object[]
+            {
+                """
+                #define TEST A
+                """,
+                new[]
+                {
+                    new ExpectedDirective("define", "TEST A"),
+                }
+            };
+            yield return new object[]
+            {
+                """
+                #define TEST A \
+                    EVEN MORE CONTENT
+                """,
+                new[]
+                {
+                    new ExpectedDirective("define", "TEST A \\\n    EVEN MORE CONTENT"),
+                }
+            };
+            yield return new object[]
+            {
+                """
+                /*
+                */ # /*
+                */ defi\
+                ne FO\
+                O 10\
+                20
+                """,
+                new[]
+                {
+                    new ExpectedDirective("defi\\\nne", "FO\\\nO 10\\\n20"),
+                }
+            };
+            yield return new object[]
+            {
+                """
+                /*
+                */ # /*
+                */ defi\
+                ne FO\
+                O 10\
+                20
+                IGNORE THIS LINE
+                /*
+                */ # /*
+                */ defi\
+                ne FO\
+                O 10\
+                20
+                """,
+                new[]
+                {
+                    new ExpectedDirective("defi\\\nne", "FO\\\nO 10\\\n20"),
+                    new ExpectedDirective("defi\\\nne", "FO\\\nO 10\\\n20"),
+                }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetNextDirectiveData))]
+        public void GetNextDirective(string content, ExpectedDirective[] expectedDirectives)
+        {
+            var original = content.AsSpan();
+            var range = original;
+            LexerCursor cursor = default;
+            for (int i = 0; i <= expectedDirectives.Length; i++)
+            {
+                var result = LexingHelpers.GetNextDirective(
+                    ref range,
+                    in original,
+                    ref cursor);
+                var directive = result.Found ? original.Slice(result.Directive.Start, result.Directive.Length) : default;
+                var arguments = result.Found && result.Arguments.Length > 0 ? original.Slice(result.Arguments.Start, result.Arguments.Length) : default;
+                if (i == expectedDirectives.Length)
+                {
+                    Assert.False(result.Found, $"Unexpected directive found on iteration {i}: '{result.Directive}' '{result.Arguments}'");
+                }
+                else
+                {
+                    Assert.True(result.Found, $"Did not find expected directive on iteration {i}: '{result.Directive}' '{result.Arguments}'");
+                    Assert.Equal(expectedDirectives[i].Directive, directive.ToString());
+                    Assert.Equal(expectedDirectives[i].Arguments, arguments.ToString());
+                }
+            }
+        }
+
+        [Fact]
+        public void GetNextDirectiveSubsequent()
+        {
+            var content =
+                """
+                /*
+                */ # /*
+                */ defi\
+                ne FO\
+                O 10\
+                20
+                IGNORE THIS LINE
+                /*
+                */ # /*
+                */ deCi\
+                ne BA\
+                R 30\
+                40
+                """;
+            var original = content.AsSpan();
+            var range = original;
+            LexerCursor cursor = default;
+            var result = LexingHelpers.GetNextDirective(
+                ref range,
+                in original,
+                ref cursor);
+            Assert.True(result.Found, $"Did not find expected directive on first iteration.");
+            var directive = result.Found ? original.Slice(result.Directive.Start, result.Directive.Length) : default;
+            var arguments = result.Found && result.Arguments.Length > 0 ? original.Slice(result.Arguments.Start, result.Arguments.Length) : default;
+            Assert.Equal("defi\\\nne", directive.ToString());
+            Assert.Equal("FO\\\nO 10\\\n20", arguments.ToString());
+            result = LexingHelpers.GetNextDirective(
+                ref range,
+                in original,
+                ref cursor);
+            Assert.True(result.Found, $"Did not find expected directive on second iteration.");
+            directive = result.Found ? original.Slice(result.Directive.Start, result.Directive.Length) : default;
+            arguments = result.Found && result.Arguments.Length > 0 ? original.Slice(result.Arguments.Start, result.Arguments.Length) : default;
+            Assert.Equal("deCi\\\nne", directive.ToString());
+            Assert.Equal("BA\\\nR 30\\\n40", arguments.ToString());
+            result = LexingHelpers.GetNextDirective(
+                ref range,
+                in original,
+                ref cursor);
+            Assert.False(result.Found, $"Found unexpected directive on third iteration.");
         }
     }
 }

@@ -2,10 +2,11 @@
 {
     using Redpoint.Lexer;
 
-    ref struct DirectiveRange
+    internal ref struct DirectiveRange
     {
         public bool Found;
         public LexerRange Directive;
+        public bool DirectiveHasNewlineContinuations;
         public LexerRange Arguments;
     }
 }
