@@ -224,6 +224,7 @@
                             {
                                 var commandLinePtr = new PWSTR(commandLinePtrRaw);
                                 var currentDirectoryPtr = new PCWSTR(workingDirectoryPtr);
+#pragma warning disable CS9123 // The '&' operator should not be used on parameters or local variables in async methods.
                                 retVal = PInvoke.CreateProcess(
                                     new PCWSTR(null),           // we don't need this since all the info is in commandLine
                                     commandLinePtr,             // pointer to the command line string
@@ -241,6 +242,7 @@
                                     &startupInfo,               // pointer to STARTUPINFO
                                     &processInfo                // pointer to PROCESS_INFORMATION
                                 );
+#pragma warning restore CS9123 // The '&' operator should not be used on parameters or local variables in async methods.
                                 if (!retVal)
                                 {
                                     errorCode = Marshal.GetLastWin32Error();

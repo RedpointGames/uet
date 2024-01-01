@@ -4,8 +4,6 @@
     using Redpoint.Lexer;
     using System.Text.RegularExpressions;
 
-#pragma warning disable CA1822
-
     [MemoryDiagnoser]
     public partial class LexerBenchmarks
     {
