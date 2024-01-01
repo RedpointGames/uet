@@ -2,6 +2,7 @@
 {
     using Redpoint.Lexer;
     using Redpoint.OpenGE.LexerParser;
+    using System.Reflection;
     using Xunit;
 
     public class LexingHelpersTests
@@ -166,6 +167,33 @@
                 {
                     new ExpectedDirective("defi\\\nne", "FO\\\nO 10\\\n20"),
                     new ExpectedDirective("defi\\\nne", "FO\\\nO 10\\\n20"),
+                }
+            };
+            using var reader = new StreamReader(
+                Assembly.GetExecutingAssembly()
+                    .GetManifestResourceStream("Redpoint.OpenGE.LexerParser.Tests.assert.h")!);
+            yield return new object[]
+            {
+                reader.ReadToEnd(),
+                new[]
+                {
+                    new ExpectedDirective("if", "defined _VCRT_BUILD && !defined _ASSERT_OK"),
+                    new ExpectedDirective("error", "assert.h not for CRT internal use"),
+                    new ExpectedDirective("endif", ""),
+                    new ExpectedDirective("include", "<corecrt.h>"),
+                    new ExpectedDirective("undef", "assert"),
+                    new ExpectedDirective("ifdef", "NDEBUG"),
+                    new ExpectedDirective("define", "assert(expression) ((void)0)"),
+                    new ExpectedDirective("else", ""),
+                    new ExpectedDirective(
+                        "define",
+                        """
+                        assert(expression) (void)(                                                       \
+                                    (!!(expression)) ||                                                              \
+                                    (_wassert(_CRT_WIDE(#expression), _CRT_WIDE(__FILE__), (unsigned)(__LINE__)), 0) \
+                                )
+                        """),
+                    new ExpectedDirective("endif", ""),
                 }
             };
         }

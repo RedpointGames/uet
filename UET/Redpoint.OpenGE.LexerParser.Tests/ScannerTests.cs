@@ -11,7 +11,7 @@
 
     public class ScannerTests
     {
-        [Fact]
+        [Fact(Skip = "Lindex is not used.")]
         public void Test()
         {
             using var file = new ScannerOpenFile("");
