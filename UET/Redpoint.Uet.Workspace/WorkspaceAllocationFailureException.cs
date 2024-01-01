@@ -19,9 +19,5 @@
         public WorkspaceAllocationFailureException(string? message, Exception? innerException) : base(message, innerException)
         {
         }
-
-        protected WorkspaceAllocationFailureException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-        }
     }
 }

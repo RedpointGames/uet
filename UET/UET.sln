@@ -46,6 +46,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{39698A12-7C9
 		.analyzerconfig = .analyzerconfig
 		.editorconfig = .editorconfig
 		Lib\Common.Build.props = Lib\Common.Build.props
+		Lib\CsWin32.Build.props = Lib\CsWin32.Build.props
 		Lib\Executable.Build.props = Lib\Executable.Build.props
 		Lib\Framework.Build.props = Lib\Framework.Build.props
 		Lib\LibraryPackaging.Build.props = Lib\LibraryPackaging.Build.props
@@ -328,7 +329,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Lexer.SourceGenera
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Lexer.Tests", "Redpoint.Lexer.Tests\Redpoint.Lexer.Tests.csproj", "{2C93FABF-1382-4827-A2FC-E84FA0D39438}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.OpenGE.LexerParser.Benchmark", "Redpoint.OpenGE.LexerParser.Benchmark\Redpoint.OpenGE.LexerParser.Benchmark.csproj", "{4A87371D-40D9-4B35-B070-17BF8B471E14}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.OpenGE.LexerParser.Benchmark", "Redpoint.OpenGE.LexerParser.Benchmark\Redpoint.OpenGE.LexerParser.Benchmark.csproj", "{4A87371D-40D9-4B35-B070-17BF8B471E14}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -19,6 +19,10 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <NoWarn>SYSLIB1224</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
     <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../.analyzerconfig" />
   </ItemGroup>

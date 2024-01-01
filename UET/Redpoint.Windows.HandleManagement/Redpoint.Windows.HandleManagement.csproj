@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
-  
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/CsWin32.Build.props" />
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
   <PropertyGroup>
@@ -10,7 +8,17 @@
     <PackageTags>windows, system, handle management</PackageTags>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- CsWin32 does not add the 'in' keyword properly yet. -->
+    <NoWarn>CS9195</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.2.229-beta">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>
 
