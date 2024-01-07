@@ -8,7 +8,8 @@
         {
             //new LexerBenchmarks().ParseFile();
             //BenchmarkRunner.Run<LexerBenchmarks>();
-            BenchmarkRunner.Run<GetNextDirectiveBenchmarks>();
+            //BenchmarkRunner.Run<GetNextDirectiveBenchmarks>();
+            BenchmarkRunner.Run<SequenceDatabaseBenchmarks>();
         }
     }
 }
