@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>Provides a string-backed enumeration type system, designed for use with databases (where storing string values for enumerations improves compatibility over storing numeric values).</Description>
+    <PackageTags>string, string-based, string-backed, enumeration, type, enum, stringenum</PackageTags>
+  </PropertyGroup>
+
+</Project>
