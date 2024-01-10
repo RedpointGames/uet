@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.GrpcPipes
 {
+    using Grpc.Core;
     using Grpc.Net.Client;
     using System.Diagnostics.CodeAnalysis;
 
@@ -33,7 +34,7 @@
         T CreateClient<T>(
             string pipeName,
             GrpcPipeNamespace pipeNamespace,
-            Func<GrpcChannel, T> constructor,
+            Func<CallInvoker, T> constructor,
             GrpcChannelOptions? grpcChannelOptions = null);
     }
 }

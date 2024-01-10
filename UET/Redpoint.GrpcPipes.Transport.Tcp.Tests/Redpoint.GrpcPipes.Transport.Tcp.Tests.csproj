@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
+
+  <ItemGroup>
+    <None Remove="TestProtocol.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.GrpcPipes.Transport.Tcp\Redpoint.GrpcPipes.Transport.Tcp.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.Tools" Version="2.54.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="System.Linq.Async" Version="6.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="TestProtocol.proto" GrpcServices="Both" />
+  </ItemGroup>
+
+</Project>

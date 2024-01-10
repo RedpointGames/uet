@@ -44,7 +44,7 @@
                 WebApplication? app = null;
                 try
                 {
-                    Log.GrpcServerStarting(_logger);
+                    GrpcPipeLog.GrpcServerStarting(_logger);
 
                     Directory.CreateDirectory(Path.GetDirectoryName(_pipePath)!);
                     var builder = WebApplication.CreateBuilder();
@@ -69,7 +69,7 @@
                             // on Windows (see https://github.com/dotnet/aspnetcore/issues/47043#issuecomment-1589922597),
                             // so until we can move to .NET 8 with named pipes, we have to do this
                             // jank workaround.
-                            Log.TcpSocketFallback(_logger);
+                            GrpcPipeLog.TcpSocketFallback(_logger);
                             serverOptions.Listen(
                                 new IPEndPoint(IPAddress.Loopback, 0),
                                 listenOptions =>
@@ -97,7 +97,7 @@
                     if (OperatingSystem.IsWindows())
                     {
                         var pointerContent = $"pointer: {app.Urls.First()}";
-                        Log.WrotePointerFile(_logger, pointerContent, _pipePath);
+                        GrpcPipeLog.WrotePointerFile(_logger, pointerContent, _pipePath);
                         _pipePointerStream = new FileStream(
                             _pipePath,
                             FileMode.Create,
@@ -129,7 +129,7 @@
                             UnixFileMode.OtherExecute);
                     }
 
-                    Log.GrpcServerStarted(_logger);
+                    GrpcPipeLog.GrpcServerStarted(_logger);
                     _app = app;
                     return;
                 }
@@ -149,11 +149,11 @@
                             await _pipePointerStream.DisposeAsync().ConfigureAwait(false);
                             _pipePointerStream = null;
                         }
-                        Log.RemovingPointerFile(_logger, _pipePath);
+                        GrpcPipeLog.RemovingPointerFile(_logger, _pipePath);
                     }
                     else
                     {
-                        Log.RemovingUnixSocket(_logger, _pipePath);
+                        GrpcPipeLog.RemovingUnixSocket(_logger, _pipePath);
                     }
                     if (app != null)
                     {
