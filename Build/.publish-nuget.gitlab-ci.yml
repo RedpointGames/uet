@@ -11,6 +11,8 @@
       artifacts: false
     - job: "Test OpenGE Mac"
       artifacts: false
+    - job: "Test StringEnum Trimmed"
+      artifacts: false
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()

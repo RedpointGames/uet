@@ -10,8 +10,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-    <PackageReference Include="Redpoint.Concurrency" Version="2023.1316.1053" />
-    <PackageReference Include="Redpoint.ThirdParty.System.CommandLine" Version="2023.1316.1053" />
+    <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
   </ItemGroup>
 
 </Project>
