@@ -1,0 +1,16 @@
+﻿syntax = "proto3";
+
+package Redpoint.Grpc.Transport.Tcp;
+
+message TcpRequestVersion {
+    int32 version = 1;
+}
+
+message TcpRequestHeaderV1 {
+    string serviceName = 1;
+    string methodName = 2;
+}
+
+message TcpMessageFrameHeader {
+    int32 
+}
