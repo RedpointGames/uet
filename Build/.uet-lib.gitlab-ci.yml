@@ -24,7 +24,7 @@
     foreach ($Item in (Get-ChildItem UET -Filter *.Tests)) {
       if (Test-Path "$($Item.FullName)/$($Item.Name).csproj") {
         Write-Host "============ STARTING: $($Item.Name) ============"
-        dotnet test --logger:"console" --logger:"junit;LogFilePath=$((Get-Location).Path)\TestResults\$($Item.Name).test-result.xml" "$($Item.FullName)/bin/Release/net7.0/$($Item.Name).dll"
+        dotnet test --logger:"console" --logger:"junit;LogFilePath=$((Get-Location).Path)\TestResults\$($Item.Name).test-result.xml" "$($Item.FullName)/bin/Release/net8.0/$($Item.Name).dll"
         if ($LastExitCode -ne 0) {
           Write-Host "============ FAILED:   $($Item.Name) ============"
           exit $LastExitCode
@@ -63,7 +63,7 @@
       TEST_NAME=${TEST_PATH:4}
       if [ -e "$TEST_PATH/$TEST_NAME.csproj" ]; then
         echo "============ STARTING: $TEST_NAME ============"
-        dotnet test --logger:"console" --logger:"junit;LogFilePath=$(pwd)/TestResults/$TEST_NAME.test-result.xml" "$TEST_PATH/bin/Release/net7.0/$TEST_NAME.dll"
+        dotnet test --logger:"console" --logger:"junit;LogFilePath=$(pwd)/TestResults/$TEST_NAME.test-result.xml" "$TEST_PATH/bin/Release/net8.0/$TEST_NAME.dll"
         echo "============ PASSED:   $TEST_NAME ============"
       fi
     done

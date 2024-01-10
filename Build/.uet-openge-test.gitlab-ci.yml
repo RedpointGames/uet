@@ -6,7 +6,7 @@
     - "Build Win UET Pass 2"
   interruptible: true
   script: |
-    .\UET\uet\bin\Release\net7.0\win-x64\publish\uet.exe internal openge --task-file UET\Redpoint.OpenGE.Shim.Tests\Windows.xml
+    .\UET\uet\bin\Release\net8.0\win-x64\publish\uet.exe internal openge --task-file UET\Redpoint.OpenGE.Shim.Tests\Windows.xml
     if ($LastExitCode -ne 0) {
       Write-Host "OpenGE test failed with exit code $LastExitCode"
       exit $LastExitCode 
@@ -20,4 +20,4 @@
     - "Build Mac UET Pass 2"
   interruptible: true
   script: |
-    ./UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet internal openge --task-file UET/Redpoint.OpenGE.Shim.Tests/Mac.xml
+    ./UET/uet/bin/Release/net8.0/osx-arm64/publish/uet internal openge --task-file UET/Redpoint.OpenGE.Shim.Tests/Mac.xml

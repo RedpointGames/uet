@@ -67,8 +67,10 @@ internal static partial class ArgumentConverter
         throw new ArgumentException($"Type {type} cannot be created without a custom binder.");
     }
 
+#pragma warning disable SYSLIB0050 // Type or member is obsolete
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2067:UnrecognizedReflectionPattern",
                                   Justification = $"{nameof(CreateDefaultValueType)} is only called on a ValueType. You can always create an instance of a ValueType.")]
     private static object CreateDefaultValueType(Type type) =>
         FormatterServices.GetUninitializedObject(type);
+#pragma warning restore SYSLIB0050 // Type or member is obsolete
 }

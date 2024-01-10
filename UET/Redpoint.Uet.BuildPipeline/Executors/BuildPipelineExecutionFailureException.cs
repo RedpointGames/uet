@@ -16,9 +16,5 @@
         public BuildPipelineExecutionFailureException(string? message, Exception? innerException) : base(message, innerException)
         {
         }
-
-        protected BuildPipelineExecutionFailureException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-        }
     }
 }

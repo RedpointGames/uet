@@ -19,7 +19,7 @@
     }
   artifacts:
     paths:
-      - "UET/uet/bin/Release/net7.0/win-x64/publish/uet.exe"
+      - "UET/uet/bin/Release/net8.0/win-x64/publish/uet.exe"
 
 "Build Mac UET Pass 1":
   stage: Build Pass 1
@@ -36,9 +36,9 @@
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
     echo "Package version: $PACKAGE_VERSION"
-    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx.11.0-arm64 -p:OpenGEShimRuntimeIdentifier=osx.11.0-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION -p:OpenGEShimIsAlreadyBuilt=true UET/uet/uet.csproj
+    dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=osx-arm64 -p:OpenGEShimRuntimeIdentifier=osx-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION -p:OpenGEShimIsAlreadyBuilt=true UET/uet/uet.csproj
     # Ensure the thing we built will actually run...
-    ./UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet --help
+    ./UET/uet/bin/Release/net8.0/osx-arm64/publish/uet --help
   artifacts:
     paths:
-      - "UET/uet/bin/Release/net7.0/osx.11.0-arm64/publish/uet"
+      - "UET/uet/bin/Release/net8.0/osx-arm64/publish/uet"

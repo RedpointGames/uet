@@ -201,7 +201,7 @@
                 var embeddedResourceName = true switch
                 {
                     var v when v == OperatingSystem.IsWindows() => "win_x64.xgConsole.exe",
-                    var v when v == OperatingSystem.IsMacOS() => "osx._11._0_arm64.xgConsole",
+                    var v when v == OperatingSystem.IsMacOS() => "osx_arm64.xgConsole",
                     var v when v == OperatingSystem.IsLinux() => "linux_x64.ib_console",
                     _ => throw new PlatformNotSupportedException(),
                 };

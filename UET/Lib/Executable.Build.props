@@ -4,15 +4,15 @@
     <OutputType>Exe</OutputType>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
-    <RuntimeIdentifiers Condition="'$(EnableLinuxSupport)' == 'true'">win-x64;osx.11.0-arm64;linux-x64</RuntimeIdentifiers>
-    <RuntimeIdentifiers Condition="'$(EnableLinuxSupport)' == 'false'">win-x64;osx.11.0-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifiers Condition="'$(EnableLinuxSupport)' == 'true'">win-x64;osx-arm64;linux-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers Condition="'$(EnableLinuxSupport)' == 'false'">win-x64;osx-arm64</RuntimeIdentifiers>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <!-- 
       PublishReadyToRun on macOS is impacted by bug https://github.com/dotnet/runtime/issues/88288, so
       we turn off ReadyToRun for macOS binaries.
     -->
-    <PublishReadyToRun Condition="'$(RuntimeIdentifier)' != 'osx.11.0-arm64'">true</PublishReadyToRun>
-    <PublishReadyToRun Condition="'$(RuntimeIdentifier)' == 'osx.11.0-arm64'">false</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(RuntimeIdentifier)' != 'osx-arm64'">true</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(RuntimeIdentifier)' == 'osx-arm64'">false</PublishReadyToRun>
     <PublishTrimmed>true</PublishTrimmed>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <DebuggerSupport Condition="'$(Configuration)' == 'Release'">false</DebuggerSupport>
