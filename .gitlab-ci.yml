@@ -23,6 +23,7 @@ include:
   - Build/.publish-nuget.gitlab-ci.yml
   - Build/.publish-github.gitlab-ci.yml
   - Build/.publish-container-uefs.gitlab-ci.yml
+  - Build/.stringenum.gitlab-ci.yml
 
 variables:
   DEVELOPER_DIR: /Users/Shared/UET/SDKs/Mac-14.1/Xcode.app
