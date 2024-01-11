@@ -14,6 +14,7 @@
     using System.Threading.Tasks;
     using static Grpc.Core.Metadata;
     using Redpoint.Tasks;
+    using Google.Protobuf;
 
     internal class DefaultTaskApiWorkerPool : ITaskApiWorkerPool
     {

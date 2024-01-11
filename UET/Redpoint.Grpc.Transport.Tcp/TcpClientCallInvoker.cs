@@ -15,8 +15,11 @@
             _endpoint = endpoint;
         }
 
+        /*
         private static void WriteVersionHeader(BinaryWriter writer)
         {
+
+
             writer.Write((Int16)1);
         }
 
@@ -55,7 +58,7 @@
 
         private static ValueTask WriteVersionHeaderAsync(BinaryWriter writer)
         {
-            BitConverter.GetBytes()
+            //BitConverter.GetBytes()
             writer.Write((Int16)1);
         }
 
@@ -90,7 +93,7 @@
             {
                 return reader.ReadBytes(length);
             }
-        }
+        }*/
 
         public override TResponse BlockingUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options, TRequest request)
         {

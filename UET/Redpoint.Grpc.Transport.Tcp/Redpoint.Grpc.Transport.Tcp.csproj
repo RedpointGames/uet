@@ -7,7 +7,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="TcpTransport.proto" GrpcServices="None" Access="Internal" />
+    <Protobuf Include="TcpTransport.proto" GrpcServices="Client" Access="Internal" />
   </ItemGroup>
 
   <ItemGroup>

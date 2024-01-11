@@ -2,15 +2,25 @@
 
 package Redpoint.Grpc.Transport.Tcp;
 
-message TcpRequestVersion {
-    int32 version = 1;
+message TcpUnaryCall {
 }
 
-message TcpRequestHeaderV1 {
+message TcpClientStreamingCall {
+}
+
+message TcpServerStreamingCall {
+}
+
+message TcpDuplexStreamingCall {
+}
+
+message TcpCall {
     string serviceName = 1;
     string methodName = 2;
-}
-
-message TcpMessageFrameHeader {
-    int32 
+    oneof callType {
+        TcpUnaryCall unaryCall = 3;
+        TcpClientStreamingCall clientStreamingCall = 4;
+        TcpServerStreamingCall serverStreamingCall = 5;
+        TcpDuplexStreamingCall duplexStreamingCall = 6;
+    }
 }
