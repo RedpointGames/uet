@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>Provides an implementation of IPduFactory from Redpoint.Pdu.Abstractions that supports SERVEREDGE power distribution units.</Description>
+    <PackageTags>pdu, power distribution unit, serveredge</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Pdu.Abstractions\Redpoint.Pdu.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

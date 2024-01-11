@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>Provides abstractions for controlling power distribution units over SNMP.</Description>
+    <PackageTags>pdu, power distribution unit</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.SharpSnmp\Redpoint.ThirdParty.SharpSnmp.csproj" />
+  </ItemGroup>
+
+</Project>

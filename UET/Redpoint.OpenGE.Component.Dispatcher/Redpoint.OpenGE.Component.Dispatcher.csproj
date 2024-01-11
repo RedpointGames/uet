@@ -18,11 +18,11 @@
     <ProjectReference Include="..\Redpoint.Rfs.WinFsp\Redpoint.Rfs.WinFsp.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="$(UET_BUILDING_ON_BUILD_SERVER) != 'true'">
+  <ItemGroup Condition="$(UET_BUILDING_ON_BUILD_SERVER) != 'true' and '$(UsePrebuiltLibsForAutoDiscovery)' != 'true'">
     <ProjectReference Include="..\Redpoint.AutoDiscovery\Redpoint.AutoDiscovery.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="$(UET_BUILDING_ON_BUILD_SERVER) == 'true'">
+  <ItemGroup Condition="$(UET_BUILDING_ON_BUILD_SERVER) == 'true' or '$(UsePrebuiltLibsForAutoDiscovery)' == 'true'">
     <PackageReference Include="Redpoint.AutoDiscovery" Version="$(PackageVersion)" />
   </ItemGroup>
 

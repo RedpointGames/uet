@@ -39,6 +39,8 @@
     <ProjectReference Include="..\Redpoint.OpenGE.Component.PreprocessorCache\Redpoint.OpenGE.Component.PreprocessorCache.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Protocol\Redpoint.OpenGE.Protocol.csproj" />
     <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
+    <ProjectReference Include="..\Redpoint.Pdu.Abstractions\Redpoint.Pdu.Abstractions.csproj" />
+    <ProjectReference Include="..\Redpoint.Pdu.Serveredge\Redpoint.Pdu.Serveredge.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
     <ProjectReference Include="..\Redpoint.Rfs.WinFsp\Redpoint.Rfs.WinFsp.csproj" />
@@ -63,22 +65,22 @@
     <ProjectReference Include="..\Redpoint.Windows.VolumeManagement\Redpoint.Windows.VolumeManagement.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="$(UET_BUILDING_ON_BUILD_SERVER) != 'true'">
+  <ItemGroup Condition="$(UET_BUILDING_ON_BUILD_SERVER) != 'true' and '$(UsePrebuiltLibsForAutoDiscovery)' != 'true'">
     <ProjectReference Include="..\Redpoint.AutoDiscovery\Redpoint.AutoDiscovery.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="$(UET_BUILDING_ON_BUILD_SERVER) == 'true'">
+  <ItemGroup Condition="$(UET_BUILDING_ON_BUILD_SERVER) == 'true' or '$(UsePrebuiltLibsForAutoDiscovery)' == 'true'">
     <PackageReference Include="Redpoint.AutoDiscovery" Version="$(PackageVersion)" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\win-x64\publish\uet.exe" Condition="'$(RuntimeIdentifier)' != 'win-x64' and '$(EmbeddingCrossPlatform)' == 'true'">
+    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\win-x64\publish\uet.exe" Condition="'$(RuntimeIdentifier)' != 'win-x64' and '$(EmbeddingCrossPlatform)' == 'true' and Exists('$(ProjectDir)bin\$(Configuration)\$(TargetFramework)\win-x64\publish\uet.exe')">
       <Link>Embedded\win-x64\uet.exe</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\osx-arm64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'osx-arm64' and '$(EmbeddingCrossPlatform)' == 'true'">
+    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\osx-arm64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'osx-arm64' and '$(EmbeddingCrossPlatform)' == 'true' and Exists('$(ProjectDir)bin\$(Configuration)\$(TargetFramework)\osx-arm64\publish\uet')">
       <Link>Embedded\osx-arm64\uet</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'linux-x64' and '$(EmbeddingCrossPlatform)' == 'true' and '$(EnableLinuxSupport)' == 'true'">
+    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'linux-x64' and '$(EmbeddingCrossPlatform)' == 'true' and '$(EnableLinuxSupport)' == 'true' and Exists('$(ProjectDir)bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\uet')">
       <Link>Embedded\linux-x64\uet</Link>
     </EmbeddedResource>
   </ItemGroup>

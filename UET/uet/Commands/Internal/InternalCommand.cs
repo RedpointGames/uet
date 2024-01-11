@@ -18,6 +18,7 @@
     using UET.Commands.Internal.SetFilterFile;
     using UET.Commands.Internal.TestAutoDiscovery;
     using UET.Commands.Internal.TestGrpcPipes;
+    using UET.Commands.Internal.TestPdu;
     using UET.Commands.Internal.TestUefsConnection;
     using UET.Commands.Internal.UpdateCopyrightHeadersForMarketplace;
     using UET.Commands.Internal.UpdateUPlugin;
@@ -52,6 +53,7 @@
                 CreateJunctionCommand.CreateCreateJunctionCommand(),
                 RunRfsCommand.CreateRunRfsCommand(),
                 StressTestProcessCommand.CreateStressTestProcessCommand(),
+                TestPduCommand.CreateTestPduCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");

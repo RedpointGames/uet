@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Common.Build.props" />
+
+  <PropertyGroup>
+    <RootNamespace>Lextm.SharpSnmpLib</RootNamespace>
+    <TargetFramework>net8.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>S5547;S907;S1133;S101;S1135</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <IsTrimmable>true</IsTrimmable>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode></AnalysisMode>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>June Rhodes, Malcolm Crowe, Lex Li, and other contributors.</Authors>
+    <PackageId>Redpoint.ThirdParty.SharpSnmp</PackageId>
+    <Description>This is a fork of the SharpSNMP library, which targets .NET 8 and supports trimming.</Description>
+    <Summary>This is a fork of the SharpSNMP library, which targets .NET 8 and supports trimming.</Summary>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageProjectUrl>https://docs.sharpsnmp.com/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/lextudio/sharpsnmplib.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PackageReleaseNotes>https://github.com/lextudio/sharpsnmplib/releases</PackageReleaseNotes>
+    <Copyright>Copyright (c) 2008-2022 June Rhodes, Malcolm Crowe, Lex Li, and other contributors.</Copyright>
+    <PackageTags>smi snmp mib</PackageTags>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+</Project>
