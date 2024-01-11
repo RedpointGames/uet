@@ -3,11 +3,11 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <ItemGroup>
-    <None Remove="TcpTransport.proto" />
+    <None Remove="TcpGrpcTransport.proto" />
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="TcpTransport.proto" GrpcServices="Client" Access="Internal" />
+    <Protobuf Include="TcpGrpcTransport.proto" GrpcServices="Client" Access="Internal" />
   </ItemGroup>
 
   <ItemGroup>
@@ -17,6 +17,10 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
   </ItemGroup>
 
 </Project>
