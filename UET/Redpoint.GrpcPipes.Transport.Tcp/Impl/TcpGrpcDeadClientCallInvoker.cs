@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.GrpcPipes.Transport.Tcp.Impl
 {
-    using global::Grpc.Core;
+    using Grpc.Core;
 
     internal sealed class TcpGrpcDeadClientCallInvoker : CallInvoker
     {

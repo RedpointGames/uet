@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.GrpcPipes.Transport.Tcp.Impl
 {
-    using global::Grpc.Core;
+    using Grpc.Core;
     using Redpoint.Concurrency;
     using System;
     using System.Threading.Tasks;
@@ -60,6 +60,8 @@
         public CancellationTokenSource CancellationTokenSource { get; }
 
         public CancellationToken DeadlineCancellationToken { get; }
+
+        public Mutex WriteMutex => _writeMutex;
 
         protected override string MethodCore => _method;
 

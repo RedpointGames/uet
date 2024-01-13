@@ -1,8 +1,6 @@
 ﻿namespace Redpoint.GrpcPipes.Transport.Tcp.Tests
 {
-    using global::Grpc.Core;
-    using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Logging;
+    using Grpc.Core;
     using Redpoint.GrpcPipes.Transport.Tcp.Impl;
     using Redpoint.GrpcPipes.Transport.Tcp.Impl.Tests;
     using System.Net;
@@ -10,39 +8,17 @@
     using Xunit;
     using Xunit.Abstractions;
 
-    public class TcpGrpcTests
+    public class TcpGrpcDuplexStreaming : TcpGrpcTestBase
     {
-        private readonly ITestOutputHelper _output;
-
-        public TcpGrpcTests(ITestOutputHelper output)
+        public TcpGrpcDuplexStreaming(ITestOutputHelper output) : base(output)
         {
-            _output = output;
         }
 
-        const int _timeoutThresholdBeforeDeadlineSeconds = 2;
         const int _timeoutThresholdDeadlineSeconds = 5;
         const int _timeoutThresholdAfterDeadlineSeconds = 10;
 
-        private ILogger GetLogger()
-        {
-            var services = new ServiceCollection();
-            services.AddLogging(builder =>
-            {
-                if (Environment.GetEnvironmentVariable("CI") != "true")
-                {
-                    builder.SetMinimumLevel(LogLevel.Trace);
-                    builder.AddXUnit(
-                        _output,
-                        configure =>
-                        {
-                        });
-                }
-            });
-            return services.BuildServiceProvider().GetRequiredService<ILogger<TcpGrpcTests>>();
-        }
-
         [Fact]
-        public async Task UnaryCall()
+        public async Task Call()
         {
             var logger = GetLogger();
 
@@ -54,13 +30,24 @@
             TestService.BindService(server, new TcpGrpcProtocolService());
 
             var client = new TestService.TestServiceClient(new TcpGrpcClientCallInvoker(endpoint, logger));
-            var response = await client.UnaryAsync(new Request { Value = 1 }, deadline: DateTime.UtcNow.AddSeconds(_timeoutThresholdDeadlineSeconds));
-
-            Assert.Equal(1, response.Value);
+            var call = client.DuplexStreaming(deadline: DateTime.UtcNow.AddSeconds(_timeoutThresholdDeadlineSeconds));
+            await call.RequestStream.WriteAsync(new Request { Value = 1 });
+            Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 1");
+            Assert.Equal(1, call.ResponseStream.Current.Value);
+            await call.RequestStream.WriteAsync(new Request { Value = 2 });
+            Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 2");
+            Assert.Equal(2, call.ResponseStream.Current.Value);
+            await call.RequestStream.WriteAsync(new Request { Value = 3 });
+            Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 3");
+            Assert.Equal(3, call.ResponseStream.Current.Value);
+            await call.RequestStream.CompleteAsync();
+            Assert.False(await call.ResponseStream.MoveNext(), "Expected end of duplex stream");
         }
 
+#if FALSE
+
         [Fact]
-        public async Task UnaryCallRepeated()
+        public async Task CallRepeated()
         {
             var logger = GetLogger();
 
@@ -76,13 +63,18 @@
 
             for (int i = 0; i < 10; i++)
             {
-                var response = await client.UnaryAsync(new Request { Value = 1 }, deadline: deadline);
-                Assert.Equal(1, response.Value);
+                var call = client.ClientStreaming(deadline: deadline);
+                await call.RequestStream.WriteAsync(new Request { Value = 1 });
+                await call.RequestStream.WriteAsync(new Request { Value = 2 });
+                await call.RequestStream.WriteAsync(new Request { Value = 3 });
+                await call.RequestStream.CompleteAsync();
+                var response = await call.ResponseAsync;
+                Assert.Equal(6, response.Value);
             }
         }
 
         [Fact]
-        public async Task UnaryCallParallel()
+        public async Task CallParallel()
         {
             var logger = GetLogger();
 
@@ -101,13 +93,18 @@
                 new ParallelOptions { MaxDegreeOfParallelism = 20 },
                 async (x, _) =>
                 {
-                    var response = await client.UnaryAsync(new Request { Value = x, DelayMilliseconds = Random.Shared.Next(0, 100) }, deadline: deadline);
-                    Assert.Equal(x, response.Value);
+                    var call = client.ClientStreaming(deadline: deadline);
+                    await call.RequestStream.WriteAsync(new Request { Value = x, DelayMilliseconds = Random.Shared.Next(0, 30) });
+                    await call.RequestStream.WriteAsync(new Request { Value = 2, DelayMilliseconds = Random.Shared.Next(0, 30) });
+                    await call.RequestStream.WriteAsync(new Request { Value = 3, DelayMilliseconds = Random.Shared.Next(0, 30) });
+                    await call.RequestStream.CompleteAsync();
+                    var response = await call.ResponseAsync;
+                    Assert.Equal(x + 5, response.Value);
                 });
         }
 
         [Fact]
-        public async Task UnaryCallWithDeadline()
+        public async Task CallWithDeadline()
         {
             var logger = GetLogger();
 
@@ -122,16 +119,23 @@
             var deadline = DateTime.UtcNow.AddSeconds(_timeoutThresholdDeadlineSeconds);
             var client = new TestService.TestServiceClient(new TcpGrpcClientCallInvoker(endpoint, logger));
 
+            var call = client.ClientStreaming(deadline: deadline);
+            await call.RequestStream.WriteAsync(new Request { Value = 1, DelayMilliseconds = 1000 });
+            await call.RequestStream.WriteAsync(new Request { Value = 2, DelayMilliseconds = 2000 });
+            // @note: The exception does not fire here or in CompleteAsync, since the client isn't waiting
+            // for the server side delays before sending more data.
+            await call.RequestStream.WriteAsync(new Request { Value = 3, DelayMilliseconds = 3000 });
+            await call.RequestStream.CompleteAsync();
             var ex = await Assert.ThrowsAsync<RpcException>(async () =>
             {
-                var response = await client.UnaryAsync(new Request { Value = 1, DelayMilliseconds = _timeoutThresholdAfterDeadlineSeconds * 1000 }, deadline: deadline);
+                var response = await call.ResponseAsync;
             });
             Assert.Equal(StatusCode.DeadlineExceeded, ex.StatusCode);
             Assert.True(service.CancellationTokenRaisedException, "Expected server to see cancellation.");
         }
 
         [Fact]
-        public async Task UnaryCallWithCancellationToken()
+        public async Task CallWithCancellationToken()
         {
             var logger = GetLogger();
 
@@ -143,19 +147,34 @@
             var service = new TcpGrpcProtocolService();
             TestService.BindService(server, service);
 
-            using var cts = new CancellationTokenSource(_timeoutThresholdDeadlineSeconds * 1000);
+            using var cts = new CancellationTokenSource();
             var client = new TestService.TestServiceClient(new TcpGrpcClientCallInvoker(endpoint, logger));
 
-            var ex = await Assert.ThrowsAsync<RpcException>(async () =>
+            var call = client.ClientStreaming(cancellationToken: cts.Token);
+            await call.RequestStream.WriteAsync(new Request { Value = 1, DelayMilliseconds = 1000 });
+            await call.RequestStream.WriteAsync(new Request { Value = 2, DelayMilliseconds = 2000 });
+            cts.Cancel();
+
+            // Make sure we observe our own cancellation when calling WriteAsync.
+            var tex = await Assert.ThrowsAsync<TaskCanceledException>(async () =>
             {
-                var response = await client.UnaryAsync(new Request { Value = 1, DelayMilliseconds = _timeoutThresholdAfterDeadlineSeconds * 1000 }, cancellationToken: cts.Token);
+                await call.RequestStream.WriteAsync(new Request { Value = 3, DelayMilliseconds = 3000 });
             });
-            Assert.Equal(StatusCode.Cancelled, ex.StatusCode);
+
+            // Make sure we observe our own cancellation when calling CompleteAsync.
+            tex = await Assert.ThrowsAsync<TaskCanceledException>(call.RequestStream.CompleteAsync);
+
+            // Make sure the server observes our cancellation.
+            var rex = await Assert.ThrowsAsync<RpcException>(async () =>
+            {
+                var response = await call.ResponseAsync;
+            });
+            Assert.Equal(StatusCode.Cancelled, rex.StatusCode);
             Assert.True(service.CancellationTokenRaisedException, "Expected server to see cancellation.");
         }
 
         [Fact]
-        public async Task UnaryCallWithHeaders()
+        public async Task CallWithHeaders()
         {
             var logger = GetLogger();
 
@@ -187,5 +206,8 @@
             var responseTrailers = call.GetTrailers();
             Assert.Equal("foo bar", responseTrailers.Get("trailer")?.Value);
         }
+
+#endif 
+
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.GrpcPipes.Transport.Tcp.Impl
 {
-    using global::Grpc.Core;
+    using Grpc.Core;
     using System;
     using System.Buffers;
 

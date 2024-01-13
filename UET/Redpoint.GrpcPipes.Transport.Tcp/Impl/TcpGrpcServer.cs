@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.GrpcPipes.Transport.Tcp.Impl
 {
-    using global::Grpc.Core;
-    using Google.Protobuf.WellKnownTypes;
+    using Grpc.Core;
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
     using System;
@@ -12,11 +11,7 @@
 
     internal sealed class TcpGrpcServer : ServiceBinderBase, IAsyncDisposable
     {
-        private delegate Task CallHandlerAsync(
-            TcpGrpcRequest request,
-            TcpGrpcTransportConnection connection,
-            string peer,
-            Action<string> logTrace);
+        private delegate Task CallHandlerAsync(TcpGrpcServerIncomingCall incomingCall);
 
         private readonly TcpListener _listener;
         private readonly ILogger? _logger;
@@ -107,19 +102,21 @@
 
                     // Invoke the call handler to handle the rest.
                     LogTrace($"'{remoteEndpoint}': Invoking call handler.");
-                    await handler(
-                        request,
-                        connection,
-                        remoteEndpoint!.AddressFamily switch
+                    await handler(new TcpGrpcServerIncomingCall
+                    {
+                        Request = request,
+                        Connection = connection,
+                        Peer = remoteEndpoint!.AddressFamily switch
                         {
                             AddressFamily.InterNetwork => $"ipv4:{remoteEndpoint}",
                             AddressFamily.InterNetworkV6 => $"ipv6:{remoteEndpoint}",
                             _ => "unknown",
                         },
-                        message =>
+                        LogTrace = message =>
                         {
                             LogTrace($"'{remoteEndpoint}': {message}");
-                        }).ConfigureAwait(false);
+                        }
+                    }).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -134,192 +131,133 @@
         }
 
         private async Task ProcessUnaryCallAsync<TRequest, TResponse>(
-            TcpGrpcRequest request,
-            TcpGrpcTransportConnection connection,
-            string peer,
-            Action<string> logTrace,
+            TcpGrpcServerIncomingCall incoming,
             Method<TRequest, TResponse> method,
             UnaryServerMethod<TRequest, TResponse> handler)
             where TRequest : class
             where TResponse : class
         {
             // Set up the call context.
-            logTrace($"Creating server call context.");
+            incoming.LogTrace($"Creating server call context.");
             var writeMutex = new Mutex();
-            using var serverCallContext = new TcpGrpcServerCallContext(
+            using var serverCallContext = incoming.CreateCallContext(
                 method.Name,
-                string.Empty,
-                peer,
-                request.DeadlineUnixTimeMilliseconds == 0
-                    ? null
-                    : DateTimeOffset.FromUnixTimeMilliseconds(request.DeadlineUnixTimeMilliseconds).UtcDateTime,
-                request.HasRequestHeaders
-                    ? TcpGrpcMetadataConverter.Convert(request.RequestHeaders)
-                    : new Metadata(),
-                connection,
-                writeMutex,
                 _cts.Token);
-            async Task SendStatusAsync(StatusCode statusCode, string details)
-            {
-                try
-                {
-                    logTrace($"Waiting for write lock to send status ({statusCode}, '{details}') to client.");
-                    using (await writeMutex.WaitAsync(serverCallContext.DeadlineCancellationToken).ConfigureAwait(false))
-                    {
-                        logTrace($"Writing of status ({statusCode}, '{details}') to client.");
-                        await connection.WriteAsync(new TcpGrpcMessage
-                        {
-                            Type = TcpGrpcMessageType.ResponseComplete,
-                        }, serverCallContext.DeadlineCancellationToken).ConfigureAwait(false);
-                        await connection.WriteAsync(new TcpGrpcResponseComplete
-                        {
-                            StatusCode = (int)statusCode,
-                            StatusDetails = details,
-                            HasResponseTrailers = serverCallContext.ResponseTrailers.Count > 0,
-                            ResponseTrailers = TcpGrpcMetadataConverter.Convert(serverCallContext.ResponseTrailers),
-                        }, serverCallContext.DeadlineCancellationToken).ConfigureAwait(false);
-                        logTrace($"Wrote status ({statusCode}, '{details}') to client.");
-                    }
-                }
-                catch (OperationCanceledException) when (serverCallContext.DeadlineCancellationToken.IsCancellationRequested)
-                {
-                    // We can't send any content to the client, because we have exceeded our extended deadline cancellation.
-                    logTrace($"Unable to send ({statusCode}, '{details}') to client because the call has already exceeded the extended deadline cancellation.");
-                    return;
-                }
-            }
+            var serverCall = new TcpGrpcServerCall<TRequest, TResponse>(
+                incoming,
+                serverCallContext,
+                method,
+                TcpGrpcCallType.Unary);
 
-            // Read the message type (it must be RequestData).
-            logTrace($"Reading next message type from client.");
-            var message = await connection.ReadExpectedAsync<TcpGrpcMessage>(
-                TcpGrpcMessage.Descriptor,
-                serverCallContext.CancellationToken).ConfigureAwait(false);
-            if (message.Type == TcpGrpcMessageType.RequestCancel)
+            // Read the request data since this is not a streaming request.
+            var requestData = await serverCall.TryReadNonStreamingClientRequestDataAsync()
+                .ConfigureAwait(false);
+            if (requestData == null)
             {
-                // The client cancelled the request, so we don't need to send
-                // a status to them.
-                serverCallContext.CancellationTokenSource.Cancel();
-                return;
-            }
-            if (message.Type != TcpGrpcMessageType.RequestData)
-            {
-                await SendStatusAsync(
-                    StatusCode.Internal,
-                    "Client did not send request data.").ConfigureAwait(false);
+                // Client misbehaved or cancelled. TryReadNonStreamingClientRequestDataAsync
+                // handles sending the required responses.
                 return;
             }
 
-            // Read the request data.
-            TRequest requestData;
+            // Invoke the handler, and monitor for client side cancellation. This also
+            // sends the required status responses.
+            await serverCall.InvokeHandlerWithClientMonitoringAsync(async () =>
             {
-                logTrace($"Reading request data from client.");
-                using var memory = await connection.ReadBlobAsync(serverCallContext.CancellationToken).ConfigureAwait(false);
-                requestData = method.RequestMarshaller.ContextualDeserializer(new TcpGrpcDeserializationContext(memory.Memory));
+                return await handler(requestData, serverCallContext).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+
+        private async Task ProcessClientStreamingCallAsync<TRequest, TResponse>(
+            TcpGrpcServerIncomingCall incoming,
+            Method<TRequest, TResponse> method,
+            ClientStreamingServerMethod<TRequest, TResponse> handler)
+            where TRequest : class
+            where TResponse : class
+        {
+            // Set up the call context.
+            incoming.LogTrace($"Creating server call context.");
+            var writeMutex = new Mutex();
+            using var serverCallContext = incoming.CreateCallContext(
+                method.Name,
+                _cts.Token);
+            var serverCall = new TcpGrpcServerCall<TRequest, TResponse>(
+                incoming,
+                serverCallContext,
+                method,
+                TcpGrpcCallType.ClientStreaming);
+
+            // Invoke the handler, and monitor for client side cancellation. This also
+            // sends the required status responses.
+            await serverCall.InvokeHandlerWithClientMonitoringAsync(async () =>
+            {
+                return await handler(serverCall, serverCallContext).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+
+        private async Task ProcessServerStreamingCallAsync<TRequest, TResponse>(
+            TcpGrpcServerIncomingCall incoming,
+            Method<TRequest, TResponse> method,
+            ServerStreamingServerMethod<TRequest, TResponse> handler)
+            where TRequest : class
+            where TResponse : class
+        {
+            // Set up the call context.
+            incoming.LogTrace($"Creating server call context.");
+            var writeMutex = new Mutex();
+            using var serverCallContext = incoming.CreateCallContext(
+                method.Name,
+                _cts.Token);
+            var serverCall = new TcpGrpcServerCall<TRequest, TResponse>(
+                incoming,
+                serverCallContext,
+                method,
+                TcpGrpcCallType.ServerStreaming);
+
+            // Read the request data since this is not a streaming request.
+            var requestData = await serverCall.TryReadNonStreamingClientRequestDataAsync()
+                .ConfigureAwait(false);
+            if (requestData == null)
+            {
+                // Client misbehaved or cancelled. TryReadNonStreamingClientRequestDataAsync
+                // handles sending the required responses.
+                return;
             }
 
-            // Invoke the handler, and monitor for client side cancellation.
-            using var stopCalls = CancellationTokenSource.CreateLinkedTokenSource(serverCallContext.CancellationToken);
-            var receiveCancelTask = Task.Run(async () =>
+            // Invoke the handler, and monitor for client side cancellation. This also
+            // sends the required status responses.
+            await serverCall.InvokeHandlerWithClientMonitoringAsync(async () =>
             {
-                // Read the next message to see if we get cancelled.
-                while (!stopCalls.IsCancellationRequested && !connection.HasReadBeenInterrupted)
-                {
-                    TcpGrpcMessage message;
-                    try
-                    {
-                        message = await connection.ReadExpectedAsync<TcpGrpcMessage>(
-                            TcpGrpcMessage.Descriptor,
-                            stopCalls.Token).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // The invocation completed and calls were stopped.
-                        return;
-                    }
-                    catch (RpcException ex) when (ex.Status.StatusCode == StatusCode.Unavailable)
-                    {
-                        // The client closed the connection. 
-                        logTrace($"Server is cancelling the operation as the client closed the connection.");
-                        serverCallContext.CancellationTokenSource.Cancel();
-                        return;
-                    }
-                    if (message.Type == TcpGrpcMessageType.RequestCancel)
-                    {
-                        // We don't need to send cancellation here; if it's relevant it'll
-                        // be handled in invokeTask.
-                        logTrace($"Server received cancellation from client.");
-                        serverCallContext.CancellationTokenSource.Cancel();
-                        return;
-                    }
-                }
-            });
-            var invokeTask = Task.Run(async () =>
-            {
-                // Invoke the handler.
-                TResponse response;
-                try
-                {
-                    logTrace($"Invoking server-side implementation of method.");
-                    response = await handler(requestData, serverCallContext).ConfigureAwait(false);
-                }
-                catch (RpcException ex)
-                {
-                    logTrace($"Server-side method implementation threw RpcException.");
-                    await SendStatusAsync(
-                        ex.Status.StatusCode,
-                        ex.Status.Detail).ConfigureAwait(false);
-                    return;
-                }
-                catch (OperationCanceledException)
-                {
-                    logTrace($"Server-side method implementation threw OperationCanceledException.");
-                    await SendStatusAsync(
-                        Status.DefaultCancelled.StatusCode,
-                        Status.DefaultCancelled.Detail).ConfigureAwait(false);
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    logTrace($"Server-side method implementation threw an unknown exception: {ex}");
-                    await SendStatusAsync(
-                        StatusCode.Unknown,
-                        ex.ToString()).ConfigureAwait(false);
-                    return;
-                }
+                await handler(requestData, serverCall, serverCallContext).ConfigureAwait(false);
+                return null;
+            }).ConfigureAwait(false);
+        }
 
-                // The call is complete.
-                try
-                {
-                    logTrace($"Waiting for write lock to write response to client.");
-                    using (await writeMutex.WaitAsync(serverCallContext.CancellationToken).ConfigureAwait(false))
-                    {
-                        logTrace($"Writing response to client.");
-                        await connection.WriteAsync(new TcpGrpcMessage
-                        {
-                            Type = TcpGrpcMessageType.ResponseData,
-                        }, serverCallContext.CancellationToken).ConfigureAwait(false);
-                        var serializationContext = new TcpGrpcSerializationContext();
-                        method.ResponseMarshaller.ContextualSerializer(response, serializationContext);
-                        serializationContext.Complete();
-                        await connection.WriteBlobAsync(
-                            serializationContext.Result,
-                            serverCallContext.CancellationToken)
-                            .ConfigureAwait(false);
-                        logTrace($"Wrote response to client.");
-                    }
-                    await SendStatusAsync(
-                        Status.DefaultSuccess.StatusCode,
-                        Status.DefaultSuccess.Detail).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    logTrace($"Server handling was cancelled before response could be entirely written.");
-                }
-                return;
-            });
-            await Task.WhenAny(receiveCancelTask, invokeTask).ConfigureAwait(false);
-            stopCalls.Cancel();
-            await Task.WhenAll(receiveCancelTask, invokeTask).ConfigureAwait(false);
+        private async Task ProcessDuplexStreamingCallAsync<TRequest, TResponse>(
+            TcpGrpcServerIncomingCall incoming,
+            Method<TRequest, TResponse> method,
+            DuplexStreamingServerMethod<TRequest, TResponse> handler)
+            where TRequest : class
+            where TResponse : class
+        {
+            // Set up the call context.
+            incoming.LogTrace($"Creating server call context.");
+            var writeMutex = new Mutex();
+            using var serverCallContext = incoming.CreateCallContext(
+                method.Name,
+                _cts.Token);
+            var serverCall = new TcpGrpcServerCall<TRequest, TResponse>(
+                incoming,
+                serverCallContext,
+                method,
+                TcpGrpcCallType.DuplexStreaming);
+
+            // Invoke the handler, and monitor for client side cancellation. This also
+            // sends the required status responses.
+            await serverCall.InvokeHandlerWithClientMonitoringAsync(async () =>
+            {
+                await handler(serverCall, serverCall, serverCallContext).ConfigureAwait(false);
+                return null;
+            }).ConfigureAwait(false);
         }
 
         public async ValueTask DisposeAsync()
@@ -363,13 +301,10 @@
             UnaryServerMethod<TRequest, TResponse> handler)
         {
             ArgumentNullException.ThrowIfNull(method);
-            _callHandlers[method.FullName] = async (request, connection, peer, logTrace) =>
+            _callHandlers[method.FullName] = async (incomingCall) =>
             {
                 await ProcessUnaryCallAsync(
-                    request,
-                    connection,
-                    peer,
-                    logTrace,
+                    incomingCall,
                     method,
                     handler).ConfigureAwait(false);
             };
@@ -379,21 +314,42 @@
             Method<TRequest, TResponse> method,
             ClientStreamingServerMethod<TRequest, TResponse> handler)
         {
-            // base.AddMethod(method, handler);
+            ArgumentNullException.ThrowIfNull(method);
+            _callHandlers[method.FullName] = async (incomingCall) =>
+            {
+                await ProcessClientStreamingCallAsync(
+                    incomingCall,
+                    method,
+                    handler).ConfigureAwait(false);
+            };
         }
 
         public override void AddMethod<TRequest, TResponse>(
             Method<TRequest, TResponse> method,
             ServerStreamingServerMethod<TRequest, TResponse> handler)
         {
-            //base.AddMethod(method, handler);
+            ArgumentNullException.ThrowIfNull(method);
+            _callHandlers[method.FullName] = async (incomingCall) =>
+            {
+                await ProcessServerStreamingCallAsync(
+                    incomingCall,
+                    method,
+                    handler).ConfigureAwait(false);
+            };
         }
 
         public override void AddMethod<TRequest, TResponse>(
             Method<TRequest, TResponse> method,
             DuplexStreamingServerMethod<TRequest, TResponse> handler)
         {
-            //base.AddMethod(method, handler);
+            ArgumentNullException.ThrowIfNull(method);
+            _callHandlers[method.FullName] = async (incomingCall) =>
+            {
+                await ProcessDuplexStreamingCallAsync(
+                    incomingCall,
+                    method,
+                    handler).ConfigureAwait(false);
+            };
         }
 
         #endregion

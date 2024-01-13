@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.GrpcPipes.Transport.Tcp.Impl
 {
-    using global::Grpc.Core;
+    using Grpc.Core;
     using Microsoft.Extensions.Logging;
     using System.Net;
 
@@ -30,7 +30,13 @@
             CallOptions options,
             TRequest request)
         {
-            var call = new TcpGrpcAsyncUnaryCall<TRequest, TResponse>(_endpoint, _logger, method, options, request);
+            var call = new TcpGrpcClientCall<TRequest, TResponse>(
+                _endpoint,
+                _logger,
+                method,
+                options,
+                request,
+                TcpGrpcCallType.Unary);
             return new AsyncUnaryCall<TResponse>(
                 call.GetResponseAsync(),
                 call.GetResponseHeadersAsync(),
@@ -44,7 +50,20 @@
             string? host,
             CallOptions options)
         {
-            throw new NotImplementedException();
+            var call = new TcpGrpcClientCall<TRequest, TResponse>(
+                _endpoint,
+                _logger,
+                method,
+                options,
+                null,
+                TcpGrpcCallType.ClientStreaming);
+            return new AsyncClientStreamingCall<TRequest, TResponse>(
+                call,
+                call.GetResponseAsync(),
+                call.GetResponseHeadersAsync(),
+                call.GetStatus,
+                call.GetTrailers,
+                call.Dispose);
         }
 
         public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(
@@ -53,7 +72,19 @@
             CallOptions options,
             TRequest request)
         {
-            throw new NotImplementedException();
+            var call = new TcpGrpcClientCall<TRequest, TResponse>(
+                _endpoint,
+                _logger,
+                method,
+                options,
+                request,
+                TcpGrpcCallType.ServerStreaming);
+            return new AsyncServerStreamingCall<TResponse>(
+                call,
+                call.GetResponseHeadersAsync(),
+                call.GetStatus,
+                call.GetTrailers,
+                call.Dispose);
         }
 
         public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(
@@ -61,7 +92,20 @@
             string? host,
             CallOptions options)
         {
-            throw new NotImplementedException();
+            var call = new TcpGrpcClientCall<TRequest, TResponse>(
+                _endpoint,
+                _logger,
+                method,
+                options,
+                null,
+                TcpGrpcCallType.DuplexStreaming);
+            return new AsyncDuplexStreamingCall<TRequest, TResponse>(
+                call,
+                call,
+                call.GetResponseHeadersAsync(),
+                call.GetStatus,
+                call.GetTrailers,
+                call.Dispose);
         }
     }
 }

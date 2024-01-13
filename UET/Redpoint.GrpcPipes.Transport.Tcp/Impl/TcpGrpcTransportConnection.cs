@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.GrpcPipes.Transport.Tcp.Impl
 {
-    using global::Grpc.Core;
+    using Grpc.Core;
     using Google.Protobuf;
     using Google.Protobuf.Reflection;
     using Microsoft.Extensions.Logging;
