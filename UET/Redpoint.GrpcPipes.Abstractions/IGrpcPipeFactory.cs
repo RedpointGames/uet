@@ -10,6 +10,14 @@
     public interface IGrpcPipeFactory
     {
         /// <summary>
+        /// Constructs the factory without dependency injection.
+        /// </summary>
+        static virtual IGrpcPipeFactory CreateFactoryWithoutInjection()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
         /// Constructs a gRPC server that offers services on the given pipe.
         /// </summary>
         /// <typeparam name="T">The type of the gRPC server.</typeparam>

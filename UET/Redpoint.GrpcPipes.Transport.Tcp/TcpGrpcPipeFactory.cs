@@ -17,6 +17,12 @@
     {
         private readonly IServiceProvider? _serviceProvider;
 
+        /// <inheritdoc />
+        public static IGrpcPipeFactory CreateFactoryWithoutInjection()
+        {
+            return new TcpGrpcPipeFactory(null);
+        }
+
         /// <summary>
         /// Construct a new gRPC pipe factory which uses TCP for transport.
         /// </summary>

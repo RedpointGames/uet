@@ -15,6 +15,12 @@
     {
         private readonly IServiceProvider? _serviceProvider;
 
+        /// <inheritdoc />
+        public static IGrpcPipeFactory CreateFactoryWithoutInjection()
+        {
+            return new AspNetGrpcPipeFactory(null);
+        }
+
         /// <summary>
         /// Construct a new gRPC pipe factory which uses ASP.NET for transport.
         /// </summary>

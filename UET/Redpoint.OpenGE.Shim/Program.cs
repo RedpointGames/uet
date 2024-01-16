@@ -1,5 +1,6 @@
 ﻿using Grpc.Core;
 using Redpoint.GrpcPipes;
+using Redpoint.GrpcPipes.Transport.Tcp;
 using Redpoint.OpenGE.Protocol;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -49,7 +50,7 @@ rootCommand.SetHandler(async (InvocationContext context) =>
         pipeNamespace = GrpcPipeNamespace.Computer;
     }
 
-    var client = GrpcPipesCore.CreateClient(
+    var client = GrpcPipesCore<TcpGrpcPipeFactory>.CreateClient(
         pipeName,
         pipeNamespace,
         channel => new JobApi.JobApiClient(channel));

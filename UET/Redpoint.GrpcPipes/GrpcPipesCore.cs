@@ -6,7 +6,7 @@
     /// <summary>
     /// Provides the <see cref="CreateClient{T}(string, GrpcPipeNamespace, Func{CallInvoker, T}, GrpcChannelOptions?)"/> method for consumers that don't want to use dependency injection.
     /// </summary>
-    public static class GrpcPipesCore
+    public static class GrpcPipesCore<TFactory> where TFactory : IGrpcPipeFactory
     {
         /// <summary>
         /// Creates a gRPC client that connects to the given pipe.
@@ -25,7 +25,8 @@
         {
             ArgumentNullException.ThrowIfNull(constructor);
 
-            return ((IGrpcPipeFactory)new AspNetGrpcPipeFactory(null))
+            return TFactory
+                .CreateFactoryWithoutInjection()
                 .CreateClient(pipeName, pipeNamespace, constructor, grpcChannelOptions);
         }
     }

@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.Automation.TestLogger
 {
     using Redpoint.GrpcPipes;
+    using Redpoint.GrpcPipes.Transport.Tcp;
     using Redpoint.Uet.Automation.Model;
     using Redpoint.Uet.Automation.TestLogging;
     using Redpoint.Uet.Automation.Worker;
@@ -14,7 +15,7 @@
 
         public GrpcTestLogger(string pipeName)
         {
-            _client = GrpcPipesCore.CreateClient(
+            _client = GrpcPipesCore<TcpGrpcPipeFactory>.CreateClient(
                 pipeName,
                 GrpcPipeNamespace.User,
                 channel => new TestReporting.TestReportingClient(channel));
