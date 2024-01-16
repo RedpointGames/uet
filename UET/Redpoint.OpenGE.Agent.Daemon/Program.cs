@@ -16,6 +16,7 @@
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
     using Redpoint.AutoDiscovery;
+    using Redpoint.GrpcPipes.Transport.Tcp;
 
     public static class Program
     {
@@ -72,7 +73,7 @@
 
             services.AddAutoDiscovery();
             services.AddTasks();
-            services.AddGrpcPipes();
+            services.AddGrpcPipes<TcpGrpcPipeFactory>();
             services.AddProcessExecution();
             services.AddPathResolution();
             services.AddReservation();

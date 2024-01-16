@@ -1,0 +1,42 @@
+﻿syntax = "proto3";
+
+package Redpoint.GrpcPipes.Transport.Tcp.Impl;
+
+message TcpGrpcMetadataValue {
+    oneof value {
+        string string = 1;
+        bytes bytes = 2;
+    }
+}
+
+message TcpGrpcMetadata {
+    map<string, TcpGrpcMetadataValue> values = 1;
+}
+
+enum TcpGrpcMessageType {
+    Unknown = 0;
+    RequestData = 1;
+    RequestComplete = 2;
+    RequestCancel = 3;
+    ResponseHeaders = 4;
+    ResponseData = 5;
+    ResponseComplete = 6;
+}
+
+message TcpGrpcMessage {
+    TcpGrpcMessageType type = 1;
+}
+
+message TcpGrpcRequest {
+    string fullName = 1;
+    bool hasRequestHeaders = 2;
+    TcpGrpcMetadata requestHeaders = 3;
+    int64 deadlineUnixTimeMilliseconds = 4;
+}
+
+message TcpGrpcResponseComplete {
+    int32 statusCode = 1;
+    string statusDetails = 2;
+    bool hasResponseTrailers = 3;
+    TcpGrpcMetadata responseTrailers = 4;
+}

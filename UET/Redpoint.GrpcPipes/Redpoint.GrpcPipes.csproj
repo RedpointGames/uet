@@ -9,17 +9,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.23.2" />
-    <PackageReference Include="Grpc.AspNetCore.Server" Version="2.53.0" />
     <PackageReference Include="Grpc.Net.Client" Version="2.53.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Redpoint.GrpcPipes.Abstractions\Redpoint.GrpcPipes.Abstractions.csproj" />
+    <ProjectReference Include="..\Redpoint.GrpcPipes.Transport.Http2\Redpoint.GrpcPipes.Transport.Http2.csproj" />
+    <ProjectReference Include="..\Redpoint.GrpcPipes.Transport.Tcp\Redpoint.GrpcPipes.Transport.Tcp.csproj" />
     <ProjectReference Include="..\Redpoint.Logging\Redpoint.Logging.csproj" />
   </ItemGroup>
 

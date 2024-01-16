@@ -2,6 +2,7 @@ namespace Redpoint.GrpcPipes.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.GrpcPipes.Transport.Tcp;
     using System.Diagnostics;
     using System.Security.Principal;
     using TestPipes;
@@ -33,8 +34,10 @@ namespace Redpoint.GrpcPipes.Tests
             }
         }
 
-        [Fact]
-        public async Task TestUserPipes()
+        [Theory]
+        [InlineData("http2")]
+        [InlineData("tcp")]
+        public async Task TestUserPipes(string protocol)
         {
             var services = new ServiceCollection();
             services.AddLogging(builder =>
@@ -43,7 +46,18 @@ namespace Redpoint.GrpcPipes.Tests
                 builder.SetMinimumLevel(LogLevel.Trace);
                 builder.AddXUnit(_output);
             });
-            services.AddGrpcPipes();
+            switch (protocol)
+            {
+                case "http2":
+                    services.AddGrpcPipes<AspNetGrpcPipeFactory>();
+                    break;
+                case "tcp":
+                    services.AddGrpcPipes<TcpGrpcPipeFactory>();
+                    break;
+                default:
+                    services.AddGrpcPipes();
+                    break;
+            }
 
             var sp = services.BuildServiceProvider();
             var pipeFactory = sp.GetRequiredService<IGrpcPipeFactory>();
@@ -87,8 +101,10 @@ namespace Redpoint.GrpcPipes.Tests
             }
         }
 
-        [SkippableFact]
-        public async Task TestComputerPipes()
+        [SkippableTheory]
+        [InlineData("http2")]
+        [InlineData("tcp")]
+        public async Task TestComputerPipes(string protocol)
         {
             Skip.IfNot(IsAdministrator);
 
@@ -99,7 +115,18 @@ namespace Redpoint.GrpcPipes.Tests
                 builder.SetMinimumLevel(LogLevel.Trace);
                 builder.AddXUnit(_output);
             });
-            services.AddGrpcPipes();
+            switch (protocol)
+            {
+                case "http2":
+                    services.AddGrpcPipes<AspNetGrpcPipeFactory>();
+                    break;
+                case "tcp":
+                    services.AddGrpcPipes<TcpGrpcPipeFactory>();
+                    break;
+                default:
+                    services.AddGrpcPipes();
+                    break;
+            }
 
             var sp = services.BuildServiceProvider();
             var pipeFactory = sp.GetRequiredService<IGrpcPipeFactory>();
@@ -127,8 +154,10 @@ namespace Redpoint.GrpcPipes.Tests
             Assert.True(isCalled, "Expected TestMethod to be called");
         }
 
-        [SkippableFact]
-        public async Task TestNewServerCanRemoveOldPipe()
+        [SkippableTheory]
+        [InlineData("http2")]
+        [InlineData("tcp")]
+        public async Task TestNewServerCanRemoveOldPipe(string protocol)
         {
             Skip.IfNot(IsAdministrator);
 
@@ -139,7 +168,18 @@ namespace Redpoint.GrpcPipes.Tests
                 builder.SetMinimumLevel(LogLevel.Trace);
                 builder.AddXUnit(_output);
             });
-            services.AddGrpcPipes();
+            switch (protocol)
+            {
+                case "http2":
+                    services.AddGrpcPipes<AspNetGrpcPipeFactory>();
+                    break;
+                case "tcp":
+                    services.AddGrpcPipes<TcpGrpcPipeFactory>();
+                    break;
+                default:
+                    services.AddGrpcPipes();
+                    break;
+            }
 
             var sp = services.BuildServiceProvider();
             var pipeFactory = sp.GetRequiredService<IGrpcPipeFactory>();

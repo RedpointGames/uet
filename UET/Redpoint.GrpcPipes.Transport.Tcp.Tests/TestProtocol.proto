@@ -1,0 +1,19 @@
+syntax = 'proto3';
+
+package Redpoint.GrpcPipes.Transport.Tcp.Impl.Tests;
+
+message Request {
+	int32 value = 1;
+	int32 delayMilliseconds = 2;
+}
+
+message Response {
+	int32 value = 1;
+}
+
+service TestService {
+	rpc Unary(Request) returns (Response) {}
+	rpc ClientStreaming(stream Request) returns (Response) {}
+	rpc ServerStreaming(Request) returns (stream Response) {}
+	rpc DuplexStreaming(stream Request) returns (stream Response) {}
+}

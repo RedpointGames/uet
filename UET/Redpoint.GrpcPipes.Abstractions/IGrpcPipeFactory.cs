@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.GrpcPipes
 {
+    using Grpc.Core;
     using Grpc.Net.Client;
     using System.Diagnostics.CodeAnalysis;
 
@@ -8,6 +9,14 @@
     /// </summary>
     public interface IGrpcPipeFactory
     {
+        /// <summary>
+        /// Constructs the factory without dependency injection.
+        /// </summary>
+        static virtual IGrpcPipeFactory CreateFactoryWithoutInjection()
+        {
+            throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Constructs a gRPC server that offers services on the given pipe.
         /// </summary>
@@ -33,7 +42,7 @@
         T CreateClient<T>(
             string pipeName,
             GrpcPipeNamespace pipeNamespace,
-            Func<GrpcChannel, T> constructor,
+            Func<CallInvoker, T> constructor,
             GrpcChannelOptions? grpcChannelOptions = null);
     }
 }
