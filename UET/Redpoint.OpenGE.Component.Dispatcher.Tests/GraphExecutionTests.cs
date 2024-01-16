@@ -8,6 +8,7 @@
     using Redpoint.Collections;
     using Redpoint.Concurrency;
     using Redpoint.GrpcPipes;
+    using Redpoint.GrpcPipes.Transport.Tcp;
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
     using Redpoint.OpenGE.Component.Dispatcher.GraphExecutor;
     using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
@@ -58,7 +59,7 @@
             var services = new ServiceCollection();
             services.AddTasks();
             services.AddLogging();
-            services.AddGrpcPipes();
+            services.AddGrpcPipes<TcpGrpcPipeFactory>();
             services.AddOpenGECore();
             services.AddOpenGEComponentDispatcher();
             services.AddOpenGEComponentWorker();
@@ -294,7 +295,7 @@
                         });
                 }
             });
-            services.AddGrpcPipes();
+            services.AddGrpcPipes<TcpGrpcPipeFactory>();
             services.AddOpenGECore();
             services.AddOpenGEComponentDispatcher();
             services.AddOpenGEComponentWorker();
@@ -371,7 +372,7 @@
                     var services = new ServiceCollection();
                     services.AddTasks();
                     services.AddLogging();
-                    services.AddGrpcPipes();
+                    services.AddGrpcPipes<TcpGrpcPipeFactory>();
                     services.AddOpenGECore();
                     services.AddOpenGEComponentDispatcher();
                     services.AddOpenGEComponentWorker();

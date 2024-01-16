@@ -11,8 +11,7 @@
     using System.Diagnostics.CodeAnalysis;
     using System.Net;
 
-    [SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable", Justification = "The resource is released when StopAsync is called.")]
-    internal sealed class AspNetGrpcPipeServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T> : IGrpcPipeServer<T> where T : class
+    internal sealed class AspNetGrpcPipeServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T> : IGrpcPipeServer<T>, IAsyncDisposable where T : class
     {
         private readonly string _pipePath;
         private readonly T _instance;
@@ -31,6 +30,7 @@
             _pipePath = pipePath;
             _instance = instance;
             _pipeNamespace = pipeNamespace;
+            _app = null;
         }
 
         public async Task StartAsync()
@@ -177,8 +177,14 @@
             if (_app != null)
             {
                 await _app.StopAsync().ConfigureAwait(false);
+                await _app.DisposeAsync().ConfigureAwait(false);
                 _app = null;
             }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await StopAsync().ConfigureAwait(false);
         }
     }
 }

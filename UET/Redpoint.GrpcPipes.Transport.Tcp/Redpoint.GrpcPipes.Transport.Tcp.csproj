@@ -2,6 +2,12 @@
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>Provides a transport implementation for Redpoint.GrpcPipes that uses a custom TCP protocol for gRPC communications. Each unary and streaming call is its own TCP connection, which ensures that streaming calls can not interfere with each other at the transport level.</Description>
+    <PackageTags>grpc, transport, tcp</PackageTags>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Remove="TcpGrpcTransport.proto" />
   </ItemGroup>

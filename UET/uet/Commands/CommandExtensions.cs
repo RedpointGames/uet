@@ -39,6 +39,7 @@
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
     using Redpoint.Concurrency;
+    using Redpoint.GrpcPipes.Transport.Tcp;
 
     internal static class CommandExtensions
     {
@@ -72,7 +73,7 @@
             services.AddOpenGEProcessExecution();
             services.AddOpenGEComponentPreprocessorCache();
             services.AddSdkManagement();
-            services.AddGrpcPipes();
+            services.AddGrpcPipes<TcpGrpcPipeFactory>();
             services.AddUefs();
             services.AddUETAutomation();
             services.AddUETUAT();

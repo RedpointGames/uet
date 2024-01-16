@@ -26,6 +26,7 @@
     using Redpoint.Logging.Mac;
     using Redpoint.Vfs.LocalIo;
     using Redpoint.Tasks;
+    using Redpoint.GrpcPipes.Transport.Tcp;
 
     public static class Program
     {
@@ -96,7 +97,7 @@
                     });
                 }
             });
-            services.AddGrpcPipes();
+            services.AddGrpcPipes<TcpGrpcPipeFactory>();
             if (OperatingSystem.IsWindowsVersionAtLeast(6, 2))
             {
                 services.AddWinFspVfsDriver();
@@ -106,7 +107,6 @@
             services.AddGitDependenciesLayerFactory();
             services.AddFolderLayerFactory();
             services.AddScratchLayerFactory();
-            services.AddGrpcPipes();
             services.AddLocalIoFileFactory();
             services.AddUefsPackage();
             services.AddUefsPackageVhd();

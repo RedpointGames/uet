@@ -18,6 +18,7 @@
     using System.Reflection;
     using Redpoint.ProcessTree;
     using Redpoint.CredentialDiscovery;
+    using Redpoint.GrpcPipes.Transport.Tcp;
 
     internal static class CommandExtensions
     {
@@ -59,7 +60,7 @@
                     services.AddProcessTree();
                 }
                 services.AddUefs();
-                services.AddGrpcPipes();
+                services.AddGrpcPipes<TcpGrpcPipeFactory>();
                 services.AddUefsPackage();
                 services.AddUefsPackageVhd();
                 services.AddUefsPackageSparseImage();

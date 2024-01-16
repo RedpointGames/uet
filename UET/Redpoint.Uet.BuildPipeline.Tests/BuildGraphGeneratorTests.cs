@@ -9,6 +9,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
     using Redpoint.MSBuildResolution;
     using Redpoint.Uet.Core;
     using Redpoint.GrpcPipes;
+    using Redpoint.GrpcPipes.Transport.Tcp;
 
     public class BuildGraphGeneratorTests
     {
@@ -18,7 +19,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
             services.AddLogging();
             services.AddPathResolution();
             services.AddProcessExecution();
-            services.AddGrpcPipes();
+            services.AddGrpcPipes<TcpGrpcPipeFactory>();
             services.AddUETCore();
             services.AddUETUAT();
             services.AddUETBuildPipeline();

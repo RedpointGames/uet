@@ -10,10 +10,17 @@
     using System.Diagnostics.CodeAnalysis;
     using System.Net;
 
+    /// <summary>
+    /// Provides a gRPC pipe factory which uses TCP for transport.
+    /// </summary>
     public sealed class TcpGrpcPipeFactory : IGrpcPipeFactory
     {
         private readonly IServiceProvider? _serviceProvider;
 
+        /// <summary>
+        /// Construct a new gRPC pipe factory which uses TCP for transport.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider, which is optional when creating clients.</param>
         public TcpGrpcPipeFactory(IServiceProvider? serviceProvider)
         {
             _serviceProvider = serviceProvider;
@@ -73,7 +80,13 @@
             GrpcPipeNamespace pipeNamespace,
             T instance)
         {
-            throw new NotImplementedException();
+            var pipePath = GrpcPipePath.GetPipePath(pipeName, pipeNamespace);
+            GrpcPipePath.CreateDirectoryWithPermissions(Path.GetDirectoryName(pipePath)!, pipeNamespace);
+            return new TcpGrpcPipeServer<T>(
+                _serviceProvider!.GetRequiredService<ILogger<TcpGrpcPipeServer<T>>>(),
+                pipePath,
+                instance,
+                pipeNamespace);
         }
     }
 }
