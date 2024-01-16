@@ -65,22 +65,22 @@
 
             var sum = 0;
 
-            while (await requestStream.MoveNext())
+            try
             {
-                sum += requestStream.Current.Value;
-
-                if (requestStream.Current.DelayMilliseconds > 0)
+                while (await requestStream.MoveNext())
                 {
-                    try
+                    sum += requestStream.Current.Value;
+
+                    if (requestStream.Current.DelayMilliseconds > 0)
                     {
                         await Task.Delay(requestStream.Current.DelayMilliseconds, context.CancellationToken);
                     }
-                    catch (OperationCanceledException)
-                    {
-                        CancellationTokenRaisedException = true;
-                        throw;
-                    }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                CancellationTokenRaisedException = true;
+                throw;
             }
 
             if (context.RequestHeaders.Get("trailer") != null)
@@ -98,87 +98,95 @@
 
         public override async Task ServerStreaming(Request request, IServerStreamWriter<Response> responseStream, ServerCallContext context)
         {
-            if (context.RequestHeaders.Get("header") != null)
+            try
             {
-                var responseHeaders = new Metadata
+                if (context.RequestHeaders.Get("header") != null)
                 {
+                    var responseHeaders = new Metadata
                     {
-                        "header",
-                        context.RequestHeaders.Get("header")!.Value
+                        {
+                            "header",
+                            context.RequestHeaders.Get("header")!.Value
+                        }
+                    };
+                    await context.WriteResponseHeadersAsync(responseHeaders);
+                }
+
+                for (int i = 0; i < request.Value; i++)
+                {
+                    if (request.DelayMilliseconds > 0)
+                    {
+                        await Task.Delay(request.DelayMilliseconds, context.CancellationToken);
                     }
-                };
-                await context.WriteResponseHeadersAsync(responseHeaders);
-            }
 
-            if (request.DelayMilliseconds > 0)
-            {
-                try
-                {
-                    await Task.Delay(request.DelayMilliseconds, context.CancellationToken);
+                    await responseStream.WriteAsync(new Response
+                    {
+                        Value = i + 1,
+                    }, context.CancellationToken);
                 }
-                catch (OperationCanceledException)
+
+                if (context.RequestHeaders.Get("trailer") != null)
                 {
-                    CancellationTokenRaisedException = true;
-                    throw;
+                    context.ResponseTrailers.Add(
+                        "trailer",
+                        context.RequestHeaders.Get("trailer")!.Value);
                 }
             }
-
-            for (int i = 0; i < request.Value; i++)
+            catch (OperationCanceledException)
             {
-                await responseStream.WriteAsync(new Response
-                {
-                    Value = i + 1,
-                }, context.CancellationToken);
-            }
-
-            if (context.RequestHeaders.Get("trailer") != null)
-            {
-                context.ResponseTrailers.Add(
-                    "trailer",
-                    context.RequestHeaders.Get("trailer")!.Value);
+                CancellationTokenRaisedException = true;
+                throw;
             }
         }
 
         public override async Task DuplexStreaming(IAsyncStreamReader<Request> requestStream, IServerStreamWriter<Response> responseStream, ServerCallContext context)
         {
-            if (context.RequestHeaders.Get("header") != null)
+            try
             {
-                var responseHeaders = new Metadata
+                if (context.RequestHeaders.Get("header") != null)
                 {
+                    var responseHeaders = new Metadata
                     {
-                        "header",
-                        context.RequestHeaders.Get("header")!.Value
-                    }
-                };
-                await context.WriteResponseHeadersAsync(responseHeaders);
-            }
-
-            while (await requestStream.MoveNext())
-            {
-                if (requestStream.Current.DelayMilliseconds > 0)
-                {
-                    try
-                    {
-                        await Task.Delay(requestStream.Current.DelayMilliseconds, context.CancellationToken);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        CancellationTokenRaisedException = true;
-                        throw;
-                    }
+                        {
+                            "header",
+                            context.RequestHeaders.Get("header")!.Value
+                        }
+                    };
+                    await context.WriteResponseHeadersAsync(responseHeaders);
                 }
 
-                await responseStream.WriteAsync(new Response
+                while (await requestStream.MoveNext())
                 {
-                    Value = requestStream.Current.Value,
-                }, context.CancellationToken);
-            }
+                    if (requestStream.Current.DelayMilliseconds > 0)
+                    {
+                        try
+                        {
+                            await Task.Delay(requestStream.Current.DelayMilliseconds, context.CancellationToken);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            CancellationTokenRaisedException = true;
+                            throw;
+                        }
+                    }
 
-            if (context.RequestHeaders.Get("trailer") != null)
+                    await responseStream.WriteAsync(new Response
+                    {
+                        Value = requestStream.Current.Value,
+                    }, context.CancellationToken);
+                }
+
+                if (context.RequestHeaders.Get("trailer") != null)
+                {
+                    context.ResponseTrailers.Add(
+                        "trailer",
+                        context.RequestHeaders.Get("trailer")!.Value);
+                }
+            }
+            catch (OperationCanceledException)
             {
-                context.ResponseTrailers.Add(
-                    "trailer",
-                    context.RequestHeaders.Get("trailer")!.Value);
+                CancellationTokenRaisedException = true;
+                throw;
             }
         }
     }

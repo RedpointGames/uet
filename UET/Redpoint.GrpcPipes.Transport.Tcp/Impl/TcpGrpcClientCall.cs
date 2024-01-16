@@ -33,6 +33,7 @@
         private readonly TerminableAwaitableConcurrentQueue<TResponse> _responseStream;
         private TcpGrpcTransportConnection? _connection;
         private CancellationToken _cancellationToken;
+        private CancellationToken _deadlineCancellationToken;
         private WriteOptions? _writeOptions;
         private readonly Gate _callStarted;
 
@@ -92,6 +93,8 @@
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(
                 _options.CancellationToken,
                 deadlineCts.Token);
+            _cancellationToken = cts.Token;
+            _deadlineCancellationToken = deadlineCts.Token;
 
             try
             {
@@ -103,7 +106,6 @@
                     {
                         // Set these so we can send cancellation and perform streaming operations.
                         _connection = connection;
-                        _cancellationToken = cts.Token;
 
                         // Send the call initialization.
                         LogTrace($"Sending request to call '{_method.FullName}'.");
@@ -215,7 +217,7 @@
                     {
                         // Attempt to send the cancellation request if needed.
                         LogTrace($"OperationCanceledException thrown while handling call.");
-                        await HandleClientSideCancelAsync(deadlineCts.IsCancellationRequested).ConfigureAwait(false);
+                        await HandleClientSideCancelAsync().ConfigureAwait(false);
                         return;
                     }
                 }
@@ -223,9 +225,7 @@
             catch (OperationCanceledException)
             {
                 // Cancelled during connection.
-                if ((_options.Deadline != null &&
-                     _options.Deadline < DateTimeOffset.UtcNow) ||
-                     deadlineCts.IsCancellationRequested)
+                if (deadlineCts.IsCancellationRequested)
                 {
                     _responseStatus = new Status(StatusCode.DeadlineExceeded, "The server did not respond before the deadline.");
                 }
@@ -252,24 +252,16 @@
             }
         }
 
-        private async Task HandleClientSideCancelAsync(bool deadlined)
+        private async Task HandleClientSideCancelAsync()
         {
             await CancelRequestAsync().ConfigureAwait(false);
-            if (_responseStatus == null ||
-                (_responseStatus.HasValue &&
-                 _responseStatus.Value.StatusCode != StatusCode.DeadlineExceeded &&
-                 _responseStatus.Value.StatusCode != StatusCode.Cancelled) ||
-                deadlined)
+            if (_deadlineCancellationToken.IsCancellationRequested)
             {
-                if ((_options.Deadline != null && _options.Deadline < DateTimeOffset.UtcNow) ||
-                    deadlined)
-                {
-                    _responseStatus = new Status(StatusCode.DeadlineExceeded, "The server did not respond before the deadline.");
-                }
-                else
-                {
-                    _responseStatus = Status.DefaultCancelled;
-                }
+                _responseStatus = new Status(StatusCode.DeadlineExceeded, "The server did not respond before the deadline.");
+            }
+            else if (!_responseStatus.HasValue || _responseStatus.Value.StatusCode != StatusCode.DeadlineExceeded || _responseStatus.Value.StatusCode != StatusCode.Cancelled)
+            {
+                _responseStatus = Status.DefaultCancelled;
             }
         }
 
@@ -349,7 +341,7 @@
             }
             catch (OperationCanceledException)
             {
-                await HandleClientSideCancelAsync(false).ConfigureAwait(false);
+                await HandleClientSideCancelAsync().ConfigureAwait(false);
                 throw new RpcException(_responseStatus!.Value);
             }
         }
@@ -367,7 +359,7 @@
             }
             catch (OperationCanceledException)
             {
-                await HandleClientSideCancelAsync(false).ConfigureAwait(false);
+                await HandleClientSideCancelAsync().ConfigureAwait(false);
                 throw new RpcException(_responseStatus!.Value);
             }
         }
@@ -426,6 +418,12 @@
 
             if (_responseStatus != null && _responseStatus.Value.StatusCode != StatusCode.OK)
             {
+                if (_responseStatus.Value.StatusCode == StatusCode.Cancelled)
+                {
+                    // Normalize the cancellation as OperationCanceledException.
+                    throw new OperationCanceledException();
+                }
+
                 throw new RpcException(_responseStatus.Value);
             }
 
@@ -461,6 +459,12 @@
 
             if (_responseStatus != null && _responseStatus.Value.StatusCode != StatusCode.OK)
             {
+                if (_responseStatus.Value.StatusCode == StatusCode.Cancelled)
+                {
+                    // Normalize the cancellation as OperationCanceledException.
+                    throw new OperationCanceledException();
+                }
+
                 throw new RpcException(_responseStatus.Value);
             }
 
@@ -514,18 +518,25 @@
                 throw new NotSupportedException("This call is not streaming responses from the server.");
             }
 
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, cancellationToken);
-            var (nextItem, terminated) = await _responseStream.TryDequeueAsync(cts.Token).ConfigureAwait(false);
-            if (terminated)
+            try
             {
-                if (_responseStatus != null && _responseStatus.Value.StatusCode != StatusCode.OK)
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, cancellationToken);
+                var (nextItem, terminated) = await _responseStream.TryDequeueAsync(cts.Token).ConfigureAwait(false);
+                if (terminated)
                 {
-                    throw new RpcException(_responseStatus.Value);
+                    if (_responseStatus != null && _responseStatus.Value.StatusCode != StatusCode.OK)
+                    {
+                        throw new RpcException(_responseStatus.Value);
+                    }
+                    return false;
                 }
-                return false;
+                _responseData = nextItem;
+                return true;
             }
-            _responseData = nextItem;
-            return true;
+            catch (OperationCanceledException) when (_deadlineCancellationToken.IsCancellationRequested)
+            {
+                throw new RpcException(new Status(StatusCode.DeadlineExceeded, "The server did not respond before the deadline."));
+            }
         }
 
         #endregion

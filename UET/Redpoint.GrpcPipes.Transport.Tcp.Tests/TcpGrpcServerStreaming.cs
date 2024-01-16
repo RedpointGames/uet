@@ -40,8 +40,6 @@
             Assert.False(await call.ResponseStream.MoveNext(), "Expected end of server stream");
         }
 
-#if FALSE
-
         [Fact]
         public async Task CallRepeated()
         {
@@ -59,13 +57,14 @@
 
             for (int i = 0; i < 10; i++)
             {
-                var call = client.ClientStreaming(deadline: deadline);
-                await call.RequestStream.WriteAsync(new Request { Value = 1 });
-                await call.RequestStream.WriteAsync(new Request { Value = 2 });
-                await call.RequestStream.WriteAsync(new Request { Value = 3 });
-                await call.RequestStream.CompleteAsync();
-                var response = await call.ResponseAsync;
-                Assert.Equal(6, response.Value);
+                var call = client.ServerStreaming(new Request { Value = 3 }, deadline: deadline);
+                Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 1");
+                Assert.Equal(1, call.ResponseStream.Current.Value);
+                Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 2");
+                Assert.Equal(2, call.ResponseStream.Current.Value);
+                Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 3");
+                Assert.Equal(3, call.ResponseStream.Current.Value);
+                Assert.False(await call.ResponseStream.MoveNext(), "Expected end of server stream");
             }
         }
 
@@ -89,13 +88,14 @@
                 new ParallelOptions { MaxDegreeOfParallelism = 20 },
                 async (x, _) =>
                 {
-                    var call = client.ClientStreaming(deadline: deadline);
-                    await call.RequestStream.WriteAsync(new Request { Value = x, DelayMilliseconds = Random.Shared.Next(0, 30) });
-                    await call.RequestStream.WriteAsync(new Request { Value = 2, DelayMilliseconds = Random.Shared.Next(0, 30) });
-                    await call.RequestStream.WriteAsync(new Request { Value = 3, DelayMilliseconds = Random.Shared.Next(0, 30) });
-                    await call.RequestStream.CompleteAsync();
-                    var response = await call.ResponseAsync;
-                    Assert.Equal(x + 5, response.Value);
+                    var call = client.ServerStreaming(new Request { Value = 3 }, deadline: deadline);
+                    Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 1");
+                    Assert.Equal(1, call.ResponseStream.Current.Value);
+                    Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 2");
+                    Assert.Equal(2, call.ResponseStream.Current.Value);
+                    Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 3");
+                    Assert.Equal(3, call.ResponseStream.Current.Value);
+                    Assert.False(await call.ResponseStream.MoveNext(), "Expected end of server stream");
                 });
         }
 
@@ -115,16 +115,14 @@
             var deadline = DateTime.UtcNow.AddSeconds(_timeoutThresholdDeadlineSeconds);
             var client = new TestService.TestServiceClient(new TcpGrpcClientCallInvoker(endpoint, logger));
 
-            var call = client.ClientStreaming(deadline: deadline);
-            await call.RequestStream.WriteAsync(new Request { Value = 1, DelayMilliseconds = 1000 });
-            await call.RequestStream.WriteAsync(new Request { Value = 2, DelayMilliseconds = 2000 });
-            // @note: The exception does not fire here or in CompleteAsync, since the client isn't waiting
-            // for the server side delays before sending more data.
-            await call.RequestStream.WriteAsync(new Request { Value = 3, DelayMilliseconds = 3000 });
-            await call.RequestStream.CompleteAsync();
+            var call = client.ServerStreaming(new Request { Value = 3, DelayMilliseconds = 2000 }, deadline: deadline);
+            Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 1");
+            Assert.Equal(1, call.ResponseStream.Current.Value);
+            Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 2");
+            Assert.Equal(2, call.ResponseStream.Current.Value);
             var ex = await Assert.ThrowsAsync<RpcException>(async () =>
             {
-                var response = await call.ResponseAsync;
+                await call.ResponseStream.MoveNext();
             });
             Assert.Equal(StatusCode.DeadlineExceeded, ex.StatusCode);
             Assert.True(service.CancellationTokenRaisedException, "Expected server to see cancellation.");
@@ -146,26 +144,17 @@
             using var cts = new CancellationTokenSource();
             var client = new TestService.TestServiceClient(new TcpGrpcClientCallInvoker(endpoint, logger));
 
-            var call = client.ClientStreaming(cancellationToken: cts.Token);
-            await call.RequestStream.WriteAsync(new Request { Value = 1, DelayMilliseconds = 1000 });
-            await call.RequestStream.WriteAsync(new Request { Value = 2, DelayMilliseconds = 2000 });
+            var call = client.ServerStreaming(new Request { Value = 3, DelayMilliseconds = 1000 }, cancellationToken: cts.Token);
+            Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 1");
+            Assert.Equal(1, call.ResponseStream.Current.Value);
+            Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 2");
+            Assert.Equal(2, call.ResponseStream.Current.Value);
             cts.Cancel();
-
-            // Make sure we observe our own cancellation when calling WriteAsync.
-            var tex = await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
             {
-                await call.RequestStream.WriteAsync(new Request { Value = 3, DelayMilliseconds = 3000 });
+                await call.ResponseStream.MoveNext();
             });
-
-            // Make sure we observe our own cancellation when calling CompleteAsync.
-            tex = await Assert.ThrowsAsync<TaskCanceledException>(call.RequestStream.CompleteAsync);
-
-            // Make sure the server observes our cancellation.
-            var rex = await Assert.ThrowsAsync<RpcException>(async () =>
-            {
-                var response = await call.ResponseAsync;
-            });
-            Assert.Equal(StatusCode.Cancelled, rex.StatusCode);
+            await Task.Delay(1000);
             Assert.True(service.CancellationTokenRaisedException, "Expected server to see cancellation.");
         }
 
@@ -188,22 +177,24 @@
             };
 
             var client = new TestService.TestServiceClient(new TcpGrpcClientCallInvoker(endpoint, logger));
-            var call = client.UnaryAsync(
-                new Request { Value = 3874 },
+            var call = client.ServerStreaming(
+                new Request { Value = 3 },
                 requestHeaders,
                 DateTime.UtcNow.AddSeconds(_timeoutThresholdDeadlineSeconds));
 
             var responseHeaders = await call.ResponseHeadersAsync;
             Assert.Equal("hello world", responseHeaders.Get("header")?.Value);
 
-            var response = await call.ResponseAsync;
-            Assert.Equal(3874, response.Value);
+            Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 1");
+            Assert.Equal(1, call.ResponseStream.Current.Value);
+            Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 2");
+            Assert.Equal(2, call.ResponseStream.Current.Value);
+            Assert.True(await call.ResponseStream.MoveNext(), "Expected a response with Value = 3");
+            Assert.Equal(3, call.ResponseStream.Current.Value);
+            Assert.False(await call.ResponseStream.MoveNext(), "Expected end of server stream");
 
             var responseTrailers = call.GetTrailers();
             Assert.Equal("foo bar", responseTrailers.Get("trailer")?.Value);
         }
-
-#endif 
-
     }
 }

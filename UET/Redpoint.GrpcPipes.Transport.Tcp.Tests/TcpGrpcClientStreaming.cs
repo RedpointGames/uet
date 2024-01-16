@@ -150,13 +150,13 @@
             cts.Cancel();
 
             // Make sure we observe our own cancellation when calling WriteAsync.
-            var tex = await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            var tex = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
             {
                 await call.RequestStream.WriteAsync(new Request { Value = 3, DelayMilliseconds = 3000 });
             });
 
             // Make sure we observe our own cancellation when calling CompleteAsync.
-            tex = await Assert.ThrowsAsync<TaskCanceledException>(call.RequestStream.CompleteAsync);
+            tex = await Assert.ThrowsAnyAsync<OperationCanceledException>(call.RequestStream.CompleteAsync);
 
             // Make sure the server observes our cancellation.
             var rex = await Assert.ThrowsAsync<RpcException>(async () =>
@@ -166,8 +166,6 @@
             Assert.Equal(StatusCode.Cancelled, rex.StatusCode);
             Assert.True(service.CancellationTokenRaisedException, "Expected server to see cancellation.");
         }
-
-#if FALSE
 
         [Fact]
         public async Task CallWithHeaders()
@@ -188,22 +186,21 @@
             };
 
             var client = new TestService.TestServiceClient(new TcpGrpcClientCallInvoker(endpoint, logger));
-            var call = client.UnaryAsync(
-                new Request { Value = 3874 },
-                requestHeaders,
-                DateTime.UtcNow.AddSeconds(_timeoutThresholdDeadlineSeconds));
+            var call = client.ClientStreaming(
+                headers: requestHeaders,
+                deadline: DateTime.UtcNow.AddSeconds(_timeoutThresholdDeadlineSeconds));
+            await call.RequestStream.WriteAsync(new Request { Value = 3874 });
+            await call.RequestStream.WriteAsync(new Request { Value = 200 });
+            await call.RequestStream.CompleteAsync();
 
             var responseHeaders = await call.ResponseHeadersAsync;
             Assert.Equal("hello world", responseHeaders.Get("header")?.Value);
 
             var response = await call.ResponseAsync;
-            Assert.Equal(3874, response.Value);
+            Assert.Equal(4074, response.Value);
 
             var responseTrailers = call.GetTrailers();
             Assert.Equal("foo bar", responseTrailers.Get("trailer")?.Value);
         }
-
-#endif 
-
     }
 }
