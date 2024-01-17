@@ -33,7 +33,7 @@ namespace System.CommandLine.Builder
                 }
                 else
                 {
-                    return assemblyVersionAttribute.InformationalVersion;
+                    return RedpointSelfVersion.GetInformationalVersion(assemblyVersionAttribute);
                 }
 
             });
@@ -95,7 +95,7 @@ namespace System.CommandLine.Builder
 
             return builder;
         }
-        
+
         /// <summary>
         /// Enables the parser to recognize command line directives.
         /// </summary>
@@ -154,7 +154,7 @@ namespace System.CommandLine.Builder
             builder.EnablePosixBundling = value;
             return builder;
         }
-        
+
         /// <summary>
         /// Ensures that the application is registered with the <c>dotnet-suggest</c> tool to enable command line completions.
         /// </summary>
@@ -366,7 +366,7 @@ ERR:
             int? maxWidth = null)
         {
             builder.CustomizeHelpLayout(customize);
-            
+
             if (builder.HelpOption is null)
             {
                 builder.UseHelp(new HelpOption(() => builder.LocalizationResources), maxWidth);
@@ -433,7 +433,7 @@ ERR:
 
             return builder;
         }
-        
+
         /// <summary>
         /// Adds a middleware delegate to the invocation pipeline called before a command handler is invoked.
         /// </summary>
@@ -547,7 +547,7 @@ ERR:
         /// <param name="maxLevenshteinDistance">The maximum Levenshtein distance for suggestions based on detected typos in command line input.</param>
         /// <returns>The same instance of <see cref="CommandLineBuilder"/>.</returns>
         public static CommandLineBuilder UseTypoCorrections(
-            this CommandLineBuilder builder, 
+            this CommandLineBuilder builder,
             int maxLevenshteinDistance = 3)
         {
             builder.AddMiddleware(async (context, next) =>

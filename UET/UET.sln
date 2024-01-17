@@ -355,6 +355,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Lexer.SourceGenera
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Lexer.Tests", "Redpoint.Lexer.Tests\Redpoint.Lexer.Tests.csproj", "{990381D0-B955-4A8D-8F9D-F5CF498AE627}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Redpoint.SelfVersion", "Redpoint.SelfVersion\Redpoint.SelfVersion.shproj", "{FB285E11-8F0F-4547-9A59-9805B4B0844F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1115,5 +1117,10 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Redpoint.SelfVersion\Redpoint.SelfVersion.projitems*{3a9215ae-e602-4ba9-839d-7103567cd17c}*SharedItemsImports = 5
+		Redpoint.SelfVersion\Redpoint.SelfVersion.projitems*{da90e23f-c2a7-4bbc-a376-4016fc4921ea}*SharedItemsImports = 5
+		Redpoint.SelfVersion\Redpoint.SelfVersion.projitems*{fb285e11-8f0f-4547-9a59-9805b4b0844f}*SharedItemsImports = 13
 	EndGlobalSection
 EndGlobal

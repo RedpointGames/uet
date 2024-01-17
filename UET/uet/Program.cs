@@ -57,9 +57,9 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
     Environment.GetEnvironmentVariable("UET_VERSION_CHECK_COMPLETE") != "true")
 {
     var currentBuildConfigPath = Path.Combine(Environment.CurrentDirectory, "BuildConfig.json");
-    var currentVersionAttribute = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+    var currentVersionAttributeValue = RedpointSelfVersion.GetInformationalVersion();
     string? targetVersion = null;
-    if (File.Exists(currentBuildConfigPath) && currentVersionAttribute != null)
+    if (File.Exists(currentBuildConfigPath) && currentVersionAttributeValue != null)
     {
         try
         {
@@ -86,13 +86,13 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                 return 1;
             }
 
-            if (targetVersion != null && (targetVersion != currentVersionAttribute.InformationalVersion || targetVersion == "BleedingEdge"))
+            if (targetVersion != null && (targetVersion != currentVersionAttributeValue || targetVersion == "BleedingEdge"))
             {
                 if (Debugger.IsAttached)
                 {
                     logger.LogWarning($"The BuildConfig.json file requested version {targetVersion}, but we are running under a debugger, so this is being ignored.");
                 }
-                else if (currentVersionAttribute.InformationalVersion.EndsWith("-pre", StringComparison.Ordinal))
+                else if (currentVersionAttributeValue.EndsWith("-pre", StringComparison.Ordinal))
                 {
                     logger.LogWarning($"The BuildConfig.json file requested version {targetVersion}, but we are running a pre-release or development version of UET, so this is being ignored.");
                 }
@@ -104,7 +104,7 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                     }
                     else
                     {
-                        logger.LogInformation($"The BuildConfig.json file requested version {targetVersion}, but we are running {currentVersionAttribute.InformationalVersion}. Obtaining the right version for this build and re-executing the requested command as version {targetVersion}...");
+                        logger.LogInformation($"The BuildConfig.json file requested version {targetVersion}, but we are running {currentVersionAttributeValue}. Obtaining the right version for this build and re-executing the requested command as version {targetVersion}...");
                     }
                     var didInstall = false;
                     var isBleedingEdgeTheSame = false;
@@ -130,13 +130,13 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                             if (targetVersion == "BleedingEdge")
                             {
                                 targetVersion = UpgradeCommandImplementation.LastInstalledVersion!;
-                                if (targetVersion == currentVersionAttribute.InformationalVersion)
+                                if (targetVersion == currentVersionAttributeValue)
                                 {
                                     isBleedingEdgeTheSame = true;
                                 }
                                 else
                                 {
-                                    logger.LogInformation($"The bleeding-edge version of UET is {targetVersion}, but we are running {currentVersionAttribute.InformationalVersion}. Re-executing the requested command as version {targetVersion}...");
+                                    logger.LogInformation($"The bleeding-edge version of UET is {targetVersion}, but we are running {currentVersionAttributeValue}. Re-executing the requested command as version {targetVersion}...");
                                 }
                             }
                         }

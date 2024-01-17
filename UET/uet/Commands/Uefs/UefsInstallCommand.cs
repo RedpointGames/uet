@@ -56,10 +56,10 @@
                 }
 
                 string version;
-                var currentVersionAttribute = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-                if (currentVersionAttribute != null && !currentVersionAttribute.InformationalVersion.EndsWith("-pre", StringComparison.Ordinal))
+                var currentVersionAttributeValue = RedpointSelfVersion.GetInformationalVersion();
+                if (currentVersionAttributeValue != null && !currentVersionAttributeValue.EndsWith("-pre", StringComparison.Ordinal))
                 {
-                    version = currentVersionAttribute.InformationalVersion;
+                    version = currentVersionAttributeValue;
                 }
                 else
                 {
