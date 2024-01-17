@@ -96,7 +96,7 @@
 
                     if (OperatingSystem.IsWindows())
                     {
-                        var pointerContent = $"pointer: {app.Urls.First()}";
+                        var pointerContent = $"{AspNetGrpcPipeFactory._httpPointerPrefix}{app.Urls.First()}";
                         GrpcPipeLog.WrotePointerFile(_logger, pointerContent, _pipePath);
                         _pipePointerStream = new FileStream(
                             _pipePath,

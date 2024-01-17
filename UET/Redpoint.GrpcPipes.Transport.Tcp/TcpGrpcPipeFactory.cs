@@ -17,6 +17,8 @@
     {
         private readonly IServiceProvider? _serviceProvider;
 
+        internal const string _tcpPointerPrefix = "tcp-pointer: ";
+
         /// <inheritdoc />
         public static IGrpcPipeFactory CreateFactoryWithoutInjection()
         {
@@ -62,14 +64,20 @@
             {
                 pointerFileContent = reader.ReadToEnd().Trim();
             }
-            if (!pointerFileContent.StartsWith("pointer: ", StringComparison.Ordinal))
+            if (!pointerFileContent.StartsWith(_tcpPointerPrefix, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException("Pointer file format is invalid!");
+                throw new FormatException($"The gRPC channel pointer file format is invalid! (expected prefix '{_tcpPointerPrefix}', found '{pointerFileContent}'");
             }
 
-            var pointer = pointerFileContent["pointer: ".Length..].Trim();
+            var pointer = pointerFileContent[_tcpPointerPrefix.Length..].Trim();
 
             logger?.LogTrace($"Creating gRPC channel with TCP socket from pointer file: {pointer}");
+
+            if (!IPEndPoint.TryParse(pointer, out var endpoint))
+            {
+                logger?.LogError($"The gRPC channel endpoint '{pointer}' specified in the pointer file is not valid (full content: '{pointerFileContent}).");
+                throw new FormatException($"The gRPC channel endpoint '{pointer}' specified in the pointer file is not valid (full content: '{pointerFileContent}).");
+            }
 
             var options = grpcChannelOptions ?? new GrpcChannelOptions();
             options.Credentials = ChannelCredentials.Insecure;
@@ -78,7 +86,7 @@
             options.MaxReceiveMessageSize = null;
             options.MaxSendMessageSize = null;
 
-            return constructor(new TcpGrpcClientCallInvoker(IPEndPoint.Parse(pointer), logger));
+            return constructor(new TcpGrpcClientCallInvoker(endpoint, logger));
         }
 
         IGrpcPipeServer<T> IGrpcPipeFactory.CreateServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T>(

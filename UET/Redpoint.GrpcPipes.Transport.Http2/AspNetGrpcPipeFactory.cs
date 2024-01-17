@@ -15,6 +15,8 @@
     {
         private readonly IServiceProvider? _serviceProvider;
 
+        internal const string _httpPointerPrefix = "http2-pointer: ";
+
         /// <inheritdoc />
         public static IGrpcPipeFactory CreateFactoryWithoutInjection()
         {
@@ -126,12 +128,12 @@
                 {
                     pointerFileContent = reader.ReadToEnd().Trim();
                 }
-                if (!pointerFileContent.StartsWith("pointer: ", StringComparison.Ordinal))
+                if (!pointerFileContent.StartsWith(_httpPointerPrefix, StringComparison.Ordinal))
                 {
-                    throw new InvalidOperationException("Pointer file format is invalid!");
+                    throw new FormatException($"The gRPC channel pointer file format is invalid! (expected prefix '{_httpPointerPrefix}', found '{pointerFileContent}'");
                 }
 
-                var pointer = pointerFileContent["pointer: ".Length..].Trim();
+                var pointer = pointerFileContent[_httpPointerPrefix.Length..].Trim();
 
                 logger?.LogTrace($"Creating gRPC channel with TCP socket from pointer file: {pointer}");
 

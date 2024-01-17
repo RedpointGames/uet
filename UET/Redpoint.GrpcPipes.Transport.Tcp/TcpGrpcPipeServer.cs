@@ -68,7 +68,7 @@
                         .First();
                     binder.Invoke(null, BindingFlags.DoNotWrapExceptions, null, [app, _instance], null);
 
-                    var pointerContent = $"pointer: {endpoint}";
+                    var pointerContent = $"{TcpGrpcPipeFactory._tcpPointerPrefix}{endpoint}";
                     GrpcPipeLog.WrotePointerFile(_logger, pointerContent, _pipePath);
                     _pipePointerStream = new FileStream(
                         _pipePath,
