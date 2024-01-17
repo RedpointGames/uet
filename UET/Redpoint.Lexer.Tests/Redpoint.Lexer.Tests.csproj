@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
+
+  <!--
+  <PropertyGroup>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+  -->
+  
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.Lexer\Redpoint.Lexer.csproj" />
+    <ProjectReference 
+      Include="..\Redpoint.Lexer.SourceGenerator\Redpoint.Lexer.SourceGenerator.csproj"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>
