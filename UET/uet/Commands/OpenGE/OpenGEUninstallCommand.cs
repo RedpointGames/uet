@@ -116,10 +116,10 @@
             private async Task<(string shimVersionFolder, string version, string basePath, string uetPath)> GetUetVersion()
             {
                 // Get the current version.
-                var currentVersionAttribute = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-                if (currentVersionAttribute != null && !currentVersionAttribute.InformationalVersion.EndsWith("-pre", StringComparison.Ordinal))
+                var currentVersionAttributeValue = RedpointSelfVersion.GetInformationalVersion();
+                if (currentVersionAttributeValue != null && !currentVersionAttributeValue.EndsWith("-pre", StringComparison.Ordinal))
                 {
-                    var version = currentVersionAttribute.InformationalVersion;
+                    var version = currentVersionAttributeValue;
                     var basePath = true switch
                     {
                         var v when v == OperatingSystem.IsWindows() => Path.Combine(

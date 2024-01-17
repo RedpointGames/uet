@@ -1,7 +1,6 @@
 "Test OpenGE Win":
   stage: Build Pass 2
-  tags:
-    - redpoint-games-windows
+  extends: .shared-windows-net
   needs:
     - "Build Win UET Pass 2"
   interruptible: true
@@ -14,8 +13,7 @@
 
 "Test OpenGE Mac":
   stage: Build Pass 2
-  tags:
-    - redpoint-games-mac
+  extends: .shared-mac-net
   needs:
     - "Build Mac UET Pass 2"
   interruptible: true

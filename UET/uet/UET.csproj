@@ -1,6 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <Import Project="..\Redpoint.SelfVersion\Redpoint.SelfVersion.projitems" Label="Shared" />
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
 
   <PropertyGroup>
@@ -12,6 +14,7 @@
 
   <Target Name="DisplayTargetVersion" BeforeTargets="BeforeBuild">
     <Message Text="Using assembly version: $(AssemblyVersion)" Importance="high" />
+    <Message Text="Using informational version: $(InformationalVersion)" Importance="high" />
   </Target>
 
   <ItemGroup>

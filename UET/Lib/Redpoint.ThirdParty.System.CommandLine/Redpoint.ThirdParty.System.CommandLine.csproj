@@ -17,6 +17,7 @@
     <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
   </PropertyGroup>
+  <Import Project="..\..\Redpoint.SelfVersion\Redpoint.SelfVersion.projitems" Label="Shared" />
 
   <Import Project="$(MSBuildThisFileDirectory)../LibraryPackaging.Build.props" />
   <PropertyGroup>
