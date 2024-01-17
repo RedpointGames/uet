@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>A zero-allocation, span-based lexing library for C#. This package provides the runtime classes and attributes and should be a dependency of your code.</Description>
+    <PackageTags>lexer, lexing, token, span, zero-allocation</PackageTags>
+  </PropertyGroup>
+
+</Project>
