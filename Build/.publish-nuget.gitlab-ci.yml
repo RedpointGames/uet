@@ -1,7 +1,6 @@
 "Publish to NuGet":
   stage: Publish
-  tags:
-    - redpoint-games-windows
+  extends: .shared-windows-net
   needs:
     - Timestamp
     - "Build and Test Libraries on Windows"

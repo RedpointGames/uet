@@ -1,7 +1,6 @@
 "Publish to GitHub":
   stage: Publish
-  tags:
-    - redpoint-games-windows
+  extends: .shared-windows-net
   needs:
     - Timestamp
     - "Build Win UET Shim"
