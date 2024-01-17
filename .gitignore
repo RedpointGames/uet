@@ -3,3 +3,6 @@
 TestResults/
 UET/Redpoint.OpenGE.ProcessExecution/shim-bin/
 UET/Redpoint.UET.OpenGE/shim-bin/
+UET/Redpoint.Perforce.Native.Runtime/src/out/
+UET/Redpoint.Perforce.Native.Runtime/src/.vs/
+UET/Redpoint.Perforce.Native.Runtime/build/
