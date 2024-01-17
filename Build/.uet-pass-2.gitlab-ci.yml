@@ -1,7 +1,6 @@
 "Build Win UET Pass 2":
   stage: Build Pass 2
-  tags:
-    - redpoint-games-windows
+  extends: .shared-windows-net
   needs:
     - Timestamp
     - "Build Win OpenGE Shim"
@@ -27,8 +26,7 @@
 
 "Build Mac UET Pass 2":
   stage: Build Pass 2
-  tags:
-    - redpoint-games-mac
+  extends: .shared-mac-net
   needs:
     - Timestamp
     - "Build Win OpenGE Shim"

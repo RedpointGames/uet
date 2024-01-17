@@ -1,7 +1,6 @@
 "Build Win UEFS Client":
   stage: Build Pass 1
-  tags:
-    - redpoint-games-windows
+  extends: .shared-windows-net
   needs:
     - Timestamp
     - "Build Mac Logging"
@@ -20,8 +19,7 @@
 
 "Build Mac UEFS Client":
   stage: Build Pass 1
-  tags:
-    - redpoint-games-mac
+  extends: .shared-mac-net
   needs:
     - Timestamp
     - "Build Mac Logging"

@@ -1,7 +1,6 @@
 "Build Mac Logging":
   stage: "Platform Specific"
-  tags:
-    - redpoint-games-mac
+  extends: .shared-mac-net
   needs:
     - Timestamp
   interruptible: true

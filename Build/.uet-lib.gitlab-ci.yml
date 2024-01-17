@@ -1,7 +1,6 @@
 "Build and Test Libraries on Windows":
   stage: Build Libraries
-  tags:
-    - redpoint-games-windows
+  extends: .shared-windows-net
   needs:
     - Timestamp
     - "Build Win OpenGE Shim"
@@ -40,8 +39,7 @@
 
 "Build and Test Libraries on macOS":
   stage: Build Libraries
-  tags:
-    - redpoint-games-mac
+  extends: .shared-mac-net
   needs:
     - Timestamp
     - "Build Win OpenGE Shim"

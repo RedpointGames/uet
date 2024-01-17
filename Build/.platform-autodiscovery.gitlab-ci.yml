@@ -1,7 +1,6 @@
 "Build AutoDiscovery Win Debug x64":
   stage: "Platform Specific"
-  tags:
-    - redpoint-games-windows
+  extends: .shared-windows-net
   needs:
     - Timestamp
   interruptible: true
@@ -14,8 +13,7 @@
 
 "Build AutoDiscovery Win Debug x86":
   stage: "Platform Specific"
-  tags:
-    - redpoint-games-windows
+  extends: .shared-windows-net
   needs:
     - Timestamp
   interruptible: true
@@ -28,8 +26,7 @@
 
 "Build AutoDiscovery Win Release x64":
   stage: "Platform Specific"
-  tags:
-    - redpoint-games-windows
+  extends: .shared-windows-net
   needs:
     - Timestamp
   interruptible: true
@@ -42,8 +39,7 @@
 
 "Build AutoDiscovery Win Release x86":
   stage: "Platform Specific"
-  tags:
-    - redpoint-games-windows
+  extends: .shared-windows-net
   needs:
     - Timestamp
   interruptible: true
@@ -56,8 +52,7 @@
 
 "Build AutoDiscovery":
   stage: "Platform Specific"
-  tags:
-    - redpoint-games-windows
+  extends: .shared-windows-net
   needs:
     - Timestamp
     - "Build AutoDiscovery Win Release x64"

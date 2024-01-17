@@ -1,7 +1,6 @@
 "Build Win OpenGE Shim":
   stage: OpenGE
-  tags:
-    - redpoint-games-windows
+  extends: .shared-windows-net
   needs:
     - Timestamp
   interruptible: true
@@ -18,8 +17,7 @@
 
 "Build Mac OpenGE Shim":
   stage: OpenGE
-  tags:
-    - redpoint-games-mac
+  extends: .shared-mac-net
   needs:
     - Timestamp
   interruptible: true
@@ -33,8 +31,7 @@
 
 "Build Linux OpenGE Shim":
   stage: OpenGE
-  tags:
-    - redpoint-games-windows
+  extends: .shared-windows-net
   needs:
     - Timestamp
   interruptible: true

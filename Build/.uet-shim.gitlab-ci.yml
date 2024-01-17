@@ -1,7 +1,6 @@
 "Build Win UET Shim":
   stage: Build Pass 1
-  tags:
-    - redpoint-games-windows
+  extends: .shared-windows-net
   needs:
     - Timestamp
   interruptible: true
@@ -18,8 +17,7 @@
 
 "Build Mac UET Shim":
   stage: Build Pass 1
-  tags:
-    - redpoint-games-mac
+  extends: .shared-mac-net
   needs:
     - Timestamp
   interruptible: true
