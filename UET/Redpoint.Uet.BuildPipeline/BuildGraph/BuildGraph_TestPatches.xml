@@ -1,0 +1,18 @@
+<?xml version='1.0' ?>
+<BuildGraph xmlns="http://www.epicgames.com/BuildGraph" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.epicgames.com/BuildGraph ./Schema.xsd" >
+
+  <Option Name="OutputDir" DefaultValue="" Description="Path to output random test files" />
+
+  <Agent Name="Write and Tag Files (Write and Tag Files)" Type="Win64">
+    <Node Name="Write and Tag Files" Produces="#BPTTaggedFiles">
+      <RandomData Tag="#BPTTaggedFiles" OutputDir="$(OutputDir)" />
+    </Node>
+  </Agent>
+
+  <Agent Name="Use Random Files (Use Random Files)" Type="Win64">
+    <Node Name="Use Random Files" Requires="#BPTTaggedFiles">
+      <Log Message="This is a test node." />
+    </Node>
+  </Agent>
+
+</BuildGraph>

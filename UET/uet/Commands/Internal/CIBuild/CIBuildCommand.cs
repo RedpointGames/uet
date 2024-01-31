@@ -73,17 +73,18 @@
             {
                 var executorName = context.ParseResult.GetValueForOption(_options.Executor);
 
-                var buildJsonRaw = Environment.GetEnvironmentVariable("UET_BUILD_JSON");
+                var buildJsonEnvVar = $"UET_BUILD_JSON";
+                var buildJsonRaw = Environment.GetEnvironmentVariable(buildJsonEnvVar);
                 if (string.IsNullOrWhiteSpace(buildJsonRaw))
                 {
-                    _logger.LogError("The UET_BUILD_JSON environment variable is not set or is empty.");
+                    _logger.LogError($"The {buildJsonEnvVar} environment variable is not set or is empty.");
                     return 1;
                 }
 
                 var buildJson = JsonSerializer.Deserialize(buildJsonRaw, _buildJobJsonSourceGenerationContext.BuildJobJson);
                 if (buildJson == null)
                 {
-                    _logger.LogError("The UET_BUILD_JSON environment variable does not contain a valid build job description.");
+                    _logger.LogError($"The {buildJsonEnvVar} environment variable does not contain a valid build job description.");
                     return 1;
                 }
 
@@ -210,12 +211,12 @@
 
                 try
                 {
-                    var buildResult = await executor.ExecuteBuildNodeAsync(
+                    var buildResult = await executor.ExecuteBuildNodesAsync(
                         buildSpecification,
                         buildJson.PreparePlugin,
                         buildJson.PrepareProject,
                         new LoggerBasedBuildExecutionEvents(_logger),
-                        buildJson.NodeName,
+                        buildJson.NodeNames,
                         context.GetCancellationToken()).ConfigureAwait(false);
                     return buildResult;
                 }
@@ -230,7 +231,10 @@
                     // have read-write access to the folder. I'm pretty sure BuildGraph already does this
                     // for us, but there are other cases (like when we copy UET to shared storage) that we
                     // need to do permission updates, so let's just do this for consistency.
-                    await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(buildJson.SharedStoragePath, buildJson.NodeName), context.GetCancellationToken()).ConfigureAwait(false);
+                    foreach (var nodeName in buildJson.NodeNames)
+                    {
+                        await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(buildJson.SharedStoragePath, nodeName), context.GetCancellationToken()).ConfigureAwait(false);
+                    }
                 }
             }
         }

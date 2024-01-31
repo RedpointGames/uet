@@ -114,7 +114,7 @@
                     }
                 }
 
-                job.Script = sourceJob.Script;
+                job.Script = sourceJob.Script("gitlab");
                 if (sourceJob.AfterScript != null)
                 {
                     job.AfterScript = new[] { sourceJob.AfterScript.Trim().Replace("\r\n", "\n", StringComparison.Ordinal) };

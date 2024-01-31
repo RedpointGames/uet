@@ -43,46 +43,39 @@
 
             foreach (var entry in castedSettings)
             {
-                await writer.WriteAgentAsync(
-                new AgentElementProperties
-                {
-                    Name = $"Custom {entry.name}",
-                    Type = "Win64",
-                },
-                async writer =>
-                {
-                    await writer.WriteNodeAsync(
-                            new NodeElementProperties
+                await writer.WriteAgentNodeAsync(
+                    new AgentNodeElementProperties
+                    {
+                        AgentStage = $"Custom {entry.name}",
+                        AgentType = "Win64",
+                        NodeName = $"Custom {entry.name}",
+                        Requires = "$(GameStaged);$(ClientStaged);$(ServerStaged)",
+                    },
+                    async writer =>
+                    {
+                        await writer.WriteSpawnAsync(
+                            new SpawnElementProperties
                             {
-                                Name = $"Custom {entry.name}",
-                                Requires = "$(GameStaged);$(ClientStaged);$(ServerStaged)",
-                            },
-                            async writer =>
-                            {
-                                await writer.WriteSpawnAsync(
-                                    new SpawnElementProperties
-                                    {
-                                        Exe = "powershell.exe",
-                                        Arguments = new[]
-                                        {
-                                            "-ExecutionPolicy",
-                                            "Bypass",
-                                            "-File",
-                                            $@"""$(RepositoryRoot)/{entry.settings.ScriptPath}""",
-                                            "-EnginePath",
-                                            $@"""$(EnginePath)""",
-                                            "-StageDirectory",
-                                            $@"""$(StageDirectory)""",
-                                        }
-                                    }).ConfigureAwait(false);
+                                Exe = "powershell.exe",
+                                Arguments = new[]
+                                {
+                                    "-ExecutionPolicy",
+                                    "Bypass",
+                                    "-File",
+                                    $@"""$(RepositoryRoot)/{entry.settings.ScriptPath}""",
+                                    "-EnginePath",
+                                    $@"""$(EnginePath)""",
+                                    "-StageDirectory",
+                                    $@"""$(StageDirectory)""",
+                                }
                             }).ConfigureAwait(false);
-                    await writer.WriteDynamicNodeAppendAsync(
-                        new DynamicNodeAppendElementProperties
-                        {
-                            NodeName = $"Custom {entry.name}",
-                            MustPassForLaterDeployment = true,
-                        }).ConfigureAwait(false);
-                }).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
+                await writer.WriteDynamicNodeAppendAsync(
+                    new DynamicNodeAppendElementProperties
+                    {
+                        NodeName = $"Custom {entry.name}",
+                        MustPassForLaterDeployment = true,
+                    }).ConfigureAwait(false);
             }
         }
     }

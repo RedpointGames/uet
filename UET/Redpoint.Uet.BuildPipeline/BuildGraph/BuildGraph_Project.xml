@@ -61,40 +61,44 @@
   -->
 
   <Include Script="$(ScriptMacroIncludes)" />
-  
+
   <!--
     Workaround an issue where PCH files are incorrectly re-used even when the engine version changes.
   -->
   <Macro Name="RemoveStalePrecompiledHeaders" Arguments="ProjectPath;TargetName;TargetPlatform;TargetConfiguration">
     <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal remove-stale-precompiled-headers --engine-path &quot;$(EnginePath)&quot; --project-path &quot;$(ProjectPath)&quot; --target-name &quot;$(TargetName)&quot; --target-platform &quot;$(TargetPlatform)&quot; --target-configuration &quot;$(TargetConfiguration)&quot;" />
   </Macro>
-  
+
   <!-- Targets that we will execute on a Windows machine. -->
-  <Agent Name="Windows Build" Type="Win64" If="'$(ExecuteBuild)' == 'true'">
+  <Do If="'$(ExecuteBuild)' == 'true'">
 
     <!-- Compile the editor for Windows (necessary for cook later) -->
-    <Node Name="Compile $(EditorTarget) Win64" Produces="#EditorBinaries">
-      <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-        <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EditorTarget)" TargetPlatform="Win64" TargetConfiguration="Development" HostPlatform="Win64" />
-      </ForEach>
-      <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(EditorTarget)" TargetPlatform="Win64" TargetConfiguration="Development" />
-      <Compile Target="$(EditorTarget)" Platform="Win64" Configuration="Development" Tag="#EditorBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" />
-    </Node>
+    <Agent Name="Compile $(EditorTarget) Win64 (Windows Build)" Type="Win64">
+      <Node Name="Compile $(EditorTarget) Win64" Produces="#EditorBinaries">
+        <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+          <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EditorTarget)" TargetPlatform="Win64" TargetConfiguration="Development" HostPlatform="Win64" />
+        </ForEach>
+        <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(EditorTarget)" TargetPlatform="Win64" TargetConfiguration="Development" />
+        <Compile Target="$(EditorTarget)" Platform="Win64" Configuration="Development" Tag="#EditorBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" />
+      </Node>
+    </Agent>
 
     <!-- Compile the game (targeting the Game target, not Client) -->
     <ForEach Name="TargetName" Values="$(GameTargets)">
       <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-              <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
-            </ForEach>
-            <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
-            <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
-            <Tag Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
-			      <SanitizeReceipt Files="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
-          </Node>
-          <Property Name="GameBinaries" Value="$(GameBinaries)#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"/>
+          <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Windows Build)" Type="Win64">
+            <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+                <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
+              </ForEach>
+              <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
+              <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
+              <Tag Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
+              <SanitizeReceipt Files="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+            </Node>
+            <Property Name="GameBinaries" Value="$(GameBinaries)#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"/>
+          </Agent>
         </ForEach>
       </ForEach>
     </ForEach>
@@ -103,16 +107,18 @@
     <ForEach Name="TargetName" Values="$(ClientTargets)">
       <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ClientConfigurations)">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-              <Expand Name="$(MacroName)" TargetType="Client" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
-            </ForEach>
-            <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
-            <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
-            <Tag Files="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
-			      <SanitizeReceipt Files="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
-          </Node>
-          <Property Name="ClientBinaries" Value="$(ClientBinaries)#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"/>
+          <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Windows Build)" Type="Win64">
+            <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+                <Expand Name="$(MacroName)" TargetType="Client" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
+              </ForEach>
+              <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
+              <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
+              <Tag Files="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
+              <SanitizeReceipt Files="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+            </Node>
+            <Property Name="ClientBinaries" Value="$(ClientBinaries)#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"/>
+          </Agent>
         </ForEach>
       </ForEach>
     </ForEach>
@@ -121,39 +127,43 @@
     <ForEach Name="TargetName" Values="$(ServerTargets)">
       <ForEach Name="TargetPlatform" Values="$(ServerTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ServerConfigurations)">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-              <Expand Name="$(MacroName)" TargetType="Server" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
-            </ForEach>
-            <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
-            <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
-            <Tag Files="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
-			      <SanitizeReceipt Files="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
-          </Node>
-          <Property Name="ServerBinaries" Value="$(ServerBinaries)#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"/>
+          <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Windows Build)" Type="Win64">
+            <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+                <Expand Name="$(MacroName)" TargetType="Server" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
+              </ForEach>
+              <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
+              <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
+              <Tag Files="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
+              <SanitizeReceipt Files="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+            </Node>
+            <Property Name="ServerBinaries" Value="$(ServerBinaries)#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"/>
+          </Agent>
         </ForEach>
       </ForEach>
     </ForEach>
 
-  </Agent>
+  </Do>
 
   <!-- Targets that we will execute on a macOS machine. -->
-  <Agent Name="macOS Build" Type="Mac" If="'$(ExecuteBuild)' == 'true'">
+  <Do If="'$(ExecuteBuild)' == 'true'">
 
     <!-- Compile the game (targeting the Game target, not Client) -->
     <ForEach Name="TargetName" Values="$(GameTargets)">
       <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-              <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
-            </ForEach>
-            <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
-            <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
-            <Tag Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
-			      <SanitizeReceipt Files="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
-          </Node>
-          <Property Name="GameBinaries" Value="$(GameBinaries)#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"/>
+          <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (macOS Build)" Type="Mac">
+            <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+                <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
+              </ForEach>
+              <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
+              <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
+              <Tag Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
+              <SanitizeReceipt Files="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+            </Node>
+            <Property Name="GameBinaries" Value="$(GameBinaries)#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"/>
+          </Agent>
         </ForEach>
       </ForEach>
     </ForEach>
@@ -162,16 +172,18 @@
     <ForEach Name="TargetName" Values="$(ClientTargets)">
       <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ClientConfigurations)">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-              <Expand Name="$(MacroName)" TargetType="Client" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
-            </ForEach>
-            <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
-            <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
-            <Tag Files="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
-			      <SanitizeReceipt Files="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
-          </Node>
-          <Property Name="ClientBinaries" Value="$(ClientBinaries)#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"/>
+          <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (macOS Build)" Type="Mac">
+            <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+                <Expand Name="$(MacroName)" TargetType="Client" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
+              </ForEach>
+              <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
+              <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
+              <Tag Files="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
+              <SanitizeReceipt Files="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+            </Node>
+            <Property Name="ClientBinaries" Value="$(ClientBinaries)#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"/>
+          </Agent>
         </ForEach>
       </ForEach>
     </ForEach>
@@ -180,88 +192,93 @@
     <ForEach Name="TargetName" Values="$(ServerTargets)">
       <ForEach Name="TargetPlatform" Values="$(ServerTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ServerConfigurations)">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-              <Expand Name="$(MacroName)" TargetType="Server" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
-            </ForEach>
-            <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
-            <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
-            <Tag Files="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
-			      <SanitizeReceipt Files="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
-          </Node>
-          <Property Name="ServerBinaries" Value="$(ServerBinaries)#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"/>
+          <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (macOS Build)" Type="Mac">
+            <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
+                <Expand Name="$(MacroName)" TargetType="Server" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
+              </ForEach>
+              <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
+              <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
+              <Tag Files="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
+              <SanitizeReceipt Files="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+            </Node>
+            <Property Name="ServerBinaries" Value="$(ServerBinaries)#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"/>
+          </Agent>
         </ForEach>
       </ForEach>
     </ForEach>
 
     <!-- We do not cook on macOS, leave it up to the Windows agents for that. -->
 
-  </Agent>
-
-  <!-- Targets that we will execute on a Linux machine. -->
-  <Agent Name="Linux" Type="Linux" If="'$(ExecuteBuild)' == 'true'">
-
-  </Agent>
+  </Do>
 
   <!-- Targets that we will execute on a Windows machine. -->
-  <Agent Name="Windows Cook" Type="Win64" If="'$(ExecuteBuild)' == 'true'">
+  <Do If="'$(ExecuteBuild)' == 'true'">
 
     <!-- Cook for game platforms (targeting the Game target, not Client) -->
     <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
-      <Node Name="Cook Game $(TargetPlatform)" Requires="#EditorBinaries" Produces="#GameCookedContent_$(TargetPlatform)">
-        <Property Name="CookPlatform" Value="$(TargetPlatform)" />
-        <Property Name="CookPlatform" Value="Windows" If="'$(CookPlatform)' == 'Win64'" />
-        <Property Name="CookPlatform" Value="$(CookPlatform)NoEditor" If="(('$(CookPlatform)' == 'Windows') or ('$(CookPlatform)' == 'Mac') or ('$(CookPlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
-        <Cook Project="$(UProjectPath)" Platform="$(CookPlatform)" Tag="#GameCookedContent_$(TargetPlatform)" />
-      </Node>
-      <Property Name="GameCookedContent" Value="$(GameCookedContent)#GameCookedContent_$(TargetPlatform);"/>
+      <Agent Name="Cook Game $(TargetPlatform) (Windows Cook)" Type="Win64">
+        <Node Name="Cook Game $(TargetPlatform)" Requires="#EditorBinaries" Produces="#GameCookedContent_$(TargetPlatform)">
+          <Property Name="CookPlatform" Value="$(TargetPlatform)" />
+          <Property Name="CookPlatform" Value="Windows" If="'$(CookPlatform)' == 'Win64'" />
+          <Property Name="CookPlatform" Value="$(CookPlatform)NoEditor" If="(('$(CookPlatform)' == 'Windows') or ('$(CookPlatform)' == 'Mac') or ('$(CookPlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
+          <Cook Project="$(UProjectPath)" Platform="$(CookPlatform)" Tag="#GameCookedContent_$(TargetPlatform)" />
+        </Node>
+        <Property Name="GameCookedContent" Value="$(GameCookedContent)#GameCookedContent_$(TargetPlatform);"/>
+      </Agent>
     </ForEach>
 
     <!-- Cook for client platforms (targeting the Client target, not Game) -->
     <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
-      <Node Name="Cook Client $(TargetPlatform)" Requires="#EditorBinaries" Produces="#ClientCookedContent_$(TargetPlatform)">
-        <Property Name="CookPlatform" Value="$(TargetPlatform)" />
-        <Property Name="CookPlatform" Value="Windows" If="'$(CookPlatform)' == 'Win64'" />
-        <Property Name="CookPlatform" Value="$(CookPlatform)NoEditor" If="(('$(CookPlatform)' == 'Windows') or ('$(CookPlatform)' == 'Mac') or ('$(CookPlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
-        <Property Name="CookPlatform" Value="$(CookPlatform)Client" If="(('$(CookPlatform)' == 'Windows') or ('$(CookPlatform)' == 'Mac') or ('$(CookPlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'true')" />
-        <Cook Project="$(UProjectPath)" Platform="$(CookPlatform)" Tag="#ClientCookedContent_$(TargetPlatform)" />
-      </Node>
-      <Property Name="ClientCookedContent" Value="$(ClientCookedContent)#ClientCookedContent_$(TargetPlatform);"/>
+      <Agent Name="Cook Client $(TargetPlatform) (Windows Cook)" Type="Win64">
+        <Node Name="Cook Client $(TargetPlatform)" Requires="#EditorBinaries" Produces="#ClientCookedContent_$(TargetPlatform)">
+          <Property Name="CookPlatform" Value="$(TargetPlatform)" />
+          <Property Name="CookPlatform" Value="Windows" If="'$(CookPlatform)' == 'Win64'" />
+          <Property Name="CookPlatform" Value="$(CookPlatform)NoEditor" If="(('$(CookPlatform)' == 'Windows') or ('$(CookPlatform)' == 'Mac') or ('$(CookPlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
+          <Property Name="CookPlatform" Value="$(CookPlatform)Client" If="(('$(CookPlatform)' == 'Windows') or ('$(CookPlatform)' == 'Mac') or ('$(CookPlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'true')" />
+          <Cook Project="$(UProjectPath)" Platform="$(CookPlatform)" Tag="#ClientCookedContent_$(TargetPlatform)" />
+        </Node>
+        <Property Name="ClientCookedContent" Value="$(ClientCookedContent)#ClientCookedContent_$(TargetPlatform);"/>
+      </Agent>
     </ForEach>
 
     <!-- Cook for dedicated servers -->
     <ForEach Name="TargetPlatform" Values="$(ServerTargetPlatforms)">
-      <Node Name="Cook Server $(TargetPlatform)" Requires="#EditorBinaries" Produces="#ServerCookedContent_$(TargetPlatform)">
-        <Property Name="CookPlatform" Value="$(TargetPlatform)" />
-        <Property Name="CookPlatform" Value="Windows" If="'$(CookPlatform)' == 'Win64'" />
-        <Property Name="CookPlatform" Value="$(CookPlatform)Server" If="('$(CookPlatform)' == 'Windows') or ('$(CookPlatform)' == 'Mac') or ('$(CookPlatform)' == 'Linux')" />
-        <Cook Project="$(UProjectPath)" Platform="$(CookPlatform)" Tag="#ServerCookedContent_$(TargetPlatform)" />
-      </Node>
-      <Property Name="ServerCookedContent" Value="$(ServerCookedContent)#ServerCookedContent_$(TargetPlatform);"/>
+      <Agent Name="Cook Server $(TargetPlatform) (Windows Cook)" Type="Win64">
+        <Node Name="Cook Server $(TargetPlatform)" Requires="#EditorBinaries" Produces="#ServerCookedContent_$(TargetPlatform)">
+          <Property Name="CookPlatform" Value="$(TargetPlatform)" />
+          <Property Name="CookPlatform" Value="Windows" If="'$(CookPlatform)' == 'Win64'" />
+          <Property Name="CookPlatform" Value="$(CookPlatform)Server" If="('$(CookPlatform)' == 'Windows') or ('$(CookPlatform)' == 'Mac') or ('$(CookPlatform)' == 'Linux')" />
+          <Cook Project="$(UProjectPath)" Platform="$(CookPlatform)" Tag="#ServerCookedContent_$(TargetPlatform)" />
+        </Node>
+        <Property Name="ServerCookedContent" Value="$(ServerCookedContent)#ServerCookedContent_$(TargetPlatform);"/>
+      </Agent>
     </ForEach>
 
-  </Agent>
+  </Do>
 
   <!-- Targets that we will execute on a Windows machine. -->
-  <Agent Name="Windows Pak and Stage" Type="Win64" If="'$(ExecuteBuild)' == 'true'">
+  <Do If="'$(ExecuteBuild)' == 'true'">
 
     <!-- Pak and stage the game (targeting the Game target, not Client) -->
     <ForEach Name="TargetName" Values="$(GameTargets)">
       <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
-          <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#GameCookedContent_$(TargetPlatform)" Produces="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"  If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <Property Name="StagePlatform" Value="$(TargetPlatform)" />
-            <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
-            <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="(('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
-            <Property Name="DisableCodeSign" Value="" />
-            <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
-            <Property Name="PackageFlag" Value="" />
-            <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
-            <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
-            <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
-            <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
-          </Node>
-          <Property Name="GameStaged" Value="$(GameStaged)#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"  If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
+          <Agent Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Windows Pak and Stage)" Type="Win64">
+            <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#GameCookedContent_$(TargetPlatform)" Produces="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"  If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <Property Name="StagePlatform" Value="$(TargetPlatform)" />
+              <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
+              <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="(('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
+              <Property Name="DisableCodeSign" Value="" />
+              <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
+              <Property Name="PackageFlag" Value="" />
+              <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
+              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
+              <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+              <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
+            </Node>
+            <Property Name="GameStaged" Value="$(GameStaged)#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"  If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
+          </Agent>
         </ForEach>
       </ForEach>
     </ForEach>
@@ -270,19 +287,21 @@
     <ForEach Name="TargetName" Values="$(ClientTargets)">
       <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ClientConfigurations)">
-          <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#ClientCookedContent_$(TargetPlatform)" Produces="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <Property Name="StagePlatform" Value="$(TargetPlatform)" />
-            <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
-            <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="(('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
-            <Property Name="DisableCodeSign" Value="" />
-            <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
-            <Property Name="PackageFlag" Value="" />
-            <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
-            <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
-            <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
-            <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
-          </Node>
-          <Property Name="ClientStaged" Value="$(ClientStaged)#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
+          <Agent Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Windows Pak and Stage)" Type="Win64">
+            <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#ClientCookedContent_$(TargetPlatform)" Produces="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <Property Name="StagePlatform" Value="$(TargetPlatform)" />
+              <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
+              <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="(('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
+              <Property Name="DisableCodeSign" Value="" />
+              <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
+              <Property Name="PackageFlag" Value="" />
+              <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
+              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
+              <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+              <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
+            </Node>
+            <Property Name="ClientStaged" Value="$(ClientStaged)#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
+          </Agent>
         </ForEach>
       </ForEach>
     </ForEach>
@@ -291,42 +310,46 @@
     <ForEach Name="TargetName" Values="$(ServerTargets)">
       <ForEach Name="TargetPlatform" Values="$(ServerTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ServerConfigurations)">
-          <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#ServerCookedContent_$(TargetPlatform)"  Produces="#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <Property Name="StagePlatform" Value="$(TargetPlatform)" />
-            <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
-            <Property Name="StagePlatform" Value="$(StagePlatform)Server" If="('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')" />
-            <Property Name="DisableCodeSign" Value="" />
-            <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
-            <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) -dedicatedserver -noclient &quot;-serverplatform=$(TargetPlatform)&quot; -server &quot;-serverconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
-            <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
-          </Node>
-          <Property Name="ServerStaged" Value="$(ServerStaged)#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
+          <Agent Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Windows Pak and Stage)" Type="Win64">
+            <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#ServerCookedContent_$(TargetPlatform)"  Produces="#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <Property Name="StagePlatform" Value="$(TargetPlatform)" />
+              <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
+              <Property Name="StagePlatform" Value="$(StagePlatform)Server" If="('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')" />
+              <Property Name="DisableCodeSign" Value="" />
+              <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
+              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) -dedicatedserver -noclient &quot;-serverplatform=$(TargetPlatform)&quot; -server &quot;-serverconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
+              <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+            </Node>
+            <Property Name="ServerStaged" Value="$(ServerStaged)#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
+          </Agent>
         </ForEach>
       </ForEach>
     </ForEach>
 
-  </Agent>
+  </Do>
 
   <!-- Targets that we will execute on a macOS machine. -->
-  <Agent Name="macOS Pak and Stage" Type="Mac" If="'$(ExecuteBuild)' == 'true'">
+  <Do If="'$(ExecuteBuild)' == 'true'">
 
     <!-- Pak and stage the game (targeting the Game target, not Client) -->
     <ForEach Name="TargetName" Values="$(GameTargets)">
       <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
-          <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#GameCookedContent_$(TargetPlatform)" Produces="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <Property Name="StagePlatform" Value="$(TargetPlatform)" />
-            <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
-            <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="(('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
-            <Property Name="DisableCodeSign" Value="" />
-            <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
-            <Property Name="PackageFlag" Value="" />
-            <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
-            <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
-            <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
-            <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
-          </Node>
-          <Property Name="GameStaged" Value="$(GameStaged)#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"/>
+          <Agent Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) (macOS Pak and Stage)" Type="Mac">
+            <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#GameCookedContent_$(TargetPlatform)" Produces="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <Property Name="StagePlatform" Value="$(TargetPlatform)" />
+              <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
+              <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="(('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
+              <Property Name="DisableCodeSign" Value="" />
+              <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
+              <Property Name="PackageFlag" Value="" />
+              <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
+              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
+              <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+              <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
+            </Node>
+            <Property Name="GameStaged" Value="$(GameStaged)#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"/>
+          </Agent>
         </ForEach>
       </ForEach>
     </ForEach>
@@ -335,19 +358,21 @@
     <ForEach Name="TargetName" Values="$(ClientTargets)">
       <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ClientConfigurations)">
-          <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#ClientCookedContent_$(TargetPlatform)" Produces="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <Property Name="StagePlatform" Value="$(TargetPlatform)" />
-            <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
-            <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="(('$(CookPlatform)' == 'Windows') or ('$(CookPlatform)' == 'Mac') or ('$(CookPlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
-            <Property Name="DisableCodeSign" Value="" />
-            <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
-            <Property Name="PackageFlag" Value="" />
-            <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
-            <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
-            <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
-            <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
-          </Node>
-          <Property Name="ClientStaged" Value="$(ClientStaged)#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"/>
+          <Agent Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) (macOS Pak and Stage)" Type="Mac">
+            <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#ClientCookedContent_$(TargetPlatform)" Produces="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <Property Name="StagePlatform" Value="$(TargetPlatform)" />
+              <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
+              <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="(('$(CookPlatform)' == 'Windows') or ('$(CookPlatform)' == 'Mac') or ('$(CookPlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
+              <Property Name="DisableCodeSign" Value="" />
+              <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
+              <Property Name="PackageFlag" Value="" />
+              <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
+              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
+              <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+              <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
+            </Node>
+            <Property Name="ClientStaged" Value="$(ClientStaged)#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"/>
+          </Agent>
         </ForEach>
       </ForEach>
     </ForEach>
@@ -356,21 +381,23 @@
     <ForEach Name="TargetName" Values="$(ServerTargets)">
       <ForEach Name="TargetPlatform" Values="$(ServerTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ServerConfigurations)">
-          <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#ServerCookedContent_$(TargetPlatform)"  Produces="#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <Property Name="StagePlatform" Value="$(TargetPlatform)" />
-            <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
-            <Property Name="StagePlatform" Value="$(StagePlatform)Server" If="('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')" />
-            <Property Name="DisableCodeSign" Value="" />
-            <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
-            <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) -dedicatedserver -noclient &quot;-serverplatform=$(TargetPlatform)&quot; -server &quot;-serverconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
-            <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
-          </Node>
-          <Property Name="ServerStaged" Value="$(ServerStaged)#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"/>
+          <Agent Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) (macOS Pak and Stage)" Type="Mac">
+            <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#ServerCookedContent_$(TargetPlatform)"  Produces="#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <Property Name="StagePlatform" Value="$(TargetPlatform)" />
+              <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
+              <Property Name="StagePlatform" Value="$(StagePlatform)Server" If="('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')" />
+              <Property Name="DisableCodeSign" Value="" />
+              <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
+              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) -dedicatedserver -noclient &quot;-serverplatform=$(TargetPlatform)&quot; -server &quot;-serverconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
+              <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+            </Node>
+            <Property Name="ServerStaged" Value="$(ServerStaged)#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"/>
+          </Agent>
         </ForEach>
       </ForEach>
     </ForEach>
 
-  </Agent>
+  </Do>
 
   <!-- 
     Run all of the tests and deployments (which are dynamically defined by UET).
@@ -378,13 +405,10 @@
 
   <Include Script="$(ScriptNodeIncludes)" />
 
-  <!-- Targets that we will execute on a Windows machine. -->
-  <Agent Name="Windows Tag" Type="Win64">
-
-    <!-- Node that we just use to easily execute all required nodes -->
+  <!-- Node that we just use to easily execute all required nodes -->
+  <Agent Name="End (Windows Tag)" Type="Win64">
     <Node Name="End" Requires="$(GameStaged);$(ClientStaged);$(ServerStaged);$(DynamicNodes);$(DynamicOutputFiles)">
     </Node>
-
   </Agent>
 
 </BuildGraph>

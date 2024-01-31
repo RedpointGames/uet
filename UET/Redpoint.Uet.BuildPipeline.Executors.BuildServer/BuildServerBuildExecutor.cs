@@ -519,6 +519,7 @@
                 buildSpecification.MobileProvisions,
                 requiresCrossPlatformBuild).ConfigureAwait(false);
 
+            // Ensure all of the groups map correctly to agent types.
             foreach (var group in buildGraph.Groups)
             {
                 if (group.AgentTypes.Length == 0 ||
@@ -526,104 +527,143 @@
                 {
                     throw new NotSupportedException($"Unknown AgentType specified in BuildGraph: {string.Join(",", group.AgentTypes)}");
                 }
+            }
 
-                foreach (var node in group.Nodes)
+            // @note: This previously assumed that <Node> = unique build job, but this is not the model
+            // that BuildGraph operates under. Instead, BuildGraph assumes that <Node> elements that run
+            // on the same <Agent> run sequentially one after another and don't need to send their artifacts
+            // to shared storage. Thus, each <Agent> now maps to one GitLab build job instead of each <Node>.
+
+            // Compute the job names for each group.
+            IEnumerable<BuildGraphExportNode> FilterNodes(IEnumerable<BuildGraphExportNode> nodes)
+            {
+                // This is a special job that we don't actually emit
+                // because it doesn't do anything.
+                return nodes.Where(x => x.Name != "End");
+            }
+            string GetJobName(BuildGraphExportGroup group)
+            {
+                // @note: We retain order of nodes here so the job name reflects their execution order.
+                return string.Join(",", group.Nodes.Select(x => x.Name));
+            }
+            var nodeNameToJobName = new Dictionary<string, string>();
+            foreach (var group in buildGraph.Groups)
+            {
+                var jobName = GetJobName(group);
+                foreach (var node in FilterNodes(group.Nodes))
                 {
-                    var needs = new HashSet<string>();
-                    GetFullDependenciesOfNode(nodeMap, node, needs);
-
-                    if (node.Name == "End")
-                    {
-                        // This is a special job that we don't actually emit
-                        // because it doesn't do anything.
-                        continue;
-                    }
-
-                    var job = new BuildServerJob
-                    {
-                        Name = node.Name,
-                        Stage = group.Name,
-                        Needs = needs.ToArray(),
-                        Platform = targetPlatform,
-                        IsManual = group.AgentTypes[0].EndsWith("_Manual", StringComparison.Ordinal),
-                    };
-
-                    if (node.Name.StartsWith("Automation ", StringComparison.Ordinal))
-                    {
-                        job.ArtifactPaths = new[]
-                        {
-                            ".uet/tmp/Automation*/"
-                        };
-                        job.ArtifactJUnitReportPath = ".uet/tmp/Automation*/TestResults.xml";
-                    }
-
-                    var globalArgs = _globalArgsProvider != null ? $" {_globalArgsProvider.GlobalArgsString}" : string.Empty;
-
-                    switch (job.Platform)
-                    {
-                        case BuildServerJobPlatform.Windows:
-                            {
-                                job.Script = $"& \"{preparationInfo.WindowsPath}\"{globalArgs} internal ci-build --executor gitlab";
-                                var buildJobJson = new BuildJobJson
-                                {
-                                    Engine = buildSpecification.Engine.ToReparsableString(),
-                                    IsEngineBuild = buildSpecification.Engine.IsEngineBuild,
-                                    SharedStoragePath = buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath,
-                                    SdksPath = buildSpecification.BuildGraphEnvironment.Windows.SdksPath,
-                                    BuildGraphTarget = buildSpecification.BuildGraphTarget,
-                                    NodeName = node.Name,
-                                    DistributionName = buildSpecification.DistributionName,
-                                    BuildGraphScriptName = buildSpecification.BuildGraphScript.ToReparsableString(),
-                                    PreparePlugin = preparePlugin,
-                                    PrepareProject = prepareProject,
-                                    GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
-                                    Settings = buildSpecification.BuildGraphSettings,
-                                    ProjectFolderName = buildSpecification.ProjectFolderName,
-                                    UseStorageVirtualisation = buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
-                                    MobileProvisions = preparationInfo.WindowsMobileProvisions ?? Array.Empty<BuildConfigMobileProvision>(),
-                                };
-                                job.EnvironmentVariables = new Dictionary<string, string>
-                                {
-                                    { "UET_BUILD_JSON", JsonSerializer.Serialize(buildJobJson, _buildJobJsonSourceGenerationContext.BuildJobJson) },
-                                };
-                            }
-                            break;
-                        case BuildServerJobPlatform.Mac:
-                            {
-                                job.Script = $"chmod a+x \"{preparationInfo.MacPath}\" && \"{preparationInfo.MacPath}\"{globalArgs} internal ci-build --executor gitlab";
-                                var buildJobJson = new BuildJobJson
-                                {
-                                    Engine = buildSpecification.Engine.ToReparsableString(),
-                                    IsEngineBuild = buildSpecification.Engine.IsEngineBuild,
-                                    SharedStoragePath = buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
-                                    SdksPath = buildSpecification.BuildGraphEnvironment.Mac.SdksPath,
-                                    BuildGraphTarget = buildSpecification.BuildGraphTarget,
-                                    NodeName = node.Name,
-                                    DistributionName = buildSpecification.DistributionName,
-                                    BuildGraphScriptName = buildSpecification.BuildGraphScript.ToReparsableString(),
-                                    PreparePlugin = preparePlugin,
-                                    PrepareProject = prepareProject,
-                                    GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
-                                    Settings = buildSpecification.BuildGraphSettings,
-                                    ProjectFolderName = buildSpecification.ProjectFolderName,
-                                    UseStorageVirtualisation = buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
-                                    MobileProvisions = preparationInfo.MacMobileProvisions ?? Array.Empty<BuildConfigMobileProvision>(),
-                                };
-                                job.EnvironmentVariables = new Dictionary<string, string>
-                                {
-                                    { "UET_BUILD_JSON", JsonSerializer.Serialize(buildJobJson, _buildJobJsonSourceGenerationContext.BuildJobJson) },
-                                };
-                            }
-                            break;
-                        case BuildServerJobPlatform.Meta:
-                            break;
-                        default:
-                            throw new NotImplementedException();
-                    }
-
-                    pipeline.Stages.Add(job.Stage);
-                    pipeline.Jobs.Add(job.Name, job);
+                    nodeNameToJobName[node.Name] = jobName;
                 }
+            }
+
+            // Now that we have our mappings set up, generate all of the build jobs.
+            foreach (var group in buildGraph.Groups)
+            {
+                var jobName = GetJobName(group);
+
+                // Figure out the aggregate node dependencies of this build job across all nodes.
+                var nodeNeeds = new HashSet<string>();
+                foreach (var node in FilterNodes(group.Nodes))
+                {
+                    GetFullDependenciesOfNode(nodeMap, node, nodeNeeds);
+                }
+
+                // Figure out the aggregate job dependencies of this build job.
+                var jobNeeds = new HashSet<string>();
+                foreach (var need in nodeNeeds)
+                {
+                    jobNeeds.Add(nodeNameToJobName[need]);
+                }
+                jobNeeds.Remove(jobName);
+
+                // Figure out the job stage.
+                var stage = group.Name.Trim();
+                if (stage.EndsWith(')'))
+                {
+                    var startOfStage = stage.LastIndexOf('(');
+                    if (startOfStage != -1)
+                    {
+                        stage = stage.Substring(startOfStage + 1, stage.Length - (startOfStage + 1) - 1);
+                    }
+                }
+
+                // Create the job.
+                var targetPlatform = agentTypeMapping[group.AgentTypes[0]];
+                if (targetPlatform == BuildServerJobPlatform.Meta)
+                {
+                    continue;
+                }
+                var job = new BuildServerJob
+                {
+                    Name = jobName,
+                    Stage = stage,
+                    Needs = jobNeeds.ToArray(),
+                    Platform = targetPlatform,
+                    IsManual = group.AgentTypes[0].EndsWith("_Manual", StringComparison.Ordinal),
+                };
+
+                // Compute the job JSON to use for this step.
+                var buildJobJson = new BuildJobJson
+                {
+                    Engine = buildSpecification.Engine.ToReparsableString(),
+                    IsEngineBuild = buildSpecification.Engine.IsEngineBuild,
+                    SharedStoragePath = job.Platform switch
+                    {
+                        BuildServerJobPlatform.Windows => buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath,
+                        BuildServerJobPlatform.Mac => buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                        _ => throw new PlatformNotSupportedException(),
+                    },
+                    SdksPath = job.Platform switch
+                    {
+                        BuildServerJobPlatform.Windows => buildSpecification.BuildGraphEnvironment.Windows.SdksPath,
+                        BuildServerJobPlatform.Mac => buildSpecification.BuildGraphEnvironment.Mac!.SdksPath,
+                        _ => throw new PlatformNotSupportedException(),
+                    },
+                    BuildGraphTarget = buildSpecification.BuildGraphTarget,
+                    NodeNames = group.Nodes.Select(x => x.Name).ToArray(),
+                    DistributionName = buildSpecification.DistributionName,
+                    BuildGraphScriptName = buildSpecification.BuildGraphScript.ToReparsableString(),
+                    PreparePlugin = preparePlugin,
+                    PrepareProject = prepareProject,
+                    GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
+                    Settings = buildSpecification.BuildGraphSettings,
+                    ProjectFolderName = buildSpecification.ProjectFolderName,
+                    UseStorageVirtualisation = buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
+                    MobileProvisions = job.Platform switch
+                    {
+                        BuildServerJobPlatform.Windows => preparationInfo.WindowsMobileProvisions,
+                        BuildServerJobPlatform.Mac => preparationInfo.MacMobileProvisions,
+                        _ => throw new PlatformNotSupportedException(),
+                    } ?? Array.Empty<BuildConfigMobileProvision>()
+                };
+                var buildJobJsonSerialized = JsonSerializer.Serialize(buildJobJson, _buildJobJsonSourceGenerationContext.BuildJobJson);
+
+                // Create the job build step.
+                var globalArgs = _globalArgsProvider != null ? $" {_globalArgsProvider.GlobalArgsString}" : string.Empty;
+                job.EnvironmentVariables = new Dictionary<string, string>
+                {
+                    { $"UET_BUILD_JSON", buildJobJsonSerialized },
+                };
+                job.Script = job.Platform switch
+                {
+                    BuildServerJobPlatform.Windows => executor => $"& \"{preparationInfo.WindowsPath}\"{globalArgs} internal ci-build --executor {executor}",
+                    BuildServerJobPlatform.Mac => executor => $"chmod a+x \"{preparationInfo.MacPath}\" && \"{preparationInfo.MacPath}\"{globalArgs} internal ci-build --executor {executor}",
+                    _ => throw new PlatformNotSupportedException(),
+                };
+
+                // If this is an automation node, make sure our test reports get uploaded to the build server.
+                if (group.Nodes.Any(x => x.Name.StartsWith("Automation ", StringComparison.Ordinal)))
+                {
+                    job.ArtifactPaths = new[]
+                    {
+                        ".uet/tmp/Automation*/"
+                    };
+                    job.ArtifactJUnitReportPath = ".uet/tmp/Automation*/TestResults.xml";
+                }
+
+                // Add the job to the pipeline.
+                pipeline.Stages.Add(job.Stage);
+                pipeline.Jobs.Add(job.Name, job);
             }
 
             await EmitBuildServerSpecificFileAsync(

@@ -23,6 +23,7 @@
         {
             public Option<EngineSpec> Engine;
             public Option<PathSpec[]> Path;
+            public Option<DirectoryInfo[]> AutomationPath;
             public Option<bool> Open;
 
             public Options()
@@ -34,6 +35,12 @@
                     isDefault: true);
                 Path.AddAlias("-p");
                 Path.Arity = ArgumentArity.OneOrMore;
+
+                AutomationPath = new Option<DirectoryInfo[]>(
+                    "--automation-path",
+                    description: "When generating for an engine, additional folders to that contain automation projects.");
+                AutomationPath.AddAlias("-a");
+                AutomationPath.Arity = ArgumentArity.ZeroOrMore;
 
                 Engine = new Option<EngineSpec>(
                     "--engine",
@@ -101,16 +108,47 @@
                 _options = options;
             }
 
+            private static IEnumerable<DirectoryInfo> DiscoverAutomationProjectDirectories(IEnumerable<DirectoryInfo> rootPaths)
+            {
+                foreach (var rootPath in rootPaths)
+                {
+                    foreach (var automationProjectDirectory in DiscoverAutomationProjectDirectories(rootPath))
+                    {
+                        yield return automationProjectDirectory;
+                    }
+                }
+            }
+
+            private static IEnumerable<DirectoryInfo> DiscoverAutomationProjectDirectories(DirectoryInfo rootPath)
+            {
+                var automationProject = rootPath.GetFiles("*.Automation.csproj");
+                if (automationProject.Length > 0)
+                {
+                    yield return rootPath;
+                    yield break;
+                }
+
+                foreach (var subdirectory in rootPath.GetDirectories())
+                {
+                    foreach (var automationProjectDirectory in DiscoverAutomationProjectDirectories(subdirectory))
+                    {
+                        yield return automationProjectDirectory;
+                    }
+                }
+            }
+
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
                 var engine = context.ParseResult.GetValueForOption(_options.Engine)!;
                 var paths = context.ParseResult.GetValueForOption(_options.Path) ?? Array.Empty<PathSpec>();
                 var open = context.ParseResult.GetValueForOption(_options.Open);
+                var automationPaths = context.ParseResult.GetValueForOption(_options.AutomationPath) ?? Array.Empty<DirectoryInfo>();
 
                 // Compute how to invoke project generation.
                 string workingDirectory;
                 string outputFolder;
                 string outputFilenameWithoutExtension;
+                string scriptName;
                 var arguments = new List<string>();
                 if ((engine.Type == EngineSpecType.Path &&
                      string.Equals(engine.Path, Environment.CurrentDirectory, StringComparison.OrdinalIgnoreCase) &&
@@ -129,7 +167,7 @@
 
                     _logger.LogInformation($"Generating project files for Unreal Engine located at: {engine.Path}");
                     workingDirectory = engine.Path!;
-                    arguments.Add("-projectfiles");
+                    scriptName = "GenerateProjectFiles";
                     arguments.Add("-rocket");
                     if (paths.Length > 1)
                     {
@@ -148,8 +186,10 @@
                             "; Managed by UET",
                         };
                         var wantedHoldingDirectory = false;
+                        var wantedAutomationToolDirectory = false;
                         // @note: We intentionally use a tiny folder name here to reduce path lengths.
                         var uetManagedProjectsDirectory = Path.Combine(engine.Path!, "P");
+                        var uetManagedAutomationToolProjectsDirectory = Path.Combine(engine.Path!, "P", "AutomationTool");
                         foreach (var path in paths)
                         {
                             if (path!.Type != PathSpecType.UProject)
@@ -178,6 +218,25 @@
                                     Path.Combine(uetManagedProjectsDirectory, Path.GetFileNameWithoutExtension(path.UProjectPath)!),
                                     Path.GetDirectoryName(path.UProjectPath)!);
                             }
+                        }
+                        foreach (var automationPath in DiscoverAutomationProjectDirectories(automationPaths))
+                        {
+                            if (!wantedAutomationToolDirectory)
+                            {
+                                Directory.CreateDirectory(uetManagedAutomationToolProjectsDirectory);
+                                wantedAutomationToolDirectory = true;
+                            }
+                            if (Directory.Exists(Path.Combine(uetManagedAutomationToolProjectsDirectory, automationPath.Name)))
+                            {
+                                Directory.Delete(Path.Combine(uetManagedAutomationToolProjectsDirectory, automationPath.Name));
+                            }
+                            Directory.CreateSymbolicLink(
+                                Path.Combine(uetManagedAutomationToolProjectsDirectory, automationPath.Name),
+                                automationPath.FullName);
+                        }
+                        if (wantedAutomationToolDirectory)
+                        {
+                            projectLines.Add(uetManagedAutomationToolProjectsDirectory);
                         }
                         if (wantedHoldingDirectory)
                         {
@@ -219,6 +278,7 @@
                     });
                     outputFolder = Path.GetDirectoryName(path.UProjectPath)!;
                     outputFilenameWithoutExtension = Path.GetFileNameWithoutExtension(path.UProjectPath)!;
+                    scriptName = "Build";
                 }
 
                 // Run project generation.
@@ -226,9 +286,9 @@
                 {
                     FilePath = true switch
                     {
-                        var v when v == OperatingSystem.IsWindows() => Path.Combine(engine.Path!, "Engine", "Build", "BatchFiles", "Build.bat"),
-                        var v when v == OperatingSystem.IsMacOS() => Path.Combine(engine.Path!, "Engine", "Build", "BatchFiles", "Mac", "Build.sh"),
-                        var v when v == OperatingSystem.IsLinux() => Path.Combine(engine.Path!, "Engine", "Build", "BatchFiles", "Linux", "Build.sh"),
+                        var v when v == OperatingSystem.IsWindows() => Path.Combine(engine.Path!, "Engine", "Build", "BatchFiles", $"{scriptName}.bat"),
+                        var v when v == OperatingSystem.IsMacOS() => Path.Combine(engine.Path!, "Engine", "Build", "BatchFiles", "Mac", $"{scriptName}.sh"),
+                        var v when v == OperatingSystem.IsLinux() => Path.Combine(engine.Path!, "Engine", "Build", "BatchFiles", "Linux", $"{scriptName}.sh"),
                         _ => throw new PlatformNotSupportedException(),
                     },
                     Arguments = arguments.ToArray(),
