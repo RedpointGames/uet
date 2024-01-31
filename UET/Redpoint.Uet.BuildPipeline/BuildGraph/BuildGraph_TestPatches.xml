@@ -5,7 +5,8 @@
 
   <Agent Name="Write and Tag Files (Write and Tag Files)" Type="Win64">
     <Node Name="Write and Tag Files" Produces="#BPTTaggedFiles">
-      <WriteTextFile File="$(OutputDir)\Test.txt" Tag="#BPTTaggedFiles" Text="This is a test file." />
+      <WriteTextFile File="$(OutputDir)/Test.txt" Text="This is a test file." />
+      <Tag BaseDir="$(OutputDir)" Files="Test.txt" With="#BPTTaggedFiles" />
     </Node>
   </Agent>
 

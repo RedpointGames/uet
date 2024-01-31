@@ -11,6 +11,7 @@
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.Workspace.Descriptors;
     using System.Reflection;
+    using System.Runtime.InteropServices;
     using System.Text;
     using System.Text.Json;
     using System.Threading.Tasks;
@@ -277,7 +278,52 @@
             var automationToolBuildGraphProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "BuildGraph", "BuildGraph.Automation.csproj");
             var automationToolProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "AutomationTool.csproj");
             var (msBuildPath, msBuildExtraArgs) = await _msBuildPathResolver.ResolveMSBuildPath().ConfigureAwait(false);
-            var dotnetPath = await _pathResolver.ResolveBinaryPath("dotnet").ConfigureAwait(false);
+            string? dotnetPath = null;
+            var dotnetEnginePath = Path.Combine(enginePath, "Engine", "Binaries", "ThirdParty", "DotNet");
+            var dotnetVersionPath = Directory.Exists(dotnetEnginePath) ? Directory.GetDirectories(dotnetEnginePath).First() : null;
+            if (dotnetVersionPath != null)
+            {
+                if (OperatingSystem.IsWindows())
+                {
+                    dotnetPath = Path.Combine(dotnetVersionPath, "windows", "dotnet.exe");
+                }
+                else if (OperatingSystem.IsMacOS())
+                {
+                    if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+                    {
+                        dotnetPath = Path.Combine(dotnetVersionPath, "mac-arm64", "dotnet");
+                    }
+                    else
+                    {
+                        dotnetPath = Path.Combine(dotnetVersionPath, "mac-x64", "dotnet");
+                    }
+                }
+            }
+            if (dotnetPath != null && !Path.Exists(dotnetPath))
+            {
+                dotnetPath = null;
+            }
+            if (dotnetPath == null)
+            {
+                dotnetPath = await _pathResolver.ResolveBinaryPath("dotnet").ConfigureAwait(false);
+            }
+            if (dotnetPath == null)
+            {
+                throw new InvalidOperationException("Could not find usable dotnet binary!");
+            }
+            if (!OperatingSystem.IsWindows())
+            {
+                try
+                {
+                    File.SetUnixFileMode(
+                        dotnetPath,
+                        File.GetUnixFileMode(dotnetPath) | UnixFileMode.OtherExecute | UnixFileMode.GroupExecute | UnixFileMode.UserExecute);
+                }
+                catch
+                {
+                }
+            }
+            _logger.LogInformation($"dotnet being used for patching: {dotnetPath}");
 
             var sb = new StringBuilder();
             await _processExecutor.ExecuteAsync(
@@ -341,7 +387,8 @@
                                 "/property:Configuration=Development",
                                 "/property:Platform=AnyCPU",
                                 "/p:WarningLevel=0",
-                                "/target:Restore"
+                                "/target:Restore",
+                                "/p:NuGetAudit=False",
                             }),
                             EnvironmentVariables = new Dictionary<string, string>
                             {
@@ -374,7 +421,8 @@
                                 project.path,
                                 "/property:Configuration=Development",
                                 "/property:Platform=AnyCPU",
-                                "/p:WarningLevel=0"
+                                "/p:WarningLevel=0",
+                                "/p:NuGetAudit=False",
                             }),
                             EnvironmentVariables = new Dictionary<string, string>
                             {
