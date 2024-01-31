@@ -441,12 +441,12 @@
                 _logger.LogInformation($"Testing that patched BuildGraph has correct behaviour...");
                 await using ((await _dynamicWorkspaceProvider.GetWorkspaceAsync(new TemporaryWorkspaceDescriptor
                 {
-                    Name = "BuildGraphPatchTestRoot",
+                    Name = $"BuildGraphPatchTestRoot,{enginePath}",
                 }, CancellationToken.None).ConfigureAwait(false)).AsAsyncDisposable(out var buildGraphPatchTestRoot).ConfigureAwait(false))
                 {
                     await using ((await _dynamicWorkspaceProvider.GetWorkspaceAsync(new TemporaryWorkspaceDescriptor
                     {
-                        Name = "BuildGraphPatchTestSharedStorage",
+                        Name = $"BuildGraphPatchTestSharedStorage,{enginePath}",
                     }, CancellationToken.None).ConfigureAwait(false)).AsAsyncDisposable(out var buildGraphPatchTestSharedStorage).ConfigureAwait(false))
                     {
                         var nodeRoot = Path.Combine(buildGraphPatchTestSharedStorage.Path, "Write and Tag Files");
