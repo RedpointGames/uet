@@ -5,7 +5,7 @@
 
   <Agent Name="Write and Tag Files (Write and Tag Files)" Type="Win64">
     <Node Name="Write and Tag Files" Produces="#BPTTaggedFiles">
-      <RandomData Tag="#BPTTaggedFiles" OutputDir="$(OutputDir)" />
+      <WriteTextFile File="$(OutputDir)\Test.txt" Tag="#BPTTaggedFiles" Text="This is a test file." />
     </Node>
   </Agent>
 

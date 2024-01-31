@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Redpoint.Uet.BuildPipeline.BuildGraph.Patching
+﻿namespace Redpoint.Uet.BuildPipeline.BuildGraph.Patching
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
@@ -13,7 +11,6 @@ namespace Redpoint.Uet.BuildPipeline.BuildGraph.Patching
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.Workspace.Descriptors;
     using System.Reflection;
-    using System.Security.Cryptography;
     using System.Text;
     using System.Text.Json;
     using System.Threading.Tasks;
@@ -30,7 +27,7 @@ namespace Redpoint.Uet.BuildPipeline.BuildGraph.Patching
         private readonly string _patchHash;
 
         // Increment this whenever we have to reapply patches due to the logic in this class changing.
-        private const int _patchCodeVersion = 1;
+        private const int _patchCodeVersion = 2;
 
         public DefaultBuildGraphPatcher(
             ILogger<DefaultBuildGraphPatcher> logger,
