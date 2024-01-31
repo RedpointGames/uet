@@ -122,6 +122,17 @@
     "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
   },
   {
+    "File": "Engine\\Source\\Programs\\Shared\\EpicGames.Build\\Unreal.cs",
+    "Patches": [
+      {
+        "Find": "public static readonly DirectoryReference WritableEngineDirectory = IsEngineInstalled() ? DirectoryReference.Combine(UserSettingDirectory, \"UnrealEngine\") : EngineDirectory;",
+        "Replace": "public static readonly DirectoryReference WritableEngineDirectory = IsEngineInstalled() ? DirectoryReference.Combine(UserSettingDirectory, $\"UnrealEngine-{Environment.ProcessId}\") : EngineDirectory;"
+      }
+    ],
+    "Output4": "Engine\\Binaries\\DotNET\\UnrealBuildTool.exe",
+    "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
+  },
+  {
     "File": "Engine\\Source\\Programs\\UnrealBuildTool\\Executors\\XGE.cs",
     "Patches": [
       {
