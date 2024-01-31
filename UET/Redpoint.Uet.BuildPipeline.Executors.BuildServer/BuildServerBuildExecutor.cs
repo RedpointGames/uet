@@ -560,10 +560,16 @@
             foreach (var group in buildGraph.Groups)
             {
                 var jobName = GetJobName(group);
+                var jobNodes = FilterNodes(group.Nodes).ToArray();
+                if (jobNodes.Length == 0)
+                {
+                    // If this job is only running skipped nodes, ignore it.
+                    continue;
+                }
 
                 // Figure out the aggregate node dependencies of this build job across all nodes.
                 var nodeNeeds = new HashSet<string>();
-                foreach (var node in FilterNodes(group.Nodes))
+                foreach (var node in jobNodes)
                 {
                     GetFullDependenciesOfNode(nodeMap, node, nodeNeeds);
                 }
@@ -620,7 +626,7 @@
                         _ => throw new PlatformNotSupportedException(),
                     },
                     BuildGraphTarget = buildSpecification.BuildGraphTarget,
-                    NodeNames = group.Nodes.Select(x => x.Name).ToArray(),
+                    NodeNames = jobNodes.Select(x => x.Name).ToArray(),
                     DistributionName = buildSpecification.DistributionName,
                     BuildGraphScriptName = buildSpecification.BuildGraphScript.ToReparsableString(),
                     PreparePlugin = preparePlugin,
