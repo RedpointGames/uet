@@ -23,7 +23,6 @@
         internal sealed class Options
         {
             public Option<string> Executor;
-            public Option<int> Step;
 
             public Options()
             {
@@ -33,8 +32,6 @@
                     getDefaultValue: () => "gitlab");
                 Executor.AddAlias("-x");
                 Executor.FromAmong("gitlab");
-
-                Step = new Option<int>("--step") { IsRequired = true };
             }
         }
 
@@ -75,9 +72,8 @@
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
                 var executorName = context.ParseResult.GetValueForOption(_options.Executor);
-                var step = context.ParseResult.GetValueForOption(_options.Step);
 
-                var buildJsonEnvVar = $"UET_BUILD_JSON_STEP_{step}";
+                var buildJsonEnvVar = $"UET_BUILD_JSON";
                 var buildJsonRaw = Environment.GetEnvironmentVariable(buildJsonEnvVar);
                 if (string.IsNullOrWhiteSpace(buildJsonRaw))
                 {
@@ -215,12 +211,12 @@
 
                 try
                 {
-                    var buildResult = await executor.ExecuteBuildNodeAsync(
+                    var buildResult = await executor.ExecuteBuildNodesAsync(
                         buildSpecification,
                         buildJson.PreparePlugin,
                         buildJson.PrepareProject,
                         new LoggerBasedBuildExecutionEvents(_logger),
-                        buildJson.NodeName,
+                        buildJson.NodeNames,
                         context.GetCancellationToken()).ConfigureAwait(false);
                     return buildResult;
                 }
@@ -235,7 +231,10 @@
                     // have read-write access to the folder. I'm pretty sure BuildGraph already does this
                     // for us, but there are other cases (like when we copy UET to shared storage) that we
                     // need to do permission updates, so let's just do this for consistency.
-                    await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(buildJson.SharedStoragePath, buildJson.NodeName), context.GetCancellationToken()).ConfigureAwait(false);
+                    foreach (var nodeName in buildJson.NodeNames)
+                    {
+                        await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(buildJson.SharedStoragePath, nodeName), context.GetCancellationToken()).ConfigureAwait(false);
+                    }
                 }
             }
         }

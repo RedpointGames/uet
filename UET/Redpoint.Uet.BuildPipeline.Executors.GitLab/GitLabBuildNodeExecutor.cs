@@ -48,21 +48,27 @@
             return System.Environment.GetEnvironmentVariable("CI_PIPELINE_ID") ?? string.Empty;
         }
 
-        public async Task<int> ExecuteBuildNodeAsync(
+        private class NodeNameExecutionState
+        {
+            public string? NodeName;
+        }
+
+        public async Task<int> ExecuteBuildNodesAsync(
             BuildSpecification buildSpecification,
             BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>[]? preparePlugin,
             BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>[]? prepareProject,
             IBuildExecutionEvents buildExecutionEvents,
-            string nodeName,
+            IReadOnlyList<string> nodeNames,
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(buildSpecification);
             ArgumentNullException.ThrowIfNull(buildExecutionEvents);
+            ArgumentNullException.ThrowIfNull(nodeNames);
 
             var repository = System.Environment.GetEnvironmentVariable("CI_REPOSITORY_URL")!;
             var commit = System.Environment.GetEnvironmentVariable("CI_COMMIT_SHA")!;
+            var executingNode = new NodeNameExecutionState();
 
-            await buildExecutionEvents.OnNodeStarted(nodeName).ConfigureAwait(false);
             try
             {
                 await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
@@ -70,15 +76,15 @@
                     string.Empty,
                     cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engineWorkspace).ConfigureAwait(false))
                 {
-                    var globalEnvironmentVariablesWithSdk = await _sdkSetupForBuildExecutor.SetupForBuildAsync(
-                        buildSpecification,
-                        nodeName,
-                        engineWorkspace.Path,
-                        buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
-                        cancellationToken).ConfigureAwait(false);
-
-                    async Task<int> ExecuteBuildInWorkspaceAsync(string targetWorkspacePath)
+                    async Task<int> ExecuteNodeInWorkspaceAsync(string nodeName, string targetWorkspacePath)
                     {
+                        var globalEnvironmentVariablesWithSdk = await _sdkSetupForBuildExecutor.SetupForBuildAsync(
+                            buildSpecification,
+                            nodeName,
+                            engineWorkspace.Path,
+                            buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
+                            cancellationToken).ConfigureAwait(false);
+
                         if (preparePlugin != null && preparePlugin.Length > 0)
                         {
                             _logger.LogTrace($"Running plugin preparation steps for pre-BuildGraph hook.");
@@ -141,10 +147,35 @@
                             cancellationToken).ConfigureAwait(false);
                     }
 
-                    int exitCode;
+                    async Task<int> ExecuteNodesInWorkspaceAsync(string targetWorkspacePath)
+                    {
+                        foreach (var nodeName in nodeNames)
+                        {
+                            await buildExecutionEvents.OnNodeStarted(nodeName).ConfigureAwait(false);
+                            executingNode.NodeName = nodeName;
+                            var exitCode = await ExecuteNodeInWorkspaceAsync(nodeName, engineWorkspace.Path).ConfigureAwait(false);
+                            if (exitCode == 0)
+                            {
+                                _logger.LogTrace($"Finished: {nodeName} = Success");
+                                executingNode.NodeName = null;
+                                await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Success).ConfigureAwait(false);
+                                continue;
+                            }
+                            else
+                            {
+                                _logger.LogTrace($"Finished: {nodeName} = Failed");
+                                executingNode.NodeName = null;
+                                await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Failed).ConfigureAwait(false);
+                                return 1;
+                            }
+                        }
+                        return 0;
+                    }
+
+                    int overallExitCode;
                     if (buildSpecification.Engine.IsEngineBuild)
                     {
-                        exitCode = await ExecuteBuildInWorkspaceAsync(engineWorkspace.Path).ConfigureAwait(false);
+                        overallExitCode = await ExecuteNodesInWorkspaceAsync(engineWorkspace.Path).ConfigureAwait(false);
                     }
                     else
                     {
@@ -155,7 +186,7 @@
                                 RepositoryCommitOrRef = commit,
                                 AdditionalFolderLayers = Array.Empty<string>(),
                                 AdditionalFolderZips = Array.Empty<string>(),
-                                WorkspaceDisambiguators = new[] { nodeName },
+                                WorkspaceDisambiguators = nodeNames,
                                 ProjectFolderName = buildSpecification.ProjectFolderName,
                                 IsEngineBuild = false,
                                 WindowsSharedGitCachePath = null,
@@ -163,34 +194,31 @@
                             },
                             cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
                         {
-                            exitCode = await ExecuteBuildInWorkspaceAsync(targetWorkspace.Path).ConfigureAwait(false);
+                            overallExitCode = await ExecuteNodesInWorkspaceAsync(targetWorkspace.Path).ConfigureAwait(false);
                         }
                     }
-                    if (exitCode == 0)
-                    {
-                        _logger.LogTrace($"Finished: {nodeName} = Success");
-                        await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Success).ConfigureAwait(false);
-                        return 0;
-                    }
-                    else
-                    {
-                        _logger.LogTrace($"Finished: {nodeName} = Failed");
-                        await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Failed).ConfigureAwait(false);
-                        return 1;
-                    }
+                    return overallExitCode;
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 // The build was cancelled.
-                _logger.LogTrace($"Finished: {nodeName} = Cancelled");
-                await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Cancelled).ConfigureAwait(false);
+                var currentNodeName = executingNode.NodeName;
+                if (currentNodeName != null)
+                {
+                    _logger.LogTrace($"Finished: {currentNodeName} = Cancelled");
+                    await buildExecutionEvents.OnNodeFinished(currentNodeName, BuildResultStatus.Cancelled).ConfigureAwait(false);
+                }
                 return 1;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Internal exception while running build job {nodeName}: {ex.Message}");
-                await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Failed).ConfigureAwait(false);
+                var currentNodeName = executingNode.NodeName;
+                if (currentNodeName != null)
+                {
+                    _logger.LogError(ex, $"Internal exception while running build job {currentNodeName}: {ex.Message}");
+                    await buildExecutionEvents.OnNodeFinished(currentNodeName, BuildResultStatus.Failed).ConfigureAwait(false);
+                }
                 return 1;
             }
         }
