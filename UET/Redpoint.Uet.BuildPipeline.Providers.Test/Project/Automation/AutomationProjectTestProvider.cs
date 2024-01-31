@@ -59,85 +59,78 @@
             var allPlatforms = new[] { BuildConfigHostPlatform.Win64 }.Where(context.CanHostPlatformBeUsed).ToHashSet();
             foreach (var platform in allPlatforms)
             {
-                await writer.WriteAgentAsync(
-                    new AgentElementProperties
-                    {
-                        Name = $"Automation {platform} Tests",
-                        Type = platform.ToString()
-                    },
-                    async writer =>
-                    {
-                        foreach (var test in castedSettings)
+                foreach (var test in castedSettings)
+                {
+                    var nodeName = $"Automation {platform} {test.name}";
+
+                    await writer.WriteAgentNodeAsync(
+                        new AgentNodeElementProperties
                         {
-                            var nodeName = $"Automation {platform} {test.name}";
+                            AgentStage = $"Automation {platform} Tests",
+                            AgentType = platform.ToString(),
+                            NodeName = nodeName,
+                            Requires = "#EditorBinaries"
+                        },
+                        async writer =>
+                        {
+                            var arguments = new List<string>();
+                            if (test.settings.MinWorkerCount != null)
+                            {
+                                arguments.AddRange(new string[]
+                                {
+                                    "--min-worker-count",
+                                    test.settings.MinWorkerCount.Value.ToString(CultureInfo.InvariantCulture)
+                                });
+                            }
+                            if (test.settings.TestRunTimeoutMinutes != null)
+                            {
+                                arguments.AddRange(new string[]
+                                {
+                                    "--test-run-timeout-minutes",
+                                    test.settings.TestRunTimeoutMinutes.Value.ToString(CultureInfo.InvariantCulture)
+                                });
+                            }
+                            if (test.settings.TestTimeoutMinutes != null)
+                            {
+                                arguments.AddRange(new string[]
+                                {
+                                    "--test-timeout-minutes",
+                                    test.settings.TestTimeoutMinutes.Value.ToString(CultureInfo.InvariantCulture)
+                                });
+                            }
+                            if (test.settings.TestAttemptCount != null)
+                            {
+                                arguments.AddRange(new string[]
+                                {
+                                    "--test-attempt-count",
+                                    test.settings.TestAttemptCount.Value.ToString(CultureInfo.InvariantCulture)
+                                });
+                            }
 
-                            await writer.WriteNodeAsync(
-                                new NodeElementProperties
+                            await writer.WriteDynamicReentrantSpawnAsync<
+                                AutomationProjectTestProvider,
+                                BuildConfigProjectDistribution,
+                                BuildConfigProjectTestAutomation>(
+                                this,
+                                context,
+                                $"{platform}.{test.name}".Replace(" ", ".", StringComparison.Ordinal),
+                                test.settings,
+                                new Dictionary<string, string>
                                 {
-                                    Name = nodeName,
-                                    Requires = "#EditorBinaries"
-                                },
-                                async writer =>
-                                {
-                                    var arguments = new List<string>();
-                                    if (test.settings.MinWorkerCount != null)
-                                    {
-                                        arguments.AddRange(new string[]
-                                        {
-                                            "--min-worker-count",
-                                            test.settings.MinWorkerCount.Value.ToString(CultureInfo.InvariantCulture)
-                                        });
-                                    }
-                                    if (test.settings.TestRunTimeoutMinutes != null)
-                                    {
-                                        arguments.AddRange(new string[]
-                                        {
-                                            "--test-run-timeout-minutes",
-                                            test.settings.TestRunTimeoutMinutes.Value.ToString(CultureInfo.InvariantCulture)
-                                        });
-                                    }
-                                    if (test.settings.TestTimeoutMinutes != null)
-                                    {
-                                        arguments.AddRange(new string[]
-                                        {
-                                            "--test-timeout-minutes",
-                                            test.settings.TestTimeoutMinutes.Value.ToString(CultureInfo.InvariantCulture)
-                                        });
-                                    }
-                                    if (test.settings.TestAttemptCount != null)
-                                    {
-                                        arguments.AddRange(new string[]
-                                        {
-                                            "--test-attempt-count",
-                                            test.settings.TestAttemptCount.Value.ToString(CultureInfo.InvariantCulture)
-                                        });
-                                    }
-
-                                    await writer.WriteDynamicReentrantSpawnAsync<
-                                        AutomationProjectTestProvider,
-                                        BuildConfigProjectDistribution,
-                                        BuildConfigProjectTestAutomation>(
-                                        this,
-                                        context,
-                                        $"{platform}.{test.name}".Replace(" ", ".", StringComparison.Ordinal),
-                                        test.settings,
-                                        new Dictionary<string, string>
-                                        {
-                                            { "EnginePath", "$(EnginePath)" },
-                                            { "TestProjectPath", "$(UProjectPath)" },
-                                            { "TestResultsPath", $"$(ArtifactExportPath)/.uet/tmp/Automation{platform}/TestResults.xml" },
-                                            { "WorkerLogsPath", $"$(ArtifactExportPath)/.uet/tmp/Automation{platform}" },
-                                            { "TargetName", test.settings.TargetName ?? "UnrealEditor" },
-                                        }).ConfigureAwait(false);
+                                    { "EnginePath", "$(EnginePath)" },
+                                    { "TestProjectPath", "$(UProjectPath)" },
+                                    { "TestResultsPath", $"$(ArtifactExportPath)/.uet/tmp/Automation{platform}/TestResults.xml" },
+                                    { "WorkerLogsPath", $"$(ArtifactExportPath)/.uet/tmp/Automation{platform}" },
+                                    { "TargetName", test.settings.TargetName ?? "UnrealEditor" },
                                 }).ConfigureAwait(false);
-                            await writer.WriteDynamicNodeAppendAsync(
-                                new DynamicNodeAppendElementProperties
-                                {
-                                    NodeName = nodeName,
-                                    MustPassForLaterDeployment = true,
-                                }).ConfigureAwait(false);
-                        }
-                    }).ConfigureAwait(false);
+                        }).ConfigureAwait(false);
+                    await writer.WriteDynamicNodeAppendAsync(
+                        new DynamicNodeAppendElementProperties
+                        {
+                            NodeName = nodeName,
+                            MustPassForLaterDeployment = true,
+                        }).ConfigureAwait(false);
+                }
             }
         }
 

@@ -37,53 +37,46 @@
                 .Select(x => (name: x.Name, settings: (BuildConfigPluginTestCustom)x.DynamicSettings))
                 .ToList();
 
-            await writer.WriteAgentAsync(
-                new AgentElementProperties
-                {
-                    Name = $"Downstream Tests",
-                    Type = "Meta"
-                },
-                async writer =>
-                {
-                    foreach (var entry in castedEntries)
-                    {
-                        var nodeName = $"Downstream {entry.name}";
+            foreach (var entry in castedEntries)
+            {
+                var nodeName = $"Downstream {entry.name}";
 
-                        await writer.WriteNodeAsync(
-                            new NodeElementProperties
+                await writer.WriteAgentNodeAsync(
+                    new AgentNodeElementProperties
+                    {
+                        AgentStage = $"Downstream Tests",
+                        AgentType = "Meta",
+                        NodeName = nodeName,
+                        Requires = "#PackagedPlugin"
+                    },
+                    async writer =>
+                    {
+                        await writer.WriteSpawnAsync(
+                            new SpawnElementProperties
                             {
-                                Name = nodeName,
-                                Requires = "#PackagedPlugin"
-                            },
-                            async writer =>
-                            {
-                                await writer.WriteSpawnAsync(
-                                    new SpawnElementProperties
-                                    {
-                                        Exe = "$(UETPath)",
-                                        Arguments = (_globalArgsProvider?.GlobalArgsArray ?? Array.Empty<string>()).Concat(new[]
-                                        {
-                                            "internal",
-                                            "run-downstream-test",
-                                            "--downstream-test",
-                                            $@"""{entry.name}""",
-                                            "--engine-path",
-                                            $@"""$(EnginePath)""",
-                                            "--distribution",
-                                            $@"""$(Distribution)""",
-                                            "--packaged-plugin-path",
-                                            $@"""$(TempPath)/$(PackageFolder)/""",
-                                        }).ToArray()
-                                    }).ConfigureAwait(false);
+                                Exe = "$(UETPath)",
+                                Arguments = (_globalArgsProvider?.GlobalArgsArray ?? Array.Empty<string>()).Concat(new[]
+                                {
+                                    "internal",
+                                    "run-downstream-test",
+                                    "--downstream-test",
+                                    $@"""{entry.name}""",
+                                    "--engine-path",
+                                    $@"""$(EnginePath)""",
+                                    "--distribution",
+                                    $@"""$(Distribution)""",
+                                    "--packaged-plugin-path",
+                                    $@"""$(TempPath)/$(PackageFolder)/""",
+                                }).ToArray()
                             }).ConfigureAwait(false);
-                        await writer.WriteDynamicNodeAppendAsync(
-                            new DynamicNodeAppendElementProperties
-                            {
-                                NodeName = nodeName,
-                                MustPassForLaterDeployment = true,
-                            }).ConfigureAwait(false);
-                    }
-                }).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
+                await writer.WriteDynamicNodeAppendAsync(
+                    new DynamicNodeAppendElementProperties
+                    {
+                        NodeName = nodeName,
+                        MustPassForLaterDeployment = true,
+                    }).ConfigureAwait(false);
+            }
         }
     }
 }

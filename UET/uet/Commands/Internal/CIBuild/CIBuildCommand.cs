@@ -23,6 +23,7 @@
         internal sealed class Options
         {
             public Option<string> Executor;
+            public Option<int> Step;
 
             public Options()
             {
@@ -32,6 +33,8 @@
                     getDefaultValue: () => "gitlab");
                 Executor.AddAlias("-x");
                 Executor.FromAmong("gitlab");
+
+                Step = new Option<int>("--step") { IsRequired = true };
             }
         }
 
@@ -72,18 +75,20 @@
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
                 var executorName = context.ParseResult.GetValueForOption(_options.Executor);
+                var step = context.ParseResult.GetValueForOption(_options.Step);
 
-                var buildJsonRaw = Environment.GetEnvironmentVariable("UET_BUILD_JSON");
+                var buildJsonEnvVar = $"UET_BUILD_JSON_STEP_{step}";
+                var buildJsonRaw = Environment.GetEnvironmentVariable(buildJsonEnvVar);
                 if (string.IsNullOrWhiteSpace(buildJsonRaw))
                 {
-                    _logger.LogError("The UET_BUILD_JSON environment variable is not set or is empty.");
+                    _logger.LogError($"The {buildJsonEnvVar} environment variable is not set or is empty.");
                     return 1;
                 }
 
                 var buildJson = JsonSerializer.Deserialize(buildJsonRaw, _buildJobJsonSourceGenerationContext.BuildJobJson);
                 if (buildJson == null)
                 {
-                    _logger.LogError("The UET_BUILD_JSON environment variable does not contain a valid build job description.");
+                    _logger.LogError($"The {buildJsonEnvVar} environment variable does not contain a valid build job description.");
                     return 1;
                 }
 

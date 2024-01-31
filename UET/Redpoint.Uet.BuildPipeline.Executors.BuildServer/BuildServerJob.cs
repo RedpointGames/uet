@@ -30,28 +30,8 @@
         public bool IsManual { get; set; } = false;
 
         /// <summary>
-        /// A list of artifact paths to upload for this build job.
+        /// A list of steps to run inside this job.
         /// </summary>
-        public IReadOnlyList<string> ArtifactPaths { get; set; } = Array.Empty<string>();
-
-        /// <summary>
-        /// The path to the JUnit test report to upload for this build job.
-        /// </summary>
-        public string? ArtifactJUnitReportPath { get; set; } = null;
-
-        /// <summary>
-        /// The environment variables to set for this build job.
-        /// </summary>
-        public IReadOnlyDictionary<string, string> EnvironmentVariables { get; set; } = new Dictionary<string, string>();
-
-        /// <summary>
-        /// The PowerShell or Bash script to run for this build job (depending on the platform).
-        /// </summary>
-        public string Script { get; set; } = string.Empty;
-
-        /// <summary>
-        /// The PowerShell or Bash script to run after this build job (this should always execute, even if the build job script fails).
-        /// </summary>
-        public string? AfterScript { get; set; } = null;
+        public IList<BuildServerJobStep> JobSteps { get; } = new List<BuildServerJobStep>();
     }
 }

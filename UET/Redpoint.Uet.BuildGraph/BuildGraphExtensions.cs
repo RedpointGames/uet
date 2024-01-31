@@ -7,15 +7,14 @@
     using Redpoint.Uet.Configuration.Project;
     using System.Text;
     using System.Text.Json;
-    using System.Text.Json.Serialization;
     using System.Xml;
     using Redpoint.Concurrency;
 
     public static class BuildGraphExtensions
     {
-        public static async Task WriteAgentAsync(
+        public static async Task WriteAgentNodeAsync(
             this XmlWriter writer,
-            AgentElementProperties props,
+            AgentNodeElementProperties props,
             Func<XmlWriter, Task> writeChildren)
         {
             ArgumentNullException.ThrowIfNull(writer);
@@ -27,9 +26,22 @@
             {
                 await writer.WriteAttributeStringAsync(null, "If", null, props.If).ConfigureAwait(false);
             }
-            await writer.WriteAttributeStringAsync(null, "Name", null, props.Name).ConfigureAwait(false);
-            await writer.WriteAttributeStringAsync(null, "Type", null, props.Type).ConfigureAwait(false);
+            await writer.WriteAttributeStringAsync(null, "Name", null, $"{props.NodeName} ({props.AgentStage})").ConfigureAwait(false);
+            await writer.WriteAttributeStringAsync(null, "Type", null, props.AgentType).ConfigureAwait(false);
+
+            await writer.WriteStartElementAsync(null, "Node", null).ConfigureAwait(false);
+            await writer.WriteAttributeStringAsync(null, "Name", null, props.NodeName).ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(props.Requires))
+            {
+                await writer.WriteAttributeStringAsync(null, "Requires", null, props.Requires).ConfigureAwait(false);
+            }
+            if (!string.IsNullOrWhiteSpace(props.Produces))
+            {
+                await writer.WriteAttributeStringAsync(null, "Produces", null, props.Produces).ConfigureAwait(false);
+            }
             await writeChildren(writer).ConfigureAwait(false);
+            await writer.WriteEndElementAsync().ConfigureAwait(false);
+
             await writer.WriteEndElementAsync().ConfigureAwait(false);
         }
 
@@ -67,33 +79,6 @@
             {
                 await writer.WriteAttributeStringAsync(null, kv.Key, null, kv.Value).ConfigureAwait(false);
             }
-            await writer.WriteEndElementAsync().ConfigureAwait(false);
-        }
-
-        public static async Task WriteNodeAsync(
-            this XmlWriter writer,
-            NodeElementProperties props,
-            Func<XmlWriter, Task> writeChildren)
-        {
-            ArgumentNullException.ThrowIfNull(writer);
-            ArgumentNullException.ThrowIfNull(props);
-            ArgumentNullException.ThrowIfNull(writeChildren);
-
-            await writer.WriteStartElementAsync(null, "Node", null).ConfigureAwait(false);
-            await writer.WriteAttributeStringAsync(null, "Name", null, props.Name).ConfigureAwait(false);
-            if (props.If != null)
-            {
-                await writer.WriteAttributeStringAsync(null, "If", null, props.If).ConfigureAwait(false);
-            }
-            if (!string.IsNullOrWhiteSpace(props.Requires))
-            {
-                await writer.WriteAttributeStringAsync(null, "Requires", null, props.Requires).ConfigureAwait(false);
-            }
-            if (!string.IsNullOrWhiteSpace(props.Produces))
-            {
-                await writer.WriteAttributeStringAsync(null, "Produces", null, props.Produces).ConfigureAwait(false);
-            }
-            await writeChildren(writer).ConfigureAwait(false);
             await writer.WriteEndElementAsync().ConfigureAwait(false);
         }
 

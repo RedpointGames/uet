@@ -60,55 +60,48 @@
             var allPlatforms = castedSettings.SelectMany(x => x.settings.Platforms).Where(context.CanHostPlatformBeUsed).ToHashSet();
             foreach (var platform in allPlatforms)
             {
-                await writer.WriteAgentAsync(
-                    new AgentElementProperties
+                foreach (var test in castedSettings)
+                {
+                    if (!test.settings.Platforms.Contains(platform))
                     {
-                        Name = $"Commandlet {platform} Tests",
-                        Type = platform.ToString()
-                    },
-                    async writer =>
-                    {
-                        foreach (var test in castedSettings)
+                        continue;
+                    }
+
+                    var nodeName = $"Commandlet {platform} {test.name}";
+
+                    await writer.WriteAgentNodeAsync(
+                        new AgentNodeElementProperties
                         {
-                            if (!test.settings.Platforms.Contains(platform))
-                            {
-                                continue;
-                            }
-
-                            var nodeName = $"Commandlet {platform} {test.name}";
-
-                            await writer.WriteNodeAsync(
-                                new NodeElementProperties
+                            AgentStage = $"Commandlet {platform} Tests",
+                            AgentType = platform.ToString(),
+                            NodeName = nodeName,
+                            Requires = _pluginTestProjectEmitProvider.GetTestProjectTags(platform),
+                            If = $"'$(CanBuildEditor{platform})' == 'true'"
+                        },
+                        async writer =>
+                        {
+                            await writer.WriteDynamicReentrantSpawnAsync<
+                                CommandletPluginTestProvider,
+                                BuildConfigPluginDistribution,
+                                BuildConfigPluginTestCommandlet>(
+                                this,
+                                context,
+                                $"{platform}.{test.name}".Replace(" ", ".", StringComparison.Ordinal),
+                                test.settings,
+                                new Dictionary<string, string>
                                 {
-                                    Name = nodeName,
-                                    Requires = _pluginTestProjectEmitProvider.GetTestProjectTags(platform),
-                                    If = $"'$(CanBuildEditor{platform})' == 'true'"
-                                },
-                                async writer =>
-                                {
-                                    await writer.WriteDynamicReentrantSpawnAsync<
-                                        CommandletPluginTestProvider,
-                                        BuildConfigPluginDistribution,
-                                        BuildConfigPluginTestCommandlet>(
-                                        this,
-                                        context,
-                                        $"{platform}.{test.name}".Replace(" ", ".", StringComparison.Ordinal),
-                                        test.settings,
-                                        new Dictionary<string, string>
-                                        {
-                                            { "EnginePath", "$(EnginePath)" },
-                                            { "TestProjectPath", _pluginTestProjectEmitProvider.GetTestProjectUProjectFilePath(platform) },
-                                            { "RepositoryRoot", "$(ProjectRoot)" },
-                                        }).ConfigureAwait(false);
+                                    { "EnginePath", "$(EnginePath)" },
+                                    { "TestProjectPath", _pluginTestProjectEmitProvider.GetTestProjectUProjectFilePath(platform) },
+                                    { "RepositoryRoot", "$(ProjectRoot)" },
                                 }).ConfigureAwait(false);
-                            await writer.WriteDynamicNodeAppendAsync(
-                                new DynamicNodeAppendElementProperties
-                                {
-                                    NodeName = nodeName,
-                                    MustPassForLaterDeployment = true,
-                                }).ConfigureAwait(false);
-                        }
-                    }).ConfigureAwait(false);
+                        }).ConfigureAwait(false);
+                    await writer.WriteDynamicNodeAppendAsync(
+                        new DynamicNodeAppendElementProperties
+                        {
+                            NodeName = nodeName,
+                            MustPassForLaterDeployment = true,
+                        }).ConfigureAwait(false);
+                }
             }
         }
 

@@ -70,56 +70,49 @@
             var allPlatformsAgainstTestProject = customTestsAgainstTestProject.SelectMany(x => x.settings.Platforms).Where(context.CanHostPlatformBeUsed).ToHashSet();
             foreach (var platform in allPlatformsAgainstTestProject)
             {
-                await writer.WriteAgentAsync(
-                    new AgentElementProperties
+                foreach (var test in customTestsAgainstTestProject)
+                {
+                    if (!test.settings.Platforms.Contains(platform))
                     {
-                        Name = $"Custom {platform} Project Tests",
-                        Type = platform.ToString()
-                    },
-                    async writer =>
-                    {
-                        foreach (var test in customTestsAgainstTestProject)
+                        continue;
+                    }
+
+                    var nodeName = $"Test {test.name} {platform}";
+
+                    await writer.WriteAgentNodeAsync(
+                        new AgentNodeElementProperties
                         {
-                            if (!test.settings.Platforms.Contains(platform))
-                            {
-                                continue;
-                            }
-
-                            var nodeName = $"Test {test.name} {platform}";
-
-                            await writer.WriteNodeAsync(
-                                new NodeElementProperties
+                            AgentStage = $"Custom {platform} Project Tests",
+                            AgentType = platform.ToString(),
+                            NodeName = nodeName,
+                            Requires = _pluginTestProjectEmitProvider.GetTestProjectTags(platform),
+                        },
+                        async writer =>
+                        {
+                            await writer.WriteSpawnAsync(
+                                new SpawnElementProperties
                                 {
-                                    Name = nodeName,
-                                    Requires = _pluginTestProjectEmitProvider.GetTestProjectTags(platform),
-                                },
-                                async writer =>
-                                {
-                                    await writer.WriteSpawnAsync(
-                                        new SpawnElementProperties
-                                        {
-                                            Exe = platform == BuildConfigHostPlatform.Mac ? "pwsh" : "powershell.exe",
-                                            Arguments = new[]
-                                            {
-                                                "-ExecutionPolicy",
-                                                "Bypass",
-                                                "-File",
-                                                @$"""$(ProjectRoot)/{test.settings.ScriptPath}""",
-                                                "-EnginePath",
-                                                @$"""$(EnginePath)""",
-                                                "-TestProjectPath",
-                                                @$"""{_pluginTestProjectEmitProvider.GetTestProjectUProjectFilePath(platform)}""",
-                                            }
-                                        }).ConfigureAwait(false);
+                                    Exe = platform == BuildConfigHostPlatform.Mac ? "pwsh" : "powershell.exe",
+                                    Arguments = new[]
+                                    {
+                                        "-ExecutionPolicy",
+                                        "Bypass",
+                                        "-File",
+                                        @$"""$(ProjectRoot)/{test.settings.ScriptPath}""",
+                                        "-EnginePath",
+                                        @$"""$(EnginePath)""",
+                                        "-TestProjectPath",
+                                        @$"""{_pluginTestProjectEmitProvider.GetTestProjectUProjectFilePath(platform)}""",
+                                    }
                                 }).ConfigureAwait(false);
-                            await writer.WriteDynamicNodeAppendAsync(
-                                new DynamicNodeAppendElementProperties
-                                {
-                                    NodeName = nodeName,
-                                    MustPassForLaterDeployment = true,
-                                }).ConfigureAwait(false);
-                        }
-                    }).ConfigureAwait(false);
+                        }).ConfigureAwait(false);
+                    await writer.WriteDynamicNodeAppendAsync(
+                        new DynamicNodeAppendElementProperties
+                        {
+                            NodeName = nodeName,
+                            MustPassForLaterDeployment = true,
+                        }).ConfigureAwait(false);
+                }
             }
         }
 
@@ -140,58 +133,51 @@
             var allPlatformsAgainstPackagedPlugin = customTestsAgainstPackagedPlugin.SelectMany(x => x.settings.Platforms).Where(context.CanHostPlatformBeUsed).ToHashSet();
             foreach (var platform in allPlatformsAgainstPackagedPlugin)
             {
-                await writer.WriteAgentAsync(
-                    new AgentElementProperties
+                foreach (var test in customTestsAgainstPackagedPlugin)
+                {
+                    if (!test.settings.Platforms.Contains(platform))
                     {
-                        Name = $"Custom {platform} Package Tests",
-                        Type = platform.ToString()
-                    },
-                    async writer =>
-                    {
-                        foreach (var test in customTestsAgainstPackagedPlugin)
+                        continue;
+                    }
+
+                    var nodeName = $"Test {test.name} {platform}";
+
+                    await writer.WriteAgentNodeAsync(
+                        new AgentNodeElementProperties
                         {
-                            if (!test.settings.Platforms.Contains(platform))
-                            {
-                                continue;
-                            }
-
-                            var nodeName = $"Test {test.name} {platform}";
-
-                            await writer.WriteNodeAsync(
-                                new NodeElementProperties
+                            AgentStage = $"Custom {platform} Package Tests",
+                            AgentType = platform.ToString(),
+                            NodeName = nodeName,
+                            Requires = "#PackagedPlugin",
+                        },
+                        async writer =>
+                        {
+                            await writer.WriteSpawnAsync(
+                                new SpawnElementProperties
                                 {
-                                    Name = nodeName,
-                                    Requires = "#PackagedPlugin",
-                                },
-                                async writer =>
-                                {
-                                    await writer.WriteSpawnAsync(
-                                        new SpawnElementProperties
-                                        {
-                                            Exe = platform == BuildConfigHostPlatform.Mac ? "pwsh" : "powershell.exe",
-                                            Arguments = new[]
-                                            {
-                                                "-ExecutionPolicy",
-                                                "Bypass",
-                                                "-File",
-                                                @$"""$(ProjectRoot)/{test.settings.ScriptPath}""",
-                                                "-EnginePath",
-                                                @$"""$(EnginePath)""",
-                                                "-TempPath",
-                                                @$"""$(TempPath)/""",
-                                                "-PackagedPluginPath",
-                                                @$"""$(TempPath)/$(PackageFolder)/""",
-                                            }
-                                        }).ConfigureAwait(false);
+                                    Exe = platform == BuildConfigHostPlatform.Mac ? "pwsh" : "powershell.exe",
+                                    Arguments = new[]
+                                    {
+                                        "-ExecutionPolicy",
+                                        "Bypass",
+                                        "-File",
+                                        @$"""$(ProjectRoot)/{test.settings.ScriptPath}""",
+                                        "-EnginePath",
+                                        @$"""$(EnginePath)""",
+                                        "-TempPath",
+                                        @$"""$(TempPath)/""",
+                                        "-PackagedPluginPath",
+                                        @$"""$(TempPath)/$(PackageFolder)/""",
+                                    }
                                 }).ConfigureAwait(false);
-                            await writer.WriteDynamicNodeAppendAsync(
-                                new DynamicNodeAppendElementProperties
-                                {
-                                    NodeName = nodeName,
-                                    MustPassForLaterDeployment = true,
-                                }).ConfigureAwait(false);
-                        }
-                    }).ConfigureAwait(false);
+                        }).ConfigureAwait(false);
+                    await writer.WriteDynamicNodeAppendAsync(
+                        new DynamicNodeAppendElementProperties
+                        {
+                            NodeName = nodeName,
+                            MustPassForLaterDeployment = true,
+                        }).ConfigureAwait(false);
+                }
             }
         }
     }

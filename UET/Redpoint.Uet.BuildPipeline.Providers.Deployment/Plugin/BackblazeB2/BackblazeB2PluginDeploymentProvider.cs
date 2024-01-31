@@ -39,38 +39,31 @@
             // Emit the nodes to run each deployment.
             foreach (var deployment in castedSettings)
             {
-                await writer.WriteAgentAsync(
-                    new AgentElementProperties
+                await writer.WriteAgentNodeAsync(
+                    new AgentNodeElementProperties
                     {
-                        Name = $"Deployment {deployment.name}",
-                        Type = deployment.manual ? "Win64_Manual" : "Win64",
+                        AgentStage = $"Deployment {deployment.name}",
+                        AgentType = deployment.manual ? "Win64_Manual" : "Win64",
+                        NodeName = $"Deployment {deployment.name}",
+                        Requires = "#PackagedZip;$(DynamicPreDeploymentNodes)",
                     },
                     async writer =>
                     {
-                        await writer.WriteNodeAsync(
-                            new NodeElementProperties
+                        await writer.WriteSpawnAsync(
+                            new SpawnElementProperties
                             {
-                                Name = $"Deployment {deployment.name}",
-                                Requires = "#PackagedZip;$(DynamicPreDeploymentNodes)",
-                            },
-                            async writer =>
-                            {
-                                await writer.WriteSpawnAsync(
-                                    new SpawnElementProperties
-                                    {
-                                        Exe = "$(UETPath)",
-                                        Arguments = (_globalArgsProvider?.GlobalArgsArray ?? Array.Empty<string>()).Concat(new[]
-                                        {
-                                            "internal",
-                                            "upload-to-backblaze-b2",
-                                            "--zip-path",
-                                            $@"""$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip""",
-                                            "--bucket-name",
-                                            $@"""{deployment.settings.BucketName}""",
-                                            "--folder-env-var",
-                                            $@"""{deployment.settings.FolderPrefixEnvVar}"""
-                                        }).ToArray()
-                                    }).ConfigureAwait(false);
+                                Exe = "$(UETPath)",
+                                Arguments = (_globalArgsProvider?.GlobalArgsArray ?? Array.Empty<string>()).Concat(new[]
+                                {
+                                    "internal",
+                                    "upload-to-backblaze-b2",
+                                    "--zip-path",
+                                    $@"""$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip""",
+                                    "--bucket-name",
+                                    $@"""{deployment.settings.BucketName}""",
+                                    "--folder-env-var",
+                                    $@"""{deployment.settings.FolderPrefixEnvVar}"""
+                                }).ToArray()
                             }).ConfigureAwait(false);
                         await writer.WriteDynamicNodeAppendAsync(
                             new DynamicNodeAppendElementProperties

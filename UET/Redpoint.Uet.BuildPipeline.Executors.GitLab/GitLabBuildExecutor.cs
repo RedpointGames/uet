@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Executors.GitLab
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Collections;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.BuildServer;
@@ -55,7 +56,9 @@
             {
                 var job = new GitLabJob();
                 job.Stage = sourceJob.Stage;
-                job.Variables = new Dictionary<string, string>(sourceJob.EnvironmentVariables);
+                job.Variables = new Dictionary<string, string>(sourceJob.JobSteps
+                    .SelectMany(k => k.EnvironmentVariables)
+                    .DistinctBy(k => k.Key));
                 job.Needs = sourceJob.IsManual ? new List<string>() : sourceJob.Needs.ToList();
 
                 if (sourceJob.Platform == BuildServerJobPlatform.Windows)
@@ -98,26 +101,42 @@
                     };
                 }
 
-                if (sourceJob.ArtifactPaths != null)
+                var artifactPaths = sourceJob.JobSteps
+                    .Select(x => x.ArtifactPaths)
+                    .WhereNotNull()
+                    .SelectMany(x => x)
+                    .ToArray();
+                if (artifactPaths.Length > 0)
                 {
                     job.Artifacts = new GitLabJobArtifacts
                     {
                         When = "always",
-                        Paths = sourceJob.ArtifactPaths.ToArray(),
+                        Paths = artifactPaths,
                     };
-                    if (sourceJob.ArtifactJUnitReportPath != null)
+                    var artifactJUnitReportPath = sourceJob.JobSteps
+                        .Select(x => x.ArtifactJUnitReportPath)
+                        .WhereNotNull()
+                        .FirstOrDefault();
+                    if (artifactJUnitReportPath != null)
                     {
                         job.Artifacts.Reports = new GitLabJobArtifactsReports
                         {
-                            Junit = sourceJob.ArtifactJUnitReportPath,
+                            Junit = artifactJUnitReportPath,
                         };
                     }
                 }
 
-                job.Script = sourceJob.Script;
-                if (sourceJob.AfterScript != null)
+                job.Script = sourceJob.JobSteps
+                    .Select(x => x.Script("gitlab"))
+                    .ToArray();
+                var afterScript = sourceJob.JobSteps
+                    .Select(x => x.AfterScript)
+                    .WhereNotNull()
+                    .Select(x => x.Trim().Replace("\r\n", "\n", StringComparison.Ordinal))
+                    .ToArray();
+                if (afterScript.Length > 0)
                 {
-                    job.AfterScript = new[] { sourceJob.AfterScript.Trim().Replace("\r\n", "\n", StringComparison.Ordinal) };
+                    job.AfterScript = afterScript;
                 }
 
                 file.Add(sourceJob.Name, job);

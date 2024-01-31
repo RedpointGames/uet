@@ -49,49 +49,42 @@
                 .ToList();
 
             // Emit the nodes to run each test.
-            await writer.WriteAgentAsync(
-                new AgentElementProperties
-                {
-                    Name = $"Commandlet Tests",
-                    Type = "Win64",
-                },
-                async writer =>
-                {
-                    foreach (var test in castedSettings)
-                    {
-                        var nodeName = $"Commandlet {test.name}";
+            foreach (var test in castedSettings)
+            {
+                var nodeName = $"Commandlet {test.name}";
 
-                        await writer.WriteNodeAsync(
-                            new NodeElementProperties
+                await writer.WriteAgentNodeAsync(
+                    new AgentNodeElementProperties
+                    {
+                        AgentStage = $"Commandlet Tests",
+                        AgentType = "Win64",
+                        NodeName = nodeName,
+                        Requires = "#EditorBinaries",
+                    },
+                    async writer =>
+                    {
+                        await writer.WriteDynamicReentrantSpawnAsync<
+                            CommandletProjectTestProvider,
+                            BuildConfigProjectDistribution,
+                            BuildConfigProjectTestCommandlet>(
+                            this,
+                            context,
+                            $"Win64.{test.name}".Replace(" ", ".", StringComparison.Ordinal),
+                            test.settings,
+                            new Dictionary<string, string>
                             {
-                                Name = nodeName,
-                                Requires = "#EditorBinaries",
-                            },
-                            async writer =>
-                            {
-                                await writer.WriteDynamicReentrantSpawnAsync<
-                                    CommandletProjectTestProvider,
-                                    BuildConfigProjectDistribution,
-                                    BuildConfigProjectTestCommandlet>(
-                                    this,
-                                    context,
-                                    $"Win64.{test.name}".Replace(" ", ".", StringComparison.Ordinal),
-                                    test.settings,
-                                    new Dictionary<string, string>
-                                    {
-                                        { "EnginePath", "$(EnginePath)" },
-                                        { "RepositoryRoot", "$(ProjectRoot)" },
-                                        { "UProjectPath", "$(UProjectPath)" },
-                                    }).ConfigureAwait(false);
+                                { "EnginePath", "$(EnginePath)" },
+                                { "RepositoryRoot", "$(ProjectRoot)" },
+                                { "UProjectPath", "$(UProjectPath)" },
                             }).ConfigureAwait(false);
-                        await writer.WriteDynamicNodeAppendAsync(
-                            new DynamicNodeAppendElementProperties
-                            {
-                                NodeName = nodeName,
-                                MustPassForLaterDeployment = true,
-                            }).ConfigureAwait(false);
-                    }
-                }).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
+                await writer.WriteDynamicNodeAppendAsync(
+                    new DynamicNodeAppendElementProperties
+                    {
+                        NodeName = nodeName,
+                        MustPassForLaterDeployment = true,
+                    }).ConfigureAwait(false);
+            }
         }
 
         public async Task<int> ExecuteBuildGraphNodeAsync(
