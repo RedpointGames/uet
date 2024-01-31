@@ -28,8 +28,7 @@
         public GitLabJobArtifacts? Artifacts { get; set; } = null;
 
         [YamlMember(Alias = "script", DefaultValuesHandling = DefaultValuesHandling.OmitNull, ScalarStyle = YamlDotNet.Core.ScalarStyle.DoubleQuoted)]
-        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for YAML serialization.")]
-        public string[]? Script { get; set; } = null;
+        public string? Script { get; set; } = null;
 
         [YamlMember(Alias = "after_script", DefaultValuesHandling = DefaultValuesHandling.OmitNull, ScalarStyle = YamlDotNet.Core.ScalarStyle.DoubleQuoted)]
         [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for YAML serialization.")]

@@ -574,6 +574,7 @@
                 {
                     jobNeeds.Add(nodeNameToJobName[need]);
                 }
+                jobNeeds.Remove(jobName);
 
                 // Figure out the job stage.
                 var stage = group.Name.Trim();
@@ -588,6 +589,10 @@
 
                 // Create the job.
                 var targetPlatform = agentTypeMapping[group.AgentTypes[0]];
+                if (targetPlatform == BuildServerJobPlatform.Meta)
+                {
+                    continue;
+                }
                 var job = new BuildServerJob
                 {
                     Name = jobName,
@@ -597,81 +602,66 @@
                     IsManual = group.AgentTypes[0].EndsWith("_Manual", StringComparison.Ordinal),
                 };
 
-                // Treat each node as a step that needs to execute sequentially.
-                if (job.Platform != BuildServerJobPlatform.Meta)
+                // Compute the job JSON to use for this step.
+                var buildJobJson = new BuildJobJson
                 {
-                    for (var stepIndex = 0; stepIndex < group.Nodes.Length; stepIndex++)
+                    Engine = buildSpecification.Engine.ToReparsableString(),
+                    IsEngineBuild = buildSpecification.Engine.IsEngineBuild,
+                    SharedStoragePath = job.Platform switch
                     {
-                        var node = group.Nodes[stepIndex];
+                        BuildServerJobPlatform.Windows => buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath,
+                        BuildServerJobPlatform.Mac => buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                        _ => throw new PlatformNotSupportedException(),
+                    },
+                    SdksPath = job.Platform switch
+                    {
+                        BuildServerJobPlatform.Windows => buildSpecification.BuildGraphEnvironment.Windows.SdksPath,
+                        BuildServerJobPlatform.Mac => buildSpecification.BuildGraphEnvironment.Mac!.SdksPath,
+                        _ => throw new PlatformNotSupportedException(),
+                    },
+                    BuildGraphTarget = buildSpecification.BuildGraphTarget,
+                    NodeNames = group.Nodes.Select(x => x.Name).ToArray(),
+                    DistributionName = buildSpecification.DistributionName,
+                    BuildGraphScriptName = buildSpecification.BuildGraphScript.ToReparsableString(),
+                    PreparePlugin = preparePlugin,
+                    PrepareProject = prepareProject,
+                    GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
+                    Settings = buildSpecification.BuildGraphSettings,
+                    ProjectFolderName = buildSpecification.ProjectFolderName,
+                    UseStorageVirtualisation = buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
+                    MobileProvisions = job.Platform switch
+                    {
+                        BuildServerJobPlatform.Windows => preparationInfo.WindowsMobileProvisions,
+                        BuildServerJobPlatform.Mac => preparationInfo.MacMobileProvisions,
+                        _ => throw new PlatformNotSupportedException(),
+                    } ?? Array.Empty<BuildConfigMobileProvision>()
+                };
+                var buildJobJsonSerialized = JsonSerializer.Serialize(buildJobJson, _buildJobJsonSourceGenerationContext.BuildJobJson);
 
-                        // Compute the job JSON to use for this step.
-                        var buildJobJson = new BuildJobJson
-                        {
-                            Engine = buildSpecification.Engine.ToReparsableString(),
-                            IsEngineBuild = buildSpecification.Engine.IsEngineBuild,
-                            SharedStoragePath = job.Platform switch
-                            {
-                                BuildServerJobPlatform.Windows => buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath,
-                                BuildServerJobPlatform.Mac => buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
-                                _ => throw new PlatformNotSupportedException(),
-                            },
-                            SdksPath = job.Platform switch
-                            {
-                                BuildServerJobPlatform.Windows => buildSpecification.BuildGraphEnvironment.Windows.SdksPath,
-                                BuildServerJobPlatform.Mac => buildSpecification.BuildGraphEnvironment.Mac!.SdksPath,
-                                _ => throw new PlatformNotSupportedException(),
-                            },
-                            BuildGraphTarget = buildSpecification.BuildGraphTarget,
-                            NodeName = node.Name,
-                            DistributionName = buildSpecification.DistributionName,
-                            BuildGraphScriptName = buildSpecification.BuildGraphScript.ToReparsableString(),
-                            PreparePlugin = preparePlugin,
-                            PrepareProject = prepareProject,
-                            GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
-                            Settings = buildSpecification.BuildGraphSettings,
-                            ProjectFolderName = buildSpecification.ProjectFolderName,
-                            UseStorageVirtualisation = buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
-                            MobileProvisions = job.Platform switch
-                            {
-                                BuildServerJobPlatform.Windows => preparationInfo.WindowsMobileProvisions,
-                                BuildServerJobPlatform.Mac => preparationInfo.MacMobileProvisions,
-                                _ => throw new PlatformNotSupportedException(),
-                            } ?? Array.Empty<BuildConfigMobileProvision>()
-                        };
-                        var buildJobJsonSerialized = JsonSerializer.Serialize(buildJobJson, _buildJobJsonSourceGenerationContext.BuildJobJson);
+                // Create the job build step.
+                var globalArgs = _globalArgsProvider != null ? $" {_globalArgsProvider.GlobalArgsString}" : string.Empty;
+                job.EnvironmentVariables = new Dictionary<string, string>
+                {
+                    { $"UET_BUILD_JSON", buildJobJsonSerialized },
+                };
+                job.Script = job.Platform switch
+                {
+                    BuildServerJobPlatform.Windows => executor => $"& \"{preparationInfo.WindowsPath}\"{globalArgs} internal ci-build --executor {executor}",
+                    BuildServerJobPlatform.Mac => executor => $"chmod a+x \"{preparationInfo.MacPath}\" && \"{preparationInfo.MacPath}\"{globalArgs} internal ci-build --executor {executor}",
+                    _ => throw new PlatformNotSupportedException(),
+                };
 
-                        // Create the job build step.
-                        var globalArgs = _globalArgsProvider != null ? $" {_globalArgsProvider.GlobalArgsString}" : string.Empty;
-                        var stepIndexCaptured = stepIndex;
-                        var step = new BuildServerJobStep
-                        {
-                            EnvironmentVariables = new Dictionary<string, string>
-                            {
-                                { $"UET_BUILD_JSON_STEP_{stepIndex}", buildJobJsonSerialized },
-                            },
-                            Script = job.Platform switch
-                            {
-                                BuildServerJobPlatform.Windows => executor => $"& \"{preparationInfo.WindowsPath}\"{globalArgs} internal ci-build --executor {executor} --step {stepIndexCaptured}; if ($LastExitCode -ne 0) {{ exit $LastExitCode; }};",
-                                BuildServerJobPlatform.Mac => executor => $"chmod a+x \"{preparationInfo.MacPath}\" && \"{preparationInfo.MacPath}\"{globalArgs} internal ci-build --executor {executor} --step {stepIndexCaptured}",
-                                _ => throw new PlatformNotSupportedException(),
-                            },
-                        };
-
-                        // If this is an automation node, make sure our test reports get uploaded to the build server.
-                        if (node.Name.StartsWith("Automation ", StringComparison.Ordinal))
-                        {
-                            step.ArtifactPaths = new[]
-                            {
-                                ".uet/tmp/Automation*/"
-                            };
-                            step.ArtifactJUnitReportPath = ".uet/tmp/Automation*/TestResults.xml";
-                        }
-
-                        // Add the step to the build job.
-                        job.JobSteps.Add(step);
-                    }
+                // If this is an automation node, make sure our test reports get uploaded to the build server.
+                if (group.Nodes.Any(x => x.Name.StartsWith("Automation ", StringComparison.Ordinal)))
+                {
+                    job.ArtifactPaths = new[]
+                    {
+                        ".uet/tmp/Automation*/"
+                    };
+                    job.ArtifactJUnitReportPath = ".uet/tmp/Automation*/TestResults.xml";
                 }
 
+                // Add the job to the pipeline.
                 pipeline.Stages.Add(job.Stage);
                 pipeline.Jobs.Add(job.Name, job);
             }

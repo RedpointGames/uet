@@ -27,8 +27,8 @@
         [JsonPropertyName("BuildGraphTarget"), JsonRequired]
         public string BuildGraphTarget { get; set; } = string.Empty;
 
-        [JsonPropertyName("NodeName"), JsonRequired]
-        public string NodeName { get; set; } = string.Empty;
+        [JsonPropertyName("NodeNames"), JsonRequired]
+        public IReadOnlyList<string> NodeNames { get; set; } = Array.Empty<string>();
 
         [JsonPropertyName("DistributionName"), JsonRequired]
         public string DistributionName { get; set; } = string.Empty;
