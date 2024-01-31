@@ -153,7 +153,7 @@
                         {
                             await buildExecutionEvents.OnNodeStarted(nodeName).ConfigureAwait(false);
                             executingNode.NodeName = nodeName;
-                            var exitCode = await ExecuteNodeInWorkspaceAsync(nodeName, engineWorkspace.Path).ConfigureAwait(false);
+                            var exitCode = await ExecuteNodeInWorkspaceAsync(nodeName, targetWorkspacePath).ConfigureAwait(false);
                             if (exitCode == 0)
                             {
                                 _logger.LogTrace($"Finished: {nodeName} = Success");
