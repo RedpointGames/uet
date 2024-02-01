@@ -14,6 +14,8 @@
     using UET.Commands.Internal.RunDownstreamTest;
     using UET.Commands.Internal.RunDriveMappedProcess;
     using UET.Commands.Internal.RunGauntletTestFromBuildGraph;
+    using UET.Commands.Internal.RunRemote;
+    using UET.Commands.Internal.RunRemoteHost;
     using UET.Commands.Internal.RunRfs;
     using UET.Commands.Internal.SetFilterFile;
     using UET.Commands.Internal.TestAutoDiscovery;
@@ -54,6 +56,8 @@
                 RunRfsCommand.CreateRunRfsCommand(),
                 StressTestProcessCommand.CreateStressTestProcessCommand(),
                 TestPduCommand.CreateTestPduCommand(),
+                RunRemoteHostCommand.CreateRunRemoteHostCommand(),
+                RunRemoteCommand.CreateRunRemoteCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");

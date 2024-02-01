@@ -18,6 +18,7 @@
   </Target>
 
   <ItemGroup>
+    <None Remove="Commands\Internal\RunRemoteHost\RemoteHostApi.proto" />
     <None Remove="Commands\Internal\TestGrpcPipes\TestPipes.proto" />
   </ItemGroup>
 
@@ -96,6 +97,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Protobuf Include="Commands\Internal\RunRemoteHost\RemoteHostApi.proto" GrpcServices="Both" />
     <Protobuf Include="Commands\Internal\TestGrpcPipes\TestPipes.proto">
       <GrpcServices>Both</GrpcServices>
     </Protobuf>

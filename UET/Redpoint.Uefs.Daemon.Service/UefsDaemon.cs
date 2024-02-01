@@ -268,6 +268,7 @@
             if (_grpcService != null)
             {
                 await _grpcService.StopAsync().ConfigureAwait(false);
+                await _grpcService.DisposeAsync().ConfigureAwait(false);
                 _grpcService = null;
             }
 

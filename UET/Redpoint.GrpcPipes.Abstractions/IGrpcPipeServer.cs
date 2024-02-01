@@ -6,7 +6,7 @@
     /// Wraps a gRPC server instance, allowing you to start and stop the server.
     /// </summary>
     /// <typeparam name="T">The gRPC server type.</typeparam>
-    public interface IGrpcPipeServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T> where T : class
+    public interface IGrpcPipeServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T> : IAsyncDisposable where T : class
     {
         /// <summary>
         /// Starts the gRPC server.

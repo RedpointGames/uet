@@ -1,0 +1,22 @@
+syntax = 'proto3';
+
+package RemoteHostApi;
+
+message RunProcessRequest {
+	string Path = 1;
+	repeated string Arguments = 2;
+	string WorkingDirectory = 3;
+}
+
+message RunProcessResponse {
+	oneof result {
+		bool started = 1;
+		string standardOutputLine = 2;
+		string standardErrorLine = 3;
+		int32 exitCode = 4;
+	}
+}
+
+service RemoteHostService {
+	rpc RunProcess(RunProcessRequest) returns (stream RunProcessResponse) {}
+}
