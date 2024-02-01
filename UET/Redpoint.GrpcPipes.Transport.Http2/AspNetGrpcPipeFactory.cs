@@ -6,6 +6,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.GrpcPipes.Abstractions.Internal;
     using System.Diagnostics.CodeAnalysis;
+    using System.Net;
     using System.Net.Sockets;
 
     /// <summary>
@@ -147,6 +148,30 @@
                 channel = GrpcChannel.ForAddress(pointer, options);
             }
 
+            return constructor(channel.CreateCallInvoker());
+        }
+
+        IGrpcPipeServer<T> IGrpcPipeFactory.CreateNetworkServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T>(
+            T instance) where T : class
+        {
+            return new AspNetGrpcPipeServer<T>(
+                _serviceProvider!.GetRequiredService<ILogger<AspNetGrpcPipeServer<T>>>(),
+                instance);
+        }
+
+        T IGrpcPipeFactory.CreateNetworkClient<T>(
+            IPEndPoint endpoint,
+            Func<CallInvoker, T> constructor,
+            GrpcChannelOptions? grpcChannelOptions)
+        {
+            var options = grpcChannelOptions ?? new GrpcChannelOptions();
+            options.Credentials = ChannelCredentials.Insecure;
+
+            // Allow unlimited message sizes.
+            options.MaxReceiveMessageSize = null;
+            options.MaxSendMessageSize = null;
+
+            var channel = GrpcChannel.ForAddress($"http://{endpoint}", options);
             return constructor(channel.CreateCallInvoker());
         }
     }
