@@ -170,6 +170,11 @@
                 await _taskApiWorkerPool.DisposeAsync().ConfigureAwait(false);
                 _taskApiWorkerPool = null;
             }
+            if (_preprocessorServer != null)
+            {
+                await _preprocessorServer.DisposeAsync().ConfigureAwait(false);
+                _preprocessorServer = null;
+            }
         }
     }
 }
