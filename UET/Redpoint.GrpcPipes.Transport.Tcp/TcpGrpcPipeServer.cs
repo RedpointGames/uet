@@ -19,6 +19,8 @@
         private readonly ILogger<TcpGrpcPipeServer<T>> _logger;
         private FileStream? _pipePointerStream;
         private TcpGrpcServer? _app;
+        private bool _isNetwork;
+        private int _networkPort;
 
         public TcpGrpcPipeServer(
             ILogger<TcpGrpcPipeServer<T>> logger,
@@ -31,6 +33,21 @@
             _instance = instance;
             _pipeNamespace = pipeNamespace;
             _app = null;
+            _isNetwork = false;
+            _networkPort = 0;
+        }
+
+        public TcpGrpcPipeServer(
+            ILogger<TcpGrpcPipeServer<T>> logger,
+            T instance)
+        {
+            _logger = logger;
+            _pipePath = string.Empty;
+            _instance = instance;
+            _pipeNamespace = GrpcPipeNamespace.User;
+            _app = null;
+            _isNetwork = true;
+            _networkPort = 0;
         }
 
         public async Task StartAsync()
@@ -47,9 +64,12 @@
                 {
                     GrpcPipeLog.GrpcServerStarting(_logger);
 
-                    Directory.CreateDirectory(Path.GetDirectoryName(_pipePath)!);
+                    if (!_isNetwork)
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(_pipePath)!);
+                    }
 
-                    var endpoint = new IPEndPoint(IPAddress.Loopback, 0);
+                    var endpoint = new IPEndPoint(_isNetwork ? IPAddress.Any : IPAddress.Loopback, 0);
                     var listener = new TcpListener(endpoint);
                     app = new TcpGrpcServer(listener, _logger);
                     endpoint = (IPEndPoint)listener.LocalEndpoint;
@@ -68,22 +88,29 @@
                         .First();
                     binder.Invoke(null, BindingFlags.DoNotWrapExceptions, null, [app, _instance], null);
 
-                    var pointerContent = $"{TcpGrpcPipeFactory._tcpPointerPrefix}{endpoint}";
-                    GrpcPipeLog.WrotePointerFile(_logger, pointerContent, _pipePath);
-                    _pipePointerStream = new FileStream(
-                        _pipePath,
-                        FileMode.Create,
-                        FileAccess.ReadWrite,
-                        FileShare.Read | FileShare.Delete,
-                        4096,
-                        FileOptions.DeleteOnClose);
-                    using (var writer = new StreamWriter(_pipePointerStream, leaveOpen: true))
+                    if (_isNetwork)
                     {
-                        await writer.WriteAsync(pointerContent).ConfigureAwait(false);
-                        await writer.FlushAsync().ConfigureAwait(false);
+                        _networkPort = endpoint.Port;
                     }
-                    await _pipePointerStream.FlushAsync().ConfigureAwait(false);
-                    // @note: Now we hold the FileStream open until we shutdown and then let FileOptions.DeleteOnClose delete it.
+                    else
+                    {
+                        var pointerContent = $"{TcpGrpcPipeFactory._tcpPointerPrefix}{endpoint}";
+                        GrpcPipeLog.WrotePointerFile(_logger, pointerContent, _pipePath);
+                        _pipePointerStream = new FileStream(
+                            _pipePath,
+                            FileMode.Create,
+                            FileAccess.ReadWrite,
+                            FileShare.Read | FileShare.Delete,
+                            4096,
+                            FileOptions.DeleteOnClose);
+                        using (var writer = new StreamWriter(_pipePointerStream, leaveOpen: true))
+                        {
+                            await writer.WriteAsync(pointerContent).ConfigureAwait(false);
+                            await writer.FlushAsync().ConfigureAwait(false);
+                        }
+                        await _pipePointerStream.FlushAsync().ConfigureAwait(false);
+                        // @note: Now we hold the FileStream open until we shutdown and then let FileOptions.DeleteOnClose delete it.
+                    }
 
                     GrpcPipeLog.GrpcServerStarted(_logger);
                     _app = app;
@@ -95,26 +122,32 @@
                     // Old Unix socket on Windows which we can't write the pointer file into (because it's still a Unix socket).
                     ex.Message.Contains("cannot be accessed by the system", StringComparison.OrdinalIgnoreCase)) && File.Exists(_pipePath))
                 {
-                    // Remove the existing pipe. Newer servers always take over from older ones.
-                    if (OperatingSystem.IsWindows())
+                    if (!_isNetwork)
                     {
-                        if (_pipePointerStream != null)
+                        // Remove the existing pipe. Newer servers always take over from older ones.
+                        if (OperatingSystem.IsWindows())
                         {
-                            await _pipePointerStream.DisposeAsync().ConfigureAwait(false);
-                            _pipePointerStream = null;
+                            if (_pipePointerStream != null)
+                            {
+                                await _pipePointerStream.DisposeAsync().ConfigureAwait(false);
+                                _pipePointerStream = null;
+                            }
+                            GrpcPipeLog.RemovingPointerFile(_logger, _pipePath);
                         }
-                        GrpcPipeLog.RemovingPointerFile(_logger, _pipePath);
-                    }
-                    else
-                    {
-                        GrpcPipeLog.RemovingUnixSocket(_logger, _pipePath);
+                        else
+                        {
+                            GrpcPipeLog.RemovingUnixSocket(_logger, _pipePath);
+                        }
                     }
                     if (app != null)
                     {
                         await app.DisposeAsync().ConfigureAwait(false);
                         app = null;
                     }
-                    File.Delete(_pipePath);
+                    if (!_isNetwork)
+                    {
+                        File.Delete(_pipePath);
+                    }
                     continue;
                 }
             } while (true);
@@ -122,10 +155,13 @@
 
         public async Task StopAsync()
         {
-            if (_pipePointerStream != null)
+            if (!_isNetwork)
             {
-                await _pipePointerStream.DisposeAsync().ConfigureAwait(false);
-                _pipePointerStream = null;
+                if (_pipePointerStream != null)
+                {
+                    await _pipePointerStream.DisposeAsync().ConfigureAwait(false);
+                    _pipePointerStream = null;
+                }
             }
 
             if (_app != null)
@@ -138,6 +174,19 @@
         public async ValueTask DisposeAsync()
         {
             await StopAsync().ConfigureAwait(false);
+        }
+
+        public int NetworkPort
+        {
+            get
+            {
+                if (_isNetwork)
+                {
+                    return _networkPort;
+                }
+
+                throw new NotSupportedException();
+            }
         }
     }
 }

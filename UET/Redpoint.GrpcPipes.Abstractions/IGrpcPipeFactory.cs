@@ -3,6 +3,7 @@
     using Grpc.Core;
     using Grpc.Net.Client;
     using System.Diagnostics.CodeAnalysis;
+    using System.Net;
 
     /// <summary>
     /// Provides methods for constructing gRPC pipe servers and clients.
@@ -42,6 +43,28 @@
         T CreateClient<T>(
             string pipeName,
             GrpcPipeNamespace pipeNamespace,
+            Func<CallInvoker, T> constructor,
+            GrpcChannelOptions? grpcChannelOptions = null);
+
+        /// <summary>
+        /// Constructs a gRPC server that offers services on the local network. This always listens on external interfaces; if you need services that are only offered on the local machine, use <see cref="CreateServer{T}(string, GrpcPipeNamespace, T)"/> instead.
+        /// </summary>
+        /// <typeparam name="T">The type of the gRPC server.</typeparam>
+        /// <param name="instance">The instance of the gRPC server to respond to requests.</param>
+        /// <returns>The <see cref="IGrpcPipeServer{T}"/> that wraps the gRPC server instance. Allows you to start and stop serving as needed.</returns>
+        IGrpcPipeServer<T> CreateNetworkServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T>(
+            T instance) where T : class;
+
+        /// <summary>
+        /// Creates a gRPC client that connects to services on the local network.
+        /// </summary>
+        /// <typeparam name="T">The gRPC client type.</typeparam>
+        /// <param name="endpoint">The remote endpoint to connect to.</param>
+        /// <param name="constructor">The callback to construct the client type using the provided channel.</param>
+        /// <param name="grpcChannelOptions">Additional options to apply to the channel.</param>
+        /// <returns>The constructor gRPC client.</returns>
+        T CreateNetworkClient<T>(
+            IPEndPoint endpoint,
             Func<CallInvoker, T> constructor,
             GrpcChannelOptions? grpcChannelOptions = null);
     }

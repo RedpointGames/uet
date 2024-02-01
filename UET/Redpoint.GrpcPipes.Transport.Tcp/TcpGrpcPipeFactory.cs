@@ -34,6 +34,20 @@
             _serviceProvider = serviceProvider;
         }
 
+        IGrpcPipeServer<T> IGrpcPipeFactory.CreateServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T>(
+            string pipeName,
+            GrpcPipeNamespace pipeNamespace,
+            T instance)
+        {
+            var pipePath = GrpcPipePath.GetPipePath(pipeName, pipeNamespace);
+            GrpcPipePath.CreateDirectoryWithPermissions(Path.GetDirectoryName(pipePath)!, pipeNamespace);
+            return new TcpGrpcPipeServer<T>(
+                _serviceProvider!.GetRequiredService<ILogger<TcpGrpcPipeServer<T>>>(),
+                pipePath,
+                instance,
+                pipeNamespace);
+        }
+
         T IGrpcPipeFactory.CreateClient<T>(
             string pipeName,
             GrpcPipeNamespace pipeNamespace,
@@ -89,18 +103,29 @@
             return constructor(new TcpGrpcClientCallInvoker(endpoint, logger));
         }
 
-        IGrpcPipeServer<T> IGrpcPipeFactory.CreateServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T>(
-            string pipeName,
-            GrpcPipeNamespace pipeNamespace,
-            T instance)
+        IGrpcPipeServer<T> IGrpcPipeFactory.CreateNetworkServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T>(
+            T instance) where T : class
         {
-            var pipePath = GrpcPipePath.GetPipePath(pipeName, pipeNamespace);
-            GrpcPipePath.CreateDirectoryWithPermissions(Path.GetDirectoryName(pipePath)!, pipeNamespace);
             return new TcpGrpcPipeServer<T>(
                 _serviceProvider!.GetRequiredService<ILogger<TcpGrpcPipeServer<T>>>(),
-                pipePath,
-                instance,
-                pipeNamespace);
+                instance);
+        }
+
+        T IGrpcPipeFactory.CreateNetworkClient<T>(
+            IPEndPoint endpoint,
+            Func<CallInvoker, T> constructor,
+            GrpcChannelOptions? grpcChannelOptions)
+        {
+            var logger = _serviceProvider?.GetService<ILogger<TcpGrpcPipeFactory>>();
+
+            var options = grpcChannelOptions ?? new GrpcChannelOptions();
+            options.Credentials = ChannelCredentials.Insecure;
+
+            // Allow unlimited message sizes.
+            options.MaxReceiveMessageSize = null;
+            options.MaxSendMessageSize = null;
+
+            return constructor(new TcpGrpcClientCallInvoker(endpoint, logger));
         }
     }
 }

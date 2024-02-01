@@ -4,6 +4,7 @@ namespace Redpoint.GrpcPipes.Tests
     using Microsoft.Extensions.Logging;
     using Redpoint.GrpcPipes.Transport.Tcp;
     using System.Diagnostics;
+    using System.Net;
     using System.Security.Principal;
     using TestPipes;
     using Xunit.Abstractions;
@@ -76,6 +77,51 @@ namespace Redpoint.GrpcPipes.Tests
             var client = pipeFactory.CreateClient(
                 pipeName,
                 GrpcPipeNamespace.User,
+                channel => new TestServiceClient(channel));
+
+            await client.TestMethodAsync(new TestRequest());
+
+            await server.StopAsync();
+
+            Assert.True(isCalled, "Expected TestMethod to be called");
+        }
+
+        [Theory]
+        [InlineData("http2")]
+        [InlineData("tcp")]
+        public async Task TestNetworkPipes(string protocol)
+        {
+            var services = new ServiceCollection();
+            services.AddLogging(builder =>
+            {
+                builder.ClearProviders();
+                builder.SetMinimumLevel(LogLevel.Trace);
+                builder.AddXUnit(_output);
+            });
+            switch (protocol)
+            {
+                case "http2":
+                    services.AddGrpcPipes<AspNetGrpcPipeFactory>();
+                    break;
+                case "tcp":
+                    services.AddGrpcPipes<TcpGrpcPipeFactory>();
+                    break;
+                default:
+                    services.AddGrpcPipes();
+                    break;
+            }
+
+            var sp = services.BuildServiceProvider();
+            var pipeFactory = sp.GetRequiredService<IGrpcPipeFactory>();
+
+            var isCalled = false;
+            var testService = new TestServiceServer(() => isCalled = true);
+
+            var server = pipeFactory.CreateNetworkServer(testService);
+            await server.StartAsync();
+
+            var client = pipeFactory.CreateNetworkClient(
+                new IPEndPoint(IPAddress.Loopback, server.NetworkPort),
                 channel => new TestServiceClient(channel));
 
             await client.TestMethodAsync(new TestRequest());

@@ -19,6 +19,8 @@
         private readonly ILogger<AspNetGrpcPipeServer<T>> _logger;
         private WebApplication? _app;
         private FileStream? _pipePointerStream;
+        private bool _isNetwork;
+        private int _networkPort;
 
         public AspNetGrpcPipeServer(
             ILogger<AspNetGrpcPipeServer<T>> logger,
@@ -31,6 +33,21 @@
             _instance = instance;
             _pipeNamespace = pipeNamespace;
             _app = null;
+            _isNetwork = false;
+            _networkPort = 0;
+        }
+
+        public AspNetGrpcPipeServer(
+            ILogger<AspNetGrpcPipeServer<T>> logger,
+            T instance)
+        {
+            _logger = logger;
+            _pipePath = string.Empty;
+            _instance = instance;
+            _pipeNamespace = GrpcPipeNamespace.User;
+            _app = null;
+            _isNetwork = true;
+            _networkPort = 0;
         }
 
         public async Task StartAsync()
@@ -46,7 +63,11 @@
                 {
                     GrpcPipeLog.GrpcServerStarting(_logger);
 
-                    Directory.CreateDirectory(Path.GetDirectoryName(_pipePath)!);
+                    if (!_isNetwork)
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(_pipePath)!);
+                    }
+
                     var builder = WebApplication.CreateBuilder();
                     builder.Logging.ClearProviders();
 #pragma warning disable CA2000 // Dispose objects before losing scope
@@ -63,15 +84,10 @@
                         _instance));
                     builder.WebHost.ConfigureKestrel(serverOptions =>
                     {
-                        if (OperatingSystem.IsWindows())
+                        if (_isNetwork)
                         {
-                            // Pick a free TCP port and listen on that. Unix sockets are broken
-                            // on Windows (see https://github.com/dotnet/aspnetcore/issues/47043#issuecomment-1589922597),
-                            // so until we can move to .NET 8 with named pipes, we have to do this
-                            // jank workaround.
-                            GrpcPipeLog.TcpSocketFallback(_logger);
                             serverOptions.Listen(
-                                new IPEndPoint(IPAddress.Loopback, 0),
+                                new IPEndPoint(IPAddress.Any, 0),
                                 listenOptions =>
                                 {
                                     listenOptions.Protocols = HttpProtocols.Http2;
@@ -79,12 +95,29 @@
                         }
                         else
                         {
-                            serverOptions.ListenUnixSocket(
-                                _pipePath,
-                                listenOptions =>
-                                {
-                                    listenOptions.Protocols = HttpProtocols.Http2;
-                                });
+                            if (OperatingSystem.IsWindows())
+                            {
+                                // Pick a free TCP port and listen on that. Unix sockets are broken
+                                // on Windows (see https://github.com/dotnet/aspnetcore/issues/47043#issuecomment-1589922597),
+                                // so until we can move to .NET 8 with named pipes, we have to do this
+                                // jank workaround.
+                                GrpcPipeLog.TcpSocketFallback(_logger);
+                                serverOptions.Listen(
+                                    new IPEndPoint(IPAddress.Loopback, 0),
+                                    listenOptions =>
+                                    {
+                                        listenOptions.Protocols = HttpProtocols.Http2;
+                                    });
+                            }
+                            else
+                            {
+                                serverOptions.ListenUnixSocket(
+                                    _pipePath,
+                                    listenOptions =>
+                                    {
+                                        listenOptions.Protocols = HttpProtocols.Http2;
+                                    });
+                            }
                         }
                     });
 
@@ -94,39 +127,46 @@
 
                     await app.StartAsync().ConfigureAwait(false);
 
-                    if (OperatingSystem.IsWindows())
+                    if (_isNetwork)
                     {
-                        var pointerContent = $"{AspNetGrpcPipeFactory._httpPointerPrefix}{app.Urls.First()}";
-                        GrpcPipeLog.WrotePointerFile(_logger, pointerContent, _pipePath);
-                        _pipePointerStream = new FileStream(
-                            _pipePath,
-                            FileMode.Create,
-                            FileAccess.ReadWrite,
-                            FileShare.Read | FileShare.Delete,
-                            4096,
-                            FileOptions.DeleteOnClose);
-                        using (var writer = new StreamWriter(_pipePointerStream, leaveOpen: true))
-                        {
-                            await writer.WriteAsync(pointerContent).ConfigureAwait(false);
-                            await writer.FlushAsync().ConfigureAwait(false);
-                        }
-                        await _pipePointerStream.FlushAsync().ConfigureAwait(false);
-                        // @note: Now we hold the FileStream open until we shutdown and then let FileOptions.DeleteOnClose delete it.
+                        _networkPort = new Uri(app.Urls.First()).Port;
                     }
-                    else if (_pipeNamespace == GrpcPipeNamespace.Computer)
+                    else
                     {
-                        // Allow everyone to access the pipe if it's meant to be available system-wide.
-                        File.SetUnixFileMode(
-                            _pipePath,
-                            UnixFileMode.UserRead |
-                            UnixFileMode.UserWrite |
-                            UnixFileMode.UserExecute |
-                            UnixFileMode.GroupRead |
-                            UnixFileMode.GroupWrite |
-                            UnixFileMode.GroupExecute |
-                            UnixFileMode.OtherRead |
-                            UnixFileMode.OtherWrite |
-                            UnixFileMode.OtherExecute);
+                        if (OperatingSystem.IsWindows())
+                        {
+                            var pointerContent = $"{AspNetGrpcPipeFactory._httpPointerPrefix}{app.Urls.First()}";
+                            GrpcPipeLog.WrotePointerFile(_logger, pointerContent, _pipePath);
+                            _pipePointerStream = new FileStream(
+                                _pipePath,
+                                FileMode.Create,
+                                FileAccess.ReadWrite,
+                                FileShare.Read | FileShare.Delete,
+                                4096,
+                                FileOptions.DeleteOnClose);
+                            using (var writer = new StreamWriter(_pipePointerStream, leaveOpen: true))
+                            {
+                                await writer.WriteAsync(pointerContent).ConfigureAwait(false);
+                                await writer.FlushAsync().ConfigureAwait(false);
+                            }
+                            await _pipePointerStream.FlushAsync().ConfigureAwait(false);
+                            // @note: Now we hold the FileStream open until we shutdown and then let FileOptions.DeleteOnClose delete it.
+                        }
+                        else if (_pipeNamespace == GrpcPipeNamespace.Computer)
+                        {
+                            // Allow everyone to access the pipe if it's meant to be available system-wide.
+                            File.SetUnixFileMode(
+                                _pipePath,
+                                UnixFileMode.UserRead |
+                                UnixFileMode.UserWrite |
+                                UnixFileMode.UserExecute |
+                                UnixFileMode.GroupRead |
+                                UnixFileMode.GroupWrite |
+                                UnixFileMode.GroupExecute |
+                                UnixFileMode.OtherRead |
+                                UnixFileMode.OtherWrite |
+                                UnixFileMode.OtherExecute);
+                        }
                     }
 
                     GrpcPipeLog.GrpcServerStarted(_logger);
@@ -141,26 +181,32 @@
                     // Old Unix socket on Windows which we can't write the pointer file into (because it's still a Unix socket).
                     ex.Message.Contains("cannot be accessed by the system", StringComparison.OrdinalIgnoreCase)) && File.Exists(_pipePath))
                 {
-                    // Remove the existing pipe. Newer servers always take over from older ones.
-                    if (OperatingSystem.IsWindows())
+                    if (!_isNetwork)
                     {
-                        if (_pipePointerStream != null)
+                        // Remove the existing pipe. Newer servers always take over from older ones.
+                        if (OperatingSystem.IsWindows())
                         {
-                            await _pipePointerStream.DisposeAsync().ConfigureAwait(false);
-                            _pipePointerStream = null;
+                            if (_pipePointerStream != null)
+                            {
+                                await _pipePointerStream.DisposeAsync().ConfigureAwait(false);
+                                _pipePointerStream = null;
+                            }
+                            GrpcPipeLog.RemovingPointerFile(_logger, _pipePath);
                         }
-                        GrpcPipeLog.RemovingPointerFile(_logger, _pipePath);
-                    }
-                    else
-                    {
-                        GrpcPipeLog.RemovingUnixSocket(_logger, _pipePath);
+                        else
+                        {
+                            GrpcPipeLog.RemovingUnixSocket(_logger, _pipePath);
+                        }
                     }
                     if (app != null)
                     {
                         await app.StopAsync().ConfigureAwait(false);
                         app = null;
                     }
-                    File.Delete(_pipePath);
+                    if (!_isNetwork)
+                    {
+                        File.Delete(_pipePath);
+                    }
                     continue;
                 }
             } while (true);
@@ -168,10 +214,13 @@
 
         public async Task StopAsync()
         {
-            if (_pipePointerStream != null)
+            if (!_isNetwork)
             {
-                await _pipePointerStream.DisposeAsync().ConfigureAwait(false);
-                _pipePointerStream = null;
+                if (_pipePointerStream != null)
+                {
+                    await _pipePointerStream.DisposeAsync().ConfigureAwait(false);
+                    _pipePointerStream = null;
+                }
             }
 
             if (_app != null)
@@ -185,6 +234,19 @@
         public async ValueTask DisposeAsync()
         {
             await StopAsync().ConfigureAwait(false);
+        }
+
+        public int NetworkPort
+        {
+            get
+            {
+                if (_isNetwork)
+                {
+                    return _networkPort;
+                }
+
+                throw new NotSupportedException();
+            }
         }
     }
 }
