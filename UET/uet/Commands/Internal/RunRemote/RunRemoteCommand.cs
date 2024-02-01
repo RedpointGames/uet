@@ -97,6 +97,15 @@
                     };
                     request.Arguments.AddRange(arguments);
 
+                    _logger.LogInformation($"Root path: {request.RootPath}");
+                    _logger.LogInformation($"Relative executable path: {request.RelativeExecutablePath}");
+                    _logger.LogInformation($"Relative working directory: {request.RelativeWorkingDirectory}");
+                    _logger.LogInformation($"Argument count: {request.Arguments.Count}");
+                    for (int i = 0; i < request.Arguments.Count; i++)
+                    {
+                        _logger.LogInformation($"Argument #{i + 1}: {request.Arguments[i]}");
+                    }
+
                     try
                     {
                         var response = client.RunProcess(request, cancellationToken: context.GetCancellationToken());
