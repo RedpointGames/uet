@@ -140,24 +140,34 @@
                             throw new RpcException(new Status(StatusCode.Unavailable, "This host was unable to copy the required content with robocopy."));
                         }
 
-                        _logger.LogInformation($"Attempting to run '{request.RelativeExecutablePath}' inside '{Path.Combine(workspace.Path, request.RelativeWorkingDirectory)}'...");
+                        var processSpecification = request.RelativeExecutablePath.EndsWith(".ps1", StringComparison.InvariantCultureIgnoreCase)
+                            ? new ProcessSpecification
+                            {
+                                FilePath = await _pathResolver.ResolveBinaryPath("powershell").ConfigureAwait(false),
+                                Arguments = new[] { "-ExecutionPolicy", "Bypass", Path.Combine(workspace.Path, request.RelativeExecutablePath) }.Concat(request.Arguments).ToArray(),
+                                WorkingDirectory = Path.Combine(workspace.Path, request.RelativeWorkingDirectory),
+                            }
+                            : new ProcessSpecification
+                            {
+                                FilePath = Path.Combine(workspace.Path, request.RelativeExecutablePath),
+                                Arguments = request.Arguments.ToArray(),
+                                WorkingDirectory = Path.Combine(workspace.Path, request.RelativeWorkingDirectory),
+                            };
+
+                        _logger.LogInformation($"Root path: {request.RootPath}");
+                        _logger.LogInformation($"Resolved executable path: {processSpecification.FilePath}");
+                        _logger.LogInformation($"Resolved working directory: {processSpecification.WorkingDirectory}");
+                        var resolvedArguments = processSpecification.Arguments.ToList();
+                        _logger.LogInformation($"Argument count: {resolvedArguments.Count}");
+                        for (int i = 0; i < resolvedArguments.Count; i++)
+                        {
+                            _logger.LogInformation($"Argument #{i + 1}: {resolvedArguments[i]}");
+                        }
 
                         await foreach (var ev in
                             _processExecutor.ExecuteAsync(
-                                request.RelativeExecutablePath.EndsWith(".ps1", StringComparison.InvariantCultureIgnoreCase)
-                                ? new ProcessSpecification
-                                {
-                                    FilePath = await _pathResolver.ResolveBinaryPath("powershell").ConfigureAwait(false),
-                                    Arguments = new[] { Path.Combine(workspace.Path, request.RelativeExecutablePath) }.Concat(request.Arguments).ToArray(),
-                                    WorkingDirectory = Path.Combine(workspace.Path, request.RelativeWorkingDirectory),
-                                }
-                                : new ProcessSpecification
-                                {
-                                    FilePath = Path.Combine(workspace.Path, request.RelativeExecutablePath),
-                                    Arguments = request.Arguments.ToArray(),
-                                    WorkingDirectory = Path.Combine(workspace.Path, request.RelativeWorkingDirectory),
-                                },
-                            context.CancellationToken))
+                                processSpecification,
+                                context.CancellationToken))
                         {
                             switch (ev)
                             {
