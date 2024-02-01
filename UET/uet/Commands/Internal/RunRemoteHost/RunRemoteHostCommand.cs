@@ -143,12 +143,20 @@
                         _logger.LogInformation($"Attempting to run '{request.RelativeExecutablePath}' inside '{Path.Combine(workspace.Path, request.RelativeWorkingDirectory)}'...");
 
                         await foreach (var ev in
-                            _processExecutor.ExecuteAsync(new ProcessSpecification
-                            {
-                                FilePath = Path.Combine(workspace.Path, request.RelativeExecutablePath),
-                                Arguments = request.Arguments.ToArray(),
-                                WorkingDirectory = Path.Combine(workspace.Path, request.RelativeWorkingDirectory),
-                            },
+                            _processExecutor.ExecuteAsync(
+                                request.RelativeExecutablePath.EndsWith(".ps1", StringComparison.InvariantCultureIgnoreCase)
+                                ? new ProcessSpecification
+                                {
+                                    FilePath = await _pathResolver.ResolveBinaryPath("powershell").ConfigureAwait(false),
+                                    Arguments = new[] { Path.Combine(workspace.Path, request.RelativeExecutablePath) }.Concat(request.Arguments).ToArray(),
+                                    WorkingDirectory = Path.Combine(workspace.Path, request.RelativeWorkingDirectory),
+                                }
+                                : new ProcessSpecification
+                                {
+                                    FilePath = Path.Combine(workspace.Path, request.RelativeExecutablePath),
+                                    Arguments = request.Arguments.ToArray(),
+                                    WorkingDirectory = Path.Combine(workspace.Path, request.RelativeWorkingDirectory),
+                                },
                             context.CancellationToken))
                         {
                             switch (ev)
