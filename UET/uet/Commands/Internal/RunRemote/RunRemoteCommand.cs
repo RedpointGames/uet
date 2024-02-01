@@ -91,8 +91,9 @@
 
                     var request = new RunProcessRequest
                     {
-                        Path = path,
-                        WorkingDirectory = workingDirectory
+                        RootPath = Path.GetDirectoryName(path),
+                        RelativeExecutablePath = Path.GetRelativePath(Path.GetDirectoryName(path)!, path),
+                        RelativeWorkingDirectory = Path.GetRelativePath(Path.GetDirectoryName(path)!, workingDirectory!),
                     };
                     request.Arguments.AddRange(arguments);
 

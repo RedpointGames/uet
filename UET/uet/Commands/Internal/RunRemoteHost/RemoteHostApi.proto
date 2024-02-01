@@ -3,9 +3,11 @@ syntax = 'proto3';
 package RemoteHostApi;
 
 message RunProcessRequest {
-	string Path = 1;
-	repeated string Arguments = 2;
-	string WorkingDirectory = 3;
+	string rootPath = 1;
+	string relativeExecutablePath = 2;
+	string relativeWorkingDirectory = 3;
+	repeated string arguments = 4;
+	string relativeLogFile = 5;
 }
 
 message RunProcessResponse {
