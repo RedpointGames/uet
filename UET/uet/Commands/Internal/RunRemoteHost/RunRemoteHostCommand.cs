@@ -102,6 +102,7 @@
                     }
 
                     var rootPath = ConvertPath(request.RootPath);
+                    var syncBackPath = ConvertPath(request.SyncBackDirectory);
 
                     await using ((await _workspaceProvider.GetWorkspaceAsync(new TemporaryWorkspaceDescriptor
                     {
@@ -116,21 +117,21 @@
                                 FilePath = await _pathResolver.ResolveBinaryPath("robocopy").ConfigureAwait(false),
                                 Arguments = new[]
                                 {
-                                    // Mirror (delete files that we shouldn't have)
-                                    "/MIR",
-                                    // Copy the modification times
-                                    "/COPY:DT",
-                                    "/DCOPY:T",
-                                    // Exclude copying files that aren't newer on the source
-                                    "/XO",
-                                    // Hide extra progress information we don't care about.
-                                    "/NDL",
-                                    "/NJH",
-                                    "/NJS",
-                                    "/NC",
-                                    "/NS",
-                                    rootPath,
-                                    workspace.Path,
+                                        // Mirror (delete files that we shouldn't have)
+                                        "/MIR",
+                                        // Copy the modification times
+                                        "/COPY:DT",
+                                        "/DCOPY:T",
+                                        // Exclude copying files that aren't newer on the source
+                                        "/XO",
+                                        // Hide extra progress information we don't care about.
+                                        "/NDL",
+                                        "/NJH",
+                                        "/NJS",
+                                        "/NC",
+                                        "/NS",
+                                        rootPath,
+                                        workspace.Path,
                                 },
                             },
                             CaptureSpecification.Passthrough,
@@ -140,24 +141,36 @@
                             throw new RpcException(new Status(StatusCode.Unavailable, "This host was unable to copy the required content with robocopy."));
                         }
 
-                        var processSpecification = request.RelativeExecutablePath.EndsWith(".ps1", StringComparison.InvariantCultureIgnoreCase)
+                        var isPowershell = request.RelativeExecutablePath.EndsWith(".ps1", StringComparison.InvariantCultureIgnoreCase);
+                        var resolvedArguments = isPowershell
+                            ? new[] { "-ExecutionPolicy", "Bypass", Path.Combine(workspace.Path, request.RelativeExecutablePath) }.Concat(request.Arguments).ToList()
+                            : request.Arguments.ToList();
+                        if (!string.IsNullOrWhiteSpace(request.SyncBackDirectory))
+                        {
+                            for (int i = 0; i < resolvedArguments.Count; i++)
+                            {
+                                // Rewrite paths to that files that need to be synced back go to the sync-back workspace.
+                                resolvedArguments[i] = resolvedArguments[i].Replace(request.SyncBackDirectory, ConvertPath(request.SyncBackDirectory), StringComparison.OrdinalIgnoreCase);
+                            }
+                        }
+                        var processSpecification = isPowershell
                             ? new ProcessSpecification
                             {
                                 FilePath = await _pathResolver.ResolveBinaryPath("powershell").ConfigureAwait(false),
-                                Arguments = new[] { "-ExecutionPolicy", "Bypass", Path.Combine(workspace.Path, request.RelativeExecutablePath) }.Concat(request.Arguments).ToArray(),
+                                Arguments = resolvedArguments,
                                 WorkingDirectory = Path.Combine(workspace.Path, request.RelativeWorkingDirectory),
                             }
                             : new ProcessSpecification
                             {
                                 FilePath = Path.Combine(workspace.Path, request.RelativeExecutablePath),
-                                Arguments = request.Arguments.ToArray(),
+                                Arguments = resolvedArguments,
                                 WorkingDirectory = Path.Combine(workspace.Path, request.RelativeWorkingDirectory),
                             };
 
                         _logger.LogInformation($"Root path: {request.RootPath}");
                         _logger.LogInformation($"Resolved executable path: {processSpecification.FilePath}");
                         _logger.LogInformation($"Resolved working directory: {processSpecification.WorkingDirectory}");
-                        var resolvedArguments = processSpecification.Arguments.ToList();
+                        _logger.LogInformation($"Sync back directory: {request.SyncBackDirectory}");
                         _logger.LogInformation($"Argument count: {resolvedArguments.Count}");
                         for (int i = 0; i < resolvedArguments.Count; i++)
                         {

@@ -8,6 +8,7 @@ message RunProcessRequest {
 	string relativeWorkingDirectory = 3;
 	repeated string arguments = 4;
 	string relativeLogFile = 5;
+	string syncBackDirectory = 6;
 }
 
 message RunProcessResponse {
