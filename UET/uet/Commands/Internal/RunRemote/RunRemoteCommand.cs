@@ -25,6 +25,7 @@
             public Option<string> Path;
             public Option<string[]> Arguments;
             public Option<string> WorkingDirectory;
+            public Option<string> SyncBackDirectory;
 
             public Options()
             {
@@ -39,6 +40,9 @@
 
                 WorkingDirectory = new Option<string>("--working-directory");
                 WorkingDirectory.AddAlias("-w");
+
+                SyncBackDirectory = new Option<string>("--sync-back-directory");
+                SyncBackDirectory.AddAlias("-s");
             }
         }
 
@@ -76,6 +80,7 @@
                 var path = context.ParseResult.GetValueForOption(_options.Path);
                 var arguments = context.ParseResult.GetValueForOption(_options.Arguments) ?? Array.Empty<string>();
                 var workingDirectory = context.ParseResult.GetValueForOption(_options.WorkingDirectory);
+                var syncBackDirectory = context.ParseResult.GetValueForOption(_options.SyncBackDirectory);
 
                 path = Path.GetFullPath(path!);
                 workingDirectory = workingDirectory == null
@@ -94,12 +99,14 @@
                         RootPath = Path.GetDirectoryName(path),
                         RelativeExecutablePath = Path.GetRelativePath(Path.GetDirectoryName(path)!, path),
                         RelativeWorkingDirectory = Path.GetRelativePath(Path.GetDirectoryName(path)!, workingDirectory!),
+                        SyncBackDirectory = syncBackDirectory,
                     };
                     request.Arguments.AddRange(arguments);
 
                     _logger.LogInformation($"Root path: {request.RootPath}");
                     _logger.LogInformation($"Relative executable path: {request.RelativeExecutablePath}");
                     _logger.LogInformation($"Relative working directory: {request.RelativeWorkingDirectory}");
+                    _logger.LogInformation($"Sync back directory: {request.SyncBackDirectory}");
                     _logger.LogInformation($"Argument count: {request.Arguments.Count}");
                     for (int i = 0; i < request.Arguments.Count; i++)
                     {
