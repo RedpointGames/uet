@@ -96,10 +96,10 @@
 
                     var request = new RunProcessRequest
                     {
-                        RootPath = Path.GetDirectoryName(path),
-                        RelativeExecutablePath = Path.GetRelativePath(Path.GetDirectoryName(path)!, path),
-                        RelativeWorkingDirectory = Path.GetRelativePath(Path.GetDirectoryName(path)!, workingDirectory!),
-                        SyncBackDirectory = syncBackDirectory,
+                        RootPath = Path.GetDirectoryName(path) ?? string.Empty,
+                        RelativeExecutablePath = Path.GetRelativePath(Path.GetDirectoryName(path)!, path) ?? string.Empty,
+                        RelativeWorkingDirectory = Path.GetRelativePath(Path.GetDirectoryName(path)!, workingDirectory!) ?? string.Empty,
+                        SyncBackDirectory = syncBackDirectory ?? string.Empty,
                     };
                     request.Arguments.AddRange(arguments);
 
