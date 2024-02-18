@@ -85,11 +85,53 @@
 
         public bool HasReadBeenInterrupted => _readInterrupted;
 
+        private enum OpMode
+        {
+            Read,
+            Write,
+        }
+
+        private async Task<T> OpWithExceptionHandling<T>(OpMode mode, Func<Task<T>> execute)
+        {
+            try
+            {
+                return await execute().ConfigureAwait(false);
+            }
+            catch (IOException ex) when (
+                ex.InnerException is SocketException se &&
+                (se.SocketErrorCode == SocketError.ConnectionAborted ||
+                 se.SocketErrorCode == SocketError.ConnectionReset))
+            {
+                throw new RpcException(new Status(StatusCode.Unavailable, "The remote host closed the connection."));
+            }
+            catch (EndOfStreamException)
+            {
+                throw new RpcException(new Status(StatusCode.Unavailable, "The remote host closed the connection."));
+            }
+            catch (OperationCanceledException)
+            {
+                LogTrace($"{(mode == OpMode.Read ? "Read" : "Write")} has been interrupted due to OperationCanceledException.");
+                if (mode == OpMode.Read)
+                {
+                    _readInterrupted = true;
+                }
+                else
+                {
+                    _writeInterrupted = true;
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new RpcException(new Status(StatusCode.Internal, $"Unhandled exception in TcpGrpcTransportConnection: {ex}"));
+            }
+        }
+
         public async Task WriteAsync<T>(T value, CancellationToken cancellationToken) where T : IMessage
         {
             TcpGrpcTransportInterruptedException.ThrowIf(_writeInterrupted);
 
-            try
+            await OpWithExceptionHandling(OpMode.Write, async () =>
             {
                 var length = value.CalculateSize();
                 var lengthBuffer = new byte[sizeof(int)];
@@ -100,28 +142,15 @@
                 await _networkStream.WriteAsync(lengthBuffer, cancellationToken).ConfigureAwait(false);
                 await _networkStream.WriteAsync(dataBuffer.Memory.Slice(0, length), cancellationToken).ConfigureAwait(false);
                 LogTrace($"End write of {typeof(T).Name} with length {length}.");
-            }
-            catch (IOException ex) when (ex.InnerException is SocketException se && se.SocketErrorCode == SocketError.ConnectionAborted)
-            {
-                throw new RpcException(new Status(StatusCode.Unavailable, "The remote host closed the connection."));
-            }
-            catch (EndOfStreamException)
-            {
-                throw new RpcException(new Status(StatusCode.Unavailable, "The remote host closed the connection."));
-            }
-            catch (OperationCanceledException)
-            {
-                LogTrace($"Write has been interrupted due to OperationCanceledException.");
-                _writeInterrupted = true;
-                throw;
-            }
+                return 0;
+            }).ConfigureAwait(false);
         }
 
         public async Task WriteBlobAsync(byte[] value, CancellationToken cancellationToken)
         {
             TcpGrpcTransportInterruptedException.ThrowIf(_writeInterrupted);
 
-            try
+            await OpWithExceptionHandling(OpMode.Write, async () =>
             {
                 var length = value.Length;
                 var lengthBuffer = new byte[sizeof(int)];
@@ -130,21 +159,8 @@
                 await _networkStream.WriteAsync(lengthBuffer, cancellationToken).ConfigureAwait(false);
                 await _networkStream.WriteAsync(value, cancellationToken).ConfigureAwait(false);
                 LogTrace($"End write of blob with length {length}.");
-            }
-            catch (IOException ex) when (ex.InnerException is SocketException se && se.SocketErrorCode == SocketError.ConnectionAborted)
-            {
-                throw new RpcException(new Status(StatusCode.Unavailable, "The remote host closed the connection."));
-            }
-            catch (EndOfStreamException)
-            {
-                throw new RpcException(new Status(StatusCode.Unavailable, "The remote host closed the connection."));
-            }
-            catch (OperationCanceledException)
-            {
-                LogTrace($"Write has been interrupted due to OperationCanceledException.");
-                _writeInterrupted = true;
-                throw;
-            }
+                return 0;
+            }).ConfigureAwait(false);
         }
 
         public async Task<T> ReadExpectedAsync<T>(
@@ -153,7 +169,7 @@
         {
             TcpGrpcTransportInterruptedException.ThrowIf(_readInterrupted);
 
-            try
+            return await OpWithExceptionHandling(OpMode.Read, async () =>
             {
                 var lengthBuffer = new byte[sizeof(int)];
                 await _networkStream.ReadExactlyAsync(lengthBuffer, cancellationToken).ConfigureAwait(false);
@@ -163,21 +179,7 @@
                 await _networkStream.ReadExactlyAsync(dataBuffer.Memory.Slice(0, length), cancellationToken).ConfigureAwait(false);
                 LogTrace($"End read of {typeof(T).Name} with length {length}.");
                 return (T)descriptor.Parser.ParseFrom(dataBuffer.Memory.Span.Slice(0, length));
-            }
-            catch (IOException ex) when (ex.InnerException is SocketException se && se.SocketErrorCode == SocketError.ConnectionAborted)
-            {
-                throw new RpcException(new Status(StatusCode.Unavailable, "The remote host closed the connection."));
-            }
-            catch (EndOfStreamException)
-            {
-                throw new RpcException(new Status(StatusCode.Unavailable, "The remote host closed the connection."));
-            }
-            catch (OperationCanceledException)
-            {
-                LogTrace($"Read has been interrupted due to OperationCanceledException.");
-                _readInterrupted = true;
-                throw;
-            }
+            }).ConfigureAwait(false);
         }
 
         private class NestedMemoryOwner : IMemoryOwner<byte>
@@ -206,7 +208,7 @@
         {
             TcpGrpcTransportInterruptedException.ThrowIf(_readInterrupted);
 
-            try
+            return await OpWithExceptionHandling(OpMode.Read, async () =>
             {
                 var lengthBuffer = new byte[sizeof(int)];
                 await _networkStream.ReadExactlyAsync(lengthBuffer, cancellationToken).ConfigureAwait(false);
@@ -226,21 +228,7 @@
                     dataBuffer.Dispose();
                     throw;
                 }
-            }
-            catch (IOException ex) when (ex.InnerException is SocketException se && se.SocketErrorCode == SocketError.ConnectionAborted)
-            {
-                throw new RpcException(new Status(StatusCode.Unavailable, "The remote host closed the connection."));
-            }
-            catch (EndOfStreamException)
-            {
-                throw new RpcException(new Status(StatusCode.Unavailable, "The remote host closed the connection."));
-            }
-            catch (OperationCanceledException)
-            {
-                LogTrace($"Read has been interrupted due to OperationCanceledException.");
-                _readInterrupted = true;
-                throw;
-            }
+            }).ConfigureAwait(false);
         }
 
         public async ValueTask DisposeAsync()
