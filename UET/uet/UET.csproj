@@ -44,6 +44,7 @@
     <ProjectReference Include="..\Redpoint.OpenGE.Protocol\Redpoint.OpenGE.Protocol.csproj" />
     <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
     <ProjectReference Include="..\Redpoint.Pdu.Abstractions\Redpoint.Pdu.Abstractions.csproj" />
+    <ProjectReference Include="..\Redpoint.Pdu.CyberPower\Redpoint.Pdu.CyberPower.csproj" />
     <ProjectReference Include="..\Redpoint.Pdu.Serveredge\Redpoint.Pdu.Serveredge.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
