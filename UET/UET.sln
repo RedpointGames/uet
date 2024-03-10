@@ -357,6 +357,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Lexer.Tests", "Red
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Redpoint.SelfVersion", "Redpoint.SelfVersion\Redpoint.SelfVersion.shproj", "{FB285E11-8F0F-4547-9A59-9805B4B0844F}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Pdu.CyberPower", "Redpoint.Pdu.CyberPower\Redpoint.Pdu.CyberPower.csproj", "{7CDD0F44-C516-47E9-99E5-3885AD24636F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -983,6 +985,10 @@ Global
 		{990381D0-B955-4A8D-8F9D-F5CF498AE627}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{990381D0-B955-4A8D-8F9D-F5CF498AE627}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{990381D0-B955-4A8D-8F9D-F5CF498AE627}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7CDD0F44-C516-47E9-99E5-3885AD24636F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7CDD0F44-C516-47E9-99E5-3885AD24636F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7CDD0F44-C516-47E9-99E5-3885AD24636F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7CDD0F44-C516-47E9-99E5-3885AD24636F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1114,6 +1120,7 @@ Global
 		{AB41A2FF-9761-4B84-B4DE-BF0447AB9797} = {ACDC3FAA-0155-4946-B9BE-E0B9AAAC511E}
 		{33F268A7-125D-4213-80D3-144DECC39F6E} = {ACDC3FAA-0155-4946-B9BE-E0B9AAAC511E}
 		{990381D0-B955-4A8D-8F9D-F5CF498AE627} = {ACDC3FAA-0155-4946-B9BE-E0B9AAAC511E}
+		{7CDD0F44-C516-47E9-99E5-3885AD24636F} = {A10A6C63-109E-4825-AA79-81B0AE279A76}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}

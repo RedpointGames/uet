@@ -7,6 +7,7 @@
     using UET.Commands.Internal.CreateJunction;
     using UET.Commands.Internal.DynamicReentrantTask;
     using UET.Commands.Internal.GenerateJsonSchema;
+    using UET.Commands.Internal.InspectSnmp;
     using UET.Commands.Internal.InstallPlatformSdk;
     using UET.Commands.Internal.OpenGE;
     using UET.Commands.Internal.OpenGEPreprocessorCache;
@@ -58,6 +59,7 @@
                 TestPduCommand.CreateTestPduCommand(),
                 RunRemoteHostCommand.CreateRunRemoteHostCommand(),
                 RunRemoteCommand.CreateRunRemoteCommand(),
+                InspectSnmpCommand.CreateInspectSnmpCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
