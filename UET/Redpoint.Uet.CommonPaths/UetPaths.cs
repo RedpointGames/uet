@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.CommonPaths
 {
     using System;
+    using System.Diagnostics;
     using System.Runtime.InteropServices;
     using System.Runtime.Versioning;
 
@@ -101,10 +102,35 @@
             // On macOS, we store UEFS data underneath a mounted "/Volumes/Build/UEFS" folder, if that
             // volume exists. We expect the volume to be an SSD with a larger storage space than the the
             // built-in SSD.
-            if (OperatingSystem.IsMacOS() && Directory.Exists("/Volumes/Build"))
+            if (OperatingSystem.IsMacOS())
             {
-                Directory.CreateDirectory("/Volumes/Build/UEFS");
-                return "/Volumes/Build/UEFS";
+                var infoProc = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "/usr/sbin/diskutil",
+                    ArgumentList = { "info", "Build" },
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                });
+                infoProc!.WaitForExit();
+                if (infoProc.ExitCode == 0)
+                {
+                    // We have a "Build" disk we can mount.
+                    var mountProc = Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "/usr/sbin/diskutil",
+                        ArgumentList = { "mount", "Build" },
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                    });
+                    mountProc!.WaitForExit();
+                    if (mountProc.ExitCode != 0)
+                    {
+                        throw new NotSupportedException("Unable to mount 'Build' disk when UEFS root path needs to be resolved.");
+                    }
+
+                    Directory.CreateDirectory("/Volumes/Build/UEFS");
+                    return "/Volumes/Build/UEFS";
+                }
             }
 
             return GetApplicationSystemWideRootPath(ApplicationName.UEFS);
