@@ -110,6 +110,29 @@
                 _repository = new Repository(_gitRepoPath);
                 logger.LogInformation($"Loaded existing repository located at: {_gitRepoPath}");
             }
+            catch (NotFoundException) when (OperatingSystem.IsMacOS())
+            {
+                // Attempt to workaround launchctl jank.
+                var initProc = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "/usr/bin/git",
+                    ArgumentList = { "init", "--bare" },
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                });
+                initProc!.WaitForExit();
+                var configProc = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "/usr/bin/git",
+                    ArgumentList = { "config", "--global", "--add", "safe.directory", "*" },
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                });
+                configProc!.WaitForExit();
+
+                _repository = new Repository(_gitRepoPath);
+                logger.LogInformation($"Initialized new repository located at: {_gitRepoPath}");
+            }
             catch (RepositoryNotFoundException)
             {
                 Repository.Init(_gitRepoPath, true);
