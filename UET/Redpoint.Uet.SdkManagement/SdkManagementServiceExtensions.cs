@@ -9,6 +9,7 @@
     using System.Text.Json.Serialization;
     using Redpoint.Uet.SdkManagement.AutoSdk;
     using Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk;
+    using Redpoint.Uet.SdkManagement.Sdk.VersionNumbers;
 
     public static class SdkManagementServiceExtensions
     {
@@ -16,6 +17,16 @@
         {
             services.AddSingleton<ISimpleDownloadProgress, SimpleDownloadProgress>();
             services.AddSingleton<ILocalSdkManager, DefaultLocalSdkManager>();
+
+            services.AddSingleton<IVersionNumberResolver, DefaultVersionNumberResolver>();
+            services.AddSingleton<IWindowsVersionNumbers, EmbeddedWindowsVersionNumbers>();
+            services.AddSingleton<IWindowsVersionNumbers, JsonWindowsVersionNumbers>();
+            services.AddSingleton<IMacVersionNumbers, EmbeddedMacVersionNumbers>();
+            services.AddSingleton<IMacVersionNumbers, JsonMacVersionNumbers>();
+            services.AddSingleton<ILinuxVersionNumbers, EmbeddedLinuxVersionNumbers>();
+            services.AddSingleton<ILinuxVersionNumbers, JsonLinuxVersionNumbers>();
+            services.AddSingleton<IAndroidVersionNumbers, EmbeddedAndroidVersionNumbers>();
+            services.AddSingleton<IAndroidVersionNumbers, JsonAndroidVersionNumbers>();
 
             if (OperatingSystem.IsWindows())
             {

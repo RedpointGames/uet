@@ -2,6 +2,7 @@
 {
     using Redpoint.Uet.SdkManagement;
     using Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk;
+    using Redpoint.Uet.SdkManagement.Sdk.VersionNumbers;
     using System.Runtime.Versioning;
 
     public class WindowsEnvironmentSetupTests
@@ -42,7 +43,7 @@ namespace TestNamespace
         [SupportedOSPlatform("windows")]
         public async Task CanParseVersionsFromUnrealCSharp()
         {
-            var versions = await WindowsSdkSetup.ParseVersions(
+            var versions = await EmbeddedWindowsVersionNumbers.ParseVersions(
                 _microsoftPlatformSdkCodeFragment);
 
             Assert.Equal("10.0.18362.0", versions.windowsSdkPreferredVersion);
