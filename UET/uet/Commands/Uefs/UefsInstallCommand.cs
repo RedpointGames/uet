@@ -3,6 +3,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.ProgressMonitor;
     using Redpoint.ServiceControl;
+    using Redpoint.Uet.CommonPaths;
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
@@ -87,7 +88,7 @@
                 if (OperatingSystem.IsWindows())
                 {
                     downloadUrl = $"https://github.com/RedpointGames/uet/releases/download/{version}/uefs-daemon.exe";
-                    baseFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "UET");
+                    baseFolder = UetPaths.UetRootPath;
                     filename = "uefs-daemon.exe";
                     daemonName = "UEFS Service";
                     stdoutPath = null;
@@ -96,12 +97,12 @@
                 else if (OperatingSystem.IsMacOS())
                 {
                     downloadUrl = $"https://github.com/RedpointGames/uet/releases/download/{version}/uefs-daemon";
-                    baseFolder = "/Users/Shared/UET";
+                    baseFolder = UetPaths.UetRootPath;
                     filename = "uefs-daemon";
                     daemonName = "games.redpoint.UEFS";
-                    stdoutPath = "/Users/Shared/UEFS/logs/stdout.log";
-                    stderrPath = "/Users/Shared/UEFS/logs/stderr.log";
-                    Directory.CreateDirectory("/Users/Shared/UEFS/logs");
+                    stdoutPath = Path.Combine(UetPaths.UefsRootPath, "logs/stdout.log");
+                    stderrPath = Path.Combine(UetPaths.UefsRootPath, "logs/stderr.log");
+                    Directory.CreateDirectory(Path.Combine(UetPaths.UefsRootPath, "logs"));
                 }
                 else
                 {

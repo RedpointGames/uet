@@ -15,6 +15,7 @@
     using UET.Commands.EngineSpec;
     using Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk;
     using Redpoint.Uet.Core.Permissions;
+    using Redpoint.Uet.CommonPaths;
 
     internal static class InstallSdksCommand
     {
@@ -127,10 +128,7 @@
                     _logger.LogInformation($" - {platform}");
                 }
 
-                var packagePath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "UET",
-                    "SDKs");
+                var packagePath = UetPaths.UetDefaultWindowsSdkStoragePath;
                 Directory.CreateDirectory(packagePath);
 
                 var envVars = await _localSdkManager.SetupEnvironmentForSdkSetups(

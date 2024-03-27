@@ -7,6 +7,7 @@
     using Redpoint.Uet.BuildPipeline.Executors.Local;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Automation;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Project.Automation;
+    using Redpoint.Uet.CommonPaths;
     using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Plugin;
@@ -94,11 +95,8 @@
                 // @todo: Should we surface these options?
                 var windowsSharedStoragePath = Path.Combine(path.DirectoryPath, ".uet", "shared-storage");
                 var macSharedStoragePath = Path.Combine(path.DirectoryPath, ".uet", "shared-storage");
-                var windowsSdksPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "UET",
-                    "SDKs");
-                var macSdksPath = "/Users/Shared/UET/SDKs";
+                var windowsSdksPath = UetPaths.UetDefaultWindowsSdkStoragePath;
+                var macSdksPath = UetPaths.UetDefaultMacSdkStoragePath;
 
                 if (string.IsNullOrWhiteSpace(prefix))
                 {

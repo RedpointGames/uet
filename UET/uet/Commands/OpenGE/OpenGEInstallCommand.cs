@@ -4,6 +4,7 @@
     using Redpoint.ProgressMonitor;
     using Redpoint.Registry;
     using Redpoint.ServiceControl;
+    using Redpoint.Uet.CommonPaths;
     using Redpoint.Uet.OpenGE;
     using System;
     using System.CommandLine;
@@ -175,14 +176,14 @@
                 _logger.LogInformation("Installing OpenGE agent...");
                 if (OperatingSystem.IsMacOS())
                 {
-                    Directory.CreateDirectory("/Users/Shared/OpenGE");
+                    Directory.CreateDirectory(UetPaths.OpenGERootPath);
                 }
                 await _serviceControl.InstallService(
                     daemonName,
                     "The OpenGE agent provides remote compilation services.",
                     $@"{agentPath} --service",
-                    OperatingSystem.IsMacOS() ? "/Users/Shared/OpenGE/stdout.log" : null,
-                    OperatingSystem.IsMacOS() ? "/Users/Shared/OpenGE/stderr.log" : null).ConfigureAwait(false);
+                    OperatingSystem.IsMacOS() ? Path.Combine(UetPaths.OpenGERootPath, "stdout.log") : null,
+                    OperatingSystem.IsMacOS() ? Path.Combine(UetPaths.OpenGERootPath, "stderr.log") : null).ConfigureAwait(false);
 
                 _logger.LogInformation("Starting OpenGE agent...");
                 await _serviceControl.StartService(daemonName).ConfigureAwait(false);
@@ -241,15 +242,7 @@
                 if (currentVersionAttributeValue != null && !currentVersionAttributeValue.EndsWith("-pre", StringComparison.Ordinal))
                 {
                     var version = currentVersionAttributeValue;
-                    var basePath = true switch
-                    {
-                        var v when v == OperatingSystem.IsWindows() => Path.Combine(
-                            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                            "UET",
-                            version),
-                        var v when v == OperatingSystem.IsMacOS() => $"/Users/Shared/UET/{version}",
-                        _ => throw new PlatformNotSupportedException()
-                    };
+                    var basePath = Path.Combine(UetPaths.UetRootPath, version);
                     var uetName = true switch
                     {
                         var v when v == OperatingSystem.IsWindows() => "uet.exe",
@@ -262,15 +255,7 @@
                 {
                     _logger.LogWarning("Unable to auto-detect running UET version; the xgConsole shim will be installed into the Current folder, even if the versions don't match.");
                     var shimVersionFolder = "Current";
-                    var basePath = true switch
-                    {
-                        var v when v == OperatingSystem.IsWindows() => Path.Combine(
-                            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                            "UET",
-                            shimVersionFolder),
-                        var v when v == OperatingSystem.IsMacOS() => $"/Users/Shared/UET/{shimVersionFolder}",
-                        _ => throw new PlatformNotSupportedException()
-                    };
+                    var basePath = Path.Combine(UetPaths.UetRootPath, shimVersionFolder);
                     var uetPath = _selfLocation.GetUETLocalLocation();
 
                     string version;

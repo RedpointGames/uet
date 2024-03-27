@@ -19,6 +19,7 @@
     using Redpoint.Uet.Configuration.Dynamic;
     using System.Text.RegularExpressions;
     using Redpoint.Uet.Workspace;
+    using Redpoint.Uet.CommonPaths;
 
     internal sealed class BuildCommand
     {
@@ -305,14 +306,11 @@
                     }
                     if (string.IsNullOrWhiteSpace(windowsSdksPath))
                     {
-                        windowsSdksPath = Path.Combine(
-                            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                            "UET",
-                            "SDKs");
+                        windowsSdksPath = UetPaths.UetDefaultWindowsSdkStoragePath;
                     }
                     if (string.IsNullOrWhiteSpace(macSdksPath))
                     {
-                        macSdksPath = "/Users/Shared/UET/SDKs";
+                        macSdksPath = UetPaths.UetDefaultMacSdkStoragePath;
                     }
                 }
                 else

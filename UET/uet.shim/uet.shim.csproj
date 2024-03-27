@@ -23,6 +23,7 @@
     <ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.CommonPaths\Redpoint.Uet.CommonPaths.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
     <PackageReference Include="Crayon" Version="2.0.69" />
   </ItemGroup>

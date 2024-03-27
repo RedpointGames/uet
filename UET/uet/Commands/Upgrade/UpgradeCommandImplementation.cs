@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.ProgressMonitor;
+    using Redpoint.Uet.CommonPaths;
     using System;
     using System.Linq;
     using System.Text.Encodings.Web;
@@ -18,11 +19,11 @@
         {
             if (OperatingSystem.IsWindows())
             {
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "UET", version, "uet.exe");
+                return Path.Combine(UetPaths.UetRootPath, version, "uet.exe");
             }
             else if (OperatingSystem.IsMacOS())
             {
-                return Path.Combine("/Users/Shared/UET", version, "uet");
+                return Path.Combine(UetPaths.UetRootPath, version, "uet");
             }
             else
             {
@@ -61,13 +62,13 @@
             if (OperatingSystem.IsWindows())
             {
                 downloadUrl = $"https://github.com/RedpointGames/uet/releases/download/{version}/uet.exe";
-                baseFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "UET");
+                baseFolder = UetPaths.UetRootPath;
                 filename = "uet.exe";
             }
             else if (OperatingSystem.IsMacOS())
             {
                 downloadUrl = $"https://github.com/RedpointGames/uet/releases/download/{version}/uet";
-                baseFolder = "/Users/Shared/UET";
+                baseFolder = UetPaths.UetRootPath;
                 filename = "uet";
             }
             else
