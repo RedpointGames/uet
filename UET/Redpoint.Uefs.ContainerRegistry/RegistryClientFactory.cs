@@ -3,7 +3,6 @@
     using Docker.Registry.DotNet;
     using Docker.Registry.DotNet.Authentication;
     using Docker.Registry.DotNet.Registry;
-    using Redpoint.ThirdParty.CredentialManagement;
     using System.Text;
     using System.Text.Json;
 
@@ -44,8 +43,7 @@
 
             var dockerJsonPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".docker",
-                "config.json");
+                ".uefs-credentials.json");
             if (!File.Exists(dockerJsonPath))
             {
                 throw new InvalidOperationException("Missing Docker CLI configuration, which is necessary to authenticate with package registries.");
@@ -54,29 +52,7 @@
                 File.ReadAllText(dockerJsonPath),
                 UefsRegistryJsonSerializerContext.Default.DockerConfigJson);
 
-            if (dockerConfig?.CredsStore == "wincred")
-            {
-                var credential = new Credential
-                {
-                    Target = host
-                };
-                if (!credential.Load())
-                {
-                    return null;
-                }
-                var password = Encoding.UTF8.GetString(Encoding.Unicode.GetBytes(credential.Password));
-                if (password.Contains('\0', StringComparison.Ordinal))
-                {
-                    // This was probably encoded by C# instead.
-                    password = credential.Password;
-                }
-                return new RegistryCredential
-                {
-                    Username = credential.Username,
-                    Password = password,
-                };
-            }
-            else if (dockerConfig?.Auths?.ContainsKey(host) ?? false)
+            if (dockerConfig?.Auths?.ContainsKey(host) ?? false)
             {
                 var basicAuth = Encoding.UTF8.GetString(Convert.FromBase64String(dockerConfig.Auths[host].Auth!)).Split(":", 2);
                 return new RegistryCredential

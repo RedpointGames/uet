@@ -4,7 +4,6 @@
     using System.Text.Json;
     using System.Text;
     using System.Text.RegularExpressions;
-    using Redpoint.ThirdParty.CredentialManagement;
 
     internal sealed class DefaultCredentialDiscovery : ICredentialDiscovery
     {
@@ -135,32 +134,14 @@
 
             var dockerJsonPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".docker",
-                "config.json");
+                ".uefs-credentials.json");
             if (!File.Exists(dockerJsonPath))
             {
                 throw new UnableToDiscoverCredentialException("Missing Docker CLI configuration, which is necessary to authenticate with package registries.");
             }
             var dockerConfig = JsonSerializer.Deserialize<DockerConfigJson>(File.ReadAllText(dockerJsonPath), DockerConfigJsonSourceGenerationContext.Default.DockerConfigJson);
 
-            if (dockerConfig?.CredsStore == "wincred")
-            {
-                var credential = new Credential
-                {
-                    Target = host
-                };
-                if (!credential.Load())
-                {
-                    throw new UnableToDiscoverCredentialException($"Unable to access the credential stored in the Windows Credential Manager for '{host}'.");
-                }
-                var password = Encoding.UTF8.GetString(Encoding.Unicode.GetBytes(credential.Password));
-                return new RegistryCredential
-                {
-                    Username = credential.Username,
-                    Password = password,
-                };
-            }
-            else if (dockerConfig?.Auths?.ContainsKey(host) ?? false)
+            if (dockerConfig?.Auths?.ContainsKey(host) ?? false)
             {
                 var basicAuth = Encoding.UTF8.GetString(Convert.FromBase64String(dockerConfig.Auths[host].Auth)).Split(":", 2);
                 return new RegistryCredential

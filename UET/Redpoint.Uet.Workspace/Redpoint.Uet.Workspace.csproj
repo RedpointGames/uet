@@ -3,7 +3,6 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <ItemGroup>
-    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.CredentialManagement\Redpoint.ThirdParty.CredentialManagement.csproj" />
     <ProjectReference Include="..\Redpoint.CredentialDiscovery\Redpoint.CredentialDiscovery.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
