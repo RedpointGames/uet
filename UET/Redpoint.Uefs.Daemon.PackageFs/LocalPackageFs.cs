@@ -173,9 +173,10 @@
 
                 // Check if we have enough disk space.
                 var driveInfo = new DriveInfo(Path.GetPathRoot(_storagePath)!);
-                if (driveInfo.AvailableFreeSpace < remoteStorageBlob.Length + 2 * 1024 * 1024)
+                var requiredBytes = remoteStorageBlob.Length + (2 * 1024 * 1024);
+                if (driveInfo.AvailableFreeSpace < requiredBytes)
                 {
-                    throw new InvalidOperationException("There is not enough space on the local system to store this package.");
+                    throw new InvalidOperationException($"There is not enough space on the local system to store this package. The drive '{driveInfo}' has {driveInfo.AvailableFreeSpace / 1024 / 1024} MB of space, and we need {requiredBytes / 1024 / 1024} MB of space.");
                 }
 
                 // Copy it from the source, hashing while the copy takes place.
