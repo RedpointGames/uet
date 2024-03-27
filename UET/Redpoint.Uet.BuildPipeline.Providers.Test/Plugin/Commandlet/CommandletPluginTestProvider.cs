@@ -5,6 +5,7 @@
     using Redpoint.Reservation;
     using Redpoint.RuntimeJson;
     using Redpoint.Uet.BuildGraph;
+    using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Plugin;
     using System;
@@ -41,6 +42,18 @@
 
         public IRuntimeJson DynamicSettings { get; } = new TestProviderRuntimeJson(TestProviderSourceGenerationContext.WithStringEnum).BuildConfigPluginTestCommandlet;
 
+        /// <summary>
+        /// If Platforms isn't specified for a test, it should default to Win64 only.
+        /// </summary>
+        private static BuildConfigHostPlatform[] GetPlatforms(BuildConfigHostPlatform[]? originalPlatforms)
+        {
+            if (originalPlatforms == null)
+            {
+                return [BuildConfigHostPlatform.Win64];
+            }
+            return originalPlatforms;
+        }
+
         public async Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,
             XmlWriter writer,
@@ -57,12 +70,12 @@
                 writer).ConfigureAwait(false);
 
             // Emit the nodes to run each test.
-            var allPlatforms = castedSettings.SelectMany(x => x.settings.Platforms).Where(context.CanHostPlatformBeUsed).ToHashSet();
+            var allPlatforms = castedSettings.SelectMany(x => GetPlatforms(x.settings.Platforms)).Where(context.CanHostPlatformBeUsed).ToHashSet();
             foreach (var platform in allPlatforms)
             {
                 foreach (var test in castedSettings)
                 {
-                    if (!test.settings.Platforms.Contains(platform))
+                    if (!GetPlatforms(test.settings.Platforms).Contains(platform))
                     {
                         continue;
                     }

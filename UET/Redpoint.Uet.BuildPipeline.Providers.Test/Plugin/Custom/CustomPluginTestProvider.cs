@@ -25,6 +25,18 @@
 
         public IRuntimeJson DynamicSettings { get; } = new TestProviderRuntimeJson(TestProviderSourceGenerationContext.WithStringEnum).BuildConfigPluginTestCustom;
 
+        /// <summary>
+        /// If Platforms isn't specified for a test, it should default to Win64 only.
+        /// </summary>
+        private static BuildConfigHostPlatform[] GetPlatforms(BuildConfigHostPlatform[]? originalPlatforms)
+        {
+            if (originalPlatforms == null)
+            {
+                return [BuildConfigHostPlatform.Win64];
+            }
+            return originalPlatforms;
+        }
+
         public async Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,
             XmlWriter writer,
@@ -58,8 +70,7 @@
             var customTestsAgainstTestProject = dynamicSettings
                 .Where(x =>
                     x.settings.TestAgainst == BuildConfigPluginTestCustomTestAgainst.TestProject &&
-                    x.settings.Platforms != null &&
-                    x.settings.Platforms.Length > 0)
+                    GetPlatforms(x.settings.Platforms).Length > 0)
                 .ToArray();
             if (customTestsAgainstTestProject.Length > 0)
             {
@@ -67,12 +78,12 @@
             }
 
             // Emit the nodes to run custom tests to run against the test project.
-            var allPlatformsAgainstTestProject = customTestsAgainstTestProject.SelectMany(x => x.settings.Platforms).Where(context.CanHostPlatformBeUsed).ToHashSet();
+            var allPlatformsAgainstTestProject = customTestsAgainstTestProject.SelectMany(x => GetPlatforms(x.settings.Platforms)).Where(context.CanHostPlatformBeUsed).ToHashSet();
             foreach (var platform in allPlatformsAgainstTestProject)
             {
                 foreach (var test in customTestsAgainstTestProject)
                 {
-                    if (!test.settings.Platforms.Contains(platform))
+                    if (!GetPlatforms(test.settings.Platforms).Contains(platform))
                     {
                         continue;
                     }
@@ -125,17 +136,16 @@
             var customTestsAgainstPackagedPlugin = dynamicSettings
                 .Where(x =>
                     x.settings.TestAgainst == BuildConfigPluginTestCustomTestAgainst.PackagedPlugin &&
-                    x.settings.Platforms != null &&
-                    x.settings.Platforms.Length > 0)
+                    GetPlatforms(x.settings.Platforms).Length > 0)
                 .ToArray();
 
             // Emit the nodes to run custom tests to run against the test project.
-            var allPlatformsAgainstPackagedPlugin = customTestsAgainstPackagedPlugin.SelectMany(x => x.settings.Platforms).Where(context.CanHostPlatformBeUsed).ToHashSet();
+            var allPlatformsAgainstPackagedPlugin = customTestsAgainstPackagedPlugin.SelectMany(x => GetPlatforms(x.settings.Platforms)).Where(context.CanHostPlatformBeUsed).ToHashSet();
             foreach (var platform in allPlatformsAgainstPackagedPlugin)
             {
                 foreach (var test in customTestsAgainstPackagedPlugin)
                 {
-                    if (!test.settings.Platforms.Contains(platform))
+                    if (!GetPlatforms(test.settings.Platforms).Contains(platform))
                     {
                         continue;
                     }
