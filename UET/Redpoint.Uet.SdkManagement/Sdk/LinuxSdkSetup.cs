@@ -10,6 +10,7 @@
     using System.IO;
     using System.Reflection;
     using System.Text.RegularExpressions;
+    using Redpoint.Uet.SdkManagement.Sdk.VersionNumbers;
 
     [SupportedOSPlatform("windows")]
     public class LinuxSdkSetup : ISdkSetup
@@ -17,53 +18,32 @@
         private readonly ILogger<LinuxSdkSetup> _logger;
         private readonly IProcessExecutor _processExecutor;
         private readonly ISimpleDownloadProgress _simpleDownloadProgress;
+        private readonly IVersionNumberResolver _versionNumberResolver;
 
         public LinuxSdkSetup(
             ILogger<LinuxSdkSetup> logger,
             IProcessExecutor processExecutor,
-            ISimpleDownloadProgress simpleDownloadProgress)
+            ISimpleDownloadProgress simpleDownloadProgress,
+            IVersionNumberResolver versionNumberResolver)
         {
             _logger = logger;
             _processExecutor = processExecutor;
             _simpleDownloadProgress = simpleDownloadProgress;
+            _versionNumberResolver = versionNumberResolver;
         }
 
         public IReadOnlyList<string> PlatformNames => new[] { "Linux" };
 
         public string CommonPlatformNameForPackageId => "Linux";
 
-        internal static Task<string> ParseClangToolchainVersion(string linuxPlatformSdk)
-        {
-            var regex = new Regex("return \"([a-z0-9-_\\.]+)\"");
-            foreach (Match match in regex.Matches(linuxPlatformSdk))
-            {
-                return Task.FromResult(match.Groups[1].Value);
-            }
-            throw new InvalidOperationException("Unable to find Clang version in LinuxPlatformSDK.Versions.cs");
-        }
-
-        private static async Task<string> GetClangToolchainVersion(string unrealEnginePath)
-        {
-            var linuxPlatformSdk = await File.ReadAllTextAsync(Path.Combine(
-                unrealEnginePath,
-                "Engine",
-                "Source",
-                "Programs",
-                "UnrealBuildTool",
-                "Platform",
-                "Linux",
-                "LinuxPlatformSDK.Versions.cs")).ConfigureAwait(false);
-            return await ParseClangToolchainVersion(linuxPlatformSdk).ConfigureAwait(false);
-        }
-
         public Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
-            return GetClangToolchainVersion(unrealEnginePath);
+            return _versionNumberResolver.For<ILinuxVersionNumbers>(unrealEnginePath).GetClangToolchainVersion(unrealEnginePath);
         }
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
         {
-            var clangToolchain = await GetClangToolchainVersion(unrealEnginePath).ConfigureAwait(false);
+            var clangToolchain = await _versionNumberResolver.For<ILinuxVersionNumbers>(unrealEnginePath).GetClangToolchainVersion(unrealEnginePath).ConfigureAwait(false);
 
             _logger.LogInformation($"Downloading Linux cross-compile toolchain {clangToolchain}...");
             using (var client = new HttpClient())

@@ -3,11 +3,9 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.IO;
     using Redpoint.ProcessExecution;
-    using System.Collections.Concurrent;
+    using Redpoint.Uet.SdkManagement.Sdk.VersionNumbers;
     using System.IO.Compression;
-    using System.Reflection;
     using System.Runtime.Versioning;
-    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -16,13 +14,16 @@
     {
         private readonly ILogger<AndroidSdkSetup> _logger;
         private readonly IProcessExecutor _processExecutor;
+        private readonly IVersionNumberResolver _versionNumberResolver;
 
         public AndroidSdkSetup(
             ILogger<AndroidSdkSetup> logger,
-            IProcessExecutor processExecutor)
+            IProcessExecutor processExecutor,
+            IVersionNumberResolver versionNumberResolver)
         {
             _logger = logger;
             _processExecutor = processExecutor;
+            _versionNumberResolver = versionNumberResolver;
         }
 
         // @note: Gradle is always backwards compatible to Java 8, but is not forward compatible with newer JDK versions.
@@ -34,46 +35,15 @@
 
         public string CommonPlatformNameForPackageId => "Android";
 
-        internal static Task<string> ParseVersion(string androidPlatformSdk, string versionCategory)
-        {
-            var regex = new Regex("case \"([a-z-]+)\": return \"([a-z0-9-\\.]+)\"");
-            foreach (Match match in regex.Matches(androidPlatformSdk))
-            {
-                if (match.Groups[1].Value == versionCategory)
-                {
-                    return Task.FromResult(match.Groups[2].Value);
-                }
-            }
-            throw new InvalidOperationException($"Unable to find Android version for {versionCategory} in AndroidPlatformSDK.Versions.cs");
-        }
-
-        private static async Task<(string platforms, string buildTools, string cmake, string ndk)> GetVersions(string unrealEnginePath)
-        {
-            var androidPlatformSdk = await File.ReadAllTextAsync(Path.Combine(
-                unrealEnginePath,
-                "Engine",
-                "Source",
-                "Programs",
-                "UnrealBuildTool",
-                "Platform",
-                "Android",
-                "AndroidPlatformSDK.Versions.cs")).ConfigureAwait(false);
-            return (
-                await ParseVersion(androidPlatformSdk, "platforms").ConfigureAwait(false),
-                await ParseVersion(androidPlatformSdk, "build-tools").ConfigureAwait(false),
-                await ParseVersion(androidPlatformSdk, "cmake").ConfigureAwait(false),
-                await ParseVersion(androidPlatformSdk, "ndk").ConfigureAwait(false));
-        }
-
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
-            var versions = await GetVersions(unrealEnginePath).ConfigureAwait(false);
+            var versions = await _versionNumberResolver.For<IAndroidVersionNumbers>(unrealEnginePath).GetVersions(unrealEnginePath).ConfigureAwait(false);
             return $"{versions.platforms}-{versions.buildTools}-{versions.cmake}-{versions.ndk}-{_jdkVersion}";
         }
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
         {
-            var versions = await GetVersions(unrealEnginePath).ConfigureAwait(false);
+            var versions = await _versionNumberResolver.For<IAndroidVersionNumbers>(unrealEnginePath).GetVersions(unrealEnginePath).ConfigureAwait(false);
 
             if (!File.Exists(Path.Combine(sdkPackagePath, "Jdk", _jdkVersion, "bin", "java.exe")))
             {
