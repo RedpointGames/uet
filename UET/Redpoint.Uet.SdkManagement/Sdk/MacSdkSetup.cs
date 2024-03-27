@@ -2,12 +2,11 @@
 {
     using Redpoint.ProcessExecution;
     using System.Threading.Tasks;
-    using System.Diagnostics;
     using System.Runtime.Versioning;
-    using System.Text.RegularExpressions;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProgressMonitor;
     using System.IO;
+    using Redpoint.Uet.SdkManagement.Sdk.VersionNumbers;
 
     [SupportedOSPlatform("macos")]
     public class MacSdkSetup : ISdkSetup
@@ -16,52 +15,29 @@
         private readonly IProcessExecutor _processExecutor;
         private readonly IProgressFactory _progressFactory;
         private readonly IMonitorFactory _monitorFactory;
+        private readonly IVersionNumberResolver _versionNumberResolver;
 
         public MacSdkSetup(
             ILogger<MacSdkSetup> logger,
             IProcessExecutor processExecutor,
             IProgressFactory progressFactory,
-            IMonitorFactory monitorFactory)
+            IMonitorFactory monitorFactory,
+            IVersionNumberResolver versionNumberResolver)
         {
             _logger = logger;
             _processExecutor = processExecutor;
             _progressFactory = progressFactory;
             _monitorFactory = monitorFactory;
+            _versionNumberResolver = versionNumberResolver;
         }
 
         public IReadOnlyList<string> PlatformNames => new[] { "Mac", "IOS" };
 
         public string CommonPlatformNameForPackageId => "Mac";
 
-        internal static Task<string> ParseXcodeVersion(string applePlatformSdk)
-        {
-            var regex = new Regex("return \"([0-9\\.]+)\"");
-            foreach (Match match in regex.Matches(applePlatformSdk))
-            {
-                // It's the first one because GetMainVersion() is
-                // the first function in this file.
-                return Task.FromResult(match.Groups[1].Value);
-            }
-            throw new InvalidOperationException("Unable to find Clang version in ApplePlatformSDK.Versions.cs");
-        }
-
-        private static async Task<string> GetXcodeVersion(string unrealEnginePath)
-        {
-            var applePlatformSdk = await File.ReadAllTextAsync(Path.Combine(
-                unrealEnginePath,
-                "Engine",
-                "Source",
-                "Programs",
-                "UnrealBuildTool",
-                "Platform",
-                "Mac",
-                "ApplePlatformSDK.Versions.cs")).ConfigureAwait(false);
-            return await ParseXcodeVersion(applePlatformSdk).ConfigureAwait(false);
-        }
-
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
-            return await GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
+            return await _versionNumberResolver.For<IMacVersionNumbers>(unrealEnginePath).GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
         }
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
@@ -73,7 +49,7 @@
                 throw new SdkSetupMissingAuthenticationException("You must set the UET_APPLE_XCODE_STORAGE_PATH environment variable, which is the path to the mounted network share where Xcode .xip files are being stored after you have manually downloaded them from the Apple Developer portal.");
             }
 
-            var xcodeVersion = await GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
+            var xcodeVersion = await _versionNumberResolver.For<IMacVersionNumbers>(unrealEnginePath).GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
             var xipSourcePath = Path.Combine(appleXcodeStoragePath, $"Xcode_{xcodeVersion}.xip");
             if (!File.Exists(xipSourcePath))
             {
