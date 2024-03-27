@@ -15,7 +15,7 @@
         /// <summary>
         /// A list of platforms to execute custom tests on. A set of "Win64", "Mac" or both.
         /// </summary>
-        [JsonPropertyName("Platforms"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("Platforms"), JsonRequired]
         [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public BuildConfigHostPlatform[] Platforms { get; set; } = Array.Empty<BuildConfigHostPlatform>();
 

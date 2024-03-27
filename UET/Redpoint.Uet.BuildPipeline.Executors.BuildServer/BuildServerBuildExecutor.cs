@@ -117,6 +117,18 @@
                     Directory.CreateDirectory(targetFolder);
                     await _worldPermissionApplier.GrantEveryonePermissionAsync(targetFolder, CancellationToken.None).ConfigureAwait(false);
 
+                    if (Debugger.IsAttached && requiresCrossPlatformForBuild)
+                    {
+                        var entryAssembly = Assembly.GetEntryAssembly()!;
+                        var manifestNames = entryAssembly.GetManifestResourceNames();
+                        var hasNoManifests = !string.IsNullOrWhiteSpace(entryAssembly.Location) || !manifestNames.Any(x => x.StartsWith("UET.Embedded.", StringComparison.Ordinal));
+                        if (hasNoManifests)
+                        {
+                            _logger.LogWarning("This build requires a cross-platform build of UET, but the debugger is attached and this build of UET is not a cross-platform build. Turning off cross-platform build requirements so that you can debug BuildGraph generation.");
+                            requiresCrossPlatformForBuild = false;
+                        }
+                    }
+
                     if (requiresCrossPlatformForBuild)
                     {
                         // Check that we can run cross-platform builds.
@@ -125,7 +137,10 @@
                         if (!string.IsNullOrWhiteSpace(entryAssembly.Location) ||
                             !manifestNames.Any(x => x.StartsWith("UET.Embedded.", StringComparison.Ordinal)))
                         {
-                            throw new BuildPipelineExecutionFailureException("UET is not built as a self-contained cross-platform binary, and the build contains cross-platform targets. Create a version of UET with 'dotnet msbuild -restore -t:PublishAllRids' and use the resulting binary.");
+                            if (!Debugger.IsAttached)
+                            {
+                                throw new BuildPipelineExecutionFailureException("UET is not built as a self-contained cross-platform binary, and the build contains cross-platform targets. Create a version of UET with 'dotnet msbuild -restore -t:PublishAllRids' and use the resulting binary.");
+                            }
                         }
 
                         // Copy the binaries for other platforms from our embedded resources.
