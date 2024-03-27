@@ -5,7 +5,6 @@
     using System.Text;
     using System.Text.Json;
     using System.Threading.Tasks;
-    using Redpoint.ThirdParty.CredentialManagement;
     using Redpoint.Uefs.ContainerRegistry;
 
     public static class LoginCommand
@@ -62,8 +61,7 @@
                 var dockerJson = new DockerConfigJson();
                 var dockerJsonPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    ".docker",
-                    "config.json");
+                    ".uefs-credentials.json");
                 if (!File.Exists(dockerJsonPath))
                 {
                     if (!Directory.Exists(Path.GetDirectoryName(dockerJsonPath)))
@@ -76,34 +74,18 @@
                     dockerJson = JsonSerializer.Deserialize(File.ReadAllText(dockerJsonPath), UefsRegistryJsonSerializerContext.Default.DockerConfigJson);
                 }
 
-                if (dockerJson!.CredsStore == "wincred")
+                if (dockerJson!.Auths == null)
                 {
-                    var credential = new Credential
-                    {
-                        Target = host,
-                        Username = username,
-                        Password = password,
-                        PersistanceType = PersistanceType.LocalComputer,
-                        Type = CredentialType.Generic,
-                    };
-                    credential.Save();
-                    Console.WriteLine($"set credential for {host} in Windows Credential Store");
+                    dockerJson.Auths = new Dictionary<string, DockerAuthSetting>();
                 }
-                else
+
+                dockerJson.Auths[host] = new DockerAuthSetting
                 {
-                    if (dockerJson!.Auths == null)
-                    {
-                        dockerJson.Auths = new Dictionary<string, DockerAuthSetting>();
-                    }
+                    Auth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"))
+                };
 
-                    dockerJson.Auths[host] = new DockerAuthSetting
-                    {
-                        Auth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"))
-                    };
-
-                    File.WriteAllText(dockerJsonPath, JsonSerializer.Serialize(dockerJson, UefsRegistryJsonSerializerContext.Default.DockerConfigJson));
-                    Console.WriteLine($"set credential for {host} in .docker/config.json");
-                }
+                File.WriteAllText(dockerJsonPath, JsonSerializer.Serialize(dockerJson, UefsRegistryJsonSerializerContext.Default.DockerConfigJson));
+                Console.WriteLine($"set credential for {host} in .uefs-credentials.json");
 
                 return Task.FromResult(0);
             }
