@@ -21,9 +21,9 @@
         Task StopAsync();
 
         /// <summary>
-        /// If this server is created from <see cref="IGrpcPipeFactory.CreateNetworkServer{T}(T)"/>, this is the local port on which the server is listening.
+        /// If this server is created from <see cref="IGrpcPipeFactory.CreateNetworkServer{T}(T, bool)"/>, this is the local port on which the server is listening.
         /// </summary>
-        /// <exception cref="NotSupportedException">Thrown if this server is not created by <see cref="IGrpcPipeFactory.CreateNetworkServer{T}(T)"/>.</exception>
+        /// <exception cref="NotSupportedException">Thrown if this server is not created by <see cref="IGrpcPipeFactory.CreateNetworkServer{T}(T, bool)"/>.</exception>
         int NetworkPort { get; }
     }
 }

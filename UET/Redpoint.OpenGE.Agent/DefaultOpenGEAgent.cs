@@ -11,6 +11,7 @@
     using Redpoint.OpenGE.Component.PreprocessorCache.OnDemand;
     using Redpoint.OpenGE.Component.Worker;
     using Redpoint.OpenGE.Protocol;
+    using System.Net;
     using System.Threading.Tasks;
 
     internal sealed class DefaultOpenGEAgent : IOpenGEAgent, IAsyncDisposable
@@ -69,8 +70,9 @@
             {
                 _workerComponent = _workerComponentFactory.Create(!_runAsSystemWideService);
                 await _workerComponent.StartAsync(_shutdownCancellationTokenSource.Token).ConfigureAwait(false);
-                _localWorkerClient = new TaskApi.TaskApiClient(
-                    GrpcChannel.ForAddress($"http://127.0.0.1:{_workerComponent.ListeningPort}"));
+                _localWorkerClient = _grpcPipeFactory.CreateNetworkClient(
+                    new IPEndPoint(IPAddress.Loopback, _workerComponent.ListeningPort!.Value),
+                    x => new TaskApi.TaskApiClient(x));
                 _taskApiWorkerPool = _taskApiWorkerPoolFactory.CreateWorkerPool(new TaskApiWorkerPoolConfiguration
                 {
                     EnableNetworkAutoDiscovery = Environment.GetEnvironmentVariable("OPENGE_ENABLE_NETWORK_AUTODISCOVERY") == "1",

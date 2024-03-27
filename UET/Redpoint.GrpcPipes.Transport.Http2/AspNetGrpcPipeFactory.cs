@@ -152,11 +152,12 @@
         }
 
         IGrpcPipeServer<T> IGrpcPipeFactory.CreateNetworkServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T>(
-            T instance) where T : class
+            T instance, bool loopbackOnly) where T : class
         {
             return new AspNetGrpcPipeServer<T>(
                 _serviceProvider!.GetRequiredService<ILogger<AspNetGrpcPipeServer<T>>>(),
-                instance);
+                instance,
+                loopbackOnly);
         }
 
         T IGrpcPipeFactory.CreateNetworkClient<T>(

@@ -24,6 +24,7 @@
     using Redpoint.Reservation;
     using Redpoint.Tasks;
     using System.Collections.Concurrent;
+    using System.Net;
     using Xunit;
     using Xunit.Abstractions;
 
@@ -82,8 +83,9 @@
             await worker.StartAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
-                var workerClient = new TaskApi.TaskApiClient(
-                    GrpcChannel.ForAddress($"http://127.0.0.1:{worker.ListeningPort}"));
+                var workerClient = grpcPipeFactory.CreateNetworkClient(
+                    new IPEndPoint(IPAddress.Loopback, worker.ListeningPort!.Value),
+                    x => new TaskApi.TaskApiClient(x));
                 await using (workerPoolFactory.CreateWorkerPool(new TaskApiWorkerPoolConfiguration
                 {
                     EnableNetworkAutoDiscovery = false,
@@ -310,6 +312,7 @@
             var provider = services.BuildServiceProvider();
 
             var executor = provider.GetRequiredService<IGraphExecutor>();
+            var grpcPipeFactory = provider.GetRequiredService<IGrpcPipeFactory>();
             var workerPoolFactory = provider.GetRequiredService<ITaskApiWorkerPoolFactory>();
             var workerFactory = provider.GetRequiredService<IWorkerComponentFactory>();
             var taskDescriptorFactory = provider.GetRequiredService<LocalTaskDescriptorFactory>();
@@ -320,8 +323,9 @@
             await worker.StartAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                var workerClient = new TaskApi.TaskApiClient(
-                    GrpcChannel.ForAddress($"http://127.0.0.1:{worker.ListeningPort}"));
+                var workerClient = grpcPipeFactory.CreateNetworkClient(
+                    new IPEndPoint(IPAddress.Loopback, worker.ListeningPort!.Value),
+                    x => new TaskApi.TaskApiClient(x));
 
                 var workerPool = workerPoolFactory.CreateWorkerPool(new TaskApiWorkerPoolConfiguration
                 {
@@ -387,6 +391,7 @@
                     var provider = services.BuildServiceProvider();
 
                     var executor = provider.GetRequiredService<IGraphExecutor>();
+                    var grpcPipeFactory = provider.GetRequiredService<IGrpcPipeFactory>();
                     var workerPoolFactory = provider.GetRequiredService<ITaskApiWorkerPoolFactory>();
                     var workerFactory = provider.GetRequiredService<IWorkerComponentFactory>();
                     var taskDescriptorFactory = provider.GetRequiredService<LocalTaskDescriptorFactory>();
@@ -395,8 +400,9 @@
                     await worker.StartAsync(cancellationToken).ConfigureAwait(false);
                     try
                     {
-                        var workerClient = new TaskApi.TaskApiClient(
-                            GrpcChannel.ForAddress($"http://127.0.0.1:{worker.ListeningPort}"));
+                        var workerClient = grpcPipeFactory.CreateNetworkClient(
+                            new IPEndPoint(IPAddress.Loopback, worker.ListeningPort!.Value),
+                            x => new TaskApi.TaskApiClient(x));
 
                         var workerPool = workerPoolFactory.CreateWorkerPool(new TaskApiWorkerPoolConfiguration
                         {
