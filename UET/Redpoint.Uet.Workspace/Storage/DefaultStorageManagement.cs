@@ -11,6 +11,7 @@
     using System.Runtime.Versioning;
     using System.Threading.Tasks;
     using Redpoint.Concurrency;
+    using Redpoint.Uet.CommonPaths;
 
     internal class DefaultStorageManagement : IStorageManagement
     {
@@ -24,16 +25,7 @@
             IReservationManagerForUet reservationManager)
         {
             _reservationManagerRootPath = reservationManager.RootPath;
-            if (OperatingSystem.IsWindows())
-            {
-                _uefsStoragePath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "UEFS");
-            }
-            else if (OperatingSystem.IsMacOS())
-            {
-                _uefsStoragePath = Path.Combine("/Users", "Shared", "UEFS");
-            }
+            _uefsStoragePath = UetPaths.UefsRootPath;
             _logger = logger;
             _reservationManager = reservationManager;
         }

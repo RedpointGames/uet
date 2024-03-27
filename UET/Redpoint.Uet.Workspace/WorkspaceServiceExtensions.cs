@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.Reservation;
+    using Redpoint.Uet.CommonPaths;
     using Redpoint.Uet.Workspace.ParallelCopy;
     using Redpoint.Uet.Workspace.PhysicalGit;
     using Redpoint.Uet.Workspace.Reservation;
@@ -19,19 +20,7 @@
             services.AddSingleton<IReservationManagerForUet>(sp =>
             {
                 var factory = sp.GetRequiredService<IReservationManagerFactory>();
-                string rootPath;
-                if (OperatingSystem.IsWindows())
-                {
-                    rootPath = Path.Combine($"{Environment.GetEnvironmentVariable("SYSTEMDRIVE")}\\", "UES");
-                }
-                else if (OperatingSystem.IsMacOS())
-                {
-                    rootPath = "/Users/Shared/.ues";
-                }
-                else
-                {
-                    rootPath = "/tmp/.ues";
-                }
+                var rootPath = UetPaths.UetBuildReservationPath;
                 return new DefaultReservationManagerForUet(factory.CreateReservationManager(rootPath), rootPath);
             });
             services.AddSingleton<IStorageManagement, DefaultStorageManagement>();

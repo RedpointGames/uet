@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Hosting;
     using Redpoint.Uefs.Daemon.Abstractions;
+    using Redpoint.Uet.CommonPaths;
     using System;
     using System.Threading;
     using System.Threading.Tasks;
@@ -15,21 +16,7 @@
         public UefsHostedService(
             IUefsDaemonFactory uefsDaemonFactory)
         {
-            string rootPath;
-            if (OperatingSystem.IsWindows())
-            {
-                rootPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "UEFS");
-            }
-            else if (OperatingSystem.IsMacOS())
-            {
-                rootPath = Path.Combine("/Users", "Shared", "UEFS");
-            }
-            else
-            {
-                throw new PlatformNotSupportedException();
-            }
+            var rootPath = UetPaths.UefsRootPath;
 
             Directory.CreateDirectory(rootPath);
 

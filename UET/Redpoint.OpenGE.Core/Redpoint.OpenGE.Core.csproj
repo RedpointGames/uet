@@ -18,6 +18,7 @@
     <ProjectReference Include="..\Redpoint.OpenGE.Protocol\Redpoint.OpenGE.Protocol.csproj" />
     <ProjectReference Include="..\Redpoint.Reservation\Redpoint.Reservation.csproj" />
     <ProjectReference Include="..\Redpoint.Tasks\Redpoint.Tasks.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.CommonPaths\Redpoint.Uet.CommonPaths.csproj" />
   </ItemGroup>
   
 </Project>
