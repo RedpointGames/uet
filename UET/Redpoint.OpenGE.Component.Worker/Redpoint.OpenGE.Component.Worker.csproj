@@ -3,10 +3,8 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <ItemGroup>
-    <PackageReference Include="Grpc.AspNetCore.Web" Version="2.55.0" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
     <PackageReference Include="Google.Protobuf" Version="3.23.2" />
-    <PackageReference Include="Grpc.AspNetCore.Server" Version="2.53.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
     <PackageReference Include="System.IO.Hashing" Version="7.0.0" />
   </ItemGroup>
@@ -14,12 +12,11 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/CsWin32.Build.props" />
 
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.WinFsp\Redpoint.ThirdParty.WinFsp.csproj" />
     <ProjectReference Include="..\Redpoint.ApplicationLifecycle\Redpoint.ApplicationLifecycle.csproj" />
+    <ProjectReference Include="..\Redpoint.GrpcPipes.Abstractions\Redpoint.GrpcPipes.Abstractions.csproj" />
+    <ProjectReference Include="..\Redpoint.GrpcPipes.Transport.Tcp\Redpoint.GrpcPipes.Transport.Tcp.csproj" />
+    <ProjectReference Include="..\Redpoint.GrpcPipes\Redpoint.GrpcPipes.csproj" />
     <ProjectReference Include="..\Redpoint.IO\Redpoint.IO.csproj" />
     <ProjectReference Include="..\Redpoint.Logging\Redpoint.Logging.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Core\Redpoint.OpenGE.Core.csproj" />

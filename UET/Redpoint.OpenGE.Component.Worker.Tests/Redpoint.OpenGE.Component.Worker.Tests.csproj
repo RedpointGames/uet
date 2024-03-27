@@ -5,6 +5,9 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
 
   <ItemGroup>
+    <ProjectReference Include="..\Redpoint.GrpcPipes.Abstractions\Redpoint.GrpcPipes.Abstractions.csproj" />
+    <ProjectReference Include="..\Redpoint.GrpcPipes.Transport.Tcp\Redpoint.GrpcPipes.Transport.Tcp.csproj" />
+    <ProjectReference Include="..\Redpoint.GrpcPipes\Redpoint.GrpcPipes.csproj" />
     <ProjectReference Include="..\Redpoint.OpenGE.Component.Worker\Redpoint.OpenGE.Component.Worker.csproj" />
   </ItemGroup>
 

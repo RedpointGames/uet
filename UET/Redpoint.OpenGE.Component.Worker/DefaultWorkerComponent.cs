@@ -4,19 +4,14 @@
     using Redpoint.OpenGE.Protocol;
     using System;
     using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Builder;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.AspNetCore.Hosting;
-    using Microsoft.AspNetCore.Server.Kestrel.Core;
     using System.Net;
-    using System.Net.Sockets;
-    using System.Text;
     using System.Collections.Concurrent;
-    using Google.Protobuf;
     using Redpoint.OpenGE.Core;
     using Redpoint.AutoDiscovery;
     using Redpoint.Logging;
+    using Redpoint.GrpcPipes;
 
     internal class DefaultWorkerComponent : TaskApi.TaskApiBase, IWorkerComponent
     {
@@ -25,14 +20,15 @@
         private readonly IExecutionManager _executionManager;
         private readonly ILogger<DefaultWorkerComponent> _logger;
         private readonly INetworkAutoDiscovery _networkAutoDiscovery;
+        private readonly IGrpcPipeFactory _grpcPipeFactory;
         private readonly bool _localUseOnly;
         private readonly string _workerDisplayName;
         private readonly string _workerUniqueId;
         private readonly Concurrency.Semaphore _reservationSemaphore;
         private readonly ConcurrentBag<int> _reservationBag;
         private CancellationTokenSource? _shutdownCancellationTokenSource;
+        private IGrpcPipeServer<DefaultWorkerComponent>? _app;
         private int? _listeningPort;
-        private WebApplication? _app;
         private IAsyncDisposable? _autoDiscoveryInstance;
 
         public DefaultWorkerComponent(
@@ -41,6 +37,7 @@
             IExecutionManager executionManager,
             ILogger<DefaultWorkerComponent> logger,
             INetworkAutoDiscovery networkAutoDiscovery,
+            IGrpcPipeFactory grpcPipeFactory,
             bool localUseOnly)
         {
             _toolManager = toolManager;
@@ -48,6 +45,7 @@
             _executionManager = executionManager;
             _logger = logger;
             _networkAutoDiscovery = networkAutoDiscovery;
+            _grpcPipeFactory = grpcPipeFactory;
             _localUseOnly = localUseOnly;
             _workerDisplayName = Environment.MachineName;
             _workerUniqueId = Guid.NewGuid().ToString();
@@ -69,40 +67,11 @@
         {
             _shutdownCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken);
 
-            var builder = WebApplication.CreateBuilder();
-            builder.Logging.ClearProviders();
-            builder.Logging.AddProvider(new ForwardingLoggerProvider(_logger));
-            builder.Services.AddGrpc(options =>
-            {
-                // Allow unlimited message sizes.
-                options.MaxReceiveMessageSize = null;
-                options.MaxSendMessageSize = null;
-            });
-            builder.Services.Add(new ServiceDescriptor(
-                typeof(TaskApi.TaskApiBase),
-                this));
-            builder.WebHost.ConfigureKestrel(serverOptions =>
-            {
-                serverOptions.Listen(
-                    new IPEndPoint(_localUseOnly ? IPAddress.Loopback : IPAddress.Any, 0),
-                    listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http2;
-                    });
-            });
+            _app = _grpcPipeFactory.CreateNetworkServer(this, _localUseOnly);
+            await _app.StartAsync().ConfigureAwait(false);
 
-            var app = builder.Build();
-            app.UseRouting();
-            app.UseGrpcWeb();
-            app.MapGrpcService<TaskApi.TaskApiBase>();
-
-            await app.StartAsync(shutdownCancellationToken).ConfigureAwait(false);
-
-            _listeningPort = new Uri(app.Urls.First()).Port;
-
+            _listeningPort = _app.NetworkPort;
             _logger.LogInformation($"Worker listening on port: {_listeningPort}");
-
-            _app = app;
 
             if (!_localUseOnly)
             {

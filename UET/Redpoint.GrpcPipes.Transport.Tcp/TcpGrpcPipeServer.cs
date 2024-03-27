@@ -20,6 +20,7 @@
         private FileStream? _pipePointerStream;
         private TcpGrpcServer? _app;
         private bool _isNetwork;
+        private bool _isNetworkLoopbackOnly;
         private int _networkPort;
 
         public TcpGrpcPipeServer(
@@ -39,7 +40,8 @@
 
         public TcpGrpcPipeServer(
             ILogger<TcpGrpcPipeServer<T>> logger,
-            T instance)
+            T instance, 
+            bool loopbackOnly)
         {
             _logger = logger;
             _pipePath = string.Empty;
@@ -47,6 +49,7 @@
             _pipeNamespace = GrpcPipeNamespace.User;
             _app = null;
             _isNetwork = true;
+            _isNetworkLoopbackOnly = loopbackOnly;
             _networkPort = 0;
         }
 
@@ -69,7 +72,7 @@
                         Directory.CreateDirectory(Path.GetDirectoryName(_pipePath)!);
                     }
 
-                    var endpoint = new IPEndPoint(_isNetwork ? IPAddress.Any : IPAddress.Loopback, 0);
+                    var endpoint = new IPEndPoint((_isNetwork && !_isNetworkLoopbackOnly) ? IPAddress.Any : IPAddress.Loopback, 0);
                     var listener = new TcpListener(endpoint);
                     app = new TcpGrpcServer(listener, _logger);
                     endpoint = (IPEndPoint)listener.LocalEndpoint;

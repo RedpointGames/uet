@@ -20,6 +20,7 @@
         private WebApplication? _app;
         private FileStream? _pipePointerStream;
         private bool _isNetwork;
+        private bool _isNetworkLoopbackOnly;
         private int _networkPort;
 
         public AspNetGrpcPipeServer(
@@ -39,7 +40,8 @@
 
         public AspNetGrpcPipeServer(
             ILogger<AspNetGrpcPipeServer<T>> logger,
-            T instance)
+            T instance,
+            bool loopbackOnly)
         {
             _logger = logger;
             _pipePath = string.Empty;
@@ -47,6 +49,7 @@
             _pipeNamespace = GrpcPipeNamespace.User;
             _app = null;
             _isNetwork = true;
+            _isNetworkLoopbackOnly = loopbackOnly;
             _networkPort = 0;
         }
 
@@ -87,7 +90,7 @@
                         if (_isNetwork)
                         {
                             serverOptions.Listen(
-                                new IPEndPoint(IPAddress.Any, 0),
+                                new IPEndPoint(_isNetworkLoopbackOnly ? IPAddress.Loopback : IPAddress.Any, 0),
                                 listenOptions =>
                                 {
                                     listenOptions.Protocols = HttpProtocols.Http2;
