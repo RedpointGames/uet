@@ -172,7 +172,7 @@
                 }
 
                 // Check if we have enough disk space.
-                var driveInfo = new DriveInfo(Path.GetPathRoot(_storagePath)!);
+                var driveInfo = new DriveInfo(_storagePath);
                 var requiredBytes = remoteStorageBlob.Length + (2 * 1024 * 1024);
                 if (driveInfo.AvailableFreeSpace < requiredBytes)
                 {
