@@ -5,10 +5,7 @@
     using System.Threading.Tasks;
     using System.Xml;
     using Redpoint.Uet.Configuration.Dynamic;
-    using System.Text.Json;
     using Redpoint.Uet.Configuration;
-    using System.Text.Json.Serialization.Metadata;
-    using System.Text.Json.Serialization;
     using Redpoint.RuntimeJson;
 
     internal sealed class CustomPluginTestProvider : IPluginTestProvider
@@ -24,6 +21,7 @@
         public string Type => "Custom";
 
         public IRuntimeJson DynamicSettings { get; } = new TestProviderRuntimeJson(TestProviderSourceGenerationContext.WithStringEnum).BuildConfigPluginTestCustom;
+
 
         public async Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,
@@ -58,7 +56,6 @@
             var customTestsAgainstTestProject = dynamicSettings
                 .Where(x =>
                     x.settings.TestAgainst == BuildConfigPluginTestCustomTestAgainst.TestProject &&
-                    x.settings.Platforms != null &&
                     x.settings.Platforms.Length > 0)
                 .ToArray();
             if (customTestsAgainstTestProject.Length > 0)
@@ -125,7 +122,6 @@
             var customTestsAgainstPackagedPlugin = dynamicSettings
                 .Where(x =>
                     x.settings.TestAgainst == BuildConfigPluginTestCustomTestAgainst.PackagedPlugin &&
-                    x.settings.Platforms != null &&
                     x.settings.Platforms.Length > 0)
                 .ToArray();
 
