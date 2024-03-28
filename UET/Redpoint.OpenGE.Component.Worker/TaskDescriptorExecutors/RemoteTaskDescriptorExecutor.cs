@@ -14,13 +14,7 @@
     using System.Diagnostics;
     using System.Runtime.Versioning;
     using Redpoint.IO;
-    using Redpoint.Rfs.WinFsp;
-    using Fsp;
-    using Grpc.Net.Client;
     using System.Net;
-    using System.Net.Sockets;
-    using Redpoint.OpenGE.Component.Worker.PeerRemoteFs;
-    using Redpoint.Reservation;
     using Redpoint.Concurrency;
 
     internal class RemoteTaskDescriptorExecutor : ITaskDescriptorExecutor<RemoteTaskDescriptor>
@@ -30,7 +24,7 @@
         private readonly IToolManager _toolManager;
         private readonly IBlobManager _blobManager;
         private readonly IProcessExecutor _processExecutor;
-        private readonly IPeerRemoteFsManager _peerRemoteFsManager;
+        private readonly IProcessExecutorResponseConverter _processExecutorResponseConverter;
         private static HashSet<string> _knownDirectoryEnvironmentVariables = new HashSet<string>
         {
             "ALLUSERSPROFILE",
@@ -65,14 +59,14 @@
             IToolManager toolManager,
             IBlobManager blobManager,
             IProcessExecutor processExecutor,
-            IPeerRemoteFsManager peerRemoteFsManager)
+            IProcessExecutorResponseConverter processExecutorResponseConverter)
         {
             _logger = logger;
             _reservationManagerForOpenGE = reservationManagerForOpenGE;
             _toolManager = toolManager;
             _blobManager = blobManager;
             _processExecutor = processExecutor;
-            _peerRemoteFsManager = peerRemoteFsManager;
+            _processExecutorResponseConverter = processExecutorResponseConverter;
         }
 
         public IAsyncEnumerable<ExecuteTaskResponse> ExecuteAsync(
@@ -153,7 +147,7 @@
                         {
                             Response = new Protocol.ProcessResponse
                             {
-                                StandardOutputLine = standardError.Data,
+                                StandardErrorLine = standardError.Data,
                             },
                         };
                         break;
@@ -323,28 +317,9 @@
                                 OutputAbsolutePathsToBlobXxHash64 = outputBlobs,
                             };
                             break;
-                        case StandardOutputResponse standardOutput:
-                            _logger.LogTrace(standardOutput.Data);
-                            yield return new ExecuteTaskResponse
-                            {
-                                Response = new Protocol.ProcessResponse
-                                {
-                                    StandardOutputLine = standardOutput.Data,
-                                },
-                            };
-                            break;
-                        case StandardErrorResponse standardError:
-                            _logger.LogTrace(standardError.Data);
-                            yield return new ExecuteTaskResponse
-                            {
-                                Response = new Protocol.ProcessResponse
-                                {
-                                    StandardOutputLine = standardError.Data,
-                                },
-                            };
-                            break;
                         default:
-                            throw new InvalidOperationException("Received unexpected ProcessResponse type from IProcessExecutor!");
+                            yield return _processExecutorResponseConverter.ConvertResponse(response);
+                            break;
                     };
                 }
             }

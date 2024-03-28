@@ -5,12 +5,9 @@
     using System;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.DependencyInjection;
-    using System.Net;
     using System.Collections.Concurrent;
     using Redpoint.OpenGE.Core;
     using Redpoint.AutoDiscovery;
-    using Redpoint.Logging;
     using Redpoint.GrpcPipes;
 
     internal class DefaultWorkerComponent : TaskApi.TaskApiBase, IWorkerComponent

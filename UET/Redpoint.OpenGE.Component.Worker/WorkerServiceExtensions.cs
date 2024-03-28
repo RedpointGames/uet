@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.OpenGE.Component.Worker
 {
     using Microsoft.Extensions.DependencyInjection;
-    using Redpoint.OpenGE.Component.Worker.PeerRemoteFs;
     using Redpoint.OpenGE.Component.Worker.TaskDescriptorExecutors;
     using Redpoint.OpenGE.Protocol;
 
@@ -13,7 +12,7 @@
             services.AddSingleton<IBlobManager, DefaultBlobManager>();
             services.AddSingleton<IExecutionManager, DefaultExecutionManager>();
             services.AddSingleton<IWorkerComponentFactory, DefaultWorkerComponentFactory>();
-            services.AddSingleton<IPeerRemoteFsManager, DefaultPeerRemoteFsManager>();
+            services.AddSingleton<IProcessExecutorResponseConverter, DefaultProcessExecutorResponseConverter>();
 
             // @note: These also need to be injected into DefaultExecutionManager in
             // order for descriptors to actually execute.

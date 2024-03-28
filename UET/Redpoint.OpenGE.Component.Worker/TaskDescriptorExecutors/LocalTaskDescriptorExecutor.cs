@@ -2,7 +2,6 @@
 {
     using Redpoint.OpenGE.Protocol;
     using Redpoint.ProcessExecution;
-    using Redpoint.ProcessExecution.Enumerable;
     using System.Collections.Generic;
     using System.Net;
     using System.Runtime.CompilerServices;
@@ -10,11 +9,14 @@
     internal class LocalTaskDescriptorExecutor : ITaskDescriptorExecutor<LocalTaskDescriptor>
     {
         private readonly IProcessExecutor _processExecutor;
+        private readonly IProcessExecutorResponseConverter _processExecutorResponseConverter;
 
         public LocalTaskDescriptorExecutor(
-            IProcessExecutor processExecutor)
+            IProcessExecutor processExecutor,
+            IProcessExecutorResponseConverter processExecutorResponseConverter)
         {
             _processExecutor = processExecutor;
+            _processExecutorResponseConverter = processExecutorResponseConverter;
         }
 
         public async IAsyncEnumerable<ExecuteTaskResponse> ExecuteAsync(
@@ -45,25 +47,7 @@
             },
             cancellationToken))
             {
-                yield return new ExecuteTaskResponse
-                {
-                    Response = response switch
-                    {
-                        ExitCodeResponse r => new Protocol.ProcessResponse
-                        {
-                            ExitCode = r.ExitCode,
-                        },
-                        StandardOutputResponse r => new Protocol.ProcessResponse
-                        {
-                            StandardOutputLine = r.Data,
-                        },
-                        StandardErrorResponse r => new Protocol.ProcessResponse
-                        {
-                            StandardOutputLine = r.Data,
-                        },
-                        _ => throw new InvalidOperationException("Received unexpected ProcessResponse type from IProcessExecutor!"),
-                    }
-                };
+                yield return _processExecutorResponseConverter.ConvertResponse(response);
             }
         }
     }
