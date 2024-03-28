@@ -589,6 +589,10 @@
                                                 switch (current.ExecuteTask.Response.DataCase)
                                                 {
                                                     case ProcessResponse.DataOneofCase.StandardOutputLine:
+                                                        if (_logger.IsEnabled(LogLevel.Trace))
+                                                        {
+                                                            _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Received standard output line: {current.ExecuteTask.Response.StandardOutputLine}");
+                                                        }
                                                         await responseStream.WriteAsync(new JobResponse
                                                         {
                                                             TaskOutput = new TaskOutputResponse
@@ -599,6 +603,10 @@
                                                         }, cancellationToken).ConfigureAwait(false);
                                                         break;
                                                     case ProcessResponse.DataOneofCase.StandardErrorLine:
+                                                        if (_logger.IsEnabled(LogLevel.Trace))
+                                                        {
+                                                            _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Received standard error line: {current.ExecuteTask.Response.StandardErrorLine}");
+                                                        }
                                                         await responseStream.WriteAsync(new JobResponse
                                                         {
                                                             TaskOutput = new TaskOutputResponse
@@ -609,6 +617,10 @@
                                                         }, cancellationToken).ConfigureAwait(false);
                                                         break;
                                                     case ProcessResponse.DataOneofCase.ExitCode:
+                                                        if (_logger.IsEnabled(LogLevel.Trace))
+                                                        {
+                                                            _logger.LogTrace($"{core.WorkerCoreUniqueAssignmentId}: Received exit code: {current.ExecuteTask.Response.ExitCode}");
+                                                        }
                                                         exitCode = current.ExecuteTask.Response.ExitCode;
                                                         finalExecuteTaskResponse = current.ExecuteTask;
                                                         status = exitCode == 0

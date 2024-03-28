@@ -130,18 +130,30 @@
                             case ProcessResponse.DataOneofCase.StandardOutputLine:
                                 if (request.IgnoreLines.Any(x => response.Response.StandardOutputLine.Contains(x, StringComparison.Ordinal)))
                                 {
+                                    if (_logger.IsEnabled(LogLevel.Trace))
+                                    {
+                                        _logger.LogTrace($"{executionGuid}: Ignoring standard output line due to request.IgnoreLines: {response.Response.StandardOutputLine}");
+                                    }
                                     ignoreThisOutputLine = true;
                                 }
                                 break;
                             case ProcessResponse.DataOneofCase.StandardErrorLine:
                                 if (request.IgnoreLines.Any(x => response.Response.StandardErrorLine.Contains(x, StringComparison.Ordinal)))
                                 {
+                                    if (_logger.IsEnabled(LogLevel.Trace))
+                                    {
+                                        _logger.LogTrace($"{executionGuid}: Ignoring standard error line due to request.IgnoreLines: {response.Response.StandardErrorLine}");
+                                    }
                                     ignoreThisOutputLine = true;
                                 }
                                 break;
                         }
                         if (!ignoreThisOutputLine)
                         {
+                            if (_logger.IsEnabled(LogLevel.Trace))
+                            {
+                                _logger.LogTrace($"{executionGuid}: Forwarding response data from worker: {response}");
+                            }
                             await responseStream.WriteAsync(new ExecutionResponse
                             {
                                 ExecuteTask = response,
