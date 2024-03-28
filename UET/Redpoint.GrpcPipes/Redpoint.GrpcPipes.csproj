@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.GrpcPipes.Abstractions\Redpoint.GrpcPipes.Abstractions.csproj" />
-    <ProjectReference Include="..\Redpoint.GrpcPipes.Transport.Http2\Redpoint.GrpcPipes.Transport.Http2.csproj" />
     <ProjectReference Include="..\Redpoint.GrpcPipes.Transport.Tcp\Redpoint.GrpcPipes.Transport.Tcp.csproj" />
     <ProjectReference Include="..\Redpoint.Logging\Redpoint.Logging.csproj" />
   </ItemGroup>

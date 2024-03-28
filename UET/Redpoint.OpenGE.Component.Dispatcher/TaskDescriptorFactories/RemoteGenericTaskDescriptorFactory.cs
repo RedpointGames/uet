@@ -59,7 +59,6 @@
             descriptor.EnvironmentVariables.MergeFrom(environmentVariables);
             descriptor.WorkingDirectoryAbsolutePath = spec.WorkingDirectory;
             descriptor.UseFastLocalExecution = guaranteedToExecuteLocally;
-            descriptor.RemoteFsStorageLayer = new RemoteFsStorageLayer();
 
             return ValueTask.FromResult(new TaskDescriptor { Remote = descriptor });
         }

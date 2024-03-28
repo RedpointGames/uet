@@ -3,6 +3,7 @@
     using Grpc.Core;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.GrpcPipes.Transport.Tcp;
     using System.Diagnostics;
     using TestPipes;
     using Xunit.Abstractions;
@@ -45,7 +46,7 @@
                 builder.SetMinimumLevel(LogLevel.Trace);
                 builder.AddXUnit(_output);
             });
-            services.AddGrpcPipes();
+            services.AddGrpcPipes<TcpGrpcPipeFactory>();
 
             var sp = services.BuildServiceProvider();
             var pipeFactory = sp.GetRequiredService<IGrpcPipeFactory>();

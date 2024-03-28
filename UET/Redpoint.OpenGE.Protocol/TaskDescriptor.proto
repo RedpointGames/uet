@@ -42,10 +42,6 @@ message TransferringStorageLayer {
 	repeated string outputAbsolutePaths = 3;
 }
 
-message RemoteFsStorageLayer {
-	int32 remotePort = 1;
-}
-
 message RemoteTaskDescriptor {
 	oneof tool {
 		ToolExecutionInfo toolExecutionInfo = 1;
@@ -58,7 +54,7 @@ message RemoteTaskDescriptor {
 	bool useFastLocalExecution = 9;
 	oneof storageLayer {
 		TransferringStorageLayer transferringStorageLayer = 10;
-		RemoteFsStorageLayer remoteFsStorageLayer = 11;
+		// @removed: RemoteFsStorageLayer remoteFsStorageLayer = 11;
 	}
 }
 
