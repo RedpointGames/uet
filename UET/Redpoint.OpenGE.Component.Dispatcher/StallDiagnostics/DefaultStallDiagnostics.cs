@@ -58,42 +58,42 @@
             }
 
             var sb = new StringBuilder();
-            sb.AppendLine(CultureInfo.InvariantCulture, $"{statuses.Count} task statuses:");
+            sb.Append(CultureInfo.InvariantCulture, $"{statuses.Count} task statuses:\n");
             foreach (var status in statuses)
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"  - {status.Key.GraphTaskSpec.Task.Name} = {status.Value}");
+                sb.Append(CultureInfo.InvariantCulture, $"  - {status.Key.GraphTaskSpec.Task.Name} = {status.Value}\n");
             }
-            sb.AppendLine(CultureInfo.InvariantCulture, $"{requests.Length} requests:");
+            sb.Append(CultureInfo.InvariantCulture, $"{requests.Length} requests:\n");
             foreach (var request in requests)
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"  - requested = {request.DateRequestedUtc}, preference = {request.CorePreference}, assigned = {request.AssignedCore}");
+                sb.Append(CultureInfo.InvariantCulture, $"  - requested = {request.DateRequestedUtc}, preference = {request.CorePreference}, assigned = {request.AssignedCore}\n");
             }
             if (localStatistics != null)
             {
-                sb.AppendLine("local statistics:");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"{localStatistics.CoreAcquiringCount} cores being acquired");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"{localStatistics.CoresCurrentlyAcquiredCount} cores currently acquired:");
+                sb.Append("local statistics:\n");
+                sb.Append(CultureInfo.InvariantCulture, $"{localStatistics.CoreAcquiringCount} cores being acquired\n");
+                sb.Append(CultureInfo.InvariantCulture, $"{localStatistics.CoresCurrentlyAcquiredCount} cores currently acquired:\n");
                 foreach (var core in localStatistics.CoresCurrentlyAcquired)
                 {
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"  - {core}");
+                    sb.Append(CultureInfo.InvariantCulture, $"  - {core}\n");
                 }
             }
             else
             {
-                sb.AppendLine("no local statistics available");
+                sb.Append("no local statistics available\n");
             }
             if (remoteStatistics != null)
             {
-                sb.AppendLine("remote statistics:");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"{remoteStatistics.Providers.Count} providers connected");
+                sb.Append("remote statistics:\n");
+                sb.Append(CultureInfo.InvariantCulture, $"{remoteStatistics.Providers.Count} providers connected\n");
                 foreach (var kv in remoteStatistics.Providers)
                 {
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"  - id = {kv.Key.Id}, unique id = {kv.Value.UniqueId}, is obtaining core = {kv.Value.IsObtainingCore}, obtained core number = {kv.Value.ObtainedCore?.WorkerCoreNumber}, obtained core machine name = {kv.Value.ObtainedCore?.WorkerMachineName}, obtained core unique assignment id = {kv.Value.ObtainedCore?.WorkerCoreUniqueAssignmentId}");
+                    sb.Append(CultureInfo.InvariantCulture, $"  - id = {kv.Key.Id}, unique id = {kv.Value.UniqueId}, is obtaining core = {kv.Value.IsObtainingCore}, obtained core number = {kv.Value.ObtainedCore?.WorkerCoreNumber}, obtained core machine name = {kv.Value.ObtainedCore?.WorkerMachineName}, obtained core unique assignment id = {kv.Value.ObtainedCore?.WorkerCoreUniqueAssignmentId}\n");
                 }
             }
             else
             {
-                sb.AppendLine("no remote statistics available");
+                sb.Append("no remote statistics available\n");
             }
 
             return sb.ToString();
