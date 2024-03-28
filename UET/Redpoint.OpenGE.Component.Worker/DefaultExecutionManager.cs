@@ -128,7 +128,7 @@
                         switch (response.Response.DataCase)
                         {
                             case ProcessResponse.DataOneofCase.StandardOutputLine:
-                                if (request.IgnoreLines.Any(x => response.Response.StandardOutputLine.Contains(x, StringComparison.Ordinal)))
+                                if (request.IgnoreLines.Any(x => string.Equals(x.Trim(), response.Response.StandardOutputLine.Trim(), StringComparison.OrdinalIgnoreCase)))
                                 {
                                     if (_logger.IsEnabled(LogLevel.Trace))
                                     {
@@ -138,7 +138,7 @@
                                 }
                                 break;
                             case ProcessResponse.DataOneofCase.StandardErrorLine:
-                                if (request.IgnoreLines.Any(x => response.Response.StandardErrorLine.Contains(x, StringComparison.Ordinal)))
+                                if (request.IgnoreLines.Any(x => string.Equals(x.Trim(), response.Response.StandardErrorLine.Trim(), StringComparison.OrdinalIgnoreCase)))
                                 {
                                     if (_logger.IsEnabled(LogLevel.Trace))
                                     {
