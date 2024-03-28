@@ -374,7 +374,7 @@ $(PackageExclude);
         <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Mac" TargetConfiguration="Development" HostPlatform="Mac" />
       </ForEach>
       <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(TempPath)/$(HostProjectName)" TargetName="$(EnginePrefix)Editor" TargetPlatform="Mac" TargetConfiguration="Development" />
-      <Compile Target="$(EnginePrefix)Editor" Platform="Mac" Configuration="Development" Tag="#EditorBinaries_Mac" Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; -NoPDB -NoDebugInfo $(AdditionalArguments)"/>
+      <Compile Target="$(EnginePrefix)Editor" Platform="Mac" Configuration="Development" Tag="#EditorBinaries_Mac" Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; -NoPDB -NoDebugInfo -DisableAdaptiveUnity $(AdditionalArguments)"/>
     </Node>
     <Property Name="EditorBinaries" Value="$(EditorBinaries)#EditorBinaries_Mac;" If="'$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorMac)' == 'true'" />
     <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(EnginePrefix)Editor Mac;" If="'$(ExecutePackage)' == 'false' and '$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorMac)' == 'true'" />
@@ -440,7 +440,7 @@ $(PackageExclude);
               Platform="$(TargetPlatform)"
               Configuration="$(TargetConfiguration)"
               Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
-              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; -NoPDB -NoDebugInfo $(AdditionalArguments)"
+              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; -NoPDB -NoDebugInfo -DisableAdaptiveUnity $(AdditionalArguments)"
             />
             <Property Name="BinaryExceptRule" Value="" />
             <Property Name="BinaryExceptRule" Value=".../Intermediate/.../Inc/..." If="'$(TargetConfiguration)' != 'Shipping'" />
