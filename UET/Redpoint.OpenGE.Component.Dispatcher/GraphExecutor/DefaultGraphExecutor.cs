@@ -243,6 +243,7 @@
             await instance.SetTaskStatusAsync(task, GraphTaskStatus.Starting).ConfigureAwait(false);
             try
             {
+            restartTaskOnRemoteCancellation:
                 try
                 {
                     // Try to get a local core first, since this will let us run remote
@@ -712,6 +713,12 @@
                 {
                     // We're stopping because something else cancelled the build.
                     status = TaskCompletionStatus.TaskCompletionCancelled;
+                }
+                catch (OperationCanceledException)
+                {
+                    // Automatically retry the task if we encountered unexpected cancellation from the remote core.
+                    _logger.LogWarning("Remote core unexpectedly went away, automatically rescheduling work...");
+                    goto restartTaskOnRemoteCancellation;
                 }
                 catch (Exception ex)
                 {
