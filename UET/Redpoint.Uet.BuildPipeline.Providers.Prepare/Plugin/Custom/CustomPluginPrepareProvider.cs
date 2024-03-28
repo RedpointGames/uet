@@ -4,16 +4,11 @@
     using Redpoint.ProcessExecution;
     using Redpoint.RuntimeJson;
     using Redpoint.Uet.BuildGraph;
-    using Redpoint.Uet.BuildPipeline.Providers.Prepare.Project;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Plugin;
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
-    using System.Text.Json;
-    using System.Text.Json.Serialization;
-    using System.Text.Json.Serialization.Metadata;
     using System.Threading.Tasks;
     using System.Xml;
 
@@ -159,9 +154,11 @@
             }
         }
 
-        public async Task RunBeforeBuildGraphAsync(
+        public async Task<int> RunBeforeBuildGraphAsync(
             IEnumerable<BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>> entries,
-            string repositoryRoot, CancellationToken cancellationToken)
+            string repositoryRoot,
+            IReadOnlyDictionary<string, string> preBuildGraphArguments,
+            CancellationToken cancellationToken)
         {
             var castedSettings = entries
                 .Select(x => (name: x.Name, settings: (BuildConfigPluginPrepareCustom)x.DynamicSettings))
@@ -171,7 +168,7 @@
                 .Where(x => (x.settings.RunBefore ?? Array.Empty<BuildConfigPluginPrepareRunBefore>()).Contains(BuildConfigPluginPrepareRunBefore.BuildGraph)))
             {
                 _logger.LogInformation($"Executing pre-BuildGraph custom preparation step '{entry.name}': '{entry.settings.ScriptPath}'");
-                await _scriptExecutor.ExecutePowerShellAsync(
+                var exitCode = await _scriptExecutor.ExecutePowerShellAsync(
                     new ScriptSpecification
                     {
                         ScriptPath = entry.settings.ScriptPath,
@@ -180,7 +177,13 @@
                     },
                     CaptureSpecification.Passthrough,
                     cancellationToken).ConfigureAwait(false);
+                if (exitCode != 0)
+                {
+                    return exitCode;
+                }
             }
+
+            return 0;
         }
     }
 }

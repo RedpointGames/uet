@@ -25,6 +25,7 @@
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
         private readonly IDynamicWorkspaceProvider _workspaceProvider;
         private readonly ISdkSetupForBuildExecutor _sdkSetupForBuildExecutor;
+        private readonly IBuildGraphArgumentGenerator _buildGraphArgumentGenerator;
         private readonly IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>[] _pluginPrepare;
         private readonly IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>[] _projectPrepare;
 
@@ -34,13 +35,15 @@
             IBuildGraphExecutor buildGraphGenerator,
             IEngineWorkspaceProvider engineWorkspaceProvider,
             IDynamicWorkspaceProvider workspaceProvider,
-            ISdkSetupForBuildExecutor sdkSetupForBuildExecutor)
+            ISdkSetupForBuildExecutor sdkSetupForBuildExecutor,
+            IBuildGraphArgumentGenerator buildGraphArgumentGenerator)
         {
             _logger = logger;
             _buildGraphExecutor = buildGraphGenerator;
             _engineWorkspaceProvider = engineWorkspaceProvider;
             _workspaceProvider = workspaceProvider;
             _sdkSetupForBuildExecutor = sdkSetupForBuildExecutor;
+            _buildGraphArgumentGenerator = buildGraphArgumentGenerator;
             _pluginPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>>().ToArray();
             _projectPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>>().ToArray();
         }
@@ -164,6 +167,17 @@
 
                         async Task<int> ExecuteBuildInWorkspaceAsync(string targetWorkspacePath)
                         {
+                            var preBuildGraphArguments = _buildGraphArgumentGenerator.GeneratePreBuildGraphArguments(
+                                buildSpecification.BuildGraphSettings,
+                                buildSpecification.BuildGraphSettingReplacements,
+                                targetWorkspacePath,
+                                buildSpecification.UETPath,
+                                engineWorkspace.Path,
+                                OperatingSystem.IsWindows()
+                                    ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
+                                    : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                                buildSpecification.ArtifactExportPath);
+
                             if (preparePlugin != null && preparePlugin.Length > 0)
                             {
                                 _logger.LogTrace($"Running plugin preparation steps for pre-BuildGraph hook.");
@@ -176,6 +190,7 @@
                                     await provider.RunBeforeBuildGraphAsync(
                                         byType,
                                         targetWorkspacePath,
+                                        preBuildGraphArguments,
                                         cancellationToken).ConfigureAwait(false);
                                 }
                             }
@@ -192,6 +207,7 @@
                                     await provider.RunBeforeBuildGraphAsync(
                                         byType,
                                         targetWorkspacePath,
+                                        preBuildGraphArguments,
                                         cancellationToken).ConfigureAwait(false);
                                 }
                             }

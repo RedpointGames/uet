@@ -10,9 +10,6 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text.Json;
-    using System.Text.Json.Serialization;
-    using System.Text.Json.Serialization.Metadata;
     using System.Threading.Tasks;
     using System.Xml;
 
@@ -124,9 +121,10 @@
             }
         }
 
-        public async Task RunBeforeBuildGraphAsync(
+        public async Task<int> RunBeforeBuildGraphAsync(
             IEnumerable<BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>> entries,
             string repositoryRoot,
+            IReadOnlyDictionary<string, string> preBuildGraphArguments,
             CancellationToken cancellationToken)
         {
             var castedSettings = entries
@@ -137,7 +135,7 @@
                 .Where(x => (x.settings.RunBefore ?? Array.Empty<BuildConfigProjectPrepareRunBefore>()).Contains(BuildConfigProjectPrepareRunBefore.BuildGraph)))
             {
                 _logger.LogInformation($"Executing pre-BuildGraph custom preparation step '{entry.name}': '{entry.settings.ScriptPath}'");
-                await _scriptExecutor.ExecutePowerShellAsync(
+                var exitCode = await _scriptExecutor.ExecutePowerShellAsync(
                     new ScriptSpecification
                     {
                         ScriptPath = entry.settings.ScriptPath,
@@ -146,7 +144,13 @@
                     },
                     CaptureSpecification.Passthrough,
                     cancellationToken).ConfigureAwait(false);
+                if (exitCode != 0)
+                {
+                    return exitCode;
+                }
             }
+
+            return 0;
         }
     }
 }

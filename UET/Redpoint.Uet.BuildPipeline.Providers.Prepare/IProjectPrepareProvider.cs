@@ -5,9 +5,10 @@
 
     public interface IProjectPrepareProvider : IPrepareProvider, IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>
     {
-        Task RunBeforeBuildGraphAsync(
+        Task<int> RunBeforeBuildGraphAsync(
             IEnumerable<BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>> entries,
             string repositoryRoot,
+            IReadOnlyDictionary<string, string> preBuildGraphArguments,
             CancellationToken cancellationToken);
     }
 }

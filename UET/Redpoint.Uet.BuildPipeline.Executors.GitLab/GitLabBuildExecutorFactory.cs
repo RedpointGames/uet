@@ -36,7 +36,8 @@
                 _serviceProvider.GetRequiredService<IBuildGraphExecutor>(),
                 _serviceProvider.GetRequiredService<IEngineWorkspaceProvider>(),
                 _serviceProvider.GetRequiredService<IDynamicWorkspaceProvider>(),
-                _serviceProvider.GetRequiredService<ISdkSetupForBuildExecutor>());
+                _serviceProvider.GetRequiredService<ISdkSetupForBuildExecutor>(),
+                _serviceProvider.GetRequiredService<IBuildGraphArgumentGenerator>());
         }
     }
 }

@@ -23,6 +23,7 @@
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
         private readonly IDynamicWorkspaceProvider _workspaceProvider;
         private readonly ISdkSetupForBuildExecutor _sdkSetupForBuildExecutor;
+        private readonly IBuildGraphArgumentGenerator _buildGraphArgumentGenerator;
         private readonly IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>[] _pluginPrepare;
         private readonly IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>[] _projectPrepare;
 
@@ -32,13 +33,15 @@
             IBuildGraphExecutor buildGraphExecutor,
             IEngineWorkspaceProvider engineWorkspaceProvider,
             IDynamicWorkspaceProvider workspaceProvider,
-            ISdkSetupForBuildExecutor sdkSetupForBuildExecutor)
+            ISdkSetupForBuildExecutor sdkSetupForBuildExecutor,
+            IBuildGraphArgumentGenerator buildGraphArgumentGenerator)
         {
             _logger = logger;
             _buildGraphExecutor = buildGraphExecutor;
             _engineWorkspaceProvider = engineWorkspaceProvider;
             _workspaceProvider = workspaceProvider;
             _sdkSetupForBuildExecutor = sdkSetupForBuildExecutor;
+            _buildGraphArgumentGenerator = buildGraphArgumentGenerator;
             _pluginPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>>().ToArray();
             _projectPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>>().ToArray();
         }
@@ -85,6 +88,17 @@
                             buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
                             cancellationToken).ConfigureAwait(false);
 
+                        var preBuildGraphArguments = _buildGraphArgumentGenerator.GeneratePreBuildGraphArguments(
+                            buildSpecification.BuildGraphSettings,
+                            buildSpecification.BuildGraphSettingReplacements,
+                            targetWorkspacePath,
+                            buildSpecification.UETPath,
+                            engineWorkspace.Path,
+                            OperatingSystem.IsWindows()
+                                ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
+                                : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                            buildSpecification.ArtifactExportPath);
+
                         if (preparePlugin != null && preparePlugin.Length > 0)
                         {
                             _logger.LogTrace($"Running plugin preparation steps for pre-BuildGraph hook.");
@@ -94,10 +108,16 @@
                                     .Where(x => x.Type == byType.Key)
                                     .OfType<IPluginPrepareProvider>()
                                     .First();
-                                await provider.RunBeforeBuildGraphAsync(
+                                var exitCode = await provider.RunBeforeBuildGraphAsync(
                                     byType,
                                     targetWorkspacePath,
+                                    preBuildGraphArguments,
                                     cancellationToken).ConfigureAwait(false);
+                                if (exitCode != 0)
+                                {
+                                    _logger.LogError($"Plugin preparation step for pre-BuildGraph hook failed with exit code {exitCode}.");
+                                    return exitCode;
+                                }
                             }
                         }
 
@@ -110,10 +130,16 @@
                                     .Where(x => x.Type == byType.Key)
                                     .OfType<IProjectPrepareProvider>()
                                     .First();
-                                await provider.RunBeforeBuildGraphAsync(
+                                var exitCode = await provider.RunBeforeBuildGraphAsync(
                                     byType,
                                     targetWorkspacePath,
+                                    preBuildGraphArguments,
                                     cancellationToken).ConfigureAwait(false);
+                                if (exitCode != 0)
+                                {
+                                    _logger.LogError($"Project preparation step for pre-BuildGraph hook failed with exit code {exitCode}.");
+                                    return exitCode;
+                                }
                             }
                         }
 
@@ -126,7 +152,9 @@
                             buildSpecification.BuildGraphScript,
                             buildSpecification.BuildGraphTarget,
                             nodeName,
-                            OperatingSystem.IsWindows() ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                            OperatingSystem.IsWindows()
+                                ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
+                                : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                             buildSpecification.BuildGraphSettings,
                             buildSpecification.BuildGraphSettingReplacements,
                             globalEnvironmentVariablesWithSdk,
