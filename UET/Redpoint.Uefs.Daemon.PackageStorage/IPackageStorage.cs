@@ -7,7 +7,7 @@
     {
         IPackageFs PackageFs { get; }
 
-        IGitRepoManager GitRepoManager { get; }
+        IGitRepoManager? GitRepoManager { get; }
 
         void StopProcesses();
     }

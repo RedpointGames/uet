@@ -7,6 +7,7 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Redpoint.Concurrency;
+    using Grpc.Core;
 
     internal sealed class GitCommitPuller : IPuller<PullGitCommitRequest>
     {
@@ -16,6 +17,11 @@
             TransactionListener<FileInfo?> onPollingResponse,
             CancellationToken cancellationToken)
         {
+            if (daemon.PackageStorage.GitRepoManager == null)
+            {
+                throw new RpcException(new Status(StatusCode.Unavailable, "Git commits can not be pulled on this system."));
+            }
+
             // Run pull transaction in case we need to pull this Git commit.
             await using ((await daemon.TransactionalDatabase.BeginTransactionAsync(
                 new PullGitCommitTransactionRequest

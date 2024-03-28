@@ -8,7 +8,7 @@
     internal sealed class DefaultPackageStorage : IPackageStorage
     {
         private readonly ILogger<DefaultPackageStorage> _logger;
-        private readonly IGitRepoManager _gitRepoManager;
+        private readonly IGitRepoManager? _gitRepoManager;
         private readonly string _storagePath;
         private readonly IPackageFs _packageFs;
         private Task? _healthCheckTask;
@@ -20,8 +20,16 @@
             string storagePath)
         {
             _logger = logger;
-            _gitRepoManager = gitRepoManagerFactory.CreateGitRepoManager(
-                Path.Combine(storagePath, "git-repo"));
+            try
+            {
+                _gitRepoManager = gitRepoManagerFactory.CreateGitRepoManager(
+                    Path.Combine(storagePath, "git-repo"));
+            }
+            catch
+            {
+                _logger.LogWarning("Git repository services failed to initialize. Git mounts will not be available.");
+                _gitRepoManager = null;
+            }
             _storagePath = storagePath;
 
             if (OperatingSystem.IsWindows())
@@ -84,15 +92,18 @@
 
         public IPackageFs PackageFs => _packageFs;
 
-        public IGitRepoManager GitRepoManager => _gitRepoManager;
+        public IGitRepoManager? GitRepoManager => _gitRepoManager;
 
         public void StopProcesses()
         {
             _logger.LogInformation($"Shutting down the virtual file system...");
             _packageFs.Dispose();
 
-            _logger.LogInformation($"Stopping Git processes operating in the Git repository..");
-            _gitRepoManager.StopProcesses();
+            if (_gitRepoManager != null)
+            {
+                _logger.LogInformation($"Stopping Git processes operating in the Git repository..");
+                _gitRepoManager.StopProcesses();
+            }
         }
     }
 }

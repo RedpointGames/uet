@@ -44,7 +44,7 @@
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "There is already another mount at this path."));
             }
 
-            if (_vfsDriverFactory == null)
+            if (_vfsDriverFactory == null || daemon.PackageStorage.GitRepoManager == null)
             {
                 throw new RpcException(new Status(StatusCode.Unavailable, "Git commits can not be mounted on this system."));
             }
