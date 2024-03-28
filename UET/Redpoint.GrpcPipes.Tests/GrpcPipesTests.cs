@@ -36,7 +36,6 @@ namespace Redpoint.GrpcPipes.Tests
         }
 
         [Theory]
-        [InlineData("http2")]
         [InlineData("tcp")]
         public async Task TestUserPipes(string protocol)
         {
@@ -49,14 +48,8 @@ namespace Redpoint.GrpcPipes.Tests
             });
             switch (protocol)
             {
-                case "http2":
-                    services.AddGrpcPipes<AspNetGrpcPipeFactory>();
-                    break;
                 case "tcp":
                     services.AddGrpcPipes<TcpGrpcPipeFactory>();
-                    break;
-                default:
-                    services.AddGrpcPipes();
                     break;
             }
 
@@ -87,7 +80,6 @@ namespace Redpoint.GrpcPipes.Tests
         }
 
         [Theory]
-        [InlineData("http2")]
         [InlineData("tcp")]
         public async Task TestNetworkPipes(string protocol)
         {
@@ -100,14 +92,8 @@ namespace Redpoint.GrpcPipes.Tests
             });
             switch (protocol)
             {
-                case "http2":
-                    services.AddGrpcPipes<AspNetGrpcPipeFactory>();
-                    break;
                 case "tcp":
                     services.AddGrpcPipes<TcpGrpcPipeFactory>();
-                    break;
-                default:
-                    services.AddGrpcPipes();
                     break;
             }
 
@@ -148,7 +134,6 @@ namespace Redpoint.GrpcPipes.Tests
         }
 
         [SkippableTheory]
-        [InlineData("http2")]
         [InlineData("tcp")]
         public async Task TestComputerPipes(string protocol)
         {
@@ -163,14 +148,8 @@ namespace Redpoint.GrpcPipes.Tests
             });
             switch (protocol)
             {
-                case "http2":
-                    services.AddGrpcPipes<AspNetGrpcPipeFactory>();
-                    break;
                 case "tcp":
                     services.AddGrpcPipes<TcpGrpcPipeFactory>();
-                    break;
-                default:
-                    services.AddGrpcPipes();
                     break;
             }
 
@@ -201,7 +180,6 @@ namespace Redpoint.GrpcPipes.Tests
         }
 
         [SkippableTheory]
-        [InlineData("http2")]
         [InlineData("tcp")]
         public async Task TestNewServerCanRemoveOldPipe(string protocol)
         {
@@ -216,14 +194,8 @@ namespace Redpoint.GrpcPipes.Tests
             });
             switch (protocol)
             {
-                case "http2":
-                    services.AddGrpcPipes<AspNetGrpcPipeFactory>();
-                    break;
                 case "tcp":
                     services.AddGrpcPipes<TcpGrpcPipeFactory>();
-                    break;
-                default:
-                    services.AddGrpcPipes();
                     break;
             }
 

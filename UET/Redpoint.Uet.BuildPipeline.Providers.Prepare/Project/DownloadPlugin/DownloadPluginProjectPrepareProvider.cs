@@ -1,20 +1,14 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Prepare.Project.DownloadPlugin
 {
-    using Microsoft.AspNetCore.Connections.Features;
     using Microsoft.Extensions.Logging;
     using Redpoint.RuntimeJson;
     using Redpoint.Uet.BuildGraph;
-    using Redpoint.Uet.BuildPipeline.Providers.Prepare.Project.Custom;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Project;
-    using Redpoint.Uet.Workspace;
     using Redpoint.Uet.Workspace.Descriptors;
     using Redpoint.Uet.Workspace.PhysicalGit;
     using System;
     using System.Collections.Generic;
-    using System.Text.Json;
-    using System.Text.Json.Serialization;
-    using System.Text.Json.Serialization.Metadata;
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;

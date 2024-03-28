@@ -1,20 +1,12 @@
 ﻿namespace Redpoint.OpenGE.Component.Dispatcher.WorkerPool
 {
-    using Grpc.Core;
-    using Grpc.Net.Client.Balancer;
-    using Grpc.Net.Client.Configuration;
-    using Grpc.Net.Client;
-    using Microsoft.AspNetCore.Connections.Features;
-    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.AutoDiscovery;
     using Redpoint.Concurrency;
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Protocol;
     using System.Threading.Tasks;
-    using static Grpc.Core.Metadata;
     using Redpoint.Tasks;
-    using Google.Protobuf;
     using Redpoint.GrpcPipes;
     using System.Net;
 

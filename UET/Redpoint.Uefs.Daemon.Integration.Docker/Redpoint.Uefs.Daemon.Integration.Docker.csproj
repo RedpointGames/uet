@@ -9,6 +9,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Redpoint.Uefs.Daemon.Abstractions\Redpoint.Uefs.Daemon.Abstractions.csproj" />
   </ItemGroup>
 

@@ -37,7 +37,6 @@
 
             services.AddSingleton<IToolSynchroniser, DefaultToolSynchroniser>();
             services.AddSingleton<IBlobSynchroniser, DefaultBlobSynchroniser>();
-            services.AddSingleton<IRemoteFsManager, DefaultRemoteFsManager>();
         }
     }
 }

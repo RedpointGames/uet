@@ -20,7 +20,6 @@
         private readonly ILogger<DefaultGraphExecutor> _logger;
         private readonly IToolSynchroniser _toolSynchroniser;
         private readonly IBlobSynchroniser _blobSynchroniser;
-        private readonly IRemoteFsManager _remoteFsManager;
         private readonly ITaskScheduler _taskScheduler;
         private readonly IStallMonitorFactory _stallMonitorFactory;
 
@@ -28,14 +27,12 @@
             ILogger<DefaultGraphExecutor> logger,
             IToolSynchroniser toolSynchroniser,
             IBlobSynchroniser blobSynchroniser,
-            IRemoteFsManager remoteFsManager,
             ITaskScheduler taskScheduler,
             IStallMonitorFactory stallMonitorFactory)
         {
             _logger = logger;
             _toolSynchroniser = toolSynchroniser;
             _blobSynchroniser = blobSynchroniser;
-            _remoteFsManager = remoteFsManager;
             _taskScheduler = taskScheduler;
             _stallMonitorFactory = stallMonitorFactory;
         }
@@ -545,12 +542,6 @@
                                             else
                                             {
                                                 syncPhaseStats = new Dictionary<string, string>();
-                                            }
-
-                                            // Set up the remote FS port if that is the storage layer we're using.
-                                            if (taskDescriptor.Remote.StorageLayerCase == RemoteTaskDescriptor.StorageLayerOneofCase.RemoteFsStorageLayer)
-                                            {
-                                                taskDescriptor.Remote.RemoteFsStorageLayer.RemotePort = await _remoteFsManager.StartRemoteFsIfNeededAsync().ConfigureAwait(false);
                                             }
 
                                             // Notify the client we're changing phases.

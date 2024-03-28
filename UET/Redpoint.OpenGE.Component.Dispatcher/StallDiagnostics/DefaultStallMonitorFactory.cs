@@ -36,11 +36,6 @@
             private readonly CancellationTokenSource _cancellationTokenSource;
             private DateTime _lastMadeProgress;
 
-            [LoggerMessage(
-                Level = LogLevel.Warning,
-                Message = "STALL DETECTED! DIAGNOSTICS:\n{diagnostics}")]
-            static partial void LogStallDiagnostics(ILogger logger, string diagnostics);
-
             public DefaultStallMonitor(
                 ILogger<DefaultStallMonitor> logger,
                 IStallDiagnostics stallDiagnostics,
@@ -63,7 +58,7 @@
                             {
                                 var diagnostics = await _stallDiagnostics.CaptureStallInformationAsync(
                                     instance).ConfigureAwait(false);
-                                LogStallDiagnostics(_logger, diagnostics);
+                                _logger.LogWarning("STALL DETECTED! DIAGNOSTICS:\n" + diagnostics);
                                 instance.CancelEntireBuildDueToException(new InvalidOperationException("STALL DETECTED!"));
                             }
                         }

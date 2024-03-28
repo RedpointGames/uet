@@ -19,9 +19,6 @@
       <ShimProjects Include="$(ProjectDir)..\Redpoint.GrpcPipes.Transport.Tcp\Redpoint.GrpcPipes.Transport.Tcp.csproj">
         <AdditionalProperties>RuntimeIdentifier=win-x64;OutDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64;PublishDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish</AdditionalProperties>
       </ShimProjects>
-      <ShimProjects Include="$(ProjectDir)..\Redpoint.GrpcPipes.Transport.Http2\Redpoint.GrpcPipes.Transport.Http2.csproj">
-        <AdditionalProperties>RuntimeIdentifier=win-x64;OutDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64;PublishDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish</AdditionalProperties>
-      </ShimProjects>
       <ShimProjects Include="$(ProjectDir)..\Redpoint.OpenGE.Shim\Redpoint.OpenGE.Shim.csproj">
         <AdditionalProperties>RuntimeIdentifier=win-x64;OutDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64;PublishDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish</AdditionalProperties>
       </ShimProjects>
@@ -61,7 +58,7 @@
 
   <ItemGroup>
     <PackageReference Include="Crayon" Version="2.0.69" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
