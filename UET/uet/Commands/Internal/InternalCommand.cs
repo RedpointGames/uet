@@ -17,7 +17,6 @@
     using UET.Commands.Internal.RunGauntletTestFromBuildGraph;
     using UET.Commands.Internal.RunRemote;
     using UET.Commands.Internal.RunRemoteHost;
-    using UET.Commands.Internal.RunRfs;
     using UET.Commands.Internal.SetFilterFile;
     using UET.Commands.Internal.TestAutoDiscovery;
     using UET.Commands.Internal.TestGrpcPipes;
@@ -54,7 +53,6 @@
                 OpenGEPreprocessorCacheClientCommand.CreateOpenGEPreprocessorCacheClientCommand(),
                 RunDriveMappedProcessCommand.CreateRunDriveMappedProcessCommand(),
                 CreateJunctionCommand.CreateCreateJunctionCommand(),
-                RunRfsCommand.CreateRunRfsCommand(),
                 StressTestProcessCommand.CreateStressTestProcessCommand(),
                 TestPduCommand.CreateTestPduCommand(),
                 RunRemoteHostCommand.CreateRunRemoteHostCommand(),

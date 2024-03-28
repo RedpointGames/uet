@@ -3,6 +3,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.AutoDiscovery;
+    using Redpoint.GrpcPipes;
     using System;
 
     internal class DefaultWorkerComponentFactory : IWorkerComponentFactory
@@ -23,6 +24,7 @@
                 _serviceProvider.GetRequiredService<IExecutionManager>(),
                 _serviceProvider.GetRequiredService<ILogger<DefaultWorkerComponent>>(),
                 _serviceProvider.GetRequiredService<INetworkAutoDiscovery>(),
+                _serviceProvider.GetRequiredService<IGrpcPipeFactory>(),
                 localUseOnly);
         }
     }

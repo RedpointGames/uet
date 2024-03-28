@@ -15,12 +15,15 @@
     using static Grpc.Core.Metadata;
     using Redpoint.Tasks;
     using Google.Protobuf;
+    using Redpoint.GrpcPipes;
+    using System.Net;
 
     internal class DefaultTaskApiWorkerPool : ITaskApiWorkerPool
     {
         private readonly ILogger<DefaultTaskApiWorkerPool> _logger;
         private readonly INetworkAutoDiscovery _networkAutoDiscovery;
         private readonly ITaskScheduler _taskScheduler;
+        private readonly IGrpcPipeFactory _grpcPipeFactory;
         internal readonly WorkerCoreRequestCollection<ITaskApiWorkerCore> _requestCollection;
         private readonly Mutex _disposing;
         private bool _disposed;
@@ -36,11 +39,13 @@
             ILogger<DefaultTaskApiWorkerPool> logger,
             INetworkAutoDiscovery networkAutoDiscovery,
             ITaskScheduler taskScheduler,
+            IGrpcPipeFactory grpcPipeFactory,
             TaskApiWorkerPoolConfiguration poolConfiguration)
         {
             _logger = logger;
             _networkAutoDiscovery = networkAutoDiscovery;
             _taskScheduler = taskScheduler;
+            _grpcPipeFactory = grpcPipeFactory;
             _requestCollection = new WorkerCoreRequestCollection<ITaskApiWorkerCore>();
             _disposing = new Mutex();
             _disposed = false;
@@ -106,43 +111,28 @@
                             continue;
                         }
 
-                        var factory = new StaticResolverFactory(
-                            addr => entry.TargetAddressList.Select(
-                                x => new BalancerAddress(x.ToString(), entry.TargetPort)));
-                        var services = new ServiceCollection();
-                        services.AddSingleton<ResolverFactory>(factory);
-
-                        // Try to ping this remote worker.
-                        var taskApi = new TaskApi.TaskApiClient(
-                            GrpcChannel.ForAddress(
-                                $"static:///{entry.ServiceName}",
-                                new GrpcChannelOptions
-                                {
-                                    HttpHandler = new SocketsHttpHandler
-                                    {
-                                        EnableMultipleHttp2Connections = true,
-                                        ConnectTimeout = TimeSpan.FromSeconds(1)
-                                    },
-                                    ServiceConfig = new ServiceConfig
-                                    {
-                                        LoadBalancingConfigs =
-                                        {
-                                            new PickFirstConfig(),
-                                        }
-                                    },
-                                    ServiceProvider = services.BuildServiceProvider(),
-                                    Credentials = ChannelCredentials.Insecure,
-                                }));
-                        var usable = false;
-                        try
+                        TaskApi.TaskApiClient? taskApi = null;
+                        foreach (var address in entry.TargetAddressList)
                         {
-                            await taskApi.PingTaskServiceAsync(new PingTaskServiceRequest(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
-                            usable = true;
+                            var usable = false;
+                            try
+                            {
+                                var attemptedTaskApi = _grpcPipeFactory.CreateNetworkClient(
+                                    new IPEndPoint(address, entry.TargetPort),
+                                    x => new TaskApi.TaskApiClient(x));
+                                await attemptedTaskApi.PingTaskServiceAsync(new PingTaskServiceRequest(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
+                                usable = true;
+                                taskApi = attemptedTaskApi;
+                            }
+                            catch
+                            {
+                            }
+                            if (usable)
+                            {
+                                break;
+                            }
                         }
-                        catch
-                        {
-                        }
-                        if (usable)
+                        if (taskApi != null)
                         {
                             var newProvider = new TaskApiWorkerCoreProvider(
                                 _logger,

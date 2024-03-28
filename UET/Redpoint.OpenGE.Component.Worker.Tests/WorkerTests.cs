@@ -3,6 +3,8 @@
     using Grpc.Net.Client;
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.AutoDiscovery;
+    using Redpoint.GrpcPipes.Transport.Tcp;
+    using Redpoint.GrpcPipes;
     using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Protocol;
     using Redpoint.ProcessExecution;
@@ -10,6 +12,7 @@
     using Redpoint.Tasks;
     using System.Text;
     using Xunit;
+    using System.Net;
 
     public class WorkerTests
     {
@@ -26,15 +29,19 @@
             services.AddOpenGECore();
             services.AddReservation();
             services.AddAutoDiscovery();
+            services.AddGrpcPipes<TcpGrpcPipeFactory>();
             var sp = services.BuildServiceProvider();
+
+            var grpcPipeFactory = sp.GetRequiredService<IGrpcPipeFactory>();
 
             var factory = sp.GetRequiredService<IWorkerComponentFactory>();
             var worker = factory.Create(true);
             await worker.StartAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
-                var taskClient = new TaskApi.TaskApiClient(
-                    GrpcChannel.ForAddress($"http://127.0.0.1:{worker.ListeningPort}"));
+                var taskClient = grpcPipeFactory.CreateNetworkClient(
+                    new IPEndPoint(IPAddress.Loopback, worker.ListeningPort!.Value),
+                    x => new TaskApi.TaskApiClient(x));
 
                 var duplex = taskClient.ReserveCoreAndExecute();
 

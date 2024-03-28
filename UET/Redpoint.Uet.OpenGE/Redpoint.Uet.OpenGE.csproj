@@ -4,10 +4,22 @@
 
   <Target Name="BuildShim" BeforeTargets="ResolveReferences" Condition="'$(OpenGEShimIsAlreadyBuilt)' != 'true'">
     <ItemGroup>
+      <ShimProjects Include="$(ProjectDir)..\Redpoint.Concurrency\Redpoint.Concurrency.csproj">
+        <AdditionalProperties>RuntimeIdentifier=win-x64;OutDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64;PublishDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish</AdditionalProperties>
+      </ShimProjects>
       <ShimProjects Include="$(ProjectDir)..\Redpoint.Logging\Redpoint.Logging.csproj">
         <AdditionalProperties>RuntimeIdentifier=win-x64;OutDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64;PublishDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish</AdditionalProperties>
       </ShimProjects>
       <ShimProjects Include="$(ProjectDir)..\Redpoint.GrpcPipes\Redpoint.GrpcPipes.csproj">
+        <AdditionalProperties>RuntimeIdentifier=win-x64;OutDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64;PublishDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish</AdditionalProperties>
+      </ShimProjects>
+      <ShimProjects Include="$(ProjectDir)..\Redpoint.GrpcPipes.Abstractions\Redpoint.GrpcPipes.Abstractions.csproj">
+        <AdditionalProperties>RuntimeIdentifier=win-x64;OutDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64;PublishDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish</AdditionalProperties>
+      </ShimProjects>
+      <ShimProjects Include="$(ProjectDir)..\Redpoint.GrpcPipes.Transport.Tcp\Redpoint.GrpcPipes.Transport.Tcp.csproj">
+        <AdditionalProperties>RuntimeIdentifier=win-x64;OutDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64;PublishDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish</AdditionalProperties>
+      </ShimProjects>
+      <ShimProjects Include="$(ProjectDir)..\Redpoint.GrpcPipes.Transport.Http2\Redpoint.GrpcPipes.Transport.Http2.csproj">
         <AdditionalProperties>RuntimeIdentifier=win-x64;OutDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64;PublishDir=$(ProjectDir)shim-bin\$(Configuration)\$(TargetFramework)\win-x64\publish</AdditionalProperties>
       </ShimProjects>
       <ShimProjects Include="$(ProjectDir)..\Redpoint.OpenGE.Shim\Redpoint.OpenGE.Shim.csproj">
