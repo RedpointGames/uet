@@ -85,6 +85,8 @@
                 $"-ini:Engine:[/Script/TcpMessaging.TcpMessagingSettings]:ListenEndpoint={_portReservation.EndPoint}",
                 "-ini:Engine:[/Script/UdpMessaging.UdpMessagingSettings]:EnabledByDefault=False",
                 "-ini:Engine:[/Script/UdpMessaging.UdpMessagingSettings]:EnableTransport=False",
+                // Disable Zen cache, as it does not work under SYSTEM.
+                "-DDC=NoZenLocalFallback"
             };
             if (!Descriptor.EnableRendering)
             {
