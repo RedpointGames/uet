@@ -732,6 +732,12 @@
                     _logger.LogWarning("Remote core unexpectedly went away, automatically rescheduling work...");
                     goto restartTaskOnRemoteCancellation;
                 }
+                catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable)
+                {
+                    // Automatically retry the task if we encountered unexpected cancellation from the remote core.
+                    _logger.LogWarning("Remote core unexpectedly went away, automatically rescheduling work...");
+                    goto restartTaskOnRemoteCancellation;
+                }
                 catch (Exception ex)
                 {
                     _logger.LogCritical(ex, $"Exception during task execution: {ex.Message}");
