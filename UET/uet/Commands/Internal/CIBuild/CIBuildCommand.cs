@@ -235,6 +235,13 @@
                     {
                         await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(buildJson.SharedStoragePath, nodeName), context.GetCancellationToken()).ConfigureAwait(false);
                     }
+
+                    var exitDelaySeconds = Environment.GetEnvironmentVariable("UET_EXIT_DELAY_SECONDS");
+                    if (!string.IsNullOrWhiteSpace(exitDelaySeconds) && int.TryParse(exitDelaySeconds, out var delaySeconds))
+                    {
+                        _logger.LogTrace($"Waiting {delaySeconds} seconds upon exit to allow all logs to be flushed.");
+                        await Task.Delay(delaySeconds * 1000).ConfigureAwait(false);
+                    }
                 }
             }
         }
