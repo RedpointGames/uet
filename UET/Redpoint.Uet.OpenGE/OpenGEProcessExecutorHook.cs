@@ -2,11 +2,13 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.GrpcPipes;
+    using Redpoint.OpenGE.Core;
     using Redpoint.OpenGE.Protocol;
     using Redpoint.ProcessExecution;
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
+    using System.IO;
+    using System.IO.Hashing;
     using System.Linq;
     using System.Reflection;
     using System.Threading;
@@ -35,6 +37,7 @@
         {
             if (processSpecification is not OpenGEProcessSpecification openGEProcessSpecification)
             {
+                _logger.LogTrace($"Not extracting OpenGE shim for execution of {processSpecification.FilePath} because it is not an OpenGEProcessSpecification.");
                 return null;
             }
 
@@ -42,6 +45,7 @@
 
             if (!environmentInfo.ShouldUseOpenGE || openGEProcessSpecification.DisableOpenGE)
             {
+                _logger.LogTrace($"Not extracting OpenGE shim for execution of {processSpecification.FilePath} because environmentInfo.ShouldUseOpenGE={environmentInfo.ShouldUseOpenGE} or openGEProcessSpecification.DisableOpenGE={openGEProcessSpecification.DisableOpenGE}.");
                 return null;
             }
 
@@ -63,19 +67,49 @@
             var xgeShimFolder = Path.Combine(Path.GetTempPath(), $"openge-shim-{Environment.ProcessId}");
             var xgeShimPath = Path.Combine(xgeShimFolder, shimName);
 
+            var manifestName = $"{typeof(OpenGEProcessExecutorHook).Namespace}.Embedded.{embeddedResourceName}";
+            long manifestHash;
+            {
+                var manifestStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(manifestName);
+                if (manifestStream == null)
+                {
+                    throw new InvalidOperationException($"This process requires the OpenGE shim to be extracted, but UET was incorrectly built and doesn't have a copy of the shim as an embedded resource with the name '{manifestName}'.");
+                }
+                using (manifestStream)
+                {
+                    var hasher = new XxHash64();
+                    await hasher.AppendAsync(manifestStream, cancellationToken).ConfigureAwait(false);
+                    manifestHash = BitConverter.ToInt64(hasher.GetCurrentHash());
+                }
+            }
+
             await _semaphoreSlim.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                if (!File.Exists(xgeShimPath))
+                var shouldWrite = !File.Exists(xgeShimPath);
+                if (shouldWrite)
+                {
+                    _logger.LogTrace($"Will extract XGE shim as the shim does not exist at '{xgeShimPath}'.");
+                }
+                else
+                {
+                    var existingFileHash = await XxHash64Helpers.HashFile(xgeShimPath, cancellationToken).ConfigureAwait(false);
+                    shouldWrite = existingFileHash.hash != manifestHash;
+                    if (shouldWrite)
+                    {
+                        _logger.LogTrace($"Will extract XGE shim as the shim at '{xgeShimPath}' does not match the embedded version inside UET (possibly an older shim from a previous UET version).");
+                    }
+                    else
+                    {
+                        _logger.LogTrace($"Will not extract XGE shim as the shim already exists at '{xgeShimPath}' as is identical.");
+                    }
+                }
+
+                if (shouldWrite)
                 {
                     Directory.CreateDirectory(xgeShimFolder);
-                    var manifestName = $"{typeof(OpenGEProcessExecutorHook).Namespace}.Embedded.{embeddedResourceName}";
                     var manifestStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(manifestName);
-                    if (manifestStream == null)
-                    {
-                        throw new InvalidOperationException($"This process requires the OpenGE shim to be extracted, but UET was incorrectly built and doesn't have a copy of the shim as an embedded resource with the name '{manifestName}'.");
-                    }
-                    using (manifestStream)
+                    using (manifestStream!)
                     {
                         using (var target = new FileStream(xgeShimPath + ".tmp", FileMode.Create, FileAccess.Write, FileShare.None))
                         {
@@ -91,7 +125,11 @@
                         File.SetUnixFileMode(xgeShimPath + ".tmp", mode);
                     }
                     File.Move(xgeShimPath + ".tmp", xgeShimPath, true);
-                    _logger.LogTrace("Extracted XGE shim to: " + xgeShimPath);
+                    _logger.LogTrace("Extracted XGE shim to '" + xgeShimPath + "'.");
+                }
+                else
+                {
+                    _logger.LogTrace($"Not extracting OpenGE shim to '" + xgeShimPath + "'.");
                 }
             }
             finally
