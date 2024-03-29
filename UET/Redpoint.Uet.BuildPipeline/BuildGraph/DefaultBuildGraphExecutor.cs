@@ -92,63 +92,71 @@
                 Name = "NuGetPackages"
             }, cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var nugetPackages).ConfigureAwait(false))
             {
-                var environmentVariables = new Dictionary<string, string>
+                await using ((await _dynamicWorkspaceProvider.GetWorkspaceAsync(new TemporaryWorkspaceDescriptor
                 {
-                    { "IsBuildMachine", "1" },
-                    { "uebp_LOCAL_ROOT", enginePath },
-                    // BuildGraph in Unreal Engine 5.0 causes input files to be unnecessarily modified. Just allow mutation since I'm not sure what the bug is.
-                    { "BUILD_GRAPH_ALLOW_MUTATION", "true" },
-                    // Make sure UET knows it's running under BuildGraph for subcommands
-                    // so that we can emit the extra newline necessary for BuildGraph to
-                    // show all output. Refer to CommandExtensions.cs to see where this
-                    // is used.
-                    { "UET_RUNNING_UNDER_BUILDGRAPH", "true" },
-                    { "UET_XGE_SHIM_BUILD_NODE_NAME", buildGraphNodeName },
-                    // Isolate NuGet package restore so that multiple jobs can restore at
-                    // the same time.
-                    { "NUGET_PACKAGES", nugetPackages.Path }
-                };
-                if (!string.IsNullOrWhiteSpace(buildGraphRepositoryRootPath))
+                    Name = "GradleUserHome"
+                }, cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var gradleUserHome).ConfigureAwait(false))
                 {
-                    environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = buildGraphRepositoryRootPath;
-                }
-                else
-                {
-                    environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = enginePath;
-                }
-                if (string.IsNullOrWhiteSpace(environmentVariables["BUILD_GRAPH_PROJECT_ROOT"]))
-                {
-                    throw new InvalidOperationException("BUILD_GRAPH_PROJECT_ROOT is empty, when it should be set to either the repository root or engine path.");
-                }
-                else
-                {
-                    _logger.LogInformation($"BuildGraph is executing with BUILD_GRAPH_PROJECT_ROOT={environmentVariables["BUILD_GRAPH_PROJECT_ROOT"]}");
-                }
-                foreach (var kv in globalEnvironmentVariables)
-                {
-                    environmentVariables[kv.Key] = kv.Value;
-                }
-
-                return await InternalRunAsync(
-                    enginePath,
-                    buildGraphRepositoryRootPath,
-                    uetPath,
-                    artifactExportPath,
-                    buildGraphScript,
-                    buildGraphTarget,
-                    buildGraphSharedStorageDir,
-                    new[]
+                    var environmentVariables = new Dictionary<string, string>
                     {
-                        $"-SingleNode={buildGraphNodeName}",
-                        "-WriteToSharedStorage",
-                        $"-SharedStorageDir={buildGraphSharedStorageDir}"
-                    },
-                    buildGraphArguments,
-                    buildGraphArgumentReplacements,
-                    environmentVariables,
-                    mobileProvisions,
-                    captureSpecification,
-                    cancellationToken).ConfigureAwait(false);
+                        { "IsBuildMachine", "1" },
+                        { "uebp_LOCAL_ROOT", enginePath },
+                        // BuildGraph in Unreal Engine 5.0 causes input files to be unnecessarily modified. Just allow mutation since I'm not sure what the bug is.
+                        { "BUILD_GRAPH_ALLOW_MUTATION", "true" },
+                        // Make sure UET knows it's running under BuildGraph for subcommands
+                        // so that we can emit the extra newline necessary for BuildGraph to
+                        // show all output. Refer to CommandExtensions.cs to see where this
+                        // is used.
+                        { "UET_RUNNING_UNDER_BUILDGRAPH", "true" },
+                        { "UET_XGE_SHIM_BUILD_NODE_NAME", buildGraphNodeName },
+                        // Isolate NuGet package restore so that multiple jobs can restore at
+                        // the same time.
+                        { "NUGET_PACKAGES", nugetPackages.Path },
+                        // Adjust Gradle cache path so that Android packaging works under SYSTEM.
+                        { "GRADLE_USER_HOME", gradleUserHome.Path },
+                    };
+                    if (!string.IsNullOrWhiteSpace(buildGraphRepositoryRootPath))
+                    {
+                        environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = buildGraphRepositoryRootPath;
+                    }
+                    else
+                    {
+                        environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = enginePath;
+                    }
+                    if (string.IsNullOrWhiteSpace(environmentVariables["BUILD_GRAPH_PROJECT_ROOT"]))
+                    {
+                        throw new InvalidOperationException("BUILD_GRAPH_PROJECT_ROOT is empty, when it should be set to either the repository root or engine path.");
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"BuildGraph is executing with BUILD_GRAPH_PROJECT_ROOT={environmentVariables["BUILD_GRAPH_PROJECT_ROOT"]}");
+                    }
+                    foreach (var kv in globalEnvironmentVariables)
+                    {
+                        environmentVariables[kv.Key] = kv.Value;
+                    }
+
+                    return await InternalRunAsync(
+                        enginePath,
+                        buildGraphRepositoryRootPath,
+                        uetPath,
+                        artifactExportPath,
+                        buildGraphScript,
+                        buildGraphTarget,
+                        buildGraphSharedStorageDir,
+                        new[]
+                        {
+                            $"-SingleNode={buildGraphNodeName}",
+                            "-WriteToSharedStorage",
+                            $"-SharedStorageDir={buildGraphSharedStorageDir}"
+                        },
+                        buildGraphArguments,
+                        buildGraphArgumentReplacements,
+                        environmentVariables,
+                        mobileProvisions,
+                        captureSpecification,
+                        cancellationToken).ConfigureAwait(false);
+                }
             }
         }
 
