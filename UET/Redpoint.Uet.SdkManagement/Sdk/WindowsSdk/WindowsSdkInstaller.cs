@@ -95,10 +95,15 @@
                 ".tools.hostx64.targetx64.base",
                 ".tools.hostx64.targetx64.res.base",
                 ".crt.headers.base",
+                ".crt.x86.desktop.base",
                 ".crt.x64.desktop.base",
+                ".crt.x86.onecore.desktop.base",
+                ".crt.x64.onecore.desktop.base",
+                ".crt.x86.store.base",
                 ".crt.x64.store.base",
                 ".crt.source.base",
                 ".asan.headers.base",
+                ".asan.x86.base",
                 ".asan.x64.base"
             };
             var numericVersionSignifier = new Regex("^[0-9\\.]+$");
