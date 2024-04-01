@@ -18,6 +18,10 @@
   </Target>
 
   <ItemGroup>
+    <None Remove="Commands\AppleCert\AppleWWDRCA.cer" />
+    <None Remove="Commands\AppleCert\AppleWWDRCAG3.cer" />
+    <None Remove="Commands\AppleCert\AppleWWDRCAG4.cer" />
+    <None Remove="Commands\AppleCert\DeveloperIDG2CA.cer" />
     <None Remove="Commands\Internal\RunRemoteHost\RemoteHostApi.proto" />
     <None Remove="Commands\Internal\TestGrpcPipes\TestPipes.proto" />
   </ItemGroup>
@@ -95,6 +99,10 @@
     <EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Deployment\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Deployment.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Deployment.xml" />
     <EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Test\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Test.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Test.xml" />
     <EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Prepare\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Prepare.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Prepare.xml" />
+    <EmbeddedResource Include="Commands\AppleCert\AppleWWDRCA.cer" />
+    <EmbeddedResource Include="Commands\AppleCert\AppleWWDRCAG3.cer" />
+    <EmbeddedResource Include="Commands\AppleCert\AppleWWDRCAG4.cer" />
+    <EmbeddedResource Include="Commands\AppleCert\DeveloperIDG2CA.cer" />
   </ItemGroup>
 
   <ItemGroup>
