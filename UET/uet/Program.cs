@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using UET.Commands.AppleCert;
 using UET.Commands.Build;
 using UET.Commands.Config;
 using UET.Commands.Generate;
@@ -45,6 +46,7 @@ rootCommand.AddCommand(StorageCommand.CreateStorageCommand(globalCommands));
 rootCommand.AddCommand(UefsCommand.CreateUefsCommand());
 rootCommand.AddCommand(OpenGECommand.CreateOpenGECommand());
 rootCommand.AddCommand(TransferCommand.CreateTransferCommand());
+rootCommand.AddCommand(AppleCertCommand.CreateAppleCertCommand());
 rootCommand.AddCommand(InternalCommand.CreateInternalCommand(globalCommands));
 
 // Parse the command line so we can inspect it.
