@@ -14,6 +14,7 @@
     using Redpoint.Uet.Configuration;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Project.Automation;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Project.Commandlet;
+    using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.ProjectPackage;
 
     public static class TestProviderServiceCollections
     {
@@ -24,6 +25,7 @@
             services.AddDynamicProvider<BuildConfigPluginDistribution, ITestProvider, CommandletPluginTestProvider>();
             services.AddDynamicProvider<BuildConfigPluginDistribution, ITestProvider, CustomPluginTestProvider>();
             services.AddDynamicProvider<BuildConfigPluginDistribution, ITestProvider, GauntletPluginTestProvider>();
+            services.AddDynamicProvider<BuildConfigPluginDistribution, ITestProvider, ProjectPackagePluginTestProvider>();
             services.AddDynamicProvider<BuildConfigPluginDistribution, ITestProvider, DownstreamPluginTestProvider>();
             services.AddDynamicProvider<BuildConfigProjectDistribution, ITestProvider, AutomationProjectTestProvider>();
             services.AddDynamicProvider<BuildConfigProjectDistribution, ITestProvider, CommandletProjectTestProvider>();

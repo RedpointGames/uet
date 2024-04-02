@@ -197,7 +197,8 @@ $(PackageExclude);
     This macro emits a node (so you don't need a <Node /> around it).
   -->
 
-  <Macro Name="Assemble Test Project" Arguments="NodeName;AgentStage;AgentType;AssembledProjectName;InputFiles;InputPackageDir;OutputTag;IsForGauntlet">
+  <Macro Name="Assemble Test Project" Arguments="NodeName;AgentStage;AgentType;AssembledProjectName;InputFiles;InputPackageDir;OutputTag;IsForGauntlet"
+         OptionalArguments="InputProjectFilesPath">
     <Agent Name="$(NodeName) ($(AgentStage))" Type="$(AgentType)">
       <Node Name="$(NodeName)" Requires="$(InputFiles)" Produces="$(OutputTag)">
         <WriteTextFile
@@ -234,6 +235,13 @@ $(PackageExclude);
           From="$(InputPackageDir)/"
           To="$(TempPath)/$(AssembledProjectName)/Plugins/$(ShortPluginName)/"
           Tag="$(OutputTag)"
+        />
+        <Copy
+          Files="..."
+          From="$(ProjectRoot)/$(InputProjectFilesPath)/"
+          To="$(TempPath)/$(AssembledProjectName)/"
+          Tag="$(OutputTag)"
+          If="'$(InputProjectFilesPath)' != ''"
         />
         <Spawn
           Exe="$(UETPath)"

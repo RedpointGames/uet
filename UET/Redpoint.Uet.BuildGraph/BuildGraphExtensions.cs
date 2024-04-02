@@ -102,6 +102,41 @@
             await writer.WriteEndElementAsync().ConfigureAwait(false);
         }
 
+        public static async Task WriteCommandAsync(
+            this XmlWriter writer,
+            CommandElementProperties props)
+        {
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(props);
+
+            await writer.WriteStartElementAsync(null, "Command", null).ConfigureAwait(false);
+            await writer.WriteAttributeStringAsync(null, "Name", null, props.Name).ConfigureAwait(false);
+            await writer.WriteAttributeStringAsync(null, "Arguments", null, string.Join(" ", props.Arguments)).ConfigureAwait(false);
+            if (props.If != null)
+            {
+                await writer.WriteAttributeStringAsync(null, "If", null, props.If).ConfigureAwait(false);
+            }
+            await writer.WriteEndElementAsync().ConfigureAwait(false);
+        }
+
+        public static async Task WriteCookAsync(
+            this XmlWriter writer,
+            CookElementProperties props)
+        {
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(props);
+
+            await writer.WriteStartElementAsync(null, "Cook", null).ConfigureAwait(false);
+            await writer.WriteAttributeStringAsync(null, "Project", null, props.Project).ConfigureAwait(false);
+            await writer.WriteAttributeStringAsync(null, "Platform", null, props.Platform).ConfigureAwait(false);
+            await writer.WriteAttributeStringAsync(null, "Tag", null, props.Tag).ConfigureAwait(false);
+            if (props.If != null)
+            {
+                await writer.WriteAttributeStringAsync(null, "If", null, props.If).ConfigureAwait(false);
+            }
+            await writer.WriteEndElementAsync().ConfigureAwait(false);
+        }
+
         public static async Task WriteCopyAsync(
             this XmlWriter writer,
             CopyElementProperties props)

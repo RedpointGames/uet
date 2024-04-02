@@ -6,6 +6,7 @@
     using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Custom;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Downstream;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Gauntlet;
+    using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.ProjectPackage;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Project.Automation;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Project.Commandlet;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Project.Custom;
@@ -17,6 +18,7 @@
     [JsonSerializable(typeof(BuildConfigPluginTestCommandlet))]
     [JsonSerializable(typeof(BuildConfigPluginTestCustom))]
     [JsonSerializable(typeof(BuildConfigPluginTestGauntlet))]
+    [JsonSerializable(typeof(BuildConfigPluginTestProjectPackage))]
     [JsonSerializable(typeof(BuildConfigPluginTestDownstream))]
     [JsonSerializable(typeof(BuildConfigProjectTestAutomation))]
     [JsonSerializable(typeof(BuildConfigProjectTestCustom))]
