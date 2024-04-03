@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
+    using Redpoint.IO;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Export;
     using Redpoint.Uet.BuildPipeline.BuildGraph.MobileProvisioning;
@@ -136,26 +137,51 @@
                         environmentVariables[kv.Key] = kv.Value;
                     }
 
-                    return await InternalRunAsync(
-                        enginePath,
-                        buildGraphRepositoryRootPath,
-                        uetPath,
-                        artifactExportPath,
-                        buildGraphScript,
-                        buildGraphTarget,
-                        buildGraphSharedStorageDir,
-                        new[]
+                    // BuildGraph prefers to re-use local manifests if they exist at BUILD_GRAPH_PROJECT_ROOT/Engine/Saved/BuildGraph instead of going to shared storage. If it finds them, it does not download from shared storage and instead assumes that we're executing in a working tree that hasn't been modified since that previous node ran. However, this causes issues when multiple nodes write to the same file and then execute on the same machine:
+                    //
+                    // - Node A runs, writes and tags a file, which gets sent to shared storage.
+                    // - Node B runs, writes and tags the same file but with different content, which gets sent to shared storage.
+                    // - Node C which depends on Node A sees the local manifest of Node A, skips downloading from shared storage, and then errors out because the file it wants from Node A is actually Node B's version and has a different length/content.
+                    //
+                    // To prevent this from happening, we delete the BUILD_GRAPH_PROJECT_ROOT/Engine/Saved/BuildGraph directory if it exists, before and after every execution of BuildGraph, which prevents stale local files from being used.
+                    //
+                    // @note: All executions of BuildGraph - even local builds - use a shared storage folder under UET, so we don't need these local manifest files anyway.
+
+                    var buildGraphLocalManifestPath = Path.Combine(environmentVariables["BUILD_GRAPH_PROJECT_ROOT"], "Engine", "Saved", "BuildGraph");
+                    if (Directory.Exists(buildGraphLocalManifestPath))
+                    {
+                        await DirectoryAsync.DeleteAsync(buildGraphLocalManifestPath, true).ConfigureAwait(false);
+                    }
+                    try
+                    {
+                        return await InternalRunAsync(
+                            enginePath,
+                            buildGraphRepositoryRootPath,
+                            uetPath,
+                            artifactExportPath,
+                            buildGraphScript,
+                            buildGraphTarget,
+                            buildGraphSharedStorageDir,
+                            new[]
+                            {
+                                $"-SingleNode={buildGraphNodeName}",
+                                "-WriteToSharedStorage",
+                                $"-SharedStorageDir={buildGraphSharedStorageDir}"
+                            },
+                            buildGraphArguments,
+                            buildGraphArgumentReplacements,
+                            environmentVariables,
+                            mobileProvisions,
+                            captureSpecification,
+                            cancellationToken).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        if (Directory.Exists(buildGraphLocalManifestPath))
                         {
-                            $"-SingleNode={buildGraphNodeName}",
-                            "-WriteToSharedStorage",
-                            $"-SharedStorageDir={buildGraphSharedStorageDir}"
-                        },
-                        buildGraphArguments,
-                        buildGraphArgumentReplacements,
-                        environmentVariables,
-                        mobileProvisions,
-                        captureSpecification,
-                        cancellationToken).ConfigureAwait(false);
+                            await DirectoryAsync.DeleteAsync(buildGraphLocalManifestPath, true).ConfigureAwait(false);
+                        }
+                    }
                 }
             }
         }
