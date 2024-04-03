@@ -50,7 +50,6 @@
                 {
                     $"#EditorBinaries_{projectPackage.settings.HostPlatform}",
                     $"#GameBinaries_$(EnginePrefix)Game_{projectPackage.settings.TargetPlatform}_Development",
-                    $"#GameBinaries_$(EnginePrefix)Game_{projectPackage.settings.TargetPlatform}_Shipping"
                 };
 
                 // Hash the name so we can make safe tags.
