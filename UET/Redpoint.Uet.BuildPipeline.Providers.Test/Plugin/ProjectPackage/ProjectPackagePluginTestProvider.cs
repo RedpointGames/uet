@@ -88,101 +88,117 @@
                             { "InputFiles", $"#ProjectPackage_{uniqueHash}_Plugin" },
                             { "InputPackageDir", $"$(TempPath)/ProjectPackage_{uniqueHash}_Plugin" },
                             { "OutputTag", $"#ProjectPackage_{uniqueHash}_Project" },
-                            { "IsForGauntlet", "false" },
+                            { "ProjectType", "Compiled" },
                             { "InputProjectFilesPath", projectPackage.settings.ProjectCopyFilesPath ?? string.Empty },
                         }
                     }).ConfigureAwait(false);
 
-                // If the project requires compilation, emit node for building the editor and target platform. This
-                // is only necessary if ProjectCopyFilesPath copies source code files into the project.
+                // All projects require compilation, even though without source files, as the "Pak and Stage" step
+                // requires certain files to have been generated if a project has any non-engine plugin enabled in it.
                 var additionalCookDependencies = new List<string>();
                 var additionalPackageDependencies = new List<string>();
-                if (projectPackage.settings.RequiresCompile)
-                {
-                    var editorTarget = projectPackage.settings.CompileEditorTarget ?? $"$(EnginePrefix)Editor";
-                    var gameTarget = projectPackage.settings.CompileGameTarget ?? $"$(EnginePrefix)Game";
+                var editorTarget = $"{assembledProjectName}Editor";
+                var gameTarget = $"{assembledProjectName}";
 
-                    // Build the editor.
-                    await writer.WriteAgentNodeAsync(
-                        new AgentNodeElementProperties
-                        {
-                            AgentStage = $"Build Test Project",
-                            AgentType = projectPackage.settings.HostPlatform.ToString(),
-                            NodeName = $"Build Editor {projectPackage.name}",
-                            Requires = $"#ProjectPackage_{uniqueHash}_Project",
-                            Produces = $"#ProjectPackage_{uniqueHash}_EditorBinaries",
-                        },
-                        async writer =>
-                        {
-                            await writer.WriteExpandAsync(
-                                new ExpandElementProperties
+                // Build the editor.
+                await writer.WriteAgentNodeAsync(
+                    new AgentNodeElementProperties
+                    {
+                        AgentStage = $"Build Test Project",
+                        AgentType = projectPackage.settings.HostPlatform.ToString(),
+                        NodeName = $"Build Editor {projectPackage.name} {projectPackage.settings.HostPlatform}",
+                        Requires = $"#ProjectPackage_{uniqueHash}_Project",
+                        Produces = $"#ProjectPackage_{uniqueHash}_EditorBinaries",
+                    },
+                    async writer =>
+                    {
+                        await writer.WriteExpandAsync(
+                            new ExpandElementProperties
+                            {
+                                Name = "RemoveStalePrecompiledHeaders",
+                                Attributes =
                                 {
-                                    Name = "RemoveStalePrecompiledHeaders",
-                                    Attributes =
-                                    {
-                                        { "ProjectPath", $"$(TempPath)/Project{uniqueHash}/" },
-                                        { "TargetName", editorTarget },
-                                        { "TargetPlatform", projectPackage.settings.HostPlatform.ToString() },
-                                        { "TargetConfiguration", $"Development" },
-                                    }
-                                }).ConfigureAwait(false);
-                            await writer.WriteCompileAsync(
-                                new CompileElementProperties
-                                {
-                                    Target = editorTarget,
-                                    Platform = projectPackage.settings.HostPlatform.ToString(),
-                                    Configuration = "Development",
-                                    Tag = $"#ProjectPackage_{uniqueHash}_EditorBinaries",
-                                    Arguments =
-                                    [
-                                        $"-Project=\"$(TempPath)/{assembledProjectName}/{assembledProjectName}.uproject\"",
-                                        "$(AdditionalArguments)",
-                                    ]
-                                }).ConfigureAwait(false);
-                        }).ConfigureAwait(false);
-                    additionalCookDependencies.Add($"#ProjectPackage_{uniqueHash}_EditorBinaries");
-                    additionalPackageDependencies.Add($"#ProjectPackage_{uniqueHash}_EditorBinaries");
+                                    { "ProjectPath", $"$(TempPath)/Project{uniqueHash}/" },
+                                    { "TargetName", editorTarget },
+                                    { "TargetPlatform", projectPackage.settings.HostPlatform.ToString() },
+                                    { "TargetConfiguration", $"Development" },
+                                }
+                            }).ConfigureAwait(false);
+                        await writer.WriteCompileAsync(
+                            new CompileElementProperties
+                            {
+                                Target = editorTarget,
+                                Platform = projectPackage.settings.HostPlatform.ToString(),
+                                Configuration = "Development",
+                                Tag = $"#ProjectPackage_{uniqueHash}_EditorBinaries",
+                                Arguments =
+                                [
+                                    $"-Project=\"$(TempPath)/{assembledProjectName}/{assembledProjectName}.uproject\"",
+                                    "$(AdditionalArguments)",
+                                ]
+                            }).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
+                additionalCookDependencies.Add($"#ProjectPackage_{uniqueHash}_EditorBinaries");
+                additionalPackageDependencies.Add($"#ProjectPackage_{uniqueHash}_EditorBinaries");
 
-                    // Build the target platform.
-                    await writer.WriteAgentNodeAsync(
-                        new AgentNodeElementProperties
+                // Build the target platform.
+                await writer.WriteAgentNodeAsync(
+                    new AgentNodeElementProperties
+                    {
+                        AgentStage = $"Build Test Project",
+                        AgentType = projectPackage.settings.HostPlatform.ToString(),
+                        NodeName = $"Build Game {projectPackage.name} {projectPackage.settings.TargetPlatform}",
+                        Requires = $"#ProjectPackage_{uniqueHash}_Project",
+                        Produces = $"#ProjectPackage_{uniqueHash}_GameBinaries",
+                    },
+                    async writer =>
+                    {
+                        var compileArguments = new List<string>
                         {
-                            AgentStage = $"Build Test Project",
-                            AgentType = projectPackage.settings.HostPlatform.ToString(),
-                            NodeName = $"Build Game {projectPackage.name}",
-                            Requires = $"#ProjectPackage_{uniqueHash}_Project",
-                            Produces = $"#ProjectPackage_{uniqueHash}_GameBinaries",
-                        },
-                        async writer =>
+                            $"-Project=\"$(TempPath)/{assembledProjectName}/{assembledProjectName}.uproject\"",
+                            "$(AdditionalArguments)",
+                        };
+                        var gameArchitectures = projectPackage.settings.CompileGameArchitectures;
+                        if (gameArchitectures == null || gameArchitectures.Length == 0)
                         {
-                            await writer.WriteExpandAsync(
-                                new ExpandElementProperties
+                            if (string.Equals(projectPackage.settings.TargetPlatform, "Android", StringComparison.OrdinalIgnoreCase))
+                            {
+                                gameArchitectures = ["arm64"];
+                            }
+                            else
+                            {
+                                gameArchitectures = Array.Empty<string>();
+                            }
+                        }
+                        if (gameArchitectures.Length > 0)
+                        {
+                            compileArguments.Add($"-architectures={string.Join("+", gameArchitectures)}");
+                            // compileArguments.Add($"-nolink");
+                        }
+
+                        await writer.WriteExpandAsync(
+                            new ExpandElementProperties
+                            {
+                                Name = "RemoveStalePrecompiledHeaders",
+                                Attributes =
                                 {
-                                    Name = "RemoveStalePrecompiledHeaders",
-                                    Attributes =
-                                    {
-                                        { "ProjectPath", $"$(TempPath)/Project{uniqueHash}/" },
-                                        { "TargetName", gameTarget },
-                                        { "TargetPlatform", projectPackage.settings.TargetPlatform.ToString() },
-                                        { "TargetConfiguration", $"Development" },
-                                    }
-                                }).ConfigureAwait(false);
-                            await writer.WriteCompileAsync(
-                                new CompileElementProperties
-                                {
-                                    Target = gameTarget,
-                                    Platform = projectPackage.settings.TargetPlatform.ToString(),
-                                    Configuration = "Development",
-                                    Tag = $"#ProjectPackage_{uniqueHash}_GameBinaries",
-                                    Arguments =
-                                    [
-                                        $"-Project=\"$(TempPath)/{assembledProjectName}/{assembledProjectName}.uproject\"",
-                                        "$(AdditionalArguments)",
-                                    ]
-                                }).ConfigureAwait(false);
-                        }).ConfigureAwait(false);
-                    additionalPackageDependencies.Add($"#ProjectPackage_{uniqueHash}_GameBinaries");
-                }
+                                    { "ProjectPath", $"$(TempPath)/Project{uniqueHash}/" },
+                                    { "TargetName", gameTarget },
+                                    { "TargetPlatform", projectPackage.settings.TargetPlatform.ToString() },
+                                    { "TargetConfiguration", $"Development" },
+                                }
+                            }).ConfigureAwait(false);
+                        await writer.WriteCompileAsync(
+                            new CompileElementProperties
+                            {
+                                Target = gameTarget,
+                                Platform = projectPackage.settings.TargetPlatform.ToString(),
+                                Configuration = "Development",
+                                Tag = $"#ProjectPackage_{uniqueHash}_GameBinaries",
+                                Arguments = compileArguments,
+                            }).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
+                additionalPackageDependencies.Add($"#ProjectPackage_{uniqueHash}_GameBinaries");
 
                 // Cook the test project.
                 var cookPlatform = projectPackage.settings.TargetPlatform.ToString();
@@ -195,7 +211,7 @@
                     {
                         AgentStage = $"Cook Test Project",
                         AgentType = projectPackage.settings.HostPlatform.ToString(),
-                        NodeName = $"Cook {projectPackage.name}",
+                        NodeName = $"Cook {projectPackage.name} {projectPackage.settings.TargetPlatform}",
                         Requires = string.Join(';', new[] { $"#ProjectPackage_{uniqueHash}_Project;" }.Concat(additionalCookDependencies)),
                         Produces = $"#ProjectPackage_{uniqueHash}_CookedContent",
                     },
@@ -225,7 +241,7 @@
                     {
                         AgentStage = $"Package Test Project",
                         AgentType = projectPackage.settings.HostPlatform.ToString(),
-                        NodeName = $"Package {projectPackage.name}",
+                        NodeName = $"Package {projectPackage.name} {projectPackage.settings.TargetPlatform}",
                         Requires = string.Join(';', new[] { $"#ProjectPackage_{uniqueHash}_Project;" }.Concat(additionalPackageDependencies)),
                         Produces = $"#ProjectPackage_{uniqueHash}_Staged",
                     },
@@ -275,7 +291,7 @@
                 await writer.WriteDynamicNodeAppendAsync(
                     new DynamicNodeAppendElementProperties
                     {
-                        NodeName = $"Package {projectPackage.name}",
+                        NodeName = $"Package {projectPackage.name} {projectPackage.settings.TargetPlatform}",
                         MustPassForLaterDeployment = true,
                     }).ConfigureAwait(false);
             }

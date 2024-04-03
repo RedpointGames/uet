@@ -28,21 +28,10 @@
         public string TargetPlatform { get; set; } = string.Empty;
 
         /// <summary>
-        /// If true, the editor and game must be compiled. Otherwise, assume the project doesn't have any source code to build (the default).
+        /// Specifies the game architectures to compile for. Defaults to ["arm64"] for Android and an empty array for all other platforms.
         /// </summary>
-        [JsonPropertyName("RequiresCompile"), JsonRequired]
-        public bool RequiresCompile { get; set; } = false;
-
-        /// <summary>
-        /// If RequiresCompile is true, specifies the editor target to compile.
-        /// </summary>
-        [JsonPropertyName("CompileEditorTarget")]
-        public string? CompileEditorTarget { get; set; } = null;
-
-        /// <summary>
-        /// If RequiresCompile is true, specifies the game target to compile.
-        /// </summary>
-        [JsonPropertyName("CompileGameTarget")]
-        public string? CompileGameTarget { get; set; } = null;
+        [JsonPropertyName("CompileGameArchitectures")]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        public string[]? CompileGameArchitectures { get; set; } = null;
     }
 }

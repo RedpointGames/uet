@@ -197,45 +197,37 @@ $(PackageExclude);
     This macro emits a node (so you don't need a <Node /> around it).
   -->
 
-  <Macro Name="Assemble Test Project" Arguments="NodeName;AgentStage;AgentType;AssembledProjectName;InputFiles;InputPackageDir;OutputTag;IsForGauntlet"
+  <Macro Name="Assemble Test Project" Arguments="NodeName;AgentStage;AgentType;AssembledProjectName;InputFiles;InputPackageDir;OutputTag;ProjectType"
          OptionalArguments="InputProjectFilesPath">
     <Agent Name="$(NodeName) ($(AgentStage))" Type="$(AgentType)">
       <Node Name="$(NodeName)" Requires="$(InputFiles)" Produces="$(OutputTag)">
+        <!-- Write out the .uproject file, depending on the project type. -->
         <WriteTextFile
           File="$(TempPath)/$(AssembledProjectName)/$(AssembledProjectName).uproject"
           Text="{ &quot;FileVersion&quot;: 3, &quot;Plugins&quot;: [ { &quot;Name&quot;: &quot;$(PluginName)&quot;, &quot;Enabled&quot;: true } ] }"
-          If="'$(IsForGauntlet)' != 'true'"
+          If="'$(ProjectType)' == 'BlueprintOnly' or '$(ProjectType)' == 'Compiled'"
         />
         <WriteTextFile
           File="$(TempPath)/$(AssembledProjectName)/$(AssembledProjectName).uproject"
           Text="{ &quot;FileVersion&quot;: 3, &quot;Plugins&quot;: [ { &quot;Name&quot;: &quot;$(PluginName)&quot;, &quot;Enabled&quot;: true }, { &quot;Name&quot;: &quot;Gauntlet&quot;, &quot;Enabled&quot;: true } ] }"
-          If="'$(IsForGauntlet)' == 'true'"
+          If="'$(ProjectType)' == 'CompiledForGauntlet'"
         />
+
+        <!-- Tag .uproject file we generated for output. -->
         <Tag
           Files="$(TempPath)/$(AssembledProjectName)/$(AssembledProjectName).uproject"
           With="$(OutputTag)"
         />
-        <ForEach Name="GauntletConfigPath" Values="$(GauntletConfigPaths)">
-          <Copy
-            Files="..."
-            From="$(ProjectRoot)/$(GauntletConfigPath)/"
-            To="$(TempPath)/$(AssembledProjectName)/Config/"
-            Tag="$(OutputTag)"
-            If="'$(IsForGauntlet)' == 'true'"
-          />
-        </ForEach>
+
+        <!-- Copy the plugin into the project. -->
         <Copy
           Files="$(InputFiles)"
           From="$(InputPackageDir)/"
           To="$(TempPath)/$(AssembledProjectName)/Plugins/$(ShortPluginName)/"
           Tag="$(OutputTag)"
         />
-        <Copy
-          Files="$(InputFiles)"
-          From="$(InputPackageDir)/"
-          To="$(TempPath)/$(AssembledProjectName)/Plugins/$(ShortPluginName)/"
-          Tag="$(OutputTag)"
-        />
+
+        <!-- Copy additional input files, if they were specified for the macro. -->
         <Copy
           Files="..."
           From="$(ProjectRoot)/$(InputProjectFilesPath)/"
@@ -243,40 +235,69 @@ $(PackageExclude);
           Tag="$(OutputTag)"
           If="'$(InputProjectFilesPath)' != ''"
         />
-        <Spawn
-          Exe="$(UETPath)"
-          Arguments="$(UETGlobalArgs) internal extract-gauntlet-helpers --path &quot;$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/&quot;"
-          If="'$(IsForGauntlet)' == 'true'" />
-        <Tag
-          BaseDir="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/"
-          Files="..."
-          With="$(OutputTag)"
-          If="'$(IsForGauntlet)' == 'true'" />
-        <WriteTextFile
-          File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName).Target.cs"
-          Text="using UnrealBuildTool; public class $(AssembledProjectName)Target : TargetRules { public $(AssembledProjectName)Target(TargetInfo Target) : base(Target) { Type = TargetType.Game; DefaultBuildSettings = BuildSettingsVersion.V2; ExtraModuleNames.AddRange(new string[] { &quot;$(AssembledProjectName)&quot; }); } }"
-          If="'$(IsForGauntlet)' == 'true'"
-        />
-        <WriteTextFile
-          File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)Editor.Target.cs"
-          Text="using UnrealBuildTool; public class $(AssembledProjectName)EditorTarget : TargetRules { public $(AssembledProjectName)EditorTarget(TargetInfo Target) : base(Target) { Type = TargetType.Editor; DefaultBuildSettings = BuildSettingsVersion.V2; ExtraModuleNames.AddRange(new string[] { &quot;$(AssembledProjectName)&quot; }); } }"
-          If="'$(IsForGauntlet)' == 'true'"
-        />
-        <WriteTextFile
-          File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/$(AssembledProjectName).Build.cs"
-          Text="using UnrealBuildTool; public class $(AssembledProjectName) : ModuleRules { public $(AssembledProjectName)(ReadOnlyTargetRules Target) : base(Target) { PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs; PublicDependencyModuleNames.AddRange(new string[] { &quot;Core&quot;, &quot;CoreUObject&quot;, &quot;Engine&quot;, &quot;InputCore&quot; }); PrivateDependencyModuleNames.AddRange(new string[] { &quot;Gauntlet&quot;, &quot;AutomationController&quot; }); } }"
-          If="'$(IsForGauntlet)' == 'true'"
-        />
-        <WriteTextFile
-          File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/$(AssembledProjectName)Module.cpp"
-          Text="#include &quot;Modules/ModuleManager.h&quot;&#10;IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, $(AssembledProjectName), &quot;$(AssembledProjectName)&quot;);"
-          If="'$(IsForGauntlet)' == 'true'"
-        />
-        <Tag
-          Files="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName).Target.cs;$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)Editor.Target.cs;$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/$(AssembledProjectName).Build.cs;$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/$(AssembledProjectName)Module.cpp"
-          With="$(OutputTag)"
-          If="'$(IsForGauntlet)' == 'true'"
-        />
+
+        <!-- If this project is being compiled (but not for Gauntlet)... -->
+        <Do If="'$(ProjectType)' == 'Compiled'">
+          <!-- Generate .Target.cs files, but don't add any game-specific modules. -->
+          <WriteTextFile
+            File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName).Target.cs"
+            Text="using UnrealBuildTool; public class $(AssembledProjectName)Target : TargetRules { public $(AssembledProjectName)Target(TargetInfo Target) : base(Target) { Type = TargetType.Game; DefaultBuildSettings = BuildSettingsVersion.Latest; IncludeOrderVersion = EngineIncludeOrderVersion.Latest; ExtraModuleNames.AddRange(new string[] { &quot;$(AssembledProjectName)&quot; }); } }"
+          />
+          <WriteTextFile
+            File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)Editor.Target.cs"
+            Text="using UnrealBuildTool; public class $(AssembledProjectName)EditorTarget : TargetRules { public $(AssembledProjectName)EditorTarget(TargetInfo Target) : base(Target) { Type = TargetType.Editor; DefaultBuildSettings = BuildSettingsVersion.Latest; IncludeOrderVersion = EngineIncludeOrderVersion.Latest; ExtraModuleNames.AddRange(new string[] { &quot;$(AssembledProjectName)&quot; }); } }"
+          />
+          <WriteTextFile
+            File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/$(AssembledProjectName).Build.cs"
+            Text="using UnrealBuildTool; public class $(AssembledProjectName) : ModuleRules { public $(AssembledProjectName)(ReadOnlyTargetRules Target) : base(Target) { PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs; PublicDependencyModuleNames.AddRange(new string[] { &quot;Core&quot;, &quot;CoreUObject&quot;, &quot;Engine&quot;, &quot;InputCore&quot; }); } }"
+          />
+          <WriteTextFile
+            File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/$(AssembledProjectName)Module.cpp"
+            Text="#include &quot;Modules/ModuleManager.h&quot;&#10;IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, $(AssembledProjectName), &quot;$(AssembledProjectName)&quot;);"
+          />
+
+          <!-- Tag all of the generated files. -->
+          <Tag
+            Files="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName).Target.cs;$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)Editor.Target.cs;$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/$(AssembledProjectName).Build.cs;$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/$(AssembledProjectName)Module.cpp"
+            With="$(OutputTag)"
+          />
+        </Do>
+
+        <!-- If this project is being compiled for Gauntlet... -->
+        <Do If="'$(ProjectType)' == 'CompiledForGauntlet'">
+          <!-- Extract the Gauntlet helpers and tag them. -->
+          <Spawn
+            Exe="$(UETPath)"
+            Arguments="$(UETGlobalArgs) internal extract-gauntlet-helpers --path &quot;$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/&quot;" />
+          <Tag
+            BaseDir="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/"
+            Files="..."
+            With="$(OutputTag)" />
+
+          <!-- Generate the .Target.cs, .Build.cs and source files for the "compiled for Gauntlet" project. -->
+          <WriteTextFile
+            File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName).Target.cs"
+            Text="using UnrealBuildTool; public class $(AssembledProjectName)Target : TargetRules { public $(AssembledProjectName)Target(TargetInfo Target) : base(Target) { Type = TargetType.Game; DefaultBuildSettings = BuildSettingsVersion.Latest; IncludeOrderVersion = EngineIncludeOrderVersion.Latest; ExtraModuleNames.AddRange(new string[] { &quot;$(AssembledProjectName)&quot; }); } }"
+          />
+          <WriteTextFile
+            File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)Editor.Target.cs"
+            Text="using UnrealBuildTool; public class $(AssembledProjectName)EditorTarget : TargetRules { public $(AssembledProjectName)EditorTarget(TargetInfo Target) : base(Target) { Type = TargetType.Editor; DefaultBuildSettings = BuildSettingsVersion.Latest; IncludeOrderVersion = EngineIncludeOrderVersion.Latest; ExtraModuleNames.AddRange(new string[] { &quot;$(AssembledProjectName)&quot; }); } }"
+          />
+          <WriteTextFile
+            File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/$(AssembledProjectName).Build.cs"
+            Text="using UnrealBuildTool; public class $(AssembledProjectName) : ModuleRules { public $(AssembledProjectName)(ReadOnlyTargetRules Target) : base(Target) { PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs; PublicDependencyModuleNames.AddRange(new string[] { &quot;Core&quot;, &quot;CoreUObject&quot;, &quot;Engine&quot;, &quot;InputCore&quot; }); PrivateDependencyModuleNames.AddRange(new string[] { &quot;Gauntlet&quot;, &quot;AutomationController&quot; }); } }"
+          />
+          <WriteTextFile
+            File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/$(AssembledProjectName)Module.cpp"
+            Text="#include &quot;Modules/ModuleManager.h&quot;&#10;IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, $(AssembledProjectName), &quot;$(AssembledProjectName)&quot;);"
+          />
+
+          <!-- Tag all of the generated files. -->
+          <Tag
+            Files="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName).Target.cs;$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)Editor.Target.cs;$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/$(AssembledProjectName).Build.cs;$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/$(AssembledProjectName)Module.cpp"
+            With="$(OutputTag)"
+          />
+        </Do>
       </Node>
     </Agent>
   </Macro>

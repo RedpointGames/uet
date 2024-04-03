@@ -98,7 +98,7 @@
                                 { "InputFiles", $"#{_propertyPrefix}_Plugin_{platform}" },
                                 { "InputPackageDir", $"$(TempPath)/$(PackageFolder)-{platform}" },
                                 { "OutputTag", $"#{_propertyPrefix}_Project_{platform}" },
-                                { "IsForGauntlet", "false" },
+                                { "ProjectType", "BlueprintOnly" },
                             }
                         }).ConfigureAwait(false);
                 }
