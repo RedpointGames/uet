@@ -191,8 +191,19 @@
     "Patches": [
       {
         "HandleWindowsNewLines": true,
+        "Find": "string DirectoryName = Path.GetDirectoryName(Filename)!;",
+        "Replace": "string DirectoryName = Path.GetDirectoryName(Filename)!.Substring(UnrealBuildGradlePath.Length);"
+      }
+    ],
+    "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
+  },
+  {
+    "File": "Engine\\Source\\Programs\\UnrealBuildTool\\Platform\\Android\\UEDeployAndroid.cs",
+    "Patches": [
+      {
+        "HandleWindowsNewLines": true,
         "Find": "if (DirectoryName.Contains(\"build\") || Workname.Contains(\"/.\"))",
-        "Replace": "if (DirectoryName.Contains(\"build\") || Workname.Substring(UnrealBuildGradlePathLength).Contains(\"/.\"))"
+        "Replace": "if (DirectoryName.Contains(\"build\") || Workname.Substring(UnrealBuildGradlePath.Length).Contains(\"/.\"))"
       }
     ],
     "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
