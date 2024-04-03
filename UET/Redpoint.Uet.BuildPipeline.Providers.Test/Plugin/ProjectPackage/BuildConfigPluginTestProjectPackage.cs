@@ -28,21 +28,9 @@
         public string TargetPlatform { get; set; } = string.Empty;
 
         /// <summary>
-        /// If true, the editor and game must be compiled. Otherwise, assume the project doesn't have any source code to build (the default).
-        /// </summary>
-        [JsonPropertyName("RequiresCompile"), JsonRequired]
-        public bool RequiresCompile { get; set; } = false;
-
-        /// <summary>
-        /// If RequiresCompile is true, specifies the editor target to compile.
+        /// The editor target to compile. If not set, defaults to "UnrealEditor".
         /// </summary>
         [JsonPropertyName("CompileEditorTarget")]
         public string? CompileEditorTarget { get; set; } = null;
-
-        /// <summary>
-        /// If RequiresCompile is true, specifies the game target to compile.
-        /// </summary>
-        [JsonPropertyName("CompileGameTarget")]
-        public string? CompileGameTarget { get; set; } = null;
     }
 }
