@@ -231,12 +231,6 @@ $(PackageExclude);
           Tag="$(OutputTag)"
         />
         <Copy
-          Files="$(InputFiles)"
-          From="$(InputPackageDir)/"
-          To="$(TempPath)/$(AssembledProjectName)/Plugins/$(ShortPluginName)/"
-          Tag="$(OutputTag)"
-        />
-        <Copy
           Files="..."
           From="$(ProjectRoot)/$(InputProjectFilesPath)/"
           To="$(TempPath)/$(AssembledProjectName)/"
