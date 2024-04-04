@@ -28,6 +28,7 @@
         private readonly ICredentialDiscovery _credentialDiscovery;
         private readonly IRetryableGrpc _retryableGrpc;
         private readonly IMonitorFactory _monitorFactory;
+        private readonly IWorkspaceReservationParameterGenerator _parameterGenerator;
 
         public VirtualWorkspaceProvider(
             ILogger<VirtualWorkspaceProvider> logger,
@@ -35,7 +36,8 @@
             UefsClient uefsClient,
             ICredentialDiscovery credentialDiscovery,
             IRetryableGrpc retryableGrpc,
-            IMonitorFactory monitorFactory)
+            IMonitorFactory monitorFactory,
+            IWorkspaceReservationParameterGenerator parameterGenerator)
         {
             _logger = logger;
             _reservationManager = reservationManager;
@@ -43,6 +45,7 @@
             _credentialDiscovery = credentialDiscovery;
             _retryableGrpc = retryableGrpc;
             _monitorFactory = monitorFactory;
+            _parameterGenerator = parameterGenerator;
         }
 
         public bool ProvidesFastCopyOnWrite => true;
@@ -353,11 +356,11 @@
             var parameters = new string[] { descriptor.PackageTag }.Concat(descriptor.WorkspaceDisambiguators).ToArray();
 
             var usingMountReservation = false;
-            var mountReservation = await _reservationManager.ReserveAsync("VirtualPackageMount", parameters).ConfigureAwait(false);
+            var mountReservation = await _reservationManager.ReserveAsync("VirtualPackageMount", _parameterGenerator.ConstructReservationParameters(parameters)).ConfigureAwait(false);
             try
             {
                 var usingScratchReservation = false;
-                var scratchReservation = await _reservationManager.ReserveAsync("VirtualPackageScratch", parameters).ConfigureAwait(false);
+                var scratchReservation = await _reservationManager.ReserveAsync("VirtualPackageScratch", _parameterGenerator.ConstructReservationParameters(parameters)).ConfigureAwait(false);
                 try
                 {
                     var existingMount = await GetExistingMountAsync(mountReservation.ReservedPath, cancellationToken).ConfigureAwait(false);

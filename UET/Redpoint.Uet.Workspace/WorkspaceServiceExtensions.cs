@@ -24,6 +24,7 @@
                 return new DefaultReservationManagerForUet(factory.CreateReservationManager(rootPath), rootPath);
             });
             services.AddSingleton<IStorageManagement, DefaultStorageManagement>();
+            services.AddSingleton<IWorkspaceReservationParameterGenerator, DefaultWorkspaceReservationParameterGenerator>();
         }
     }
 }
