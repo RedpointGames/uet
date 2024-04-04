@@ -12,6 +12,7 @@
     using UET.Commands.Internal.OpenGE;
     using UET.Commands.Internal.OpenGEPreprocessorCache;
     using UET.Commands.Internal.RemoveStalePrecompiledHeaders;
+    using UET.Commands.Internal.ReparentAdditionalPropertiesInTargets;
     using UET.Commands.Internal.RunDownstreamTest;
     using UET.Commands.Internal.RunDriveMappedProcess;
     using UET.Commands.Internal.RunGauntletTestFromBuildGraph;
@@ -58,6 +59,7 @@
                 RunRemoteHostCommand.CreateRunRemoteHostCommand(),
                 RunRemoteCommand.CreateRunRemoteCommand(),
                 InspectSnmpCommand.CreateInspectSnmpCommand(),
+                ReparentAdditionalPropertiesInTargetsCommand.CreateReparentAdditionalPropertiesInTargetsCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");

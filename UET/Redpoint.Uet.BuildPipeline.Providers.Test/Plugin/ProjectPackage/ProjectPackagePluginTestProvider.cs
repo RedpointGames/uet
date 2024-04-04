@@ -228,6 +228,19 @@
                     },
                     async writer =>
                     {
+                        await writer.WriteSpawnAsync(
+                            new SpawnElementProperties
+                            {
+                                Exe = "$(UETPath)",
+                                Arguments =
+                                [
+                                    "$(UETGlobalArgs)",
+                                    "internal",
+                                    "reparent-additional-properties-in-targets",
+                                    "--project-directory-path",
+                                    $"\"$(TempPath)/{assembledProjectName}\"",
+                                ]
+                            }).ConfigureAwait(false);
                         await writer.WriteCommandAsync(
                             new CommandElementProperties
                             {
