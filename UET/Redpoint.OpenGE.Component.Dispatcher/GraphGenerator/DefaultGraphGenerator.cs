@@ -50,6 +50,7 @@
                 if (score != -1 && score > currentScore)
                 {
                     currentExecutor = executor;
+                    currentScore = score;
                 }
             }
 
