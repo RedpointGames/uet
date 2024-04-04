@@ -106,7 +106,7 @@
                     {
                         AgentStage = $"Build Test Project",
                         AgentType = projectPackage.settings.HostPlatform.ToString(),
-                        NodeName = $"Build Editor {projectPackage.name}",
+                        NodeName = $"Build Editor {projectPackage.name} {projectPackage.settings.HostPlatform}",
                         Requires = $"#ProjectPackage_{uniqueHash}_Project",
                         Produces = $"#ProjectPackage_{uniqueHash}_EditorBinaries",
                     },
@@ -147,7 +147,7 @@
                     {
                         AgentStage = $"Build Test Project",
                         AgentType = projectPackage.settings.HostPlatform.ToString(),
-                        NodeName = $"Build Game {projectPackage.name}",
+                        NodeName = $"Build Game {projectPackage.name} {projectPackage.settings.TargetPlatform}",
                         Requires = $"#ProjectPackage_{uniqueHash}_Project",
                         Produces = $"#ProjectPackage_{uniqueHash}_GameBinaries",
                     },
@@ -192,7 +192,7 @@
                     {
                         AgentStage = $"Cook Test Project",
                         AgentType = projectPackage.settings.HostPlatform.ToString(),
-                        NodeName = $"Cook {projectPackage.name}",
+                        NodeName = $"Cook {projectPackage.name} {projectPackage.settings.TargetPlatform}",
                         Requires = string.Join(';', new[] { $"#ProjectPackage_{uniqueHash}_Project;" }.Concat(additionalCookDependencies)),
                         Produces = $"#ProjectPackage_{uniqueHash}_CookedContent",
                     },
@@ -222,7 +222,7 @@
                     {
                         AgentStage = $"Package Test Project",
                         AgentType = projectPackage.settings.HostPlatform.ToString(),
-                        NodeName = $"Package {projectPackage.name}",
+                        NodeName = $"Package {projectPackage.name} {projectPackage.settings.TargetPlatform}",
                         Requires = string.Join(';', new[] { $"#ProjectPackage_{uniqueHash}_Project;" }.Concat(additionalPackageDependencies)),
                         Produces = $"#ProjectPackage_{uniqueHash}_Staged",
                     },
@@ -272,7 +272,7 @@
                 await writer.WriteDynamicNodeAppendAsync(
                     new DynamicNodeAppendElementProperties
                     {
-                        NodeName = $"Package {projectPackage.name}",
+                        NodeName = $"Package {projectPackage.name} {projectPackage.settings.TargetPlatform}",
                         MustPassForLaterDeployment = true,
                     }).ConfigureAwait(false);
             }
