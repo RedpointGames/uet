@@ -1,0 +1,42 @@
+name: "Build AutoDiscovery"
+description: Builds the platform-specific auto-discovery libraries.
+inputs:
+  architecture:
+    description: "Architecture to build; one of 'x86' or 'x64'"
+    required: true
+  project-suffix:
+    description: "Project suffix to build; one of 'Win32' or 'Win64'"
+    required: true
+  configuration:
+    description: "Configuration to build; one of 'Debug' or 'Release'"
+    required: true
+  artifact-name:
+    description: "Artifact name to upload for the resulting file"
+    required: true
+runs:
+  using: composite
+  steps:
+  - name: Download .NET SDK
+    uses: actions/download-artifact@v4
+    with:
+      name: dotnet-sdk-windows
+  - name: Build AutoDiscovery
+    shell: pwsh
+    run: |
+      dotnet `
+        msbuild `
+        -restore `
+        -p:RuntimeIdentifier=win-${{ inputs.architecture }} `
+        -p:Configuration=${{ inputs.configuration }} `
+        -p:Platform=${{ inputs.architecture }} `
+        "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+        "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+        UET/Redpoint.AutoDiscovery.${{ inputs.project-suffix }}/Redpoint.AutoDiscovery.${{ inputs.project-suffix }}.csproj
+      exit $LastExitCode
+  - name: Upload Artifacts
+    uses: actions/upload-artifact@v4
+    with:
+      name: ${{ inputs.artifact-name }}
+      if-no-files-found: error
+      path: |
+        UET/Redpoint.AutoDiscovery.${{ inputs.project-suffix }}/bin/${{ inputs.architecture }}/${{ inputs.configuration }}/${{ env.UET_PACKAGE_VERSION }}/
