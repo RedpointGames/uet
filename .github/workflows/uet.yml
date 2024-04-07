@@ -1,0 +1,443 @@
+name: Unreal Engine Tool
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  UET_FRAMEWORK_TARGET: net8.0
+  UET_DOTNET_WIN_DL: https://download.visualstudio.microsoft.com/download/pr/6902745c-34bd-4d66-8e84-d5b61a17dfb7/e61732b00f7e144e162d7e6914291f16/dotnet-sdk-8.0.101-win-x64.zip
+  UET_DOTNET_MAC_DL: https://download.visualstudio.microsoft.com/download/pr/ef083c06-7aee-4a4f-b18b-50c9a8990753/e206864e7910e81bbd9cb7e674ff1b4c/dotnet-sdk-8.0.101-osx-arm64.tar.gz
+  UET_DOTNET_LINUX_DL: https://download.visualstudio.microsoft.com/download/pr/9454f7dc-b98e-4a64-a96d-4eb08c7b6e66/da76f9c6bc4276332b587b771243ae34/dotnet-sdk-8.0.101-linux-x64.tar.gz
+  UET_DOTNET_WIN_PATH: ./.dotnet-net8.0/dotnet/dotnet.exe
+  UET_DOTNET_MAC_PATH: ./.dotnet-net8.0/dotnet/dotnet
+  UET_DOTNET_LINUX_PATH: ./.dotnet-net8.0/dotnet/dotnet
+  UET_BUILDING_ON_BUILD_SERVER: "true"
+
+jobs:
+  timestamp:
+    name: "Timestamp"
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.timestamp.outputs.version }}
+    steps:
+    - id: timestamp
+      name: Generate Timestamp
+      shell: pwsh
+      run: |
+        $Timestamp = ([DateTime]::UtcNow)
+        $PackageVersion = "$($Timestamp.Year).$($Timestamp.DayOfYear + 1000).$(($Timestamp.Hour * 60) + $Timestamp.Minute)"
+        Set-Content -NoNewline -Path "$env:GITHUB_OUTPUT" -Value "version=$($PackageVersion)"
+
+  prereq-autodiscovery:
+    name: "Build AutoDiscovery"
+    runs-on: windows-latest
+    needs:
+      - timestamp
+    env:
+      UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Cache .NET SDK
+      id: cache-sdk
+      uses: actions/cache@v4
+      with:
+        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
+        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
+        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
+    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
+      name: Download .NET SDK
+      shell: pwsh
+      run: |
+        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted)) {
+          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
+            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
+          }
+          Write-Host "Setting up .NET SDK..."
+          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
+          curl.exe -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" "${env:UET_DOTNET_WIN_DL}"
+          if ($LastExitCode -ne 0) {
+            exit $LastExitCode
+          }
+          Expand-Archive -Path ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" -DestinationPath ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet" -Force | Out-Null
+          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted -Value "done"
+        }
+    - name: Add .NET SDK to PATH
+      shell: pwsh
+      run: |
+        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet"
+    - name: Build AutoDiscovery
+      shell: pwsh
+      run: |
+        Write-Host "Building Redpoint.AutoDiscovery version '${env:UET_PACKAGE_VERSION}'..."
+        dotnet `
+          msbuild `
+          -restore `
+          -p:RuntimeIdentifier=win-x86 `
+          -p:Configuration=Debug `
+          -p:Platform=x86 `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/Redpoint.AutoDiscovery.Win32/Redpoint.AutoDiscovery.Win32.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+        dotnet `
+          msbuild `
+          -restore `
+          -p:RuntimeIdentifier=win-x86 `
+          -p:Configuration=Release `
+          -p:Platform=x86 `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/Redpoint.AutoDiscovery.Win32/Redpoint.AutoDiscovery.Win32.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+        dotnet `
+          msbuild `
+          -restore `
+          -p:RuntimeIdentifier=win-x64 `
+          -p:Configuration=Debug `
+          -p:Platform=x64 `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/Redpoint.AutoDiscovery.Win64/Redpoint.AutoDiscovery.Win64.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+        dotnet `
+          msbuild `
+          -restore `
+          -p:RuntimeIdentifier=win-x64 `
+          -p:Configuration=Release `
+          -p:Platform=x64 `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/Redpoint.AutoDiscovery.Win64/Redpoint.AutoDiscovery.Win64.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+        dotnet `
+          msbuild `
+          -restore `
+          -t:Publish `
+          -p:Configuration=Release `
+          -p:Platform=AnyCPU `
+          -p:UsePrebuiltLibsForAutoDiscovery=true `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/Redpoint.AutoDiscovery/Redpoint.AutoDiscovery.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+    - name: Upload AutoDiscovery Package
+      uses: actions/upload-artifact@v4
+      with:
+        name: autodiscovery-nupkg
+        if-no-files-found: error
+        path: |
+          UET/Redpoint.AutoDiscovery/bin/Release/Redpoint.AutoDiscovery.*.nupkg
+  
+  prereq-mac-logging:
+    name: "Build Mac Logging"
+    runs-on: macos-latest
+    needs:
+      - timestamp
+    env:
+      UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Cache .NET SDK
+      id: cache-sdk
+      uses: actions/cache@v4
+      with:
+        key: dotnet-sdk-mac-${{ env.UET_FRAMEWORK_TARGET }}
+        restore-keys: dotnet-sdk-mac-${{ env.UET_FRAMEWORK_TARGET }}
+        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
+    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
+      name: Download .NET SDK
+      shell: pwsh
+      run: |
+        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted)) {
+          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
+            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
+          }
+          Write-Host "Setting up .NET SDK..."
+          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
+          curl -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet.tar.gz" "${env:UET_DOTNET_MAC_DL}"
+          if ($LastExitCode -ne 0) {
+            exit $LastExitCode
+          }
+          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet" | Out-Null
+          Push-Location ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
+          try {
+            tar -xvf "../dotnet.tar.gz"
+          } finally {
+            Pop-Location
+          }
+          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted -Value "done"
+        }
+    - name: Add .NET SDK to PATH
+      shell: pwsh
+      run: |
+        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
+    - name: Build Mac Logging
+      run: |
+        echo "Package version: $UET_PACKAGE_VERSION"
+        dotnet msbuild -t:BuildNativeMacLibraries -p:Configuration=Release -p:BaseUetVersion=$UET_PACKAGE_VERSION -p:PackageVersion=$UET_PACKAGE_VERSION UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.csproj
+        dotnet msbuild -t:BuildAndReferenceNupkg -p:Configuration=Release -p:BaseUetVersion=$UET_PACKAGE_VERSION -p:PackageVersion=$UET_PACKAGE_VERSION UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.csproj
+    - name: Upload Mac Logging Package
+      uses: actions/upload-artifact@v4
+      with:
+        name: mac-logging-nupkg
+        if-no-files-found: error
+        path: |
+          UET/Redpoint.Logging.Mac.Native/runtimes/osx-arm64/libLogging.arm64.dylib
+          UET/Redpoint.Logging.Mac.Native/runtimes/osx-x64/libLogging.x64.dylib
+          UET/Redpoint.Logging.Mac/bin/Redpoint.Logging.Mac.Native.*.nupkg
+  
+  pass-1-win:
+    name: "Build Windows Pass 1"
+    runs-on: windows-latest
+    needs:
+      - timestamp
+      - prereq-autodiscovery
+      - prereq-mac-logging
+    env:
+      UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Cache .NET SDK
+      id: cache-sdk
+      uses: actions/cache@v4
+      with:
+        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
+        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
+        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
+    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
+      name: Download .NET SDK
+      shell: pwsh
+      run: |
+        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted)) {
+          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
+            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
+          }
+          Write-Host "Setting up .NET SDK..."
+          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
+          curl.exe -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" "${env:UET_DOTNET_WIN_DL}"
+          if ($LastExitCode -ne 0) {
+            exit $LastExitCode
+          }
+          Expand-Archive -Path ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" -DestinationPath ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet" -Force | Out-Null
+          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted -Value "done"
+        }
+    - name: Add .NET SDK to PATH
+      shell: pwsh
+      run: |
+        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet"
+    - name: Download AutoDiscovery
+      uses: actions/download-artifact@v4
+      with:
+        name: autodiscovery-nupkg
+        path: UET/Redpoint.AutoDiscovery/bin/Release/
+        merge-multiple: true
+    - name: Download Mac Logging
+      uses: actions/download-artifact@v4
+      with:
+        name: mac-logging-nupkg
+        path: UET/
+        merge-multiple: true
+    - name: Build UEFS Client
+      shell: pwsh
+      run: |
+        dotnet `
+          msbuild `
+          -restore `
+          -t:Publish `
+          -p:RuntimeIdentifier=win-x64 `
+          -p:Configuration=Release `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/Redpoint.Uefs.Client/Redpoint.Uefs.Client.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+    - name: Build UEFS Daemon
+      shell: pwsh
+      run: |
+        dotnet `
+          msbuild `
+          -restore `
+          -t:Publish `
+          -p:RuntimeIdentifier=win-x64 `
+          -p:Configuration=Release `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+    - name: Build UET Shim
+      shell: pwsh
+      run: |
+        dotnet `
+          msbuild `
+          -restore `
+          -t:Publish `
+          -p:RuntimeIdentifier=win-x64 `
+          -p:Configuration=Release `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/uet.shim/uet.shim.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+    - name: Build UET Pass 1
+      shell: pwsh
+      run: |
+        dotnet `
+          msbuild `
+          -restore `
+          -t:Publish `
+          -p:RuntimeIdentifier=win-x64 `
+          -p:Configuration=Release `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/uet/uet.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+    - name: Upload Binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: pass-1-win
+        if-no-files-found: error
+        path: |
+          UET/Redpoint.Uefs.Client/bin/Release/net8.0/win-x64/publish/uefs.exe
+          UET/Redpoint.Uefs.Daemon/bin/Release/net8.0/win-x64/publish/uefs-daemon.exe
+          UET/uet.shim/bin/Release/net8.0/win-x64/publish/uet.exe
+          UET/uet/bin/Release/net8.0/win-x64/publish/uet.exe
+  
+  pass-1-mac:
+    name: "Build macOS Pass 1"
+    runs-on: macos-latest
+    needs:
+      - timestamp
+      - prereq-autodiscovery
+      - prereq-mac-logging
+    env:
+      UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Cache .NET SDK
+      id: cache-sdk
+      uses: actions/cache@v4
+      with:
+        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
+        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
+        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
+    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
+      name: Download .NET SDK
+      shell: pwsh
+      run: |
+        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted)) {
+          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
+            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
+          }
+          Write-Host "Setting up .NET SDK..."
+          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
+          curl -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet.tar.gz" "${env:UET_DOTNET_MAC_DL}"
+          if ($LastExitCode -ne 0) {
+            exit $LastExitCode
+          }
+          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet" | Out-Null
+          Push-Location ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
+          try {
+            tar -xvf "../dotnet.tar.gz"
+          } finally {
+            Pop-Location
+          }
+          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted -Value "done"
+        }
+    - name: Add .NET SDK to PATH
+      shell: pwsh
+      run: |
+        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
+    - name: Download AutoDiscovery
+      uses: actions/download-artifact@v4
+      with:
+        name: autodiscovery-nupkg
+        path: UET/Redpoint.AutoDiscovery/bin/Release/
+        merge-multiple: true
+    - name: Download Mac Logging
+      uses: actions/download-artifact@v4
+      with:
+        name: mac-logging-nupkg
+        path: UET/
+        merge-multiple: true
+    - name: Build UEFS Client
+      shell: pwsh
+      run: |
+        dotnet `
+          msbuild `
+          -restore `
+          -t:Publish `
+          -p:RuntimeIdentifier=osx-arm64 `
+          -p:Configuration=Release `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/Redpoint.Uefs.Client/Redpoint.Uefs.Client.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+        # Ensure the thing we built will actually run...
+        ./UET/Redpoint.Uefs.Client/bin/Release/net8.0/osx-arm64/publish/uefs --help
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+    - name: Build UEFS Daemon
+      shell: pwsh
+      run: |
+        dotnet `
+          msbuild `
+          -restore `
+          -t:Publish `
+          -p:RuntimeIdentifier=osx-arm64 `
+          -p:Configuration=Release `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+    - name: Build UET Shim
+      shell: pwsh
+      run: |
+        dotnet `
+          msbuild `
+          -restore `
+          -t:Publish `
+          -p:RuntimeIdentifier=osx-arm64 `
+          -p:Configuration=Release `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/uet.shim/uet.shim.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+    - name: Build UET Pass 1
+      shell: pwsh
+      run: |
+        dotnet `
+          msbuild `
+          -restore `
+          -t:Publish `
+          -p:RuntimeIdentifier=osx-arm64 `
+          -p:Configuration=Release `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/uet/uet.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+        # Ensure the thing we built will actually run...
+        ./UET/uet/bin/Release/net8.0/osx-arm64/publish/uet --help
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+    - name: Upload Binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: pass-1-mac
+        if-no-files-found: error
+        path: |
+          UET/Redpoint.Uefs.Client/bin/Release/net8.0/osx-arm64/publish/uefs
+          UET/Redpoint.Uefs.Daemon/bin/Release/net8.0/osx-arm64/publish/uefs-daemon
+          UET/uet.shim/bin/Release/net8.0/osx-arm64/publish/uet
+          UET/uet/bin/Release/net8.0/osx-arm64/publish/uet
+  
