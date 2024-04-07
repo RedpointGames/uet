@@ -1,4 +1,4 @@
-name: Build UET
+name: Unreal Engine Tool
 
 on:
   push:
@@ -16,8 +16,8 @@ env:
   UET_DOTNET_LINUX_PATH: ./.dotnet-net8.0/dotnet/dotnet
 
 jobs:
-  uet-timestamp:
-    name: "UET: Timestamp"
+  timestamp:
+    name: "Timestamp"
     runs-on: ubuntu-latest
     steps:
     - name: Generate Timestamp
@@ -27,8 +27,8 @@ jobs:
         $PackageVersion = "$($Timestamp.Year).$($Timestamp.DayOfYear + 1000).$(($Timestamp.Hour * 60) + $Timestamp.Minute)"
         Set-Content -NoNewline -Path "$env:GITHUB_ENV" -Value "UET_PACKAGE_VERSION=$($PackageVersion)"
 
-  uet-download-dotnet-windows:
-    name: "UET: Download .NET SDK for Windows"
+  download-dotnet-windows:
+    name: "Download .NET SDK for Windows"
     runs-on: windows-latest
     steps:
     - name: Cache .NET SDK
@@ -67,12 +67,12 @@ jobs:
         path: |
           .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
 
-  uet-build-autodiscovery-win-debug-x64:
+  build-autodiscovery-win-debug-x64:
     name: "Build AutoDiscovery Win Debug x64"
     runs-on: windows-latest
     needs:
-      - uet-download-dotnet-windows
-      - uet-timestamp
+      - download-dotnet-windows
+      - timestamp
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -86,12 +86,12 @@ jobs:
         configuration: Debug
         artifact-name: autodiscovery-win-debug-x64
 
-  uet-build-autodiscovery-win-release-x64:
+  build-autodiscovery-win-release-x64:
     name: "Build AutoDiscovery Win Release x64"
     runs-on: windows-latest
     needs:
-      - uet-download-dotnet-windows
-      - uet-timestamp
+      - download-dotnet-windows
+      - timestamp
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -105,12 +105,12 @@ jobs:
         configuration: Release
         artifact-name: autodiscovery-win-release-x64
 
-  uet-build-autodiscovery-win-debug-x86:
+  build-autodiscovery-win-debug-x86:
     name: "Build AutoDiscovery Win Debug x86"
     runs-on: windows-latest
     needs:
-      - uet-download-dotnet-windows
-      - uet-timestamp
+      - download-dotnet-windows
+      - timestamp
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -124,12 +124,12 @@ jobs:
         configuration: Debug
         artifact-name: autodiscovery-win-debug-x86
 
-  uet-build-autodiscovery-win-release-x86:
+  build-autodiscovery-win-release-x86:
     name: "Build AutoDiscovery Win Release x86"
     runs-on: windows-latest
     needs:
-      - uet-download-dotnet-windows
-      - uet-timestamp
+      - download-dotnet-windows
+      - timestamp
     steps:
     - name: Checkout
       uses: actions/checkout@v4
