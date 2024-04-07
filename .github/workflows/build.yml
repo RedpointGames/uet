@@ -1,4 +1,4 @@
-name: Unreal Engine Tool
+name: Build UET
 
 on:
   push:
