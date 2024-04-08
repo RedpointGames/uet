@@ -100,9 +100,9 @@
                     baseFolder = UetPaths.UetRootPath;
                     filename = "uefs-daemon";
                     daemonName = "games.redpoint.UEFS";
-                    stdoutPath = Path.Combine(UetPaths.UefsRootPath, "logs/stdout.log");
-                    stderrPath = Path.Combine(UetPaths.UefsRootPath, "logs/stderr.log");
-                    Directory.CreateDirectory(Path.Combine(UetPaths.UefsRootPath, "logs"));
+                    stdoutPath = Path.Combine(UetPaths.UefsLogsPath, "stdout.log");
+                    stderrPath = Path.Combine(UetPaths.UefsLogsPath, "stderr.log");
+                    Directory.CreateDirectory(UetPaths.UefsLogsPath);
                 }
                 else
                 {

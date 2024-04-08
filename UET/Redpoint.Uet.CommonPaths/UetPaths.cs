@@ -97,45 +97,6 @@
             GetApplicationCurrentUserRootPath(ApplicationName.OpenGE),
             "Cache"));
 
-        private static readonly Lazy<string> _uefsRootPath = new Lazy<string>(() =>
-        {
-            // On macOS, we store UEFS data underneath a mounted "/Volumes/Build/UEFS" folder, if that
-            // volume exists. We expect the volume to be an SSD with a larger storage space than the the
-            // built-in SSD.
-            if (OperatingSystem.IsMacOS())
-            {
-                var infoProc = Process.Start(new ProcessStartInfo
-                {
-                    FileName = "/usr/sbin/diskutil",
-                    ArgumentList = { "info", "Build" },
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                });
-                infoProc!.WaitForExit();
-                if (infoProc.ExitCode == 0)
-                {
-                    // We have a "Build" disk we can mount.
-                    var mountProc = Process.Start(new ProcessStartInfo
-                    {
-                        FileName = "/usr/sbin/diskutil",
-                        ArgumentList = { "mount", "Build" },
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                    });
-                    mountProc!.WaitForExit();
-                    if (mountProc.ExitCode != 0)
-                    {
-                        throw new NotSupportedException("Unable to mount 'Build' disk when UEFS root path needs to be resolved.");
-                    }
-
-                    Directory.CreateDirectory("/Volumes/Build/UEFS");
-                    return "/Volumes/Build/UEFS";
-                }
-            }
-
-            return GetApplicationSystemWideRootPath(ApplicationName.UEFS);
-        });
-
         private static readonly Lazy<string> _uetRootPath = new Lazy<string>(() => GetApplicationSystemWideRootPath(ApplicationName.UET));
 
         private static readonly Lazy<string> _uetRunbackDirectoryPath = new Lazy<string>(() => Path.Combine(UetRootPath, "Runbacks"));
@@ -175,8 +136,6 @@
 
         public static string OpenGEUserSpecificCachePath => _opengeUserSpecificCachePath.Value;
 
-        public static string UefsRootPath => _uefsRootPath.Value;
-
         public static string UetRootPath => _uetRootPath.Value;
 
         public static string UetRunbackDirectoryPath => _uetRunbackDirectoryPath.Value;
@@ -186,5 +145,131 @@
         public static string UetDefaultWindowsSdkStoragePath => _uetDefaultWindowsSdkStoragePath.Value;
 
         public static string UetDefaultMacSdkStoragePath => _uetDefaultMacSdkStoragePath.Value;
+
+        private static readonly Lazy<string> _uefsLogsPath = new Lazy<string>(() => Path.Combine(GetApplicationSystemWideRootPath(ApplicationName.UEFS), "logs"));
+
+        public static string UefsLogsPath => _uefsLogsPath.Value;
+
+        private static readonly Lazy<string> _uefsRootPath = new Lazy<string>(() =>
+        {
+            if (!_isUefsRootPathInitialized)
+            {
+                throw new InvalidOperationException("UEFS root paths must be initialized with a call to InitUefsRootPath!");
+            }
+
+            return _uefsRootPathValue!;
+        });
+
+        public static string UefsRootPath => _uefsRootPath.Value;
+
+        private static string _uefsRootPathValue = string.Empty;
+        private static bool _isUefsRootPathInitialized = false;
+        private static object _uefsRootPathInitializationLock = new object();
+
+        private static (bool exists, bool mounted, string mountPoint) GetMacBuildVolumeMount()
+        {
+            var infoMounted = false;
+            var infoMountPoint = string.Empty;
+            var infoProc = Process.Start(new ProcessStartInfo
+            {
+                FileName = "/usr/sbin/diskutil",
+                ArgumentList = { "info", "Build" },
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+            });
+            using (var reader = infoProc!.StandardOutput)
+            {
+                while (!reader.EndOfStream)
+                {
+                    var line = reader.ReadLine()?.Trim() ?? string.Empty;
+                    if (line.StartsWith("Mounted:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        infoMounted = line.Contains("Yes", StringComparison.OrdinalIgnoreCase);
+                    }
+                    else if (line.StartsWith("Mount Point:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        infoMountPoint = line.Substring(
+                            line.IndexOf("Mount Point:", StringComparison.OrdinalIgnoreCase) +
+                            "Mount Point:".Length).Trim();
+                    }
+                }
+            }
+            infoProc!.WaitForExit();
+            return (infoProc.ExitCode == 0, infoMounted, infoMountPoint);
+        }
+
+        public static void InitUefsRootPath(Action<string> logInformation)
+        {
+            if (_isUefsRootPathInitialized)
+            {
+                return;
+            }
+
+            ArgumentNullException.ThrowIfNull(logInformation);
+
+            if (!OperatingSystem.IsMacOS())
+            {
+                logInformation("UEFS root paths initialized on non-macOS platform.");
+                _uefsRootPathValue = GetApplicationSystemWideRootPath(ApplicationName.UEFS);
+                _isUefsRootPathInitialized = true;
+                return;
+            }
+
+            // On macOS, we store UEFS data underneath a mounted "/Volumes/Build/UEFS" folder, if that
+            // volume exists. We expect the volume to be an SSD with a larger storage space than the the
+            // built-in SSD.
+            lock (_uefsRootPathInitializationLock)
+            {
+                logInformation("Checking to see if 'Build' volume exists...");
+                var currentInfo = GetMacBuildVolumeMount();
+                if (!currentInfo.exists)
+                {
+                    logInformation("No 'Build' volume exists, using system drive.");
+                    _uefsRootPathValue = GetApplicationSystemWideRootPath(ApplicationName.UEFS);
+                    _isUefsRootPathInitialized = true;
+                    return;
+                }
+
+            attemptMount:
+                logInformation("Attempting to mount 'Build' volume...");
+                {
+                    var mountProc = Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "/usr/sbin/diskutil",
+                        ArgumentList = { "mount", "Build" },
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                    });
+                    mountProc!.WaitForExit();
+                    if (mountProc.ExitCode != 0)
+                    {
+                        throw new NotSupportedException("Unable to mount 'Build' disk when UEFS root path needs to be resolved.");
+                    }
+                }
+
+                currentInfo = GetMacBuildVolumeMount();
+                if (!currentInfo.exists)
+                {
+                    logInformation("'Build' volume went away!");
+                    _uefsRootPathValue = GetApplicationSystemWideRootPath(ApplicationName.UEFS);
+                    _isUefsRootPathInitialized = true;
+                    return;
+                }
+                else if (currentInfo.mounted && !string.IsNullOrWhiteSpace(currentInfo.mountPoint))
+                {
+                    logInformation($"'Build' volume mounted at: '{currentInfo.mountPoint}'");
+                    _uefsRootPathValue = Path.Combine(currentInfo.mountPoint, "UEFS");
+                    _isUefsRootPathInitialized = true;
+                    return;
+                }
+                else
+                {
+                    logInformation("Waiting for 'Build' to be mounted...");
+                    Thread.Sleep(1000);
+                    goto attemptMount;
+                }
+            }
+        }
     }
 }

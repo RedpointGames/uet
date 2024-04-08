@@ -16,7 +16,6 @@
     internal class DefaultStorageManagement : IStorageManagement
     {
         private readonly string _reservationManagerRootPath;
-        private readonly string? _uefsStoragePath;
         private readonly ILogger<DefaultStorageManagement> _logger;
         private readonly IReservationManagerForUet _reservationManager;
 
@@ -25,7 +24,6 @@
             IReservationManagerForUet reservationManager)
         {
             _reservationManagerRootPath = reservationManager.RootPath;
-            _uefsStoragePath = UetPaths.UefsRootPath;
             _logger = logger;
             _reservationManager = reservationManager;
         }
@@ -65,15 +63,17 @@
                         (FileInfo?)new FileInfo(Path.Combine(reservationRoot.FullName, ".meta", "date." + x.Name)),
                         StorageEntryType.Generic)));
             }
-            if (_uefsStoragePath != null && Directory.Exists(_uefsStoragePath))
+
+            UetPaths.InitUefsRootPath(x => _logger.LogInformation(x));
+            if (UetPaths.UefsRootPath != null && Directory.Exists(UetPaths.UefsRootPath))
             {
                 scan.AddRange(new[]
                 {
-                    (new DirectoryInfo(Path.Combine(_uefsStoragePath, "git-blob")), (FileInfo?)null, StorageEntryType.UefsGitSharedBlobs),
-                    (new DirectoryInfo(Path.Combine(_uefsStoragePath, "git-deps")), null, StorageEntryType.UefsGitSharedDependencies),
-                    (new DirectoryInfo(Path.Combine(_uefsStoragePath, "git-index-cache")), null,  StorageEntryType.UefsGitSharedIndexCache),
-                    (new DirectoryInfo(Path.Combine(_uefsStoragePath, "git-repo")), null, StorageEntryType.UefsGitSharedRepository),
-                    (new DirectoryInfo(Path.Combine(_uefsStoragePath, "hostpkgs", "cache")), null, StorageEntryType.UefsHostPackagesCache),
+                    (new DirectoryInfo(Path.Combine(UetPaths.UefsRootPath, "git-blob")), (FileInfo?)null, StorageEntryType.UefsGitSharedBlobs),
+                    (new DirectoryInfo(Path.Combine(UetPaths.UefsRootPath, "git-deps")), null, StorageEntryType.UefsGitSharedDependencies),
+                    (new DirectoryInfo(Path.Combine(UetPaths.UefsRootPath, "git-index-cache")), null,  StorageEntryType.UefsGitSharedIndexCache),
+                    (new DirectoryInfo(Path.Combine(UetPaths.UefsRootPath, "git-repo")), null, StorageEntryType.UefsGitSharedRepository),
+                    (new DirectoryInfo(Path.Combine(UetPaths.UefsRootPath, "hostpkgs", "cache")), null, StorageEntryType.UefsHostPackagesCache),
                 });
             }
 

@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uefs.Daemon
 {
     using Microsoft.Extensions.Hosting;
+    using Microsoft.Extensions.Logging;
     using Redpoint.Uefs.Daemon.Abstractions;
     using Redpoint.Uet.CommonPaths;
     using System;
@@ -10,12 +11,16 @@
     internal sealed class UefsHostedService : IHostedService
     {
         private readonly IUefsDaemon _uefsDaemon;
+        private readonly ILogger<UefsHostedService> _logger;
+
         private bool _disposed;
         private bool _inited;
 
         public UefsHostedService(
-            IUefsDaemonFactory uefsDaemonFactory)
+            IUefsDaemonFactory uefsDaemonFactory,
+            ILogger<UefsHostedService> logger)
         {
+            UetPaths.InitUefsRootPath(x => logger.LogInformation(x));
             var rootPath = UetPaths.UefsRootPath;
 
             Directory.CreateDirectory(rootPath);
@@ -23,6 +28,7 @@
             _uefsDaemon = uefsDaemonFactory.CreateDaemon(rootPath);
             _disposed = false;
             _inited = false;
+            _logger = logger;
         }
 
         public IUefsDaemon UefsDaemon => _uefsDaemon;
