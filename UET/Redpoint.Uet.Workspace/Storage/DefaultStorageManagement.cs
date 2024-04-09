@@ -302,9 +302,11 @@
             {
                 long diskSpaceAvailableBytes;
                 long diskSpaceTotalBytes;
+                string drivePath;
                 try
                 {
                     var drive = new DriveInfo(Path.GetFullPath(_reservationManagerRootPath));
+                    drivePath = drive.ToString();
                     diskSpaceAvailableBytes = drive.AvailableFreeSpace;
                     diskSpaceTotalBytes = drive.TotalSize;
                 }
@@ -317,7 +319,7 @@
                 double diskSpacePercentAvailable = diskSpaceAvailableBytes / (double)diskSpaceTotalBytes;
                 if (verbose)
                 {
-                    _logger.LogInformation($"Disk space available: {diskSpaceAvailableBytes / 1024 / 1024} MB ({diskSpacePercentAvailable * 100.0:#.00} %)");
+                    _logger.LogInformation($"Disk space available on '{drivePath}': {diskSpaceAvailableBytes / 1024 / 1024} MB ({diskSpacePercentAvailable * 100.0:#.00} %)");
                 }
 
                 if (diskSpaceAvailableBytes < fixedBytesThreshold)
