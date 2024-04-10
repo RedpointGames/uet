@@ -17,7 +17,6 @@
             CancellationToken cancellationToken);
 
         Task AutoPurgeStorageAsync(
-            bool verbose,
             CancellationToken cancellationToken);
     }
 }

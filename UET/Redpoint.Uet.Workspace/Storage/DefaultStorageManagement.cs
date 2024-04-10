@@ -292,7 +292,6 @@
         }
 
         public async Task AutoPurgeStorageAsync(
-            bool verbose,
             CancellationToken cancellationToken)
         {
             const long fixedBytesThreshold = 512 * 1024 * 1024L;
@@ -317,10 +316,7 @@
                 }
 
                 double diskSpacePercentAvailable = diskSpaceAvailableBytes / (double)diskSpaceTotalBytes;
-                if (verbose)
-                {
-                    _logger.LogInformation($"Disk space available on '{drivePath}': {diskSpaceAvailableBytes / 1024 / 1024} MB ({diskSpacePercentAvailable * 100.0:#.00} %)");
-                }
+                _logger.LogInformation($"Disk space available on '{drivePath}': {diskSpaceAvailableBytes / 1024 / 1024} MB ({diskSpacePercentAvailable * 100.0:#.00} %)");
 
                 if (diskSpaceAvailableBytes < fixedBytesThreshold)
                 {

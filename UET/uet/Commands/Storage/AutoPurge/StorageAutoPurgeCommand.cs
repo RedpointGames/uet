@@ -30,7 +30,6 @@
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
                 await _storageManagement.AutoPurgeStorageAsync(
-                    true,
                     context.GetCancellationToken()).ConfigureAwait(false);
 
                 return 0;

@@ -10,6 +10,7 @@
     using Redpoint.Uet.Core;
     using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.Workspace;
+    using Redpoint.Uet.Workspace.Storage;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Diagnostics;
@@ -51,6 +52,7 @@
             private readonly GitLabBuildExecutorFactory _gitLabBuildExecutorFactory;
             private readonly IWorldPermissionApplier _worldPermissionApplier;
             private readonly IDynamicWorkspaceProvider _dynamicWorkspaceProvider;
+            private readonly IStorageManagement _storageManagement;
             private readonly BuildJobJsonSourceGenerationContext _buildJobJsonSourceGenerationContext;
 
             public CIBuildCommandInstance(
@@ -59,13 +61,15 @@
                 GitLabBuildExecutorFactory gitLabBuildExecutorFactory,
                 IWorldPermissionApplier worldPermissionApplier,
                 IServiceProvider serviceProvider,
-                IDynamicWorkspaceProvider dynamicWorkspaceProvider)
+                IDynamicWorkspaceProvider dynamicWorkspaceProvider,
+                IStorageManagement storageManagement)
             {
                 _logger = logger;
                 _options = options;
                 _gitLabBuildExecutorFactory = gitLabBuildExecutorFactory;
                 _worldPermissionApplier = worldPermissionApplier;
                 _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
+                _storageManagement = storageManagement;
                 _buildJobJsonSourceGenerationContext = BuildJobJsonSourceGenerationContext.Create(serviceProvider);
             }
 
@@ -109,6 +113,9 @@
                 // Configure the dynamic workspace provider to use workspace virtualisation
                 // if appropriate.
                 _dynamicWorkspaceProvider.UseWorkspaceVirtualisation = buildJson.UseStorageVirtualisation;
+
+                await _storageManagement.AutoPurgeStorageAsync(
+                    context.GetCancellationToken()).ConfigureAwait(false);
 
                 var engine = EngineSpec.TryParseEngineSpecExact(buildJson.Engine);
                 if (engine == null)
