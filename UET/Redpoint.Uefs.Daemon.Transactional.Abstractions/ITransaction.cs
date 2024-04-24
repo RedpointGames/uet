@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uefs.Daemon.Transactional.Abstractions
 {
+    using Microsoft.Extensions.Logging;
     using Redpoint.Uefs.Protocol;
     using System;
 
@@ -16,7 +17,7 @@
     {
         TRequest Request { get; }
 
-        IAsyncDisposable RegisterListener(TransactionListener listenerDelegate);
+        IAsyncDisposable RegisterListener(TransactionListener listenerDelegate, ILogger logger);
     }
 
     public interface ITransaction<TRequest, TResult> : ITransaction<TRequest> where TRequest : ITransactionRequest<TResult>
@@ -25,6 +26,6 @@
 
         void UpdatePollingResponse(PollingResponse pollingResponse, TResult? result);
 
-        IAsyncDisposable RegisterListener(TransactionListener<TResult> listenerDelegate);
+        IAsyncDisposable RegisterListener(TransactionListener<TResult> listenerDelegate, ILogger logger);
     }
 }

@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uefs.Daemon.Transactional.Abstractions
 {
+    using Microsoft.Extensions.Logging;
     using System;
     using System.Threading.Tasks;
 

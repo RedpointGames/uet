@@ -10,7 +10,6 @@
     using Redpoint.Uefs.ContainerRegistry;
     using Redpoint.Uefs.Protocol;
     using Redpoint.Hashing;
-    using System.Buffers;
 
     internal sealed class LocalPackageFs : IPackageFs
     {
@@ -197,19 +196,25 @@
                     releaseGlobalPullLock();
 
                     // Perform the copy operation.
-                    const int bufferSize = 8 * 1024 * 1024;
+                    const int bufferSize = 81920; // @note: From System.IO as optimable buffer size for .NET.
                     var buffer = new byte[bufferSize];
                     var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                    _logger.LogInformation($"Copying the file content 8MB at a time...");
-                    while (remoteStorageBlob.Position < remoteStorageBlob.Length)
+                    int bytesRead;
+                    DateTimeOffset lastUpdate = DateTimeOffset.UtcNow;
+                    while ((bytesRead = await remoteStorageBlob.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) != 0)
                     {
-                        var bytesRead = await remoteStorageBlob.ReadAsync(buffer, 0, bufferSize).ConfigureAwait(false);
-                        await target.WriteAsync(buffer.AsMemory(0, bytesRead)).ConfigureAwait(false);
+#pragma warning disable CA1835
+                        await target.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);
+#pragma warning restore CA1835
                         hasher.AppendData(buffer, 0, bytesRead);
-                        updatePollingResponse(x =>
+                        if ((DateTimeOffset.UtcNow - lastUpdate).TotalSeconds > 0.5f)
                         {
-                            x.PullingPackageUpdatePosition(remoteStorageBlob.Position);
-                        }, null);
+                            updatePollingResponse(x =>
+                            {
+                                x.PullingPackageUpdatePosition(remoteStorageBlob.Position);
+                            }, null);
+                            lastUpdate = DateTimeOffset.UtcNow;
+                        }
                     }
                     var sha256Hash = Hash.HexString(hasher.GetCurrentHash());
 
