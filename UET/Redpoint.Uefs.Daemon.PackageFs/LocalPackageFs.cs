@@ -207,13 +207,13 @@
                         await target.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);
 #pragma warning restore CA1835
                         hasher.AppendData(buffer, 0, bytesRead);
-                        if ((DateTimeOffset.UtcNow - lastUpdate).TotalSeconds > 0.5f)
+                        if ((DateTimeOffset.UtcNow - lastUpdate).TotalMilliseconds > 100)
                         {
+                            lastUpdate = DateTimeOffset.UtcNow;
                             updatePollingResponse(x =>
                             {
                                 x.PullingPackageUpdatePosition(remoteStorageBlob.Position);
                             }, null);
-                            lastUpdate = DateTimeOffset.UtcNow;
                         }
                     }
                     var sha256Hash = Hash.HexString(hasher.GetCurrentHash());
