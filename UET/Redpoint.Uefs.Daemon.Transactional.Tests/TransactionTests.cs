@@ -72,6 +72,7 @@
         public async Task TransactionCompletes()
         {
             var services = new ServiceCollection();
+            services.AddLogging();
             services.AddUefsDaemonTransactional();
             services.AddSingleton<ITransactionExecutor<TestTransactionRequest>, TestTransactionExecutor>();
 
@@ -99,6 +100,7 @@
         public async Task TransactionCancelledWhenNoListeners()
         {
             var services = new ServiceCollection();
+            services.AddLogging();
             services.AddUefsDaemonTransactional();
             services.AddSingleton<ITransactionExecutor<TestTransactionRequest>, TestTransactionExecutor>();
 
@@ -126,6 +128,7 @@
         public async Task DeduplicatedTransactionCompletesWhenDeduplicatedTakesOver()
         {
             var services = new ServiceCollection();
+            services.AddLogging();
             services.AddUefsDaemonTransactional();
             services.AddSingleton<ITransactionExecutor<TestTransactionRequest>, TestTransactionExecutor>();
             services.AddSingleton<ITransactionDeduplicator<TestTransactionRequest>, TestTransactionDeduplicator>();
@@ -159,6 +162,7 @@
         public async Task DeduplicatedTransactionCompletesWhenDeduplicatedCancelled()
         {
             var services = new ServiceCollection();
+            services.AddLogging();
             services.AddUefsDaemonTransactional();
             services.AddSingleton<ITransactionExecutor<TestTransactionRequest>, TestTransactionExecutor>();
             services.AddSingleton<ITransactionDeduplicator<TestTransactionRequest>, TestTransactionDeduplicator>();
@@ -192,6 +196,7 @@
         public async Task DeduplicatedTransactionCancelledWhenNoListeners()
         {
             var services = new ServiceCollection();
+            services.AddLogging();
             services.AddUefsDaemonTransactional();
             services.AddSingleton<ITransactionExecutor<TestTransactionRequest>, TestTransactionExecutor>();
             services.AddSingleton<ITransactionDeduplicator<TestTransactionRequest>, TestTransactionDeduplicator>();
@@ -225,6 +230,7 @@
         public async Task ExceptionFromThrowingExecutorIsCaughtDuringWait()
         {
             var services = new ServiceCollection();
+            services.AddLogging();
             services.AddUefsDaemonTransactional();
             services.AddSingleton<ITransactionExecutor<ThrowingTransactionRequest>, ThrowingTransactionExecutor>();
 
@@ -247,6 +253,7 @@
         public async Task ExceptionFromThrowingExecutorIsCaughtWhenNoListeners()
         {
             var services = new ServiceCollection();
+            services.AddLogging();
             services.AddUefsDaemonTransactional();
             services.AddSingleton<ITransactionExecutor<ThrowingTransactionRequest>, ThrowingTransactionExecutor>();
 
@@ -269,6 +276,7 @@
         public async Task ExceptionFromThrowingExecutorIsCaughtByLastListenerToDeregister()
         {
             var services = new ServiceCollection();
+            services.AddLogging();
             services.AddUefsDaemonTransactional();
             services.AddSingleton<ITransactionExecutor<ThrowingTransactionRequest>, ThrowingTransactionExecutor>();
             services.AddSingleton<ITransactionDeduplicator<ThrowingTransactionRequest>, ThrowingTransactionDeduplicator>();
@@ -297,6 +305,7 @@
         public async Task ExceptionFromThrowingExecutorIsCaughtByLastListenerToDeregisterInReverseOrder()
         {
             var services = new ServiceCollection();
+            services.AddLogging();
             services.AddUefsDaemonTransactional();
             services.AddSingleton<ITransactionExecutor<ThrowingTransactionRequest>, ThrowingTransactionExecutor>();
             services.AddSingleton<ITransactionDeduplicator<ThrowingTransactionRequest>, ThrowingTransactionDeduplicator>();
