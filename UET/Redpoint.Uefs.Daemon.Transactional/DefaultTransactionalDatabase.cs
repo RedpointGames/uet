@@ -77,7 +77,8 @@
                     return new DefaultTransactionHandle(
                         deduplicatedTransactionId!,
                         deduplicatedTransaction,
-                        deduplicatedTransaction.RegisterListener(transactionListener, _logger));
+                        deduplicatedTransaction.RegisterListener(transactionListener, _logger),
+                        _logger);
                 }
                 else
                 {
@@ -127,7 +128,8 @@
                     return new DefaultTransactionHandle(
                         id,
                         transaction,
-                        transaction.GetDisposableForInitiallyRegisteredListener(_logger));
+                        transaction.GetDisposableForInitiallyRegisteredListener(_logger),
+                        _logger);
                 }
             }
             finally
@@ -175,7 +177,8 @@
                     return new DefaultTransactionHandleWithResult<TResult>(
                         deduplicatedTransactionId!,
                         deduplicatedTransaction,
-                        deduplicatedTransaction.RegisterListener(transactionListener, _logger));
+                        deduplicatedTransaction.RegisterListener(transactionListener, _logger),
+                        _logger);
                 }
                 else
                 {
@@ -235,7 +238,8 @@
                     return new DefaultTransactionHandleWithResult<TResult>(
                         id,
                         transaction,
-                        transaction.GetDisposableForInitiallyRegisteredListener(_logger));
+                        transaction.GetDisposableForInitiallyRegisteredListener(_logger),
+                        _logger);
                 }
             }
             finally
@@ -257,7 +261,8 @@
                     return new DefaultTransactionHandle(
                         transactionId,
                         transaction,
-                        transaction.RegisterListener(transactionListener));
+                        transaction.RegisterListener(transactionListener, _logger),
+                        _logger);
                 }
 
                 return null;
@@ -283,7 +288,8 @@
                         return new DefaultTransactionHandleWithResult<TResult>(
                             transactionId,
                             resultTransaction,
-                            resultTransaction.RegisterListener(transactionListener));
+                            resultTransaction.RegisterListener(transactionListener, _logger),
+                            _logger);
                     }
                 }
 

@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uefs.Daemon.Transactional
 {
+    using Microsoft.Extensions.Logging;
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using Redpoint.Uefs.Protocol;
     using System;
@@ -28,14 +29,14 @@
 
         public TResult? Result { get; set; }
 
-        public IAsyncDisposable RegisterListener(TransactionListener listenerDelegate)
+        public IAsyncDisposable RegisterListener(TransactionListener listenerDelegate, ILogger logger)
         {
             TransactionListener<TResult> listenerDelegateWrapped = async (PollingResponse pollingResponse, TResult? _) =>
             {
                 await listenerDelegate(pollingResponse).ConfigureAwait(false);
             };
             _listeners.TryAdd(listenerDelegateWrapped, true);
-            return new ReleasableListener(this, listenerDelegateWrapped);
+            return new ReleasableListener(this, listenerDelegateWrapped, logger);
         }
 
         public void UpdatePollingResponse(
