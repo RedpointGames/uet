@@ -3,7 +3,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <ItemGroup>
-    <ProjectReference Include="..\Redpoint.Git.Native\Redpoint.Git.Native.csproj" />
+    <ProjectReference Include="..\Redpoint.Git.Abstractions\Redpoint.Git.Abstractions.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Protocol\Redpoint.Uefs.Protocol.csproj" />
   </ItemGroup>
 

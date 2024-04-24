@@ -17,14 +17,13 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="7.0.1" />
     <PackageReference Include="Sentry" Version="3.33.1" />
     <PackageReference Include="Sentry.Extensions.Logging" Version="3.33.1" />
+    <ProjectReference Include="..\Redpoint.Tasks\Redpoint.Tasks.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Package.SparseImage\Redpoint.Uefs.Package.SparseImage.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Package.Vhd\Redpoint.Uefs.Package.Vhd.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.CommonPaths\Redpoint.Uet.CommonPaths.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Driver\Redpoint.Vfs.Driver.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Driver.WinFsp\Redpoint.Vfs.Driver.WinFsp.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Layer.Folder\Redpoint.Vfs.Layer.Folder.csproj" />
-    <ProjectReference Include="..\Redpoint.Vfs.Layer.Git\Redpoint.Vfs.Layer.Git.csproj" />
-    <ProjectReference Include="..\Redpoint.Vfs.Layer.GitDependencies\Redpoint.Vfs.Layer.GitDependencies.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Layer.Scratch\Redpoint.Vfs.Layer.Scratch.csproj" />
     <ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
     <ProjectReference Include="..\Redpoint.Logging.Mac\Redpoint.Logging.Mac.csproj" />

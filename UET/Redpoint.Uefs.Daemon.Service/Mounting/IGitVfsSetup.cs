@@ -1,4 +1,6 @@
-﻿namespace Redpoint.Uefs.Daemon.Service.Mounting
+﻿#if GIT_NATIVE_CODE_ENABLED
+
+namespace Redpoint.Uefs.Daemon.Service.Mounting
 {
     using Redpoint.Uefs.Daemon.Abstractions;
     using Redpoint.Uefs.Protocol;
@@ -17,3 +19,5 @@
             string contextMessage);
     }
 }
+
+#endif

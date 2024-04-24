@@ -4,7 +4,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.Vfs.Driver.WinFsp\Redpoint.Vfs.Driver.WinFsp.csproj" />
-    <ProjectReference Include="..\Redpoint.Vfs.Layer.Git\Redpoint.Vfs.Layer.Git.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Layer.Scratch\Redpoint.Vfs.Layer.Scratch.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.LocalIo\Redpoint.Vfs.LocalIo.csproj" />
   </ItemGroup>

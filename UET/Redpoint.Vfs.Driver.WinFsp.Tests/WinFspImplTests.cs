@@ -1,4 +1,6 @@
-﻿namespace Redpoint.Vfs.Driver.WinFsp.Tests
+﻿#if GIT_NATIVE_CODE_ENABLED
+
+namespace Redpoint.Vfs.Driver.WinFsp.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
@@ -340,3 +342,5 @@
         }
     }
 }
+
+#endif

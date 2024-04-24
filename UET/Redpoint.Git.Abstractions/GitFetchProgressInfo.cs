@@ -1,4 +1,4 @@
-﻿namespace Redpoint.Git.Native
+﻿namespace Redpoint.Git.Abstractions
 {
     /// <summary>
     /// Represent process of a 'git fetch' operation.

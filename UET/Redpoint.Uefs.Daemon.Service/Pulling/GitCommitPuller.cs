@@ -1,4 +1,6 @@
-﻿namespace Redpoint.Uefs.Daemon.Service.Pulling
+﻿#if GIT_NATIVE_CODE_ENABLED
+
+namespace Redpoint.Uefs.Daemon.Service.Pulling
 {
     using Redpoint.Uefs.Daemon.Abstractions;
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
@@ -47,3 +49,5 @@
         }
     }
 }
+
+#endif

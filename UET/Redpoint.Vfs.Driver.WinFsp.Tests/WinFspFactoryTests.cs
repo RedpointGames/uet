@@ -2,7 +2,6 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using System.Runtime.Versioning;
-    using Redpoint.Vfs.Layer.Git;
     using Redpoint.Vfs.LocalIo;
     using Redpoint.Vfs.Layer.Scratch;
     using System.Security.Principal;
@@ -18,7 +17,6 @@
 
             var services = new ServiceCollection();
             services.AddLogging();
-            services.AddGitLayerFactory();
             services.AddScratchLayerFactory();
             services.AddLocalIoFileFactory();
             services.AddWinFspVfsDriver();
