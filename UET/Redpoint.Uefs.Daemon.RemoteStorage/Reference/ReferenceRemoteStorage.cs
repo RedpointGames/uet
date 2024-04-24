@@ -25,8 +25,12 @@
                 if (OperatingSystem.IsWindows() && path.StartsWith("\\\\", StringComparison.Ordinal) ||
                     OperatingSystem.IsMacOS() && path.StartsWith('/'))
                 {
-                    _pool = new FileStreamPool(path, FileAccess.Read, FileShare.Read);
-                    _sfPool = new SafeFileHandlePool(path, FileAccess.Read, FileShare.Read);
+                    // @note: We trying to use 'FileShare.ReadWrite | FileShare.Delete' to workaround an issue on macOS where the macOS SMB client fails to open a file that has FileShare.Read even though it should otherwise succeed due to these failures:
+                    //
+                    // smbfs_add_update_lease: Cant add lease because found existing lease on <5.4.0-launcher.sparseimage> during <Open>?
+                    // smbfs_open: smbfs_add_update_lease add failed 37
+                    _pool = new FileStreamPool(path, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, FileMode.Open);
+                    _sfPool = new SafeFileHandlePool(path, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, FileMode.Open);
                 }
                 else
                 {
