@@ -20,12 +20,13 @@
 
         private IVfsDriver? _vfs;
 
-        public override void DisposeUnderlying()
+        public override ValueTask DisposeUnderlyingAsync()
         {
             if (_vfs != null)
             {
                 _vfs.Dispose();
             }
+            return ValueTask.CompletedTask;
         }
 
         public override Mount GetMountDescriptor(string id)

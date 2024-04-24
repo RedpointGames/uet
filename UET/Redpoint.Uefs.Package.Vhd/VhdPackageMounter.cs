@@ -265,7 +265,7 @@
             return ValueTask.CompletedTask;
         }
 
-        public void Dispose()
+        public ValueTask DisposeAsync()
         {
             if (_isAttached)
             {
@@ -316,6 +316,7 @@
                 _vhd.Dispose();
                 _vhd = null;
             }
+            return ValueTask.CompletedTask;
         }
 
         public Task<(string packagePath, string mountPath, IPackageMounter mounter)[]> ImportExistingMountsAtStartupAsync()

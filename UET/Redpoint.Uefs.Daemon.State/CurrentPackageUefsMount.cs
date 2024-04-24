@@ -7,7 +7,7 @@
         public string PackagePath;
         public string? TagHint;
 
-        public CurrentPackageUefsMount(string packagePath, string mountPath, string? tagHint, IDisposable packageMounter)
+        public CurrentPackageUefsMount(string packagePath, string mountPath, string? tagHint, IAsyncDisposable packageMounter)
         {
             PackagePath = packagePath;
             MountPath = mountPath;
@@ -15,13 +15,13 @@
             _packageMounter = packageMounter;
         }
 
-        private IDisposable? _packageMounter;
+        private IAsyncDisposable? _packageMounter;
 
-        public override void DisposeUnderlying()
+        public override async ValueTask DisposeUnderlyingAsync()
         {
             if (_packageMounter != null)
             {
-                _packageMounter.Dispose();
+                await _packageMounter.DisposeAsync().ConfigureAwait(false);
             }
         }
 

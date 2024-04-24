@@ -19,6 +19,8 @@
     using Redpoint.ProcessTree;
     using Redpoint.CredentialDiscovery;
     using Redpoint.GrpcPipes.Transport.Tcp;
+    using Redpoint.PathResolution;
+    using Redpoint.ProcessExecution;
 
     internal static class CommandExtensions
     {
@@ -59,6 +61,8 @@
                 {
                     services.AddProcessTree();
                 }
+                services.AddPathResolution();
+                services.AddProcessExecution();
                 services.AddUefs();
                 services.AddGrpcPipes<TcpGrpcPipeFactory>();
                 services.AddUefsPackage();

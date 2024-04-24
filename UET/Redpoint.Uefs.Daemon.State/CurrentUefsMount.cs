@@ -12,7 +12,7 @@
 
         public int? TrackPid { get; set; }
 
-        public abstract void DisposeUnderlying();
+        public abstract ValueTask DisposeUnderlyingAsync();
 
         public abstract Mount GetMountDescriptor(string id);
     }

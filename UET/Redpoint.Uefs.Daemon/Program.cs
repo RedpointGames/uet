@@ -25,6 +25,8 @@
     using Redpoint.Vfs.LocalIo;
     using Redpoint.Tasks;
     using Redpoint.GrpcPipes.Transport.Tcp;
+    using Redpoint.PathResolution;
+    using Redpoint.ProcessExecution;
 
     public static class Program
     {
@@ -68,7 +70,7 @@
             services.AddLogging(logging =>
             {
                 logging.ClearProviders();
-                logging.SetMinimumLevel(LogLevel.Information);
+                logging.SetMinimumLevel(OperatingSystem.IsMacOS() ? LogLevel.Trace : LogLevel.Information);
                 logging.AddSingleLineConsoleFormatter();
                 logging.AddSingleLineConsole();
 
@@ -100,6 +102,8 @@
             {
                 services.AddWinFspVfsDriver();
             }
+            services.AddPathResolution();
+            services.AddProcessExecution();
             services.AddTasks();
             services.AddFolderLayerFactory();
             services.AddScratchLayerFactory();

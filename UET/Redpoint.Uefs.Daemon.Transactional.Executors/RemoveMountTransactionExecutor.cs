@@ -34,7 +34,7 @@
                 {
                     _logger.LogInformation($"Unmounting {transaction.MountId}...");
                     var mount = _mountTracking.CurrentMounts[transaction.MountId];
-                    mount.DisposeUnderlying();
+                    await mount.DisposeUnderlyingAsync().ConfigureAwait(false);
                     if (mount.MountPath != null)
                     {
                         await _mountTracking.RemovePersistentMountAsync(mount.MountPath).ConfigureAwait(false);

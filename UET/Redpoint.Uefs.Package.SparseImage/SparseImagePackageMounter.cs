@@ -3,11 +3,16 @@
     using System.Diagnostics;
     using System.Runtime.Versioning;
     using Microsoft.Extensions.Logging;
+    using Redpoint.PathResolution;
+    using Redpoint.ProcessExecution;
     using Redpoint.Uefs.Protocol;
 
     [SupportedOSPlatform("macos")]
     internal sealed class SparseImagePackageMounter : IPackageMounter
     {
+        private readonly IProcessExecutor _processExecutor;
+        private readonly IPathResolver _pathResolver;
+        private readonly ILogger<SparseImagePackageMounter> _logger;
         private bool _isMounted = false;
         private string? _mountPath;
         private string? _writeStoragePath;
@@ -26,11 +31,24 @@
 
         public string WriteStoragePath => _writeStoragePath!;
 
-        public SparseImagePackageMounter(ILogger? logger)
+        public SparseImagePackageMounter(
+            IProcessExecutor processExecutor,
+            IPathResolver pathResolver,
+            ILogger<SparseImagePackageMounter> logger)
         {
+            _processExecutor = processExecutor;
+            _pathResolver = pathResolver;
+            _logger = logger;
         }
 
-        private SparseImagePackageMounter(ImportedMount mount)
+        private SparseImagePackageMounter(
+            IProcessExecutor processExecutor,
+            IPathResolver pathResolver,
+            ILogger<SparseImagePackageMounter> logger,
+            ImportedMount mount) : this(
+                processExecutor,
+                pathResolver,
+                logger)
         {
             _isMounted = true;
             _mountPath = mount.Devices.First(x => x.Value.mountPoint != null).Value.mountPoint!;
@@ -45,7 +63,7 @@
             }
         }
 
-        public ValueTask MountAsync(
+        public async ValueTask MountAsync(
             string packagePath,
             string mountPath,
             string writeStoragePath,
@@ -91,67 +109,75 @@
             _writeStoragePath = writeStoragePath;
 
             // Mount our package at this path.
-            {
-                var processInfo = new ProcessStartInfo
+            var hdiutilExitCode = await _processExecutor.ExecuteAsync(
+                new ProcessSpecification
                 {
-                    FileName = "/usr/bin/hdiutil",
-                    ArgumentList = {
+                    FilePath = "/usr/bin/hdiutil",
+                    Arguments = new List<string>
+                    {
                         "mount",
                         packagePath,
                         "-mountpoint",
                         _mountPath,
                         "-shadow",
                         Path.Combine(writeStoragePath, $"uefs-{(persistenceMode == WriteScratchPersistence.Keep ? "keep" : "discard")}.shadow"),
+                    }
+                },
+                CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
+                {
+                    ReceiveStdout = line =>
+                    {
+                        _logger.LogInformation($"hdiutil stdout: {line}");
+                        return false;
                     },
-                    UseShellExecute = false,
-                    CreateNoWindow = false,
-                };
-                var process = new Process();
-                process.StartInfo = processInfo;
-                process.EnableRaisingEvents = true;
-                if (!process.Start())
-                {
-                    throw new PackageMounterException("unable to start hdiutil process for mounting package");
-                }
-                process.WaitForExit();
-                if (process.ExitCode != 0)
-                {
-                    throw new PackageMounterException($"hdiutil for mounting exited with code {process.ExitCode}");
-                }
-                _isMounted = true;
+                    ReceiveStderr = line =>
+                    {
+                        _logger.LogInformation($"hdiutil stderr: {line}");
+                        return false;
+                    },
+                }),
+                CancellationToken.None).ConfigureAwait(false);
+            if (hdiutilExitCode != 0)
+            {
+                throw new PackageMounterException($"hdiutil for mounting exited with code {hdiutilExitCode}");
             }
-
-            return ValueTask.CompletedTask;
+            _isMounted = true;
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
             if (_isMounted)
             {
-                var processInfo = new ProcessStartInfo
-                {
-                    FileName = "/usr/bin/hdiutil",
-                    ArgumentList = {
-                        // note: 'unmount' doesn't detach the 
-                        // disk and leaves it locked, so we use 'detach'
-                        "detach",
-                        _mountPath!,
-                        "-force"
+                var hdiutilExitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = "/usr/bin/hdiutil",
+                        Arguments = new List<string>
+                        {
+                            // note: 'unmount' doesn't detach the 
+                            // disk and leaves it locked, so we use 'detach'
+                            "detach",
+                            _mountPath!,
+                            "-force",
+                        }
                     },
-                    UseShellExecute = false,
-                    CreateNoWindow = false,
-                };
-                var process = new Process();
-                process.StartInfo = processInfo;
-                process.EnableRaisingEvents = true;
-                if (!process.Start())
+                    CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
+                    {
+                        ReceiveStdout = line =>
+                        {
+                            _logger.LogInformation($"hdiutil detach stdout: {line}");
+                            return false;
+                        },
+                        ReceiveStderr = line =>
+                        {
+                            _logger.LogInformation($"hdiutil detach stderr: {line}");
+                            return false;
+                        },
+                    }),
+                    CancellationToken.None).ConfigureAwait(false);
+                if (hdiutilExitCode != 0)
                 {
-                    throw new PackageMounterException("unable to start hdiutil process for unmounting sparse APFS image");
-                }
-                process.WaitForExit();
-                if (process.ExitCode != 0)
-                {
-                    throw new PackageMounterException($"hdiutil for unmounting exited with code {process.ExitCode}");
+                    throw new PackageMounterException($"hdiutil for unmounting exited with code {hdiutilExitCode}");
                 }
                 _isMounted = false;
 
@@ -262,7 +288,7 @@
                     result.Add((
                         imagePath,
                         importedMount.Devices.First(x => x.Value.mountPoint != null).Value.mountPoint!,
-                        new SparseImagePackageMounter(importedMount)));
+                        new SparseImagePackageMounter(_processExecutor, _pathResolver, _logger, importedMount)));
                 }
             }
             return result.ToArray();

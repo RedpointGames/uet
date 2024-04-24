@@ -30,7 +30,10 @@
                     });
                 }
 
-                volume.PackageMounter?.Dispose();
+                if (volume.PackageMounter != null)
+                {
+                    await volume.PackageMounter.DisposeAsync().ConfigureAwait(false);
+                }
                 volume.PackageMounter = null;
                 volume.ContainerID = null;
                 volume.Mountpoint = null;
