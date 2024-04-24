@@ -72,6 +72,7 @@
             var commit = System.Environment.GetEnvironmentVariable("CI_COMMIT_SHA")!;
             var executingNode = new NodeNameExecutionState();
 
+            _logger.LogTrace("Starting execution of nodes...");
             try
             {
                 await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
@@ -207,6 +208,7 @@
                     }
                     else
                     {
+                        _logger.LogTrace($"Obtaining workspace for build.");
                         await using ((await _workspaceProvider.GetWorkspaceAsync(
                             new GitWorkspaceDescriptor
                             {
@@ -222,15 +224,20 @@
                             },
                             cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
                         {
+                            _logger.LogTrace($"Calling ExecuteNodesInWorkspaceAsync inside allocated workspace.");
                             overallExitCode = await ExecuteNodesInWorkspaceAsync(targetWorkspace.Path).ConfigureAwait(false);
+                            _logger.LogTrace($"Finished ExecuteNodesInWorkspaceAsync with exit code '{overallExitCode}'.");
                         }
+                        _logger.LogTrace($"Released workspace for build.");
                     }
+                    _logger.LogTrace($"Returning overall exit code '{overallExitCode}' from ExecuteBuildNodesAsync.");
                     return overallExitCode;
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 // The build was cancelled.
+                _logger.LogTrace("Detected build cancellation.");
                 var currentNodeName = executingNode.NodeName;
                 if (currentNodeName != null)
                 {
@@ -241,6 +248,7 @@
             }
             catch (Exception ex)
             {
+                _logger.LogTrace($"Detected build failure due to exception: {ex}");
                 var currentNodeName = executingNode.NodeName;
                 if (currentNodeName != null)
                 {

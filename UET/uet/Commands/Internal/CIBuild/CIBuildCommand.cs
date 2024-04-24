@@ -218,6 +218,7 @@
 
                 try
                 {
+                    _logger.LogTrace($"{executor.GetType().FullName}.ExecuteBuildNodesAsync starting call.");
                     var buildResult = await executor.ExecuteBuildNodesAsync(
                         buildSpecification,
                         buildJson.PreparePlugin,
@@ -225,6 +226,7 @@
                         new LoggerBasedBuildExecutionEvents(_logger),
                         buildJson.NodeNames,
                         context.GetCancellationToken()).ConfigureAwait(false);
+                    _logger.LogTrace($"{executor.GetType().FullName}.ExecuteBuildNodesAsync returned build result code '{buildResult}'.");
                     return buildResult;
                 }
                 catch (BuildPipelineExecutionFailureException ex)
