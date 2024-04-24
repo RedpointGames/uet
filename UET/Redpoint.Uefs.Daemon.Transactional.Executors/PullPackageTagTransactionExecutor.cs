@@ -12,18 +12,22 @@
     using Redpoint.Uefs.Protocol;
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using Redpoint.Hashing;
+    using Microsoft.Extensions.Logging;
 
     internal sealed class PullPackageTagTransactionExecutor : ITransactionExecutor<PullPackageTagTransactionRequest, PullPackageTagTransactionResult>
     {
         private readonly IRemoteStorage<ManifestLayer> _registryRemoteStorage;
         private readonly IRemoteStorage<RegistryReferenceInfo> _referenceRemoteStorage;
+        private readonly ILogger<PullPackageTagTransactionExecutor> _logger;
 
         public PullPackageTagTransactionExecutor(
             IRemoteStorage<ManifestLayer> registryRemoteStorage,
-            IRemoteStorage<RegistryReferenceInfo> referenceRemoteStorage)
+            IRemoteStorage<RegistryReferenceInfo> referenceRemoteStorage,
+            ILogger<PullPackageTagTransactionExecutor> logger)
         {
             _registryRemoteStorage = registryRemoteStorage;
             _referenceRemoteStorage = referenceRemoteStorage;
+            _logger = logger;
         }
 
         public async Task<PullPackageTagTransactionResult> ExecuteTransactionAsync(
@@ -31,6 +35,7 @@
             PullPackageTagTransactionRequest transaction,
             CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Starting execution of package pull by tag...");
             context.UpdatePollingResponse(x =>
             {
                 x.Init(PollingResponseType.Package);
@@ -48,8 +53,11 @@
             var path = tagComponents.Groups["path"].Value;
             var label = tagComponents.Groups["label"].Value;
 
+            _logger.LogInformation($"Pulling from {host}/{path}:{label}");
+
             string tagHash = Hash.Sha256AsHexString(transaction.Tag, Encoding.UTF8);
 
+            _logger.LogInformation($"Getting container registry client...");
             var client = RegistryClientFactory.GetRegistryClient(host, new ContainerRegistry.RegistryCredential
             {
                 Username = transaction.Credential.Username,
@@ -63,6 +71,7 @@
             using (client)
             {
                 // Download the manifest.
+                _logger.LogInformation($"Downloading the manifest for the selected tag...");
                 var manifest = await client.Manifest.GetManifestAsync(path, label, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 // Try to get the manifest list, and from there get the registry manifest
@@ -106,6 +115,7 @@
                     }
 
                     // Figure out the manifest we want based on the platform.
+                    _logger.LogInformation($"Figuring out the desired manifest based on the current platform...");
                     var selectedManifest = manifestList.Manifests.FirstOrDefault(x => x.Platform.Os == targetPlatform);
                     if (selectedManifest == null)
                     {
@@ -113,6 +123,7 @@
                     }
 
                     // Download the actual manifest file from blob storage.
+                    _logger.LogInformation($"Downloading the manifest file with digest {selectedManifest.Digest}...");
                     registryManifest = (await client.Manifest.GetManifestAsync(path, selectedManifest.Digest, true, cancellationToken).ConfigureAwait(false))?.Manifest as ImageManifest2_2;
                 }
 
@@ -132,8 +143,10 @@
                 {
                     extension = RegistryConstants.FileExtensionSparseImage;
                 }
+                _logger.LogInformation($"Downloading the package file with extension '{extension}'.");
 
                 // If the package is stored in the registry...
+                _logger.LogInformation($"Resolving the package manifest to a file we can download...");
                 if (packageManifest.MediaType == RegistryConstants.MediaTypePackageVHD ||
                     packageManifest.MediaType == RegistryConstants.MediaTypePackageSparseImage)
                 {
@@ -181,6 +194,7 @@
                                 x.Starting();
                             });
 
+                            _logger.LogInformation($"Calling PullAsync on PackageFs (remote storage)...");
                             packagePath = await transaction.PackageFs.PullAsync(
                                 blobFactory,
                                 _registryRemoteStorage.Type,
@@ -204,6 +218,7 @@
                                         callback,
                                         packagePath != null ? new PullPackageTagTransactionResult { PackagePath = new FileInfo(packagePath) } : null);
                                 }).ConfigureAwait(false);
+                            _logger.LogInformation($"Finished calling PullAsync on PackageFs (remote storage).");
                         }
                         finally
                         {
@@ -229,6 +244,7 @@
                                 x.Starting();
                             });
 
+                            _logger.LogInformation($"Calling PullAsync on PackageFs (reference storage)...");
                             packagePath = await transaction.PackageFs.PullAsync(
                                 blobFactory,
                                 _referenceRemoteStorage.Type,

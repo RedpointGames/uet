@@ -8,10 +8,12 @@
     using System.Runtime.ExceptionServices;
     using System.Threading.Tasks;
     using Redpoint.Concurrency;
+    using Microsoft.Extensions.Logging;
 
     internal sealed class DefaultTransactionalDatabase : ITransactionalDatabase
     {
         private IServiceProvider _serviceProvider;
+        private readonly ILogger<DefaultTransactionalDatabase> _logger;
         private KeyedSemaphoresCollection<string> _semaphores;
         internal string? _currentMountOperation;
 
@@ -20,9 +22,11 @@
         private readonly Dictionary<string, Task> _transactionExecutorTasks;
 
         public DefaultTransactionalDatabase(
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider,
+            ILogger<DefaultTransactionalDatabase> logger)
         {
             _serviceProvider = serviceProvider;
+            _logger = logger;
             _semaphores = new KeyedSemaphoresCollection<string>(1024);
 
             _transactionListSemasphore = new Concurrency.Semaphore(1);
@@ -167,6 +171,7 @@
                 {
                     // This is a duplicate transaction. Register the listener against the existing
                     // transaction and return it.
+                    _logger.LogInformation("Detected duplicate transaction, returning deduplicated handle to existing operation...");
                     return new DefaultTransactionHandleWithResult<TResult>(
                         deduplicatedTransactionId!,
                         deduplicatedTransaction,
@@ -177,6 +182,7 @@
                     // Create the new transaction object. Need to generate
                     // an ID (replacing the current background operation
                     // allocation stuff) and add it to the list.
+                    _logger.LogInformation("Creating new transaction...");
                     var backgroundable = false;
                     if (transactionRequest is IBackgroundableTransactionRequest btr)
                     {
@@ -197,19 +203,25 @@
                     }
                     _transactionExecutorTasks.Add(id, Task.Run(async () =>
                     {
+                        _logger.LogInformation($"{id}: Starting execution of transaction...");
                         try
                         {
+                            _logger.LogInformation($"{id}: Acquiring transaction context...");
                             await using (new DefaultTransactionContextWithResult<TResult>(this, transaction).AsAsyncDisposable(out var context).ConfigureAwait(false))
                             {
+                                _logger.LogInformation($"{id}: Executing transaction...");
                                 var result = await executor.ExecuteTransactionAsync(
                                     context,
                                     transactionRequest,
                                     cancellationTokenSource.Token).ConfigureAwait(false);
+                                _logger.LogInformation($"{id}: Executed transaction and received result.");
                                 transaction.Result = result;
                             }
+                            _logger.LogInformation($"{id}: Released transaction context.");
                         }
                         catch (Exception ex)
                         {
+                            _logger.LogError(ex, $"Exception thrown during transaction execution: {ex}");
                             transaction._thrownException = ExceptionDispatchInfo.Capture(ex);
                             throw;
                         }
@@ -218,6 +230,7 @@
                             executorCompleteSemaphore.Release();
                         }
                     }, CancellationToken.None));
+                    _logger.LogInformation("Returning handle to newly created transaction...");
                     return new DefaultTransactionHandleWithResult<TResult>(
                         id,
                         transaction,

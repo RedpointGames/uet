@@ -10,6 +10,7 @@
     using Redpoint.Uefs.ContainerRegistry;
     using Redpoint.Uefs.Protocol;
     using Redpoint.Hashing;
+    using System.Buffers;
 
     internal sealed class LocalPackageFs : IPackageFs
     {
@@ -152,6 +153,7 @@
 
             // Copy data from the remote storage blob.
             var finalTargetPath = Path.Combine(_storagePath, normalizedPackageHash + extension);
+            _logger.LogInformation($"Opening remote blob and storing at: {finalTargetPath}");
             using (var remoteStorageBlob = remoteStorageBlobFactory.Open())
             {
                 updatePollingResponse(x =>
@@ -159,6 +161,7 @@
                     x.PullingPackage(remoteStorageBlob.Length);
                 }, null);
 
+                _logger.LogInformation($"Cleaning up any temporary files...");
                 var tempTargetPath = Path.Combine(_storagePath, normalizedPackageHash + extension + ".tmp");
                 if (File.Exists(tempTargetPath))
                 {
@@ -172,6 +175,7 @@
                 }
 
                 // Check if we have enough disk space.
+                _logger.LogInformation($"Checking if we have enough disk space...");
                 var driveInfo = new DriveInfo(_storagePath);
                 var requiredBytes = remoteStorageBlob.Length + (2 * 1024 * 1024);
                 if (driveInfo.AvailableFreeSpace < requiredBytes)
@@ -181,46 +185,37 @@
 
                 // Copy it from the source, hashing while the copy takes place.
                 string downloadedHash;
+                _logger.LogInformation($"Opening temporary file path in write mode...");
                 using (var target = new FileStream(tempTargetPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                 {
                     // Truncate to the size we need.
+                    _logger.LogInformation($"Truncating it to the desired length...");
                     target.SetLength(remoteStorageBlob.Length);
 
                     // Allow other pull operations to start now.
+                    _logger.LogInformation($"Releasing global lock to allow other operations to proceed...");
                     releaseGlobalPullLock();
 
-                    // Create the copier.
-                    var copier = new StreamCopier(remoteStorageBlob, target, true);
-
-                    // Monitor the copy operation.
-                    var cts = new CancellationTokenSource();
-                    var uploadProgress = Task.Run(async () =>
+                    // Perform the copy operation.
+                    const int bufferSize = 8 * 1024 * 1024;
+                    var buffer = new byte[bufferSize];
+                    var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                    _logger.LogInformation($"Copying the file content 8MB at a time...");
+                    while (remoteStorageBlob.Position < remoteStorageBlob.Length)
                     {
-                        try
+                        var bytesRead = await remoteStorageBlob.ReadAsync(buffer, 0, bufferSize).ConfigureAwait(false);
+                        await target.WriteAsync(buffer.AsMemory(0, bytesRead)).ConfigureAwait(false);
+                        hasher.AppendData(buffer, 0, bytesRead);
+                        updatePollingResponse(x =>
                         {
-                            while (!cts.IsCancellationRequested)
-                            {
-                                updatePollingResponse(x =>
-                                {
-                                    x.PullingPackageUpdatePosition(copier.Position);
-                                }, null);
-                                await Task.Delay(100, cts.Token).ConfigureAwait(false);
-                            }
-                        }
-                        catch (TaskCanceledException) { }
-                    });
-
-                    // Run the copy.
-                    await copier.CopyAsync().ConfigureAwait(false);
+                            x.PullingPackageUpdatePosition(remoteStorageBlob.Position);
+                        }, null);
+                    }
+                    var sha256Hash = Hash.HexString(hasher.GetCurrentHash());
 
                     // Get the hash and finalize.
-                    downloadedHash = "sha256:" + copier.SHA256Hash;
-                    cts.Cancel();
-                    try
-                    {
-                        await uploadProgress.ConfigureAwait(false);
-                    }
-                    catch (TaskCanceledException) { }
+                    _logger.LogInformation($"Finishing copy operation...");
+                    downloadedHash = "sha256:" + sha256Hash;
                 }
 
                 // It doesn't match.
@@ -237,6 +232,7 @@
                 }
 
                 // Move it into place.
+                _logger.LogInformation($"Moving temporary file into final location...");
                 File.Move(tempTargetPath, finalTargetPath);
                 updatePollingResponse(
                     x =>
@@ -247,6 +243,7 @@
             }
 
             // We now have this package on disk.
+            _logger.LogInformation($"This package exists on disk.");
             _availablePackages.Add(normalizedPackageHash);
             _tagReferences[tagHash] = new PackageStorageTag
             {
