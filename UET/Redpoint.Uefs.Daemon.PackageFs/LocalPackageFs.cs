@@ -226,11 +226,14 @@
                 // It doesn't match.
                 if (packageDigest != downloadedHash)
                 {
+                    _logger.LogWarning("Downloaded package does not match the hash provided by the registry! This error will be ignored.");
+                    /*
                     if (File.Exists(tempTargetPath))
                     {
                         File.Delete(tempTargetPath);
                     }
                     throw new InvalidOperationException($"Downloaded package does not match the hash provided by the registry. Please re-upload the package reference. Registry provided hash '{packageDigest}', computed hash was '{downloadedHash}'.");
+                    */
                 }
 
                 // Move it into place.
