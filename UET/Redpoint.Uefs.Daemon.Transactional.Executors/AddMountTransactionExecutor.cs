@@ -75,7 +75,7 @@
                     {
                         _logger.LogInformation($"Automatically unmounting {transaction.MountId} because PID {trackedPid.Id} has exited.");
                         // It never made it to the list of tracked mounts.
-                        mount.DisposeUnderlying();
+                        await mount.DisposeUnderlyingAsync().ConfigureAwait(false);
                         throw new RpcException(new Status(StatusCode.Aborted, $"The process tracked (PID {transaction.MountRequest.TrackPid}) for this mount has exited during the time when the mount was being processed."));
                     }
                 }

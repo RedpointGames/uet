@@ -3,6 +3,7 @@
     using Grpc.Core;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Concurrency;
     using Redpoint.GrpcPipes;
     using Redpoint.Uefs.Daemon.Abstractions;
     using Redpoint.Uefs.Daemon.Database;
@@ -126,7 +127,7 @@
             var persistentMounts = _database.GetPersistentMounts();
             foreach (var mounterFactory in _mounterFactories)
             {
-                using (var mounter = mounterFactory.CreatePackageMounter())
+                await using (mounterFactory.CreatePackageMounter().AsAsyncDisposable(out var mounter).ConfigureAwait(false))
                 {
                     foreach (var mount in await mounter.ImportExistingMountsAtStartupAsync().ConfigureAwait(false))
                     {
@@ -276,12 +277,18 @@
             foreach (var volume in DockerVolumes)
             {
                 _logger.LogInformation($"Cleaning up Docker volume located at: {volume.Value?.Mountpoint}");
-                volume.Value?.PackageMounter?.Dispose();
+                if (volume.Value?.PackageMounter is IPackageMounter mounter && mounter != null)
+                {
+                    await mounter.DisposeAsync().ConfigureAwait(false);
+                }
             }
             foreach (var mount in CurrentMounts)
             {
                 _logger.LogInformation($"Cleaning up mount located at: {mount.Value?.MountPath}");
-                mount.Value?.DisposeUnderlying();
+                if (mount.Value is CurrentUefsMount mountValue && mountValue != null)
+                {
+                    await mountValue.DisposeUnderlyingAsync().ConfigureAwait(false);
+                }
             }
 
             // Stop any running processes.

@@ -28,7 +28,10 @@
                     // Docker can request volumes to be deleted without 
                     // unmounting them first. Do the work of unmounting
                     // if the mountpoint still exists.
-                    volume.PackageMounter?.Dispose();
+                    if (volume.PackageMounter != null)
+                    {
+                        await volume.PackageMounter.DisposeAsync().ConfigureAwait(false);
+                    }
                     volume.PackageMounter = null;
                     volume.ContainerID = null;
                     volume.Mountpoint = null;

@@ -223,7 +223,7 @@
                     volume.Mountpoint = null;
                     if (volume.PackageMounter != null)
                     {
-                        volume.PackageMounter.Dispose();
+                        await volume.PackageMounter.DisposeAsync().ConfigureAwait(false);
                     }
                     volume.PackageMounter = null;
                     throw;

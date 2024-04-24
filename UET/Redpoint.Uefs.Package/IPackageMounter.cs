@@ -2,7 +2,7 @@
 {
     using Redpoint.Uefs.Protocol;
 
-    public interface IPackageMounter : IDisposable
+    public interface IPackageMounter : IAsyncDisposable
     {
         static Memory<byte> MagicHeader { get; }
 

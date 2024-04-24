@@ -3,6 +3,8 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <ItemGroup>
+    <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
+    <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Package\Redpoint.Uefs.Package.csproj" />
   </ItemGroup>
 
