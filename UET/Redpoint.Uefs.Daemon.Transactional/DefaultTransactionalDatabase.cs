@@ -77,7 +77,7 @@
                     return new DefaultTransactionHandle(
                         deduplicatedTransactionId!,
                         deduplicatedTransaction,
-                        deduplicatedTransaction.RegisterListener(transactionListener));
+                        deduplicatedTransaction.RegisterListener(transactionListener, _logger));
                 }
                 else
                 {
@@ -127,7 +127,7 @@
                     return new DefaultTransactionHandle(
                         id,
                         transaction,
-                        transaction.GetDisposableForInitiallyRegisteredListener());
+                        transaction.GetDisposableForInitiallyRegisteredListener(_logger));
                 }
             }
             finally
@@ -175,7 +175,7 @@
                     return new DefaultTransactionHandleWithResult<TResult>(
                         deduplicatedTransactionId!,
                         deduplicatedTransaction,
-                        deduplicatedTransaction.RegisterListener(transactionListener));
+                        deduplicatedTransaction.RegisterListener(transactionListener, _logger));
                 }
                 else
                 {
@@ -227,6 +227,7 @@
                         }
                         finally
                         {
+                            _logger.LogInformation("Releasing completion semaphore.");
                             executorCompleteSemaphore.Release();
                         }
                     }, CancellationToken.None));
@@ -234,7 +235,7 @@
                     return new DefaultTransactionHandleWithResult<TResult>(
                         id,
                         transaction,
-                        transaction.GetDisposableForInitiallyRegisteredListener());
+                        transaction.GetDisposableForInitiallyRegisteredListener(_logger));
                 }
             }
             finally

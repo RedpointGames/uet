@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uefs.Daemon.Transactional
 {
+    using Microsoft.Extensions.Logging;
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using Redpoint.Uefs.Protocol;
     using System;
@@ -50,34 +51,44 @@
 
         public PollingResponse LatestPollingResponse { get; private set; }
 
-        internal IAsyncDisposable GetDisposableForInitiallyRegisteredListener()
+        internal IAsyncDisposable GetDisposableForInitiallyRegisteredListener(ILogger logger)
         {
-            return new ReleasableListener(this, _initialListener);
+            return new ReleasableListener(this, _initialListener, logger);
         }
 
         protected sealed class ReleasableListener : IAsyncDisposable
         {
             private readonly AbstractTransaction<TRequest, TListenerDelegate> _transaction;
             private readonly TListenerDelegate _listener;
+            private readonly ILogger _logger;
 
-            public ReleasableListener(AbstractTransaction<TRequest, TListenerDelegate> transaction, TListenerDelegate listener)
+            public ReleasableListener(
+                AbstractTransaction<TRequest, TListenerDelegate> transaction,
+                TListenerDelegate listener,
+                ILogger logger)
             {
                 _transaction = transaction;
                 _listener = listener;
+                _logger = logger;
             }
 
             public async ValueTask DisposeAsync()
             {
+                _logger.LogInformation("Transaction listener is being disposed, removing from listeners list.");
                 _transaction._listeners.TryRemove(_listener, out _);
+
+                _logger.LogInformation("Checking if the list of listeners is empty and the transaction is not backgroundable.");
                 if (_transaction._listeners.IsEmpty && !_transaction._backgroundable)
                 {
                     // If there is no-one interested in the transaction any more (because all
                     // the listeners are gone), and the transaction is not backgroundable (i.e.
                     // it was started with NoWait), then also cancel the transaction.
+                    _logger.LogInformation("Cancelling the transaction as it is not backgroundable.");
                     _transaction._executorCancellationTokenSource.Cancel();
 
                     // Wait for the executor to bubble up the cancellation so that the last
                     // DisposeAsync will wait until the executor stops all work.
+                    _logger.LogInformation("Waiting for the execute to bubble up the cancellation.");
                     await _transaction._executorCompleteSemaphore.WaitAsync().ConfigureAwait(false);
                     _transaction._executorCompleteSemaphore.Release();
 
@@ -86,19 +97,25 @@
                     // executor failed in some unexpected way and we'd like that
                     // to propagate at least somewhere in the application (instead
                     // of being lost from the background task).
+                    _logger.LogInformation("Checking to see if there is a thrown exception on the stack.");
                     if (_transaction._thrownException != null &&
                         !(_transaction._thrownException.SourceException is OperationCanceledException))
                     {
+                        _logger.LogInformation("Re-throwing the thrown exception.");
                         _transaction._thrownException.Throw();
                     }
+                }
+                else
+                {
+                    _logger.LogInformation("Listeners are not empty or transaction is not backgroundable.");
                 }
             }
         }
 
-        public IAsyncDisposable RegisterListener(TListenerDelegate listenerDelegate)
+        public IAsyncDisposable RegisterListener(TListenerDelegate listenerDelegate, ILogger logger)
         {
             _listeners.TryAdd(listenerDelegate, true);
-            return new ReleasableListener(this, listenerDelegate);
+            return new ReleasableListener(this, listenerDelegate, logger);
         }
 
         protected abstract Task InvokeListenerAsync(TListenerDelegate @delegate, PollingResponse response);
@@ -136,12 +153,18 @@
             SchedulePollingResponseTask(LatestPollingResponse);
         }
 
-        public async Task WaitForCompletionAsync(CancellationToken cancellationToken)
+        public async Task WaitForCompletionAsync(ILogger logger, CancellationToken cancellationToken)
         {
+            logger.LogInformation("Waiting for transaction completion on the executor semaphore.");
             await _executorCompleteSemaphore.WaitAsync(CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _executorCancellationTokenSource.Token).Token).ConfigureAwait(false);
+
+            logger.LogInformation("Releasing transaction completion semaphore again.");
             _executorCompleteSemaphore.Release();
+
+            logger.LogInformation("Checking to see if there is a thrown exception.");
             if (_thrownException != null)
             {
+                logger.LogInformation("Re-throwing the thrown exception from the transaction executor.");
                 _thrownException.Throw();
             }
         }
