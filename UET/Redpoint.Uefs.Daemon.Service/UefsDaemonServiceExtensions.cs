@@ -10,21 +10,24 @@
     {
         public static void AddUefsService(this IServiceCollection services)
         {
-            services.AddSingleton<IGitVfsSetup, DefaultGitVfsSetup>();
             services.AddSingleton<IWriteScratchPath, DefaultWriteScratchPath>();
 
             services.AddSingleton<IPuller<PullPackageTagRequest>, PackageTagPuller>();
-            services.AddSingleton<IPuller<PullGitCommitRequest>, GitCommitPuller>();
 
             services.AddSingleton<IMounter<MountPackageFileRequest>, PackageFileMounter>();
             services.AddSingleton<IMounter<MountPackageTagRequest>, PackageTagMounter>();
-            services.AddSingleton<IMounter<MountGitCommitRequest>, GitCommitMounter>();
-            services.AddSingleton<IMounter<MountGitHubCommitRequest>, GitHubCommitMounter>();
             services.AddSingleton<IMounter<MountFolderSnapshotRequest>, FolderSnapshotMounter>();
 
             services.AddSingleton<IUefsDaemonFactory, UefsDaemonFactory>();
 
             services.AddTransient<UefsGrpcService, UefsGrpcService>();
+
+#if GIT_NATIVE_CODE_ENABLED
+            services.AddSingleton<IGitVfsSetup, DefaultGitVfsSetup>();
+            services.AddSingleton<IPuller<PullGitCommitRequest>, GitCommitPuller>();
+            services.AddSingleton<IMounter<MountGitCommitRequest>, GitCommitMounter>();
+            services.AddSingleton<IMounter<MountGitHubCommitRequest>, GitHubCommitMounter>();
+#endif
         }
     }
 }

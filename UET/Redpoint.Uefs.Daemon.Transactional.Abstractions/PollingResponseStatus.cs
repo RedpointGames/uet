@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.Uefs.Daemon.Transactional.Abstractions
 {
-    using Redpoint.Git.Native;
+    using Redpoint.Git.Abstractions;
     using Redpoint.Uefs.Protocol;
 
     public static class PollingResponseExtensions

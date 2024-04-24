@@ -8,8 +8,6 @@
     using Redpoint.Uefs.Daemon.Abstractions;
     using Redpoint.Vfs.Driver.WinFsp;
     using Redpoint.Vfs.Layer.Folder;
-    using Redpoint.Vfs.Layer.Git;
-    using Redpoint.Vfs.Layer.GitDependencies;
     using Redpoint.Vfs.Layer.Scratch;
     using Sentry;
     using Redpoint.Uefs.Daemon.PackageFs;
@@ -103,8 +101,6 @@
                 services.AddWinFspVfsDriver();
             }
             services.AddTasks();
-            services.AddGitLayerFactory();
-            services.AddGitDependenciesLayerFactory();
             services.AddFolderLayerFactory();
             services.AddScratchLayerFactory();
             services.AddLocalIoFileFactory();

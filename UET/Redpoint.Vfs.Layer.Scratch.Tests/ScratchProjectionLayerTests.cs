@@ -1,4 +1,6 @@
-﻿namespace Redpoint.Vfs.Layer.Scratch.Tests
+﻿#if GIT_NATIVE_CODE_ENABLED
+
+namespace Redpoint.Vfs.Layer.Scratch.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.Vfs.Abstractions;
@@ -694,3 +696,5 @@
     }
 
 }
+
+#endif

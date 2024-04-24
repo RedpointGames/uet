@@ -32,64 +32,9 @@
                     x.Starting();
                 });
 
-                if (request.GitRepoManager.HasCommit(request.GitCommit))
-                {
-                    // This commit is already present, we're good to go.
-                    context.UpdatePollingResponse(x =>
-                    {
-                        x.CompleteForGit();
-                    });
-                    return;
-                }
-
                 context.UpdatePollingResponse(x =>
                 {
-                    x.PullingGit();
-                });
-
-                // Otherwise, try to fetch it.
-                var publicKey = Path.GetTempFileName();
-                var privateKey = Path.GetTempFileName();
-                try
-                {
-                    File.WriteAllText(publicKey, request.Credential.SshPublicKeyAsPem);
-                    File.WriteAllText(privateKey, request.Credential.SshPrivateKeyAsPem);
-                    await request.GitRepoManager.Fetch(
-                        request.GitUrl,
-                        request.GitCommit,
-                        publicKey,
-                        privateKey,
-                        progress =>
-                        {
-                            context.UpdatePollingResponse(op =>
-                            {
-                                op.ReceiveGitUpdate(progress);
-                            });
-                        }).ConfigureAwait(false);
-                }
-                finally
-                {
-                    try
-                    {
-                        File.Delete(publicKey);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, $"Failed to delete public key from disk: {ex.Message}");
-                    }
-                    try
-                    {
-                        File.Delete(privateKey);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, $"Failed to delete private key from disk: {ex.Message}");
-                    }
-                }
-
-                context.UpdatePollingResponse(op =>
-                {
-                    op.CompleteForGit();
+                    x.Error("Git support has been removed from UEFS temporarily while we isolate the cause of AccessViolationExceptions on macOS. If you're actively using Git support in UEFS, let us know at sales@redpoint.games.");
                 });
             }
         }

@@ -12,8 +12,6 @@
     <ProjectReference Include="..\Redpoint.Uefs.Protocol\Redpoint.Uefs.Protocol.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Driver.WinFsp\Redpoint.Vfs.Driver.WinFsp.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Layer.Folder\Redpoint.Vfs.Layer.Folder.csproj" />
-    <ProjectReference Include="..\Redpoint.Vfs.Layer.Git\Redpoint.Vfs.Layer.Git.csproj" />
-    <ProjectReference Include="..\Redpoint.Vfs.Layer.GitDependencies\Redpoint.Vfs.Layer.GitDependencies.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Layer.Scratch\Redpoint.Vfs.Layer.Scratch.csproj" />
   </ItemGroup>
 

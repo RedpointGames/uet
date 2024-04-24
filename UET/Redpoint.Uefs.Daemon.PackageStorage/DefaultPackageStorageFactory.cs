@@ -2,7 +2,6 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-    using Redpoint.Git.Native;
     using Redpoint.Uefs.Daemon.PackageFs;
 
     internal sealed class DefaultPackageStorageFactory : IPackageStorageFactory
@@ -19,7 +18,6 @@
         {
             return new DefaultPackageStorage(
                 _serviceProvider.GetRequiredService<ILogger<DefaultPackageStorage>>(),
-                _serviceProvider.GetRequiredService<IGitRepoManagerFactory>(),
                 _serviceProvider.GetRequiredService<IPackageFsFactory>(),
                 storagePath);
         }

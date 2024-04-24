@@ -1,4 +1,6 @@
-﻿namespace Redpoint.Uefs.Daemon.Service.Mounting
+﻿#if GIT_NATIVE_CODE_ENABLED
+
+namespace Redpoint.Uefs.Daemon.Service.Mounting
 {
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
@@ -129,3 +131,5 @@
         }
     }
 }
+
+#endif
