@@ -13,7 +13,7 @@
 
         public required CommandDescriptorFactory<TGlobalContext> CommandDescriptorFactory { get; init; }
 
-        public required CommandServiceRegistration<TGlobalContext>? AdditionalRuntimeServices { get; init; }
+        public required CommandPostParseServiceRegistration<TGlobalContext>? AdditionalRuntimeServices { get; init; }
 
         public required CommandServiceRegistration<TGlobalContext>? AdditionalParsingServices { get; init; }
     }

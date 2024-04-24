@@ -2,14 +2,12 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-    using System.Collections.Generic;
+    using Redpoint.CommandLine;
     using System.CommandLine;
-    using System.CommandLine.Invocation;
     using System.Linq;
-    using System.Text;
     using System.Threading.Tasks;
 
-    internal sealed class ConfigCommand
+    internal static class ConfigCommand
     {
         internal sealed class Options
         {
@@ -38,16 +36,20 @@
             }
         }
 
-        public static Command CreateConfigCommand()
+        public static ICommandLineBuilder RegisterConfigCommand(this ICommandLineBuilder rootBuilder)
         {
-            var command = new Command("config", "Quickly change settings that affect how Unreal Engine projects and plugins are built.");
-            command.AddServicedOptionsHandler<ConfigCommandInstance, Options>(extraParsingServices: services =>
-            {
-                services.AddSingleton<IBooleanConfigSetting, IwyuBooleanConfigSetting>();
-                services.AddSingleton<IBooleanConfigSetting, MaxCpuBooleanConfigSetting>();
-                services.AddSingleton(sp => sp.GetServices<IBooleanConfigSetting>().ToArray());
-            });
-            return command;
+            rootBuilder.AddCommand<ConfigCommandInstance, Options>(
+                _ =>
+                {
+                    return new Command("config", "Quickly change settings that affect how Unreal Engine projects and plugins are built.");
+                },
+                additionalParsingServices: (_, services) =>
+                {
+                    services.AddSingleton<IBooleanConfigSetting, IwyuBooleanConfigSetting>();
+                    services.AddSingleton<IBooleanConfigSetting, MaxCpuBooleanConfigSetting>();
+                    services.AddSingleton(sp => sp.GetServices<IBooleanConfigSetting>().ToArray());
+                });
+            return rootBuilder;
         }
 
         private sealed class ConfigCommandInstance : ICommandInstance
@@ -66,7 +68,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var name = context.ParseResult.GetValueForArgument(_options.Name);
                 var list = context.ParseResult.GetValueForOption(_options.List);

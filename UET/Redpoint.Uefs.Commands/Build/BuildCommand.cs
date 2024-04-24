@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uefs.Commands.Build
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.CommandLine;
     using Redpoint.Uefs.Commands.Hash;
     using Redpoint.Uefs.Package;
     using System;
@@ -31,15 +32,17 @@
             }
         }
 
-        public static Command CreateBuildCommand()
+        public static ICommandBuilder RegisterUefsBuildCommand(this ICommandBuilder builder)
         {
-            var options = new Options();
-            var command = new Command("build", "Build a UEFS package.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<BuildCommandInstance>(options);
-            return command;
+            builder.AddCommand<BuildCommandInstance, Options>(
+                _ =>
+                {
+                    return new Command("build", "Build a UEFS package.");
+                });
+            return builder;
         }
 
+        // @note: Redpoint.Uefs.Commands.ICommandInstance must be replaced with Redpoint.CommandLine and deleted.
         private sealed class BuildCommandInstance : ICommandInstance
         {
             private readonly IEnumerable<IPackageWriterFactory> _writers;

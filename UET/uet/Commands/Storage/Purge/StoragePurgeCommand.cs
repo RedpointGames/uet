@@ -1,24 +1,11 @@
 ﻿namespace UET.Commands.Storage.Purge
 {
-    using Microsoft.Extensions.Logging;
-    using Redpoint.IO;
-    using Redpoint.Uet.Workspace.Reservation;
+    using Redpoint.CommandLine;
     using Redpoint.Uet.Workspace.Storage;
-    using System;
-    using System.Collections.Concurrent;
-    using System.Collections.Generic;
     using System.CommandLine;
-    using System.CommandLine.Invocation;
-    using System.Globalization;
-    using System.Linq;
-    using System.Runtime.InteropServices;
-    using System.Runtime.Versioning;
-    using System.Text;
     using System.Threading.Tasks;
-    using UET.Commands.Build;
-    using UET.Services;
 
-    internal sealed class StoragePurgeCommand
+    internal static class StoragePurgeCommand
     {
         internal sealed class Options
         {
@@ -31,11 +18,14 @@
             }
         }
 
-        public static Command CreatePurgeCommand()
+        public static ICommandBuilder RegisterStoragePurgeCommand(this ICommandBuilder builder)
         {
-            var command = new Command("purge", "Purge storage consumed by UET.");
-            command.AddServicedOptionsHandler<StoragePurgeCommandInstance, Options>();
-            return command;
+            builder.AddCommand<StoragePurgeCommandInstance, Options>(
+                builder =>
+                {
+                    return new Command("purge", "Purge storage consumed by UET.");
+                });
+            return builder;
         }
 
         private sealed class StoragePurgeCommandInstance : ICommandInstance
@@ -51,7 +41,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var force = context.ParseResult.GetValueForOption(_options.Force);
                 var days = context.ParseResult.GetValueForOption(_options.Days);

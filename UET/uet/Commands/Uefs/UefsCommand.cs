@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Uefs
 {
     using System.CommandLine;
+    using Redpoint.CommandLine;
     using Redpoint.Uefs.Commands.Build;
     using Redpoint.Uefs.Commands.Hash;
     using Redpoint.Uefs.Commands.List;
@@ -12,13 +13,26 @@
     using Redpoint.Uefs.Commands.Verify;
     using Redpoint.Uefs.Commands.Wait;
 
-    internal sealed class UefsCommand
+    internal static class UefsCommand
     {
+        public static ICommandLineBuilder RegisterUefsCommand(this ICommandLineBuilder rootBuilder)
+        {
+            rootBuilder.AddUnhandledCommand(
+                builder =>
+                {
+                    builder
+                        .RegisterUefsInstallCommand()
+                        .RegisterUefsUninstallCommand();
+                    return new Command("uefs", "Run a UEFS command from UET.");
+                });
+            return rootBuilder;
+        }
+
         public static Command CreateUefsCommand()
         {
             var rootCommand = new Command("uefs", "Run a UEFS command from UET.");
-            rootCommand.AddCommand(UefsInstallCommand.CreateInstallCommand());
-            rootCommand.AddCommand(UefsUninstallCommand.CreateUninstallCommand());
+            //rootCommand.AddCommand(UefsInstallCommand.CreateInstallCommand());
+            //rootCommand.AddCommand(UefsUninstallCommand.CreateUninstallCommand());
             rootCommand.AddCommand(BuildCommand.CreateBuildCommand());
             rootCommand.AddCommand(MountCommand.CreateMountCommand());
             rootCommand.AddCommand(UnmountCommand.CreateUnmountCommand());

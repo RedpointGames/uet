@@ -6,12 +6,12 @@
     using System;
     using Microsoft.Extensions.Logging;
     using System.CommandLine;
-    using System.CommandLine.Invocation;
     using System.Threading.Tasks;
     using UET.Commands.EngineSpec;
     using UET.BuildConfig;
+    using Redpoint.CommandLine;
 
-    internal sealed class ListCommand
+    internal static class ListCommand
     {
         internal sealed class Options
         {
@@ -29,17 +29,14 @@
             }
         }
 
-        public static Command CreateListCommand()
+        public static ICommandLineBuilder RegisterListCommand(this ICommandLineBuilder rootBuilder)
         {
-            var options = new Options();
-            var command = new Command("list", "List the distributions in a BuildConfig.json file.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<ListCommandInstance>(
-                options,
-                services =>
+            rootBuilder.AddCommand<ListCommandInstance, Options>(
+                _ =>
                 {
+                    return new Command("list", "List the distributions in a BuildConfig.json file.");
                 });
-            return command;
+            return rootBuilder;
         }
 
         private sealed class ListCommandInstance : ICommandInstance
@@ -58,7 +55,7 @@
                 _options = options;
             }
 
-            public Task<int> ExecuteAsync(InvocationContext context)
+            public Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var path = context.ParseResult.GetValueForOption(_options.Path)!;
 

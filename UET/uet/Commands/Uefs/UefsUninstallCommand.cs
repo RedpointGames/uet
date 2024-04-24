@@ -1,31 +1,27 @@
 ﻿namespace UET.Commands.Uefs
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.ProgressMonitor;
     using Redpoint.ServiceControl;
     using System;
     using System.CommandLine;
-    using System.CommandLine.Invocation;
-    using System.Reflection;
     using System.Threading.Tasks;
 
-    internal sealed class UefsUninstallCommand
+    internal static class UefsUninstallCommand
     {
         internal sealed class Options
         {
         }
 
-        public static Command CreateUninstallCommand()
+        public static ICommandBuilder RegisterUefsUninstallCommand(this ICommandBuilder builder)
         {
-            var options = new Options();
-            var command = new Command("uninstall", "Uninstall the UEFS daemon on this machine.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<UefsUninstallCommandInstance>(
-                options,
-                services =>
+            builder.AddCommand<UefsUninstallCommandInstance, Options>(
+                _ =>
                 {
+                    return new Command("uninstall", "Uninstall the UEFS daemon on this machine.");
                 });
-            return command;
+            return builder;
         }
 
         private sealed class UefsUninstallCommandInstance : ICommandInstance
@@ -47,7 +43,7 @@
                 _monitorFactory = monitorFactory;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 if (!_serviceControl.HasPermissionToInstall)
                 {

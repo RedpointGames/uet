@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.Local;
@@ -20,7 +21,7 @@
     using UET.Commands.EngineSpec;
     using static Crayon.Output;
 
-    internal sealed class TestCommand
+    internal static class TestCommand
     {
         internal sealed class Options
         {
@@ -53,15 +54,18 @@
             }
         }
 
-        public static Command CreateTestCommand()
+        public static ICommandLineBuilder RegisterTestCommand(this ICommandLineBuilder rootBuilder)
         {
-            var command = new Command("test", "Run automation tests in the editor for a project or plugin.");
-            command.AddServicedOptionsHandler<TestCommandInstance, Options>(
-                services =>
+            rootBuilder.AddCommand<TestCommandInstance, Options>(
+                _ =>
+                {
+                    return new Command("test", "Run automation tests in the editor for a project or plugin.");
+                },
+                (_, services, _) =>
                 {
                     services.AddSingleton<IBuildSpecificationGenerator, DefaultBuildSpecificationGenerator>();
                 });
-            return command;
+            return rootBuilder;
         }
 
         private sealed class TestCommandInstance : ICommandInstance
@@ -86,7 +90,7 @@
                 _stringUtilities = stringUtilities;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var engine = context.ParseResult.GetValueForOption(_options.Engine)!;
                 var path = context.ParseResult.GetValueForOption(_options.Path)!;

@@ -2,13 +2,14 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.ProgressMonitor;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
     using UET.Commands.Build;
 
-    internal sealed class UpgradeCommand
+    internal static class UpgradeCommand
     {
         internal sealed class Options
         {
@@ -27,19 +28,19 @@
             }
         }
 
-        public static Command CreateUpgradeCommand(HashSet<Command> globalCommands)
+        public static ICommandLineBuilder RegisterUpgradeCommand(
+            this ICommandLineBuilder rootBuilder,
+            HashSet<Command> globalCommands)
         {
-            var options = new Options();
             var command = new Command("upgrade", "Upgrades your version of UET.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<UpgradeCommandInstance>(
-                options,
-                services =>
+            globalCommands.Add(command);
+            rootBuilder.AddCommand<UpgradeCommandInstance, Options>(
+                _ => command,
+                (_, services, _) =>
                 {
                     services.AddSingleton<IBuildSpecificationGenerator, DefaultBuildSpecificationGenerator>();
                 });
-            globalCommands.Add(command);
-            return command;
+            return rootBuilder;
         }
 
         internal sealed class UpgradeCommandInstance : ICommandInstance
@@ -61,7 +62,7 @@
                 _monitorFactory = monitorFactory;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var version = context.ParseResult.GetValueForOption(_options.Version);
                 var doNotSetAsCurrent = context.ParseResult.GetValueForOption(_options.DoNotSetAsCurrent);

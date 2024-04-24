@@ -1,7 +1,7 @@
 ﻿namespace UET.Commands.Internal.CIBuild
 {
-    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.BuildPipeline.Environment;
     using Redpoint.Uet.BuildPipeline.Executors;
@@ -12,14 +12,13 @@
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.Workspace.Storage;
     using System.CommandLine;
-    using System.CommandLine.Invocation;
     using System.Diagnostics;
     using System.Text.Json;
     using System.Threading.Tasks;
     using UET.Commands.EngineSpec;
     using UET.Commands.Internal.Runback;
 
-    internal sealed class CIBuildCommand
+    internal static class CIBuildCommand
     {
         internal sealed class Options
         {
@@ -36,13 +35,12 @@
             }
         }
 
-        public static Command CreateCIBuildCommand()
+        public static void RegisterCIBuildCommand<TSelfType>(this ICommandBuilderApi<TSelfType> builder)
         {
-            var options = new Options();
-            var command = new Command("ci-build", "Build a single node of a BuildGraph job from a build server.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<CIBuildCommandInstance>(options);
-            return command;
+            builder.AddCommand<CIBuildCommandInstance, Options>(builder =>
+            {
+                return new Command("ci-build", "Build a single node of a BuildGraph job from a build server.");
+            });
         }
 
         private sealed class CIBuildCommandInstance : ICommandInstance
@@ -73,7 +71,7 @@
                 _buildJobJsonSourceGenerationContext = BuildJobJsonSourceGenerationContext.Create(serviceProvider);
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var executorName = context.ParseResult.GetValueForOption(_options.Executor);
 

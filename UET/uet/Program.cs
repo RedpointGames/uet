@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Redpoint.CommandLine;
 using Redpoint.Concurrency;
 using Redpoint.ProcessExecution;
 using Redpoint.Tasks;
@@ -10,6 +11,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using UET.Commands;
 using UET.Commands.AppleCert;
 using UET.Commands.Build;
 using UET.Commands.Config;
@@ -32,17 +34,41 @@ if (Environment.GetEnvironmentVariable("CI") == "true")
 // Construct the root command. We have to do this to see what command the user
 // is invoking, to make sure we don't do the BuildConfig.json-based version switch
 // if the user is invoking a "global" command.
-var rootCommand = new RootCommand("An unofficial tool for Unreal Engine.");
 var globalCommands = new HashSet<Command>();
-rootCommand.AddOption(UET.Commands.CommandExtensions.GetTraceOption());
-rootCommand.AddCommand(BuildCommand.CreateBuildCommand());
-rootCommand.AddCommand(TestCommand.CreateTestCommand());
-rootCommand.AddCommand(GenerateCommand.CreateGenerateCommand());
-rootCommand.AddCommand(ConfigCommand.CreateConfigCommand());
-rootCommand.AddCommand(ListCommand.CreateListCommand());
-rootCommand.AddCommand(InstallSdksCommand.CreateInstallSdksCommand());
-rootCommand.AddCommand(UpgradeCommand.CreateUpgradeCommand(globalCommands));
-rootCommand.AddCommand(StorageCommand.CreateStorageCommand(globalCommands));
+var rootCommand = CommandLineBuilder.NewBuilder()
+    .RegisterGlobalRuntimeServicesAndOptions()
+    .SetGlobalExecutionHandler(async (sp, executeCommand) =>
+    {
+        var logger = sp.GetRequiredService<ILogger<Program>>();
+        try
+        {
+            return await executeCommand().ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Uncaught exception during command execution: {ex}");
+            return 1;
+        }
+    })
+    .RegisterBuildCommand()
+    .RegisterTestCommand()
+    .RegisterGenerateCommand()
+    .RegisterConfigCommand()
+    .RegisterListCommand()
+    .RegisterInstallSdksCommand()
+    .RegisterUpgradeCommand(globalCommands)
+    .Build("An unofficial tool for Unreal Engine.");
+
+var rootCommand = new RootCommand("An unofficial tool for Unreal Engine.");
+//rootCommand.AddOption(UET.Commands.CommandExtensions.GetTraceOption());
+//rootCommand.AddCommand(BuildCommand.CreateBuildCommand());
+//rootCommand.AddCommand(TestCommand.CreateTestCommand());
+//rootCommand.AddCommand(GenerateCommand.CreateGenerateCommand());
+//rootCommand.AddCommand(ConfigCommand.CreateConfigCommand());
+//rootCommand.AddCommand(ListCommand.CreateListCommand());
+//rootCommand.AddCommand(InstallSdksCommand.CreateInstallSdksCommand());
+//rootCommand.AddCommand(UpgradeCommand.CreateUpgradeCommand(globalCommands));
+//rootCommand.AddCommand(StorageCommand.CreateStorageCommand(globalCommands));
 rootCommand.AddCommand(UefsCommand.CreateUefsCommand());
 rootCommand.AddCommand(OpenGECommand.CreateOpenGECommand());
 rootCommand.AddCommand(TransferCommand.CreateTransferCommand());

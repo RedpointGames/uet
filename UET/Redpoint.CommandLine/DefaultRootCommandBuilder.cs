@@ -19,7 +19,7 @@
         private readonly List<BuilderRequestedCommand<TGlobalContext>> _requestedCommands;
         private readonly List<Option> _globalOptions;
         private readonly List<CommandServiceRegistration<TGlobalContext>> _globalParsingServices;
-        private readonly List<CommandServiceRegistration<TGlobalContext>> _globalRuntimeServices;
+        private readonly List<CommandPostParseServiceRegistration<TGlobalContext>> _globalRuntimeServices;
         private CommandExecutionHandler? _commandExecutionHandler;
 
         public DefaultCommandLineBuilder(TGlobalContext globalContext)
@@ -28,7 +28,7 @@
             _requestedCommands = new List<BuilderRequestedCommand<TGlobalContext>>();
             _globalOptions = new List<Option>();
             _globalParsingServices = new List<CommandServiceRegistration<TGlobalContext>>();
-            _globalRuntimeServices = new List<CommandServiceRegistration<TGlobalContext>>();
+            _globalRuntimeServices = new List<CommandPostParseServiceRegistration<TGlobalContext>>();
             _commandExecutionHandler = null;
         }
 
@@ -38,7 +38,7 @@
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TCommand,
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] TOptions>(
             CommandDescriptorFactory<TGlobalContext> commandDescriptorFactory,
-            CommandServiceRegistration<TGlobalContext>? additionalRuntimeServices = null,
+            CommandPostParseServiceRegistration<TGlobalContext>? additionalRuntimeServices = null,
             CommandServiceRegistration<TGlobalContext>? additionalParsingServices = null) where TCommand : class, ICommandInstance where TOptions : class
         {
             _requestedCommands.Add(new BuilderRequestedCommand<TGlobalContext, TCommand, TOptions>
@@ -62,7 +62,7 @@
             return this;
         }
 
-        public ICommandLineBuilder<TGlobalContext> AddGlobalRuntimeServices(CommandServiceRegistration<TGlobalContext> globalRuntimeServices)
+        public ICommandLineBuilder<TGlobalContext> AddGlobalRuntimeServices(CommandPostParseServiceRegistration<TGlobalContext> globalRuntimeServices)
         {
             _globalRuntimeServices.Add(globalRuntimeServices);
             return this;
@@ -142,9 +142,9 @@
                     runtimeServiceCollection.AddSingleton(requestedCommand.CommandType);
                     foreach (var runtimeServices in _globalRuntimeServices)
                     {
-                        runtimeServices(this, runtimeServiceCollection);
+                        runtimeServices(this, runtimeServiceCollection, invocationContext);
                     }
-                    requestedCommand.AdditionalRuntimeServices?.Invoke(this, runtimeServiceCollection);
+                    requestedCommand.AdditionalRuntimeServices?.Invoke(this, runtimeServiceCollection, invocationContext);
 
                     await using (runtimeServiceCollection.BuildServiceProvider().AsAsyncDisposable(out var runtimeServiceProvider).ConfigureAwait(false))
                     {
@@ -190,13 +190,13 @@
 
         #region ICommandLineBuilder (without global context) APIs
 
-        ICommandLineBuilder ICommandBuilderApi<ICommandLineBuilder>.AddCommand<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TCommand, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] TOptions>(CommandDescriptorFactory commandDescriptorFactory, CommandServiceRegistration? additionalRuntimeServices, CommandServiceRegistration? additionalParsingServices)
+        ICommandLineBuilder ICommandBuilderApi<ICommandLineBuilder>.AddCommand<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TCommand, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] TOptions>(CommandDescriptorFactory commandDescriptorFactory, CommandPostParseServiceRegistration? additionalRuntimeServices, CommandServiceRegistration? additionalParsingServices)
         {
-            CommandServiceRegistration<TGlobalContext>? specificAdditionalRuntimeServices = null;
+            CommandPostParseServiceRegistration<TGlobalContext>? specificAdditionalRuntimeServices = null;
             CommandServiceRegistration<TGlobalContext>? specificAdditionalParsingServices = null;
             if (additionalRuntimeServices != null)
             {
-                specificAdditionalRuntimeServices = (specificBuilder, services) => additionalRuntimeServices((DefaultCommandLineBuilder<TGlobalContext>)specificBuilder, services);
+                specificAdditionalRuntimeServices = (specificBuilder, services, context) => additionalRuntimeServices((DefaultCommandLineBuilder<TGlobalContext>)specificBuilder, services, context);
             }
             if (additionalParsingServices != null)
             {
@@ -220,10 +220,10 @@
                 (specificBuilder, services) => globalParsingServices((DefaultCommandLineBuilder<TGlobalContext>)specificBuilder, services));
         }
 
-        ICommandLineBuilder IRootCommandBuilderApi<ICommandLineBuilder>.AddGlobalRuntimeServices(CommandServiceRegistration globalRuntimeServices)
+        ICommandLineBuilder IRootCommandBuilderApi<ICommandLineBuilder>.AddGlobalRuntimeServices(CommandPostParseServiceRegistration globalRuntimeServices)
         {
             return (DefaultCommandLineBuilder<TGlobalContext>)AddGlobalRuntimeServices(
-                (specificBuilder, services) => globalRuntimeServices((DefaultCommandLineBuilder<TGlobalContext>)specificBuilder, services));
+                (specificBuilder, services, context) => globalRuntimeServices((DefaultCommandLineBuilder<TGlobalContext>)specificBuilder, services, context));
         }
 
         ICommandLineBuilder IRootCommandBuilderApi<ICommandLineBuilder>.SetGlobalExecutionHandler(CommandExecutionHandler commandExecutionHandler)

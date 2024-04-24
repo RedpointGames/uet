@@ -13,7 +13,7 @@
         /// </summary>
         /// <param name="globalRuntimeServices">The callback that should register services in the service collection.</param>
         /// <returns>The current command line builder instance.</returns>
-        TSelfType AddGlobalRuntimeServices(CommandServiceRegistration globalRuntimeServices);
+        TSelfType AddGlobalRuntimeServices(CommandPostParseServiceRegistration globalRuntimeServices);
 
         /// <summary>
         /// Registers global parsing services that are available for constructor injection when option classes are constructed in order to parse the command line. Option classes are constructed regardless of whether that particular command is invoked, so you often want to limit what services are registered and available for parsing.
@@ -49,7 +49,7 @@
         /// </summary>
         /// <param name="globalRuntimeServices">The callback that should register services in the service collection.</param>
         /// <returns>The current command line builder instance.</returns>
-        TSelfType AddGlobalRuntimeServices(CommandServiceRegistration<TGlobalContext> globalRuntimeServices);
+        TSelfType AddGlobalRuntimeServices(CommandPostParseServiceRegistration<TGlobalContext> globalRuntimeServices);
 
         /// <summary>
         /// Registers global parsing services that are available for constructor injection when option classes are constructed in order to parse the command line. Option classes are constructed regardless of whether that particular command is invoked, so you often want to limit what services are registered and available for parsing.

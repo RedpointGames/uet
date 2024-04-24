@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
+    <ProjectReference Include="..\Redpoint.CommandLine\Redpoint.CommandLine.csproj" />
     <ProjectReference Include="..\Redpoint.CredentialDiscovery\Redpoint.CredentialDiscovery.csproj" />
     <ProjectReference Include="..\Redpoint.Hashing\Redpoint.Hashing.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Protocol\Redpoint.Uefs.Protocol.csproj" />

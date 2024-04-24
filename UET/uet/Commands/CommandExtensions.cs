@@ -40,6 +40,8 @@
     using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
     using Redpoint.Concurrency;
     using Redpoint.GrpcPipes.Transport.Tcp;
+    using Redpoint.CommandLine;
+    using Fsp;
 
     internal static class CommandExtensions
     {
@@ -53,41 +55,53 @@
             return _trace;
         }
 
+        public static ICommandLineBuilder RegisterGlobalRuntimeServicesAndOptions(this ICommandLineBuilder builder)
+        {
+            builder.AddGlobalOption(GetTraceOption());
+            builder.AddGlobalRuntimeServices((builder, services, context) =>
+            {
+                var minimumLogLevel = context.ParseResult.GetValueForOption(GetTraceOption()) ? LogLevel.Trace : LogLevel.Information;
+                var permitRunbackLogging = string.Equals(context.ParseResult.CommandResult?.Command?.Name, "ci-build", StringComparison.Ordinal);
+
+                services.AddAutoDiscovery();
+                services.AddPathResolution();
+                services.AddMSBuildPathResolution();
+                services.AddReservation();
+                services.AddProcessExecution();
+                services.AddProgressMonitor();
+                services.AddTasks();
+                if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
+                {
+                    services.AddServiceControl();
+                }
+                services.AddOpenGEAgent();
+                services.AddOpenGECore();
+                services.AddOpenGEComponentDispatcher();
+                services.AddOpenGEComponentWorker();
+                services.AddOpenGEProcessExecution();
+                services.AddOpenGEComponentPreprocessorCache();
+                services.AddSdkManagement();
+                services.AddGrpcPipes<TcpGrpcPipeFactory>();
+                services.AddUefs();
+                services.AddUETAutomation();
+                services.AddUETUAT();
+                services.AddUETBuildPipeline();
+                services.AddUETBuildPipelineExecutorsLocal();
+                services.AddUETBuildPipelineExecutorsGitLab();
+                services.AddUetBuildPipelineProvidersPrepare();
+                services.AddUETBuildPipelineProvidersTest();
+                services.AddUETBuildPipelineProvidersDeployment();
+                services.AddUETWorkspace();
+                services.AddUETCore(minimumLogLevel: minimumLogLevel, permitRunbackLogging: permitRunbackLogging);
+                services.AddCredentialDiscovery();
+                services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
+                services.AddSingleton<IPluginVersioning, DefaultPluginVersioning>();
+            });
+            return builder;
+        }
+
         private static void AddGeneralServices(IServiceCollection services, LogLevel minimumLogLevel, bool permitRunbackLogging)
         {
-            services.AddAutoDiscovery();
-            services.AddPathResolution();
-            services.AddMSBuildPathResolution();
-            services.AddReservation();
-            services.AddProcessExecution();
-            services.AddProgressMonitor();
-            services.AddTasks();
-            if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
-            {
-                services.AddServiceControl();
-            }
-            services.AddOpenGEAgent();
-            services.AddOpenGECore();
-            services.AddOpenGEComponentDispatcher();
-            services.AddOpenGEComponentWorker();
-            services.AddOpenGEProcessExecution();
-            services.AddOpenGEComponentPreprocessorCache();
-            services.AddSdkManagement();
-            services.AddGrpcPipes<TcpGrpcPipeFactory>();
-            services.AddUefs();
-            services.AddUETAutomation();
-            services.AddUETUAT();
-            services.AddUETBuildPipeline();
-            services.AddUETBuildPipelineExecutorsLocal();
-            services.AddUETBuildPipelineExecutorsGitLab();
-            services.AddUetBuildPipelineProvidersPrepare();
-            services.AddUETBuildPipelineProvidersTest();
-            services.AddUETBuildPipelineProvidersDeployment();
-            services.AddUETWorkspace();
-            services.AddUETCore(minimumLogLevel: minimumLogLevel, permitRunbackLogging: permitRunbackLogging);
-            services.AddCredentialDiscovery();
-            services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
-            services.AddSingleton<IPluginVersioning, DefaultPluginVersioning>();
         }
 
         internal static void AddServicedOptionsHandler<

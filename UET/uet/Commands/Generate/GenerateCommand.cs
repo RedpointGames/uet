@@ -1,23 +1,18 @@
 ﻿namespace UET.Commands.Generate
 {
-    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-    using Redpoint.IO;
+    using Redpoint.CommandLine;
     using Redpoint.ProcessExecution;
     using System;
     using System.Collections.Generic;
     using System.CommandLine;
-    using System.CommandLine.Invocation;
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
-    using System.Text;
-    using System.Threading;
     using System.Threading.Tasks;
-    using UET.Commands.Build;
     using UET.Commands.EngineSpec;
 
-    internal sealed class GenerateCommand
+    internal static class GenerateCommand
     {
         internal sealed class Options
         {
@@ -57,39 +52,40 @@
             }
         }
 
-        public static Command CreateGenerateCommand()
+        public static ICommandLineBuilder RegisterGenerateCommand(this ICommandLineBuilder rootBuilder)
         {
-            var options = new Options();
-            var command = new Command("generate", "Generate Visual Studio or Xcode project files for Unreal Engine or an Unreal Engine project.")
-            {
-                FullDescription = """
-                This command generates project files for either Unreal Engine or an Unreal Engine project. The behaviour of this command depends on the arguments that you've passed to it and the current directory.
+            rootBuilder.AddCommand<GenerateCommandInstance, Options>(
+                _ =>
+                {
+                    return new Command("generate", "Generate Visual Studio or Xcode project files for Unreal Engine or an Unreal Engine project.")
+                    {
+                        FullDescription = """
+                        This command generates project files for either Unreal Engine or an Unreal Engine project. The behaviour of this command depends on the arguments that you've passed to it and the current directory.
                 
-                After the command runs, it will tell you where the project files were generated. You can also use --open to open the project files after they've been generated, without having to start Visual Studio or Xcode manually.
+                        After the command runs, it will tell you where the project files were generated. You can also use --open to open the project files after they've been generated, without having to start Visual Studio or Xcode manually.
                 
-                -------------
+                        -------------
 
-                This command generates project files for a specific Unreal Engine project in the following scenarios:
+                        This command generates project files for a specific Unreal Engine project in the following scenarios:
                 
-                - If there is only a single project file specified, or a single project is inferred from the current directory, and
-                - The current directory does not contain Unreal Engine itself (./Engine/Build/Build.version must not exist).
+                        - If there is only a single project file specified, or a single project is inferred from the current directory, and
+                        - The current directory does not contain Unreal Engine itself (./Engine/Build/Build.version must not exist).
                 
-                When this command is generating projects for a specific Unreal Engine project, the project files are generated inside the project's folder (such as "ProjectName.sln" for Visual Studio). This solution will include the Unreal Engine project and build tools such as UBT, but will not contain any Unreal Engine C++ tooling (such as the ShaderCompilerWorker).
+                        When this command is generating projects for a specific Unreal Engine project, the project files are generated inside the project's folder (such as "ProjectName.sln" for Visual Studio). This solution will include the Unreal Engine project and build tools such as UBT, but will not contain any Unreal Engine C++ tooling (such as the ShaderCompilerWorker).
                 
-                -------------
+                        -------------
 
-                This command generates project files for Unreal Engine itself in the following scenarios:
+                        This command generates project files for Unreal Engine itself in the following scenarios:
 
-                - If the current directory contains Unreal Engine itself (./Engine/Build/Build.version exists), or
-                - If multiple project files are specified on the command line with --path|-p, and the engine path is specified by --engine|-e.
-                - In both cases, the referenced Unreal Engine must be a source engine (not an installed build). Passing multiple project files is an error if the engine is an installed engine (e.g. installed from the Epic Games launcher).
+                        - If the current directory contains Unreal Engine itself (./Engine/Build/Build.version exists), or
+                        - If multiple project files are specified on the command line with --path|-p, and the engine path is specified by --engine|-e.
+                        - In both cases, the referenced Unreal Engine must be a source engine (not an installed build). Passing multiple project files is an error if the engine is an installed engine (e.g. installed from the Epic Games launcher).
                 
-                When this command is generating projects for Unreal Engine, the project files are generated inside the Unreal Engine folder (such as "UE5.sln" for Visual Studio). This solution will contain all of the engine programs, build tools and optionally any additional Unreal Engine projects you specified on the command line.
-                """
-            };
-            command.AddAllOptions(options);
-            command.AddCommonHandler<GenerateCommandInstance>(options);
-            return command;
+                        When this command is generating projects for Unreal Engine, the project files are generated inside the Unreal Engine folder (such as "UE5.sln" for Visual Studio). This solution will contain all of the engine programs, build tools and optionally any additional Unreal Engine projects you specified on the command line.
+                        """
+                    };
+                });
+            return rootBuilder;
         }
 
         private sealed class GenerateCommandInstance : ICommandInstance
@@ -137,7 +133,7 @@
                 }
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var engine = context.ParseResult.GetValueForOption(_options.Engine)!;
                 var paths = context.ParseResult.GetValueForOption(_options.Path) ?? Array.Empty<PathSpec>();

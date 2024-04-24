@@ -20,8 +20,9 @@
     using System.Text.RegularExpressions;
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.CommonPaths;
+    using Redpoint.CommandLine;
 
-    internal sealed class BuildCommand
+    internal static class BuildCommand
     {
         internal sealed class Options
         {
@@ -226,15 +227,18 @@
             }
         }
 
-        public static Command CreateBuildCommand()
+        public static ICommandLineBuilder RegisterBuildCommand(this ICommandLineBuilder rootBuilder)
         {
-            var command = new Command("build", "Build an Unreal Engine project or plugin.");
-            command.AddServicedOptionsHandler<BuildCommandInstance, Options>(
-                services =>
+            rootBuilder.AddCommand<BuildCommandInstance, Options>(
+                builder =>
+                {
+                    return new Command("build", "Build an Unreal Engine project or plugin.");
+                },
+                (_, services, _) =>
                 {
                     services.AddSingleton<IBuildSpecificationGenerator, DefaultBuildSpecificationGenerator>();
                 });
-            return command;
+            return rootBuilder;
         }
 
         private sealed class BuildCommandInstance : ICommandInstance
@@ -265,7 +269,7 @@
                 _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var engine = context.ParseResult.GetValueForOption(_options.Engine)!;
                 var path = context.ParseResult.GetValueForOption(_options.Path)!;
