@@ -255,6 +255,10 @@
                     _logger.LogError(ex, $"Internal exception while running build job {currentNodeName}: {ex.Message}");
                     await buildExecutionEvents.OnNodeFinished(currentNodeName, BuildResultStatus.Failed).ConfigureAwait(false);
                 }
+                else
+                {
+                    _logger.LogError(ex, $"Internal exception prior to running named build job: {ex.Message}");
+                }
                 return 1;
             }
         }
