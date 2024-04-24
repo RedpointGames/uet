@@ -1,47 +1,58 @@
-﻿#if GIT_NATIVE_CODE_ENABLED
-
-namespace Redpoint.Uefs.Daemon.Service.Mounting
+﻿namespace Redpoint.Uefs.Daemon.Service.Mounting
 {
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
     using Redpoint.Uefs.Daemon.Abstractions;
-    using Redpoint.Uefs.Daemon.Database;
-    using Redpoint.Uefs.Daemon.State;
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
-    using Redpoint.Uefs.Daemon.Transactional.Executors;
     using Redpoint.Uefs.Protocol;
     using Redpoint.Vfs.Driver;
-    using Redpoint.Vfs.Layer.Git;
     using System.Threading;
     using System.Threading.Tasks;
+#if GIT_NATIVE_CODE_ENABLED
+    using Redpoint.Uefs.Daemon.Database;
+    using Redpoint.Uefs.Daemon.State;
+    using Redpoint.Uefs.Daemon.Transactional.Executors;
+    using Redpoint.Vfs.Layer.Git;
     using Redpoint.Concurrency;
+#endif
 
     internal sealed class GitHubCommitMounter : IMounter<MountGitHubCommitRequest>
     {
         private readonly ILogger<GitHubCommitMounter> _logger;
+#if GIT_NATIVE_CODE_ENABLED
         private readonly IGitVfsLayerFactory _gitVfsLayerFactory;
         private readonly IGitVfsSetup _gitVfsSetup;
+#endif
         private readonly IVfsDriverFactory? _vfsDriverFactory;
 
         public GitHubCommitMounter(
             ILogger<GitHubCommitMounter> logger,
+#if GIT_NATIVE_CODE_ENABLED
             IGitVfsLayerFactory gitVfsLayerFactory,
             IGitVfsSetup gitVfsSetup,
+#endif
             IVfsDriverFactory? vfsDriverFactory = null)
         {
             _logger = logger;
+#if GIT_NATIVE_CODE_ENABLED
             _gitVfsLayerFactory = gitVfsLayerFactory;
             _gitVfsSetup = gitVfsSetup;
+#endif
             _vfsDriverFactory = vfsDriverFactory;
         }
 
+#if GIT_NATIVE_CODE_ENABLED
         public async Task MountAsync(
+#else
+        public Task MountAsync(
+#endif
             IUefsDaemon daemon,
             MountContext context,
             MountGitHubCommitRequest request,
             TransactionListener onPollingResponse,
             CancellationToken cancellationToken)
         {
+#if GIT_NATIVE_CODE_ENABLED
             if (daemon.IsPathMountPath(request.MountRequest.MountPath))
             {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "There is already another mount at this path."));
@@ -111,8 +122,9 @@ namespace Redpoint.Uefs.Daemon.Service.Mounting
             {
                 await transaction.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
             }
+#else
+            throw new RpcException(new Status(StatusCode.Unavailable, "Support for mounting Git commits has been temporarily removed from UEFS."));
+#endif
         }
     }
 }
-
-#endif

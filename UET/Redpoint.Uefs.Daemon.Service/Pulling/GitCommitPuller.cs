@@ -1,24 +1,30 @@
-﻿#if GIT_NATIVE_CODE_ENABLED
-
-namespace Redpoint.Uefs.Daemon.Service.Pulling
+﻿namespace Redpoint.Uefs.Daemon.Service.Pulling
 {
     using Redpoint.Uefs.Daemon.Abstractions;
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
-    using Redpoint.Uefs.Daemon.Transactional.Executors;
     using Redpoint.Uefs.Protocol;
     using System.Threading;
     using System.Threading.Tasks;
-    using Redpoint.Concurrency;
     using Grpc.Core;
+#if GIT_NATIVE_CODE_ENABLED
+    using Redpoint.Uefs.Daemon.Transactional.Executors;
+    using Redpoint.Concurrency;
+#endif
 
     internal sealed class GitCommitPuller : IPuller<PullGitCommitRequest>
     {
+#if GIT_NATIVE_CODE_ENABLED
         public async Task<PullResult> PullAsync(
+#else
+        public Task<PullResult> PullAsync(
+#endif
             IUefsDaemon daemon,
             PullGitCommitRequest request,
             TransactionListener<FileInfo?> onPollingResponse,
             CancellationToken cancellationToken)
         {
+#if GIT_NATIVE_CODE_ENABLED
+
             if (daemon.PackageStorage.GitRepoManager == null)
             {
                 throw new RpcException(new Status(StatusCode.Unavailable, "Git commits can not be pulled on this system."));
@@ -46,8 +52,9 @@ namespace Redpoint.Uefs.Daemon.Service.Pulling
                 await transaction.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
                 return new PullResult(transaction.TransactionId, true);
             }
+#else
+            throw new RpcException(new Status(StatusCode.Unavailable, "Git commits can not be pulled on this system."));
+#endif
         }
     }
 }
-
-#endif
