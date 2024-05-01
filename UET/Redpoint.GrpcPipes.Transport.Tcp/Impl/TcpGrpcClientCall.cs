@@ -389,14 +389,27 @@
 
         Task IAsyncStreamWriter<TRequest>.WriteAsync(TRequest message)
         {
+            ArgumentNullException.ThrowIfNull(message);
+
             return ((IAsyncStreamWriter<TRequest>)this).WriteAsync(message, CancellationToken.None);
         }
 
         async Task IAsyncStreamWriter<TRequest>.WriteAsync(TRequest message, CancellationToken cancellationToken)
         {
+            ArgumentNullException.ThrowIfNull(message);
+
             if (_requestStreamComplete)
             {
                 throw new InvalidOperationException("You can not call WriteAsync after calling CompleteAsync.");
+            }
+
+            if (_cancellationCts == null)
+            {
+                throw new InvalidOperationException("_cancellationCts is unexpectedly null!");
+            }
+            if (_callStarted == null)
+            {
+                throw new InvalidOperationException("_callStarted is unexpectedly null!");
             }
 
             // We need to have a cancellation token source that is available before
@@ -432,12 +445,32 @@
             if (IsStreamingRequestsToServer)
             {
                 LogTrace($"Sending request data to server in streaming mode.");
+                if (_writeMutex == null)
+                {
+                    throw new InvalidOperationException("_writeMutex is unexpectedly null!");
+                }
                 using (await _writeMutex.WaitAsync(afterConnectionCts.Token).ConfigureAwait(false))
                 {
+                    if (_connection == null)
+                    {
+                        throw new InvalidOperationException("_connection is unexpectedly null!");
+                    }
                     await _connection.WriteAsync(new TcpGrpcMessage
                     {
                         Type = TcpGrpcMessageType.RequestData,
                     }, afterConnectionCts.Token).ConfigureAwait(false);
+                    if (_method == null)
+                    {
+                        throw new InvalidOperationException("_method is unexpectedly null!");
+                    }
+                    if (_method.RequestMarshaller == null)
+                    {
+                        throw new InvalidOperationException("_method.RequestMarshaller is unexpectedly null!");
+                    }
+                    if (_method.RequestMarshaller.ContextualSerializer == null)
+                    {
+                        throw new InvalidOperationException("_method.RequestMarshaller.ContextualSerializer is unexpectedly null!");
+                    }
                     var serializationContext = new TcpGrpcSerializationContext();
                     _method.RequestMarshaller.ContextualSerializer(message, serializationContext);
                     serializationContext.Complete();

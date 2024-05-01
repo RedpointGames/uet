@@ -278,11 +278,15 @@
 
         Task IAsyncStreamWriter<TResponse>.WriteAsync(TResponse message)
         {
+            ArgumentNullException.ThrowIfNull(message);
+
             return ((IAsyncStreamWriter<TResponse>)this).WriteAsync(message, CancellationToken.None);
         }
 
         async Task IAsyncStreamWriter<TResponse>.WriteAsync(TResponse message, CancellationToken cancellationToken)
         {
+            ArgumentNullException.ThrowIfNull(message);
+
             if (IsStreamingResponsesToClient)
             {
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(
