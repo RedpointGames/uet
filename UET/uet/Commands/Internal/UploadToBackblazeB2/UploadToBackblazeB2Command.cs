@@ -5,6 +5,7 @@
     using Redpoint.ProgressMonitor;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.Net.Sockets;
     using System.Threading.Tasks;
 
     internal sealed class UploadToBackblazeB2Command
@@ -91,69 +92,98 @@
                     return 1;
                 }
 
-                var uploadUrl = await client.Files.GetUploadUrl(bucket.BucketId, context.GetCancellationToken()).ConfigureAwait(false);
-
-                _logger.LogInformation($"Uploading {zipPath.Name} ({zipPath.Length / 1024 / 1024} MB)...");
-
-                using (var stream = new FileStream(
-                    zipPath.FullName,
-                    FileMode.Open,
-                    FileAccess.Read,
-                    FileShare.Read | FileShare.Delete))
+                var attempt = 0;
+                do
                 {
-                    // Start monitoring.
-                    var cts = new CancellationTokenSource();
-                    var progress = _progressFactory.CreateProgressForStream(stream);
-                    var monitorTask = Task.Run(async () =>
+                    attempt++;
+                    var finalAttempt = attempt >= 10;
+                    try
                     {
-                        var monitor = _monitorFactory.CreateByteBasedMonitor();
-                        await monitor.MonitorAsync(
-                            progress,
-                            SystemConsole.ConsoleInformation,
-                            SystemConsole.WriteProgressToConsole,
-                            cts.Token).ConfigureAwait(false);
-                    });
+                        var uploadUrl = await client.Files.GetUploadUrl(bucket.BucketId, context.GetCancellationToken()).ConfigureAwait(false);
 
-                    // Upload the file.
-                    B2File? file;
-                    do
-                    {
-                        try
+                        _logger.LogInformation($"Uploading {zipPath.Name} ({zipPath.Length / 1024 / 1024} MB)...");
+
+                        using (var stream = new FileStream(
+                            zipPath.FullName,
+                            FileMode.Open,
+                            FileAccess.Read,
+                            FileShare.Read | FileShare.Delete))
                         {
-                            file = await client.Files.Upload(
-                                fileDataWithSHA: stream,
-                                fileName: $"{folderPrefix}/{zipPath.Name}",
-                                uploadUrl: uploadUrl,
-                                contentType: "application/zip",
-                                autoRetry: false,
-                                bucketId: bucket.BucketId,
-                                fileInfo: null,
-                                dontSHA: true,
-                                context.GetCancellationToken()).ConfigureAwait(false);
-                            break;
+                            // Start monitoring.
+                            var cts = new CancellationTokenSource();
+                            var progress = _progressFactory.CreateProgressForStream(stream);
+                            var monitorTask = Task.Run(async () =>
+                            {
+                                var monitor = _monitorFactory.CreateByteBasedMonitor();
+                                await monitor.MonitorAsync(
+                                    progress,
+                                    SystemConsole.ConsoleInformation,
+                                    SystemConsole.WriteProgressToConsole,
+                                    cts.Token).ConfigureAwait(false);
+                            });
+
+                            // Upload the file.
+                            try
+                            {
+                                B2File? file = await client.Files.Upload(
+                                    fileDataWithSHA: stream,
+                                    fileName: $"{folderPrefix}/{zipPath.Name}",
+                                    uploadUrl: uploadUrl,
+                                    contentType: "application/zip",
+                                    autoRetry: false,
+                                    bucketId: bucket.BucketId,
+                                    fileInfo: null,
+                                    dontSHA: true,
+                                    context.GetCancellationToken()).ConfigureAwait(false);
+                            }
+                            finally
+                            {
+                                // Stop monitoring.
+                                await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts).ConfigureAwait(false);
+                            }
+
+                            _logger.LogInformation($"Friendly URL on Backblaze B2: https://f002.backblazeb2.com/file/{bucket.BucketName}/{folderPrefix}/{zipPath.Name}");
                         }
-                        catch (B2Exception ex) when (ex.Message.Contains("no tomes available", StringComparison.Ordinal) || ex.Message.Contains("incident id", StringComparison.Ordinal))
+
+                        _logger.LogInformation("Successfully uploaded file to Backblaze B2.");
+                        return 0;
+                    }
+                    catch (B2Exception ex) when (ex.Message.Contains("no tomes available", StringComparison.Ordinal) || ex.Message.Contains("incident id", StringComparison.Ordinal))
+                    {
+                        if (finalAttempt)
+                        {
+                            throw;
+                        }
+                        else
                         {
                             if (SystemConsole.ConsoleWidth.HasValue)
                             {
                                 Console.WriteLine();
                             }
-                            _logger.LogWarning("Temporary issue with Backblaze B2 while uploading. Retrying in 1 second...");
-                            stream.Seek(0, SeekOrigin.Begin);
-                            await Task.Delay(1000).ConfigureAwait(false);
+                            _logger.LogWarning($"Temporary issue with Backblaze B2 while uploading. Retrying in {attempt} {(attempt == 1 ? "second" : "seconds")}...");
+                            await Task.Delay(attempt * 1000, context.GetCancellationToken()).ConfigureAwait(false);
                             continue;
                         }
                     }
-                    while (true);
-
-                    // Stop monitoring.
-                    await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts).ConfigureAwait(false);
-
-                    _logger.LogInformation($"Friendly URL on Backblaze B2: https://f002.backblazeb2.com/file/{bucket.BucketName}/{folderPrefix}/{zipPath.Name}");
+                    catch (HttpRequestException ex) when (ex.InnerException is IOException ioEx && ioEx.InnerException is SocketException soEx && soEx.SocketErrorCode == SocketError.ConnectionReset)
+                    {
+                        if (finalAttempt)
+                        {
+                            throw;
+                        }
+                        else
+                        {
+                            if (SystemConsole.ConsoleWidth.HasValue)
+                            {
+                                Console.WriteLine();
+                            }
+                            _logger.LogWarning($"HTTP stream closed by Backblaze B2. Retrying in {attempt} {(attempt == 1 ? "second" : "seconds")}...");
+                            await Task.Delay(attempt * 1000, context.GetCancellationToken()).ConfigureAwait(false);
+                            continue;
+                        }
+                    }
                 }
-
-                _logger.LogInformation("Successfully uploaded file to Backblaze B2.");
-                return 0;
+                while (true);
             }
         }
     }
