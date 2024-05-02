@@ -615,7 +615,7 @@
                 CaptureSpecification.Sanitized,
                 cancellationToken).ConfigureAwait(false);
 
-            // Fetch the target commit again, this time without --filter=tree:0.
+            // Fetch the target commit again, this time without --filter=tree:0, using --refetch to force download.
             _logger.LogInformation("LFS is enabled. Fetching full repository history without partial clone...");
             using (var fetchEnvVars = gitContext.FetchEnvironmentVariablesFactory())
             {
@@ -631,6 +631,7 @@
                             "-f",
                             "--recurse-submodules=no",
                             "--progress",
+                            "--refetch",
                             repositoryUri.ToString(),
                             resolvedReference.TargetCommit,
                         },
