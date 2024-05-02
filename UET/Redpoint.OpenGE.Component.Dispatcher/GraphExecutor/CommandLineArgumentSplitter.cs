@@ -4,6 +4,38 @@
 
     internal static class CommandLineArgumentSplitter
     {
+        private static string RemoveUnescapedQuotes(string value)
+        {
+            var buffer = string.Empty;
+            var potentialEscape = false;
+            for (int i = 0; i < value.Length; i++)
+            {
+                if (value[i] == '\\')
+                {
+                    buffer += value[i];
+                    potentialEscape = true;
+                }
+                else if (value[i] == '"')
+                {
+                    if (potentialEscape)
+                    {
+                        buffer += value[i];
+                    }
+                    else
+                    {
+                        // Skip an unescaped quote, since we're splitting into arguments anyway.
+                    }
+                    potentialEscape = false;
+                }
+                else
+                {
+                    buffer += value[i];
+                    potentialEscape = false;
+                }
+            }
+            return buffer;
+        }
+
         internal static string[] SplitArguments(string arguments)
         {
             var argumentList = new List<string>();
@@ -43,7 +75,7 @@
                 {
                     if (!string.IsNullOrWhiteSpace(buffer))
                     {
-                        argumentList.Add(buffer);
+                        argumentList.Add(RemoveUnescapedQuotes(buffer));
                         buffer = string.Empty;
                     }
                 }
@@ -54,7 +86,7 @@
             }
             if (!string.IsNullOrWhiteSpace(buffer))
             {
-                argumentList.Add(buffer);
+                argumentList.Add(RemoveUnescapedQuotes(buffer));
             }
             return argumentList.ToArray();
         }
