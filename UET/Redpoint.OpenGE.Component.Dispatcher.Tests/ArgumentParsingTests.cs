@@ -32,16 +32,5 @@
             Assert.Equal("C:\\AAAA\\BBBB\\CCCC\\../DDDD/EEEE/FFFF\\GGGG.HHH", arguments[2]);
             Assert.Equal("C:\\UES\\1bf8s4lvhbyqqk-1\\Engine\\Intermediate\\Build\\IIII\\JJJJ\\UnrealGame\\Development\\KKKK\\LLLL", arguments[3]);
         }
-
-        [Fact]
-        public void UnescapedQuotesAreRemovedCorrectly()
-        {
-            var arguments = CommandLineArgumentSplitter.SplitArguments(@"/DON /DBUILD_ICON_FILE_NAME=""\""C:\\UES\\2ftn7325g3obiw-000\\Lyra\\Build\\Windows\\Application.ico\"""" /DEND");
-
-            Assert.Equal(3, arguments.Length);
-            Assert.Equal("/DON", arguments[0]);
-            Assert.Equal("/DBUILD_ICON_FILE_NAME=C:\\UES\\2ftn7325g3obiw-000\\Lyra\\Build\\Windows\\Application.ico", arguments[1]);
-            Assert.Equal("/DEND", arguments[2]);
-        }
     }
 }

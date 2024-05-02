@@ -109,6 +109,7 @@
                 {
                     PasteArguments.AppendArgument(ref commandLine, arg);
                 }
+                _logger.LogTrace($"WindowsProcessExecutor is executing with command line: {commandLine}");
 
                 // Define the structures for starting the process.
                 STARTUPINFOW startupInfo = default;
