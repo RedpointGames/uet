@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.OpenGE.Component.Worker.TaskDescriptorExecutors
 {
+    using Google.Protobuf.Collections;
     using Redpoint.OpenGE.Protocol;
     using Redpoint.ProcessExecution;
     using System.Collections.Generic;
@@ -17,6 +18,11 @@
         {
             _processExecutor = processExecutor;
             _processExecutorResponseConverter = processExecutorResponseConverter;
+        }
+
+        private static IEnumerable<LogicalProcessArgument> ConvertArguments(RepeatedField<ProcessArgument> arguments)
+        {
+            return arguments.Select(x => string.IsNullOrWhiteSpace(x.OriginalValue) ? new LogicalProcessArgument(x.LogicalValue) : new EscapedProcessArgument(x.LogicalValue, x.OriginalValue));
         }
 
         public async IAsyncEnumerable<ExecuteTaskResponse> ExecuteAsync(
@@ -39,7 +45,7 @@
             await foreach (var response in _processExecutor.ExecuteAsync(new ProcessSpecification
             {
                 FilePath = descriptor.Path,
-                Arguments = descriptor.Arguments,
+                Arguments = ConvertArguments(descriptor.Arguments),
                 EnvironmentVariables = descriptor.EnvironmentVariables.Count > 0
                                     ? descriptor.EnvironmentVariables
                                     : null,

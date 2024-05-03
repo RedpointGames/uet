@@ -133,7 +133,7 @@
                             new ScriptSpecification
                             {
                                 ScriptPath = Path.Combine(runtimeValues["RepositoryRoot"], config.PreStartScriptPath),
-                                Arguments = new[]
+                                Arguments = new LogicalProcessArgument[]
                                 {
                                     "-EnginePath",
                                     runtimeValues["EnginePath"],
@@ -178,7 +178,7 @@
                                 FilePath = OperatingSystem.IsWindows()
                                     ? Path.Combine(runtimeValues["EnginePath"], "Engine", "Binaries", "Win64", "UnrealEditor-Cmd.exe")
                                     : Path.Combine(runtimeValues["EnginePath"], "Engine", "Binaries", "Mac", "UnrealEditor-Cmd"),
-                                Arguments = new[]
+                                Arguments = new LogicalProcessArgument[]
                                 {
                                     runtimeValues["TestProjectPath"],
                                     $"-run={config.Name}",
@@ -187,7 +187,7 @@
                                     "-log",
                                     "-stdout",
                                     "-FullStdOutLogOutput",
-                                }.Concat(config.AdditionalArguments ?? Array.Empty<string>()).ToArray(),
+                                }.Concat((config.AdditionalArguments ?? Array.Empty<string>()).Select(x => new LogicalProcessArgument(x))).ToArray(),
                             },
                             CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                             {
@@ -243,7 +243,7 @@
                             new ScriptSpecification
                             {
                                 ScriptPath = Path.Combine(runtimeValues["RepositoryRoot"], config.ValidationScriptPath),
-                                Arguments = new[]
+                                Arguments = new LogicalProcessArgument[]
                                 {
                                     "-EnginePath",
                                     runtimeValues["EnginePath"],

@@ -32,7 +32,7 @@
                         OperatingSystem.IsWindows()
                             ? "powershell"
                             : "pwsh").ConfigureAwait(false),
-                    Arguments = new[]
+                    Arguments = new LogicalProcessArgument[]
                     {
                         _processArgumentParser.CreateArgumentFromLogicalValue("-ExecutionPolicy"),
                         _processArgumentParser.CreateArgumentFromLogicalValue("Bypass"),

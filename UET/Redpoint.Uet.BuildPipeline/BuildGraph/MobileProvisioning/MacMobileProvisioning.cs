@@ -50,7 +50,7 @@
                     new ProcessSpecification
                     {
                         FilePath = "/usr/bin/security",
-                        Arguments = new[]
+                        Arguments = new LogicalProcessArgument[]
                         {
                             "unlock-keychain",
                             "-p",
@@ -79,7 +79,7 @@
                         new ProcessSpecification
                         {
                             FilePath = "/usr/bin/security",
-                            Arguments = new[]
+                            Arguments = new LogicalProcessArgument[]
                             {
                                 "import",
                                 Path.GetFullPath(import),

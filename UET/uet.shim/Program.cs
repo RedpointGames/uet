@@ -42,6 +42,7 @@ await using (services.BuildServiceProvider().AsAsyncDisposable(out var sp).Confi
 {
     var logger = sp.GetRequiredService<ILogger<Program>>();
     var processExecutor = sp.GetRequiredService<IProcessExecutor>();
+    var processArgumentParser = sp.GetRequiredService<IProcessArgumentParser>();
 
     var currentBuildConfigPath = Path.Combine(Environment.CurrentDirectory, "BuildConfig.json");
     var currentVersionAttribute = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>();
@@ -137,7 +138,7 @@ await using (services.BuildServiceProvider().AsAsyncDisposable(out var sp).Confi
         new ProcessSpecification
         {
             FilePath = UpgradeCommandImplementation.GetAssemblyPathForVersion(targetVersion),
-            Arguments = args,
+            Arguments = args.Select(processArgumentParser.CreateArgumentFromLogicalValue),
             WorkingDirectory = Environment.CurrentDirectory,
             EnvironmentVariables = new Dictionary<string, string>
             {

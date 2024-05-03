@@ -61,7 +61,7 @@
                 new ProcessSpecification
                 {
                     FilePath = "/usr/bin/sudo",
-                    Arguments = new[]
+                    Arguments = new LogicalProcessArgument[]
                     {
                         "-n",
                         "true"
@@ -93,7 +93,7 @@
                     new ProcessSpecification
                     {
                         FilePath = "/bin/bash",
-                        Arguments = new[]
+                        Arguments = new LogicalProcessArgument[]
                         {
                             homebrewScriptPath
                         }
@@ -114,7 +114,7 @@
                     new ProcessSpecification
                     {
                         FilePath = "/opt/homebrew/bin/brew",
-                        Arguments = new[]
+                        Arguments = new LogicalProcessArgument[]
                         {
                             "install",
                             "xcodesorg/made/xcodes"
@@ -136,7 +136,7 @@
                     new ProcessSpecification
                     {
                         FilePath = "/opt/homebrew/bin/brew",
-                        Arguments = new[]
+                        Arguments = new LogicalProcessArgument[]
                         {
                             "install",
                             "aria2"
@@ -188,7 +188,7 @@
                     new ProcessSpecification
                     {
                         FilePath = "/usr/bin/sudo",
-                        Arguments = new[]
+                        Arguments = new LogicalProcessArgument[]
                         {
                             "/opt/homebrew/bin/xcodes",
                             "install",
@@ -237,7 +237,7 @@
                 new ProcessSpecification
                 {
                     FilePath = "/usr/bin/sudo",
-                    Arguments = new[]
+                    Arguments = new LogicalProcessArgument[]
                     {
                         Path.Combine(sdkPackagePath, "Xcode.app", "Contents", "Developer", "usr", "bin", "xcodebuild"),
                         "-license",

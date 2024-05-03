@@ -291,7 +291,7 @@
                         var v when v == OperatingSystem.IsLinux() => Path.Combine(engine.Path!, "Engine", "Build", "BatchFiles", "Linux", $"{scriptName}.sh"),
                         _ => throw new PlatformNotSupportedException(),
                     },
-                    Arguments = arguments.ToArray(),
+                    Arguments = arguments.Select(x => new LogicalProcessArgument(x)).ToArray(),
                     WorkingDirectory = workingDirectory,
                 };
                 var exitCode = await _processExecutor.ExecuteAsync(

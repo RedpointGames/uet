@@ -69,8 +69,8 @@
                                 Path = @"C:\Windows\system32\cmd.exe",
                                 Arguments =
                                 {
-                                    "/C",
-                                    "echo true"
+                                    new ProcessArgument { LogicalValue = "/C", OriginalValue = "/C" },
+                                    new ProcessArgument { LogicalValue = "echo true", OriginalValue = "echo true" },
                                 },
                                 WorkingDirectory = @"C:\Windows\system32",
                             }

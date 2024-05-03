@@ -168,11 +168,11 @@ if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BU
                             new ProcessSpecification
                             {
                                 FilePath = UpgradeCommandImplementation.GetAssemblyPathForVersion(targetVersion),
-                                Arguments = args,
+                                Arguments = args.Select(x => new LogicalProcessArgument(x)),
                                 WorkingDirectory = Environment.CurrentDirectory,
                                 EnvironmentVariables = new Dictionary<string, string>
                                 {
-                                { "UET_VERSION_CHECK_COMPLETE", "true" }
+                                    { "UET_VERSION_CHECK_COMPLETE", "true" }
                                 }
                             },
                             CaptureSpecification.Passthrough,
@@ -213,7 +213,7 @@ if (OperatingSystem.IsMacOS())
                 new ProcessSpecification
                 {
                     FilePath = "/usr/bin/sudo",
-                    Arguments = new[]
+                    Arguments = new LogicalProcessArgument[]
                     {
                         "xcode-select",
                         "--install"

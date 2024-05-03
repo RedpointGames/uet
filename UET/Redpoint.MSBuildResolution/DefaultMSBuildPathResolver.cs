@@ -45,13 +45,13 @@
             return null;
         }
 
-        public async Task<(string path, string[] preargs)> ResolveMSBuildPath()
+        public async Task<(string path, LogicalProcessArgument[] preargs)> ResolveMSBuildPath()
         {
             if (OperatingSystem.IsMacOS())
             {
                 return (
                     await _pathResolver.ResolveBinaryPath("dotnet").ConfigureAwait(false),
-                    new[] { "msbuild" });
+                    ["msbuild"]);
             }
             else if (OperatingSystem.IsWindows())
             {
@@ -67,8 +67,8 @@
                         new ProcessSpecification
                         {
                             FilePath = vswherePath,
-                            Arguments = new[]
-                            {
+                            Arguments =
+                            [
                                 "-prerelease",
                                 "-latest",
                                 "-products",
@@ -77,7 +77,7 @@
                                 "Microsoft.Component.MSBuild",
                                 "-property",
                                 "installationPath"
-                            }
+                            ]
                         },
                         CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                         {
@@ -93,33 +93,33 @@
                     var versionedPath = Path.Combine(installationPath, "MSBuild", "15.0", "Bin", "MSBuild.exe");
                     if (File.Exists(currentPath))
                     {
-                        return (currentPath, Array.Empty<string>());
+                        return (currentPath, Array.Empty<LogicalProcessArgument>());
                     }
                     if (File.Exists(versionedPath))
                     {
-                        return (versionedPath, Array.Empty<string>());
+                        return (versionedPath, Array.Empty<LogicalProcessArgument>());
                     }
                 }
 
                 var proposedPath = GetMSBuildFromRegistry(@"Microsoft\VisualStudio\SxS\VS7", "15.0", @"MSBuild\15.0\bin\MSBuild.exe");
                 if (proposedPath != null)
                 {
-                    return (proposedPath, Array.Empty<string>());
+                    return (proposedPath, Array.Empty<LogicalProcessArgument>());
                 }
                 proposedPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "MSBuild", "14.0", "Bin", "MSBuild.exe");
                 if (File.Exists(proposedPath))
                 {
-                    return (proposedPath, Array.Empty<string>());
+                    return (proposedPath, Array.Empty<LogicalProcessArgument>());
                 }
                 proposedPath = GetMSBuildFromRegistry(@"Microsoft\MSBuild\ToolsVersions\14.0", "MSBuildToolsPath", "MSBuild.exe");
                 if (proposedPath != null)
                 {
-                    return (proposedPath, Array.Empty<string>());
+                    return (proposedPath, Array.Empty<LogicalProcessArgument>());
                 }
                 proposedPath = GetMSBuildFromRegistry(@"Microsoft\MSBuild\ToolsVersions\12.0", "MSBuildToolsPath", "MSBuild.exe");
                 if (proposedPath != null)
                 {
-                    return (proposedPath, Array.Empty<string>());
+                    return (proposedPath, Array.Empty<LogicalProcessArgument>());
                 }
 
                 throw new FileNotFoundException($"MSBuild could not be found.");

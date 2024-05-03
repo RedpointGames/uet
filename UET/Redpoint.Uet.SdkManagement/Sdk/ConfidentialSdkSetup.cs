@@ -129,6 +129,7 @@
                             FilePath = installer.InstallerPath!,
                             Arguments = installer.InstallerArguments!
                                 .Select(x => x.Replace("%LOG_PATH%", logPath, StringComparison.Ordinal))
+                                .Select(x => new LogicalProcessArgument(x))
                                 .ToArray(),
                             WorkingDirectory = Path.GetDirectoryName(installer.InstallerPath!)
                         },
@@ -179,7 +180,7 @@
                         new ProcessSpecification
                         {
                             FilePath = @"C:\WINDOWS\system32\msiexec.exe",
-                            Arguments = new[]
+                            Arguments = new LogicalProcessArgument[]
                             {
                                 "/a",
                                 file,

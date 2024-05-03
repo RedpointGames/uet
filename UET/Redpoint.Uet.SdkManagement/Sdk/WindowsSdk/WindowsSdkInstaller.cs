@@ -495,7 +495,7 @@
                     new ProcessSpecification
                     {
                         FilePath = @"C:\WINDOWS\system32\msiexec.exe",
-                        Arguments = new[]
+                        Arguments = new LogicalProcessArgument[]
                         {
                             "/a",
                             msiFile,
@@ -549,7 +549,7 @@
                     new ProcessSpecification
                     {
                         FilePath = @"C:\WINDOWS\system32\msiexec.exe",
-                        Arguments = new[]
+                        Arguments = new LogicalProcessArgument[]
                         {
                             "/a",
                             msiFile,

@@ -36,8 +36,8 @@
         public override int ScoreTaskSpec(GraphTaskSpec spec)
         {
             if (Path.GetFileName(spec.Tool.Path) == "cl.exe" &&
-                spec.Arguments.Length > 0 &&
-                spec.Arguments[0].StartsWith('@') &&
+                spec.Arguments.Count > 0 &&
+                spec.Arguments[0].LogicalValue.StartsWith('@') &&
                 OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
             {
                 return 1000;
@@ -66,7 +66,7 @@
 
             // Parse the response file.
             var msvcParsedResponseFile = await _msvcResponseFileParser.ParseResponseFileAsync(
-                spec.Arguments[0][1..],
+                spec.Arguments[0].LogicalValue[1..],
                 spec.WorkingDirectory,
                 guaranteedToExecuteLocally,
                 spec.ExecutionEnvironment.BuildStartTicks,
@@ -100,7 +100,10 @@
             // Return the remote task descriptor.
             var descriptor = new RemoteTaskDescriptor();
             descriptor.ToolLocalAbsolutePath = spec.Tool.Path;
-            descriptor.Arguments.Add("@" + msvcParsedResponseFile.ResponseFilePath);
+            descriptor.Arguments.Add(new ProcessArgument
+            {
+                LogicalValue = "@" + msvcParsedResponseFile.ResponseFilePath,
+            });
             descriptor.EnvironmentVariables.MergeFrom(environmentVariables);
             descriptor.WorkingDirectoryAbsolutePath = spec.WorkingDirectory;
             descriptor.UseFastLocalExecution = guaranteedToExecuteLocally;

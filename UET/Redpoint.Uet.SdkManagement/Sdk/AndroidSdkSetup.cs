@@ -84,7 +84,7 @@
                 new ProcessSpecification
                 {
                     FilePath = "C:\\WINDOWS\\system32\\cmd.exe",
-                    Arguments = new[]
+                    Arguments = new LogicalProcessArgument[]
                     {
                         "/C",
                         "sdkmanager.bat",
@@ -120,7 +120,7 @@
                         new ProcessSpecification
                         {
                             FilePath = "C:\\WINDOWS\\system32\\cmd.exe",
-                            Arguments = new[]
+                            Arguments = new LogicalProcessArgument[]
                             {
                                 "/C",
                                 "sdkmanager.bat",

@@ -330,7 +330,7 @@
                 new ProcessSpecification
                 {
                     FilePath = dotnetPath,
-                    Arguments = new[]
+                    Arguments = new LogicalProcessArgument[]
                     {
                         "nuget",
                         "list",
@@ -345,7 +345,7 @@
                     new ProcessSpecification
                     {
                         FilePath = dotnetPath,
-                        Arguments = new[]
+                        Arguments = new LogicalProcessArgument[]
                         {
                             "nuget",
                             "add",
@@ -379,7 +379,7 @@
                         new ProcessSpecification
                         {
                             FilePath = msBuildPath,
-                            Arguments = msBuildExtraArgs.Concat(new[]
+                            Arguments = msBuildExtraArgs.Concat(new LogicalProcessArgument[]
                             {
                                 "/nologo",
                                 "/verbosity:quiet",
@@ -414,7 +414,7 @@
                         new ProcessSpecification
                         {
                             FilePath = msBuildPath,
-                            Arguments = msBuildExtraArgs.Concat(new[]
+                            Arguments = msBuildExtraArgs.Concat(new LogicalProcessArgument[]
                             {
                                 "/nologo",
                                 "/verbosity:quiet",
@@ -485,17 +485,16 @@
                                 new UATSpecification
                                 {
                                     Command = "BuildGraph",
-                                    Arguments = Array.Empty<string>()
-                                        .Concat(new[]
-                                        {
-                                            "-Target=Use Random Files",
-                                            "-noP4",
-                                            $"-Script={buildGraphScriptPath}",
-                                            $"-SingleNode=Write and Tag Files",
-                                            "-WriteToSharedStorage",
-                                            $"-SharedStorageDir={buildGraphPatchTestSharedStorage.Path}",
-                                            $"-set:OutputDir={buildGraphPatchTestRoot.Path}"
-                                        }),
+                                    Arguments =
+                                    [
+                                        "-Target=Use Random Files",
+                                        "-noP4",
+                                        $"-Script={buildGraphScriptPath}",
+                                        $"-SingleNode=Write and Tag Files",
+                                        "-WriteToSharedStorage",
+                                        $"-SharedStorageDir={buildGraphPatchTestSharedStorage.Path}",
+                                        $"-set:OutputDir={buildGraphPatchTestRoot.Path}"
+                                    ],
                                     EnvironmentVariables = environmentVariables
                                 },
                                 CaptureSpecification.Passthrough,

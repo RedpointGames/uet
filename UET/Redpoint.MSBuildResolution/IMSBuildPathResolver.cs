@@ -1,7 +1,9 @@
 ﻿namespace Redpoint.MSBuildResolution
 {
+    using Redpoint.ProcessExecution;
+
     public interface IMSBuildPathResolver
     {
-        Task<(string path, string[] preargs)> ResolveMSBuildPath();
+        Task<(string path, LogicalProcessArgument[] preargs)> ResolveMSBuildPath();
     }
 }

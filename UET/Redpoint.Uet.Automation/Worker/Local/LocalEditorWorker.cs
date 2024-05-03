@@ -80,14 +80,14 @@
                     new ProcessSpecification
                     {
                         FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "netsh.exe"),
-                        Arguments = new[]
-                        {
+                        Arguments =
+                        [
                             "advfirewall",
                             "firewall",
                             "show",
                             "rule",
                             @$"name=""UET_{EndPoint.Port}"""
-                        }
+                        ]
                     },
                     CaptureSpecification.CreateFromStdoutStringBuilder(sb),
                     _cancellationTokenSource.Token).ConfigureAwait(false);
@@ -98,8 +98,8 @@
                         new ProcessSpecification
                         {
                             FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "netsh.exe"),
-                            Arguments = new[]
-                            {
+                            Arguments =
+                            [
                                 "advfirewall",
                                 "firewall",
                                 "add",
@@ -109,7 +109,7 @@
                                 "action=allow",
                                 "protocol=TCP",
                                 $"localport={EndPoint.Port}"
-                            }
+                            ]
                         },
                         CaptureSpecification.Passthrough,
                         _cancellationTokenSource.Token).ConfigureAwait(false);
@@ -117,7 +117,7 @@
             }
 
             // Compute the arguments for Unreal Engine.
-            var arguments = new List<string>
+            var arguments = new List<LogicalProcessArgument>
             {
                 Descriptor.UProjectPath,
                 "-skipcompile",
@@ -151,12 +151,12 @@
             };
             if (!Descriptor.EnableRendering)
             {
-                arguments.AddRange(new[]
-                {
+                arguments.AddRange(
+                [
                     "-nosplash",
                     "-NullRHI",
                     "-NOSOUND",
-                });
+                ]);
             }
 
             // Start the process in the background.

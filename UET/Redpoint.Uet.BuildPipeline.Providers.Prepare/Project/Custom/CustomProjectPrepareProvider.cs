@@ -139,7 +139,7 @@
                     new ScriptSpecification
                     {
                         ScriptPath = entry.settings.ScriptPath,
-                        Arguments = Array.Empty<string>(),
+                        Arguments = Array.Empty<LogicalProcessArgument>(),
                         WorkingDirectory = repositoryRoot,
                     },
                     CaptureSpecification.Passthrough,
