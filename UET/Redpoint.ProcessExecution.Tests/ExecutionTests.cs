@@ -25,11 +25,11 @@
                 new ProcessSpecification
                 {
                     FilePath = @"C:\Windows\system32\cmd.exe",
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "/C",
                         "echo test",
-                    },
+                    ],
                 },
                 CaptureSpecification.Passthrough,
                 CancellationToken.None).ConfigureAwait(false);
@@ -53,11 +53,11 @@
                 new ProcessSpecification
                 {
                     FilePath = @"C:\Windows\system32\cmd.exe",
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "/C",
                         "echo test",
-                    },
+                    ],
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
                 CancellationToken.None).ConfigureAwait(false);
@@ -81,11 +81,11 @@
                 new ProcessSpecification
                 {
                     FilePath = @"C:\Windows\system32\cmd.exe",
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "/C",
                         "exit 1",
-                    },
+                    ],
                 },
                 CaptureSpecification.Passthrough,
                 CancellationToken.None).ConfigureAwait(false);
@@ -108,11 +108,11 @@
                 new ProcessSpecification
                 {
                     FilePath = @"C:\Windows\system32\cmd.exe",
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "/C",
                         "exit 375",
-                    },
+                    ],
                 },
                 CaptureSpecification.Passthrough,
                 CancellationToken.None).ConfigureAwait(false);
@@ -138,11 +138,11 @@
                     new ProcessSpecification
                     {
                         FilePath = @"C:\Windows\system32\cmd.exe",
-                        Arguments = new[]
-                        {
+                        Arguments =
+                        [
                             "/C",
                             "timeout 5 >NUL",
-                        },
+                        ],
                     },
                     CaptureSpecification.Passthrough,
                     cts.Token).ConfigureAwait(false);
@@ -167,11 +167,11 @@
                 new ProcessSpecification
                 {
                     FilePath = @"C:\Windows\system32\cmd.exe",
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "/C",
                         "C: && cd \\ && dir",
-                    },
+                    ],
                     PerProcessDriveMappings = new Dictionary<char, string>
                     {
                         { 'I', Environment.CurrentDirectory }
@@ -200,11 +200,11 @@
                 new ProcessSpecification
                 {
                     FilePath = @"C:\Windows\system32\cmd.exe",
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "/C",
                         "C: && cd \\ && dir",
-                    },
+                    ],
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
                 CancellationToken.None).ConfigureAwait(false);
@@ -229,11 +229,11 @@
                 new ProcessSpecification
                 {
                     FilePath = @"C:\Windows\system32\cmd.exe",
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "/C",
                         "I: && cd \\ && dir",
-                    },
+                    ],
                     PerProcessDriveMappings = new Dictionary<char, string>
                     {
                         { 'I', Environment.CurrentDirectory }
@@ -264,11 +264,11 @@
                 new ProcessSpecification
                 {
                     FilePath = @"C:\Windows\system32\cmd.exe",
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "/C",
                         "echo test",
-                    },
+                    ],
                     PerProcessDriveMappings = new Dictionary<char, string>
                     {
                         { 'I', Environment.CurrentDirectory }
@@ -298,11 +298,11 @@
                 new ProcessSpecification
                 {
                     FilePath = @"C:\Windows\system32\cmd.exe",
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "/C",
                         "echo test",
-                    },
+                    ],
                     // @note: This causes the process executor to go through the
                     // flow of setting up per-process drive mappings, but with
                     // no drive overrides present in the device lookup map.
@@ -332,11 +332,11 @@
                 new ProcessSpecification
                 {
                     FilePath = @"C:\Windows\system32\cmd.exe",
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "/C",
                         "echo test",
-                    },
+                    ],
                     PerProcessDriveMappings = new Dictionary<char, string>
                     {
                         { 'I', Environment.CurrentDirectory }
@@ -367,11 +367,11 @@
                 new ProcessSpecification
                 {
                     FilePath = @"C:\Windows\system32\cmd.exe",
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "/C",
                         "dir",
-                    },
+                    ],
                     PerProcessDriveMappings = new Dictionary<char, string>
                     {
                         { 'I', Environment.CurrentDirectory }
@@ -405,7 +405,7 @@
                 await foreach (var entry in executor.ExecuteAsync(new ProcessSpecification
                 {
                     FilePath = OperatingSystem.IsWindows() ? @"C:\Windows\system32\cmd.exe" : "/bin/bash",
-                    Arguments = OperatingSystem.IsWindows() ? new[] { "/C", "echo", "ok" } : new[] { "-c", "echo ok" },
+                    Arguments = OperatingSystem.IsWindows() ? new LogicalProcessArgument[] { "/C", "echo", "ok" } : ["-c", "echo ok"],
                 }, cancellationTokenSource.Token))
                 {
                     switch (entry)

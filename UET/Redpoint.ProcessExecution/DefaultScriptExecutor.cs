@@ -8,13 +8,16 @@
     {
         private readonly IProcessExecutor _consoleExecutor;
         private readonly IPathResolver _pathResolver;
+        private readonly IProcessArgumentParser _processArgumentParser;
 
         public DefaultScriptExecutor(
             IProcessExecutor consoleExecutor,
-            IPathResolver pathResolver)
+            IPathResolver pathResolver,
+            IProcessArgumentParser processArgumentParser)
         {
             _consoleExecutor = consoleExecutor;
             _pathResolver = pathResolver;
+            _processArgumentParser = processArgumentParser;
         }
 
         public async Task<int> ExecutePowerShellAsync(
@@ -29,11 +32,11 @@
                         OperatingSystem.IsWindows()
                             ? "powershell"
                             : "pwsh").ConfigureAwait(false),
-                    Arguments = new[]
+                    Arguments = new LogicalProcessArgument[]
                     {
-                        "-ExecutionPolicy",
-                        "Bypass",
-                        scriptSpecification.ScriptPath
+                        _processArgumentParser.CreateArgumentFromLogicalValue("-ExecutionPolicy"),
+                        _processArgumentParser.CreateArgumentFromLogicalValue("Bypass"),
+                        _processArgumentParser.CreateArgumentFromLogicalValue(scriptSpecification.ScriptPath)
                     }.Concat(scriptSpecification.Arguments),
                     EnvironmentVariables = scriptSpecification.EnvironmentVariables,
                 },

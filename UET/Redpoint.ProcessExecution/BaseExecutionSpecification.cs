@@ -10,7 +10,7 @@
         /// <summary>
         /// The arguments to pass to the process or script.
         /// </summary>
-        public required IEnumerable<string> Arguments { get; init; }
+        public required IEnumerable<LogicalProcessArgument> Arguments { get; init; }
 
         /// <summary>
         /// The environment variables to override for the process or script. If null, the environment variables are inherited from the current process.

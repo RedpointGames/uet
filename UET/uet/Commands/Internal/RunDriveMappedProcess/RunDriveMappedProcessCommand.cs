@@ -86,7 +86,7 @@
                 var spec = new ProcessSpecification
                 {
                     FilePath = processPath,
-                    Arguments = arguments.Concat(argumentsAt.Select(x => '@' + x)).ToArray(),
+                    Arguments = arguments.Concat(argumentsAt.Select(x => '@' + x)).Select(x => new LogicalProcessArgument(x)).ToArray(),
                     WorkingDirectory = workingDirectory,
                     EnvironmentVariables = envVarsDict,
                 };

@@ -55,7 +55,11 @@
             // Return the remote task descriptor.
             var descriptor = new RemoteTaskDescriptor();
             descriptor.ToolLocalAbsolutePath = spec.Tool.Path;
-            descriptor.Arguments.AddRange(spec.Arguments);
+            descriptor.Arguments.AddRange(spec.Arguments.Select(x => new ProcessArgument
+            {
+                OriginalValue = x.OriginalValue,
+                LogicalValue = x.LogicalValue,
+            }));
             descriptor.EnvironmentVariables.MergeFrom(environmentVariables);
             descriptor.WorkingDirectoryAbsolutePath = spec.WorkingDirectory;
             descriptor.UseFastLocalExecution = guaranteedToExecuteLocally;

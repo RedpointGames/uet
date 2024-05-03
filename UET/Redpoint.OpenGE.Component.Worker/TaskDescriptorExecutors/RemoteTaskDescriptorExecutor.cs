@@ -16,6 +16,7 @@
     using Redpoint.IO;
     using System.Net;
     using Redpoint.Concurrency;
+    using Google.Protobuf.Collections;
 
     internal class RemoteTaskDescriptorExecutor : ITaskDescriptorExecutor<RemoteTaskDescriptor>
     {
@@ -88,6 +89,11 @@
             }
         }
 
+        private static IEnumerable<LogicalProcessArgument> ConvertArguments(RepeatedField<ProcessArgument> arguments)
+        {
+            return arguments.Select(x => string.IsNullOrWhiteSpace(x.OriginalValue) ? new LogicalProcessArgument(x.LogicalValue) : new EscapedProcessArgument(x.LogicalValue, x.OriginalValue));
+        }
+
         [SupportedOSPlatform("windows")]
         private async IAsyncEnumerable<ExecuteTaskResponse> ExecuteLocalAsync(
             RemoteTaskDescriptor descriptor,
@@ -110,7 +116,7 @@
             var processSpecification = new ProcessSpecification
             {
                 FilePath = descriptor.ToolLocalAbsolutePath,
-                Arguments = descriptor.Arguments,
+                Arguments = ConvertArguments(descriptor.Arguments),
                 EnvironmentVariables = environmentVariables,
                 WorkingDirectory = descriptor.WorkingDirectoryAbsolutePath,
             };
@@ -264,7 +270,7 @@
                 var processSpecification = new ProcessSpecification
                 {
                     FilePath = toolPath,
-                    Arguments = descriptor.Arguments,
+                    Arguments = ConvertArguments(descriptor.Arguments),
                     EnvironmentVariables = environmentVariables,
                     WorkingDirectory = descriptor.WorkingDirectoryAbsolutePath,
                 };
@@ -280,7 +286,7 @@
 
                 // Execute the process in the virtual root.
                 _logger.LogTrace($"File path: {toolPath}");
-                _logger.LogTrace($"Arguments: {string.Join(" ", descriptor.Arguments)}");
+                _logger.LogTrace($"Arguments: {string.Join(" ", ConvertArguments(descriptor.Arguments).Select(x => x.ToString()))}");
                 _logger.LogTrace($"Working directory: {descriptor.WorkingDirectoryAbsolutePath}");
                 if (processSpecification.PerProcessDriveMappings != null)
                 {

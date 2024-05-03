@@ -337,14 +337,14 @@
                     new UATSpecification
                     {
                         Command = "BuildGraph",
-                        Arguments = Array.Empty<string>()
-                            .Concat(string.IsNullOrWhiteSpace(buildGraphTarget) ? Array.Empty<string>() : new[] { $"-Target={buildGraphTarget}" })
-                            .Concat(new[]
-                            {
+                        Arguments = Array.Empty<LogicalProcessArgument>()
+                            .Concat(string.IsNullOrWhiteSpace(buildGraphTarget) ? Array.Empty<LogicalProcessArgument>() : [$"-Target={buildGraphTarget}"])
+                            .Concat(
+                            [
                                 "-noP4",
-                            })
-                            .Concat(string.IsNullOrWhiteSpace(buildGraphScriptPath) ? Array.Empty<string>() : new[] { $"-Script={buildGraphScriptPath}" })
-                            .Concat(internalArguments)
+                            ])
+                            .Concat(string.IsNullOrWhiteSpace(buildGraphScriptPath) ? Array.Empty<LogicalProcessArgument>() : [$"-Script={buildGraphScriptPath}"])
+                            .Concat(internalArguments.Select(x => new LogicalProcessArgument(x)))
                             .Concat(_buildGraphArgumentGenerator.GenerateBuildGraphArguments(
                                 buildGraphArguments,
                                 buildGraphArgumentReplacements,
@@ -352,7 +352,7 @@
                                 uetPath,
                                 enginePath,
                                 buildGraphSharedStorageDir,
-                                artifactExportPath)),
+                                artifactExportPath).Select(x => new LogicalProcessArgument(x))),
                         EnvironmentVariables = buildGraphEnvironmentVariables
                     },
                     captureSpecification,

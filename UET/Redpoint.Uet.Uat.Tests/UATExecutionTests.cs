@@ -29,7 +29,7 @@ namespace Redpoint.Uet.Uat.Tests
                 new UATSpecification
                 {
                     Command = "BuildGraph",
-                    Arguments = new[] { "-help" },
+                    Arguments = new LogicalProcessArgument[] { "-help" },
                 },
                 CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates()
                 {

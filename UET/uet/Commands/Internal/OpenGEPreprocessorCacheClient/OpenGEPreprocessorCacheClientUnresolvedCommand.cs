@@ -53,7 +53,7 @@
                 var preprocessorCache = _preprocessorCacheFactory.CreateOnDemandCache(new Redpoint.ProcessExecution.ProcessSpecification
                 {
                     FilePath = _selfLocation.GetUETLocalLocation(),
-                    Arguments = new[]
+                    Arguments = new Redpoint.ProcessExecution.LogicalProcessArgument[]
                     {
                         "internal",
                         "openge-preprocessor-cache"

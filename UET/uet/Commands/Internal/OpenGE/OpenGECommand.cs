@@ -61,7 +61,7 @@
                             new OpenGEProcessSpecification
                             {
                                 FilePath = "__openge__",
-                                Arguments = new[]
+                                Arguments = new LogicalProcessArgument[]
                                 {
                                     taskFile.FullName,
                                     "/Rebuild",

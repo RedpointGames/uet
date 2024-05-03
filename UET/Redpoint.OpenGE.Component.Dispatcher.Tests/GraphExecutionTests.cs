@@ -235,7 +235,7 @@
                 {
                     GraphTaskSpec = new GraphTaskSpec
                     {
-                        Arguments = Array.Empty<string>(),
+                        Arguments = Array.Empty<EscapedProcessArgument>(),
                         Environment = job.Environments["Test"],
                         ExecutionEnvironment = new GraphExecutionEnvironment
                         {

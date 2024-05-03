@@ -72,7 +72,7 @@
                 new ProcessSpecification
                 {
                     FilePath = Path.Combine(sdkPackagePath, "7z.exe"),
-                    Arguments = new[] { "x", "..\\toolchainextract.exe" },
+                    Arguments = new LogicalProcessArgument[] { "x", "..\\toolchainextract.exe" },
                     WorkingDirectory = Path.Combine(sdkPackagePath, "SDK")
                 },
                 CaptureSpecification.Passthrough,

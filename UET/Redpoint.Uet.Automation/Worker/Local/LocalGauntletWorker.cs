@@ -111,7 +111,7 @@
                 new UATSpecification
                 {
                     Command = "RunUnreal",
-                    Arguments = new[]
+                    Arguments = new LogicalProcessArgument[]
                     {
                         "-noP4",
                         $@"-project={Descriptor.UProjectPath}",

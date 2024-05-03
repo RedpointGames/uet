@@ -6,6 +6,7 @@
     using Redpoint.OpenGE.Component.Dispatcher.GraphExecutor;
     using Redpoint.OpenGE.Component.Dispatcher.TaskDescriptorFactories;
     using Redpoint.OpenGE.JobXml;
+    using Redpoint.ProcessExecution;
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
@@ -15,11 +16,14 @@
     internal class DefaultGraphGenerator : IGraphGenerator
     {
         private readonly ITaskDescriptorFactory[] _taskDescriptorFactories;
+        private readonly IProcessArgumentParser _processArgumentParser;
 
         public DefaultGraphGenerator(
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider,
+            IProcessArgumentParser processArgumentParser)
         {
             _taskDescriptorFactories = serviceProvider.GetServices<ITaskDescriptorFactory>().ToArray();
+            _processArgumentParser = processArgumentParser;
         }
 
         private (ITaskDescriptorFactory? factory, GraphTaskSpec spec) GetFactoryAndArgumentsForTask(
@@ -30,7 +34,7 @@
             JobTool tool,
             Job job)
         {
-            var arguments = CommandLineArgumentSplitter.SplitArguments(tool.Params);
+            var arguments = _processArgumentParser.SplitArguments(tool.Params);
             var spec = new GraphTaskSpec
             {
                 ExecutionEnvironment = executionEnvironment,

@@ -3,21 +3,29 @@
     using Redpoint.OpenGE.Component.Dispatcher.Graph;
     using Redpoint.OpenGE.Component.Dispatcher.GraphExecutor;
     using Redpoint.OpenGE.Protocol;
+    using Redpoint.ProcessExecution;
     using System.Diagnostics;
     using System.Threading;
 
     internal class FileCopyTaskDescriptorFactory : ITaskDescriptorFactory
     {
+        private readonly IProcessArgumentParser _processArgumentParser;
+
+        public FileCopyTaskDescriptorFactory(IProcessArgumentParser processArgumentParser)
+        {
+            _processArgumentParser = processArgumentParser;
+        }
+
         public int ScoreTaskSpec(GraphTaskSpec spec)
         {
             if (Path.GetFileName(spec.Tool.Path).Equals("cmd.exe", StringComparison.OrdinalIgnoreCase) &&
-                spec.Arguments.Length == 2 &&
-                spec.Arguments[0].Equals("/C", StringComparison.OrdinalIgnoreCase))
+                spec.Arguments.Count == 2 &&
+                spec.Arguments[0].LogicalValue.Equals("/C", StringComparison.OrdinalIgnoreCase))
             {
-                var realArguments = CommandLineArgumentSplitter.SplitArguments(spec.Arguments[1]);
-                if (realArguments.Length >= 4 &&
-                    realArguments[0].Equals("copy", StringComparison.OrdinalIgnoreCase) &&
-                    realArguments[1].Equals("/Y", StringComparison.OrdinalIgnoreCase))
+                var realArguments = _processArgumentParser.SplitArguments(spec.Arguments[1].LogicalValue);
+                if (realArguments.Count >= 4 &&
+                    realArguments[0].LogicalValue.Equals("copy", StringComparison.OrdinalIgnoreCase) &&
+                    realArguments[1].LogicalValue.Equals("/Y", StringComparison.OrdinalIgnoreCase))
                 {
                     // We really want to handle this.
                     return 10000;
@@ -33,10 +41,10 @@
             bool guaranteedToExecuteLocally,
             CancellationToken cancellationToken)
         {
-            var realArguments = CommandLineArgumentSplitter.SplitArguments(spec.Arguments[1]);
+            var realArguments = _processArgumentParser.SplitArguments(spec.Arguments[1].LogicalValue);
 
-            var from = realArguments[2].Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
-            var to = realArguments[3].Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+            var from = realArguments[2].LogicalValue.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+            var to = realArguments[3].LogicalValue.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
             if (!Path.IsPathRooted(from))
             {
                 from = Path.Combine(spec.WorkingDirectory, from);

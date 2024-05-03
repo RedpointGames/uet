@@ -23,6 +23,7 @@
                 services.AddSingleton<IProcessExecutor, DefaultProcessExecutor>();
             }
             services.AddSingleton<IScriptExecutor, DefaultScriptExecutor>();
+            services.AddSingleton<IProcessArgumentParser, DefaultProcessArgumentParser>();
         }
     }
 }

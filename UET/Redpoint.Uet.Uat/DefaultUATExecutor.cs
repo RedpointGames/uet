@@ -89,11 +89,11 @@
             }
 
             // We have to mangle some arguments due to bugs in UAT.
-            var finalArgs = new List<string>();
+            var finalArgs = new List<LogicalProcessArgument>();
             var doScriptWorkaround = false;
             foreach (var arg in uatSpecification.Arguments)
             {
-                if (uatSpecification.Command == "BuildGraph" && arg.StartsWith("-Script=", StringComparison.Ordinal) && arg.EndsWith("Engine\\Build\\InstalledEngineBuild.xml", StringComparison.Ordinal))
+                if (uatSpecification.Command == "BuildGraph" && arg.LogicalValue.StartsWith("-Script=", StringComparison.Ordinal) && arg.LogicalValue.EndsWith("Engine\\Build\\InstalledEngineBuild.xml", StringComparison.Ordinal))
                 {
                     // Hack for UE5 engine builds that don't include console platforms properly
                     // if the script is an absolute path.
@@ -115,13 +115,13 @@
             {
                 foreach (var arg in finalArgs)
                 {
-                    if (arg.StartsWith("-SingleNode=", StringComparison.Ordinal))
+                    if (arg.LogicalValue.StartsWith("-SingleNode=", StringComparison.Ordinal))
                     {
-                        singleNodeName = arg["-SingleNode=".Length..].Replace("\"", "", StringComparison.Ordinal);
+                        singleNodeName = arg.LogicalValue["-SingleNode=".Length..].Replace("\"", "", StringComparison.Ordinal);
                     }
-                    else if (arg.StartsWith("-SharedStorageDir=", StringComparison.Ordinal))
+                    else if (arg.LogicalValue.StartsWith("-SharedStorageDir=", StringComparison.Ordinal))
                     {
-                        sharedStorageDir = arg["-SharedStorageDir=".Length..].Replace("\"", "", StringComparison.Ordinal);
+                        sharedStorageDir = arg.LogicalValue["-SharedStorageDir=".Length..].Replace("\"", "", StringComparison.Ordinal);
                     }
                 }
                 if (!string.IsNullOrWhiteSpace(singleNodeName) && !string.IsNullOrWhiteSpace(sharedStorageDir))
@@ -235,7 +235,7 @@
                         processSpecification = new OpenGEProcessSpecification
                         {
                             FilePath = Path.Combine(enginePath, "Engine", "Build", "BatchFiles", "RunUAT.bat"),
-                            Arguments = new[]
+                            Arguments = new LogicalProcessArgument[]
                             {
                                 uatSpecification.Command,
                             }.Concat(finalArgs),
@@ -250,7 +250,7 @@
                         processSpecification = new OpenGEProcessSpecification
                         {
                             FilePath = Path.Combine(enginePath, "Engine", "Build", "BatchFiles", "RunUAT.sh"),
-                            Arguments = new[]
+                            Arguments = new LogicalProcessArgument[]
                             {
                                 uatSpecification.Command,
                             }.Concat(finalArgs),

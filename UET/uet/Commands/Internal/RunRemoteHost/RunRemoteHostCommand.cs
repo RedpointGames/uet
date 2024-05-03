@@ -115,7 +115,7 @@
                             new ProcessSpecification
                             {
                                 FilePath = await _pathResolver.ResolveBinaryPath("robocopy").ConfigureAwait(false),
-                                Arguments = new[]
+                                Arguments = new LogicalProcessArgument[]
                                 {
                                         // Mirror (delete files that we shouldn't have)
                                         "/MIR",
@@ -157,13 +157,13 @@
                             ? new ProcessSpecification
                             {
                                 FilePath = await _pathResolver.ResolveBinaryPath("powershell").ConfigureAwait(false),
-                                Arguments = resolvedArguments,
+                                Arguments = resolvedArguments.Select(x => new LogicalProcessArgument(x)),
                                 WorkingDirectory = Path.Combine(workspace.Path, request.RelativeWorkingDirectory),
                             }
                             : new ProcessSpecification
                             {
                                 FilePath = Path.Combine(workspace.Path, request.RelativeExecutablePath),
-                                Arguments = resolvedArguments,
+                                Arguments = resolvedArguments.Select(x => new LogicalProcessArgument(x)),
                                 WorkingDirectory = Path.Combine(workspace.Path, request.RelativeWorkingDirectory),
                             };
 

@@ -176,7 +176,7 @@
                     new ProcessSpecification
                     {
                         FilePath = _selfLocation.GetUETLocalLocation(),
-                        Arguments = new[]
+                        Arguments = new LogicalProcessArgument[]
                         {
                             "internal",
                             "openge-preprocessor-cache"

@@ -21,7 +21,11 @@
             {
                 Path = spec.Tool.Path,
             };
-            local.Arguments.AddRange(spec.Arguments);
+            local.Arguments.AddRange(spec.Arguments.Select(x => new ProcessArgument
+            {
+                LogicalValue = x.LogicalValue,
+                OriginalValue = x.OriginalValue,
+            }));
             local.EnvironmentVariables.MergeFrom(spec.ExecutionEnvironment.EnvironmentVariables);
             local.EnvironmentVariables.MergeFrom(spec.Environment.Variables);
             local.WorkingDirectory = spec.WorkingDirectory;

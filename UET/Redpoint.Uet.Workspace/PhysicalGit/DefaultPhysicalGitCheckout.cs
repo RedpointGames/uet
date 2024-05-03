@@ -67,11 +67,11 @@
                     new ProcessSpecification
                     {
                         FilePath = gitContext.Git,
-                        Arguments = new[]
-                        {
+                        Arguments =
+                        [
                             "init",
                             repositoryPath
-                        },
+                        ],
                         WorkingDirectory = repositoryPath,
                         EnvironmentVariables = gitContext.GitEnvs,
                     },
@@ -86,14 +86,14 @@
                     new ProcessSpecification
                     {
                         FilePath = gitContext.Git,
-                        Arguments = new[]
-                        {
+                        Arguments =
+                        [
                             "-C",
                             repositoryPath,
                             "config",
                             "core.symlinks",
                             "true"
-                        },
+                        ],
                         WorkingDirectory = repositoryPath,
                         EnvironmentVariables = gitContext.GitEnvs,
                     },
@@ -134,13 +134,13 @@
                         new ProcessSpecification
                         {
                             FilePath = gitContext.Git,
-                            Arguments = new[]
-                            {
+                            Arguments =
+                            [
                                 "ls-remote",
                                 "--exit-code",
                                 repositoryUri.ToString(),
                                 targetCommit,
-                            },
+                            ],
                             WorkingDirectory = repositoryPath,
                             EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
@@ -198,13 +198,13 @@
                 new ProcessSpecification
                 {
                     FilePath = gitContext.Git,
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "-C",
                         repositoryPath,
                         "rev-parse",
                         "HEAD"
-                    },
+                    ],
                     WorkingDirectory = repositoryPath,
                     EnvironmentVariables = gitContext.GitEnvs,
                 },
@@ -293,14 +293,14 @@
                 new ProcessSpecification
                 {
                     FilePath = gitContext.Git,
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "-C",
                         repositoryPath,
                         "cat-file",
                         "-t",
                         targetCommit,
-                    },
+                    ],
                     WorkingDirectory = repositoryPath,
                     EnvironmentVariables = gitContext.GitEnvs,
                 },
@@ -316,15 +316,15 @@
                     new ProcessSpecification
                     {
                         FilePath = gitContext.Git,
-                        Arguments = new[]
-                        {
+                        Arguments =
+                        [
                             "-C",
                             repositoryPath,
                             "rev-list",
                             "-n",
                             "1",
                             targetCommit,
-                        },
+                        ],
                         WorkingDirectory = repositoryPath,
                         EnvironmentVariables = gitContext.GitEnvs,
                     },
@@ -338,14 +338,14 @@
                         new ProcessSpecification
                         {
                             FilePath = gitContext.Git,
-                            Arguments = new[]
-                            {
+                            Arguments =
+                            [
                                 "-C",
                                 repositoryPath,
                                 "cat-file",
                                 "-t",
                                 targetCommit,
-                            },
+                            ],
                             WorkingDirectory = repositoryPath,
                             EnvironmentVariables = gitContext.GitEnvs,
                         },
@@ -373,8 +373,8 @@
                                 new ProcessSpecification
                                 {
                                     FilePath = gitContext.Git,
-                                    Arguments = new[]
-                                    {
+                                    Arguments =
+                                    [
                                         "-C",
                                         repositoryPath,
                                         "fetch",
@@ -384,7 +384,7 @@
                                         "--progress",
                                         uri.ToString(),
                                         targetCommit
-                                    },
+                                    ],
                                     WorkingDirectory = repositoryPath,
                                     EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                                 },
@@ -397,14 +397,14 @@
                             new ProcessSpecification
                             {
                                 FilePath = gitContext.Git,
-                                Arguments = new[]
-                                {
+                                Arguments =
+                                [
                                     "-C",
                                     repositoryPath,
                                     "cat-file",
                                     "-t",
                                     targetCommit,
-                                },
+                                ],
                                 WorkingDirectory = repositoryPath,
                                 EnvironmentVariables = gitContext.GitEnvs,
                             },
@@ -418,15 +418,15 @@
                                 new ProcessSpecification
                                 {
                                     FilePath = gitContext.Git,
-                                    Arguments = new[]
-                                    {
+                                    Arguments =
+                                    [
                                         "-C",
                                         repositoryPath,
                                         "rev-list",
                                         "-n",
                                         "1",
                                         targetCommit,
-                                    },
+                                    ],
                                     WorkingDirectory = repositoryPath,
                                     EnvironmentVariables = gitContext.GitEnvs,
                                 },
@@ -443,8 +443,8 @@
                                 new ProcessSpecification
                                 {
                                     FilePath = gitContext.Git,
-                                    Arguments = new[]
-                                    {
+                                    Arguments =
+                                    [
                                         "-C",
                                         repositoryPath,
                                         "fetch",
@@ -454,7 +454,7 @@
                                         "--progress",
                                         uri.ToString(),
                                         $"{targetCommit}:FETCH_HEAD"
-                                    },
+                                    ],
                                     WorkingDirectory = repositoryPath,
                                     EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                                 },
@@ -524,13 +524,13 @@
                         new ProcessSpecification
                         {
                             FilePath = gitContext.Git,
-                            Arguments = new[]
-                            {
+                            Arguments =
+                            [
                                 "-C",
                                 repositoryPath,
                                 "show",
                                 $"{resolvedReference.TargetCommit}:.gitattributes",
-                            },
+                            ],
                             WorkingDirectory = repositoryPath,
                             EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
@@ -623,8 +623,8 @@
                     new ProcessSpecification
                     {
                         FilePath = gitContext.Git,
-                        Arguments = new[]
-                        {
+                        Arguments =
+                        [
                             "-C",
                             repositoryPath,
                             "fetch",
@@ -634,7 +634,7 @@
                             "--refetch",
                             repositoryUri.ToString(),
                             resolvedReference.TargetCommit,
-                        },
+                        ],
                         WorkingDirectory = repositoryPath,
                         EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                     },
@@ -654,15 +654,15 @@
                     new ProcessSpecification
                     {
                         FilePath = gitContext.Git,
-                        Arguments = new[]
-                        {
+                        Arguments =
+                        [
                             "-C",
                             repositoryPath,
                             "lfs",
                             "fetch",
                             repositoryUri.ToString(),
                             resolvedReference.TargetCommit,
-                        },
+                        ],
                         WorkingDirectory = repositoryPath,
                         EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                     },
@@ -693,8 +693,8 @@
                 new ProcessSpecification
                 {
                     FilePath = gitContext.Git,
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "-C",
                         repositoryPath,
                         "-c",
@@ -702,7 +702,7 @@
                         "checkout",
                         "-f",
                         resolvedReference.TargetCommit,
-                    },
+                    ],
                     WorkingDirectory = repositoryPath,
                     EnvironmentVariables = gitContext.GitEnvs,
                 },
@@ -724,8 +724,8 @@
                     new ProcessSpecification
                     {
                         FilePath = gitContext.Git,
-                        Arguments = new[]
-                        {
+                        Arguments =
+                        [
                             "-C",
                             repositoryPath,
                             "-c",
@@ -733,7 +733,7 @@
                             "checkout",
                             "-f",
                             resolvedReference.TargetCommit,
-                        },
+                        ],
                         WorkingDirectory = repositoryPath,
                         EnvironmentVariables = gitContext.GitEnvs,
                     },
@@ -768,14 +768,14 @@
                     new ProcessSpecification
                     {
                         FilePath = gitContext.Git,
-                        Arguments = new[]
-                        {
+                        Arguments =
+                        [
                             "-C",
                             baseDirectory.FullName,
                             "ls-files",
                             "--error-unmatch",
                             $"{relativeBasePathToCleanDir}/{cleanFile.Name}",
-                        },
+                        ],
                         WorkingDirectory = repositoryPath,
                         EnvironmentVariables = gitContext.GitEnvs,
                     },
@@ -807,14 +807,14 @@
                                 new ProcessSpecification
                                 {
                                     FilePath = gitContext.Git,
-                                    Arguments = new[]
-                                    {
+                                    Arguments =
+                                    [
                                         "-C",
                                         baseDirectory.FullName,
                                         "clean",
                                         "-xdff",
                                         $"{relativeBasePathToCleanDir}/{sensitiveDirectory}",
-                                    },
+                                    ],
                                     WorkingDirectory = baseDirectory.FullName,
                                     EnvironmentVariables = gitContext.GitEnvs,
                                 },
@@ -983,12 +983,12 @@
                         new ProcessSpecification
                         {
                             FilePath = git,
-                            Arguments = new[]
-                            {
+                            Arguments =
+                            [
                                 "-C",
                                 submoduleContentPath,
                                 "init",
-                            },
+                            ],
                             WorkingDirectory = submoduleContentPath,
                             EnvironmentVariables = gitEnvs,
                         },
@@ -1007,15 +1007,15 @@
                     new ProcessSpecification
                     {
                         FilePath = git,
-                        Arguments = new[]
-                        {
+                        Arguments =
+                        [
                             "-C",
                             contentDirectory.FullName,
                             "submodule",
                             "absorbgitdirs",
                             "--",
                             submodule.Path,
-                        },
+                        ],
                         WorkingDirectory = contentDirectory.FullName,
                         EnvironmentVariables = gitEnvs,
                     },
@@ -1033,15 +1033,15 @@
                 new ProcessSpecification
                 {
                     FilePath = git,
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "-C",
                         contentDirectory.FullName,
                         "ls-tree",
                         "-l",
                         "HEAD",
                         submodule.Path,
-                    },
+                    ],
                     WorkingDirectory = contentDirectory.FullName,
                     EnvironmentVariables = gitEnvs,
                 },
@@ -1107,11 +1107,11 @@
                 new ProcessSpecification
                 {
                     FilePath = git,
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "rev-parse",
                         "HEAD",
-                    },
+                    ],
                     WorkingDirectory = submoduleContentPath,
                     EnvironmentVariables = gitEnvs,
                 },
@@ -1155,12 +1155,12 @@
                 new ProcessSpecification
                 {
                     FilePath = git,
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "cat-file",
                         "-t",
                         submoduleCommit,
-                    },
+                    ],
                     WorkingDirectory = submoduleContentPath,
                     EnvironmentVariables = gitEnvs,
                 },
@@ -1178,15 +1178,15 @@
                         new ProcessSpecification
                         {
                             FilePath = git,
-                            Arguments = new[]
-                            {
+                            Arguments =
+                            [
                                 "fetch",
                                 "-f",
                                 "--filter=tree:0",
                                 "--recurse-submodules=no",
                                 uri.ToString(),
                                 $"{submoduleCommit}:FETCH_HEAD",
-                            },
+                            ],
                             WorkingDirectory = submoduleContentPath,
                             EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
@@ -1207,14 +1207,14 @@
                 new ProcessSpecification
                 {
                     FilePath = git,
-                    Arguments = new[]
-                    {
+                    Arguments =
+                    [
                         "-c",
                         "advice.detachedHead=false",
                         "checkout",
                         "-f",
                         submoduleCommit,
-                    },
+                    ],
                     WorkingDirectory = submoduleContentPath,
                     EnvironmentVariables = gitEnvs,
                 },
@@ -1327,8 +1327,8 @@
                             new ProcessSpecification
                             {
                                 FilePath = robocopy,
-                                Arguments = new[]
-                                {
+                                Arguments =
+                                [
                                     folder,
                                     repositoryPath,
                                     "/E",
@@ -1339,7 +1339,7 @@
                                     "/NP",
                                     "/NJH",
                                     "/NJS"
-                                },
+                                ],
                                 WorkingDirectory = repositoryPath,
                             },
                             CaptureSpecification.Silence,
@@ -1392,7 +1392,7 @@
                         new ProcessSpecification
                         {
                             FilePath = gitDependenciesPath,
-                            Arguments = Array.Empty<string>(),
+                            Arguments = Array.Empty<LogicalProcessArgument>(),
                             WorkingDirectory = repositoryPath,
                             EnvironmentVariables = new Dictionary<string, string>
                             {

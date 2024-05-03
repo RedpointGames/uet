@@ -6,6 +6,7 @@
     using Redpoint.OpenGE.Component.Dispatcher.TaskDescriptorFactories.Clang;
     using Redpoint.OpenGE.Component.Dispatcher.TaskDescriptorFactories.Msvc;
     using Redpoint.OpenGE.Protocol;
+    using Redpoint.ProcessExecution;
     using System.Text.Json;
     using System.Threading.Tasks;
 
@@ -15,17 +16,20 @@
         private readonly LocalTaskDescriptorFactory _localTaskDescriptorFactory;
         private readonly IMsvcResponseFileParser _msvcResponseFileParser;
         private readonly ICommonPlatformDefines _commonPlatformDefines;
+        private readonly IProcessArgumentParser _processArgumentParser;
 
         public RemoteClangTaskDescriptorFactory(
             ILogger<RemoteClangTaskDescriptorFactory> logger,
             LocalTaskDescriptorFactory localTaskDescriptorFactory,
             IMsvcResponseFileParser msvcResponseFileParser,
-            ICommonPlatformDefines commonPlatformDefines)
+            ICommonPlatformDefines commonPlatformDefines,
+            IProcessArgumentParser processArgumentParser)
         {
             _logger = logger;
             _localTaskDescriptorFactory = localTaskDescriptorFactory;
             _msvcResponseFileParser = msvcResponseFileParser;
             _commonPlatformDefines = commonPlatformDefines;
+            _processArgumentParser = processArgumentParser;
         }
 
         public override string PreparationOperationDescription => "parsing headers";
@@ -42,19 +46,19 @@
         {
             if (_recognisedClangCompilers.Contains(Path.GetFileName(spec.Tool.Path)))
             {
-                if (spec.Arguments.Any(x => x.StartsWith("-p=", StringComparison.Ordinal)) &&
-                    spec.Arguments.Any(x => !x.StartsWith('-') &&
-                        (x.EndsWith(".cpp", StringComparison.Ordinal) || x.EndsWith(".c", StringComparison.Ordinal))))
+                if (spec.Arguments.Any(x => x.LogicalValue.StartsWith("-p=", StringComparison.Ordinal)) &&
+                    spec.Arguments.Any(x => !x.LogicalValue.StartsWith('-') &&
+                        (x.LogicalValue.EndsWith(".cpp", StringComparison.Ordinal) || x.LogicalValue.EndsWith(".c", StringComparison.Ordinal))))
                 {
                     var compileCommandDatabase = spec.Arguments
-                        .Where(x => x.StartsWith("-p=", StringComparison.Ordinal))
-                        .Select(x => x.Split('=', 2)[1])
+                        .Where(x => x.LogicalValue.StartsWith("-p=", StringComparison.Ordinal))
+                        .Select(x => x.LogicalValue.Split('=', 2)[1])
                         .First();
                     var inputFile = spec.Arguments
-                        .Where(x => !x.StartsWith('-') && (x.EndsWith(".cpp", StringComparison.Ordinal) || x.EndsWith(".c", StringComparison.Ordinal)))
+                        .Where(x => !x.LogicalValue.StartsWith('-') && (x.LogicalValue.EndsWith(".cpp", StringComparison.Ordinal) || x.LogicalValue.EndsWith(".c", StringComparison.Ordinal)))
                         .First();
                     if (File.Exists(compileCommandDatabase) &&
-                        File.Exists(inputFile))
+                        File.Exists(inputFile.LogicalValue))
                     {
                         return 1000;
                     }
@@ -78,8 +82,8 @@
             }
 
             var luaScriptFiles = spec.Arguments
-                .Where(x => x.StartsWith("--lua-script-path=", StringComparison.Ordinal))
-                .Select(x => x.Split('=', 2)[1])
+                .Where(x => x.LogicalValue.StartsWith("--lua-script-path=", StringComparison.Ordinal))
+                .Select(x => x.LogicalValue.Split('=', 2)[1])
                 .Select(x =>
                 {
                     if (!Path.IsPathRooted(x))
@@ -90,8 +94,8 @@
                 })
                 .ToArray();
             var compileCommandDatabase = spec.Arguments
-                .Where(x => x.StartsWith("-p=", StringComparison.Ordinal))
-                .Select(x => x.Split('=', 2)[1])
+                .Where(x => x.LogicalValue.StartsWith("-p=", StringComparison.Ordinal))
+                .Select(x => x.LogicalValue.Split('=', 2)[1])
                 .Select(x =>
                 {
                     if (!Path.IsPathRooted(x))
@@ -102,19 +106,19 @@
                 })
                 .First();
             var inputFile = spec.Arguments
-                .Where(x => !x.StartsWith('-') && (x.EndsWith(".cpp", StringComparison.Ordinal) || x.EndsWith(".c", StringComparison.Ordinal)))
+                .Where(x => !x.LogicalValue.StartsWith('-') && (x.LogicalValue.EndsWith(".cpp", StringComparison.Ordinal) || x.LogicalValue.EndsWith(".c", StringComparison.Ordinal)))
                 .Select(x =>
                 {
-                    if (!Path.IsPathRooted(x))
+                    if (!Path.IsPathRooted(x.LogicalValue))
                     {
-                        return Path.Combine(spec.WorkingDirectory, x);
+                        return Path.Combine(spec.WorkingDirectory, x.LogicalValue);
                     }
-                    return x;
+                    return x.LogicalValue;
                 })
                 .First();
             var touchPathFile = spec.Arguments
-                .Where(x => x.StartsWith("--touch-path=", StringComparison.Ordinal))
-                .Select(x => x.Split('=', 2)[1])
+                .Where(x => x.LogicalValue.StartsWith("--touch-path=", StringComparison.Ordinal))
+                .Select(x => x.LogicalValue.Split('=', 2)[1])
                 .Select(x =>
                 {
                     if (!Path.IsPathRooted(x))
@@ -143,8 +147,8 @@
             {
                 return await DelegateToLocalExecutor().ConfigureAwait(false);
             }
-            var commandArguments = CommandLineArgumentSplitter.SplitArguments(compileCommand.Command!);
-            var responseFile = commandArguments.FirstOrDefault(x => x.StartsWith('@'));
+            var commandArguments = _processArgumentParser.SplitArguments(compileCommand.Command!);
+            var responseFile = commandArguments.FirstOrDefault(x => x.LogicalValue.StartsWith('@'))?.LogicalValue;
             if (responseFile == null)
             {
                 return await DelegateToLocalExecutor().ConfigureAwait(false);
@@ -165,9 +169,9 @@
                 }
             };
             _commonPlatformDefines.ApplyDefines("Win64", compilerArchitype);
-            foreach (var arg in commandArguments.Where(x => x.StartsWith("/D", StringComparison.Ordinal)))
+            foreach (var arg in commandArguments.Where(x => x.LogicalValue.StartsWith("/D", StringComparison.Ordinal)))
             {
-                var define = arg[2..].Split('=', 2);
+                var define = arg.LogicalValue[2..].Split('=', 2);
                 if (define.Length == 1)
                 {
                     compilerArchitype.TargetPlatformNumericDefines.Add(define[0], 1);
@@ -235,7 +239,11 @@
             // Return the remote task descriptor.
             var descriptor = new RemoteTaskDescriptor();
             descriptor.ToolLocalAbsolutePath = spec.Tool.Path;
-            descriptor.Arguments.AddRange(spec.Arguments);
+            descriptor.Arguments.AddRange(spec.Arguments.Select(x => new ProcessArgument
+            {
+                LogicalValue = x.LogicalValue,
+                OriginalValue = x.OriginalValue,
+            }));
             descriptor.EnvironmentVariables.MergeFrom(environmentVariables);
             descriptor.WorkingDirectoryAbsolutePath = spec.WorkingDirectory;
             descriptor.UseFastLocalExecution = guaranteedToExecuteLocally;

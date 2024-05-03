@@ -113,15 +113,15 @@
                 new ProcessSpecification
                 {
                     FilePath = "/usr/bin/hdiutil",
-                    Arguments = new List<string>
-                    {
+                    Arguments =
+                    [
                         "mount",
                         packagePath,
                         "-mountpoint",
                         _mountPath,
                         "-shadow",
                         Path.Combine(writeStoragePath, $"uefs-{(persistenceMode == WriteScratchPersistence.Keep ? "keep" : "discard")}.shadow"),
-                    }
+                    ]
                 },
                 CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                 {
@@ -152,14 +152,14 @@
                     new ProcessSpecification
                     {
                         FilePath = "/usr/bin/hdiutil",
-                        Arguments = new List<string>
-                        {
+                        Arguments =
+                        [
                             // note: 'unmount' doesn't detach the 
                             // disk and leaves it locked, so we use 'detach'
                             "detach",
                             _mountPath!,
                             "-force",
-                        }
+                        ]
                     },
                     CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                     {
