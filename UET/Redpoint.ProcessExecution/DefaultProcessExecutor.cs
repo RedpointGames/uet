@@ -14,22 +14,16 @@
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<DefaultProcessExecutor> _logger;
+        private readonly IProcessArgumentParser _processArgumentParser;
 
         public DefaultProcessExecutor(
             IServiceProvider serviceProvider,
-            ILogger<DefaultProcessExecutor> logger)
+            ILogger<DefaultProcessExecutor> logger,
+            IProcessArgumentParser processArgumentParser)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
-        }
-
-        private string EscapeArgumentForLogging(string argument)
-        {
-            if (!argument.Contains(' ', StringComparison.Ordinal))
-            {
-                return argument;
-            }
-            return $"\"{argument.Replace("\\", "\\\\", StringComparison.Ordinal)}\"";
+            _processArgumentParser = processArgumentParser;
         }
 
         public async Task<int> ExecuteAsync(
@@ -80,9 +74,16 @@
                 {
                     startInfo.WorkingDirectory = processSpecification.WorkingDirectory;
                 }
-                foreach (var arg in argumentsEvaluated)
+                if (OperatingSystem.IsWindows())
                 {
-                    startInfo.ArgumentList.Add(arg);
+                    startInfo.Arguments = _processArgumentParser.JoinArguments(argumentsEvaluated);
+                }
+                else
+                {
+                    foreach (var arg in argumentsEvaluated)
+                    {
+                        startInfo.ArgumentList.Add(arg.LogicalValue);
+                    }
                 }
                 if (processSpecification.EnvironmentVariables != null)
                 {
@@ -100,7 +101,7 @@
                 }
                 if (enableTracing)
                 {
-                    _logger.LogTrace($"{executionId}: Starting process: {EscapeArgumentForLogging(processSpecification.FilePath)} {string.Join(" ", argumentsEvaluated.Select(EscapeArgumentForLogging))}");
+                    _logger.LogTrace($"{executionId}: Starting process: {_processArgumentParser.CreateArgumentFromLogicalValue(processSpecification.FilePath).ToString()} {string.Join(" ", argumentsEvaluated.Select(x => x.ToString()))}");
                 }
                 var process = Process.Start(startInfo);
                 if (process == null)

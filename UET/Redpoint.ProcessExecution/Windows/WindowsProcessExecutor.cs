@@ -32,24 +32,18 @@
         private readonly ILogger<WindowsProcessExecutor> _logger;
         private readonly IServiceProvider _serviceProvider;
         private readonly DefaultProcessExecutor _fallbackExecutor;
+        private readonly IProcessArgumentParser _processArgumentParser;
 
         public WindowsProcessExecutor(
             ILogger<WindowsProcessExecutor> logger,
             IServiceProvider serviceProvider,
-            DefaultProcessExecutor fallbackExecutor)
+            DefaultProcessExecutor fallbackExecutor,
+            IProcessArgumentParser processArgumentParser)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
             _fallbackExecutor = fallbackExecutor;
-        }
-
-        private string EscapeArgumentForLogging(string argument)
-        {
-            if (!argument.Contains(' ', StringComparison.Ordinal))
-            {
-                return argument;
-            }
-            return $"\"{argument.Replace("\\", "\\\\", StringComparison.Ordinal)}\"";
+            _processArgumentParser = processArgumentParser;
         }
 
         public Task<int> ExecuteAsync(
@@ -105,9 +99,11 @@
                     commandLine.Append('"');
                 }
                 var argumentsEvaluated = processSpecification.Arguments.ToArray();
-                foreach (var arg in argumentsEvaluated)
+                var argumentsString = _processArgumentParser.JoinArguments(argumentsEvaluated);
+                if (!string.IsNullOrWhiteSpace(argumentsString))
                 {
-                    PasteArguments.AppendArgument(ref commandLine, arg);
+                    commandLine.Append(' ');
+                    commandLine.Append(argumentsString);
                 }
                 _logger.LogTrace($"WindowsProcessExecutor is executing with command line: {commandLine}");
 
@@ -338,7 +334,7 @@
                     standardError = new StreamReader(new FileStream(parentErrorPipeHandle!, FileAccess.Read, 4096, false), enc, true, 4096);
                 }
 
-                _logger.LogTrace($"Starting process: {EscapeArgumentForLogging(processSpecification.FilePath)} {string.Join(" ", argumentsEvaluated.Select(EscapeArgumentForLogging))}");
+                _logger.LogTrace($"Starting process: {_processArgumentParser.CreateArgumentFromLogicalValue(processSpecification.FilePath).ToString()} {string.Join(" ", argumentsEvaluated.Select(x => x.ToString()))}");
 
                 if (procSH.IsInvalid)
                 {
