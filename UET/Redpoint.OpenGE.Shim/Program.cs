@@ -122,10 +122,14 @@ rootCommand.SetHandler(async (InvocationContext context) =>
                         switch (taskOutput.OutputCase)
                         {
                             case TaskOutputResponse.OutputOneofCase.StandardOutputLine:
-                                WriteLine(taskOutput.StandardOutputLine);
+                                // @note: We do not use the WriteLine wrapper here, as the prefix
+                                // causes Visual Studio to not pick up "error" and "warning" messages.
+                                Console.WriteLine(taskOutput.StandardOutputLine);
                                 break;
                             case TaskOutputResponse.OutputOneofCase.StandardErrorLine:
-                                WriteLine(taskOutput.StandardErrorLine);
+                                // @note: We do not use the WriteLine wrapper here, as the prefix
+                                // causes Visual Studio to not pick up "error" and "warning" messages.
+                                Console.Error.WriteLine(taskOutput.StandardErrorLine);
                                 break;
                         }
                         break;
