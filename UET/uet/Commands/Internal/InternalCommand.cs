@@ -10,6 +10,7 @@
     using UET.Commands.Internal.InspectSnmp;
     using UET.Commands.Internal.InstallPlatformSdk;
     using UET.Commands.Internal.OpenGE;
+    using UET.Commands.Internal.OpenGELexer;
     using UET.Commands.Internal.OpenGEPreprocessorCache;
     using UET.Commands.Internal.RemoveStalePrecompiledHeaders;
     using UET.Commands.Internal.ReparentAdditionalPropertiesInTargets;
@@ -50,6 +51,7 @@
                 RemoveStalePrecompiledHeadersCommand.CreateRemoveStalePrecompiledHeadersCommand(),
                 InstallPlatformSdkCommand.CreateInstallPlatformSdkCommand(),
                 OpenGECommand.CreateOpenGECommand(),
+                OpenGELexerCommand.CreateOpenGELexerCommand(),
                 OpenGEPreprocessorCacheCommand.CreateOpenGEPreprocessorCacheCommand(),
                 OpenGEPreprocessorCacheClientCommand.CreateOpenGEPreprocessorCacheClientCommand(),
                 RunDriveMappedProcessCommand.CreateRunDriveMappedProcessCommand(),

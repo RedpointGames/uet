@@ -75,8 +75,8 @@
         {
             if (directParent.ContainingType == null)
             {
-                return new[] 
-                { 
+                return new[]
+                {
                     new LexerTokenizerClassEntry
                     {
                         Name = directParent.Name,
@@ -160,13 +160,13 @@
                                 /// </summary>
                                 /// <param name="span">The reference to the span to attempt to consume the token from.</param>
                                 /// <param name="cursor">The cursor that stores information about the number of characters and newlines processed. No special initialization is needed for a cursor; you simply declare a <see cref="LexerCursor" /> on the stack and pass it in by reference.</param>
-                                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                                 /// <returns>A span that contains the token consumed from the span, or an empty span.</returns>
+                                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                                 {{generationSpec.AccessibilityModifiers}} static partial {{returnType}} {{generationSpec.MethodName}}(ref ReadOnlySpan<char> span, ref LexerCursor cursor)
                                 {
                                 """.WithIndent(indent));
                             GenerateLexingCode(
-                                sourceBuilder, 
+                                sourceBuilder,
                                 generationSpec.TokenizerPattern.AsSpan(),
                                 generationSpec.PermitNewlineContinuations,
                                 indent + 4);
@@ -193,7 +193,7 @@
         }
 
         private static void GenerateLexingCode(
-            StringBuilder sourceBuilder, 
+            StringBuilder sourceBuilder,
             ReadOnlySpan<char> pattern,
             bool permitNewlineContinuations,
             int indent)
@@ -388,7 +388,7 @@
                     }
                     if (match.Max.HasValue)
                     {
-                        onOneFind = 
+                        onOneFind =
                             $$"""
                             findCount++;
                             if (findCount == {{match.Max}})
@@ -426,7 +426,7 @@
                     }
                     else
                     {
-                        onOneFind = 
+                        onOneFind =
                             $$"""
                             goto Segment{{i}}Retry;
                             """;
@@ -437,7 +437,7 @@
                     }
                 }
                 else
-                { 
+                {
                     if (match.Min == 0)
                     {
                         onOneNoFind = $"goto Segment{i + 1};";
