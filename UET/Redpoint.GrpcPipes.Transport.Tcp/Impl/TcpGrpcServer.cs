@@ -298,7 +298,7 @@
 
         public override void AddMethod<TRequest, TResponse>(
             Method<TRequest, TResponse> method,
-            UnaryServerMethod<TRequest, TResponse> handler)
+            UnaryServerMethod<TRequest, TResponse>? handler)
         {
             ArgumentNullException.ThrowIfNull(method);
             _callHandlers[method.FullName] = async (incomingCall) =>
@@ -306,13 +306,13 @@
                 await ProcessUnaryCallAsync(
                     incomingCall,
                     method,
-                    handler).ConfigureAwait(false);
+                    handler!).ConfigureAwait(false);
             };
         }
 
         public override void AddMethod<TRequest, TResponse>(
             Method<TRequest, TResponse> method,
-            ClientStreamingServerMethod<TRequest, TResponse> handler)
+            ClientStreamingServerMethod<TRequest, TResponse>? handler)
         {
             ArgumentNullException.ThrowIfNull(method);
             _callHandlers[method.FullName] = async (incomingCall) =>
@@ -320,13 +320,13 @@
                 await ProcessClientStreamingCallAsync(
                     incomingCall,
                     method,
-                    handler).ConfigureAwait(false);
+                    handler!).ConfigureAwait(false);
             };
         }
 
         public override void AddMethod<TRequest, TResponse>(
             Method<TRequest, TResponse> method,
-            ServerStreamingServerMethod<TRequest, TResponse> handler)
+            ServerStreamingServerMethod<TRequest, TResponse>? handler)
         {
             ArgumentNullException.ThrowIfNull(method);
             _callHandlers[method.FullName] = async (incomingCall) =>
@@ -334,13 +334,13 @@
                 await ProcessServerStreamingCallAsync(
                     incomingCall,
                     method,
-                    handler).ConfigureAwait(false);
+                    handler!).ConfigureAwait(false);
             };
         }
 
         public override void AddMethod<TRequest, TResponse>(
             Method<TRequest, TResponse> method,
-            DuplexStreamingServerMethod<TRequest, TResponse> handler)
+            DuplexStreamingServerMethod<TRequest, TResponse>? handler)
         {
             ArgumentNullException.ThrowIfNull(method);
             _callHandlers[method.FullName] = async (incomingCall) =>
@@ -348,7 +348,7 @@
                 await ProcessDuplexStreamingCallAsync(
                     incomingCall,
                     method,
-                    handler).ConfigureAwait(false);
+                    handler!).ConfigureAwait(false);
             };
         }
 

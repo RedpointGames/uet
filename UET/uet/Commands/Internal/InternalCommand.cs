@@ -26,6 +26,7 @@
     using UET.Commands.Internal.UpdateCopyrightHeadersForMarketplace;
     using UET.Commands.Internal.UpdateUPlugin;
     using UET.Commands.Internal.UploadToBackblazeB2;
+    using UET.Commands.Internal.WakeOnLan;
 
     internal sealed class InternalCommand
     {
@@ -60,6 +61,7 @@
                 RunRemoteCommand.CreateRunRemoteCommand(),
                 InspectSnmpCommand.CreateInspectSnmpCommand(),
                 ReparentAdditionalPropertiesInTargetsCommand.CreateReparentAdditionalPropertiesInTargetsCommand(),
+                WakeOnLanCommand.CreateWakeOnLanCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
