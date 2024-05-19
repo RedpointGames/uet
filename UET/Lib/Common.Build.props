@@ -34,4 +34,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <Target Name="InstallMacBuildDependencies" BeforeTargets="ResolvePackageAssets;_LoadRestoreGraphEntryPoints">
+    <!-- Install Rosetta 2 if necessary, as this is required to run protoc on macOS (it only ships x64). -->
+    <Exec Command="/usr/sbin/softwareupdate --install-rosetta --agree-to-license" Condition="!$([MSBuild]::IsOSPlatform('Windows')) and Exists('/usr/sbin/softwareupdate') and !Exists('/Library/Apple/usr/share/rosetta/rosetta')" />
+  </Target>
+
 </Project>
