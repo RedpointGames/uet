@@ -1,8 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Target Name="BuildAndReferenceNupkg" BeforeTargets="ResolvePackageAssets;_LoadRestoreGraphEntryPoints">
+    <Exec Command="/opt/homebrew/bin/brew install mono" Condition="!$([MSBuild]::IsOSPlatform('Windows')) and Exists('/opt/homebrew/bin/brew') and !Exists('/opt/homebrew/bin/mono')" />
     <PropertyGroup>
-      <NugetPath>mono &quot;$(MSBuildThisFileDirectory)nuget.exe&quot;</NugetPath>
+      <NugetPath>/opt/homebrew/bin/mono &quot;$(MSBuildThisFileDirectory)nuget.exe&quot;</NugetPath>
       <NugetPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">&quot;$(MSBuildThisFileDirectory)nuget.exe&quot;</NugetPath>
     </PropertyGroup>
     <DownloadFile SourceUrl="https://dist.nuget.org/win-x86-commandline/latest/nuget.exe" DestinationFolder="$(MSBuildThisFileDirectory)" Condition="!Exists('$(MSBuildThisFileDirectory)/nuget.exe') and !Exists('$(MSBuildThisFileDirectory)/bin/Redpoint.Logging.Mac.Native.$(PackageVersion).nupkg')" />
