@@ -5,7 +5,7 @@
     /// specified method as a tokenizer, which takes a reference
     /// to a <see cref="ReadOnlySpan{T}"/> pointing to the start of
     /// the token and returns the tokenized <see cref="ReadOnlySpan{T}"/>
-    /// (or <see cref="LexerFragment"/> if <see cref="PermitNewlineContinuationsAttribute"/> 
+    /// (or <see cref="LexerFragmentUtf16"/> if <see cref="PermitNewlineContinuationsAttribute"/> 
     /// is also set).
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]

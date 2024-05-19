@@ -28,9 +28,9 @@
                 // We only contain whitespace (no C++ comment either).
                 return -1;
             }
-            rangeToScan.Consume(firstNonWhitespace, ref skip);
+            rangeToScan.ConsumeUtf16(firstNonWhitespace, ref skip);
 
-            if (rangeToScan.ConsumeNewlineContinuations(ref skip) != 0)
+            if (rangeToScan.ConsumeNewlineContinuationsUtf16(ref skip) != 0)
             {
                 // We skipped over at least one newline continuation, go back
                 // to whitespace scanning.
@@ -41,12 +41,12 @@
             // The only thing permitted is the start of a multi-line comment, so try
             // to consume it.
             var startSequenceContainsNewlines = false;
-            if (rangeToScan.TryConsumeSequence("/*", ref skip, ref startSequenceContainsNewlines, true))
+            if (rangeToScan.TryConsumeSequenceUtf16("/*", ref skip, ref startSequenceContainsNewlines, true))
             {
                 // Start trying to find the end of the multi-line comment.
                 goto SlashScan;
             }
-            if (rangeToScan.TryConsumeSequence("//", ref skip, ref startSequenceContainsNewlines, true))
+            if (rangeToScan.TryConsumeSequenceUtf16("//", ref skip, ref startSequenceContainsNewlines, true))
             {
                 // Go past the end of this line. It can't be continued.
                 var endOfLine = rangeToScan.IndexOf('\n');
@@ -72,20 +72,20 @@
                 goto StarScan;
             }
 
-            var previousChar = rangeToScan.IndexOfAnyBeforeNewlineContinuations(nextSlash);
+            var previousChar = rangeToScan.IndexOfAnyBeforeNewlineContinuationsUtf16(nextSlash);
             if (previousChar == -1 || rangeToScan[previousChar] != '*')
             {
                 // The character before the slash was not a '*'. Skip to
                 // the first star we find (instead of checking for the
                 // next slash; this avoids worst case sequences like '/////').
-                rangeToScan.Consume(nextSlash + 1, ref skip);
+                rangeToScan.ConsumeUtf16(nextSlash + 1, ref skip);
                 goto StarScan;
             }
 
             // We're concluding a multi-line comment. After the end of
             // the multi-line comment, we then need to continue checking
             // for whitespace or more multi-line comments.
-            rangeToScan.Consume(nextSlash + 1, ref skip);
+            rangeToScan.ConsumeUtf16(nextSlash + 1, ref skip);
             goto StartScanning;
         StarScan:
             var nextStar = rangeToScan.IndexOf('*');
@@ -98,20 +98,20 @@
             }
             var afterStarSpan = rangeToScan.Slice(nextStar + 1);
             LexerCursor afterStarNewlineContinuationsConsumed = default;
-            afterStarSpan.ConsumeNewlineContinuations(ref afterStarNewlineContinuationsConsumed);
+            afterStarSpan.ConsumeNewlineContinuationsUtf16(ref afterStarNewlineContinuationsConsumed);
             if (afterStarSpan[0] != '/')
             {
                 // No slash after the star. Skip to the first slash we
                 // find (instead of checking for the next star;
                 // this avoids worst case sequences like '******/').
-                rangeToScan.Consume(nextStar + 1, ref skip);
+                rangeToScan.ConsumeUtf16(nextStar + 1, ref skip);
                 goto SlashScan;
             }
 
             // We're concluding a multi-line comment. After the end of
             // the multi-line comment, we then need to continue checking
             // for whitespace or more multi-line comments.
-            rangeToScan.Consume(
+            rangeToScan.ConsumeUtf16(
                 nextStar + 1 + afterStarNewlineContinuationsConsumed.CharactersConsumed + 1,
                 ref skip);
             goto StartScanning;

@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Lexer.Tests
 {
     using System;
+    using System.Text;
     using Xunit;
 
     public class SpanExtensionsTests
@@ -14,11 +15,22 @@
         [InlineData("", 4, "test", 4)]
         public void Consume(string expectedResult, int expectedConsumed, string source, int consume)
         {
-            var actualResult = source.AsSpan();
-            LexerCursor actualConsumed = default;
-            actualResult.Consume(consume, ref actualConsumed);
-            Assert.Equal(expectedResult, actualResult.ToString());
-            Assert.Equal(expectedConsumed, actualConsumed.CharactersConsumed);
+            {
+                var actualResult = source.AsSpan();
+                LexerCursor actualConsumed = default;
+                actualResult.ConsumeUtf16(consume, ref actualConsumed);
+                Assert.Equal(expectedResult, actualResult.ToString());
+                Assert.Equal(expectedConsumed, actualConsumed.CharactersConsumed);
+            }
+
+            {
+                var expectedResultUtf8 = new ReadOnlySpan<byte>(Encoding.UTF8.GetBytes(expectedResult));
+                var actualResultUtf8 = new ReadOnlySpan<byte>(Encoding.UTF8.GetBytes(source));
+                LexerCursor actualConsumedUtf8 = default;
+                actualResultUtf8.ConsumeUtf8(consume, ref actualConsumedUtf8);
+                Assert.Equal(expectedResult, actualResultUtf8.ToString());
+                Assert.Equal(expectedConsumed, actualConsumedUtf8.CharactersConsumed);
+            }
         }
 
         [Theory]
@@ -31,7 +43,7 @@
             {
                 var actualResult = source.AsSpan();
                 LexerCursor actualConsumed = default;
-                actualResult.Consume(consume, ref actualConsumed);
+                actualResult.ConsumeUtf16(consume, ref actualConsumed);
             });
         }
 
@@ -51,7 +63,7 @@
         {
             var actualResult = source.AsSpan();
             LexerCursor actualConsumed = default;
-            actualResult.ConsumeNewlineContinuations(ref actualConsumed);
+            actualResult.ConsumeNewlineContinuationsUtf16(ref actualConsumed);
             Assert.Equal(expectedResult, actualResult.ToString());
             Assert.Equal(expectedConsumed, actualConsumed.CharactersConsumed);
         }
@@ -65,7 +77,7 @@
         public void IndexOfAnyBeforeNewlineContinuations(int expectedPosition, string source, int startPosition)
         {
             var span = source.AsSpan();
-            var actualPosition = span.IndexOfAnyBeforeNewlineContinuations(startPosition);
+            var actualPosition = span.IndexOfAnyBeforeNewlineContinuationsUtf16(startPosition);
             Assert.Equal(expectedPosition, actualPosition);
         }
 
@@ -85,7 +97,7 @@
             var actualResult = source.AsSpan();
             LexerCursor actualConsumed = default;
             var containsNewlineContinuations = false;
-            var actualOutcome = actualResult.TryConsumeSequence(sequence, ref actualConsumed, ref containsNewlineContinuations);
+            var actualOutcome = actualResult.TryConsumeSequenceUtf16(sequence, ref actualConsumed, ref containsNewlineContinuations);
             Assert.Equal(expectedOutcome, actualOutcome);
             Assert.Equal(expectedResult, actualResult.ToString());
             Assert.Equal(expectedConsumed, actualConsumed.CharactersConsumed);

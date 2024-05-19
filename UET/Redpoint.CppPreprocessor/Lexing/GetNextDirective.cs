@@ -47,7 +47,7 @@
                         // treat it as a directive. Consume more characters until we get
                         // a true newline terminator.
                         var contentJump = somethingInterestingIndex + 1;
-                        localRange.Consume(contentJump, ref localCursor);
+                        localRange.ConsumeUtf16(contentJump, ref localCursor);
                         goto ConsumeUntilTrueNewline;
                     }
                     // We've got the hash required for a directive. Find the start of the
@@ -63,7 +63,7 @@
                     // Regardless of the next character, we're either skipping to the start
                     // of the directive name because it's the end of a line and we're going
                     // to restart scanning, or we're going to try and consume a directive name.
-                    localRange.Consume(somethingInterestingIndex + 1 + startOfDirectiveNameIndex, ref localCursor);
+                    localRange.ConsumeUtf16(somethingInterestingIndex + 1 + startOfDirectiveNameIndex, ref localCursor);
                     if (startOfDirectiveName == '\r' || startOfDirectiveName == '\n')
                     {
                         // We got a newline (without a '\' for line continuation), so this
@@ -91,13 +91,13 @@
                         // This slash doesn't belong to a comment, so it makes it something
                         // not interesting. We move past it so that we can search again for 
                         // something interesting.
-                        localRange.Consume(1, ref localCursor);
+                        localRange.ConsumeUtf16(1, ref localCursor);
                     }
                     else
                     {
                         // Consume the comment and scan again, in case the comment doesn't end with
                         // something interesting again.
-                        localRange.Consume(sizeOfCommentAndWhitespace, ref localCursor);
+                        localRange.ConsumeUtf16(sizeOfCommentAndWhitespace, ref localCursor);
                     }
                     goto StartScanning;
                 case '\r':
@@ -120,7 +120,7 @@
                         // Just a random carriage return that is not part of a newline?
                         // This makes it a non-preprocessor line so just consume until
                         // we get to a true newline again.
-                        localRange.Consume(somethingInterestingIndex + 1, ref localCursor);
+                        localRange.ConsumeUtf16(somethingInterestingIndex + 1, ref localCursor);
                         goto ConsumeUntilTrueNewline;
                     }
                 case '\n':
@@ -141,7 +141,7 @@
                             // A whitespace or comment line continuing into a
                             // potential directive. Restart scanning from the start
                             // of the new line.
-                            localRange.Consume(
+                            localRange.ConsumeUtf16(
                                 somethingInterestingIndex + (somethingInteresting == '\r' ? 2 : 1),
                                 ref localCursor);
                             goto StartScanning;
@@ -151,7 +151,7 @@
                             // This line had non-preprocessor content on it, so we need
                             // to wait for a true newline terminator from the next line
                             // onwards.
-                            localRange.Consume(
+                            localRange.ConsumeUtf16(
                                 somethingInterestingIndex + (somethingInteresting == '\r' ? 2 : 1),
                                 ref localCursor);
                             goto ConsumeUntilTrueNewline;
@@ -161,7 +161,7 @@
                     {
                         // This is a true newline terminator. Skip past it and restart
                         // scanning on the next line.
-                        localRange.Consume(
+                        localRange.ConsumeUtf16(
                             somethingInterestingIndex + (somethingInteresting == '\r' ? 2 : 1),
                             ref localCursor);
                         goto StartScanning;
@@ -183,11 +183,11 @@
                 nextNewlineIndex >= 2 && localRange[nextNewlineIndex - 1] == '\r' && localRange[nextNewlineIndex - 2] == '\\')
             {
                 // Newline continuation, so this isn't a true newline.
-                localRange.Consume(nextNewlineIndex + 1, ref localCursor);
+                localRange.ConsumeUtf16(nextNewlineIndex + 1, ref localCursor);
                 goto ConsumeUntilTrueNewline;
             }
             // We've got a true newline. Jump over it and then restart scanning.
-            localRange.Consume(nextNewlineIndex + 1, ref localCursor);
+            localRange.ConsumeUtf16(nextNewlineIndex + 1, ref localCursor);
             goto StartScanning;
 
         ConsumeDirectiveAndArguments:
@@ -204,19 +204,19 @@
             if (startOfArguments == -1)
             {
                 // We got the directive, and then the file ended.
-                localRange.Consume(localRange.Length, ref localCursor);
+                localRange.ConsumeUtf16(localRange.Length, ref localCursor);
                 range = localRange;
                 cursor = localCursor;
                 return new DirectiveRange
                 {
                     Found = true,
-                    Directive = directiveName.Span.RelativeRangeWithin(originalContent),
+                    Directive = directiveName.Span.RelativeRangeWithinUtf16(originalContent),
                     DirectiveHasNewlineContinuations = directiveName.ContainsNewlineContinuations,
                 };
             }
 
             // Arguments end after the first non-continuation newline.
-            localRange.Consume(startOfArguments, ref localCursor);
+            localRange.ConsumeUtf16(startOfArguments, ref localCursor);
             var originalConsumed = localCursor.CharactersConsumed;
             var arguments = localRange;
         ConsumeMoreArguments:
@@ -225,15 +225,15 @@
                 nextNewline + 1 >= localRange.Length /* Newline character then end of file */)
             {
                 // We got some arguments, and then the file ended.
-                localRange.Consume(localRange.Length, ref localCursor);
+                localRange.ConsumeUtf16(localRange.Length, ref localCursor);
                 range = localRange;
                 cursor = localCursor;
                 return new DirectiveRange
                 {
                     Found = true,
-                    Directive = directiveName.Span.RelativeRangeWithin(originalContent),
+                    Directive = directiveName.Span.RelativeRangeWithinUtf16(originalContent),
                     DirectiveHasNewlineContinuations = directiveName.ContainsNewlineContinuations,
-                    Arguments = arguments.RelativeRangeWithin(originalContent),
+                    Arguments = arguments.RelativeRangeWithinUtf16(originalContent),
                 };
             }
             if ((nextNewline > 0 && localRange[nextNewline - 1] == '\\') ||
@@ -241,11 +241,11 @@
             {
                 // This newline belonged to a newline continuation. Consume
                 // that line and continue scanning from the start of this line.
-                localRange.Consume(nextNewline + 1, ref localCursor);
+                localRange.ConsumeUtf16(nextNewline + 1, ref localCursor);
                 goto ConsumeMoreArguments;
             }
             // This newline terminates the directive.
-            localRange.Consume(nextNewline + 1, ref localCursor);
+            localRange.ConsumeUtf16(nextNewline + 1, ref localCursor);
             range = localRange;
             cursor = localCursor;
             arguments = arguments
@@ -257,9 +257,9 @@
             return new DirectiveRange
             {
                 Found = true,
-                Directive = directiveName.Span.RelativeRangeWithin(originalContent),
+                Directive = directiveName.Span.RelativeRangeWithinUtf16(originalContent),
                 DirectiveHasNewlineContinuations = directiveName.ContainsNewlineContinuations,
-                Arguments = arguments.RelativeRangeWithin(originalContent),
+                Arguments = arguments.RelativeRangeWithinUtf16(originalContent),
             };
         }
     }

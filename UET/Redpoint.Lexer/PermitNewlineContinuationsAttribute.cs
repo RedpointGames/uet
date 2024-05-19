@@ -7,7 +7,7 @@
     /// this attribute is applied to a method, the generated lexer
     /// function will handle newline continuations anywhere in the
     /// scanned content. In this case, the method must return
-    /// <see cref="LexerFragment"/> instead of <see cref="ReadOnlySpan{T}"/>.
+    /// <see cref="LexerFragmentUtf16"/> instead of <see cref="ReadOnlySpan{T}"/>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     public sealed class PermitNewlineContinuationsAttribute : Attribute

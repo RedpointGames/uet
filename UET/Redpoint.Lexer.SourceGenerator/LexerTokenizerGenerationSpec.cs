@@ -9,5 +9,6 @@
         public LexerTokenizerClassEntry[] ContainingClasses;
         public string DeclaringFilename;
         public string AccessibilityModifiers;
+        public bool IsUtf8;
     }
 }

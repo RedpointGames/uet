@@ -12,6 +12,7 @@
         private const string _redpointLexerNamespace = "Redpoint.Lexer";
         private const string _lexerTokenizerAttributeFullName = "Redpoint.Lexer.LexerTokenizerAttribute";
         private const string _permitNewlineContinuationsAttributeFullName = "Redpoint.Lexer.PermitNewlineContinuationsAttribute";
+        private const string _isUtf8AttributeFullName = "Redpoint.Lexer.IsUtf8Attribute";
 
         private readonly List<LexerTokenizerGenerationSpec> _generationSpecs = new List<LexerTokenizerGenerationSpec>();
 
@@ -27,6 +28,7 @@
                 return;
             }
             var permitNewlineContinuations = false;
+            var isUtf8 = false;
             string? tokenizerPattern = null;
             foreach (var attributeData in declaredSymbol.GetAttributes())
             {
@@ -45,6 +47,9 @@
                                 tokenizerPattern = (string)ctorArgs[0].Value!;
                                 break;
                             }
+                        case _isUtf8AttributeFullName:
+                            isUtf8 = true;
+                            break;
                         case _permitNewlineContinuationsAttributeFullName:
                             permitNewlineContinuations = true;
                             break;
@@ -68,6 +73,7 @@
                 ContainingNamespaceName = declaredSymbol.ContainingNamespace.ToDisplayString(),
                 ContainingClasses = GetClassNameTree(declaredSymbol.ContainingType),
                 DeclaringFilename = Path.GetFileNameWithoutExtension(context.Node.SyntaxTree.FilePath),
+                IsUtf8 = isUtf8,
             });
         }
 
@@ -147,9 +153,15 @@
                             {
                                 first = false;
                             }
-                            var returnType = generationSpec.PermitNewlineContinuations
-                                ? "LexerFragment"
-                                : "ReadOnlySpan<char>";
+                            var returnType =
+                                generationSpec.IsUtf8
+                                    ? (generationSpec.PermitNewlineContinuations
+                                        ? "LexerFragmentUtf8"
+                                        : "ReadOnlySpan<byte>")
+                                    : (generationSpec.PermitNewlineContinuations
+                                        ? "LexerFragmentUtf16"
+                                        : "ReadOnlySpan<char>");
+                            var spanType = generationSpec.IsUtf8 ? "ReadOnlySpan<byte>" : "ReadOnlySpan<char>";
                             sourceBuilder.AppendLine(
                                 $$"""
                                 /// <summary>
@@ -162,13 +174,14 @@
                                 /// <param name="cursor">The cursor that stores information about the number of characters and newlines processed. No special initialization is needed for a cursor; you simply declare a <see cref="LexerCursor" /> on the stack and pass it in by reference.</param>
                                 /// <returns>A span that contains the token consumed from the span, or an empty span.</returns>
                                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                                {{generationSpec.AccessibilityModifiers}} static partial {{returnType}} {{generationSpec.MethodName}}(ref ReadOnlySpan<char> span, ref LexerCursor cursor)
+                                {{generationSpec.AccessibilityModifiers}} static partial {{returnType}} {{generationSpec.MethodName}}(ref {{spanType}} span, ref LexerCursor cursor)
                                 {
                                 """.WithIndent(indent));
                             GenerateLexingCode(
                                 sourceBuilder,
                                 generationSpec.TokenizerPattern.AsSpan(),
                                 generationSpec.PermitNewlineContinuations,
+                                generationSpec.IsUtf8,
                                 indent + 4);
                             sourceBuilder.AppendLine("}".WithIndent(indent));
                         }
@@ -196,8 +209,10 @@
             StringBuilder sourceBuilder,
             ReadOnlySpan<char> pattern,
             bool permitNewlineContinuations,
+            bool isUtf8,
             int indent)
         {
+            var utfSuffix = isUtf8 ? "Utf8" : "Utf16";
             string currentLiteral = string.Empty;
             List<(char start, char end)> currentRanges = new List<(char start, char end)>();
             var matches = new List<LexingMatch>();
@@ -357,7 +372,7 @@
                         match.Max.HasValue)
                     {
                         sourceBuilder.AppendLine(
-                            $"var findCount = 0;".WithIndent(indent));
+                            $"var findCount = 0; var findIndexCount = 0;".WithIndent(indent));
                     }
                     sourceBuilder.AppendLine(
                         $$"""
@@ -390,6 +405,7 @@
                     {
                         onOneFind =
                             $$"""
+                            findIndexCount += indexCount;
                             findCount++;
                             if (findCount == {{match.Max}})
                             {
@@ -416,6 +432,7 @@
                     {
                         onOneFind =
                             $$"""
+                            findIndexCount += indexCount;
                             findCount++;
                             goto Segment{{i}}Retry;
                             """;
@@ -457,11 +474,26 @@
                     {
                         sourceBuilder.AppendLine(
                             $$"""
-                            if (currentSpan.TryConsumeSequence(
+                            if (currentSpan.TryConsumeSequence{{utfSuffix}}(
                                 "{{match.Literal.Replace("\\", "\\\\")}}",
                                 ref localCursor,
                                 ref containsNewlineContinuations))
                             {
+                            {{onOneFind.WithIndent(4)}}
+                            }
+                            else
+                            {
+                            {{onOneNoFind.WithIndent(4)}}
+                            }
+                            """.WithIndent(indent));
+                    }
+                    else if (isUtf8)
+                    {
+                        sourceBuilder.AppendLine(
+                            $$"""
+                            if (currentSpan.CommonPrefixLength("{{match.Literal.Replace("\\", "\\\\")}}"u8) == ("{{match.Literal.Replace("\\", "\\\\")}}"u8).Length)
+                            {
+                                currentSpan.Consume{{utfSuffix}}({{match.Literal.Length}}, ref localCursor);
                             {{onOneFind.WithIndent(4)}}
                             }
                             else
@@ -478,7 +510,7 @@
                                 "{{match.Literal.Replace("\\", "\\\\")}}",
                                 StringComparison.Ordinal))
                             {
-                                currentSpan.Consume({{match.Literal.Length}}, ref localCursor);
+                                currentSpan.Consume{{utfSuffix}}({{match.Literal.Length}}, ref localCursor);
                             {{onOneFind.WithIndent(4)}}
                             }
                             else
@@ -487,6 +519,144 @@
                             }
                             """.WithIndent(indent));
                     }
+                }
+                else if (match.Ranges != null && isUtf8)
+                {
+                    sourceBuilder.AppendLine(
+                        $$"""
+                        if (currentSpan.IsEmpty)
+                        {
+                        {{onOneNoFind.WithIndent(4)}}
+                        }
+                        if (Rune.DecodeFromUtf8(currentSpan, out var character, out var bytesConsumed) != OperationStatus.Done)
+                        {
+                            throw new InvalidOperationException("Invalid UTF-8 character sequence.");
+                        }
+                        """.WithIndent(indent));
+                    if (permitNewlineContinuations)
+                    {
+                        sourceBuilder.AppendLine(
+                            $$"""
+                            if (character == SpanUtf8Extensions.BackslackRune)
+                            {
+                                if (currentSpan.ConsumeNewlineContinuations{{utfSuffix}}(ref localCursor) > 0)
+                                {
+                                    containsNewlineContinuations = true;
+                                }
+                                if (currentSpan.IsEmpty)
+                                {
+                                {{onOneNoFind.WithIndent(8)}}
+                                }
+                                if (Rune.DecodeFromUtf8(currentSpan, out character, out bytesConsumed) != OperationStatus.Done)
+                                {
+                                    throw new InvalidOperationException("Invalid UTF-8 character sequence.");
+                                }
+                            }
+                            """.WithIndent(indent));
+                    }
+                    for (var r = 0; r < match.Ranges.Count; r++)
+                    {
+                        var range = match.Ranges[r];
+                        if (range.start == range.end)
+                        {
+                            sourceBuilder.AppendLine(
+                                $$"""
+                                if (character == new Rune((char){{(int)range.start}}))
+                                {
+                                """.WithIndent(indent));
+                        }
+                        else
+                        {
+                            sourceBuilder.AppendLine(
+                                $$"""
+                                if (character >= new Rune((char){{(int)range.start}}) &&
+                                    character <= new Rune((char){{(int)range.end}}))
+                                {
+                                """.WithIndent(indent));
+                        }
+                        indent += 4;
+                        sourceBuilder.AppendLine(
+                            $$"""
+                            currentSpan.Consume{{utfSuffix}}(1, ref localCursor);
+                            """.WithIndent(indent));
+                        if (match.Max == 1)
+                        {
+                            sourceBuilder.AppendLine(onOneFind.WithIndent(indent));
+                        }
+                        else
+                        {
+                            if (match.Max.HasValue ||
+                                match.Min != 0)
+                            {
+                                sourceBuilder.AppendLine(
+                                    $$"""
+                                    findCount++;
+                                    """.WithIndent(indent));
+                            }
+                            if (range.start == range.end)
+                            {
+                                sourceBuilder.AppendLine(
+                                    $$"""
+                                    var sequenceLength = currentSpan.IndexOfAnyExcept((char){{(int)range.start}});
+                                    """.WithIndent(indent));
+                            }
+                            else
+                            {
+                                sourceBuilder.AppendLine(
+                                    $$"""
+                                    var sequenceLength = currentSpan.IndexOfAnyExceptInRange((char){{(int)range.start}}, (char){{(int)range.end}});
+                                    """.WithIndent(indent));
+                            }
+                            if (match.Max != null)
+                            {
+                                sourceBuilder.AppendLine(
+                                    $$"""
+                                    if (sequenceLength == -1)
+                                    {
+                                        sequenceLength = Math.Min(
+                                            currentSpan.Length,
+                                            {{match.Max}} - findCount);
+                                    }
+                                    else
+                                    {
+                                        sequenceLength = Math.Min(
+                                            sequenceLength,
+                                            {{match.Max}} - findCount);
+                                    }
+                                    """.WithIndent(indent));
+                            }
+                            else
+                            {
+                                sourceBuilder.AppendLine(
+                                    $$"""
+                                    if (sequenceLength == -1)
+                                    {
+                                        sequenceLength = currentSpan.Length;
+                                    }
+                                    """.WithIndent(indent));
+                            }
+                            if (match.Max.HasValue ||
+                                match.Min != 0)
+                            {
+                                sourceBuilder.AppendLine(
+                                    $$"""
+                                    findCount += sequenceLength;    
+                                    """.WithIndent(indent));
+                            }
+                            sourceBuilder.AppendLine(
+                                $$"""
+                                if (sequenceLength != 0)
+                                {
+                                    currentSpan.Consume(sequenceLength, ref localCursor);
+                                }
+                                {{onMultiFind}}
+                                """.WithIndent(indent));
+                        }
+                        indent -= 4;
+                        sourceBuilder.AppendLine(
+                            "}".WithIndent(indent));
+                    }
+                    sourceBuilder.AppendLine(onOneNoFind.WithIndent(indent));
                 }
                 else if (match.Ranges != null)
                 {

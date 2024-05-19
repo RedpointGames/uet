@@ -6,7 +6,7 @@
     /// <summary>
     /// Provides extension methods for <see cref="ReadOnlySpan{T}"/> that assist with lexing.
     /// </summary>
-    public static class SpanExtensions
+    public static class SpanUtf16Extensions
     {
         /// <summary>
         /// Consume the specified number of characters from the span, updating both the span
@@ -17,7 +17,7 @@
         /// <param name="cursor">The reference to the cursor that will be updated as part of consuming these characters.</param>
         /// <returns>The value of <paramref name="consume"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Consume(
+        public static int ConsumeUtf16(
             this ref ReadOnlySpan<char> span,
             int consume,
             ref LexerCursor cursor)
@@ -58,7 +58,7 @@
         /// <param name="cursor">The reference to the cursor that will be updated as part of consuming these characters.</param>
         /// <returns>The number of characters consumed by this call.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ConsumeNewlineContinuations(
+        public static int ConsumeNewlineContinuationsUtf16(
             this ref ReadOnlySpan<char> span,
             ref LexerCursor cursor)
         {
@@ -71,7 +71,7 @@
             }
             if (span[1] == '\n')
             {
-                consumed += span.Consume(2, ref cursor);
+                consumed += span.ConsumeUtf16(2, ref cursor);
                 // Attempt to consume again in case there are multiple newline
                 // continuations.
                 goto AttemptConsume;
@@ -80,7 +80,7 @@
                 span[1] == '\r' &&
                 span[2] == '\n')
             {
-                consumed += span.Consume(3, ref cursor);
+                consumed += span.ConsumeUtf16(3, ref cursor);
                 // Attempt to consume again in case there are multiple newline
                 // continuations.
                 goto AttemptConsume;
@@ -93,13 +93,13 @@
         /// character that isn't part of a newline continuation. That is, given a span that contains "abc\{lf}\{cr}{lf}XYZ" and a position pointing to "X", returns the position of "c".
         /// 
         /// This method should be rarely used as it is only required for reverse searching. Forward
-        /// searches should use <see cref="ConsumeNewlineContinuations(ref ReadOnlySpan{char}, ref LexerCursor)"/> instead.
+        /// searches should use <see cref="ConsumeNewlineContinuationsUtf16(ref ReadOnlySpan{char}, ref LexerCursor)"/> instead.
         /// </summary>
         /// <param name="span">The span to search inside.</param>
         /// <param name="startPosition">The start position to search at. The characters immediately prior to this must be newline continuations.</param>
         /// <returns>The index of the first character before potential newline continuations, or -1 if there is no non-newline-continuation character in the span prior to the provided index.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int IndexOfAnyBeforeNewlineContinuations(
+        public static int IndexOfAnyBeforeNewlineContinuationsUtf16(
             this ref readonly ReadOnlySpan<char> span,
             int startPosition)
         {
@@ -150,10 +150,10 @@
         /// <param name="sequence">The sequence to attempt to consume.</param>
         /// <param name="cursor">The reference to the cursor that will be updated as part of consuming these characters.</param>
         /// <param name="containsNewlineContinuations">This value will be set to true if the span contained newline continuations over the sequence.</param>
-        /// <param name="definitelyNotStartingWithNewlineContinuation">If true, the call to <see cref="ConsumeNewlineContinuations(ref ReadOnlySpan{char}, ref LexerCursor)"/> will be skipped for the first character.</param>
+        /// <param name="definitelyNotStartingWithNewlineContinuation">If true, the call to <see cref="ConsumeNewlineContinuationsUtf16(ref ReadOnlySpan{char}, ref LexerCursor)"/> will be skipped for the first character.</param>
         /// <returns>If true, <paramref name="span"/> has been updated to skip over the sequence and <paramref name="cursor"/> has been updated with the total number of characters (including newline continuations) skipped. If false, neither is modified.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryConsumeSequence(
+        public static bool TryConsumeSequenceUtf16(
             this ref ReadOnlySpan<char> span,
             ReadOnlySpan<char> sequence,
             ref LexerCursor cursor,
@@ -175,7 +175,7 @@
             {
                 // We did a quick "starts with" check to see if the literal sequence (without
                 // newline continuations) was found
-                span.Consume(sequence.Length, ref cursor);
+                span.ConsumeUtf16(sequence.Length, ref cursor);
                 return true;
             }
             var workingSpan = span;
@@ -184,7 +184,7 @@
         StepForward:
             if (!definitelyNotStartingWithNewlineContinuation || sequencePosition > 0)
             {
-                if (workingSpan.ConsumeNewlineContinuations(ref workingSpanConsumed) > 0)
+                if (workingSpan.ConsumeNewlineContinuationsUtf16(ref workingSpanConsumed) > 0)
                 {
                     containsNewlineContinuations = true;
                 }
@@ -195,7 +195,7 @@
                 return false;
             }
             sequencePosition++;
-            workingSpan.Consume(1, ref workingSpanConsumed);
+            workingSpan.ConsumeUtf16(1, ref workingSpanConsumed);
             if (sequencePosition == sequence.Length)
             {
                 // We've matched the sequence.
@@ -218,7 +218,7 @@
 #if !DEBUG
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-        public static LexerRange RelativeRangeWithin(
+        public static LexerRange RelativeRangeWithinUtf16(
             this ReadOnlySpan<char> child,
             ReadOnlySpan<char> parent)
         {
