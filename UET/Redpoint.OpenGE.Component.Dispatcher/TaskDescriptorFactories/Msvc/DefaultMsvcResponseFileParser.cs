@@ -8,6 +8,8 @@
     using Grpc.Core;
     using System.IO;
     using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
+    using Redpoint.CppPreprocessor.Parsing;
+    using System.Text.Json;
 
     internal class DefaultMsvcResponseFileParser : IMsvcResponseFileParser
     {
@@ -144,6 +146,23 @@
             {
                 // Delegate to the local executor.
                 return null;
+            }
+
+            // Generate a parse request and serialize it.
+            var parseRequest = new ParseRequest
+            {
+                InputPath = inputFile.FullName,
+                ForceIncludePaths = forceIncludeFiles.Select(x => x.FullName).ToArray(),
+                IncludeDirectoryPaths = includeDirectories.Select(x => x.FullName).ToArray(),
+                GlobalDefinitions = globalDefinitions,
+                CompilerIsClang = architype.CompilerCase == CompilerArchitype.CompilerOneofCase.Clang,
+                CompilerTargetPlatformStringDefinitions = architype.TargetPlatformStringDefines.ToDictionary(k => k.Key, v => v.Value),
+                CompilerTargetPlatformInt64Definitions = architype.TargetPlatformNumericDefines.ToDictionary(k => k.Key, v => v.Value),
+            };
+            {
+                using var writer = new StreamWriter(responseFilePath + ".uet.json");
+                await writer.WriteAsync(JsonSerializer.Serialize(parseRequest, ParseRequestJsonSerializerContext.Default.ParseRequest)).ConfigureAwait(false);
+                Console.WriteLine(responseFilePath + ".uet.json");
             }
 
             // Determine the dependent header files.

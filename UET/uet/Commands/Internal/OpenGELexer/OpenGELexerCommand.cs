@@ -7,6 +7,7 @@
     using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.Diagnostics;
     using System.IO.MemoryMappedFiles;
     using System.Linq;
     using System.Text;
@@ -43,30 +44,17 @@
 
             public Task<int> ExecuteAsync(InvocationContext context)
             {
-                // @note: Before we can use MemoryMappedFile, we need to change the lexer to use ReadOnlySpan<byte> and Rune to read files as UTF-8 instead of assuming UTF-16 encoding.
+                var stopwatch = Stopwatch.StartNew();
 
-                /*
-                using var file = MemoryMappedFile.CreateFromFile(context.ParseResult.GetValueForOption(_options.SourceFile)!.FullName, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
-                using var accessor = file.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
-                byte* mappedStart = null;
-                accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref mappedStart);
-                try
-                {
-                    ...
-                }
-                finally
-                {
-                    accessor.SafeMemoryMappedViewHandle.ReleasePointer();
-                }
-                */
+                _logger.LogInformation($"Start: {stopwatch}");
 
                 using var reader = new StreamReader(
                     context.ParseResult.GetValueForOption(_options.SourceFile)!.FullName);
                 var content = reader.ReadToEnd();
 
+                _logger.LogInformation($"File read: {stopwatch}");
+
                 var original = content.AsSpan();
-                _logger.LogInformation($"lexing span of {original.Length} length:");
-                _logger.LogInformation(original.ToString());
                 var range = original;
                 LexerCursor cursor = default;
                 var line = 0;
@@ -82,7 +70,7 @@
                         var directive = original.Slice(result.Directive.Start, result.Directive.Length);
                         var arguments = result.Arguments.Length > 0 ? original.Slice(result.Arguments.Start, result.Arguments.Length) : default;
 
-                        _logger.LogInformation($"(line {line}) #{directive} {arguments}");
+                        //_logger.LogInformation($"(line {line}) #{directive} {arguments}");
                         continue;
                     }
                     else
@@ -91,6 +79,9 @@
                     }
                 }
                 while (true);
+
+                _logger.LogInformation($"File lexed: {stopwatch}");
+
                 return Task.FromResult(0);
 
 
