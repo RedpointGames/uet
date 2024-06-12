@@ -22,6 +22,7 @@
     <None Remove="Commands\AppleCert\AppleWWDRCAG3.cer" />
     <None Remove="Commands\AppleCert\AppleWWDRCAG4.cer" />
     <None Remove="Commands\AppleCert\DeveloperIDG2CA.cer" />
+    <None Remove="Commands\Config\IwyuBooleanConfigSetting.cs~RF2d2c3a13.TMP" />
     <None Remove="Commands\Internal\RunRemoteHost\RemoteHostApi.proto" />
     <None Remove="Commands\Internal\TestGrpcPipes\TestPipes.proto" />
   </ItemGroup>

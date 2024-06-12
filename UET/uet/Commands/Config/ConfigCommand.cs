@@ -43,6 +43,7 @@
             var command = new Command("config", "Quickly change settings that affect how Unreal Engine projects and plugins are built.");
             command.AddServicedOptionsHandler<ConfigCommandInstance, Options>(extraParsingServices: services =>
             {
+                services.AddSingleton<IXmlConfigHelper, DefaultXmlConfigHelper>();
                 services.AddSingleton<IBooleanConfigSetting, IwyuBooleanConfigSetting>();
                 services.AddSingleton<IBooleanConfigSetting, MaxCpuBooleanConfigSetting>();
                 services.AddSingleton<IBooleanConfigSetting, ClangBooleanConfigSetting>();

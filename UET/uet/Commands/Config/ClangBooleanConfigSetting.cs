@@ -6,6 +6,13 @@
 
     internal sealed class ClangBooleanConfigSetting : IBooleanConfigSetting
     {
+        private readonly IXmlConfigHelper _configHelper;
+
+        public ClangBooleanConfigSetting(IXmlConfigHelper configHelper)
+        {
+            _configHelper = configHelper;
+        }
+
         public string Name => "clang";
 
         public string Description => "When enabled, the Unreal Engine build process will use Clang instead of MSVC to build the Windows platform.";
@@ -15,8 +22,6 @@
             "Unreal Engine",
             "UnrealBuildTool",
             "BuildConfiguration.xml");
-
-        private const string _ns = "https://www.unrealengine.com/BuildConfiguration";
 
         public Task<bool> GetValueAsync(CancellationToken cancellationToken)
         {
@@ -28,9 +33,9 @@
             var document = new XmlDocument();
             document.Load(_xmlConfigFilePath);
 
-            var SelectedCompiler = document.SelectSingleNode("/Configuration/WindowsPlatform/Compiler")?.InnerText;
+            var selectedCompiler = _configHelper.GetValue(document, ["Configuration", "WindowsPlatform", "Compiler"]);
 
-            return Task.FromResult(SelectedCompiler == "Clang");
+            return Task.FromResult(selectedCompiler == "Clang");
         }
 
         public Task SetValueAsync(bool value, CancellationToken cancellationToken)
@@ -38,7 +43,7 @@
             Directory.CreateDirectory(Path.GetDirectoryName(_xmlConfigFilePath)!);
 
             var document = new XmlDocument();
-            if (!File.Exists(_xmlConfigFilePath))
+            if (File.Exists(_xmlConfigFilePath))
             {
                 document.Load(_xmlConfigFilePath);
             }
@@ -47,35 +52,13 @@
                 document.AppendChild(document.CreateXmlDeclaration("1.0", "utf-8", null));
             }
 
-            var configuration = document.SelectSingleNode("/Configuration");
-            if (configuration == null)
+            if (value)
             {
-                configuration = document.CreateElement("Configuration", _ns);
-                document.AppendChild(configuration);
+                _configHelper.SetValue(document, ["Configuration", "WindowsPlatform", "Compiler"], "Clang");
             }
-
-            var windowsPlatform = configuration.SelectSingleNode("/WindowsPlatform");
-            if (windowsPlatform == null)
+            else
             {
-                windowsPlatform = document.CreateElement("WindowsPlatform", _ns);
-                configuration.AppendChild(windowsPlatform);
-            }
-
-            {
-                var element = windowsPlatform.SelectSingleNode("/Compiler");
-                if (value)
-                {
-                    if (element == null)
-                    {
-                        element = document.CreateElement("Compiler", _ns);
-                        windowsPlatform.AppendChild(element);
-                    }
-                    element.InnerText = "Clang";
-                }
-                else if (element != null)
-                {
-                    element.ParentNode!.RemoveChild(element);
-                }
+                _configHelper.DeleteValue(document, ["Configuration", "WindowsPlatform", "Compiler"]);
             }
 
             document.Save(_xmlConfigFilePath);

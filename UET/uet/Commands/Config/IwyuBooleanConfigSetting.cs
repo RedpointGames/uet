@@ -6,6 +6,13 @@
 
     internal sealed class IwyuBooleanConfigSetting : IBooleanConfigSetting
     {
+        private readonly IXmlConfigHelper _configHelper;
+
+        public IwyuBooleanConfigSetting(IXmlConfigHelper configHelper)
+        {
+            _configHelper = configHelper;
+        }
+
         public string Name => "iwyu";
 
         public string Description => "When enabled, the Unreal Engine build process will build each C++ file individually, without unifying build inputs. The build will take much longer, but it will guarantee that all of the include paths in each file are correct.";
@@ -15,8 +22,6 @@
             "Unreal Engine",
             "UnrealBuildTool",
             "BuildConfiguration.xml");
-
-        private const string _ns = "https://www.unrealengine.com/BuildConfiguration";
 
         public Task<bool> GetValueAsync(CancellationToken cancellationToken)
         {
@@ -28,9 +33,9 @@
             var document = new XmlDocument();
             document.Load(_xmlConfigFilePath);
 
-            var bUseUnityBuild = document.SelectSingleNode("/Configuration/BuildConfiguration/bUseUnityBuild")?.InnerText;
-            var bUseSharedPCHs = document.SelectSingleNode("/Configuration/BuildConfiguration/bUseSharedPCHs")?.InnerText;
-            var bUsePCHFiles = document.SelectSingleNode("/Configuration/BuildConfiguration/bUsePCHFiles")?.InnerText;
+            var bUseUnityBuild = _configHelper.GetValue(document, ["Configuration", "BuildConfiguration", "bUseUnityBuild"]);
+            var bUseSharedPCHs = _configHelper.GetValue(document, ["Configuration", "BuildConfiguration", "bUseSharedPCHs"]);
+            var bUsePCHFiles = _configHelper.GetValue(document, ["Configuration", "BuildConfiguration", "bUsePCHFiles"]);
 
             return Task.FromResult(bUseUnityBuild == "false" && bUseSharedPCHs == "false" && bUsePCHFiles == "false");
         }
@@ -40,7 +45,7 @@
             Directory.CreateDirectory(Path.GetDirectoryName(_xmlConfigFilePath)!);
 
             var document = new XmlDocument();
-            if (!File.Exists(_xmlConfigFilePath))
+            if (File.Exists(_xmlConfigFilePath))
             {
                 document.Load(_xmlConfigFilePath);
             }
@@ -49,69 +54,17 @@
                 document.AppendChild(document.CreateXmlDeclaration("1.0", "utf-8", null));
             }
 
-            var configuration = document.SelectSingleNode("/Configuration");
-            if (configuration == null)
+            if (value)
             {
-                configuration = document.CreateElement("Configuration", _ns);
-                document.AppendChild(configuration);
+                _configHelper.SetValue(document, ["Configuration", "BuildConfiguration", "bUseUnityBuild"], "false");
+                _configHelper.SetValue(document, ["Configuration", "BuildConfiguration", "bUseSharedPCHs"], "false");
+                _configHelper.SetValue(document, ["Configuration", "BuildConfiguration", "bUsePCHFiles"], "false");
             }
-
-            var buildConfiguration = configuration.SelectSingleNode("/BuildConfiguration");
-            if (buildConfiguration == null)
+            else
             {
-                buildConfiguration = document.CreateElement("BuildConfiguration", _ns);
-                configuration.AppendChild(buildConfiguration);
-            }
-
-            {
-                var element = buildConfiguration.SelectSingleNode("/bUseUnityBuild");
-                if (value)
-                {
-                    if (element == null)
-                    {
-                        element = document.CreateElement("bUseUnityBuild", _ns);
-                        buildConfiguration.AppendChild(element);
-                    }
-                    element.InnerText = "false";
-                }
-                else if (element != null)
-                {
-                    element.ParentNode!.RemoveChild(element);
-                }
-            }
-
-            {
-                var element = buildConfiguration.SelectSingleNode("/bUseSharedPCHs");
-                if (value)
-                {
-                    if (element == null)
-                    {
-                        element = document.CreateElement("bUseSharedPCHs", _ns);
-                        buildConfiguration.AppendChild(element);
-                    }
-                    element.InnerText = "false";
-                }
-                else if (element != null)
-                {
-                    element.ParentNode!.RemoveChild(element);
-                }
-            }
-
-            {
-                var element = buildConfiguration.SelectSingleNode("/bUsePCHFiles");
-                if (value)
-                {
-                    if (element == null)
-                    {
-                        element = document.CreateElement("bUsePCHFiles", _ns);
-                        buildConfiguration.AppendChild(element);
-                    }
-                    element.InnerText = "false";
-                }
-                else if (element != null)
-                {
-                    element.ParentNode!.RemoveChild(element);
-                }
+                _configHelper.DeleteValue(document, ["Configuration", "BuildConfiguration", "bUseUnityBuild"]);
+                _configHelper.DeleteValue(document, ["Configuration", "BuildConfiguration", "bUseSharedPCHs"]);
+                _configHelper.DeleteValue(document, ["Configuration", "BuildConfiguration", "bUsePCHFiles"]);
             }
 
             document.Save(_xmlConfigFilePath);
