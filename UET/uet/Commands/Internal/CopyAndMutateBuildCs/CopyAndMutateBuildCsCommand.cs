@@ -50,14 +50,14 @@
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
-                var inputBasePath = context.ParseResult.GetValueForOption(_options.InputBasePath)!.Replace('/', '\\');
+                var inputBasePath = context.ParseResult.GetValueForOption(_options.InputBasePath)!.Replace('/', Path.DirectorySeparatorChar);
                 var inputFileList = context.ParseResult.GetValueForOption(_options.InputFileList)!;
-                var outputPath = context.ParseResult.GetValueForOption(_options.OutputPath)!.Replace('/', '\\');
+                var outputPath = context.ParseResult.GetValueForOption(_options.OutputPath)!.Replace('/', Path.DirectorySeparatorChar);
                 var marketplace = context.ParseResult.GetValueForOption(_options.Marketplace)!;
 
                 var inputFiles = await File.ReadAllLinesAsync(inputFileList).ConfigureAwait(false);
                 var fileMappings = new List<(string input, string output)>();
-                foreach (var inputFile in inputFiles.Select(x => x.Replace('/', '\\')))
+                foreach (var inputFile in inputFiles.Select(x => x.Replace('/', Path.DirectorySeparatorChar)))
                 {
                     if (!inputFile.StartsWith(inputBasePath, StringComparison.Ordinal))
                     {
@@ -65,7 +65,7 @@
                         return 1;
                     }
                     var relativeInputFile = inputFile[inputBasePath.Length..];
-                    fileMappings.Add((inputFile, outputPath + '\\' + relativeInputFile));
+                    fileMappings.Add((inputFile, outputPath + Path.DirectorySeparatorChar + relativeInputFile));
                 }
 
                 if (marketplace)
