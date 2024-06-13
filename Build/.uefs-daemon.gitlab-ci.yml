@@ -8,7 +8,7 @@
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    & "$env:UET_DOTNET_WIN_PATH" msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:OpenGEShimRuntimeIdentifier=win-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion -p:OpenGEShimIsAlreadyBuilt=true UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
+    & "$env:UET_DOTNET_WIN_PATH" msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
     if ($LastExitCode -ne 0) {
       Write-Host "Publish win-x64 (Redpoint.Uefs.Daemon.csproj) failed with exit code $LastExitCode"
       exit $LastExitCode 
@@ -28,7 +28,7 @@
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
     echo "Package version: $PACKAGE_VERSION"
-    $UET_DOTNET_MAC_PATH msbuild -restore -t:Publish -p:RuntimeIdentifier=osx-arm64 -p:OpenGEShimRuntimeIdentifier=osx-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION -p:OpenGEShimIsAlreadyBuilt=true UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
+    $UET_DOTNET_MAC_PATH msbuild -restore -t:Publish -p:RuntimeIdentifier=osx-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
   artifacts:
     paths:
       - "UET/Redpoint.Uefs.Daemon/bin/Release/net8.0/osx-arm64/publish/uefs-daemon"

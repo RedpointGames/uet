@@ -15,15 +15,11 @@ try {
   if ($LastExitCode -ne 0) {
     exit $LastExitCode 
   }
-  dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:UsePrebuiltLibsForAutoDiscovery=true -p:Configuration=Release -p:BaseUetVersionSuffix="-dev" -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion "-p:OutDir=$((Get-Location).Path)\UET\Redpoint.Uet.OpenGE\shim-bin\Release\net8.0\win-x64" "-p:PublishDir=$((Get-Location).Path)\UET\Redpoint.Uet.OpenGE\shim-bin\Release\net8.0\win-x64\publish" UET/Redpoint.OpenGE.Shim/Redpoint.OpenGE.Shim.csproj
+  dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:UsePrebuiltLibsForAutoDiscovery=true -p:Configuration=Release -p:BaseUetVersionSuffix="-dev" -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/uet/uet.csproj
   if ($LastExitCode -ne 0) {
     exit $LastExitCode 
   }
-  dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:OpenGEShimRuntimeIdentifier=win-x64 -p:UsePrebuiltLibsForAutoDiscovery=true -p:Configuration=Release -p:BaseUetVersionSuffix="-dev" -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion -p:OpenGEShimIsAlreadyBuilt=true UET/uet/uet.csproj
-  if ($LastExitCode -ne 0) {
-    exit $LastExitCode 
-  }
-  dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:OpenGEShimRuntimeIdentifier=win-x64 -p:UsePrebuiltLibsForAutoDiscovery=true -p:Configuration=Release -p:EmbeddingCrossPlatform=true -p:BaseUetVersionSuffix="-dev" -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion -p:OpenGEShimIsAlreadyBuilt=true UET/uet/uet.csproj
+  dotnet msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:UsePrebuiltLibsForAutoDiscovery=true -p:Configuration=Release -p:EmbeddingCrossPlatform=true -p:BaseUetVersionSuffix="-dev" -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/uet/uet.csproj
   if ($LastExitCode -ne 0) {
     exit $LastExitCode 
   }

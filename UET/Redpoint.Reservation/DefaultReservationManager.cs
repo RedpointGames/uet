@@ -44,7 +44,7 @@
             // @note: We must replace . at the end of the string with _
             // because Windows does not support trailing dots. However,
             // we don't want to alter the length of the resulting string
-            // for OpenGE path length stability reasons, so we replace
+            // for path length stability reasons, so we replace
             // dots with underscores instead of trimming.
             for (int d = targetChars.Length - 1; d >= 0; d--)
             {

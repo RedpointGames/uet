@@ -1,7 +1,6 @@
 stages:
   - Timestamp
   - Platform Specific
-  - OpenGE
   - Build Pass 1
   - Build Libraries
   - Build Pass 2

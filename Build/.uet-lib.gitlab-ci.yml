@@ -3,9 +3,6 @@
   extends: .shared-windows-net
   needs:
     - Timestamp
-    - "Build Win OpenGE Shim"
-    - "Build Mac OpenGE Shim"
-    - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
     - "Build AutoDiscovery Win Release x86"
     - "Build AutoDiscovery Win Release x64"
@@ -15,7 +12,7 @@
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    dotnet build -c Release /p:PackageVersion=$PackageVersion /p:OpenGEShimRuntimeIdentifier=all /p:OpenGEShimIsAlreadyBuilt=true UET/UET.sln
+    dotnet build -c Release /p:PackageVersion=$PackageVersion UET/UET.sln
     if ($LastExitCode -ne 0) {
       Write-Host "dotnet build (UET.sln) failed with exit code $LastExitCode"
       exit $LastExitCode 
@@ -42,9 +39,6 @@
   extends: .shared-mac-net
   needs:
     - Timestamp
-    - "Build Win OpenGE Shim"
-    - "Build Mac OpenGE Shim"
-    - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
     - "Build AutoDiscovery Win Release x86"
     - "Build AutoDiscovery Win Release x64"
@@ -56,7 +50,7 @@
     set -e
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
     echo "Package version: $PACKAGE_VERSION"
-    dotnet build -c Release /p:PackageVersion=$PACKAGE_VERSION /p:OpenGEShimRuntimeIdentifier=all /p:OpenGEShimIsAlreadyBuilt=true UET/UET.sln
+    dotnet build -c Release /p:PackageVersion=$PACKAGE_VERSION UET/UET.sln
     for TEST_PATH in $(find UET -type d -name "*.Tests"); do
       TEST_NAME=${TEST_PATH:4}
       if [ -e "$TEST_PATH/$TEST_NAME.csproj" ]; then
