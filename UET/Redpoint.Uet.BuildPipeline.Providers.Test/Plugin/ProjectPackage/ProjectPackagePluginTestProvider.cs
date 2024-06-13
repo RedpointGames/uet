@@ -1,5 +1,8 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.ProjectPackage
 {
+    using Microsoft.Extensions.Logging;
+    using Redpoint.PathResolution;
+    using Redpoint.ProcessExecution;
     using Redpoint.RuntimeJson;
     using Redpoint.Uet.BuildGraph;
     using Redpoint.Uet.Configuration;
@@ -14,14 +17,23 @@
     using System.Xml;
     using static System.Net.Mime.MediaTypeNames;
 
-    internal sealed class ProjectPackagePluginTestProvider : IPluginTestProvider
+    internal sealed class ProjectPackagePluginTestProvider : IPluginTestProvider, IDynamicReentrantExecutor<BuildConfigPluginDistribution, BuildConfigPluginTestProjectPackage>
     {
         private readonly IPluginTestProjectEmitProvider _pluginTestProjectEmitProvider;
+        private readonly IPathResolver _pathResolver;
+        private readonly ILogger<ProjectPackagePluginTestProvider> _logger;
+        private readonly IProcessExecutor _processExecutor;
 
         public ProjectPackagePluginTestProvider(
-            IPluginTestProjectEmitProvider pluginTestProjectEmitProvider)
+            IPluginTestProjectEmitProvider pluginTestProjectEmitProvider,
+            IPathResolver pathResolver,
+            ILogger<ProjectPackagePluginTestProvider> logger,
+            IProcessExecutor processExecutor)
         {
             _pluginTestProjectEmitProvider = pluginTestProjectEmitProvider;
+            _pathResolver = pathResolver;
+            _logger = logger;
+            _processExecutor = processExecutor;
         }
 
         public string Type => "ProjectPackage";
@@ -216,9 +228,7 @@
                     ? "-NoCodeSign" : string.Empty;
                 var isMobile = string.Equals(projectPackage.settings.TargetPlatform, "Android", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(projectPackage.settings.TargetPlatform, "IOS", StringComparison.OrdinalIgnoreCase);
-                var isAndroid = string.Equals(projectPackage.settings.TargetPlatform, "Android", StringComparison.OrdinalIgnoreCase);
                 var packageFlag = isMobile ? "-package" : string.Empty;
-                var distributionFlag = isAndroid ? "-distribution" : string.Empty;
                 await writer.WriteAgentNodeAsync(
                     new AgentNodeElementProperties
                     {
@@ -262,8 +272,19 @@
                                     $"\"-stagingdirectory=$(TempPath)/{assembledProjectName}/Saved/StagedBuilds\"",
                                     "-unattended",
                                     "-stdlog",
-                                    distributionFlag,
                                 ]
+                            }).ConfigureAwait(false);
+                        await writer.WriteDynamicReentrantSpawnAsync<ProjectPackagePluginTestProvider, BuildConfigPluginDistribution, BuildConfigPluginTestProjectPackage>(
+                            this,
+                            context,
+                            $"{projectPackage.settings.TargetPlatform}.{projectPackage.name}".Replace(" ", ".", StringComparison.Ordinal),
+                            projectPackage.settings,
+                            new Dictionary<string, string>
+                            {
+                                { "TargetPlatform", projectPackage.settings.TargetPlatform },
+                                { "CookPlatform", cookPlatform },
+                                { "ProjectDirectory", $"$(TempPath)/{assembledProjectName}" },
+                                { "StagingDirectory", $"$(TempPath)/{assembledProjectName}/Saved/StagedBuilds" },
                             }).ConfigureAwait(false);
                         await writer.WriteTagAsync(
                             new TagElementProperties
@@ -312,7 +333,6 @@
                                 "-Test=DefaultTest",
                                 "-MaxDuration=600",
                                 "-Unattended",
-                                "-cleandevice",
                                 $"-ExecCmds={execCmds}",
                             };
                             if (!string.IsNullOrWhiteSpace(projectPackage.settings.BootTest.DeviceId))
@@ -347,6 +367,93 @@
                         }).ConfigureAwait(false);
                 }
             }
+        }
+
+        public async Task<int> ExecuteBuildGraphNodeAsync(
+            object configUnknown,
+            Dictionary<string, string> runtimeSettings,
+            CancellationToken cancellationToken)
+        {
+            var config = (BuildConfigPluginTestProjectPackage)configUnknown;
+
+            var targetPlatform = runtimeSettings["TargetPlatform"];
+            var cookPlatform = runtimeSettings["CookPlatform"];
+            var projectDirectory = runtimeSettings["ProjectDirectory"];
+            var stagingDirectory = runtimeSettings["StagingDirectory"];
+
+            if (targetPlatform == "Android")
+            {
+                // Go and sign our universal APK because the build toolchain as of 5.4 doesn't do codesigning
+                // unless -distribution is specified, which prevents Gauntlet from deploying onto device.
+                var buildTools = Path.Combine(
+                    Environment.GetEnvironmentVariable("ANDROID_HOME")!,
+                    "build-tools");
+                var apksigner = Path.Combine(
+                    new DirectoryInfo(buildTools).GetDirectories().First().FullName,
+                    "apksigner.bat");
+                var cmd = await _pathResolver.ResolveBinaryPath("cmd.exe").ConfigureAwait(false);
+                _logger.LogInformation($"Path to apksigner.bat: {apksigner}");
+                _logger.LogInformation($"Path to cmd.exe: {cmd}");
+                _logger.LogInformation($"Project directory: {projectDirectory}");
+                _logger.LogInformation($"Staging directory: {stagingDirectory}");
+
+                // Do a real basic scan for code signing settings, just enough to get this working.
+                var configPath = Path.Combine(projectDirectory, "Config", "DefaultEngine.ini");
+                string keystoreName = string.Empty, keystoreAlias = string.Empty, keystorePassword = string.Empty, keyPassword = string.Empty;
+                using (var reader = new StreamReader(configPath))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        var line = (await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false))!.Trim();
+                        if (line.StartsWith("KeyStore=", StringComparison.Ordinal))
+                        {
+                            keystoreName = line.Substring("KeyStore=".Length);
+                        }
+                        else if (line.StartsWith("KeyAlias=", StringComparison.Ordinal))
+                        {
+                            keystoreAlias = line.Substring("KeyAlias=".Length);
+                        }
+                        else if (line.StartsWith("KeyStorePassword=", StringComparison.Ordinal))
+                        {
+                            keystorePassword = line.Substring("KeyStorePassword=".Length);
+                        }
+                        else if (line.StartsWith("KeyPassword=", StringComparison.Ordinal))
+                        {
+                            keyPassword = line.Substring("KeyPassword=".Length);
+                        }
+                    }
+                }
+                var keystorePath = Path.Combine(projectDirectory, "Build", "Android", keystoreName);
+                _logger.LogInformation($"Key store name: {keystoreName}");
+                _logger.LogInformation($"Key store path: {keystorePath}");
+                _logger.LogInformation($"Key store alias: {keystoreAlias}");
+                _logger.LogInformation($"Key store password: {keystorePassword}");
+                _logger.LogInformation($"Key password: {keyPassword}");
+
+                _logger.LogInformation($"Attempting to sign APK...");
+                return await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = cmd,
+                        Arguments = [
+                            "/C",
+                            apksigner,
+                            "sign",
+                            "--ks",
+                            keystorePath,
+                            "--ks-key-alias",
+                            keystoreAlias,
+                            "--ks-pass",
+                            $"pass:{keystorePassword}",
+                            string.IsNullOrWhiteSpace(keyPassword) ? string.Empty : "--key-pass",
+                            string.IsNullOrWhiteSpace(keyPassword) ? string.Empty : $"pass:{keyPassword}",
+                        ]
+                    },
+                    CaptureSpecification.Passthrough,
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            return 0;
         }
     }
 }
