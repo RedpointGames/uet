@@ -395,7 +395,7 @@
                 var apksigner = Path.Combine(
                     new DirectoryInfo(buildTools).GetDirectories().First().FullName,
                     "apksigner.bat");
-                var cmd = await _pathResolver.ResolveBinaryPath("cmd.exe").ConfigureAwait(false);
+                var cmd = await _pathResolver.ResolveBinaryPath("cmd").ConfigureAwait(false);
                 _logger.LogInformation($"Path to apksigner.bat: {apksigner}");
                 _logger.LogInformation($"Path to cmd.exe: {cmd}");
                 _logger.LogInformation($"Project directory: {projectDirectory}");
