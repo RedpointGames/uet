@@ -281,13 +281,67 @@
                         }
                     }).ConfigureAwait(false);
 
-                // Make sure we depend on the packaging passing.
-                await writer.WriteDynamicNodeAppendAsync(
-                    new DynamicNodeAppendElementProperties
-                    {
-                        NodeName = $"Package {projectPackage.name} {projectPackage.settings.TargetPlatform}",
-                        MustPassForLaterDeployment = true,
-                    }).ConfigureAwait(false);
+                // If we have a boot test configured, run it.
+                if (projectPackage.settings.BootTest != null)
+                {
+                    // Run Gauntlet to deploy onto device.
+                    await writer.WriteAgentNodeAsync(
+                        new AgentNodeElementProperties
+                        {
+                            AgentStage = $"Boot Test Project",
+                            AgentType = projectPackage.settings.HostPlatform.ToString() + (string.IsNullOrWhiteSpace(projectPackage.settings.BootTest.BuildMachineTag) ? string.Empty : $" Tag-{projectPackage.settings.BootTest.BuildMachineTag}"),
+                            NodeName = $"Boot Test {projectPackage.name} {projectPackage.settings.TargetPlatform}",
+                            Requires = string.Join(';', new[] { $"#ProjectPackage_{uniqueHash}_Project;", $"#ProjectPackage_{uniqueHash}_Staged" }.Concat(additionalPackageDependencies)),
+                        },
+                        async writer =>
+                        {
+                            var execCmds = string.Join("+", (projectPackage.settings.BootTest.AutomationTests ?? [])
+                                .Select(x => $"Automation RunTests {x}")
+                                .Concat(["Automation Test Queue Empty"])
+                                .Select(x => $"\"{x}\""));
+                            var arguments = new List<string>
+                            {
+                                $"\"-project=$(TempPath)/{assembledProjectName}/{assembledProjectName}.uproject\"",
+                                "-nop4",
+                                noCodeSign,
+                                $"\"-platform={cookPlatform}\"",
+                                "-Build=local",
+                                "-Test=DefaultTest",
+                                "-MaxDuration=600",
+                                "-Unattended",
+                                $"-ExecCmds={execCmds}",
+                            };
+                            if (!string.IsNullOrWhiteSpace(projectPackage.settings.BootTest.DeviceId))
+                            {
+                                arguments.Add($"-device={projectPackage.settings.BootTest.DeviceId}");
+                            }
+
+                            await writer.WriteCommandAsync(
+                                new CommandElementProperties
+                                {
+                                    Name = "RunUnreal",
+                                    Arguments = arguments,
+                                }).ConfigureAwait(false);
+                        }).ConfigureAwait(false);
+
+                    // Make sure we depend on the boot test passing.
+                    await writer.WriteDynamicNodeAppendAsync(
+                        new DynamicNodeAppendElementProperties
+                        {
+                            NodeName = $"Boot Test {projectPackage.name} {projectPackage.settings.TargetPlatform}",
+                            MustPassForLaterDeployment = true,
+                        }).ConfigureAwait(false);
+                }
+                else
+                {
+                    // Make sure we depend on the packaging passing.
+                    await writer.WriteDynamicNodeAppendAsync(
+                        new DynamicNodeAppendElementProperties
+                        {
+                            NodeName = $"Package {projectPackage.name} {projectPackage.settings.TargetPlatform}",
+                            MustPassForLaterDeployment = true,
+                        }).ConfigureAwait(false);
+                }
             }
         }
     }

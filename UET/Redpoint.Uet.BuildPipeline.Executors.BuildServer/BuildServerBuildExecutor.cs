@@ -434,6 +434,39 @@
             return preparationInfo;
         }
 
+        private static BuildServerJobAgent ParseAgentType(
+            Dictionary<string, BuildServerJobPlatform> agentTypeMapping,
+            string agentTypeWithPotentialTag,
+            ref bool requiresCrossPlatformBuild)
+        {
+            var agentTypeParsed = agentTypeWithPotentialTag.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            if (agentTypeParsed.Length == 0 ||
+                !agentTypeMapping.TryGetValue(agentTypeParsed[0], out BuildServerJobPlatform targetPlatform))
+            {
+                throw new NotSupportedException($"Unknown AgentType specified in BuildGraph: {agentTypeWithPotentialTag}");
+            }
+
+            if (targetPlatform == BuildServerJobPlatform.Mac && !OperatingSystem.IsMacOS())
+            {
+                requiresCrossPlatformBuild = true;
+            }
+            else if (targetPlatform == BuildServerJobPlatform.Windows && !OperatingSystem.IsWindows())
+            {
+                requiresCrossPlatformBuild = true;
+            }
+
+            return new BuildServerJobAgent
+            {
+                Platform = targetPlatform,
+                BuildMachineTags = agentTypeParsed
+                    .Where(x => x.StartsWith("Tag-", StringComparison.Ordinal))
+                    .Select(x => x.Substring("Tag-".Length))
+                    .ToArray(),
+                IsManual = agentTypeParsed[0].EndsWith("_Manual", StringComparison.Ordinal),
+            };
+        }
+
         public virtual async Task<int> ExecuteBuildAsync(
             BuildSpecification buildSpecification,
             BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>[]? preparePlugin,
@@ -508,22 +541,23 @@
                 }
             }
 
+            // Check to see whether this build requires build agents that differ in
+            // platform to the current machine, and validate that all of the agent
+            // types are valid.
             var requiresCrossPlatformBuild = false;
             foreach (var group in buildGraph.Groups)
             {
-                if (group.AgentTypes.Length == 0 ||
-                    !agentTypeMapping.TryGetValue(group.AgentTypes[0], out BuildServerJobPlatform targetPlatform))
+                if (group.AgentTypes.Length == 0)
                 {
-                    throw new NotSupportedException($"Unknown AgentType specified in BuildGraph: {string.Join(",", group.AgentTypes)}");
+                    throw new NotSupportedException($"Missing AgentTypes for group in BuildGraph.");
                 }
 
-                if (targetPlatform == BuildServerJobPlatform.Mac && !OperatingSystem.IsMacOS())
+                foreach (var agentTypeWithPotentialTag in group.AgentTypes)
                 {
-                    requiresCrossPlatformBuild = true;
-                }
-                else if (targetPlatform == BuildServerJobPlatform.Windows && !OperatingSystem.IsWindows())
-                {
-                    requiresCrossPlatformBuild = true;
+                    ParseAgentType(
+                        agentTypeMapping,
+                        agentTypeWithPotentialTag,
+                        ref requiresCrossPlatformBuild);
                 }
             }
 
@@ -533,16 +567,6 @@
                 null,
                 buildSpecification.MobileProvisions,
                 requiresCrossPlatformBuild).ConfigureAwait(false);
-
-            // Ensure all of the groups map correctly to agent types.
-            foreach (var group in buildGraph.Groups)
-            {
-                if (group.AgentTypes.Length == 0 ||
-                    !agentTypeMapping.TryGetValue(group.AgentTypes[0], out BuildServerJobPlatform targetPlatform))
-                {
-                    throw new NotSupportedException($"Unknown AgentType specified in BuildGraph: {string.Join(",", group.AgentTypes)}");
-                }
-            }
 
             // @note: This previously assumed that <Node> = unique build job, but this is not the model
             // that BuildGraph operates under. Instead, BuildGraph assumes that <Node> elements that run
@@ -609,8 +633,12 @@
                 }
 
                 // Create the job.
-                var targetPlatform = agentTypeMapping[group.AgentTypes[0]];
-                if (targetPlatform == BuildServerJobPlatform.Meta)
+                var unusedCrossPlatformFlag = false;
+                var buildServerJobAgent = ParseAgentType(
+                    agentTypeMapping,
+                    group.AgentTypes[0],
+                    ref unusedCrossPlatformFlag);
+                if (buildServerJobAgent.Platform == BuildServerJobPlatform.Meta)
                 {
                     continue;
                 }
@@ -619,8 +647,7 @@
                     Name = jobName,
                     Stage = stage,
                     Needs = jobNeeds.ToArray(),
-                    Platform = targetPlatform,
-                    IsManual = group.AgentTypes[0].EndsWith("_Manual", StringComparison.Ordinal),
+                    Agent = buildServerJobAgent,
                 };
 
                 // Compute the job JSON to use for this step.
@@ -628,13 +655,13 @@
                 {
                     Engine = buildSpecification.Engine.ToReparsableString(),
                     IsEngineBuild = buildSpecification.Engine.IsEngineBuild,
-                    SharedStoragePath = job.Platform switch
+                    SharedStoragePath = job.Agent.Platform switch
                     {
                         BuildServerJobPlatform.Windows => buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath,
                         BuildServerJobPlatform.Mac => buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                         _ => throw new PlatformNotSupportedException(),
                     },
-                    SdksPath = job.Platform switch
+                    SdksPath = job.Agent.Platform switch
                     {
                         BuildServerJobPlatform.Windows => buildSpecification.BuildGraphEnvironment.Windows.SdksPath,
                         BuildServerJobPlatform.Mac => buildSpecification.BuildGraphEnvironment.Mac!.SdksPath,
@@ -650,7 +677,7 @@
                     Settings = buildSpecification.BuildGraphSettings,
                     ProjectFolderName = buildSpecification.ProjectFolderName,
                     UseStorageVirtualisation = buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
-                    MobileProvisions = job.Platform switch
+                    MobileProvisions = job.Agent.Platform switch
                     {
                         BuildServerJobPlatform.Windows => preparationInfo.WindowsMobileProvisions,
                         BuildServerJobPlatform.Mac => preparationInfo.MacMobileProvisions,
@@ -665,7 +692,7 @@
                 {
                     { $"UET_BUILD_JSON", buildJobJsonSerialized },
                 };
-                job.Script = job.Platform switch
+                job.Script = job.Agent.Platform switch
                 {
                     BuildServerJobPlatform.Windows => executor => $"& \"{preparationInfo.WindowsPath}\"{globalArgs} internal ci-build --executor {executor}",
                     BuildServerJobPlatform.Mac => executor => $"chmod a+x \"{preparationInfo.MacPath}\" && \"{preparationInfo.MacPath}\"{globalArgs} internal ci-build --executor {executor}",
