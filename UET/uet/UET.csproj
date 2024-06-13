@@ -50,6 +50,8 @@
     <ProjectReference Include="..\Redpoint.Pdu.Serveredge\Redpoint.Pdu.Serveredge.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
+    <ProjectReference Include="..\Redpoint.Tasks\Redpoint.Tasks.csproj" />
+    <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
     <ProjectReference Include="..\Redpoint.Rfs.WinFsp\Redpoint.Rfs.WinFsp.csproj" />
     <ProjectReference Include="..\Redpoint.ServiceControl\Redpoint.ServiceControl.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Commands\Redpoint.Uefs.Commands.csproj" />
