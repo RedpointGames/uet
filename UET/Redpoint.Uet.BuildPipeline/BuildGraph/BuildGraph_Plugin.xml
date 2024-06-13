@@ -239,12 +239,12 @@ $(PackageExclude);
         />
         <WriteTextFile
           File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName).Target.cs"
-          Text="using UnrealBuildTool; public class $(AssembledProjectName)Target : TargetRules { public $(AssembledProjectName)Target(TargetInfo Target) : base(Target) { Type = TargetType.Game; DefaultBuildSettings = BuildSettingsVersion.V2; ExtraModuleNames.AddRange(new string[] { &quot;$(AssembledProjectName)&quot; }); } }"
+          Text="using UnrealBuildTool; public class $(AssembledProjectName)Target : TargetRules { public $(AssembledProjectName)Target(TargetInfo Target) : base(Target) { Type = TargetType.Game; DefaultBuildSettings = BuildSettingsVersion.Latest; IncludeOrderVersion = EngineIncludeOrderVersion.Latest; ExtraModuleNames.AddRange(new string[] { &quot;$(AssembledProjectName)&quot; }); } }"
           If="'$(IsForGauntlet)' == 'true'"
         />
         <WriteTextFile
           File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)Editor.Target.cs"
-          Text="using UnrealBuildTool; public class $(AssembledProjectName)EditorTarget : TargetRules { public $(AssembledProjectName)EditorTarget(TargetInfo Target) : base(Target) { Type = TargetType.Editor; DefaultBuildSettings = BuildSettingsVersion.V2; ExtraModuleNames.AddRange(new string[] { &quot;$(AssembledProjectName)&quot; }); } }"
+          Text="using UnrealBuildTool; public class $(AssembledProjectName)EditorTarget : TargetRules { public $(AssembledProjectName)EditorTarget(TargetInfo Target) : base(Target) { Type = TargetType.Editor; DefaultBuildSettings = BuildSettingsVersion.Latest; IncludeOrderVersion = EngineIncludeOrderVersion.Latest; ExtraModuleNames.AddRange(new string[] { &quot;$(AssembledProjectName)&quot; }); } }"
           If="'$(IsForGauntlet)' == 'true'"
         />
         <WriteTextFile
