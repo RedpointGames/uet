@@ -253,6 +253,19 @@
                                     $"\"$(TempPath)/{assembledProjectName}\"",
                                 ]
                             }).ConfigureAwait(false);
+                        await writer.WriteDynamicReentrantSpawnAsync<ProjectPackagePluginTestProvider, BuildConfigPluginDistribution, BuildConfigPluginTestProjectPackage>(
+                            this,
+                            context,
+                            $"{projectPackage.settings.TargetPlatform}.{projectPackage.name}".Replace(" ", ".", StringComparison.Ordinal),
+                            projectPackage.settings,
+                            new Dictionary<string, string>
+                            {
+                                { "Stage", "PrePackage" },
+                                { "TargetPlatform", projectPackage.settings.TargetPlatform },
+                                { "CookPlatform", cookPlatform },
+                                { "ProjectDirectory", $"$(TempPath)/{assembledProjectName}" },
+                                { "StagingDirectory", $"$(TempPath)/{assembledProjectName}/Saved/StagedBuilds" },
+                            }).ConfigureAwait(false);
                         await writer.WriteCommandAsync(
                             new CommandElementProperties
                             {
@@ -281,6 +294,7 @@
                             projectPackage.settings,
                             new Dictionary<string, string>
                             {
+                                { "Stage", "PostPackage" },
                                 { "TargetPlatform", projectPackage.settings.TargetPlatform },
                                 { "CookPlatform", cookPlatform },
                                 { "ProjectDirectory", $"$(TempPath)/{assembledProjectName}" },
@@ -319,10 +333,6 @@
                         },
                         async writer =>
                         {
-                            var execCmds = string.Join("+", (projectPackage.settings.BootTest.AutomationTests ?? [])
-                                .Select(x => $"Automation RunTests {x}")
-                                .Concat(["Automation Test Queue Empty"])
-                                .Select(x => $"\"{x}\""));
                             var arguments = new List<string>
                             {
                                 $"\"-project=$(TempPath)/{assembledProjectName}/{assembledProjectName}.uproject\"",
@@ -333,15 +343,14 @@
                                 "-Test=DefaultTest",
                                 "-MaxDuration=600",
                                 "-Unattended",
-                                $"-ExecCmds={execCmds}",
                             };
                             if (!string.IsNullOrWhiteSpace(projectPackage.settings.BootTest.DeviceId))
                             {
                                 arguments.Add($"-device={projectPackage.settings.BootTest.DeviceId}");
                             }
-                            if (projectPackage.settings.BootTest.ExtraGauntletArguments != null)
+                            if (projectPackage.settings.BootTest.GauntletArguments != null)
                             {
-                                arguments.AddRange(projectPackage.settings.BootTest.ExtraGauntletArguments);
+                                arguments.AddRange(projectPackage.settings.BootTest.GauntletArguments);
                             }
 
                             await writer.WriteCommandAsync(
@@ -380,12 +389,21 @@
         {
             var config = (BuildConfigPluginTestProjectPackage)configUnknown;
 
+            var stage = runtimeSettings["Stage"];
             var targetPlatform = runtimeSettings["TargetPlatform"];
             var cookPlatform = runtimeSettings["CookPlatform"];
             var projectDirectory = runtimeSettings["ProjectDirectory"];
             var stagingDirectory = runtimeSettings["StagingDirectory"];
 
-            if (targetPlatform == "Android")
+            if (stage == "PrePackage" && targetPlatform == "IOS")
+            {
+                // We have to create Intermediate/ProjectFilesIOS so that Info.Template.plist gets generated
+                // correctly.
+                Directory.CreateDirectory(Path.Combine(projectDirectory, "Intermediate", "ProjectFilesIOS"));
+                return 0;
+            }
+
+            if (stage == "PostPackage" && targetPlatform == "Android")
             {
                 // Go and sign our universal APK because the build toolchain as of 5.4 doesn't do codesigning
                 // unless -distribution is specified, which prevents Gauntlet from deploying onto device.
