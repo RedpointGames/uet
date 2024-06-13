@@ -3,15 +3,12 @@
   extends: .shared-windows-net
   needs:
     - Timestamp
-    - "Build Win OpenGE Shim"
-    - "Build Mac OpenGE Shim"
-    - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
     - "Build AutoDiscovery"
   interruptible: true
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
-    & "$env:UET_DOTNET_WIN_PATH" msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:OpenGEShimRuntimeIdentifier=win-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion -p:OpenGEShimIsAlreadyBuilt=true UET/uet/uet.csproj
+    & "$env:UET_DOTNET_WIN_PATH" msbuild -restore -t:Publish -p:RuntimeIdentifier=win-x64 -p:Configuration=Release -p:BaseUetVersion=$PackageVersion -p:PackageVersion=$PackageVersion UET/uet/uet.csproj
     if ($LastExitCode -ne 0) {
       Write-Host "Publish win-x64 (uet.csproj) failed with exit code $LastExitCode"
       exit $LastExitCode 
@@ -25,16 +22,13 @@
   extends: .shared-mac-net
   needs:
     - Timestamp
-    - "Build Win OpenGE Shim"
-    - "Build Mac OpenGE Shim"
-    - "Build Linux OpenGE Shim"
     - "Build Mac Logging"
     - "Build AutoDiscovery"
   interruptible: true
   script: |
     PACKAGE_VERSION=$(cat package.version | tr -d '\n')
     echo "Package version: $PACKAGE_VERSION"
-    $UET_DOTNET_MAC_PATH msbuild -restore -t:Publish -p:RuntimeIdentifier=osx-arm64 -p:OpenGEShimRuntimeIdentifier=osx-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION -p:OpenGEShimIsAlreadyBuilt=true UET/uet/uet.csproj
+    $UET_DOTNET_MAC_PATH msbuild -restore -t:Publish -p:RuntimeIdentifier=osx-arm64 -p:Configuration=Release -p:BaseUetVersion=$PACKAGE_VERSION -p:PackageVersion=$PACKAGE_VERSION UET/uet/uet.csproj
     # Ensure the thing we built will actually run...
     ./UET/uet/bin/Release/net8.0/osx-arm64/publish/uet --help
   artifacts:

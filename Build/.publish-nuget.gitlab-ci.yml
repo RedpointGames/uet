@@ -6,10 +6,6 @@
     - "Build and Test Libraries on Windows"
     - job: "Build and Test Libraries on macOS"
       artifacts: false
-    - job: "Test OpenGE Win"
-      artifacts: false
-    - job: "Test OpenGE Mac"
-      artifacts: false
     - job: "Test StringEnum Trimmed"
       artifacts: false
   interruptible: true

@@ -7,16 +7,10 @@
     - "Build Win UET Pass 2"
     - "Build Win UEFS Client"
     - "Build Win UEFS Daemon"
-    - "Build Win OpenGE Agent"
     - "Build Mac UET Shim"
     - "Build Mac UET Pass 2"
     - "Build Mac UEFS Client"
     - "Build Mac UEFS Daemon"
-    - "Build Mac OpenGE Agent"
-    - job: "Test OpenGE Win"
-      artifacts: false
-    - job: "Test OpenGE Mac"
-      artifacts: false
   interruptible: false
   script: |
     $PackageVersion = (Get-Content -Raw -Path "package.version").Trim()
@@ -26,12 +20,10 @@
       --file "uefs.exe=UEFS Client for Windows=UET/Redpoint.Uefs.Client/bin/Release/net8.0/win-x64/publish/uefs.exe" `
       --file "uefs-daemon.exe=UEFS Daemon for Windows=UET/Redpoint.Uefs.Daemon/bin/Release/net8.0/win-x64/publish/uefs-daemon.exe" `
       --file "uet.shim.exe=UET Shim for Windows=UET/uet.shim/bin/Release/net8.0/win-x64/publish/uet.exe" `
-      --file "openge-agent.exe=OpenGE Agent for Windows=UET/Redpoint.OpenGE.Agent.Daemon/bin/Release/net8.0/win-x64/publish/openge-agent.exe" `
       --file "uet=UET for macOS=UET/uet/bin/Release/net8.0/osx-arm64/publish/uet" `
       --file "uefs=UEFS Client for macOS=UET/Redpoint.Uefs.Client/bin/Release/net8.0/osx-arm64/publish/uefs" `
       --file "uefs-daemon=UEFS Daemon for macOS=UET/Redpoint.Uefs.Daemon/bin/Release/net8.0/osx-arm64/publish/uefs-daemon" `
       --file "uet.shim=UET Shim for macOS=UET/uet.shim/bin/Release/net8.0/osx-arm64/publish/uet" `
-      --file "openge-agent=OpenGE Agent for macOS=UET/Redpoint.OpenGE.Agent.Daemon/bin/Release/net8.0/osx-arm64/publish/openge-agent" `
       --file "package.version=Version File=package.version"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   rules:

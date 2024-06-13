@@ -1,7 +1,6 @@
 stages:
   - Timestamp
   - Platform Specific
-  - OpenGE
   - Build Pass 1
   - Build Libraries
   - Build Pass 2
@@ -81,15 +80,12 @@ variables:
 include:
   - Build/.platform-maclogging.gitlab-ci.yml
   - Build/.platform-autodiscovery.gitlab-ci.yml
-  - Build/.openge-shim.gitlab-ci.yml
-  - Build/.openge-agent.gitlab-ci.yml
   - Build/.uefs-client.gitlab-ci.yml
   - Build/.uefs-daemon.gitlab-ci.yml
   - Build/.uet-lib.gitlab-ci.yml
   - Build/.uet-pass-1.gitlab-ci.yml
   - Build/.uet-pass-2.gitlab-ci.yml
   - Build/.uet-shim.gitlab-ci.yml
-  - Build/.uet-openge-test.gitlab-ci.yml
   - Build/.publish-nuget.gitlab-ci.yml
   - Build/.publish-github.gitlab-ci.yml
   - Build/.publish-container-uefs.gitlab-ci.yml
