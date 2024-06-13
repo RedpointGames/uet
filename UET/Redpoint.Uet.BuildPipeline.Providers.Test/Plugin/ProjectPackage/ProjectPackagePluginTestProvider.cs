@@ -97,7 +97,7 @@
                 // is only necessary if ProjectCopyFilesPath copies source code files into the project.
                 var additionalCookDependencies = new List<string>();
                 var additionalPackageDependencies = new List<string>();
-                var editorTarget = "$(AssembledProjectName)Editor";
+                var editorTarget = $"{assembledProjectName}Editor";
                 var gameTarget = assembledProjectName;
 
                 // Build the editor.
