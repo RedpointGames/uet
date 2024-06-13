@@ -88,7 +88,7 @@
                             { "InputFiles", $"#ProjectPackage_{uniqueHash}_Plugin" },
                             { "InputPackageDir", $"$(TempPath)/ProjectPackage_{uniqueHash}_Plugin" },
                             { "OutputTag", $"#ProjectPackage_{uniqueHash}_Project" },
-                            { "IsForGauntlet", "false" },
+                            { "IsForGauntlet", projectPackage.settings.BootTest != null ? "true" : "false" },
                             { "InputProjectFilesPath", projectPackage.settings.ProjectCopyFilesPath ?? string.Empty },
                         }
                     }).ConfigureAwait(false);
