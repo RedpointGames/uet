@@ -378,10 +378,6 @@
                                     (x, v) => { x.PrivateKeyPasswordlessP12Path = v; }
                                 ),
                                 (
-                                    mobileProvision.PublicKeyPemPath!,
-                                    (x, v) => { x.PublicKeyPemPath = v; }
-                                ),
-                                (
                                     mobileProvision.MobileProvisionPath!,
                                     (x, v) => { x.MobileProvisionPath = v; }
                                 ),

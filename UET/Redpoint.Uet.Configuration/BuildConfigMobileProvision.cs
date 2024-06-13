@@ -7,9 +7,6 @@
         [JsonPropertyName("BundleIdentifierPattern")]
         public string? BundleIdentifierPattern { get; set; }
 
-        [JsonPropertyName("PublicKeyPemPath"), JsonRequired]
-        public string? PublicKeyPemPath { get; set; }
-
         [JsonPropertyName("PrivateKeyPasswordlessP12Path"), JsonRequired]
         public string? PrivateKeyPasswordlessP12Path { get; set; }
 
@@ -22,7 +19,7 @@
         [JsonPropertyName("AppleProvidedCertificatePath"), JsonRequired]
         public string? AppleProvidedCertificatePath { get; set; }
 
-        [JsonPropertyName("KeychainPasswordEnvironmentVariable"), JsonRequired]
+        [JsonPropertyName("KeychainPasswordEnvironmentVariable")]
         public string? KeychainPasswordEnvironmentVariable { get; set; }
     }
 }
