@@ -339,6 +339,10 @@
                             {
                                 arguments.Add($"-device={projectPackage.settings.BootTest.DeviceId}");
                             }
+                            if (projectPackage.settings.BootTest.ExtraGauntletArguments != null)
+                            {
+                                arguments.AddRange(projectPackage.settings.BootTest.ExtraGauntletArguments);
+                            }
 
                             await writer.WriteCommandAsync(
                                 new CommandElementProperties

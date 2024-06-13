@@ -26,5 +26,12 @@
         /// </summary>
         [JsonPropertyName("DeviceId")]
         public string? DeviceId { get; set; }
+
+        /// <summary>
+        /// Additional command line arguments to pass to Gauntlet.
+        /// </summary>
+        [JsonPropertyName("ExtraGauntletArguments")]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        public string[]? ExtraGauntletArguments { get; set; } = Array.Empty<string>();
     }
 }
