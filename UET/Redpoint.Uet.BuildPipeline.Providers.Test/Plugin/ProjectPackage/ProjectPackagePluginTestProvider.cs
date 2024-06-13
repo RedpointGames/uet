@@ -324,21 +324,6 @@
                 if (projectPackage.settings.BootTest != null)
                 {
                     // Run Gauntlet to deploy onto device.
-                    await writer.WriteDynamicReentrantSpawnAsync<ProjectPackagePluginTestProvider, BuildConfigPluginDistribution, BuildConfigPluginTestProjectPackage>(
-                        this,
-                        context,
-                        $"{projectPackage.settings.TargetPlatform}.{projectPackage.name}".Replace(" ", ".", StringComparison.Ordinal),
-                        projectPackage.settings,
-                        new Dictionary<string, string>
-                        {
-                            { "Stage", "PreGauntlet" },
-                            { "TargetPlatform", projectPackage.settings.TargetPlatform },
-                            { "CookPlatform", cookPlatform },
-                            { "ProjectDirectory", $"$(TempPath)/{assembledProjectName}" },
-                            { "StagingDirectory", $"$(TempPath)/{assembledProjectName}/Saved/StagedBuilds" },
-                            { "DeviceId", projectPackage.settings.BootTest.DeviceId ?? string.Empty },
-                            { "EnginePath", "$(EnginePath)" },
-                        }).ConfigureAwait(false);
                     await writer.WriteAgentNodeAsync(
                         new AgentNodeElementProperties
                         {
@@ -369,27 +354,42 @@
                                 arguments.AddRange(projectPackage.settings.BootTest.GauntletArguments);
                             }
 
+                            await writer.WriteDynamicReentrantSpawnAsync<ProjectPackagePluginTestProvider, BuildConfigPluginDistribution, BuildConfigPluginTestProjectPackage>(
+                                this,
+                                context,
+                                $"{projectPackage.settings.TargetPlatform}.{projectPackage.name}".Replace(" ", ".", StringComparison.Ordinal),
+                                projectPackage.settings,
+                                new Dictionary<string, string>
+                                {
+                                    { "Stage", "PreGauntlet" },
+                                    { "TargetPlatform", projectPackage.settings.TargetPlatform },
+                                    { "CookPlatform", cookPlatform },
+                                    { "ProjectDirectory", $"$(TempPath)/{assembledProjectName}" },
+                                    { "StagingDirectory", $"$(TempPath)/{assembledProjectName}/Saved/StagedBuilds" },
+                                    { "DeviceId", projectPackage.settings.BootTest.DeviceId ?? string.Empty },
+                                    { "EnginePath", "$(EnginePath)" },
+                                }).ConfigureAwait(false);
                             await writer.WriteCommandAsync(
                                 new CommandElementProperties
                                 {
                                     Name = "RunUnreal",
                                     Arguments = arguments,
                                 }).ConfigureAwait(false);
-                        }).ConfigureAwait(false);
-                    await writer.WriteDynamicReentrantSpawnAsync<ProjectPackagePluginTestProvider, BuildConfigPluginDistribution, BuildConfigPluginTestProjectPackage>(
-                        this,
-                        context,
-                        $"{projectPackage.settings.TargetPlatform}.{projectPackage.name}".Replace(" ", ".", StringComparison.Ordinal),
-                        projectPackage.settings,
-                        new Dictionary<string, string>
-                        {
-                            { "Stage", "PostGauntlet" },
-                            { "TargetPlatform", projectPackage.settings.TargetPlatform },
-                            { "CookPlatform", cookPlatform },
-                            { "ProjectDirectory", $"$(TempPath)/{assembledProjectName}" },
-                            { "StagingDirectory", $"$(TempPath)/{assembledProjectName}/Saved/StagedBuilds" },
-                            { "DeviceId", projectPackage.settings.BootTest.DeviceId ?? string.Empty },
-                            { "EnginePath", "$(EnginePath)" },
+                            await writer.WriteDynamicReentrantSpawnAsync<ProjectPackagePluginTestProvider, BuildConfigPluginDistribution, BuildConfigPluginTestProjectPackage>(
+                                this,
+                                context,
+                                $"{projectPackage.settings.TargetPlatform}.{projectPackage.name}".Replace(" ", ".", StringComparison.Ordinal),
+                                projectPackage.settings,
+                                new Dictionary<string, string>
+                                {
+                                    { "Stage", "PostGauntlet" },
+                                    { "TargetPlatform", projectPackage.settings.TargetPlatform },
+                                    { "CookPlatform", cookPlatform },
+                                    { "ProjectDirectory", $"$(TempPath)/{assembledProjectName}" },
+                                    { "StagingDirectory", $"$(TempPath)/{assembledProjectName}/Saved/StagedBuilds" },
+                                    { "DeviceId", projectPackage.settings.BootTest.DeviceId ?? string.Empty },
+                                    { "EnginePath", "$(EnginePath)" },
+                                }).ConfigureAwait(false);
                         }).ConfigureAwait(false);
 
                     // Make sure we depend on the boot test passing.
