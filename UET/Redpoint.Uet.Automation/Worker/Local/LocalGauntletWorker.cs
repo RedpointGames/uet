@@ -120,7 +120,6 @@
                         $@"-tempdir={gauntletOutputPath}",
                         $@"-args={string.Join(" ", arguments)}",
                     },
-                    DisableOpenGE = true,
                 },
                 this,
                 _cancellationTokenSource.Token).ConfigureAwait(false));

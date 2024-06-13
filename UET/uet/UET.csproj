@@ -45,9 +45,6 @@
     <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
     <ProjectReference Include="..\Redpoint.CppPreprocessor\Redpoint.CppPreprocessor.csproj" />
     <ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />
-    <ProjectReference Include="..\Redpoint.OpenGE.Agent\Redpoint.OpenGE.Agent.csproj" />
-    <ProjectReference Include="..\Redpoint.OpenGE.Component.PreprocessorCache\Redpoint.OpenGE.Component.PreprocessorCache.csproj" />
-    <ProjectReference Include="..\Redpoint.OpenGE.Protocol\Redpoint.OpenGE.Protocol.csproj" />
     <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
     <ProjectReference Include="..\Redpoint.Pdu.Abstractions\Redpoint.Pdu.Abstractions.csproj" />
     <ProjectReference Include="..\Redpoint.Pdu.CyberPower\Redpoint.Pdu.CyberPower.csproj" />

@@ -15,7 +15,6 @@
 
         private enum ApplicationName
         {
-            OpenGE,
             UEFS,
             UET,
         };
@@ -24,7 +23,6 @@
         {
             return applicationName switch
             {
-                ApplicationName.OpenGE => "OpenGE",
                 ApplicationName.UEFS => "UEFS",
                 ApplicationName.UET => "UET",
                 _ => throw new NotSupportedException(),
@@ -91,12 +89,6 @@
             }
         }
 
-        private static readonly Lazy<string> _opengeRootPath = new Lazy<string>(() => GetApplicationSystemWideRootPath(ApplicationName.OpenGE));
-
-        private static readonly Lazy<string> _opengeUserSpecificCachePath = new Lazy<string>(() => Path.Combine(
-            GetApplicationCurrentUserRootPath(ApplicationName.OpenGE),
-            "Cache"));
-
         private static readonly Lazy<string> _uetRootPath = new Lazy<string>(() => GetApplicationSystemWideRootPath(ApplicationName.UET));
 
         private static readonly Lazy<string> _uetRunbackDirectoryPath = new Lazy<string>(() => Path.Combine(UetRootPath, "Runbacks"));
@@ -131,10 +123,6 @@
         {
             return "/Users/Shared/UET/SDKs";
         });
-
-        public static string OpenGERootPath => _opengeRootPath.Value;
-
-        public static string OpenGEUserSpecificCachePath => _opengeUserSpecificCachePath.Value;
 
         public static string UetRootPath => _uetRootPath.Value;
 

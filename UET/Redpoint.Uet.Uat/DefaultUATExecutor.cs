@@ -5,7 +5,6 @@
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.Core.Permissions;
-    using Redpoint.Uet.OpenGE;
     using Redpoint.Uet.Uat.Internal;
     using System.Text.Json;
     using System.Text.Json.Serialization;
@@ -229,10 +228,10 @@
                     }
 
                     // Determine the process specification to use based on whether we're running on macOS/Linux or Windows.
-                    OpenGEProcessSpecification processSpecification;
+                    ProcessSpecification processSpecification;
                     if (OperatingSystem.IsWindows())
                     {
-                        processSpecification = new OpenGEProcessSpecification
+                        processSpecification = new ProcessSpecification
                         {
                             FilePath = Path.Combine(enginePath, "Engine", "Build", "BatchFiles", "RunUAT.bat"),
                             Arguments = new LogicalProcessArgument[]
@@ -242,12 +241,11 @@
                             WorkingDirectory = doScriptWorkaround ? enginePath : uatSpecification.WorkingDirectory,
                             EnvironmentVariables = uatSpecification.EnvironmentVariables,
                             StdinData = uatSpecification.StdinData,
-                            DisableOpenGE = uatSpecification.DisableOpenGE,
                         };
                     }
                     else if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
                     {
-                        processSpecification = new OpenGEProcessSpecification
+                        processSpecification = new ProcessSpecification
                         {
                             FilePath = Path.Combine(enginePath, "Engine", "Build", "BatchFiles", "RunUAT.sh"),
                             Arguments = new LogicalProcessArgument[]
@@ -257,7 +255,6 @@
                             WorkingDirectory = doScriptWorkaround ? enginePath : uatSpecification.WorkingDirectory,
                             EnvironmentVariables = uatSpecification.EnvironmentVariables,
                             StdinData = uatSpecification.StdinData,
-                            DisableOpenGE = uatSpecification.DisableOpenGE,
                         };
                     }
                     else

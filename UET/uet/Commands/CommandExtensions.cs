@@ -31,13 +31,6 @@
     using Redpoint.GrpcPipes;
     using Redpoint.ServiceControl;
     using Redpoint.CredentialDiscovery;
-    using Redpoint.OpenGE.Component.PreprocessorCache;
-    using Redpoint.Uet.OpenGE;
-    using Redpoint.OpenGE.Component.Dispatcher;
-    using Redpoint.OpenGE.Component.Worker;
-    using Redpoint.OpenGE.Agent;
-    using Redpoint.OpenGE.Core;
-    using Redpoint.OpenGE.Component.Dispatcher.PreprocessorCacheAccessor;
     using Redpoint.Concurrency;
     using Redpoint.GrpcPipes.Transport.Tcp;
 
@@ -66,12 +59,6 @@
             {
                 services.AddServiceControl();
             }
-            services.AddOpenGEAgent();
-            services.AddOpenGECore();
-            services.AddOpenGEComponentDispatcher();
-            services.AddOpenGEComponentWorker();
-            services.AddOpenGEProcessExecution();
-            services.AddOpenGEComponentPreprocessorCache();
             services.AddSdkManagement();
             services.AddGrpcPipes<TcpGrpcPipeFactory>();
             services.AddUefs();
@@ -186,9 +173,6 @@
                 {
                     extraParsingServices(services);
                 }
-                services.AddSingleton<IOpenGEProvider, DefaultOpenGEProvider>();
-                services.AddSingleton<IApplicationLifecycle>(sp => sp.GetRequiredService<IOpenGEProvider>());
-                services.AddSingleton<IPreprocessorCacheAccessor>(sp => sp.GetRequiredService<IOpenGEProvider>());
                 if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("UET_AUTOMATION_LOGGER_PIPE_NAME")))
                 {
                     // Run commands with an automation logger shim if we don't already have one.
