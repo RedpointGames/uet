@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.Configuration.Plugin
 {
     using Redpoint.Uet.Configuration.Dynamic;
+    using Redpoint.Uet.Configuration.Engine;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
@@ -66,5 +67,12 @@
         /// </summary>
         [JsonPropertyName("Gauntlet"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public BuildConfigPluginGauntlet? Gauntlet { get; set; }
+
+        /// <summary>
+        /// A list of mobile provisions to install to the local machine before building.
+        /// </summary>
+        [JsonPropertyName("MobileProvisions")]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        public BuildConfigMobileProvision[] MobileProvisions { get; set; } = Array.Empty<BuildConfigMobileProvision>();
     }
 }

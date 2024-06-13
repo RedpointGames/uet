@@ -69,7 +69,6 @@
                 var forImport = new[]
                 {
                     mobileProvision.PrivateKeyPasswordlessP12Path!,
-                    mobileProvision.PublicKeyPemPath!,
                     mobileProvision.AppleProvidedCertificatePath!,
                 };
                 foreach (var import in forImport)
