@@ -309,6 +309,7 @@
                                 "-Test=DefaultTest",
                                 "-MaxDuration=600",
                                 "-Unattended",
+                                "-cleandevice",
                                 $"-ExecCmds={execCmds}",
                             };
                             if (!string.IsNullOrWhiteSpace(projectPackage.settings.BootTest.DeviceId))
