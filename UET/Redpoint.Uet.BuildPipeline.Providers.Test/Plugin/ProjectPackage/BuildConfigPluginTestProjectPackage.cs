@@ -32,5 +32,11 @@
         /// </summary>
         [JsonPropertyName("CompileEditorTarget")]
         public string? CompileEditorTarget { get; set; } = null;
+
+        /// <summary>
+        /// If set, UET will run Gauntlet to ensure the packaged project boots on device.
+        /// </summary>
+        [JsonPropertyName("BootTest")]
+        public BuildConfigPluginTestProjectPackageBootTest? BootTest { get; set; } = null;
     }
 }

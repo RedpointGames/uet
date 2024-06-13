@@ -56,17 +56,17 @@
                 var job = new GitLabJob();
                 job.Stage = sourceJob.Stage;
                 job.Variables = new Dictionary<string, string>(sourceJob.EnvironmentVariables);
-                job.Needs = sourceJob.IsManual ? new List<string>() : sourceJob.Needs.ToList();
+                job.Needs = sourceJob.Agent.IsManual ? new List<string>() : sourceJob.Needs.ToList();
 
-                if (sourceJob.Platform == BuildServerJobPlatform.Windows)
+                if (sourceJob.Agent.Platform == BuildServerJobPlatform.Windows)
                 {
                     job.Tags = new List<string> { "buildgraph-windows" };
                 }
-                else if (sourceJob.Platform == BuildServerJobPlatform.Mac)
+                else if (sourceJob.Agent.Platform == BuildServerJobPlatform.Mac)
                 {
                     job.Tags = new List<string> { "buildgraph-mac" };
                 }
-                else if (sourceJob.Platform == BuildServerJobPlatform.Meta)
+                else if (sourceJob.Agent.Platform == BuildServerJobPlatform.Meta)
                 {
                     // Don't emit this job.
                     continue;
@@ -76,7 +76,9 @@
                     throw new InvalidOperationException("Unsupported platform in GitLab generation!");
                 }
 
-                if (sourceJob.IsManual)
+                job.Tags.AddRange(sourceJob.Agent.BuildMachineTags);
+
+                if (sourceJob.Agent.IsManual)
                 {
                     job.Rules = new GitLabJobRule[]
                     {

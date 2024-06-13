@@ -22,12 +22,7 @@
         /// <summary>
         /// The platform for this build job to run on.
         /// </summary>
-        public BuildServerJobPlatform Platform { get; set; } = BuildServerJobPlatform.Windows;
-
-        /// <summary>
-        /// If true, this build job is a manual build job.
-        /// </summary>
-        public bool IsManual { get; set; } = false;
+        public required BuildServerJobAgent Agent { get; set; }
 
         /// <summary>
         /// A list of artifact paths to upload for this build job.
