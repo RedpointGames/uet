@@ -12,6 +12,7 @@
     using System.Collections.Generic;
     using System.IO.Hashing;
     using System.Linq;
+    using System.Reflection;
     using System.Text;
     using System.Threading.Tasks;
     using System.Xml;
@@ -323,6 +324,21 @@
                 if (projectPackage.settings.BootTest != null)
                 {
                     // Run Gauntlet to deploy onto device.
+                    await writer.WriteDynamicReentrantSpawnAsync<ProjectPackagePluginTestProvider, BuildConfigPluginDistribution, BuildConfigPluginTestProjectPackage>(
+                        this,
+                        context,
+                        $"{projectPackage.settings.TargetPlatform}.{projectPackage.name}".Replace(" ", ".", StringComparison.Ordinal),
+                        projectPackage.settings,
+                        new Dictionary<string, string>
+                        {
+                            { "Stage", "PreGauntlet" },
+                            { "TargetPlatform", projectPackage.settings.TargetPlatform },
+                            { "CookPlatform", cookPlatform },
+                            { "ProjectDirectory", $"$(TempPath)/{assembledProjectName}" },
+                            { "StagingDirectory", $"$(TempPath)/{assembledProjectName}/Saved/StagedBuilds" },
+                            { "DeviceId", projectPackage.settings.BootTest.DeviceId ?? string.Empty },
+                            { "EnginePath", "$(EnginePath)" },
+                        }).ConfigureAwait(false);
                     await writer.WriteAgentNodeAsync(
                         new AgentNodeElementProperties
                         {
@@ -359,6 +375,21 @@
                                     Name = "RunUnreal",
                                     Arguments = arguments,
                                 }).ConfigureAwait(false);
+                        }).ConfigureAwait(false);
+                    await writer.WriteDynamicReentrantSpawnAsync<ProjectPackagePluginTestProvider, BuildConfigPluginDistribution, BuildConfigPluginTestProjectPackage>(
+                        this,
+                        context,
+                        $"{projectPackage.settings.TargetPlatform}.{projectPackage.name}".Replace(" ", ".", StringComparison.Ordinal),
+                        projectPackage.settings,
+                        new Dictionary<string, string>
+                        {
+                            { "Stage", "PostGauntlet" },
+                            { "TargetPlatform", projectPackage.settings.TargetPlatform },
+                            { "CookPlatform", cookPlatform },
+                            { "ProjectDirectory", $"$(TempPath)/{assembledProjectName}" },
+                            { "StagingDirectory", $"$(TempPath)/{assembledProjectName}/Saved/StagedBuilds" },
+                            { "DeviceId", projectPackage.settings.BootTest.DeviceId ?? string.Empty },
+                            { "EnginePath", "$(EnginePath)" },
                         }).ConfigureAwait(false);
 
                     // Make sure we depend on the boot test passing.
@@ -488,6 +519,42 @@
                         _logger.LogError($"Failed to sign APK: {apk.FullName}");
                         return apkExitCode;
                     }
+                }
+            }
+
+            if (stage == "PreGauntlet" && targetPlatform == "IOS")
+            {
+                var enginePath = runtimeSettings["EnginePath"];
+
+                var iosDeployFolderPath = Path.Combine(enginePath, "Engine", "Extras", "ThirdPartyNotUE", "ios-deploy", "bin");
+                var iosDeployFilePath = Path.Combine(iosDeployFolderPath, "ios-deploy");
+
+                _logger.LogInformation($"ios-deploy folder: {iosDeployFolderPath}");
+                _logger.LogInformation($"ios-deploy file: {iosDeployFilePath}");
+
+                // The launcher distribution of Unreal Engine for macOS is broken and doesn't
+                // ship with the ios-deploy binary, which is necessary for Gauntlet to work.
+                Directory.CreateDirectory(iosDeployFolderPath);
+                if (!File.Exists(iosDeployFilePath))
+                {
+                    _logger.LogInformation($"Extracting ios-deploy tool...");
+                    using (var writer = new FileStream(iosDeployFilePath + ".tmp", FileMode.Create, FileAccess.Write))
+                    {
+                        using (var reader = Assembly.GetExecutingAssembly().GetManifestResourceStream("Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.ProjectPackage.ios-deploy"))
+                        {
+                            await reader!.CopyToAsync(writer, cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                    if (!OperatingSystem.IsWindows())
+                    {
+                        File.SetUnixFileMode(
+                            iosDeployFilePath + ".tmp",
+                            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                            UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                            UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute);
+                    }
+                    File.Move(iosDeployFilePath + ".tmp", iosDeployFilePath);
+                    _logger.LogInformation($"Extracted ios-deploy tool.");
                 }
             }
 
