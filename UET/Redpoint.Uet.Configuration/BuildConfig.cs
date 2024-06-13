@@ -7,6 +7,9 @@
     /// </summary>
     public class BuildConfig
     {
+        /// <summary>
+        /// The version of UET that should be used when running against this BuildConfig.json file.
+        /// </summary>
         [JsonPropertyName("UETVersion")]
         public string? UETVersion { get; set; }
 

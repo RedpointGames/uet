@@ -1,16 +1,103 @@
 ﻿namespace UET.BuildConfig
 {
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
     using Redpoint.Uet.Configuration;
     using System;
     using System.Collections.Generic;
+    using System.Text;
     using System.Text.Json;
+    using System.Text.Json.Nodes;
 
-    internal static class BuildConfigLoader
+    internal class BuildConfigLoader
     {
+        private static void FixSchemaForBuildConfigPath(
+            IServiceProvider serviceProvider,
+            string buildConfigPath)
+        {
+            var logger = serviceProvider.GetService<ILogger<BuildConfigLoader>>();
+
+            var requiresSchemaFix = false;
+            try
+            {
+                JsonNode? rootNode = null;
+                using (var buildConfigStream = new FileStream(
+                    buildConfigPath,
+                    FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    rootNode = JsonNode.Parse(buildConfigStream);
+                    if (rootNode == null || rootNode.GetValueKind() != JsonValueKind.Object)
+                    {
+                        // The root element isn't an object, so we can't handle this.
+                        return;
+                    }
+                    var rootObject = rootNode.AsObject();
+                    if (rootObject.TryGetPropertyValue("$schema", out var schemaProperty) &&
+                        schemaProperty != null &&
+                        schemaProperty.GetValueKind() == JsonValueKind.String &&
+                        schemaProperty.GetValue<string>() == "https://raw.githubusercontent.com/RedpointGames/uet-schema/main/root.json")
+                    {
+                        // The '$schema' property is already set to the correct schema.
+                        return;
+                    }
+                    // The '$schema' property isn't set properly. Attempt to fix it.
+                    requiresSchemaFix = true;
+                }
+                if (requiresSchemaFix)
+                {
+                    // Open the file in write mode now. We don't do this initially in case the file is OK and multiple processes are trying to access it.
+                    logger?.LogInformation("Automatically setting '$schema' property to BuildConfig.json to assist with auto-complete.");
+                    string newJsonContent;
+                    {
+                        // We have to re-create the root object to ensure $schema is first.
+                        var newRootObject = new JsonObject
+                        {
+                            { "$schema", JsonValue.Create("https://raw.githubusercontent.com/RedpointGames/uet-schema/main/root.json") },
+                        };
+                        foreach (var kv in rootNode.AsObject())
+                        {
+                            if (kv.Key == "$schema" || kv.Value == null)
+                            {
+                                continue;
+                            }
+                            newRootObject.Add(kv.Key, kv.Value!.DeepClone());
+                        }
+
+                        // Serialize the new content out to the file.
+                        var options = new JsonSerializerOptions
+                        {
+                            WriteIndented = true,
+                        };
+                        newJsonContent = newRootObject.ToJsonString(options);
+                    }
+                    using (var buildConfigStream = new FileStream(
+                        buildConfigPath,
+                        FileMode.OpenOrCreate, FileAccess.Write, FileShare.None))
+                    {
+                        using (var writer = new StreamWriter(buildConfigStream, Encoding.UTF8, leaveOpen: true))
+                        {
+                            writer.Write(newJsonContent);
+                        }
+                        buildConfigStream.SetLength(buildConfigStream.Position);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (requiresSchemaFix)
+                {
+                    logger?.LogError(ex, $"Failed to automatically add '$schema' property to BuildConfig.json file: {ex}");
+                }
+                return;
+            }
+        }
+
         internal static BuildConfigLoadResult TryLoad(
             IServiceProvider serviceProvider,
             string buildConfigPath)
         {
+            FixSchemaForBuildConfigPath(serviceProvider, buildConfigPath);
+
             try
             {
                 using (var buildConfigStream = new FileStream(
