@@ -216,7 +216,9 @@
                     ? "-NoCodeSign" : string.Empty;
                 var isMobile = string.Equals(projectPackage.settings.TargetPlatform, "Android", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(projectPackage.settings.TargetPlatform, "IOS", StringComparison.OrdinalIgnoreCase);
+                var isAndroid = string.Equals(projectPackage.settings.TargetPlatform, "Android", StringComparison.OrdinalIgnoreCase);
                 var packageFlag = isMobile ? "-package" : string.Empty;
+                var distributionFlag = isAndroid ? "-distribution" : string.Empty;
                 await writer.WriteAgentNodeAsync(
                     new AgentNodeElementProperties
                     {
@@ -260,6 +262,7 @@
                                     $"\"-stagingdirectory=$(TempPath)/{assembledProjectName}/Saved/StagedBuilds\"",
                                     "-unattended",
                                     "-stdlog",
+                                    distributionFlag,
                                 ]
                             }).ConfigureAwait(false);
                         await writer.WriteTagAsync(
@@ -304,7 +307,7 @@
                                 $"\"-project=$(TempPath)/{assembledProjectName}/{assembledProjectName}.uproject\"",
                                 "-nop4",
                                 noCodeSign,
-                                $"\"-platform={cookPlatform}\"",
+                                $"\"-platform={projectPackage.settings.TargetPlatform}\"",
                                 "-Build=local",
                                 "-Test=DefaultTest",
                                 "-MaxDuration=600",
