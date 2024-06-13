@@ -237,15 +237,6 @@ $(PackageExclude);
           Tag="$(OutputTag)"
           If="'$(InputProjectFilesPath)' != ''"
         />
-        <Spawn
-          Exe="$(UETPath)"
-          Arguments="$(UETGlobalArgs) internal extract-gauntlet-helpers --path &quot;$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/&quot;"
-          If="'$(IsForGauntlet)' == 'true'" />
-        <Tag
-          BaseDir="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName)/"
-          Files="..."
-          With="$(OutputTag)"
-          If="'$(IsForGauntlet)' == 'true'" />
         <WriteTextFile
           File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName).Target.cs"
           Text="using UnrealBuildTool; public class $(AssembledProjectName)Target : TargetRules { public $(AssembledProjectName)Target(TargetInfo Target) : base(Target) { Type = TargetType.Game; DefaultBuildSettings = BuildSettingsVersion.V2; ExtraModuleNames.AddRange(new string[] { &quot;$(AssembledProjectName)&quot; }); } }"
