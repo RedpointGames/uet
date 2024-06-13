@@ -452,27 +452,43 @@
                 _logger.LogInformation($"Key store password: {keystorePassword}");
                 _logger.LogInformation($"Key password: {keyPassword}");
 
-                _logger.LogInformation($"Attempting to sign APK...");
-                return await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
+                var apkFolder = Path.Combine(stagingDirectory, "..", "..", "Binaries", "Android");
+                var apks = new DirectoryInfo(apkFolder).GetFiles("*.apk");
+                if (apks.Length == 0)
+                {
+                    _logger.LogError($"No APKs located in folder: {apkFolder}");
+                    return 1;
+                }
+                foreach (var apk in apks)
+                {
+                    _logger.LogInformation($"Signing APK: {apk.FullName}");
+                    var apkExitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = cmd,
+                            Arguments = [
+                                "/C",
+                                apksigner,
+                                "sign",
+                                "--ks",
+                                keystorePath,
+                                "--ks-key-alias",
+                                keystoreAlias,
+                                "--ks-pass",
+                                $"pass:{keystorePassword}",
+                                string.IsNullOrWhiteSpace(keyPassword) ? string.Empty : "--key-pass",
+                                string.IsNullOrWhiteSpace(keyPassword) ? string.Empty : $"pass:{keyPassword}",
+                                apk.FullName,
+                            ]
+                        },
+                        CaptureSpecification.Passthrough,
+                        cancellationToken).ConfigureAwait(false);
+                    if (apkExitCode != 0)
                     {
-                        FilePath = cmd,
-                        Arguments = [
-                            "/C",
-                            apksigner,
-                            "sign",
-                            "--ks",
-                            keystorePath,
-                            "--ks-key-alias",
-                            keystoreAlias,
-                            "--ks-pass",
-                            $"pass:{keystorePassword}",
-                            string.IsNullOrWhiteSpace(keyPassword) ? string.Empty : "--key-pass",
-                            string.IsNullOrWhiteSpace(keyPassword) ? string.Empty : $"pass:{keyPassword}",
-                        ]
-                    },
-                    CaptureSpecification.Passthrough,
-                    cancellationToken).ConfigureAwait(false);
+                        _logger.LogError($"Failed to sign APK: {apk.FullName}");
+                        return apkExitCode;
+                    }
+                }
             }
 
             return 0;
