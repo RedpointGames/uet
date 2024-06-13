@@ -28,12 +28,6 @@
         public string TargetPlatform { get; set; } = string.Empty;
 
         /// <summary>
-        /// The editor target to compile. If not set, defaults to "UnrealEditor".
-        /// </summary>
-        [JsonPropertyName("CompileEditorTarget")]
-        public string? CompileEditorTarget { get; set; } = null;
-
-        /// <summary>
         /// If set, UET will run Gauntlet to ensure the packaged project boots on device.
         /// </summary>
         [JsonPropertyName("BootTest")]
