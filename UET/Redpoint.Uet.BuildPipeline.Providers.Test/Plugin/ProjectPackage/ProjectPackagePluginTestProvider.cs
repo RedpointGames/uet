@@ -250,7 +250,7 @@
                                     $"\"-project=$(TempPath)/{assembledProjectName}/{assembledProjectName}.uproject\"",
                                     "-nop4",
                                     noCodeSign,
-                                    $"\"-platform={cookPlatform}\"",
+                                    $"\"-platform={projectPackage.settings.TargetPlatform}\"",
                                     "\"-clientconfig=Development\"",
                                     "-SkipCook",
                                     "-cook",
