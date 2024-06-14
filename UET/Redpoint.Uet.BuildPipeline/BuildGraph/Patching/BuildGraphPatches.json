@@ -207,5 +207,16 @@
       }
     ],
     "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
+  },
+  {
+    "File": "Engine\\Source\\Programs\\UnrealBuildTool\\Platform\\Android\\UEDeployAndroid.cs",
+    "Patches": [
+      {
+        "HandleWindowsNewLines": true,
+        "Find": "UseExternalFilesDir(bDisallowExternalFilesDir)",
+        "Replace": "UseExternalFilesDir(false)"
+      }
+    ],
+    "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
   }
 ]
