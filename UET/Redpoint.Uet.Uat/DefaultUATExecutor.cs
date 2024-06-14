@@ -227,6 +227,8 @@
                         while (true);
                     }
 
+                    // Extract the hooks and set DOTNET_STARTUP_HOOKS.
+
                     // Determine the process specification to use based on whether we're running on macOS/Linux or Windows.
                     ProcessSpecification processSpecification;
                     if (OperatingSystem.IsWindows())
