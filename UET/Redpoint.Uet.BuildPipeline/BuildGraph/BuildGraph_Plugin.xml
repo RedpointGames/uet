@@ -238,6 +238,11 @@ $(PackageExclude);
           If="'$(InputProjectFilesPath)' != ''"
         />
         <WriteTextFile
+          File="$(TempPath)/$(AssembledProjectName)/Config/DefaultGame.ini"
+          Text="&#13;&#10;&#13;&#10;[/Script/UnrealEd.ProjectPackagingSettings]&#13;&#10;BuildTarget=$(AssembledProjectName)"
+          Append="true"
+        />
+        <WriteTextFile
           File="$(TempPath)/$(AssembledProjectName)/Source/$(AssembledProjectName).Target.cs"
           Text="using UnrealBuildTool; public class $(AssembledProjectName)Target : TargetRules { public $(AssembledProjectName)Target(TargetInfo Target) : base(Target) { Type = TargetType.Game; DefaultBuildSettings = BuildSettingsVersion.Latest; IncludeOrderVersion = EngineIncludeOrderVersion.Latest; ExtraModuleNames.AddRange(new string[] { &quot;$(AssembledProjectName)&quot; }); } }"
           If="'$(IsForGauntlet)' == 'true'"
