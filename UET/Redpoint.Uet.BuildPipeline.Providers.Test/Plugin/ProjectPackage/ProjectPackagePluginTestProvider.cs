@@ -342,9 +342,6 @@
                                 noCodeSign,
                                 $"\"-platform={projectPackage.settings.TargetPlatform}\"",
                                 "-Build=local",
-                                "-Test=DefaultTest",
-                                "-MaxDuration=600",
-                                "-Unattended",
                             };
                             if (!string.IsNullOrWhiteSpace(projectPackage.settings.BootTest.DeviceId))
                             {
