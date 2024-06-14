@@ -556,6 +556,7 @@
                     {
                         Directory.Delete(payloadPath, true);
                     }
+                    Directory.CreateDirectory(payloadPath);
                     Directory.Move(app.FullName, payloadSubdirPath);
                     ZipFile.CreateFromDirectory(payloadPath, ipaPath);
 
