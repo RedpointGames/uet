@@ -10,6 +10,7 @@
     using Redpoint.Uet.Configuration.Plugin;
     using System;
     using System.Collections.Generic;
+    using System.IO.Compression;
     using System.IO.Hashing;
     using System.Linq;
     using System.Reflection;
@@ -520,6 +521,50 @@
                         return apkExitCode;
                     }
                 }
+            }
+
+            if (stage == "PostPackage" && targetPlatform == "IOS")
+            {
+                // We have to generate the .ipa since Gauntlet requires it and it doesn't
+                // get created in modern Xcode packaging.
+
+                var appFolder = Path.Combine(stagingDirectory, "..", "..", "Binaries", "IOS");
+                var apps = new DirectoryInfo(appFolder).GetDirectories("*.app");
+                if (apps.Length == 0)
+                {
+                    _logger.LogError($"No .app directory located in folder: {appFolder}");
+                    return 1;
+                }
+                foreach (var app in apps)
+                {
+                    var payloadPath = app.FullName + ".payload";
+                    var payloadSubdirPath = Path.Combine(payloadPath, "Payload");
+                    var ipaPath = Path.Combine(
+                        app.Parent!.FullName,
+                        Path.GetFileNameWithoutExtension(app.Name) + ".ipa");
+
+                    _logger.LogInformation($"Zipping .app to IPA: {app}");
+                    _logger.LogInformation($"  .payload temporary path: {payloadPath}");
+                    _logger.LogInformation($"  .payload path: {payloadSubdirPath}");
+                    _logger.LogInformation($"  .ipa path: {ipaPath}");
+
+                    if (Directory.Exists(payloadPath))
+                    {
+                        Directory.Delete(payloadPath, true);
+                    }
+                    Directory.Move(app.FullName, payloadSubdirPath);
+                    ZipFile.CreateFromDirectory(payloadPath, ipaPath);
+
+                    using (var stream = new FileStream(ipaPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, true))
+                        {
+                            _logger.LogInformation($"  First entry in ZIP archive: {archive.Entries.First().FullName}");
+                        }
+                    }
+                }
+
+                return 0;
             }
 
             if (stage == "PreGauntlet" && targetPlatform == "IOS")
