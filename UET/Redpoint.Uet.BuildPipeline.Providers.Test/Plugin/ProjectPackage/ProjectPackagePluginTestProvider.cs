@@ -542,6 +542,10 @@
                     var ipaPath = Path.Combine(
                         app.Parent!.FullName,
                         Path.GetFileNameWithoutExtension(app.Name) + ".ipa");
+                    if (File.Exists(ipaPath))
+                    {
+                        File.Delete(ipaPath);
+                    }
 
                     _logger.LogInformation($"Zipping .app to IPA: {app}");
                     _logger.LogInformation($"  .payload temporary path: {payloadPath}");
