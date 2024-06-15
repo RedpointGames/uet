@@ -535,7 +535,10 @@
                 foreach (var app in apps)
                 {
                     var payloadPath = app.FullName + ".payload";
-                    var payloadSubdirPath = Path.Combine(payloadPath, "Payload");
+                    var payloadSubdirPath = Path.Combine(
+                        payloadPath,
+                        "Payload",
+                        app.Name);
                     var ipaPath = Path.Combine(
                         app.Parent!.FullName,
                         Path.GetFileNameWithoutExtension(app.Name) + ".ipa");
@@ -553,7 +556,7 @@
                     {
                         Directory.Delete(payloadPath, true);
                     }
-                    Directory.CreateDirectory(payloadPath);
+                    Directory.CreateDirectory(Path.GetDirectoryName(payloadSubdirPath)!);
                     Directory.Move(app.FullName, payloadSubdirPath);
                     ZipFile.CreateFromDirectory(payloadPath, ipaPath);
 
