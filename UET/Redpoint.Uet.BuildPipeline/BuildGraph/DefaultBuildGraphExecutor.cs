@@ -61,7 +61,7 @@
                 new Dictionary<string, string>
                 {
                     { "IsBuildMachine", "1" },
-                    { "uebp_LOCAL_ROOT", enginePath },
+                    { "uebp_LOCAL_ROOT", enginePath.TrimEnd('\\') },
                 },
                 null,
                 captureSpecification,
@@ -101,7 +101,7 @@
                     var environmentVariables = new Dictionary<string, string>
                     {
                         { "IsBuildMachine", "1" },
-                        { "uebp_LOCAL_ROOT", enginePath },
+                        { "uebp_LOCAL_ROOT", enginePath.TrimEnd('\\') },
                         // BuildGraph in Unreal Engine 5.0 causes input files to be unnecessarily modified. Just allow mutation since I'm not sure what the bug is.
                         { "BUILD_GRAPH_ALLOW_MUTATION", "true" },
                         // Make sure UET knows it's running under BuildGraph for subcommands
@@ -122,7 +122,7 @@
                     }
                     else
                     {
-                        environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = enginePath;
+                        environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = enginePath.TrimEnd('\\');
                     }
                     if (string.IsNullOrWhiteSpace(environmentVariables["BUILD_GRAPH_PROJECT_ROOT"]))
                     {
@@ -217,7 +217,7 @@
                     new Dictionary<string, string>
                     {
                         { "IsBuildMachine", "1" },
-                        { "uebp_LOCAL_ROOT", enginePath },
+                        { "uebp_LOCAL_ROOT", enginePath.TrimEnd('\\') },
                     },
                     null,
                     captureSpecification,

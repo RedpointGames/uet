@@ -1,6 +1,11 @@
 ﻿namespace Redpoint.Uet.Workspace
 {
     using Microsoft.Extensions.Logging;
+    using Microsoft.Win32.SafeHandles;
+    using Redpoint.IO;
+    using Redpoint.ProcessExecution;
+    using Redpoint.Reservation;
+    using Redpoint.Uet.Core;
     using Redpoint.Uet.Workspace.Descriptors;
     using Redpoint.Uet.Workspace.Instance;
     using Redpoint.Uet.Workspace.ParallelCopy;
@@ -20,6 +25,7 @@
         private readonly IVirtualWorkspaceProvider _virtualWorkspaceProvider;
         private readonly IPhysicalGitCheckout _physicalGitCheckout;
         private readonly IWorkspaceReservationParameterGenerator _parameterGenerator;
+        private readonly IProcessExecutor _processExecutor;
 
         public PhysicalWorkspaceProvider(
             ILogger<PhysicalWorkspaceProvider> logger,
@@ -27,7 +33,8 @@
             IParallelCopy parallelCopy,
             IVirtualWorkspaceProvider virtualWorkspaceProvider,
             IPhysicalGitCheckout physicalGitCheckout,
-            IWorkspaceReservationParameterGenerator parameterGenerator)
+            IWorkspaceReservationParameterGenerator parameterGenerator,
+            IProcessExecutor processExecutor)
         {
             _logger = logger;
             _reservationManager = reservationManager;
@@ -35,6 +42,7 @@
             _virtualWorkspaceProvider = virtualWorkspaceProvider;
             _physicalGitCheckout = physicalGitCheckout;
             _parameterGenerator = parameterGenerator;
+            _processExecutor = processExecutor;
         }
 
         public bool ProvidesFastCopyOnWrite => false;
@@ -53,6 +61,8 @@
                     return await AllocateGitAsync(descriptor, cancellationToken).ConfigureAwait(false);
                 case UefsPackageWorkspaceDescriptor descriptor:
                     return await _virtualWorkspaceProvider.GetWorkspaceAsync(descriptor, cancellationToken).ConfigureAwait(false);
+                case SharedEngineSourceWorkspaceDescriptor descriptor:
+                    return await AllocateSharedEngineSourceAsync(descriptor, cancellationToken).ConfigureAwait(false);
                 default:
                     throw new NotSupportedException();
             }
@@ -141,6 +151,64 @@
                     await reservation.DisposeAsync().ConfigureAwait(false);
                 }
             }
+        }
+
+        private async Task<IWorkspace> AllocateSharedEngineSourceAsync(SharedEngineSourceWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
+        {
+            if (!OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
+            {
+                throw new PlatformNotSupportedException();
+            }
+
+            await _processExecutor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = @"C:\Windows\System32\net.exe",
+                    Arguments = [
+                        "use",
+                        "U:",
+                        "/DELETE",
+                        "/Y"
+                    ]
+                },
+                CaptureSpecification.Passthrough,
+                cancellationToken).ConfigureAwait(false);
+            await _processExecutor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = @"C:\Windows\System32\net.exe",
+                    Arguments = [
+                        "use",
+                        "U:",
+                        descriptor.NetworkShare
+                    ]
+                },
+                CaptureSpecification.Passthrough,
+                cancellationToken).ConfigureAwait(false);
+
+            _logger.LogInformation("Attempting to acquire lock on network share...");
+            do
+            {
+                try
+                {
+                    var handle = File.OpenHandle(
+                        "U:\\uet-ses.lock",
+                        FileMode.Create,
+                        FileAccess.ReadWrite,
+                        FileShare.None,
+                        FileOptions.DeleteOnClose);
+                    return new HandleWorkspace(@"U:\", handle);
+                }
+                catch (IOException ex) when (ex.Message.Contains("another process", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    // Attempt the next reservation.
+                    _logger.LogInformation($"Another build job is currently using the network share. Retrying in 15 seconds...");
+                    await Task.Delay(15000, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            while (!cancellationToken.IsCancellationRequested);
+
+            throw new OperationCanceledException(cancellationToken);
         }
     }
 }

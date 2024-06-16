@@ -55,6 +55,15 @@
                     },
                     cancellationToken).ConfigureAwait(false);
             }
+            else if (buildEngineSpecification._sesNetworkShare != null)
+            {
+                return await _workspaceProvider.GetWorkspaceAsync(
+                    new SharedEngineSourceWorkspaceDescriptor
+                    {
+                        NetworkShare = buildEngineSpecification._sesNetworkShare,
+                    },
+                    cancellationToken).ConfigureAwait(false);
+            }
             else if (buildEngineSpecification._gitCommit != null)
             {
                 return await _workspaceProvider.GetWorkspaceAsync(
