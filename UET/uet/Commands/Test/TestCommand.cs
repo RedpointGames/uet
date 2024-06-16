@@ -120,6 +120,9 @@
                     case EngineSpecType.UEFSPackageTag:
                         engineSpec = BuildEngineSpecification.ForUEFSPackageTag(engine.UEFSPackageTag!);
                         break;
+                    case EngineSpecType.SESNetworkShare:
+                        engineSpec = BuildEngineSpecification.ForSESNetworkShare(engine.SESNetworkShare!);
+                        break;
                     case EngineSpecType.Version:
                         engineSpec = BuildEngineSpecification.ForVersionWithPath(engine.Version!, engine.Path!);
                         break;

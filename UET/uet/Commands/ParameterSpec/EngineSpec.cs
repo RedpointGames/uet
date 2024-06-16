@@ -192,8 +192,9 @@
             Git = 1 << 5,
             LauncherInstalled = 1 << 6,
             WindowsUserRegistry = 1 << 7,
+            SESNetworkShare = 1 << 8,
 
-            All = 0xFF,
+            All = 0xFFFFFF,
         }
 
         public static EngineSpec? TryParseEngineSpecExact(string engine)
@@ -213,6 +214,20 @@
                         Type = EngineSpecType.UEFSPackageTag,
                         OriginalSpec = engine,
                         UEFSPackageTag = engine["uefs:".Length..],
+                    };
+                }
+            }
+
+            if ((flags & EngineParseFlags.SESNetworkShare) != 0)
+            {
+                // Detect UEFS tags.
+                if (engine.StartsWith("ses:", StringComparison.Ordinal))
+                {
+                    return new EngineSpec
+                    {
+                        Type = EngineSpecType.SESNetworkShare,
+                        OriginalSpec = engine,
+                        SESNetworkShare = engine["ses:".Length..],
                     };
                 }
             }
@@ -454,7 +469,7 @@
                 return engineResult;
             }
 
-            result.ErrorMessage = "The specified engine could not be found. Engines can be specified as a version number like '5.2', a UEFS tag like 'uefs:...' or an absolute path.";
+            result.ErrorMessage = "The specified engine could not be found. Engines can be specified as a version number like '5.2', a UEFS tag like 'uefs:...', a shared engine source like 'ses:\\\\MACHINE\\NetworkShare\\Folder' or an absolute path.";
             return null!;
         }
 
@@ -467,6 +482,8 @@
         public string? Path { get; private init; }
 
         public string? UEFSPackageTag { get; private init; }
+
+        public string? SESNetworkShare { get; private init; }
 
         public string? GitUrl { get; private init; }
 

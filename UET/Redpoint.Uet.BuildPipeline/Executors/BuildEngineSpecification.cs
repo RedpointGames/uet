@@ -12,6 +12,7 @@
         internal string[]? _gitConsoleZips { get; private set; }
         internal string? _gitSharedWindowsCachePath { get; private set; }
         internal string? _gitSharedMacCachePath { get; private set; }
+        internal string? _sesNetworkShare { get; private set; }
         public bool IsEngineBuild { get; private set; } = false;
 
         public static BuildEngineSpecification ForVersionWithPath(string version, string localPath)
@@ -36,6 +37,14 @@
             return new BuildEngineSpecification
             {
                 _uefsPackageTag = uefsPackageTag,
+            };
+        }
+
+        public static BuildEngineSpecification ForSESNetworkShare(string sesNetworkShare)
+        {
+            return new BuildEngineSpecification
+            {
+                _sesNetworkShare = sesNetworkShare,
             };
         }
 
@@ -67,6 +76,10 @@
             if (!string.IsNullOrWhiteSpace(_uefsPackageTag))
             {
                 return $"uefs:{_uefsPackageTag}";
+            }
+            else if (!string.IsNullOrWhiteSpace(_sesNetworkShare))
+            {
+                return $"ses:{_sesNetworkShare}";
             }
             else if (!string.IsNullOrWhiteSpace(_engineVersion))
             {

@@ -17,5 +17,7 @@
         /// Commands like <c>ci-build</c> will always receive a value like <see cref="GitCommit"/> instead.
         /// </summary>
         SelfEngineByBuildConfig,
+
+        SESNetworkShare,
     }
 }
