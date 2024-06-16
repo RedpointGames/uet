@@ -227,7 +227,8 @@
                     {
                         Type = EngineSpecType.SESNetworkShare,
                         OriginalSpec = engine,
-                        SESNetworkShare = engine["ses:".Length..],
+                        // @note: Allow '\' to be passed as '/' to avoid weird escaping on build servers and command line.
+                        SESNetworkShare = engine["ses:".Length..].Replace('/', '\\'),
                     };
                 }
             }
