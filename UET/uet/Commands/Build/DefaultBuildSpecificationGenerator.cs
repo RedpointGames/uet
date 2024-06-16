@@ -327,6 +327,8 @@
                 }
             }).ToArray(), localExecutor);
             var gameConfig = ComputeTargetConfig("Game", distribution.Build.Game, localExecutor);
+            var clientConfig = ComputeTargetConfig("Client", distribution.Build.Client, localExecutor);
+            var serverConfig = ComputeTargetConfig("Server", distribution.Build.Server, localExecutor);
 
             // Compute directories to clean.
             var cleanDirectories = new List<string>();
@@ -454,7 +456,11 @@
                     { $"ExecuteBuild", executeBuild ? "true" : "false" },
                     { $"EditorTargetPlatforms", string.Join(";", editorTargetPlatforms) },
                     { $"GameTargetPlatforms", gameConfig.TargetPlatforms },
+                    { $"ClientTargetPlatforms", clientConfig.TargetPlatforms },
+                    { $"ServerTargetPlatforms", serverConfig.TargetPlatforms },
                     { $"GameConfigurations", gameConfig.Configurations },
+                    { $"ClientConfigurations", clientConfig.Configurations },
+                    { $"ServerConfigurations", serverConfig.Configurations },
                     { $"MacPlatforms", $"IOS;Mac" },
                     { $"StrictIncludes", strictIncludes || strictIncludesAtPluginLevel ? "true" : "false" },
                     { $"Allow2019", "false" },
