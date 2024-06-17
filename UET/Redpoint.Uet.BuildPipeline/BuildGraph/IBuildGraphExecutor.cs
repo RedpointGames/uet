@@ -15,14 +15,10 @@
             CancellationToken cancellationToken);
 
         Task<int> ExecuteGraphNodeAsync(
-            string enginePath,
-            string buildGraphRepositoryRootPath,
-            string uetPath,
-            string artifactExportPath,
+            BuildGraphArgumentContext buildGraphArgumentContext,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
             string buildGraphNodeName,
-            string buildGraphSharedStorageDir,
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
             Dictionary<string, string> globalEnvironmentVariables,
@@ -31,13 +27,9 @@
             CancellationToken cancellationToken);
 
         Task<BuildGraphExport> GenerateGraphAsync(
-            string enginePath,
-            string buildGraphRepositoryRootPath,
-            string uetPath,
-            string artifactExportPath,
+            BuildGraphArgumentContext buildGraphArgumentContext,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
-            string buildGraphSharedStorageDir,
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
             ICaptureSpecification captureSpecification,

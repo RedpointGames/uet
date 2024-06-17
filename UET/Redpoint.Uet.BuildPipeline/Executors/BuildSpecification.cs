@@ -2,6 +2,7 @@
 {
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.BuildPipeline.Environment;
+    using Redpoint.Uet.BuildPipeline.MultiWorkspace;
     using Redpoint.Uet.Configuration.Engine;
 
     public class BuildSpecification
@@ -23,11 +24,7 @@
         /// </summary>
         public string DistributionName { get; init; } = string.Empty;
 
-        /// <summary>
-        /// Some executors will create a local workspace for this path and then use that workspace
-        /// as __REPOSITORY_ROOT__. Others will use this path directly as __REPOSITORY_ROOT__.
-        /// </summary>
-        public required string BuildGraphRepositoryRoot { get; init; }
+        public required IReadOnlyDictionary<string, MultiWorkspaceDescriptor> WorkspaceDescriptors { get; init; }
 
         /// <summary>
         /// The path to the UET binary itself. This is used so that BuildGraph can re-enter back to UET to perform some internal tasks.

@@ -71,15 +71,15 @@
         }
 
         private async Task<IWorkspace> GetFolderWorkspaceAsync(
-            string buildGraphRepositoryRoot,
+            string sourcePath,
             string nodeName)
         {
-            if (_workspaceProvider.ProvidesFastCopyOnWrite && !string.IsNullOrWhiteSpace(buildGraphRepositoryRoot))
+            if (_workspaceProvider.ProvidesFastCopyOnWrite && !string.IsNullOrWhiteSpace(sourcePath))
             {
                 return await _workspaceProvider.GetWorkspaceAsync(
                     new FolderSnapshotWorkspaceDescriptor
                     {
-                        SourcePath = buildGraphRepositoryRoot,
+                        SourcePath = sourcePath,
                         WorkspaceDisambiguators = new[] { nodeName },
                     },
                     CancellationToken.None).ConfigureAwait(false);
@@ -89,9 +89,44 @@
                 return await _workspaceProvider.GetWorkspaceAsync(
                     new FolderAliasWorkspaceDescriptor
                     {
-                        AliasedPath = buildGraphRepositoryRoot
+                        AliasedPath = sourcePath
                     },
                     CancellationToken.None).ConfigureAwait(false);
+            }
+        }
+
+        private static async Task<T> ExecuteWithWorkspaces<T>(
+            BuildSpecification buildSpecification,
+            Func<string, Task<IWorkspace>> allocateWorkspace,
+            Func<string, string, Task<T>> execute)
+        {
+            var workspaces = new Dictionary<string, IWorkspace?>();
+            try
+            {
+                workspaces.Add(
+                    "baseCode",
+                    string.IsNullOrWhiteSpace(buildSpecification.BuildGraphRepositoryRootBaseCode)
+                        ? null
+                        : await allocateWorkspace(buildSpecification.BuildGraphRepositoryRootBaseCode).ConfigureAwait(false));
+                workspaces.Add(
+                    "platformCode",
+                    string.IsNullOrWhiteSpace(buildSpecification.BuildGraphRepositoryRootPlatformCode)
+                        ? null
+                        : await allocateWorkspace(buildSpecification.BuildGraphRepositoryRootPlatformCode).ConfigureAwait(false));
+
+                return await execute(
+                    workspaces["baseCode"]?.Path ?? string.Empty,
+                    workspaces["platformCode"]?.Path ?? string.Empty).ConfigureAwait(false);
+            }
+            finally
+            {
+                foreach (var kv in workspaces)
+                {
+                    if (kv.Value != null)
+                    {
+                        await kv.Value.DisposeAsync().ConfigureAwait(false);
+                    }
+                }
             }
         }
 
@@ -166,18 +201,24 @@
                             globalEnvironmentVariables,
                             cancellationToken).ConfigureAwait(false);
 
-                        async Task<int> ExecuteBuildInWorkspaceAsync(string targetWorkspacePath)
+                        async Task<int> ExecuteBuildInWorkspaceAsync(
+                            string repositoryRootBaseCode,
+                            string repositoryRootPlatformCode)
                         {
                             var preBuildGraphArguments = _buildGraphArgumentGenerator.GeneratePreBuildGraphArguments(
                                 buildSpecification.BuildGraphSettings,
                                 buildSpecification.BuildGraphSettingReplacements,
-                                targetWorkspacePath,
-                                buildSpecification.UETPath,
-                                engineWorkspace.Path,
-                                OperatingSystem.IsWindows()
-                                    ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
-                                    : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
-                                buildSpecification.ArtifactExportPath);
+                                new BuildGraphArgumentContext
+                                {
+                                    RepositoryRootBaseCode = repositoryRootBaseCode,
+                                    RepositoryRootPlatformCode = repositoryRootPlatformCode,
+                                    UetPath = buildSpecification.UETPath,
+                                    EnginePath = engineWorkspace.Path,
+                                    SharedStoragePath = OperatingSystem.IsWindows()
+                                        ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
+                                        : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                                    ArtifactExportPath = buildSpecification.ArtifactExportPath,
+                                });
 
                             if (preparePlugin != null && preparePlugin.Length > 0)
                             {
@@ -190,7 +231,9 @@
                                         .First();
                                     var exitCode = await provider.RunBeforeBuildGraphAsync(
                                         byType,
-                                        targetWorkspacePath,
+                                        !string.IsNullOrWhiteSpace(repositoryRootPlatformCode)
+                                            ? repositoryRootPlatformCode
+                                            : repositoryRootBaseCode,
                                         preBuildGraphArguments,
                                         cancellationToken).ConfigureAwait(false);
                                     if (exitCode != 0)
@@ -212,7 +255,9 @@
                                         .First();
                                     var exitCode = await provider.RunBeforeBuildGraphAsync(
                                         byType,
-                                        targetWorkspacePath,
+                                        !string.IsNullOrWhiteSpace(repositoryRootPlatformCode)
+                                            ? repositoryRootPlatformCode
+                                            : repositoryRootBaseCode,
                                         preBuildGraphArguments,
                                         cancellationToken).ConfigureAwait(false);
                                     if (exitCode != 0)
@@ -225,14 +270,20 @@
 
                             _logger.LogTrace($"Starting: {node.Node.Name}");
                             return await _buildGraphExecutor.ExecuteGraphNodeAsync(
-                                engineWorkspace!.Path,
-                                targetWorkspacePath,
-                                buildSpecification.UETPath,
-                                buildSpecification.ArtifactExportPath,
+                                new BuildGraphArgumentContext
+                                {
+                                    RepositoryRootBaseCode = repositoryRootBaseCode,
+                                    RepositoryRootPlatformCode = repositoryRootPlatformCode,
+                                    UetPath = buildSpecification.UETPath,
+                                    EnginePath = engineWorkspace!.Path,
+                                    SharedStoragePath = OperatingSystem.IsWindows()
+                                        ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
+                                        : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                                    ArtifactExportPath = buildSpecification.ArtifactExportPath,
+                                },
                                 buildSpecification.BuildGraphScript,
                                 buildSpecification.BuildGraphTarget,
                                 node.Node.Name,
-                                OperatingSystem.IsWindows() ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                                 buildSpecification.BuildGraphSettings,
                                 buildSpecification.BuildGraphSettingReplacements,
                                 globalEnvironmentVariablesWithSdk!,
@@ -256,16 +307,23 @@
                         int exitCode;
                         if (buildSpecification.Engine.IsEngineBuild)
                         {
-                            exitCode = await ExecuteBuildInWorkspaceAsync(engineWorkspace.Path).ConfigureAwait(false);
+                            exitCode = await ExecuteBuildInWorkspaceAsync(
+                                engineWorkspace.Path,
+                                string.Empty).ConfigureAwait(false);
                         }
                         else
                         {
-                            await using ((await GetFolderWorkspaceAsync(
-                                buildSpecification.BuildGraphRepositoryRoot,
-                                node.Node.Name).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
-                            {
-                                exitCode = await ExecuteBuildInWorkspaceAsync(targetWorkspace.Path).ConfigureAwait(false);
-                            }
+                            exitCode = await ExecuteWithWorkspaces(
+                                buildSpecification,
+                                async path => await GetFolderWorkspaceAsync(
+                                    path,
+                                    node.Node.Name).ConfigureAwait(false),
+                                async (baseCode, platformCode) =>
+                                {
+                                    return await ExecuteBuildInWorkspaceAsync(
+                                        baseCode,
+                                        platformCode).ConfigureAwait(false);
+                                }).ConfigureAwait(false);
                         }
                         if (exitCode == 0)
                         {
@@ -318,26 +376,33 @@
                 string.Empty,
                 cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engineWorkspace).ConfigureAwait(false))
             {
-                await using ((await GetFolderWorkspaceAsync(
-                    buildSpecification.BuildGraphRepositoryRoot,
-                    "Generate BuildGraph JSON").ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
-                {
-                    _logger.LogInformation("Generating BuildGraph JSON based on settings...");
-                    buildGraph = await _buildGraphExecutor.GenerateGraphAsync(
-                        engineWorkspace.Path,
-                        targetWorkspace.Path,
-                        buildSpecification.UETPath,
-                        buildSpecification.ArtifactExportPath,
-                        buildSpecification.BuildGraphScript,
-                        buildSpecification.BuildGraphTarget,
-                        OperatingSystem.IsWindows()
-                            ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
-                            : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
-                        buildSpecification.BuildGraphSettings,
-                        buildSpecification.BuildGraphSettingReplacements,
-                        generationCaptureSpecification,
-                        cancellationToken).ConfigureAwait(false);
-                }
+                buildGraph = await ExecuteWithWorkspaces(
+                    buildSpecification,
+                    async path => await GetFolderWorkspaceAsync(
+                        path,
+                        "Generate BuildGraph JSON").ConfigureAwait(false),
+                    async (baseCode, platformCode) =>
+                    {
+                        _logger.LogInformation("Generating BuildGraph JSON based on settings...");
+                        return await _buildGraphExecutor.GenerateGraphAsync(
+                            new BuildGraphArgumentContext
+                            {
+                                RepositoryRootBaseCode = baseCode,
+                                RepositoryRootPlatformCode = platformCode,
+                                UetPath = buildSpecification.UETPath,
+                                EnginePath = engineWorkspace.Path,
+                                SharedStoragePath = OperatingSystem.IsWindows()
+                                    ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
+                                    : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                                ArtifactExportPath = buildSpecification.ArtifactExportPath,
+                            },
+                            buildSpecification.BuildGraphScript,
+                            buildSpecification.BuildGraphTarget,
+                            buildSpecification.BuildGraphSettings,
+                            buildSpecification.BuildGraphSettingReplacements,
+                            generationCaptureSpecification,
+                            cancellationToken).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
             }
 
             var globalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>();

@@ -176,7 +176,7 @@
 
                 ProjectStagingDirectory = new Option<string>(
                     "--project-staging-directory",
-                    description: "When building a project, either as a .uproject or via BuildConfig.json, overrides the path that project builds are staged to. The default is __REPOSITORY_ROOT__/Saved/StagedBuilds which places builds underneath the 'Saved/StagedBuilds' folder in the project. You can use absolute paths here and you can use __REPOSITORY_ROOT__ to refer to the project folder.");
+                    description: "When building a project, either as a .uproject or via BuildConfig.json, overrides the path that project builds are staged to. The default is __REPOSITORY_ROOT_OUTPUT__/Saved/StagedBuilds which places builds underneath the 'Saved/StagedBuilds' folder in the project. You can use absolute paths here and you can use __REPOSITORY_ROOT_OUTPUT__ to refer to the project folder.");
                 ProjectStagingDirectory.ArgumentGroupName = projectOptions;
 
                 // ==== CI/CD options

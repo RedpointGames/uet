@@ -276,7 +276,9 @@
                 BuildGraphTarget = string.Join("+", editorPlatforms.Select(x => $"Make Installed Build {x}")),
                 BuildGraphSettings = settings,
                 BuildGraphEnvironment = buildGraphEnvironment,
-                BuildGraphRepositoryRoot = string.Empty,
+                BuildGraphRepositoryRootOutput = string.Empty,
+                BuildGraphRepositoryRootBaseCode = string.Empty,
+                BuildGraphRepositoryRootPlatformCode = string.Empty,
                 UETPath = _selfLocation.GetUetLocalLocation(),
                 GlobalEnvironmentVariables = new Dictionary<string, string>(),
                 ProjectFolderName = null,
@@ -496,62 +498,101 @@
                 }
             }
 
+            // Compute base settings for BuildGraph.
+            var buildGraphSettings = new Dictionary<string, string>
+            {
+                // Environment options
+                { $"UETPath", $"__UET_PATH__" },
+                { "UETGlobalArgs", _globalArgsProvider?.GlobalArgsString ?? string.Empty },
+                { "EnginePath", "__ENGINE_PATH__" },
+                { $"TempPath", $"__REPOSITORY_ROOT_OUTPUT__/.uet/tmp" },
+                { $"RepositoryRootOutput", $"__REPOSITORY_ROOT_OUTPUT__" },
+                { $"RepositoryRootBaseCode", $"__REPOSITORY_ROOT_BASE_CODE__" },
+                { $"RepositoryRootPlatformCode", $"__REPOSITORY_ROOT_PLATFORM_CODE__" },
+                { $"PluginName", pluginInfo.PluginName },
+                { $"Distribution", distribution.Name },
+                { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
+
+                // Dynamic graph
+                { "ScriptNodeIncludes", scriptNodeIncludes },
+                { "ScriptMacroIncludes", scriptMacroIncludes },
+
+                // General options
+                { "IsUnrealEngine5", "true" },
+
+                // Clean options
+                { $"CleanDirectories", string.Join(";", cleanDirectories) },
+
+                // Build options
+                { $"ExecuteBuild", executeBuild ? "true" : "false" },
+                { $"EditorTargetPlatforms", string.Join(";", editorTargetPlatforms) },
+                { $"GameTargetPlatforms", gameConfig.TargetPlatforms },
+                { $"ClientTargetPlatforms", clientConfig.TargetPlatforms },
+                { $"ServerTargetPlatforms", serverConfig.TargetPlatforms },
+                { $"GameConfigurations", gameConfig.Configurations },
+                { $"ClientConfigurations", clientConfig.Configurations },
+                { $"ServerConfigurations", serverConfig.Configurations },
+                { $"MacPlatforms", $"IOS;Mac" },
+                { $"StrictIncludes", strictIncludes || strictIncludesAtPluginLevel ? "true" : "false" },
+                { $"Allow2019", "false" },
+                { $"EnginePrefix", "Unreal" },
+
+                // Package options
+                { $"ExecutePackage", executePackage ? "true" : "false" },
+                { "VersionNumber", versionInfo.versionNumber },
+                { "VersionName", versionInfo.versionName },
+                { "PackageFolder", distribution.Package?.OutputFolderName ?? "Packaged" },
+                { "PackageInclude", GetFilterInclude(repositoryRoot, distribution) },
+                { "PackageExclude", GetFilterExclude(repositoryRoot, distribution) },
+                { "IsForMarketplaceSubmission", isForMarketplaceSubmission ? "true" : "false" },
+                { "CopyrightHeader", copyrightHeader },
+                { "CopyrightExcludes", copyrightExcludes },
+            };
+
+            // Handle platform extension vs non-platform extension.
+            string buildGraphRepositoryRootOutput, buildGraphRepositoryRootBaseCode, buildGraphRepositoryRootPlatformCode;
+            if (pluginInfo.PlatformExtensionInfo != null)
+            {
+                buildGraphSettings.Add(
+                    "PluginDirectory",
+                    isPluginRooted
+                        ? $"__REPOSITORY_ROOT_BASE_CODE__"
+                        : $"__REPOSITORY_ROOT_BASE_CODE__/{pluginInfo.PluginName}");
+                buildGraphSettings.Add(
+                    "PlatformExtensionDirectory",
+                    isPluginRooted
+                        ? $"__REPOSITORY_ROOT_PLATFORM_CODE__"
+                        : $"__REPOSITORY_ROOT_PLATFORM_CODE__/{pluginInfo.PluginName}");
+                buildGraphSettings.Add(
+                    "PlatformExtensionPlatform",
+                    pluginInfo.PlatformExtensionInfo.Platform ?? string.Empty);
+                buildGraphRepositoryRootOutput = repositoryRoot;
+                buildGraphRepositoryRootBaseCode = repositoryRoot;
+                buildGraphRepositoryRootPlatformCode = string.Empty;
+            }
+            else
+            {
+                buildGraphSettings.Add(
+                    "PluginDirectory",
+                    isPluginRooted
+                        ? $"__REPOSITORY_ROOT_BASE_CODE__"
+                        : $"__REPOSITORY_ROOT_BASE_CODE__/{pluginInfo.PluginName}");
+                buildGraphRepositoryRootOutput = repositoryRoot;
+                buildGraphRepositoryRootBaseCode = repositoryRoot;
+                buildGraphRepositoryRootPlatformCode = string.Empty;
+            }
+
             // Compute final settings for BuildGraph.
             return new BuildSpecification
             {
                 Engine = engineSpec,
                 BuildGraphScript = BuildGraphScriptSpecification.ForPlugin(),
                 BuildGraphTarget = "End",
-                BuildGraphSettings = new Dictionary<string, string>
-                {
-                    // Environment options
-                    { $"UETPath", $"__UET_PATH__" },
-                    { "UETGlobalArgs", _globalArgsProvider?.GlobalArgsString ?? string.Empty },
-                    { "EnginePath", "__ENGINE_PATH__" },
-                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
-                    { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
-                    { $"PluginDirectory", isPluginRooted ? $"__REPOSITORY_ROOT__" : $"__REPOSITORY_ROOT__/{pluginInfo.PluginName}" },
-                    { $"PluginName", pluginInfo.PluginName },
-                    { $"Distribution", distribution.Name },
-                    { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
-
-                    // Dynamic graph
-                    { "ScriptNodeIncludes", scriptNodeIncludes },
-                    { "ScriptMacroIncludes", scriptMacroIncludes },
-
-                    // General options
-                    { "IsUnrealEngine5", "true" },
-
-                    // Clean options
-                    { $"CleanDirectories", string.Join(";", cleanDirectories) },
-
-                    // Build options
-                    { $"ExecuteBuild", executeBuild ? "true" : "false" },
-                    { $"EditorTargetPlatforms", string.Join(";", editorTargetPlatforms) },
-                    { $"GameTargetPlatforms", gameConfig.TargetPlatforms },
-                    { $"ClientTargetPlatforms", clientConfig.TargetPlatforms },
-                    { $"ServerTargetPlatforms", serverConfig.TargetPlatforms },
-                    { $"GameConfigurations", gameConfig.Configurations },
-                    { $"ClientConfigurations", clientConfig.Configurations },
-                    { $"ServerConfigurations", serverConfig.Configurations },
-                    { $"MacPlatforms", $"IOS;Mac" },
-                    { $"StrictIncludes", strictIncludes || strictIncludesAtPluginLevel ? "true" : "false" },
-                    { $"Allow2019", "false" },
-                    { $"EnginePrefix", "Unreal" },
-
-                    // Package options
-                    { $"ExecutePackage", executePackage ? "true" : "false" },
-                    { "VersionNumber", versionInfo.versionNumber },
-                    { "VersionName", versionInfo.versionName },
-                    { "PackageFolder", distribution.Package?.OutputFolderName ?? "Packaged" },
-                    { "PackageInclude", GetFilterInclude(repositoryRoot, distribution) },
-                    { "PackageExclude", GetFilterExclude(repositoryRoot, distribution) },
-                    { "PackageType", versioningType.ToString() },
-                    { "CopyrightHeader", copyrightHeader },
-                    { "CopyrightExcludes", copyrightExcludes },
-                },
+                BuildGraphSettings = buildGraphSettings,
                 BuildGraphEnvironment = buildGraphEnvironment,
-                BuildGraphRepositoryRoot = repositoryRoot,
+                BuildGraphRepositoryRootOutput = repositoryRoot,
+                BuildGraphRepositoryRootBaseCode = repositoryRoot,
+                BuildGraphRepositoryRootPlatformCode = string.Empty,
                 UETPath = _selfLocation.GetUetLocalLocation(),
                 GlobalEnvironmentVariables = globalEnvironmentVariables,
                 ProjectFolderName = null,
@@ -597,9 +638,9 @@
                     // Environment options
                     { $"UETPath", $"__UET_PATH__" },
                     { "EnginePath", "__ENGINE_PATH__" },
-                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
-                    { $"ProjectRoot", $"__REPOSITORY_ROOT__/{distribution.FolderName}" },
-                    { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
+                    { $"TempPath", $"__REPOSITORY_ROOT_OUTPUT__/.uet/tmp" },
+                    { $"ProjectRoot", $"__REPOSITORY_ROOT_BASE_CODE__/{distribution.FolderName}" },
+                    { $"RepositoryRoot", $"__REPOSITORY_ROOT_BASE_CODE__" },
                     { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
@@ -607,7 +648,7 @@
                     { "ScriptMacroIncludes", scriptMacroIncludes },
 
                     // General options
-                    { $"UProjectPath", $"__REPOSITORY_ROOT__/{distribution.FolderName}/{distribution.ProjectName}.uproject" },
+                    { $"UProjectPath", $"__REPOSITORY_ROOT_BASE_CODE__/{distribution.FolderName}/{distribution.ProjectName}.uproject" },
                     { $"Distribution", distribution.Name },
                     { "IsUnrealEngine5", "true" },
 
@@ -627,10 +668,16 @@
                     { $"StrictIncludes", strictIncludes ? "true" : "false" },
 
                     // Stage options
-                    { $"StageDirectory", string.IsNullOrWhiteSpace(alternateStagingDirectory) ? $"__REPOSITORY_ROOT__/{distribution.FolderName}/Saved/StagedBuilds" : alternateStagingDirectory.Replace("__REPOSITORY_ROOT__", $"__REPOSITORY_ROOT__/{distribution.FolderName}", StringComparison.Ordinal) },
+                    {
+                        $"StageDirectory",
+                        string.IsNullOrWhiteSpace(alternateStagingDirectory)
+                            ? $"__REPOSITORY_ROOT_OUTPUT__/{distribution.FolderName}/Saved/StagedBuilds"
+                            : alternateStagingDirectory.Replace("__REPOSITORY_ROOT_OUTPUT__", $"__REPOSITORY_ROOT_OUTPUT__/{distribution.FolderName}", StringComparison.Ordinal) },
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
-                BuildGraphRepositoryRoot = repositoryRoot,
+                BuildGraphRepositoryRootOutput = repositoryRoot,
+                BuildGraphRepositoryRootBaseCode = repositoryRoot,
+                BuildGraphRepositoryRootPlatformCode = string.Empty,
                 UETPath = _selfLocation.GetUetLocalLocation(),
                 ProjectFolderName = distribution.FolderName,
                 ArtifactExportPath = Environment.CurrentDirectory,
@@ -709,9 +756,9 @@
                     { $"UETPath", $"__UET_PATH__" },
                     { "UETGlobalArgs", _globalArgsProvider?.GlobalArgsString ?? string.Empty },
                     { "EnginePath", "__ENGINE_PATH__" },
-                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
-                    { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
-                    { $"PluginDirectory", $"__REPOSITORY_ROOT__" },
+                    { $"TempPath", $"__REPOSITORY_ROOT_OUTPUT__/.uet/tmp" },
+                    { $"ProjectRoot", $"__REPOSITORY_ROOT_BASE_CODE__" },
+                    { $"PluginDirectory", $"__REPOSITORY_ROOT_BASE_CODE__" },
                     { $"PluginName", Path.GetFileNameWithoutExtension(pathSpec.UPluginPath)! },
                     // @note: This is only used for naming the package ZIPs now.
                     { $"Distribution", packageType.ToString() },
@@ -748,7 +795,9 @@
                     { "CopyrightExcludes", string.Empty },
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
-                BuildGraphRepositoryRoot = pathSpec.DirectoryPath,
+                BuildGraphRepositoryRootOutput = pathSpec.DirectoryPath,
+                BuildGraphRepositoryRootBaseCode = pathSpec.DirectoryPath,
+                BuildGraphRepositoryRootPlatformCode = string.Empty,
                 UETPath = _selfLocation.GetUetLocalLocation(),
                 GlobalEnvironmentVariables = new Dictionary<string, string>
                 {
@@ -799,16 +848,16 @@
                     // Environment options
                     { $"UETPath", $"__UET_PATH__" },
                     { "EnginePath", "__ENGINE_PATH__" },
-                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
-                    { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
-                    { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
+                    { $"TempPath", $"__REPOSITORY_ROOT_OUTPUT__/.uet/tmp" },
+                    { $"ProjectRoot", $"__REPOSITORY_ROOT_BASE_CODE__" },
+                    { $"RepositoryRoot", $"__REPOSITORY_ROOT_BASE_CODE__" },
                     { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
                     { "ScriptIncludes", string.Empty },
 
                     // General options
-                    { $"UProjectPath", $"__REPOSITORY_ROOT__/{Path.GetFileName(pathSpec.UProjectPath)}" },
+                    { $"UProjectPath", $"__REPOSITORY_ROOT_BASE_CODE__/{Path.GetFileName(pathSpec.UProjectPath)}" },
                     { $"Distribution", "None" },
                     { "IsUnrealEngine5", "true" },
 
@@ -828,10 +877,12 @@
                     { $"StrictIncludes", strictIncludes ? "true" : "false" },
 
                     // Stage options
-                    { $"StageDirectory", string.IsNullOrWhiteSpace(alternateStagingDirectory) ? $"__REPOSITORY_ROOT__/Saved/StagedBuilds" : alternateStagingDirectory },
+                    { $"StageDirectory", string.IsNullOrWhiteSpace(alternateStagingDirectory) ? $"__REPOSITORY_ROOT_OUTPUT__/Saved/StagedBuilds" : alternateStagingDirectory },
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
-                BuildGraphRepositoryRoot = pathSpec.DirectoryPath,
+                BuildGraphRepositoryRootOutput = pathSpec.DirectoryPath,
+                BuildGraphRepositoryRootBaseCode = pathSpec.DirectoryPath,
+                BuildGraphRepositoryRootPlatformCode = string.Empty,
                 UETPath = _selfLocation.GetUetLocalLocation(),
                 ProjectFolderName = string.Empty,
                 ArtifactExportPath = Environment.CurrentDirectory,

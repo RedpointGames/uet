@@ -15,6 +15,7 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Redpoint.Concurrency;
+    using Redpoint.Uet.BuildPipeline.MultiWorkspace;
 
     public class GitLabBuildNodeExecutor : IBuildNodeExecutor
     {
@@ -24,6 +25,7 @@
         private readonly IDynamicWorkspaceProvider _workspaceProvider;
         private readonly ISdkSetupForBuildExecutor _sdkSetupForBuildExecutor;
         private readonly IBuildGraphArgumentGenerator _buildGraphArgumentGenerator;
+        private readonly IMultiWorkspaceAllocator _multiWorkspaceAllocator;
         private readonly IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>[] _pluginPrepare;
         private readonly IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>[] _projectPrepare;
 
@@ -34,7 +36,8 @@
             IEngineWorkspaceProvider engineWorkspaceProvider,
             IDynamicWorkspaceProvider workspaceProvider,
             ISdkSetupForBuildExecutor sdkSetupForBuildExecutor,
-            IBuildGraphArgumentGenerator buildGraphArgumentGenerator)
+            IBuildGraphArgumentGenerator buildGraphArgumentGenerator,
+            IMultiWorkspaceAllocator multiWorkspaceAllocator)
         {
             _logger = logger;
             _buildGraphExecutor = buildGraphExecutor;
@@ -42,6 +45,7 @@
             _workspaceProvider = workspaceProvider;
             _sdkSetupForBuildExecutor = sdkSetupForBuildExecutor;
             _buildGraphArgumentGenerator = buildGraphArgumentGenerator;
+            _multiWorkspaceAllocator = multiWorkspaceAllocator;
             _pluginPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>>().ToArray();
             _projectPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>>().ToArray();
         }
@@ -72,6 +76,9 @@
             var commit = System.Environment.GetEnvironmentVariable("CI_COMMIT_SHA")!;
             var executingNode = new NodeNameExecutionState();
 
+            var baseRepository = System.Environment.GetEnvironmentVariable("BASE_CI_REPOSITORY_URL");
+            var baseCommit = System.Environment.GetEnvironmentVariable("BASE_CI_COMMIT_SHA");
+
             _logger.LogTrace("Starting execution of nodes...");
             try
             {
@@ -80,8 +87,21 @@
                     string.Empty,
                     cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engineWorkspace).ConfigureAwait(false))
                 {
-                    async Task<int> ExecuteNodeInWorkspaceAsync(string nodeName, string targetWorkspacePath)
+                    async Task<int> ExecuteNodeInWorkspaceAsync(
+                        string nodeName,
+                        RepositoryRoot repositoryRoot)
                     {
+                        var buildGraphArgumentContext = new BuildGraphArgumentContext
+                        {
+                            RepositoryRoot = repositoryRoot,
+                            UetPath = buildSpecification.UETPath,
+                            EnginePath = engineWorkspace.Path,
+                            SharedStoragePath = OperatingSystem.IsWindows()
+                                ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
+                                : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                            ArtifactExportPath = buildSpecification.ArtifactExportPath,
+                        };
+
                         var globalEnvironmentVariablesWithSdk = await _sdkSetupForBuildExecutor.SetupForBuildAsync(
                             buildSpecification,
                             nodeName,
@@ -92,13 +112,7 @@
                         var preBuildGraphArguments = _buildGraphArgumentGenerator.GeneratePreBuildGraphArguments(
                             buildSpecification.BuildGraphSettings,
                             buildSpecification.BuildGraphSettingReplacements,
-                            targetWorkspacePath,
-                            buildSpecification.UETPath,
-                            engineWorkspace.Path,
-                            OperatingSystem.IsWindows()
-                                ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
-                                : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
-                            buildSpecification.ArtifactExportPath);
+                            buildGraphArgumentContext);
 
                         if (preparePlugin != null && preparePlugin.Length > 0)
                         {
@@ -111,7 +125,7 @@
                                     .First();
                                 var exitCode = await provider.RunBeforeBuildGraphAsync(
                                     byType,
-                                    targetWorkspacePath,
+                                    repositoryRoot.OutputPath,
                                     preBuildGraphArguments,
                                     cancellationToken).ConfigureAwait(false);
                                 if (exitCode != 0)
@@ -133,7 +147,7 @@
                                     .First();
                                 var exitCode = await provider.RunBeforeBuildGraphAsync(
                                     byType,
-                                    targetWorkspacePath,
+                                    repositoryRoot.OutputPath,
                                     preBuildGraphArguments,
                                     cancellationToken).ConfigureAwait(false);
                                 if (exitCode != 0)
@@ -146,16 +160,10 @@
 
                         _logger.LogTrace($"Starting: {nodeName}");
                         return await _buildGraphExecutor.ExecuteGraphNodeAsync(
-                            engineWorkspace.Path,
-                            targetWorkspacePath,
-                            buildSpecification.UETPath,
-                            buildSpecification.ArtifactExportPath,
+                            buildGraphArgumentContext,
                             buildSpecification.BuildGraphScript,
                             buildSpecification.BuildGraphTarget,
                             nodeName,
-                            OperatingSystem.IsWindows()
-                                ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
-                                : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                             buildSpecification.BuildGraphSettings,
                             buildSpecification.BuildGraphSettingReplacements,
                             globalEnvironmentVariablesWithSdk,
@@ -176,13 +184,15 @@
                             cancellationToken).ConfigureAwait(false);
                     }
 
-                    async Task<int> ExecuteNodesInWorkspaceAsync(string targetWorkspacePath)
+                    async Task<int> ExecuteNodesInWorkspaceAsync(RepositoryRoot repositoryRoot)
                     {
                         foreach (var nodeName in nodeNames)
                         {
                             await buildExecutionEvents.OnNodeStarted(nodeName).ConfigureAwait(false);
                             executingNode.NodeName = nodeName;
-                            var exitCode = await ExecuteNodeInWorkspaceAsync(nodeName, targetWorkspacePath).ConfigureAwait(false);
+                            var exitCode = await ExecuteNodeInWorkspaceAsync(
+                                nodeName,
+                                repositoryRoot).ConfigureAwait(false);
                             if (exitCode == 0)
                             {
                                 _logger.LogTrace($"Finished: {nodeName} = Success");
@@ -204,31 +214,79 @@
                     int overallExitCode;
                     if (buildSpecification.Engine.IsEngineBuild)
                     {
-                        overallExitCode = await ExecuteNodesInWorkspaceAsync(engineWorkspace.Path).ConfigureAwait(false);
+                        overallExitCode = await ExecuteNodesInWorkspaceAsync(
+                            new RepositoryRoot
+                            {
+                                BaseCodePath = engineWorkspace.Path,
+                                PlatformCodePath = string.Empty,
+                            }).ConfigureAwait(false);
                     }
                     else
                     {
-                        _logger.LogTrace($"Obtaining workspace for build.");
-                        await using ((await _workspaceProvider.GetWorkspaceAsync(
-                            new GitWorkspaceDescriptor
-                            {
-                                RepositoryUrl = repository,
-                                RepositoryCommitOrRef = commit,
-                                AdditionalFolderLayers = Array.Empty<string>(),
-                                AdditionalFolderZips = Array.Empty<string>(),
-                                WorkspaceDisambiguators = nodeNames,
-                                ProjectFolderName = buildSpecification.ProjectFolderName,
-                                IsEngineBuild = false,
-                                WindowsSharedGitCachePath = null,
-                                MacSharedGitCachePath = null,
-                            },
-                            cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
+                        await using (await _multiWorkspaceAllocator.AllocateAsync())
+
+                            var workspaces = new Dictionary<string, IWorkspace?>();
+                        try
                         {
+                            _logger.LogTrace($"Obtaining workspace for build.");
+                            workspaces.Add("base", await _workspaceProvider.GetWorkspaceAsync(
+                                new GitWorkspaceDescriptor
+                                {
+                                    RepositoryUrl = repository,
+                                    RepositoryCommitOrRef = commit,
+                                    AdditionalFolderLayers = Array.Empty<string>(),
+                                    AdditionalFolderZips = Array.Empty<string>(),
+                                    WorkspaceDisambiguators = nodeNames,
+                                    ProjectFolderName = buildSpecification.ProjectFolderName,
+                                    IsEngineBuild = false,
+                                    WindowsSharedGitCachePath = null,
+                                    MacSharedGitCachePath = null,
+                                },
+                                cancellationToken).ConfigureAwait(false));
+
+                            if (!string.IsNullOrWhiteSpace(baseRepository) &&
+                                !string.IsNullOrWhiteSpace(baseCommit))
+                            {
+                                _logger.LogTrace($"Obtaining platform-specific workspace for build.");
+                                workspaces.Add("platform", await _workspaceProvider.GetWorkspaceAsync(
+                                    new GitWorkspaceDescriptor
+                                    {
+                                        RepositoryUrl = baseRepository,
+                                        RepositoryCommitOrRef = baseCommit,
+                                        AdditionalFolderLayers = Array.Empty<string>(),
+                                        AdditionalFolderZips = Array.Empty<string>(),
+                                        WorkspaceDisambiguators = nodeNames,
+                                        ProjectFolderName = buildSpecification.ProjectFolderName,
+                                        IsEngineBuild = false,
+                                        WindowsSharedGitCachePath = null,
+                                        MacSharedGitCachePath = null,
+                                    },
+                                    cancellationToken).ConfigureAwait(false));
+                            }
+                            else
+                            {
+                                workspaces.Add("platform", null);
+                            }
+
                             _logger.LogTrace($"Calling ExecuteNodesInWorkspaceAsync inside allocated workspace.");
-                            overallExitCode = await ExecuteNodesInWorkspaceAsync(targetWorkspace.Path).ConfigureAwait(false);
+                            overallExitCode = await ExecuteNodesInWorkspaceAsync(new RepositoryRoot
+                            {
+                                BaseCodePath = workspaces["base"]!.Path,
+                                PlatformCodePath = workspaces["platform"]?.Path ?? string.Empty,
+                            }).ConfigureAwait(false);
                             _logger.LogTrace($"Finished ExecuteNodesInWorkspaceAsync with exit code '{overallExitCode}'.");
                         }
-                        _logger.LogTrace($"Released workspace for build.");
+                        finally
+                        {
+                            foreach (var kv in workspaces)
+                            {
+                                if (kv.Value != null)
+                                {
+                                    await kv.Value.DisposeAsync().ConfigureAwait(false);
+                                }
+                            }
+                            _logger.LogTrace($"Released workspace for build.");
+                        }
                     }
                     _logger.LogTrace($"Returning overall exit code '{overallExitCode}' from ExecuteBuildNodesAsync.");
                     return overallExitCode;

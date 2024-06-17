@@ -18,6 +18,12 @@
         public BuildConfigPluginCopyright? Copyright { get; set; }
 
         /// <summary>
+        /// For plugin console platform extensions, this is the additional information required to build.
+        /// </summary>
+        [JsonPropertyName("PlatformExtensionInfo"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public BuildConfigPluginPlatformExtensionInfo? PlatformExtensionInfo { get; set; }
+
+        /// <summary>
         /// A list of distributions.
         /// </summary>
         [JsonPropertyName("Distributions")]
