@@ -61,6 +61,50 @@
             public required string Configurations;
         }
 
+        private bool VerifySourceFilesDoNotExceedMarketplaceSubmissionPathLimit(
+            string pluginName,
+            DirectoryInfo sourceDirectory)
+        {
+            var hasErrored = false;
+
+            // @note: We know this is the path prefix based on paths the Marketplace Support Team
+            // has sent us when submission fail to due to path length.
+            var marketplaceSubmissionPrefix = @"D:\build\U5M-Marketplace\Sync\LocalBuilds\PluginTemp\HostProject\Plugins\";
+
+            void RecurseDirectory(DirectoryInfo rootDirectory, DirectoryInfo scanDirectory)
+            {
+                foreach (var subdirectory in scanDirectory.GetDirectories())
+                {
+                    RecurseDirectory(rootDirectory, subdirectory);
+                }
+                foreach (var file in scanDirectory.GetFiles())
+                {
+                    var fileFullLocalPath = file.FullName;
+                    var rootDirectoryLocalPath = rootDirectory.FullName;
+                    var fileRelativePath = fileFullLocalPath.Substring(rootDirectoryLocalPath.Length).TrimStart(Path.DirectorySeparatorChar);
+
+                    var pathLengthOnMarketplaceSubmissionBuild = Path.Combine(
+                        marketplaceSubmissionPrefix,
+                        pluginName,
+                        "Source",
+                        fileRelativePath);
+
+                    if (pathLengthOnMarketplaceSubmissionBuild.Length > 260)
+                    {
+                        if (!hasErrored)
+                        {
+                            _logger.LogError("The following paths are too long for this plugin to be submitted to the Marketplace. Please reduce the number of characters between the 'Source' directory and the end of the filename:");
+                            hasErrored = true;
+                        }
+                        _logger.LogError($"  {pathLengthOnMarketplaceSubmissionBuild} ({pathLengthOnMarketplaceSubmissionBuild.Length} chars)");
+                    }
+                }
+            }
+            RecurseDirectory(sourceDirectory, sourceDirectory);
+
+            return !hasErrored;
+        }
+
         private static TargetConfig ComputeTargetConfig(string name, BuildConfigProjectBuildTarget? target, bool localExecutor)
         {
             if (target == null)
@@ -365,6 +409,17 @@
                 throw new BuildMisconfigurationException("This plugin contains configuration files underneath Config/, but no filter file was specified for Package.Filter in BuildConfig.json. This almost certainly means the distribution is misconfigured, as plugin configuration files will not be included in the package unless you explicitly include them with a filter file.");
             }
 
+            // Verify that the plugin does not contain source files that would exceed path limits
+            // when submitting to the Marketplace.
+            if (isForMarketplaceSubmission)
+            {
+                var sourceDirectory = new DirectoryInfo(Path.Combine(repositoryRoot, pluginInfo.PluginName, "Source"));
+                if (!VerifySourceFilesDoNotExceedMarketplaceSubmissionPathLimit(pluginInfo.PluginName, sourceDirectory))
+                {
+                    throw new BuildMisconfigurationException("This plugin contains source files that would exceed the path limit upon submission to the Marketplace. See above for details on which paths are too long.");
+                }
+            }
+
             // Write dynamic build includes for tests and deployments.
             var (scriptNodeIncludes, scriptMacroIncludes) = await WriteDynamicBuildGraphIncludeAsync(
                 buildGraphEnvironment,
@@ -606,6 +661,21 @@
                 else
                 {
                     copyrightHeader = $"Copyright {pluginFile?.CreatedBy} %Y. All Rights Reserved.";
+                }
+            }
+
+            // Verify that the plugin does not contain source files that would exceed path limits
+            // when submitting to the Marketplace.
+            if (marketplace)
+            {
+                var sourceDirectory = new DirectoryInfo(Path.Combine(
+                    new FileInfo(pathSpec.UPluginPath!).DirectoryName!,
+                    "Source"));
+                if (!VerifySourceFilesDoNotExceedMarketplaceSubmissionPathLimit(
+                    Path.GetFileNameWithoutExtension(pathSpec.UPluginPath!),
+                    sourceDirectory))
+                {
+                    throw new BuildMisconfigurationException("This plugin contains source files that would exceed the path limit upon submission to the Marketplace. See above for details on which paths are too long.");
                 }
             }
 
