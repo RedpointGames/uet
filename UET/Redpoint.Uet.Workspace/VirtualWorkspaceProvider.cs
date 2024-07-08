@@ -366,18 +366,43 @@
                     var existingMount = await GetExistingMountAsync(mountReservation.ReservedPath, cancellationToken).ConfigureAwait(false);
                     if (existingMount != null)
                     {
-                        _logger.LogInformation($"Reusing existing virtual package workspace using UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
-                        usingMountReservation = true;
-                        usingScratchReservation = true;
-                        return new UefsWorkspace(
-                            _uefsClient,
-                            existingMount.Id,
-                            mountReservation.ReservedPath,
-                            new[] { mountReservation, scratchReservation },
-                            _logger,
-                            $"Releasing virtual package workspace from UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
+                        bool mountIsValid = true;
+                        try
+                        {
+                            // When the mount is in a broken state, this is usually the first call that fails later on in UET.
+                            // Check that the Programs directory exists now so we can discard and remount if it's not there.
+                            Directory.EnumerateFiles(Path.Combine(mountReservation.ReservedPath, "Engine", "Source", "Programs"));
+                        }
+                        catch (DirectoryNotFoundException)
+                        {
+                            mountIsValid = false;
+                        }
+
+                        if (mountIsValid)
+                        {
+                            _logger.LogInformation($"Reusing existing virtual package workspace using UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
+                            usingMountReservation = true;
+                            usingScratchReservation = true;
+                            return new UefsWorkspace(
+                                _uefsClient,
+                                existingMount.Id,
+                                mountReservation.ReservedPath,
+                                new[] { mountReservation, scratchReservation },
+                                _logger,
+                                $"Releasing virtual package workspace from UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
+                        }
+                        else
+                        {
+                            _logger.LogInformation($"Existing virtual package workspace using UEFS was not valid, unmounting...");
+                            await _uefsClient.UnmountAsync(new UnmountRequest
+                            {
+                                MountId = existingMount.Id,
+                            }, deadline: DateTime.UtcNow.AddSeconds(60), cancellationToken: cancellationToken);
+                        }
                     }
-                    else
+
+                    // We can fallthrough to this case if there is no existing mount or if we unmounted it
+                    // because it wasn't in a valid state.
                     {
                         _logger.LogInformation($"Creating virtual package workspace using UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
                         var mountId = await MountAsync(
