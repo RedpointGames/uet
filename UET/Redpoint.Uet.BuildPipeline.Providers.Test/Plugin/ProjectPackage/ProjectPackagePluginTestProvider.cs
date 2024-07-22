@@ -608,6 +608,44 @@
                 }
             }
 
+            if (stage == "PreGauntlet" && targetPlatform == "Android")
+            {
+                var deviceId = runtimeSettings["DeviceId"];
+
+                var adbFilePath = Path.Combine(
+                    Environment.GetEnvironmentVariable("ANDROID_HOME")!,
+                    "platform-tools",
+                    "adb.exe");
+
+                var adbArguments = new List<LogicalProcessArgument>();
+                var deviceIdDescriptor = "(default)";
+                if (!string.IsNullOrWhiteSpace(deviceId))
+                {
+                    adbArguments.Add("-s");
+                    adbArguments.Add(deviceId);
+                    deviceIdDescriptor = deviceId;
+                }
+
+                adbArguments.AddRange([
+                    "shell",
+                    "-n",
+                    "am",
+                    "broadcast",
+                    "-a",
+                    "com.oculus.vrpowermanager.prox_close"
+                ]);
+
+                _logger.LogInformation($"Turning off Quest proximity sensor for device: {deviceIdDescriptor}. This is expected to gracefully fail if the device is not a Meta Quest device.");
+                await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = adbFilePath,
+                        Arguments = adbArguments,
+                    },
+                    CaptureSpecification.Passthrough,
+                    cancellationToken).ConfigureAwait(false);
+            }
+
             return 0;
         }
     }
