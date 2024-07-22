@@ -15,6 +15,7 @@
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.Workspace.Descriptors;
     using System;
+    using System.Collections.Concurrent;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -102,7 +103,7 @@
             IBuildExecutionEvents buildExecutionEvents,
             DAGNode node,
             SemaphoreSlim? blockingSemaphore,
-            List<Lazy<Task<BuildResultStatus>>> allTasks,
+            ConcurrentBag<Lazy<Task<BuildResultStatus>>> allTasks,
             CancellationToken cancellationToken)
         {
             if (node.DependsTasks != null)
@@ -345,7 +346,7 @@
                 }
             }
             var remainingNodes = new HashSet<DAGNode>(dag.Values);
-            var allTasks = new List<Lazy<Task<BuildResultStatus>>>();
+            var allTasks = new ConcurrentBag<Lazy<Task<BuildResultStatus>>>();
             while (remainingNodes.Count > 0)
             {
                 foreach (var node in remainingNodes.ToArray())
