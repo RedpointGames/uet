@@ -207,6 +207,9 @@
             {
                 RecursivelyAddComponent(component, "Unreal Engine");
             }
+            // We want to the LLVM/Clang component, which will provide clang-format for
+            // 'uet format' to work.
+            RecursivelyAddComponent("Microsoft.VisualStudio.Component.VC.Llvm.Clang", "Unreal Engine");
 
             // Install all of the components.
             var componentsToInstallArray = componentsToInstall.ToArray();
