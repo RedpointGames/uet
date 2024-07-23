@@ -207,6 +207,9 @@
             {
                 RecursivelyAddComponent(component, "Unreal Engine");
             }
+            // We want to the LLVM/Clang component, which will provide clang-format for
+            // 'uet format' to work.
+            RecursivelyAddComponent("Microsoft.VisualStudio.Component.VC.Llvm.Clang", "Unreal Engine");
 
             // Install all of the components.
             var componentsToInstallArray = componentsToInstall.ToArray();
@@ -353,42 +356,49 @@
                 _logger.LogInformation($"Downloading and extracting VSIX: {filename} ({payload.Size / 1024 / 1024} MB)");
                 using (var client = new HttpClient())
                 {
-                    await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
-                        client,
-                        new Uri(payload.Url!),
-                        stream =>
+                    var cache = Path.Combine(sdkPackagePath, "Cache");
+                    Directory.CreateDirectory(cache);
+                    using (var fileStream = new FileStream(Path.Combine(cache, filename), FileMode.Create, FileAccess.ReadWrite))
+                    {
+                        // Download to a file so that the data is seekable for ZipArchive. This is necessary for
+                        // large downloads where ZipArchive would otherwise try to copy the entire stream into
+                        // memory with a MemoryStream and then fail due to the data being too big for MemoryStream.
+                        await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
+                            client,
+                            new Uri(payload.Url!),
+                            stream => stream.CopyToAsync(fileStream, cancellationToken),
+                            cancellationToken).ConfigureAwait(false);
+                        await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                        fileStream.Seek(0, SeekOrigin.Begin);
+                        using (var archive = new ZipArchive(fileStream, ZipArchiveMode.Read))
                         {
-                            using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
+                            foreach (var entry in archive.Entries)
                             {
-                                foreach (var entry in archive.Entries)
+                                if (entry.FullName.EndsWith('\\') || entry.FullName.EndsWith('/'))
                                 {
-                                    if (entry.FullName.EndsWith('\\') || entry.FullName.EndsWith('/'))
-                                    {
-                                        continue;
-                                    }
-
-                                    var relativeName = HttpUtility.UrlDecode(entry.FullName.Replace("+", "%2B", StringComparison.Ordinal));
-                                    if (relativeName.StartsWith("Contents", StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        relativeName = relativeName[("Contents".Length + 1)..];
-                                    }
-                                    else
-                                    {
-                                        continue;
-                                    }
-
-                                    if (relativeName.Contains('\\', StringComparison.Ordinal) || relativeName.Contains('/', StringComparison.Ordinal))
-                                    {
-                                        var directoryName = Path.GetDirectoryName(relativeName);
-                                        Directory.CreateDirectory(Path.Combine(vs2022, directoryName!));
-                                    }
-
-                                    entry.ExtractToFile(Path.Combine(vs2022, relativeName), true);
+                                    continue;
                                 }
+
+                                var relativeName = HttpUtility.UrlDecode(entry.FullName.Replace("+", "%2B", StringComparison.Ordinal));
+                                if (relativeName.StartsWith("Contents", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    relativeName = relativeName[("Contents".Length + 1)..];
+                                }
+                                else
+                                {
+                                    continue;
+                                }
+
+                                if (relativeName.Contains('\\', StringComparison.Ordinal) || relativeName.Contains('/', StringComparison.Ordinal))
+                                {
+                                    var directoryName = Path.GetDirectoryName(relativeName);
+                                    Directory.CreateDirectory(Path.Combine(vs2022, directoryName!));
+                                }
+
+                                entry.ExtractToFile(Path.Combine(vs2022, relativeName), true);
                             }
-                            return Task.CompletedTask;
-                        },
-                        cancellationToken).ConfigureAwait(false);
+                        }
+                    }
 
                 }
             }
