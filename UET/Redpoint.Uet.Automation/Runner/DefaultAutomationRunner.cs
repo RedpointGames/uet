@@ -560,21 +560,33 @@
                 var currentTest = workerState.CurrentTest;
                 if (currentTest != null)
                 {
-                    if (crashData != null)
+                    if (crashData != null && crashData.CrashErrorMessage.Contains("ULevel::ForEachActorFolder", StringComparison.OrdinalIgnoreCase))
                     {
-                        currentTest.EngineCrashInfo = crashData.CrashErrorMessage;
+                        // This is a crash that can happen in UE5.4 sometimes; it's an internal engine bug. Reschedule the test.
+                        _logger.LogWarning("Detected ULevel intermittent crash in worker, rescheduling test...");
+                        await _testLogger.LogFinished(worker, GetProgressionInfo(), currentTest).ConfigureAwait(false);
+                        _notification.TestFinished(currentTest);
+                        var workerGroupState = _tests[worker.Descriptor];
+                        workerGroupState.QueuedTests.Enqueue(currentTest);
                     }
                     else
                     {
-                        currentTest.EngineCrashInfo = "Engine exited during test without crash dump information!";
+                        if (crashData != null)
+                        {
+                            currentTest.EngineCrashInfo = crashData.CrashErrorMessage;
+                        }
+                        else
+                        {
+                            currentTest.EngineCrashInfo = "Engine exited during test without crash dump information!";
+                        }
+                        currentTest.DateFinished = DateTimeOffset.UtcNow;
+                        currentTest.TestStatus = TestResultStatus.Crashed;
+                        var workerGroupState = _tests[worker.Descriptor];
+                        workerGroupState.RemainingTests--;
+                        workerGroupState.ProcessedTests.Add(currentTest);
+                        await _testLogger.LogFinished(worker, GetProgressionInfo(), currentTest).ConfigureAwait(false);
+                        _notification.TestFinished(currentTest);
                     }
-                    currentTest.DateFinished = DateTimeOffset.UtcNow;
-                    currentTest.TestStatus = TestResultStatus.Crashed;
-                    var workerGroupState = _tests[worker.Descriptor];
-                    workerGroupState.RemainingTests--;
-                    workerGroupState.ProcessedTests.Add(currentTest);
-                    await _testLogger.LogFinished(worker, GetProgressionInfo(), currentTest).ConfigureAwait(false);
-                    _notification.TestFinished(currentTest);
                 }
                 workerState.CancellationTokenSource.Cancel();
                 await workerState.TransportConnection.DisposeAsync().ConfigureAwait(false);
