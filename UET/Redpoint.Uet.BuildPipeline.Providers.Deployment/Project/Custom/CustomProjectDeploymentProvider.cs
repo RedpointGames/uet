@@ -5,9 +5,6 @@
     using Redpoint.Uet.Configuration.Project;
     using System;
     using System.Collections.Generic;
-    using System.Text.Json;
-    using System.Text.Json.Serialization;
-    using System.Text.Json.Serialization.Metadata;
     using System.Threading.Tasks;
     using System.Xml;
 
@@ -17,7 +14,11 @@
 
         public IRuntimeJson DynamicSettings { get; } = new DeploymentProviderRuntimeJson(DeploymentProviderSourceGenerationContext.WithStringEnum).BuildConfigProjectDeploymentCustom;
 
-        public Task WriteBuildGraphNodesAsync(IBuildGraphEmitContext context, XmlWriter writer, BuildConfigProjectDistribution buildConfigDistribution, IEnumerable<BuildConfigDynamic<BuildConfigProjectDistribution, IDeploymentProvider>> elements)
+        public Task WriteBuildGraphNodesAsync(
+            IBuildGraphEmitContext context,
+            XmlWriter writer,
+            BuildConfigProjectDistribution buildConfigDistribution,
+            IEnumerable<BuildConfigDynamic<BuildConfigProjectDistribution, IDeploymentProvider>> elements)
         {
             throw new NotImplementedException();
         }

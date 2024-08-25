@@ -21,5 +21,11 @@
         /// </summary>
         [JsonPropertyName("Channel"), JsonRequired]
         public string Channel { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Specifies the packaging target to be deployed.
+        /// </summary>
+        [JsonPropertyName("Package"), JsonRequired]
+        public BuildConfigProjectDeploymentPackage Package { get; set; } = new BuildConfigProjectDeploymentPackage();
     }
 }

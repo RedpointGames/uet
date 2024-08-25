@@ -51,7 +51,7 @@
         /// <summary>
         /// A list of deployments to run for the project.
         /// </summary>
-        [JsonPropertyName("Deployments"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("Deployment"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public BuildConfigDynamic<BuildConfigProjectDistribution, IDeploymentProvider>[]? Deployment { get; set; }
 
