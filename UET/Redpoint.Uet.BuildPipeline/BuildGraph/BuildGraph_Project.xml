@@ -273,7 +273,7 @@
               <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
               <Property Name="PackageFlag" Value="" />
               <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
-              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
+              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -target=$(TargetName)" />
               <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
               <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
             </Node>
@@ -296,7 +296,7 @@
               <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
               <Property Name="PackageFlag" Value="" />
               <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
-              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
+              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -client -target=$(TargetName)" />
               <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
               <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
             </Node>
@@ -317,7 +317,7 @@
               <Property Name="StagePlatform" Value="$(StagePlatform)Server" If="('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')" />
               <Property Name="DisableCodeSign" Value="" />
               <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
-              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) -dedicatedserver -noclient &quot;-serverplatform=$(TargetPlatform)&quot; -server &quot;-serverconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
+              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) -dedicatedserver -noclient &quot;-serverplatform=$(TargetPlatform)&quot; -server &quot;-serverconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ServerCookedTargets=$(TargetName) -target=$(TargetName)" />
               <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
             </Node>
             <Property Name="ServerStaged" Value="$(ServerStaged)#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
@@ -344,7 +344,7 @@
               <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
               <Property Name="PackageFlag" Value="" />
               <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
-              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
+              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -target=$(TargetName)" />
               <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
               <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
             </Node>
@@ -367,7 +367,7 @@
               <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
               <Property Name="PackageFlag" Value="" />
               <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
-              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
+              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -client -target=$(TargetName)" />
               <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
               <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
             </Node>
@@ -388,7 +388,7 @@
               <Property Name="StagePlatform" Value="$(StagePlatform)Server" If="('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')" />
               <Property Name="DisableCodeSign" Value="" />
               <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
-              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) -dedicatedserver -noclient &quot;-serverplatform=$(TargetPlatform)&quot; -server &quot;-serverconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog" />
+              <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) -dedicatedserver -noclient &quot;-serverplatform=$(TargetPlatform)&quot; -server &quot;-serverconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ServerCookedTargets=$(TargetName) -target=$(TargetName)" />
               <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
             </Node>
             <Property Name="ServerStaged" Value="$(ServerStaged)#ServerStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"/>
