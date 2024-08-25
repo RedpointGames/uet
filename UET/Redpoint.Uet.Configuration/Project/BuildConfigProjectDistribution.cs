@@ -53,7 +53,7 @@
         /// </summary>
         [JsonPropertyName("Deployments"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
-        public BuildConfigDynamic<BuildConfigProjectDistribution, IDeploymentProvider>[]? Deployments { get; set; }
+        public BuildConfigDynamic<BuildConfigProjectDistribution, IDeploymentProvider>[]? Deployment { get; set; }
 
         /// <summary>
         /// A list of mobile provisions to install to the local machine before building this project.

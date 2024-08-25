@@ -149,14 +149,14 @@
                             projectDistribution.Tests).ConfigureAwait(false);
                     }
 
-                    if (projectDistribution.Deployments != null && executeDeployment)
+                    if (projectDistribution.Deployment != null && executeDeployment)
                     {
                         await WriteBuildGraphNodesAsync(
                             emitContext,
                             writer,
                             projectDistribution,
                             _projectDeployments,
-                            projectDistribution.Deployments).ConfigureAwait(false);
+                            projectDistribution.Deployment).ConfigureAwait(false);
                     }
                 }
                 else
