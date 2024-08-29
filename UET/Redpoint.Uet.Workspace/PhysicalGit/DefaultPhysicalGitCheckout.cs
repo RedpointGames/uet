@@ -927,13 +927,24 @@
                     continue;
                 }
 
-                if (topLevelSubmodule.Path.Contains("/Source/", StringComparison.Ordinal) || (descriptor.ProjectFolderName != null && topLevelSubmodule.Path.StartsWith($"{descriptor.ProjectFolderName}/Plugins/", StringComparison.Ordinal)))
+                // At the top-level of the repository, clone submodules that fall into any of these categories:
+                // - Have /Source/ somewhere in their path relative to the root of the repository
+                // - Are located within a <repository root>/Plugins/ directory
+                // - If we are building a project, start with <project folder>/Plugins/
+                if (topLevelSubmodule.Path.Contains("/Source/", StringComparison.Ordinal) ||
+                    topLevelSubmodule.Path.StartsWith("Plugins/", StringComparison.Ordinal) ||
+                    (descriptor.ProjectFolderName != null && topLevelSubmodule.Path.StartsWith($"{descriptor.ProjectFolderName}/Plugins/", StringComparison.Ordinal)))
                 {
                     yield return (
                         new DirectoryInfo(repositoryPath),
                         topLevelSubmodule,
                         new DirectoryInfo($"{repositoryPath}/.git/modules/{topLevelSubmodule.Id}"));
-                    if (descriptor.ProjectFolderName != null && topLevelSubmodule.Path.StartsWith($"{descriptor.ProjectFolderName}/Plugins/", StringComparison.Ordinal))
+
+                    // Underneath top-level submodules, clone child submodules if the top-level submodule falls into
+                    // any of these categories:
+                    // - If we are building a project, start with <project folder>/Plugins/
+                    if (descriptor.ProjectFolderName != null &&
+                        topLevelSubmodule.Path.StartsWith($"{descriptor.ProjectFolderName}/Plugins/", StringComparison.Ordinal))
                     {
                         foreach (var childSubmodule in await ParseSubmodulesAsync($"{repositoryPath}/{topLevelSubmodule.Path}").ConfigureAwait(false))
                         {
