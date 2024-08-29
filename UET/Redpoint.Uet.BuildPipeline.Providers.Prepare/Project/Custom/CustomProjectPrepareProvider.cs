@@ -134,7 +134,7 @@
             foreach (var entry in castedSettings
                 .Where(x => (x.settings.RunBefore ?? Array.Empty<BuildConfigProjectPrepareRunBefore>()).Contains(BuildConfigProjectPrepareRunBefore.BuildGraph)))
             {
-                _logger.LogInformation($"Executing pre-BuildGraph custom preparation step '{entry.name}': '{entry.settings.ScriptPath}'");
+                _logger.LogInformation($"Executing pre-BuildGraph custom preparation step '{entry.name}' in directory '{repositoryRoot}': '{entry.settings.ScriptPath}'");
                 var exitCode = await _scriptExecutor.ExecutePowerShellAsync(
                     new ScriptSpecification
                     {
