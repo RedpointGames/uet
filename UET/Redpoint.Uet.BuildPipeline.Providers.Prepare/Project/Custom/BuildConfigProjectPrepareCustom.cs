@@ -12,6 +12,13 @@
         public string ScriptPath { get; set; } = string.Empty;
 
         /// <summary>
+        /// The arguments to pass to the PowerShell script, if any.
+        /// </summary>
+        [JsonPropertyName("ScriptArguments")]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        public string[]? ScriptArguments { get; set; }
+
+        /// <summary>
         /// When to run this preparation step.
         /// </summary>
         [JsonPropertyName("RunBefore"), JsonRequired]

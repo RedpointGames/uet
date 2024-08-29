@@ -134,12 +134,25 @@
             foreach (var entry in castedSettings
                 .Where(x => (x.settings.RunBefore ?? Array.Empty<BuildConfigProjectPrepareRunBefore>()).Contains(BuildConfigProjectPrepareRunBefore.BuildGraph)))
             {
-                _logger.LogInformation($"Executing pre-BuildGraph custom preparation step '{entry.name}' in directory '{repositoryRoot}': '{entry.settings.ScriptPath}'");
+                var scriptPath = Path.Combine(repositoryRoot, entry.settings.ScriptPath);
+                if (!File.Exists(scriptPath))
+                {
+                    _logger.LogError($"Unable to locate script at expected path: '{scriptPath}'");
+                    return 1;
+                }
+
+                var arguments = new List<LogicalProcessArgument>();
+                foreach (var argument in entry.settings.ScriptArguments ?? [])
+                {
+                    arguments.Add(argument);
+                }
+
+                _logger.LogInformation($"Executing pre-BuildGraph custom preparation step '{entry.name}' in directory '{repositoryRoot}': '{scriptPath}'");
                 var exitCode = await _scriptExecutor.ExecutePowerShellAsync(
                     new ScriptSpecification
                     {
-                        ScriptPath = entry.settings.ScriptPath,
-                        Arguments = Array.Empty<LogicalProcessArgument>(),
+                        ScriptPath = scriptPath,
+                        Arguments = arguments,
                         WorkingDirectory = repositoryRoot,
                     },
                     CaptureSpecification.Passthrough,
