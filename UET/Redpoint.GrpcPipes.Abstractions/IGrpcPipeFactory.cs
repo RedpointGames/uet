@@ -52,9 +52,10 @@
         /// <typeparam name="T">The type of the gRPC server.</typeparam>
         /// <param name="instance">The instance of the gRPC server to respond to requests.</param>
         /// <param name="loopbackOnly">If true, the server listens only on the loopback interface.</param>
+        /// <param name="networkPort">If not set to 0, specifies the network port. If this is set to 0, the network port is automatically allocated.</param>
         /// <returns>The <see cref="IGrpcPipeServer{T}"/> that wraps the gRPC server instance. Allows you to start and stop serving as needed.</returns>
         IGrpcPipeServer<T> CreateNetworkServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T>(
-            T instance, bool loopbackOnly = false) where T : class;
+            T instance, bool loopbackOnly = false, int networkPort = 0) where T : class;
 
         /// <summary>
         /// Creates a gRPC client that connects to services on the local network.

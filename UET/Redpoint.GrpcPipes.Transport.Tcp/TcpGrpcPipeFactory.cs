@@ -104,12 +104,13 @@
         }
 
         IGrpcPipeServer<T> IGrpcPipeFactory.CreateNetworkServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T>(
-            T instance, bool loopbackOnly) where T : class
+            T instance, bool loopbackOnly, int networkPort) where T : class
         {
             return new TcpGrpcPipeServer<T>(
                 _serviceProvider!.GetRequiredService<ILogger<TcpGrpcPipeServer<T>>>(),
                 instance,
-                loopbackOnly);
+                loopbackOnly,
+                networkPort);
         }
 
         T IGrpcPipeFactory.CreateNetworkClient<T>(

@@ -9,6 +9,8 @@
     using UET.Commands.Internal.GenerateJsonSchema;
     using UET.Commands.Internal.InspectSnmp;
     using UET.Commands.Internal.InstallPlatformSdk;
+    using UET.Commands.Internal.RemoteZfsServer;
+    using UET.Commands.Internal.RemoteZfsTest;
     using UET.Commands.Internal.RemoveStalePrecompiledHeaders;
     using UET.Commands.Internal.ReparentAdditionalPropertiesInTargets;
     using UET.Commands.Internal.RunDownstreamTest;
@@ -59,6 +61,8 @@
                 ReparentAdditionalPropertiesInTargetsCommand.CreateReparentAdditionalPropertiesInTargetsCommand(),
                 WakeOnLanCommand.CreateWakeOnLanCommand(),
                 TestUbaCommand.CreateTestUbaCommand(),
+                RemoteZfsServerCommand.CreateRemoteZfsServerCommand(),
+                RemoteZfsTestCommand.CreateRemoteZfsTestCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");

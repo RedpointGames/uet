@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
@@ -20,6 +20,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.GrpcPipes\Redpoint.GrpcPipes.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="RemoteZfs/RemoteZfsProtocol.proto" />
+  </ItemGroup>
+  <ItemGroup>
+    <Protobuf Include="RemoteZfs/RemoteZfsProtocol.proto">
+      <GrpcServices>Both</GrpcServices>
+    </Protobuf>
   </ItemGroup>
 
 </Project>

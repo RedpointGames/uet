@@ -40,8 +40,9 @@
 
         public TcpGrpcPipeServer(
             ILogger<TcpGrpcPipeServer<T>> logger,
-            T instance, 
-            bool loopbackOnly)
+            T instance,
+            bool loopbackOnly,
+            int networkPort = 0)
         {
             _logger = logger;
             _pipePath = string.Empty;
@@ -50,7 +51,7 @@
             _app = null;
             _isNetwork = true;
             _isNetworkLoopbackOnly = loopbackOnly;
-            _networkPort = 0;
+            _networkPort = networkPort;
         }
 
         public async Task StartAsync()
@@ -72,7 +73,7 @@
                         Directory.CreateDirectory(Path.GetDirectoryName(_pipePath)!);
                     }
 
-                    var endpoint = new IPEndPoint((_isNetwork && !_isNetworkLoopbackOnly) ? IPAddress.Any : IPAddress.Loopback, 0);
+                    var endpoint = new IPEndPoint((_isNetwork && !_isNetworkLoopbackOnly) ? IPAddress.Any : IPAddress.Loopback, _networkPort);
                     var listener = new TcpListener(endpoint);
                     app = new TcpGrpcServer(listener, _logger);
                     endpoint = (IPEndPoint)listener.LocalEndpoint;
