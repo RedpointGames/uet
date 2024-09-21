@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.CopyAndMutateBuildCs
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Uet.Configuration.Plugin;
     using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
@@ -15,14 +16,14 @@
             public Option<string> InputBasePath;
             public Option<string> InputFileList;
             public Option<string> OutputPath;
-            public Option<bool> Marketplace;
+            public Option<BuildConfigPluginPackageType> PackageType;
 
             public Options()
             {
                 InputBasePath = new Option<string>("--input-base-path");
                 InputFileList = new Option<string>("--input-file-list");
                 OutputPath = new Option<string>("--output-path");
-                Marketplace = new Option<bool>("--marketplace");
+                PackageType = new Option<BuildConfigPluginPackageType>("--package-type");
             }
         }
 
@@ -53,7 +54,7 @@
                 var inputBasePath = context.ParseResult.GetValueForOption(_options.InputBasePath)!.Replace('/', Path.DirectorySeparatorChar);
                 var inputFileList = context.ParseResult.GetValueForOption(_options.InputFileList)!;
                 var outputPath = context.ParseResult.GetValueForOption(_options.OutputPath)!.Replace('/', Path.DirectorySeparatorChar);
-                var marketplace = context.ParseResult.GetValueForOption(_options.Marketplace)!;
+                var packageType = context.ParseResult.GetValueForOption(_options.PackageType)!;
 
                 var inputFiles = await File.ReadAllLinesAsync(inputFileList).ConfigureAwait(false);
                 var fileMappings = new List<(string input, string output)>();
@@ -68,9 +69,9 @@
                     fileMappings.Add((inputFile, outputPath + Path.DirectorySeparatorChar + relativeInputFile));
                 }
 
-                if (marketplace)
+                if (packageType != BuildConfigPluginPackageType.Generic)
                 {
-                    // Leave files as-is, since the Marketplace needs to be able to build the plugin.
+                    // Leave files as-is, since the Marketplace/Fab needs to be able to build the plugin.
                     foreach (var mapping in fileMappings)
                     {
                         Directory.CreateDirectory(Path.GetDirectoryName(mapping.output)!);

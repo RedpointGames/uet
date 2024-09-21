@@ -27,7 +27,7 @@
   <Option Name="ServerTargetPlatforms" Restrict="[^ ]*" DefaultValue="" Description="List of the server target platforms to build for, separated by semicolons, eg. Win64;Linux"/>
   <Option Name="ServerConfigurations" Restrict="[^ ]*" DefaultValue="" Description="List of configurations to build the server targets for, e.g. Development;Shipping" />
   <Option Name="MacPlatforms" Restrict="[^ ]*" DefaultValue="Mac;IOS" Description="List of platforms that macOS agents should build instead of Windows, e.g. Mac;IOS" />
-  <Option Name="StrictIncludes" Restrict="true|false" DefaultValue="false" Description="If enabled, builds with strict includes turned on (must pass strict include checks for Marketplace submission)" />
+  <Option Name="StrictIncludes" Restrict="true|false" DefaultValue="false" Description="If enabled, builds with strict includes turned on (must pass strict include checks for Marketplace/Fab submission)" />
   <Option Name="EnginePrefix" Restrict="UE4|Unreal" DefaultValue="UE4" Description="Prefix of the engine targets (UE5 has a different prefix)" />
   <Option Name="Allow2019" Restrict="true|false" DefaultValue="false" Description="If true, the plugin will be built with the latest version of Visual Studio, instead of Visual Studio 2017" />
   <Option Name="ExecuteBuild" Restrict="true|false" DefaultValue="true" Description="If false, no build steps are run (currently ignored)" />
@@ -41,7 +41,7 @@
   <Option Name="PackageExclude" DefaultValue="" Description="Additional exclude filespec to apply when packaging, separated by semicolons" />
   <Option Name="CopyrightHeader" DefaultValue="" Description="Copyright header to apply to all source code files when packaging" />
   <Option Name="CopyrightExcludes" DefaultValue="" Description="Relative paths inside the package to exclude from copyright updates, separated with semicolons" />
-  <Option Name="IsForMarketplaceSubmission" Restrict="true|false" DefaultValue="false" Description="If true, the plugin is packaged in a way that is suitable for Marketplace submission" />
+  <Option Name="PackageType" Restrict="Generic|Marketplace|Fab" DefaultValue="Generic" Description="Defines the method of distribution for the produced plugin." />
 
   <!-- Test options -->
   <Option Name="GauntletConfigPaths" Restrict="[^ ]*" DefaultValue="" Description="List of the paths to copy files out of into the Config/ folder before building the project for Gauntlet tests."/>
@@ -154,14 +154,12 @@ $(PackageExclude);
 "
           With="#BuildCsList"
         />
-        <Property Name="MarketplaceFlag" Value="" />
-        <Property Name="MarketplaceFlag" Value="--marketplace" If="'$(IsForMarketplaceSubmission)' == 'true'" />
         <WriteTextFile
           File="$(TempPath)/BuildCsList.txt"
           Files="#BuildCsList"
         />
-        <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal update-uplugin --input-path &quot;$(InputBaseDir)/$(PluginName).uplugin&quot; --output-path &quot;$(OutputDir)/$(PluginName).uplugin&quot; --engine-version &quot;$(EngineMajorVersion).$(EngineMinorVersion).0&quot; --version-name &quot;$(VersionName)&quot; --version-number &quot;$(VersionNumber)&quot; $(MarketplaceFlag)" />
-        <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal copy-and-mutate-build-cs --input-base-path &quot;$(InputBaseDir)/&quot; --input-file-list &quot;$(TempPath)/BuildCsList.txt&quot; --output-path &quot;$(OutputDir)/&quot; $(MarketplaceFlag)" />
+        <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal update-uplugin --input-path &quot;$(InputBaseDir)/$(PluginName).uplugin&quot; --output-path &quot;$(OutputDir)/$(PluginName).uplugin&quot; --engine-version &quot;$(EngineMajorVersion).$(EngineMinorVersion).0&quot; --version-name &quot;$(VersionName)&quot; --version-number &quot;$(VersionNumber)&quot; --package-type &quot;$(PackageType)&quot;" />
+        <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal copy-and-mutate-build-cs --input-base-path &quot;$(InputBaseDir)/&quot; --input-file-list &quot;$(TempPath)/BuildCsList.txt&quot; --output-path &quot;$(OutputDir)/&quot; --package-type &quot;$(PackageType)&quot;" />
         <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal set-filter-file --package-include &quot;$(PackageInclude)&quot; --package-exclude &quot;$(PackageExclude)&quot; --output-path &quot;$(OutputDir)/Config/FilterPlugin.ini&quot;" />
         <Copy
           From="$(InputBaseDir)"
@@ -169,7 +167,7 @@ $(PackageExclude);
           Files="#DirectCopyFiles"
           Tag="$(OutputTag)"
         />
-        <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal update-copyright-headers-for-marketplace --path &quot;$(OutputDir)&quot; --copyright-header &quot;$(CopyrightHeader)&quot; --copyright-excludes &quot;$(CopyrightExcludes)&quot;" If="'$(IsForMarketplaceSubmission)' == 'true'" />
+        <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal update-copyright-headers-for-submission --path &quot;$(OutputDir)&quot; --copyright-header &quot;$(CopyrightHeader)&quot; --copyright-excludes &quot;$(CopyrightExcludes)&quot;" If="'$(PackageType)' != 'Generic'" />
         <Tag
           Files="$(OutputDir)/$(PluginName).uplugin"
           With="$(OutputTag)"
@@ -367,27 +365,27 @@ $(PackageExclude);
   -->
 
   <Agent Name="Compile $(EnginePrefix)Editor Mac (Mac Build Editor)" Type="Mac" If="'$(IsBuildMachine)' == 'true'">
-    <Node Name="Compile $(EnginePrefix)Editor Mac" Requires="#HostProject" Produces="#EditorBinaries_Mac" If="'$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorMac)' == 'true'">
+    <Node Name="Compile $(EnginePrefix)Editor Mac" Requires="#HostProject" Produces="#EditorBinaries_Mac" If="'$(PackageType)' == 'Generic' and '$(CanBuildEditorMac)' == 'true'">
       <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
         <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Mac" TargetConfiguration="Development" HostPlatform="Mac" />
       </ForEach>
       <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(TempPath)/$(HostProjectName)" TargetName="$(EnginePrefix)Editor" TargetPlatform="Mac" TargetConfiguration="Development" />
       <Compile Target="$(EnginePrefix)Editor" Platform="Mac" Configuration="Development" Tag="#EditorBinaries_Mac" Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; -NoPDB -NoDebugInfo $(AdditionalArguments)"/>
     </Node>
-    <Property Name="EditorBinaries" Value="$(EditorBinaries)#EditorBinaries_Mac;" If="'$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorMac)' == 'true'" />
-    <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(EnginePrefix)Editor Mac;" If="'$(ExecutePackage)' == 'false' and '$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorMac)' == 'true'" />
+    <Property Name="EditorBinaries" Value="$(EditorBinaries)#EditorBinaries_Mac;" If="'$(PackageType)' == 'Generic' and '$(CanBuildEditorMac)' == 'true'" />
+    <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(EnginePrefix)Editor Mac;" If="'$(ExecutePackage)' == 'false' and '$(PackageType)' == 'Generic' and '$(CanBuildEditorMac)' == 'true'" />
   </Agent>
 
   <Agent Name="Compile $(EnginePrefix)Editor Win64 (Windows Build Editor)" Type="Win64">
-    <Node Name="Compile $(EnginePrefix)Editor Win64" Requires="#HostProject" Produces="#EditorBinaries_Win64" If="'$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorWin64)' == 'true'">
+    <Node Name="Compile $(EnginePrefix)Editor Win64" Requires="#HostProject" Produces="#EditorBinaries_Win64" If="'$(PackageType)' == 'Generic' and '$(CanBuildEditorWin64)' == 'true'">
       <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
         <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Win64" TargetConfiguration="Development" HostPlatform="Win64" />
       </ForEach>
       <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(TempPath)/$(HostProjectName)" TargetName="$(EnginePrefix)Editor" TargetPlatform="Win64" TargetConfiguration="Development" />
       <Compile Target="$(EnginePrefix)Editor" Platform="Win64" Configuration="Development" Tag="#EditorBinaries_Win64" Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(2017Flag) $(AdditionalArguments)"/>
     </Node>
-    <Property Name="EditorBinaries" Value="$(EditorBinaries)#EditorBinaries_Win64;" If="'$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorWin64)' == 'true'" />
-    <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(EnginePrefix)Editor Win64;" If="'$(ExecutePackage)' == 'false' and '$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditorWin64)' == 'true'" />
+    <Property Name="EditorBinaries" Value="$(EditorBinaries)#EditorBinaries_Win64;" If="'$(PackageType)' == 'Generic' and '$(CanBuildEditorWin64)' == 'true'" />
+    <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(EnginePrefix)Editor Win64;" If="'$(ExecutePackage)' == 'false' and '$(PackageType)' == 'Generic' and '$(CanBuildEditorWin64)' == 'true'" />
   </Agent>
 
   <!--
@@ -423,7 +421,7 @@ $(PackageExclude);
     <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
       <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
         <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Mac Build Game)" Type="Mac" If="'$(IsBuildMachine)' == 'true'">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'">
+          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'">
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
               <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
             </ForEach>
@@ -456,8 +454,8 @@ $(PackageExclude);
               Files="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
             />
           </Node>
-          <Property Name="GameBinaries" Value="$(GameBinaries)#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'" />
-          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="'$(ExecutePackage)' == 'false' and ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'" />
+          <Property Name="GameBinaries" Value="$(GameBinaries)#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'" />
+          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="'$(ExecutePackage)' == 'false' and ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'" />
         </Agent>
       </ForEach>
     </ForEach>
@@ -472,7 +470,7 @@ $(PackageExclude);
     <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
       <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
         <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Windows Build Game)" Type="Win64">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'">
+          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'">
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
               <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
@@ -505,8 +503,8 @@ $(PackageExclude);
               Files="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
             />
           </Node>
-          <Property Name="GameBinaries" Value="$(GameBinaries)#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'"/>
-          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="'$(ExecutePackage)' == 'false' and !ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'" />
+          <Property Name="GameBinaries" Value="$(GameBinaries)#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'"/>
+          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="'$(ExecutePackage)' == 'false' and !ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'" />
         </Agent>
       </ForEach>
     </ForEach>
@@ -516,7 +514,7 @@ $(PackageExclude);
     <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
       <ForEach Name="TargetConfiguration" Values="$(ClientConfigurations)">
         <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Windows Build Client)" Type="Win64">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'">
+          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'">
             <WriteTextFile
               File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)Client.Target.cs"
               Text="using UnrealBuildTool; public class $(HostProjectName)ClientTarget : TargetRules { public $(HostProjectName)ClientTarget(TargetInfo Target) : base(Target) { Type = TargetType.Client; DefaultBuildSettings = BuildSettingsVersion.V2; ExtraModuleNames.AddRange(new string[] { &quot;$(HostProjectName)&quot; }); } }"
@@ -545,7 +543,7 @@ $(PackageExclude);
               Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(2017Flag) $(AdditionalArguments)"
             />
           </Node>
-          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'" />
+          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'" />
         </Agent>
       </ForEach>
     </ForEach>
@@ -555,7 +553,7 @@ $(PackageExclude);
     <ForEach Name="TargetPlatform" Values="$(ServerTargetPlatforms)">
       <ForEach Name="TargetConfiguration" Values="$(ServerConfigurations)">
         <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Windows Build Server)" Type="Win64">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'">
+          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'">
             <WriteTextFile
               File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)Server.Target.cs"
               Text="using UnrealBuildTool; public class $(HostProjectName)ServerTarget : TargetRules { public $(HostProjectName)ServerTarget(TargetInfo Target) : base(Target) { Type = TargetType.Server; DefaultBuildSettings = BuildSettingsVersion.V2; ExtraModuleNames.AddRange(new string[] { &quot;$(HostProjectName)&quot; }); } }"
@@ -584,7 +582,7 @@ $(PackageExclude);
               Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(2017Flag) $(AdditionalArguments)"
             />
           </Node>
-          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(IsForMarketplaceSubmission)' == 'false'" />
+          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'" />
         </Agent>
       </ForEach>
     </ForEach>

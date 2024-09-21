@@ -1,4 +1,4 @@
-﻿namespace UET.Commands.Internal.UpdateCopyrightHeadersForMarketplace
+﻿namespace UET.Commands.Internal.UpdateCopyrightHeadersForSubmission
 {
     using Microsoft.Extensions.Logging;
     using System;
@@ -7,7 +7,7 @@
     using System.Linq;
     using System.Threading.Tasks;
 
-    internal sealed class UpdateCopyrightHeadersForMarketplaceCommand
+    internal sealed class UpdateCopyrightHeadersForSubmissionCommand
     {
         internal sealed class Options
         {
@@ -23,22 +23,22 @@
             }
         }
 
-        public static Command CreateUpdateCopyrightHeadersForMarketplaceCommand()
+        public static Command CreateUpdateCopyrightHeadersForSubmissionCommand()
         {
             var options = new Options();
-            var command = new Command("update-copyright-headers-for-marketplace");
+            var command = new Command("update-copyright-headers-for-submission");
             command.AddAllOptions(options);
-            command.AddCommonHandler<UpdateCopyrightHeadersForMarketplaceCommandInstance>(options);
+            command.AddCommonHandler<UpdateCopyrightHeadersForSubmissionCommandInstance>(options);
             return command;
         }
 
-        private sealed class UpdateCopyrightHeadersForMarketplaceCommandInstance : ICommandInstance
+        private sealed class UpdateCopyrightHeadersForSubmissionCommandInstance : ICommandInstance
         {
-            private readonly ILogger<UpdateCopyrightHeadersForMarketplaceCommandInstance> _logger;
+            private readonly ILogger<UpdateCopyrightHeadersForSubmissionCommandInstance> _logger;
             private readonly Options _options;
 
-            public UpdateCopyrightHeadersForMarketplaceCommandInstance(
-                ILogger<UpdateCopyrightHeadersForMarketplaceCommandInstance> logger,
+            public UpdateCopyrightHeadersForSubmissionCommandInstance(
+                ILogger<UpdateCopyrightHeadersForSubmissionCommandInstance> logger,
                 Options options)
             {
                 _logger = logger;

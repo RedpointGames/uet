@@ -57,9 +57,9 @@
                         {
                             Name = $"{_propertyPrefix}_PluginEditorBinaries_{platform}",
                             Value = $"#EditorBinaries_{platform}",
-                            // @note: Plugin binaries are only available when not making a Marketplace package. For
-                            // Marketplace packages, the plugin is compiled as part of the automation project prior to testing.
-                            If = $"'$(IsForMarketplaceSubmission)' == 'false' and '$(CanBuildEditor{platform})' == 'true'"
+                            // @note: Plugin binaries are only available when not making a Marketplace/Fab package. For
+                            // Marketplace/Fab packages, the plugin is compiled as part of the automation project prior to testing.
+                            If = $"'$(PackageType)' == 'Generic' and '$(CanBuildEditor{platform})' == 'true'"
                         }).ConfigureAwait(false);
                     await writer.WriteExpandAsync(
                         new ExpandElementProperties
@@ -106,7 +106,7 @@
                 // Execute our editor automation tests.
                 foreach (var platform in allPlatforms)
                 {
-                    var marketplaceCondition = $"'$(IsForMarketplaceSubmission)' == 'true' and '$(CanBuildEditor{platform})' == 'true'";
+                    var marketplaceCondition = $"'$(PackageType)' != 'Generic' and '$(CanBuildEditor{platform})' == 'true'";
                     if (platform == BuildConfigHostPlatform.Mac)
                     {
                         marketplaceCondition += " and '$(IsBuildMachine)' == 'true'";
@@ -155,7 +155,7 @@
                         }).ConfigureAwait(false);
 
                     // @note: We use a property here because there won't be any compiled binaries when building
-                    // for the Marketplace. This allows the nodes below to pull in compiled binaries only when
+                    // for the Marketplace/Fab. This allows the nodes below to pull in compiled binaries only when
                     // they're available.
                     await writer.WritePropertyAsync(
                         new PropertyElementProperties

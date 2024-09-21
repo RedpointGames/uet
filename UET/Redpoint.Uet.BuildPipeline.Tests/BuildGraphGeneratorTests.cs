@@ -131,7 +131,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
                     { $"PackageName", $"Packaged" },
                     { $"PackageInclude", $"" },
                     { $"PackageExclude", $"" },
-                    { $"IsForMarketplaceSubmission", $"false" },
+                    { $"PackageType", $"Generic" },
                     { $"CopyrightHeader", $"" },
                     { $"CopyrightExcludes", $"" },
                 },

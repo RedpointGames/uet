@@ -6,7 +6,7 @@
     public class BuildConfigPluginCopyright
     {
         /// <summary>
-        /// Used for Marketplace submissions and update-copyright command.
+        /// Used for Marketplace/Fab submissions and update-copyright command.
         /// </summary>
         [JsonPropertyName("Header"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Header { get; set; }

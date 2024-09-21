@@ -28,7 +28,7 @@
   <Option Name="ClientConfigurations" Restrict="[^ ]*" DefaultValue="Development" Description="List of configurations to build the client targets for, e.g. Development;Shipping" />
   <Option Name="ServerConfigurations" Restrict="[^ ]*" DefaultValue="Development" Description="List of configurations to build the server targets for, e.g. Development;Shipping" />
   <Option Name="MacPlatforms" Restrict="[^ ]*" DefaultValue="Mac;IOS" Description="List of platforms that macOS agents should build instead of Windows, e.g. Mac;IOS" />
-  <Option Name="StrictIncludes" Restrict="true|false" DefaultValue="false" Description="If enabled, builds with strict includes turned on (must pass strict include checks for Marketplace submission)" />
+  <Option Name="StrictIncludes" Restrict="true|false" DefaultValue="false" Description="If enabled, builds with strict includes turned on." />
 
   <!-- Stage options -->
   <Option Name="StageDirectory" Restrict=".+" DefaultValue="Saved\StagedBuilds" Description="The path under which to place all of the staged builds" />

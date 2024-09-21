@@ -21,7 +21,7 @@
     using UET.Commands.Internal.TestGrpcPipes;
     using UET.Commands.Internal.TestPdu;
     using UET.Commands.Internal.TestUefsConnection;
-    using UET.Commands.Internal.UpdateCopyrightHeadersForMarketplace;
+    using UET.Commands.Internal.UpdateCopyrightHeadersForSubmission;
     using UET.Commands.Internal.UpdateUPlugin;
     using UET.Commands.Internal.UploadToBackblazeB2;
     using UET.Commands.Internal.WakeOnLan;
@@ -37,7 +37,7 @@
                 RunDownstreamTestCommand.CreateRunDownstreamTestCommand(),
                 RunGauntletTestFromBuildGraphCommand.CreateRunGauntletCommand(),
                 SetFilterFileCommand.CreateSetFilterFileCommand(),
-                UpdateCopyrightHeadersForMarketplaceCommand.CreateUpdateCopyrightHeadersForMarketplaceCommand(),
+                UpdateCopyrightHeadersForSubmissionCommand.CreateUpdateCopyrightHeadersForSubmissionCommand(),
                 UpdateUPluginCommand.CreateUpdateUPluginCommand(),
                 UploadToBackblazeB2Command.CreateUploadToBackblazeB2Command(),
                 TestAutoDiscoveryCommand.CreateTestAutoDiscoveryCommand(),
