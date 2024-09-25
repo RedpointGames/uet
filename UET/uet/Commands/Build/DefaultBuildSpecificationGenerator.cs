@@ -673,7 +673,7 @@
                     ProjectPluginFileJsonSerializerContext.Default.UPluginFile);
                 if (string.IsNullOrWhiteSpace(pluginFile?.CreatedBy))
                 {
-                    _logger.LogWarning(".uplugin file is missing 'CreatedBy' field. Copyright headers set for Marketplace/Fab submission may not the Marketplace/Fab guildlines. Please set the 'CreatedBy' field or use a 'BuildConfig.json' to build this plugin.");
+                    _logger.LogWarning(".uplugin file is missing 'CreatedBy' field. Copyright headers set for Marketplace/Fab submission may not the Marketplace/Fab guidelines. Please set the 'CreatedBy' field or use a 'BuildConfig.json' to build this plugin.");
                     copyrightHeader = $"Copyright %Y. All Rights Reserved.";
                 }
                 else
