@@ -4,6 +4,7 @@
     using Redpoint.Concurrency;
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.Engine;
+    using Redpoint.Uet.Configuration.Plugin;
     using System;
     using System.Globalization;
     using System.Text.Json;
@@ -38,6 +39,7 @@
 
         public async Task<(string versionName, string versionNumber)> ComputeVersionNameAndNumberAsync(
             BuildEngineSpecification engineSpec,
+            BuildConfigPluginPackageType pluginVersioningType,
             bool useStorageVirtualisation,
             CancellationToken cancellationToken)
         {
@@ -67,8 +69,20 @@
                     }
                 }
 
-                var versionNumber = $"{unixTimestamp}{engineInfo.MinorVersion}";
-                var versionName = $"{versionDateTime}-{engineInfo.MajorVersion}.{engineInfo.MinorVersion}-{ciCommitShortSha[..8]}";
+                var versionNumber = pluginVersioningType switch
+                {
+                    BuildConfigPluginPackageType.Marketplace => $"{unixTimestamp}{engineInfo.MinorVersion}",
+                    BuildConfigPluginPackageType.Fab => $"{unixTimestamp}",
+                    BuildConfigPluginPackageType.Generic => $"{unixTimestamp}{engineInfo.MinorVersion}",
+                    _ => throw new NotSupportedException("The value of 'BuildConfigPluginPackageType' is not supported in ComputeVersionNameAndNumberAsync."),
+                };
+                var versionName = pluginVersioningType switch
+                {
+                    BuildConfigPluginPackageType.Marketplace => $"{versionDateTime}-{engineInfo.MajorVersion}.{engineInfo.MinorVersion}-{ciCommitShortSha[..8]}",
+                    BuildConfigPluginPackageType.Fab => $"{versionDateTime}-{ciCommitShortSha[..8]}",
+                    BuildConfigPluginPackageType.Generic => $"{versionDateTime}-{engineInfo.MajorVersion}.{engineInfo.MinorVersion}-{ciCommitShortSha[..8]}",
+                    _ => throw new NotSupportedException("The value of 'BuildConfigPluginPackageType' is not supported in ComputeVersionNameAndNumberAsync."),
+                };
 
                 _logger.LogInformation($"Building as versioned package: {versionName}");
                 return (versionName, versionNumber);

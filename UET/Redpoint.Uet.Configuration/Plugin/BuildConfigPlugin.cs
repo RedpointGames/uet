@@ -12,7 +12,7 @@
         public string PluginName { get; set; } = string.Empty;
 
         /// <summary>
-        /// Used for Marketplace submissions and update-copyright command.
+        /// Used for Marketplace/Fab submissions and update-copyright command.
         /// </summary>
         [JsonPropertyName("Copyright"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public BuildConfigPluginCopyright? Copyright { get; set; }

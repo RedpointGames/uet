@@ -5,9 +5,14 @@
     public class BuildConfigPluginPackage
     {
         /// <summary>
-        /// If true, the plugin is packaged for Marketplace submission. If not set, defaults to false.
+        /// Defines the package type, such as whether it is being packaged for Marketplace or Fab submission. One of 'Generic', 'Marketplace' or 'Fab'. If not set, defaults to 'Generic'.
         /// </summary>
-        [JsonPropertyName("Marketplace"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public BuildConfigPluginPackageType? Type { get; set; }
+
+        /// <summary>
+        /// DEPRECATED. Use the 'Type' setting instead.
+        /// </summary>
+        [JsonPropertyName("Marketplace"), Obsolete("Use the 'Type' attribute instead."), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? Marketplace { get; set; }
 
         /// <summary>

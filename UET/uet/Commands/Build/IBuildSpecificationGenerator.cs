@@ -60,7 +60,7 @@
             bool strictIncludes,
             string[] extraPlatforms,
             bool package,
-            bool marketplace,
+            BuildConfigPluginPackageType packageType,
             string? commandlinePluginVersionName,
             long? commandlinePluginVersionNumber);
     }

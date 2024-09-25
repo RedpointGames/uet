@@ -61,7 +61,7 @@
             public required string Configurations;
         }
 
-        private bool VerifySourceFilesDoNotExceedMarketplaceSubmissionPathLimit(
+        private bool VerifySourceFilesDoNotExceedSubmissionPathLimit(
             string pluginName,
             DirectoryInfo sourceDirectory)
         {
@@ -83,20 +83,20 @@
                     var rootDirectoryLocalPath = rootDirectory.FullName;
                     var fileRelativePath = fileFullLocalPath.Substring(rootDirectoryLocalPath.Length).TrimStart(Path.DirectorySeparatorChar);
 
-                    var pathLengthOnMarketplaceSubmissionBuild = Path.Combine(
+                    var pathLengthOnSubmissionBuild = Path.Combine(
                         marketplaceSubmissionPrefix,
                         pluginName,
                         "Source",
                         fileRelativePath);
 
-                    if (pathLengthOnMarketplaceSubmissionBuild.Length > 260)
+                    if (pathLengthOnSubmissionBuild.Length > 260)
                     {
                         if (!hasErrored)
                         {
-                            _logger.LogError("The following paths are too long for this plugin to be submitted to the Marketplace. Please reduce the number of characters between the 'Source' directory and the end of the filename:");
+                            _logger.LogError("The following paths are too long for this plugin to be submitted to the Marketplace/Fab. Please reduce the number of characters between the 'Source' directory and the end of the filename:");
                             hasErrored = true;
                         }
-                        _logger.LogError($"  {pathLengthOnMarketplaceSubmissionBuild} ({pathLengthOnMarketplaceSubmissionBuild.Length} chars)");
+                        _logger.LogError($"  {pathLengthOnSubmissionBuild} ({pathLengthOnSubmissionBuild.Length} chars)");
                     }
                 }
             }
@@ -386,9 +386,27 @@
             var strictIncludesAtPluginLevel = distribution.Build?.StrictIncludes ?? false;
 
             // Compute packaging settings.
-            var isForMarketplaceSubmission = distribution.Package != null &&
-                (distribution.Package.Marketplace ?? false);
-            var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(engineSpec, true, CancellationToken.None).ConfigureAwait(false);
+            var versioningType = BuildConfigPluginPackageType.Generic;
+            if (distribution.Package != null)
+            {
+#pragma warning disable CS0618 // Type or member is obsolete
+                if (distribution.Package.Marketplace.HasValue &&
+                    !distribution.Package.Type.HasValue)
+                {
+                    _logger.LogWarning("The 'Package.Marketplace = true' setting is deprecated. Please use 'Package.Type = Marketplace' or 'Package.Type = Fab'.");
+                    versioningType = BuildConfigPluginPackageType.Marketplace;
+                }
+#pragma warning restore CS0618 // Type or member is obsolete
+                else if (distribution.Package.Type.HasValue)
+                {
+                    versioningType = distribution.Package.Type.Value;
+                }
+            }
+            var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(
+                engineSpec,
+                versioningType,
+                true,
+                CancellationToken.None).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(commandlinePluginVersionName))
             {
                 versionInfo.versionName = commandlinePluginVersionName;
@@ -410,13 +428,13 @@
             }
 
             // Verify that the plugin does not contain source files that would exceed path limits
-            // when submitting to the Marketplace.
-            if (isForMarketplaceSubmission)
+            // when submitting to the Marketplace/Fab.
+            if (versioningType != BuildConfigPluginPackageType.Generic)
             {
                 var sourceDirectory = new DirectoryInfo(Path.Combine(repositoryRoot, pluginInfo.PluginName, "Source"));
-                if (!VerifySourceFilesDoNotExceedMarketplaceSubmissionPathLimit(pluginInfo.PluginName, sourceDirectory))
+                if (!VerifySourceFilesDoNotExceedSubmissionPathLimit(pluginInfo.PluginName, sourceDirectory))
                 {
-                    throw new BuildMisconfigurationException("This plugin contains source files that would exceed the path limit upon submission to the Marketplace. See above for details on which paths are too long.");
+                    throw new BuildMisconfigurationException("This plugin contains source files that would exceed the path limit upon submission to the Marketplace or Fab. See above for details on which paths are too long.");
                 }
             }
 
@@ -441,19 +459,19 @@
             // Compute copyright header.
             var copyrightHeader = string.Empty;
             var copyrightExcludes = string.Empty;
-            if (isForMarketplaceSubmission)
+            if (versioningType != BuildConfigPluginPackageType.Generic)
             {
                 if (pluginInfo.Copyright == null)
                 {
-                    throw new BuildMisconfigurationException("You must configure the 'Copyright' section in BuildConfig.json to package for the Marketplace.");
+                    throw new BuildMisconfigurationException("You must configure the 'Copyright' section in BuildConfig.json to package for the Marketplace/Fab.");
                 }
                 else if (pluginInfo.Copyright.Header == null)
                 {
-                    throw new BuildMisconfigurationException("You must configure the 'Copyright.Header' value in BuildConfig.json to package for the Marketplace.");
+                    throw new BuildMisconfigurationException("You must configure the 'Copyright.Header' value in BuildConfig.json to package for the Marketplace/Fab.");
                 }
                 else if (!pluginInfo.Copyright.Header.Contains("%Y", StringComparison.Ordinal))
                 {
-                    throw new BuildMisconfigurationException("The configured copyright header must have a %Y placeholder for the current year to package for the Marketplace.");
+                    throw new BuildMisconfigurationException("The configured copyright header must have a %Y placeholder for the current year to package for the Marketplace/Fab.");
                 }
                 else
                 {
@@ -528,7 +546,7 @@
                     { "PackageFolder", distribution.Package?.OutputFolderName ?? "Packaged" },
                     { "PackageInclude", GetFilterInclude(repositoryRoot, distribution) },
                     { "PackageExclude", GetFilterExclude(repositoryRoot, distribution) },
-                    { "IsForMarketplaceSubmission", isForMarketplaceSubmission ? "true" : "false" },
+                    { "PackageType", versioningType.ToString() },
                     { "CopyrightHeader", copyrightHeader },
                     { "CopyrightExcludes", copyrightExcludes },
                 },
@@ -628,14 +646,14 @@
             bool strictIncludes,
             string[] extraPlatforms,
             bool package,
-            bool marketplace,
+            BuildConfigPluginPackageType packageType,
             string? commandlinePluginVersionName,
             long? commandlinePluginVersionNumber)
         {
             var targetPlatform = OperatingSystem.IsWindows() ? "Win64" : "Mac";
             var gameConfigurations = shipping ? "Shipping" : "Development";
 
-            var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(engineSpec, true, CancellationToken.None).ConfigureAwait(false);
+            var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(engineSpec, packageType, true, CancellationToken.None).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(commandlinePluginVersionName))
             {
                 versionInfo.versionName = commandlinePluginVersionName;
@@ -645,17 +663,17 @@
                 versionInfo.versionNumber = commandlinePluginVersionNumber.Value.ToString(CultureInfo.InvariantCulture);
             }
 
-            // If building for the Marketplace, compute the copyright header
+            // If building for the Marketplace/Fab, compute the copyright header
             // automatically from the .uplugin CreatedBy field.
             var copyrightHeader = string.Empty;
-            if (marketplace)
+            if (packageType != BuildConfigPluginPackageType.Generic)
             {
                 var pluginFile = JsonSerializer.Deserialize(
                     await File.ReadAllTextAsync(pathSpec.UPluginPath!).ConfigureAwait(false),
                     ProjectPluginFileJsonSerializerContext.Default.UPluginFile);
                 if (string.IsNullOrWhiteSpace(pluginFile?.CreatedBy))
                 {
-                    _logger.LogWarning(".uplugin file is missing 'CreatedBy' field. Copyright headers set for Marketplace submission may not the Marketplace guildlines. Please set the 'CreatedBy' field or use a 'BuildConfig.json' to build this plugin.");
+                    _logger.LogWarning(".uplugin file is missing 'CreatedBy' field. Copyright headers set for Marketplace/Fab submission may not the Marketplace/Fab guildlines. Please set the 'CreatedBy' field or use a 'BuildConfig.json' to build this plugin.");
                     copyrightHeader = $"Copyright %Y. All Rights Reserved.";
                 }
                 else
@@ -665,17 +683,17 @@
             }
 
             // Verify that the plugin does not contain source files that would exceed path limits
-            // when submitting to the Marketplace.
-            if (marketplace)
+            // when submitting to the Marketplace/Fab.
+            if (packageType != BuildConfigPluginPackageType.Generic)
             {
                 var sourceDirectory = new DirectoryInfo(Path.Combine(
                     new FileInfo(pathSpec.UPluginPath!).DirectoryName!,
                     "Source"));
-                if (!VerifySourceFilesDoNotExceedMarketplaceSubmissionPathLimit(
+                if (!VerifySourceFilesDoNotExceedSubmissionPathLimit(
                     Path.GetFileNameWithoutExtension(pathSpec.UPluginPath!),
                     sourceDirectory))
                 {
-                    throw new BuildMisconfigurationException("This plugin contains source files that would exceed the path limit upon submission to the Marketplace. See above for details on which paths are too long.");
+                    throw new BuildMisconfigurationException("This plugin contains source files that would exceed the path limit upon submission to the Marketplace/Fab. See above for details on which paths are too long.");
                 }
             }
 
@@ -696,7 +714,7 @@
                     { $"PluginDirectory", $"__REPOSITORY_ROOT__" },
                     { $"PluginName", Path.GetFileNameWithoutExtension(pathSpec.UPluginPath)! },
                     // @note: This is only used for naming the package ZIPs now.
-                    { $"Distribution", marketplace ? "Marketplace" : "Redistributable" },
+                    { $"Distribution", packageType.ToString() },
                     { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
@@ -722,10 +740,10 @@
                     { $"ExecutePackage", package ? "true" : "false" },
                     { "VersionNumber", versionInfo.versionNumber },
                     { "VersionName", versionInfo.versionName },
-                    { "PackageFolder", marketplace ? "Marketplace" : "Redistributable" },
+                    { "PackageFolder", packageType.ToString() },
                     { "PackageInclude", string.Empty },
                     { "PackageExclude", string.Empty },
-                    { "IsForMarketplaceSubmission", marketplace ? "true" : "false" },
+                    { "PackageType", packageType.ToString() },
                     { "CopyrightHeader", copyrightHeader },
                     { "CopyrightExcludes", string.Empty },
                 },

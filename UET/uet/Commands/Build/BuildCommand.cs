@@ -145,7 +145,7 @@
                 PluginPackage = new Option<string>(
                     "--plugin-package",
                     description: "When building a .uplugin file, specifies if and how the plugin should be packaged.");
-                PluginPackage.FromAmong("none", "redistributable", "marketplace");
+                PluginPackage.FromAmong("none", "generic", "marketplace", "fab");
                 PluginPackage.SetDefaultValue("none");
                 PluginPackage.ArgumentGroupName = uprojectpluginOptions;
 
@@ -539,7 +539,13 @@
                                 strictIncludes,
                                 platforms ?? Array.Empty<string>(),
                                 package: pluginPackage != "none",
-                                marketplace: pluginPackage == "marketplace",
+                                packageType: pluginPackage switch
+                                {
+                                    "generic" => BuildConfigPluginPackageType.Generic,
+                                    "marketplace" => BuildConfigPluginPackageType.Marketplace,
+                                    "fab" => BuildConfigPluginPackageType.Fab,
+                                    _ => throw new NotSupportedException("pluginPackage value is not supported!")
+                                },
                                 commandlinePluginVersionName: pluginVersionName,
                                 commandlinePluginVersionNumber: pluginVersionNumber).ConfigureAwait(false);
                             break;

@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.UpdateUPlugin
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Uet.Configuration.Plugin;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Globalization;
@@ -17,7 +18,7 @@
             public Option<string> EngineVersion;
             public Option<string> VersionName;
             public Option<string> VersionNumber;
-            public Option<bool> Marketplace;
+            public Option<BuildConfigPluginPackageType> PackageType;
 
             public Options()
             {
@@ -26,7 +27,7 @@
                 EngineVersion = new Option<string>("--engine-version");
                 VersionName = new Option<string>("--version-name");
                 VersionNumber = new Option<string>("--version-number");
-                Marketplace = new Option<bool>("--marketplace");
+                PackageType = new Option<BuildConfigPluginPackageType>("--package-type");
             }
         }
 
@@ -59,7 +60,7 @@
                 var engineVersion = context.ParseResult.GetValueForOption(_options.EngineVersion)!;
                 var versionName = context.ParseResult.GetValueForOption(_options.VersionName)!;
                 var versionNumber = context.ParseResult.GetValueForOption(_options.VersionNumber)!;
-                var marketplace = context.ParseResult.GetValueForOption(_options.Marketplace)!;
+                var packageType = context.ParseResult.GetValueForOption(_options.PackageType)!;
 
                 JsonNode? node;
                 using (var stream = new StreamReader(new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read)))
@@ -73,12 +74,23 @@
                     return 1;
                 }
 
-                node["EngineVersion"] = engineVersion;
+                if (packageType != BuildConfigPluginPackageType.Fab)
+                {
+                    node["EngineVersion"] = engineVersion;
+                }
+                else
+                {
+                    var obj = node.AsObject();
+                    if (obj.ContainsKey("EngineVersion"))
+                    {
+                        obj.Remove("EngineVersion");
+                    }
+                }
                 node["VersionName"] = versionName;
                 node["Version"] = ulong.Parse(versionNumber, CultureInfo.InvariantCulture);
                 node["Installed"] = true;
 
-                if (!marketplace)
+                if (packageType == BuildConfigPluginPackageType.Generic)
                 {
                     node["EnabledByDefault"] = false;
                 }
