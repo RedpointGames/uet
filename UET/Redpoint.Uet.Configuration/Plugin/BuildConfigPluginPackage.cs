@@ -7,6 +7,7 @@
         /// <summary>
         /// Defines the package type, such as whether it is being packaged for Marketplace or Fab submission. One of 'Generic', 'Marketplace' or 'Fab'. If not set, defaults to 'Generic'.
         /// </summary>
+        [JsonPropertyName("Type"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public BuildConfigPluginPackageType? Type { get; set; }
 
         /// <summary>
