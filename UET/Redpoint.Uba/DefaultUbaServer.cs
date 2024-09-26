@@ -550,14 +550,15 @@
             }
 
             // Push the request into the queue.
+            var ubaProcessSpecification = processSpecification as UbaProcessSpecification;
             var descriptor = new UbaProcessDescriptor
             {
                 ProcessSpecification = processSpecification,
                 CaptureSpecification = captureSpecification,
                 CancellationToken = cancellationToken,
                 DateQueuedUtc = DateTimeOffset.UtcNow,
-                PreferRemote = processSpecification is UbaProcessSpecification ubaProcessSpecification && ubaProcessSpecification.PreferRemote,
-                AllowRemote = true,
+                PreferRemote = ubaProcessSpecification != null && ubaProcessSpecification.PreferRemote,
+                AllowRemote = ubaProcessSpecification == null || ubaProcessSpecification.AllowRemote,
                 CompletionGate = new Gate(),
             };
             _processQueue.Enqueue(descriptor);
