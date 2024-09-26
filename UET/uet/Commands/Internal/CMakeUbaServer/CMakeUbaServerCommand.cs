@@ -175,6 +175,7 @@
                     Arguments = request.Arguments.Select(x => new LogicalProcessArgument(x.LogicalValue)).ToArray(),
                     WorkingDirectory = request.WorkingDirectory,
                     PreferRemote = request.PreferRemote,
+                    AllowRemote = string.Equals(Path.GetFileName(request.Path), "clang-cl.exe", StringComparison.OrdinalIgnoreCase),
                 };
 
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_commandCancellationToken.Value, context.CancellationToken);
