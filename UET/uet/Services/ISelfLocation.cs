@@ -2,6 +2,6 @@
 {
     internal interface ISelfLocation
     {
-        string GetUETLocalLocation();
+        string GetUetLocalLocation();
     }
 }

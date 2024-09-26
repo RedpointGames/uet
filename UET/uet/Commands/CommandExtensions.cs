@@ -75,6 +75,7 @@
             services.AddCredentialDiscovery();
             services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
             services.AddSingleton<IPluginVersioning, DefaultPluginVersioning>();
+            services.AddUba();
         }
 
         internal static void AddServicedOptionsHandler<

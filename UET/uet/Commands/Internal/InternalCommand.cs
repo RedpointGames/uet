@@ -25,6 +25,7 @@
     using UET.Commands.Internal.UpdateUPlugin;
     using UET.Commands.Internal.UploadToBackblazeB2;
     using UET.Commands.Internal.WakeOnLan;
+    using UET.Commands.Internal.TestUba;
 
     internal sealed class InternalCommand
     {
@@ -57,6 +58,7 @@
                 InspectSnmpCommand.CreateInspectSnmpCommand(),
                 ReparentAdditionalPropertiesInTargetsCommand.CreateReparentAdditionalPropertiesInTargetsCommand(),
                 WakeOnLanCommand.CreateWakeOnLanCommand(),
+                TestUbaCommand.CreateTestUbaCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");

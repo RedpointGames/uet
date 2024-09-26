@@ -24,11 +24,20 @@
         /// <summary>
         /// Executes the process specified by <paramref name="processSpecification"/> and returns an asynchronous enumerable of process responses. Each process response represents data from standard output or standard error, or represents the process terminating. Each yielded value will be one of <see cref="StandardOutputResponse"/>, <see cref="StandardErrorResponse"/> or <see cref="ExitCodeResponse"/>. <see cref="ExitCodeResponse"/> is always the last response returned before the enumerable stops yielding more values.
         /// </summary>
+        /// <remarks>
+        /// If you're implementing your own <see cref="IProcessExecutor"/>, you can often leave the implementation of this interface method as the default. The Redpoint.ProcessExecutor library already provides an implementation of it that works across any <see cref="IProcessExecutor"/> implementation.
+        /// </remarks>
         /// <param name="processSpecification">Specifies which executable binary should be started and how it should be executed.</param>
         /// <param name="cancellationToken">A cancellation token which can be used to terminate the process. When this cancellation token is cancelled, the process is terminated and the returned enumerable stops yielding values.</param>
         /// <returns>An asynchronous stream of standard output and standard error data, followed by the exit code response.</returns>
         IAsyncEnumerable<ProcessResponse> ExecuteAsync(
             ProcessSpecification processSpecification,
-            CancellationToken cancellationToken);
+            CancellationToken cancellationToken)
+        {
+            return new ProcessExecutionEnumerable(
+                this,
+                processSpecification,
+                cancellationToken);
+        }
     }
 }

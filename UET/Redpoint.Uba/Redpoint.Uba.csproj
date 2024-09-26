@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>Provides an implementation of IProcessExecutor that can dispatch process execution to Unreal Build Accelerator agents.</Description>
+    <PackageTags>process, execution, unreal engine, unreal build accelerator, uba</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+    </None>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+  </ItemGroup>
+
+</Project>

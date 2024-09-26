@@ -606,14 +606,6 @@
             }
         }
 
-        public IAsyncEnumerable<ProcessResponse> ExecuteAsync(ProcessSpecification processSpecification, CancellationToken cancellationToken)
-        {
-            return new ProcessExecutionEnumerable(
-                this,
-                processSpecification,
-                cancellationToken);
-        }
-
         private static ConsoleEncoding GetEncoding(int codePage)
         {
             Encoding enc = GetSupportedConsoleEncoding(codePage);
