@@ -81,7 +81,7 @@
                 return;
             }
 
-            _logger.LogInformation("Kubernetes UBA: InitAsync");
+            _logger.LogDebug("Kubernetes UBA: InitAsync");
 
             try
             {
@@ -244,7 +244,7 @@
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "This call is not used for cryptography.")]
         public void Start()
         {
-            _logger.LogInformation("Kubernetes UBA: Start");
+            _logger.LogDebug("Kubernetes UBA: Start");
 
             _timer = new Timer(async _ =>
             {
@@ -256,7 +256,7 @@
                     // If we're cancelled, stop.
                     if (_cancellationSource == null || _cancellationSource.IsCancellationRequested)
                     {
-                        _logger.LogInformation("Kubernetes UBA: Loop: Cancelled");
+                        _logger.LogDebug("Kubernetes UBA: Loop: Cancelled");
                         stopping = true;
                         return;
                     }
@@ -264,7 +264,7 @@
                     // If the client is unavailable, keep looping unless we're done.
                     if (_client == null)
                     {
-                        _logger.LogInformation("Kubernetes UBA: Loop: Not configured to use Kubernetes.");
+                        _logger.LogInformation("Kubernetes UBA: Not configured to use Kubernetes.");
                         return;
                     }
 
@@ -273,7 +273,7 @@
                     {
                         if (pod.Status.Phase == "Succeeded" || pod.Status.Phase == "Failed" || pod.Status.Phase == "Unknown")
                         {
-                            _logger.LogInformation($"Removing Kubernetes block: {pod.Name()} (cleanup)");
+                            _logger.LogDebug($"Removing Kubernetes block: {pod.Name()} (cleanup)");
                             await DeleteServiceAndPodAsync(pod, _cancellationSource.Token).ConfigureAwait(false);
 
                             foreach (var kv in _kubernetesNodes)
@@ -331,7 +331,7 @@
                         {
                             if (pod.Status.Phase == "Succeeded" || pod.Status.Phase == "Failed" || pod.Status.Phase == "Unknown")
                             {
-                                _logger.LogInformation($"Removing Kubernetes block: {pod.Name()}");
+                                _logger.LogDebug($"Removing Kubernetes block: {pod.Name()}");
                                 await DeleteServiceAndPodAsync(pod, _cancellationSource.Token).ConfigureAwait(false);
                             }
                         }
@@ -355,7 +355,7 @@
                             .SelectMany(x =>
                             {
                                 var blocks = new List<KubernetesNodeState>();
-                                _logger.LogInformation($"Kubernetes UBA: Loop: Node '{x.NodeId}' has\nCPU: {x.CoresTotal} total, {x.CoresNonUba} non-UBA, {x.CoresAllocated} allocated, {x.CoresAvailable} available, {x.CoresAllocatable} allocatable.\nMemory: {x.MemoryTotal} total, {x.MemoryNonUba} non-UBA, {x.MemoryAllocated} allocated, {x.MemoryAvailable} available.\nBlocks: {x.AllocatedBlocks.Count} allocated.");
+                                _logger.LogDebug($"Kubernetes UBA: Loop: Node '{x.NodeId}' has\nCPU: {x.CoresTotal} total, {x.CoresNonUba} non-UBA, {x.CoresAllocated} allocated, {x.CoresAvailable} available, {x.CoresAllocatable} allocatable.\nMemory: {x.MemoryTotal} total, {x.MemoryNonUba} non-UBA, {x.MemoryAllocated} allocated, {x.MemoryAvailable} available.\nBlocks: {x.AllocatedBlocks.Count} allocated.");
                                 for (var c = 0; c < x.CoresAllocatable; c += blockSize)
                                 {
                                     if (c + blockSize <= x.CoresAllocatable)
@@ -385,7 +385,7 @@
 
                         // Create the pod and service.
                         var name = $"uba-{selectedNode.NodeId}-{nextBlockId}";
-                        _logger.LogInformation($"Allocating Kubernetes block: {name}");
+                        _logger.LogDebug($"Allocating Kubernetes block: {name}");
                         var labels = new Dictionary<string, string>
                         {
                             { "uba", "true" },
@@ -671,7 +671,7 @@
                     {
                         if (pod.Status.Phase == "Succeeded" || pod.Status.Phase == "Failed" || pod.Status.Phase == "Unknown")
                         {
-                            _logger.LogInformation($"Removing Kubernetes block: {pod.Name()} (cleanup on close)");
+                            _logger.LogDebug($"Removing Kubernetes block: {pod.Name()} (cleanup on close)");
                             await DeleteServiceAndPodAsync(pod, CancellationToken.None).ConfigureAwait(false);
                         }
                     }
@@ -681,7 +681,7 @@
                     {
                         await foreach (var pod in EnumerateNamespacedPodAsync($"uba.queueId={_id}", CancellationToken.None))
                         {
-                            _logger.LogInformation($"Removing Kubernetes block: {pod.Name()} (unconditional)");
+                            _logger.LogDebug($"Removing Kubernetes block: {pod.Name()} (unconditional)");
                             await DeleteServiceAndPodAsync(pod, CancellationToken.None).ConfigureAwait(false);
                         }
                     }
