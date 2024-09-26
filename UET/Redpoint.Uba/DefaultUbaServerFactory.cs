@@ -46,9 +46,11 @@
             Directory.CreateDirectory(rootStorageDirectoryPath);
             Directory.CreateDirectory(Path.GetDirectoryName(ubaTraceFilePath)!);
 
-            var loggingForwarder = new UbaLoggerForwarder(_ubaLoggerForwarderLogger);
+            // @note: UbaLoggerForwarder must be static and hold a singleton log. Otherwise we can run into a crash if
+            // DefaultUbaServer is finalized after UbaLoggerForwarder.
+            var ubaLogger = UbaLoggerForwarder.GetUbaLogger(_ubaLoggerForwarderLogger);
             var server = UbaServerDelayedImports.CreateServer(
-                loggingForwarder.Logger,
+                ubaLogger,
                 maxWorkers,
                 sendSize,
                 receiveTimeoutSeconds,
@@ -57,7 +59,7 @@
                 _defaultUbaServerLogger,
                 _processArgumentParser,
                 _localProcessExecutor,
-                loggingForwarder,
+                ubaLogger,
                 server,
                 rootStorageDirectoryPath,
                 ubaTraceFilePath);

@@ -18,7 +18,7 @@
         private readonly ILogger<DefaultUbaServer> _logger;
         private readonly IProcessArgumentParser _processArgumentParser;
         private readonly IProcessExecutor _localProcessExecutor;
-        private readonly UbaLoggerForwarder _ubaLoggerForwarder;
+        private readonly nint _ubaLogger;
         private readonly CancellationTokenSource _localWorkerCancellationTokenSource;
         private nint _server;
         private nint _storageServer;
@@ -27,6 +27,11 @@
         private readonly ConcurrentDictionary<ulong, bool> _returnedProcesses;
         private readonly TerminableAwaitableConcurrentQueue<UbaProcessDescriptor> _processQueue;
         private readonly Task[] _localWorkerTasks;
+        private readonly SessionServer_RemoteProcessAvailableCallback _onRemoteProcessAvailableDelegate;
+        private readonly SessionServer_RemoteProcessReturnedCallback _onRemoteProcessReturnedDelegate;
+        private long _processesPendingInQueue;
+        private long _processesExecutingLocally;
+        private long _processesExecutingRemotely;
 
         #region Library Imports
 
@@ -47,7 +52,7 @@
             nint server,
             string ip,
             int port,
-            string crypto);
+            nint crypto);
 
         [LibraryImport("UbaHost", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(UbaStringMarshaller))]
         [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
@@ -169,7 +174,7 @@
             ILogger<DefaultUbaServer> logger,
             IProcessArgumentParser processArgumentParser,
             IProcessExecutor localProcessExecutor,
-            UbaLoggerForwarder ubaLoggerForwarder,
+            nint ubaLogger,
             nint server,
             string rootStorageDirectoryPath,
             string ubaTraceFilePath)
@@ -177,7 +182,7 @@
             _logger = logger;
             _processArgumentParser = processArgumentParser;
             _localProcessExecutor = localProcessExecutor;
-            _ubaLoggerForwarder = ubaLoggerForwarder;
+            _ubaLogger = ubaLogger;
             _localWorkerCancellationTokenSource = new CancellationTokenSource();
 
             _server = server;
@@ -187,7 +192,7 @@
                 rootStorageDirectoryPath,
                 40uL * 1000 * 1000 * 1000,
                 false,
-                _ubaLoggerForwarder.Logger,
+                ubaLogger,
                 string.Empty);
             if (_storageServer == nint.Zero)
             {
@@ -198,7 +203,7 @@
             _sessionServerCreateInfo = CreateSessionServerCreateInfo(
                 _storageServer,
                 _server,
-                _ubaLoggerForwarder.Logger,
+                ubaLogger,
                 rootStorageDirectoryPath,
                 ubaTraceFilePath,
                 disableCustomAllocator: false,
@@ -227,24 +232,43 @@
                 .Select(x => Task.Run(LocalProcessWorkerLoop))
                 .ToArray();
 
-            SessionServer_SetRemoteProcessAvailable(_sessionServer, OnRemoteProcessAvailable, nint.Zero);
-            SessionServer_SetRemoteProcessReturned(_sessionServer, OnRemoteProcessReturned, nint.Zero);
+            _onRemoteProcessAvailableDelegate = OnRemoteProcessAvailable;
+            _onRemoteProcessReturnedDelegate = OnRemoteProcessReturned;
+            SessionServer_SetRemoteProcessAvailable(_sessionServer, _onRemoteProcessAvailableDelegate, nint.Zero);
+            SessionServer_SetRemoteProcessReturned(_sessionServer, _onRemoteProcessReturnedDelegate, nint.Zero);
         }
 
-        public bool AddRemoteAgent(string ip, int port, string crypto)
+        public bool AddRemoteAgent(string ip, int port)
         {
-            return Server_AddClient(_server, ip, port, crypto);
+            return Server_AddClient(_server, ip, port, nint.Zero);
         }
+
+        public long ProcessesPendingInQueue => Interlocked.Read(ref _processesPendingInQueue);
+        public long ProcessesExecutingLocally => Interlocked.Read(ref _processesExecutingLocally);
+        public long ProcessesExecutingRemotely => Interlocked.Read(ref _processesExecutingRemotely);
 
         private void OnRemoteProcessAvailable(nint userData)
         {
             // Start a background task to queue a remote process (since this function can't be async).
             _ = Task.Run(async () =>
             {
+                // Before we attempt to actually dequeue, check that there is something to dequeue, since UBA
+                // frequently calls OnRemoteProcessAvailable whileever slots are free (and not just when a slot
+                // opens up).
+                if (Interlocked.Read(ref _processesPendingInQueue) == 0)
+                {
+                    return;
+                }
+
+                _logger.LogInformation("Received OnRemoteProcessAvailable, pulling next available process to run...");
+
                 // Grab the next process to run.
                 var descriptor = await _processQueue.DequeueAsync(_localWorkerCancellationTokenSource.Token).ConfigureAwait(false);
+                Interlocked.Decrement(ref _processesPendingInQueue);
+                Interlocked.Increment(ref _processesExecutingRemotely);
 
                 // Run the process remotely.
+                _logger.LogInformation($"Got process to run '{descriptor.ProcessSpecification.FilePath}'...");
                 var isRequeued = false;
                 try
                 {
@@ -363,6 +387,8 @@
                         }
                         processHash = ProcessHandle_GetHash(process);
 
+                        _logger.LogInformation($"Remote process '{descriptor.ProcessSpecification.FilePath}' is now running...");
+
                         // While we wait for the exit gate to open, poll for log lines.
                         while (!exitedGate.Opened &&
                             !_returnedProcesses.ContainsKey(processHash) &&
@@ -390,6 +416,8 @@
                         if (!exitCode.HasValue /* Returned by remote agent */ ||
                             (exitCode.HasValue && exitCode == 9006) /* Known retry code when running cmd.exe via remote agent */)
                         {
+                            _logger.LogInformation($"Remote process '{descriptor.ProcessSpecification.FilePath}' was returned to the queue, scheduling for local execution...");
+
                             // Prefer to run this command locally now.
                             descriptor.PreferRemote = false;
 
@@ -427,6 +455,11 @@
                     {
                         descriptor.CompletionGate.Open();
                     }
+                    else
+                    {
+                        Interlocked.Increment(ref _processesPendingInQueue);
+                    }
+                    Interlocked.Decrement(ref _processesExecutingRemotely);
                 }
             });
         }
@@ -443,7 +476,7 @@
                 // Grab the next process to run.
                 var descriptor = await _processQueue.DequeueAsync(_localWorkerCancellationTokenSource.Token).ConfigureAwait(false);
                 if (descriptor.PreferRemote &&
-                    (descriptor.DateQueuedUtc - DateTimeOffset.UtcNow).TotalSeconds < 30)
+                    (DateTimeOffset.UtcNow - descriptor.DateQueuedUtc).TotalSeconds < 30)
                 {
                     // If this process prefers remote execution, and it hasn't been sitting in the queue for
                     // at least 30 seconds, requeue it and try again.
@@ -451,6 +484,8 @@
                     await Task.Delay(200, _localWorkerCancellationTokenSource.Token).ConfigureAwait(false);
                     continue;
                 }
+                Interlocked.Decrement(ref _processesPendingInQueue);
+                Interlocked.Increment(ref _processesExecutingLocally);
 
                 // Run the process locally.
                 try
@@ -467,6 +502,7 @@
                 finally
                 {
                     descriptor.CompletionGate.Open();
+                    Interlocked.Decrement(ref _processesExecutingLocally);
                 }
             }
             while (true);
@@ -495,6 +531,7 @@
                 CompletionGate = new Gate(),
             };
             _processQueue.Enqueue(descriptor);
+            Interlocked.Increment(ref _processesPendingInQueue);
 
             // Wait for the gate to be opened.
             await descriptor.CompletionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
