@@ -325,15 +325,5 @@
                 }
             }
         }
-
-        public IAsyncEnumerable<ProcessResponse> ExecuteAsync(
-            ProcessSpecification processSpecification,
-            CancellationToken cancellationToken)
-        {
-            return new ProcessExecutionEnumerable(
-                this,
-                processSpecification,
-                cancellationToken);
-        }
     }
 }

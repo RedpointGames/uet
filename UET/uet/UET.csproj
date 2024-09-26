@@ -54,6 +54,7 @@
     <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
     <ProjectReference Include="..\Redpoint.Rfs.WinFsp\Redpoint.Rfs.WinFsp.csproj" />
     <ProjectReference Include="..\Redpoint.ServiceControl\Redpoint.ServiceControl.csproj" />
+    <ProjectReference Include="..\Redpoint.Uba\Redpoint.Uba.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Commands\Redpoint.Uefs.Commands.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.Automation\Redpoint.Uet.Automation.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.BuildServer\Redpoint.Uet.BuildPipeline.Executors.BuildServer.csproj" />

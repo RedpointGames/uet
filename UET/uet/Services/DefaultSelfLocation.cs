@@ -7,7 +7,7 @@
     internal sealed class DefaultSelfLocation : ISelfLocation
     {
         [UnconditionalSuppressMessage("SingleFile", "IL3000:Avoid accessing Assembly file path when publishing as a single file", Justification = "Auto-detection")]
-        public string GetUETLocalLocation()
+        public string GetUetLocalLocation()
         {
             var assembly = Assembly.GetEntryAssembly();
             if (string.IsNullOrWhiteSpace(assembly?.Location))
