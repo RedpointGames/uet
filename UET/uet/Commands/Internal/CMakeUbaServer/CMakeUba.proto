@@ -1,0 +1,31 @@
+syntax = 'proto3';
+
+package CMakeUba;
+
+message ProcessArgument {
+	string logicalValue = 1;
+	string originalValue = 2;
+}
+
+message ProcessRequest {
+	string path = 1;
+	repeated ProcessArgument arguments = 2;
+	string workingDirectory = 3;
+	bool preferRemote = 4;
+}
+
+message ProcessResponse {
+	oneof data {
+		string standardOutputLine = 1;
+		// This will always be the last message from the response stream.
+		int32 exitCode = 2;
+	}
+}
+
+message EmptyMessage {
+}
+
+service CMakeUbaService {
+	rpc PingServer(EmptyMessage) returns (EmptyMessage) {}
+	rpc ExecuteProcess(ProcessRequest) returns (stream ProcessResponse) {}
+}

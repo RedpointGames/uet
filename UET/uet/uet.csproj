@@ -23,10 +23,13 @@
     <None Remove="Commands\AppleCert\AppleWWDRCAG4.cer" />
     <None Remove="Commands\AppleCert\DeveloperIDG2CA.cer" />
     <None Remove="Commands\Config\IwyuBooleanConfigSetting.cs~RF2d2c3a13.TMP" />
+    <None Remove="Commands\Internal\CMakeUbaServer\CMakeUba.proto" />
+    <None Remove="Commands\Internal\RunRemoteHost\RemoteHostApi.proto" />
     <None Remove="Commands\Internal\TestGrpcPipes\TestPipes.proto" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="KubernetesClient" Version="15.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="$(RedpointSystemLibraryVersion)" />
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj" />
     <PackageReference Include="Grpc.Tools" Version="2.67.0">
@@ -99,6 +102,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Protobuf Include="Commands\Internal\CMakeUbaServer\CMakeUba.proto" GrpcServices="Both" />
     <Protobuf Include="Commands\Internal\RunRemoteHost\RemoteHostApi.proto" GrpcServices="Both" />
     <Protobuf Include="Commands\Internal\TestGrpcPipes\TestPipes.proto">
       <GrpcServices>Both</GrpcServices>
