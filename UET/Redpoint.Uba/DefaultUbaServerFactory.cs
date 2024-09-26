@@ -13,18 +13,15 @@
         private readonly ILogger<DefaultUbaServer> _defaultUbaServerLogger;
         private readonly ILogger<UbaLoggerForwarder> _ubaLoggerForwarderLogger;
         private readonly IProcessArgumentParser _processArgumentParser;
-        private readonly IProcessExecutor _localProcessExecutor;
 
         public DefaultUbaServerFactory(
             ILogger<DefaultUbaServer> defaultUbaServerLogger,
             ILogger<UbaLoggerForwarder> ubaLoggerForwarderLogger,
-            IProcessArgumentParser processArgumentParser,
-            IProcessExecutor localProcessExecutor)
+            IProcessArgumentParser processArgumentParser)
         {
             _defaultUbaServerLogger = defaultUbaServerLogger;
             _ubaLoggerForwarderLogger = ubaLoggerForwarderLogger;
             _processArgumentParser = processArgumentParser;
-            _localProcessExecutor = localProcessExecutor;
         }
 
         public IUbaServer CreateServer(
@@ -58,7 +55,6 @@
             return new DefaultUbaServer(
                 _defaultUbaServerLogger,
                 _processArgumentParser,
-                _localProcessExecutor,
                 ubaLogger,
                 server,
                 rootStorageDirectoryPath,

@@ -3,7 +3,6 @@
     using CMakeUba;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-    using Redpoint.Concurrency;
     using Redpoint.GrpcPipes;
     using Redpoint.ProcessExecution;
     using System;
@@ -12,7 +11,6 @@
     using System.Threading.Tasks;
     using UET.Services;
     using static CMakeUba.CMakeUbaService;
-    using Semaphore = System.Threading.Semaphore;
 
     internal class CMakeUbaRunCommand
     {
@@ -63,101 +61,47 @@
                 _commandArguments = commandArguments;
             }
 
-            private async Task<bool> IsServerRunningAsync()
+            private async Task<bool> IsServerRunningAsync(string pipeName)
             {
-                var client = _grpcPipeFactory.CreateClient(
-                    "cmake-uba-server",
-                    GrpcPipeNamespace.User,
-                    channel => new CMakeUbaServiceClient(channel));
-                try
+                for (int i = 0; i < 10; i++)
                 {
-                    await client.PingServerAsync(new CMakeUba.EmptyMessage()).ConfigureAwait(false);
-                    return true;
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-
-            private async Task WaitForServerToStartAsync(CancellationToken serverUnexpectedExit)
-            {
-                while (true)
-                {
-                    serverUnexpectedExit.ThrowIfCancellationRequested();
-
                     var client = _grpcPipeFactory.CreateClient(
-                        "cmake-uba-server",
+                        pipeName,
                         GrpcPipeNamespace.User,
                         channel => new CMakeUbaServiceClient(channel));
                     try
                     {
-                        await client.PingServerAsync(new CMakeUba.EmptyMessage(), cancellationToken: serverUnexpectedExit).ConfigureAwait(false);
-                        return;
+                        await client.PingServerAsync(new CMakeUba.EmptyMessage()).ConfigureAwait(false);
+                        return true;
                     }
                     catch
                     {
-                        await Task.Delay(1000, serverUnexpectedExit).ConfigureAwait(false);
+                        await Task.Delay(1000).ConfigureAwait(false);
                     }
                 }
+                return false;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
-                // Start the CMake UBA server on-demand if it's not already running.
-                if (!await IsServerRunningAsync().ConfigureAwait(false))
+                var sessionId = Environment.GetEnvironmentVariable("CMAKE_UBA_SESSION_ID");
+                if (string.IsNullOrWhiteSpace(sessionId))
                 {
-                    using var globalServerSemaphore = new Semaphore(1, 1, "cmake-uba-grpc-server");
-                    globalServerSemaphore.WaitOne();
-                    try
-                    {
-                        if (!await IsServerRunningAsync().ConfigureAwait(false))
-                        {
-                            var cts = new CancellationTokenSource();
-                            var ctsDisposed = new Gate();
-                            try
-                            {
-                                _ = Task.Run(async () =>
-                                {
-                                    try
-                                    {
-                                        _logger.LogInformation("Starting CMake UBA server. You will not see output or errors from it. To see diagnostic information, run 'uet internal cmake-uba-server' in a separate terminal.");
-                                        await _processExecutor.ExecuteAsync(
-                                            new ProcessSpecification
-                                            {
-                                                FilePath = _selfLocation.GetUetLocalLocation(),
-                                                Arguments = ["internal", "cmake-uba-server", "--auto-close"]
-                                            },
-                                            CaptureSpecification.Silence,
-                                            CancellationToken.None).ConfigureAwait(false);
-                                    }
-                                    finally
-                                    {
-                                        if (!ctsDisposed.Opened)
-                                        {
-                                            cts.Cancel();
-                                        }
-                                    }
-                                });
+                    _logger.LogError($"Expected CMAKE_UBA_SESSION_ID environment variable to be set.");
+                    return 1;
+                }
+                var pipeName = $"cmake-uba-{sessionId}";
 
-                                await WaitForServerToStartAsync(cts.Token).ConfigureAwait(false);
-                            }
-                            finally
-                            {
-                                ctsDisposed.Open();
-                                cts.Dispose();
-                            }
-                        }
-                    }
-                    finally
-                    {
-                        globalServerSemaphore.Release();
-                    }
+                // Start the CMake UBA server on-demand if it's not already running.
+                if (!await IsServerRunningAsync(pipeName).ConfigureAwait(false))
+                {
+                    _logger.LogError($"The CMake UBA server isn't running. Start it with '{_selfLocation.GetUetLocalLocation()} internal cmake-uba-server &'");
+                    return 1;
                 }
 
                 // Create our gRPC client.
                 var client = _grpcPipeFactory.CreateClient(
-                    "cmake-uba-server",
+                    pipeName,
                     GrpcPipeNamespace.User,
                     channel => new CMakeUbaServiceClient(channel));
 
@@ -173,6 +117,7 @@
                 {
                     request.Arguments.Add(new ProcessArgument { LogicalValue = arguments[i] });
                 }
+
                 var response = client.ExecuteProcess(request, cancellationToken: context.GetCancellationToken());
 
                 // Stream the response values.
