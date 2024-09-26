@@ -23,6 +23,9 @@
     {
         internal sealed class Options
         {
+            public Option<bool> AutoClose = new Option<bool>(
+                "--auto-close",
+                "If true, the CMake UBA server will automatically shut down after idling for 60 seconds.");
         }
 
         public static Command CreateCMakeUbaServerCommand()
@@ -43,6 +46,7 @@
             private readonly IGrpcPipeFactory _grpcPipeFactory;
             private readonly IXmlConfigHelper _xmlConfigHelper;
             private readonly ILogger<CMakeUbaServerCommandInstance> _logger;
+            private readonly Options _options;
             private CancellationToken? _commandCancellationToken;
             private IUbaServer? _ubaServer;
 
@@ -50,22 +54,26 @@
                 IUbaServerFactory ubaServerFactory,
                 IGrpcPipeFactory grpcPipeFactory,
                 IXmlConfigHelper xmlConfigHelper,
-                ILogger<CMakeUbaServerCommandInstance> logger)
+                ILogger<CMakeUbaServerCommandInstance> logger,
+                Options options)
             {
                 _ubaServerFactory = ubaServerFactory;
                 _grpcPipeFactory = grpcPipeFactory;
                 _xmlConfigHelper = xmlConfigHelper;
                 _logger = logger;
+                _options = options;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
+                var autoClose = context.ParseResult.GetValueForOption(_options.AutoClose);
+
                 // @todo: Make this configurable.
                 UbaNative.Init(@"C:\Program Files\Epic Games\UE_5.4\Engine\Binaries\Win64\UnrealBuildAccelerator");
 
                 // Track the timestamp that the server should automatically shut down. This gets moved
                 // forward into the future when we have work in the queue.
-                var shutdownTime = DateTimeOffset.UtcNow.AddMinutes(10);
+                var shutdownTime = DateTimeOffset.UtcNow.AddSeconds(60);
 
                 // Create the UBA server.
                 _logger.LogInformation("CMake UBA server is starting up...");
@@ -111,15 +119,18 @@
                                 while (true)
                                 {
                                     _logger.LogDebug($"Pending: {ubaServer.ProcessesPendingInQueue} Executing Locally: {ubaServer.ProcessesExecutingLocally} Executing Remotely: {ubaServer.ProcessesExecutingRemotely}");
-                                    if (ubaServer.ProcessesPendingInQueue > 0 || ubaServer.ProcessesExecutingLocally > 0 || ubaServer.ProcessesExecutingRemotely > 0)
-                                    {
-                                        shutdownTime = DateTimeOffset.UtcNow.AddMinutes(10);
-                                    }
 
-                                    if (shutdownTime < DateTimeOffset.UtcNow)
+                                    if (autoClose)
                                     {
-                                        _logger.LogInformation("CMake UBA server is shutting down because there hasn't been any requests recently...");
-                                        return 0;
+                                        if (ubaServer.ProcessesPendingInQueue > 0 || ubaServer.ProcessesExecutingLocally > 0 || ubaServer.ProcessesExecutingRemotely > 0)
+                                        {
+                                            shutdownTime = DateTimeOffset.UtcNow.AddSeconds(60);
+                                        }
+                                        if (shutdownTime < DateTimeOffset.UtcNow)
+                                        {
+                                            _logger.LogInformation("CMake UBA server is shutting down because there hasn't been any requests recently...");
+                                            return 0;
+                                        }
                                     }
 
                                     await Task.Delay(1000, context.GetCancellationToken()).ConfigureAwait(false);

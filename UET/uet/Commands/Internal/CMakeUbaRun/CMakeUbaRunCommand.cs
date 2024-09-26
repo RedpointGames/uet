@@ -126,7 +126,7 @@
                                             new ProcessSpecification
                                             {
                                                 FilePath = _selfLocation.GetUetLocalLocation(),
-                                                Arguments = ["internal", "cmake-uba-server"]
+                                                Arguments = ["internal", "cmake-uba-server", "--auto-close"]
                                             },
                                             CaptureSpecification.Silence,
                                             CancellationToken.None).ConfigureAwait(false);
