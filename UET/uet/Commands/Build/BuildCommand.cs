@@ -541,6 +541,7 @@
                                 package: pluginPackage != "none",
                                 packageType: pluginPackage switch
                                 {
+                                    "none" => BuildConfigPluginPackageType.Generic,
                                     "generic" => BuildConfigPluginPackageType.Generic,
                                     "marketplace" => BuildConfigPluginPackageType.Marketplace,
                                     "fab" => BuildConfigPluginPackageType.Fab,
