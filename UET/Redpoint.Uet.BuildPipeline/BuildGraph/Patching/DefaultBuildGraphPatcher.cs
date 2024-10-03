@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.BuildGraph.Patching
 {
+    using Crayon;
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
     using Redpoint.Hashing;
@@ -10,6 +11,7 @@
     using Redpoint.Uet.Uat;
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.Workspace.Descriptors;
+    using System.Globalization;
     using System.Reflection;
     using System.Runtime.InteropServices;
     using System.Text;
@@ -280,22 +282,47 @@
             var (msBuildPath, msBuildExtraArgs) = await _msBuildPathResolver.ResolveMSBuildPath().ConfigureAwait(false);
             string? dotnetPath = null;
             var dotnetEnginePath = Path.Combine(enginePath, "Engine", "Binaries", "ThirdParty", "DotNet");
-            var dotnetVersionPath = Directory.Exists(dotnetEnginePath) ? Directory.GetDirectories(dotnetEnginePath).First() : null;
-            if (dotnetVersionPath != null)
+            if (Directory.Exists(dotnetEnginePath))
             {
-                if (OperatingSystem.IsWindows())
+                string? dotnetVersionFolder = null;
+                foreach (var candidateDirectory in Directory.GetDirectories(dotnetEnginePath))
                 {
-                    dotnetPath = Path.Combine(dotnetVersionPath, "windows", "dotnet.exe");
-                }
-                else if (OperatingSystem.IsMacOS())
-                {
-                    if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+                    if (dotnetVersionFolder == null)
                     {
-                        dotnetPath = Path.Combine(dotnetVersionPath, "mac-arm64", "dotnet");
+                        dotnetVersionFolder = Path.GetFileName(candidateDirectory);
                     }
-                    else
+                    else if (string.Compare(Path.GetFileName(candidateDirectory), dotnetVersionFolder, StringComparison.OrdinalIgnoreCase) > 0)
                     {
-                        dotnetPath = Path.Combine(dotnetVersionPath, "mac-x64", "dotnet");
+                        dotnetVersionFolder = Path.GetFileName(candidateDirectory);
+                    }
+                }
+                if (dotnetVersionFolder != null)
+                {
+                    if (OperatingSystem.IsWindows())
+                    {
+                        dotnetPath = Path.Combine(dotnetEnginePath, dotnetVersionFolder, "windows", "dotnet.exe");
+                        if (!File.Exists(dotnetPath))
+                        {
+                            if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+                            {
+                                dotnetPath = Path.Combine(dotnetEnginePath, dotnetVersionFolder, "win-arm64", "dotnet.exe");
+                            }
+                            else
+                            {
+                                dotnetPath = Path.Combine(dotnetEnginePath, dotnetVersionFolder, "win-x64", "dotnet.exe");
+                            }
+                        }
+                    }
+                    else if (OperatingSystem.IsMacOS())
+                    {
+                        if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+                        {
+                            dotnetPath = Path.Combine(dotnetEnginePath, dotnetVersionFolder, "mac-arm64", "dotnet");
+                        }
+                        else
+                        {
+                            dotnetPath = Path.Combine(dotnetEnginePath, dotnetVersionFolder, "mac-x64", "dotnet");
+                        }
                     }
                 }
             }
