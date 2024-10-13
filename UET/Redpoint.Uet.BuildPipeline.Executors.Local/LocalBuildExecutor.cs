@@ -187,11 +187,16 @@
                                         .Where(x => x.Type == byType.Key)
                                         .OfType<IPluginPrepareProvider>()
                                         .First();
-                                    await provider.RunBeforeBuildGraphAsync(
+                                    var exitCode = await provider.RunBeforeBuildGraphAsync(
                                         byType,
                                         targetWorkspacePath,
                                         preBuildGraphArguments,
                                         cancellationToken).ConfigureAwait(false);
+                                    if (exitCode != 0)
+                                    {
+                                        _logger.LogError($"Plugin preparation step for pre-BuildGraph hook failed with exit code {exitCode}.");
+                                        return exitCode;
+                                    }
                                 }
                             }
 
@@ -204,11 +209,16 @@
                                         .Where(x => x.Type == byType.Key)
                                         .OfType<IProjectPrepareProvider>()
                                         .First();
-                                    await provider.RunBeforeBuildGraphAsync(
+                                    var exitCode = await provider.RunBeforeBuildGraphAsync(
                                         byType,
                                         targetWorkspacePath,
                                         preBuildGraphArguments,
                                         cancellationToken).ConfigureAwait(false);
+                                    if (exitCode != 0)
+                                    {
+                                        _logger.LogError($"Project preparation step for pre-BuildGraph hook failed with exit code {exitCode}.");
+                                        return exitCode;
+                                    }
                                 }
                             }
 
