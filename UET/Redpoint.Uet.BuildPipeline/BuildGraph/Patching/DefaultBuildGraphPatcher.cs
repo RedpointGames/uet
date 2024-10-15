@@ -5,7 +5,6 @@
     using Redpoint.Concurrency;
     using Redpoint.Hashing;
     using Redpoint.IO;
-    using Redpoint.MSBuildResolution;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.Uat;
@@ -21,7 +20,6 @@
     internal class DefaultBuildGraphPatcher : IBuildGraphPatcher
     {
         private readonly ILogger<DefaultBuildGraphPatcher> _logger;
-        private readonly IMSBuildPathResolver _msBuildPathResolver;
         private readonly IPathResolver _pathResolver;
         private readonly IProcessExecutor _processExecutor;
         private readonly IDynamicWorkspaceProvider _dynamicWorkspaceProvider;
@@ -34,14 +32,12 @@
 
         public DefaultBuildGraphPatcher(
             ILogger<DefaultBuildGraphPatcher> logger,
-            IMSBuildPathResolver msBuildPathResolver,
             IPathResolver pathResolver,
             IProcessExecutor processExecutor,
             IDynamicWorkspaceProvider dynamicWorkspaceProvider,
             IUATExecutor uatExecutor)
         {
             _logger = logger;
-            _msBuildPathResolver = msBuildPathResolver;
             _pathResolver = pathResolver;
             _processExecutor = processExecutor;
             _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
@@ -279,7 +275,6 @@
             var unrealBuildToolProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "UnrealBuildTool", "UnrealBuildTool.csproj");
             var automationToolBuildGraphProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "BuildGraph", "BuildGraph.Automation.csproj");
             var automationToolProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "AutomationTool.csproj");
-            var (msBuildPath, msBuildExtraArgs) = await _msBuildPathResolver.ResolveMSBuildPath().ConfigureAwait(false);
             string? dotnetPath = null;
             var dotnetEnginePath = Path.Combine(enginePath, "Engine", "Binaries", "ThirdParty", "DotNet");
             if (Directory.Exists(dotnetEnginePath))
@@ -405,9 +400,9 @@
                     var exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
-                            FilePath = msBuildPath,
-                            Arguments = msBuildExtraArgs.Concat(new LogicalProcessArgument[]
-                            {
+                            FilePath = dotnetPath,
+                            Arguments = [
+                                "msbuild",
                                 "/nologo",
                                 "/verbosity:quiet",
                                 project.path,
@@ -416,7 +411,7 @@
                                 "/p:WarningLevel=0",
                                 "/target:Restore",
                                 "/p:NuGetAudit=False",
-                            }),
+                            ],
                             EnvironmentVariables = new Dictionary<string, string>
                             {
                                 { "NUGET_PACKAGES", nugetStoragePath.Path }
@@ -440,9 +435,9 @@
                     var exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
-                            FilePath = msBuildPath,
-                            Arguments = msBuildExtraArgs.Concat(new LogicalProcessArgument[]
-                            {
+                            FilePath = dotnetPath,
+                            Arguments = [
+                                "msbuild",
                                 "/nologo",
                                 "/verbosity:quiet",
                                 project.path,
@@ -450,7 +445,7 @@
                                 "/property:Platform=AnyCPU",
                                 "/p:WarningLevel=0",
                                 "/p:NuGetAudit=False",
-                            }),
+                            ],
                             EnvironmentVariables = new Dictionary<string, string>
                             {
                                 { "NUGET_PACKAGES", nugetStoragePath.Path }
