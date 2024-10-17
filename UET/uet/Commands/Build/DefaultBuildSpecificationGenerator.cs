@@ -59,6 +59,7 @@
             public required string Targets;
             public required string TargetPlatforms;
             public required string Configurations;
+            public required string CookFlavor;
         }
 
         private bool VerifySourceFilesDoNotExceedSubmissionPathLimit(
@@ -114,18 +115,21 @@
                     Targets = string.Empty,
                     TargetPlatforms = string.Empty,
                     Configurations = string.Empty,
+                    CookFlavor = string.Empty,
                 };
             }
 
             var targets = target.Targets ?? new[] { $"Unreal{name}" };
             var targetPlatforms = FilterIncompatiblePlatforms(target.Platforms, localExecutor);
             var configurations = target.Configurations ?? new[] { "Development", "Shipping" };
+            var cookFlavor = target.CookFlavor ?? string.Empty;
 
             return new TargetConfig
             {
                 Targets = string.Join(";", targets),
                 TargetPlatforms = string.Join(";", targetPlatforms),
                 Configurations = string.Join(";", configurations),
+                CookFlavor = cookFlavor,
             };
         }
 
@@ -138,6 +142,7 @@
                     Targets = string.Empty,
                     TargetPlatforms = string.Empty,
                     Configurations = string.Empty,
+                    CookFlavor = string.Empty,
                 };
             }
 
@@ -150,6 +155,7 @@
                 Targets = string.Join(";", targets),
                 TargetPlatforms = string.Join(";", targetPlatforms),
                 Configurations = string.Join(";", configurations),
+                CookFlavor= string.Empty,
             };
         }
 
@@ -623,6 +629,9 @@
                     { $"GameConfigurations", gameConfig.Configurations },
                     { $"ClientConfigurations", clientConfig.Configurations },
                     { $"ServerConfigurations", serverConfig.Configurations },
+                    { $"GameCookFlavor", gameConfig.CookFlavor },
+                    { $"ClientCookFlavor", clientConfig.CookFlavor },
+                    { $"ServerCookFlavor", serverConfig.CookFlavor },
                     { $"MacPlatforms", $"IOS;Mac" },
                     { $"StrictIncludes", strictIncludes ? "true" : "false" },
 
@@ -824,6 +833,9 @@
                     { $"GameConfigurations", gameConfigurations },
                     { $"ClientConfigurations", string.Empty },
                     { $"ServerConfigurations", string.Empty },
+                    { $"GameCookFlavor", string.Empty },
+                    { $"ClientCookFlavor", string.Empty },
+                    { $"ServerCookFlavor", string.Empty },
                     { $"MacPlatforms", $"IOS;Mac" },
                     { $"StrictIncludes", strictIncludes ? "true" : "false" },
 
