@@ -25,5 +25,11 @@
         [JsonPropertyName("Configurations"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public string[]? Configurations { get; set; } = null;
+
+        /// <summary>
+        /// The flavor to cook the project for. For Android this is texture compression, e.g. ASTC, DXT, ETC2, Multi
+        /// </summary>
+        [JsonPropertyName("CookFlavor"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? CookFlavor { get; set; } = null;
     }
 }
