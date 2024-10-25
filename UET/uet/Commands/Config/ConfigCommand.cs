@@ -47,6 +47,7 @@
                 services.AddSingleton<IBooleanConfigSetting, IwyuBooleanConfigSetting>();
                 services.AddSingleton<IBooleanConfigSetting, MaxCpuBooleanConfigSetting>();
                 services.AddSingleton<IBooleanConfigSetting, ClangBooleanConfigSetting>();
+                services.AddSingleton<IBooleanConfigSetting, UbaBooleanConfigSetting>();
                 services.AddSingleton(sp => sp.GetServices<IBooleanConfigSetting>().ToArray());
             });
             return command;
