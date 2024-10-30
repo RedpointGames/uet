@@ -33,6 +33,7 @@
                     new BuildConfigTestConverter<BuildConfigProjectDistribution>(serviceProvider),
                     new BuildConfigDeploymentConverter<BuildConfigPluginDistribution>(serviceProvider),
                     new BuildConfigDeploymentConverter<BuildConfigProjectDistribution>(serviceProvider),
+                    new BuildConfigTargetPlatformConverter(),
                 }
             });
         }

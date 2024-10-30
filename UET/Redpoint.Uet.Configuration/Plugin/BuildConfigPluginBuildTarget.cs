@@ -10,7 +10,7 @@
         /// </summary>
         [JsonPropertyName("Platforms")]
         [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
-        public string[] Platforms { get; set; } = Array.Empty<string>();
+        public BuildConfigTargetPlatform[] Platforms { get; set; } = [];
 
         /// <summary>
         /// If not specified, defaults to ["Development", "Shipping"].
