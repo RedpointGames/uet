@@ -4,8 +4,7 @@
     <OutputType>Exe</OutputType>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
-    <RuntimeIdentifiers Condition="'$(EnableLinuxSupport)' == 'true'">win-x64;osx-arm64;linux-x64</RuntimeIdentifiers>
-    <RuntimeIdentifiers Condition="'$(EnableLinuxSupport)' == 'false'">win-x64;osx-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win-x64;osx-arm64;linux-x64</RuntimeIdentifiers>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <!-- 
       PublishReadyToRun on macOS is impacted by bug https://github.com/dotnet/runtime/issues/88288, so

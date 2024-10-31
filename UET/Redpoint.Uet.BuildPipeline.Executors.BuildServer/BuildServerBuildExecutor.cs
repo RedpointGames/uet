@@ -89,7 +89,6 @@
                 }
                 localOsSharedStoragePath = macSharedStoragePath;
             }
-#if ENABLE_LINUX_SUPPORT
             else if (OperatingSystem.IsLinux())
             {
                 if (linuxSharedStoragePath == null)
@@ -98,7 +97,6 @@
                 }
                 localOsSharedStoragePath = linuxSharedStoragePath;
             }
-#endif
             else
             {
                 throw new PlatformNotSupportedException();
@@ -151,15 +149,12 @@
                                 using (var stream = entryAssembly.GetManifestResourceStream(manifestName)!)
                                 {
                                     string targetName;
-#if ENABLE_LINUX_SUPPORT
-                                    if (manifestName.StartsWith("UET.Embedded.linux") && linuxSharedStoragePath != null)
+                                    if (manifestName.StartsWith("UET.Embedded.linux", StringComparison.Ordinal) && linuxSharedStoragePath != null)
                                     {
                                         targetName = "uet.linux";
                                         preparationInfo.LinuxPath = $"{linuxSharedStoragePath}/{targetFolderName}/uet.linux";
                                     }
-                                    else 
-#endif
-                                    if (manifestName.StartsWith("UET.Embedded.osx", StringComparison.Ordinal) && macSharedStoragePath != null)
+                                    else if (manifestName.StartsWith("UET.Embedded.osx", StringComparison.Ordinal) && macSharedStoragePath != null)
                                     {
                                         targetName = "uet.osx";
                                         preparationInfo.MacPath = $"{macSharedStoragePath}/{targetFolderName}/uet.osx";
@@ -198,7 +193,6 @@
                             selfTargetPath = $"{macSharedStoragePath}/{targetFolderName}/uet.osx";
                             preparationInfo.MacPath = selfTargetPath;
                         }
-#if ENABLE_LINUX_SUPPORT
                         else if (OperatingSystem.IsLinux())
                         {
                             if (linuxSharedStoragePath == null)
@@ -208,7 +202,6 @@
                             selfTargetPath = $"{linuxSharedStoragePath}/{targetFolderName}/uet.linux";
                             preparationInfo.LinuxPath = selfTargetPath;
                         }
-#endif
                         else
                         {
                             throw new PlatformNotSupportedException();
@@ -239,7 +232,6 @@
                                 selfTargetPath = $"{macSharedStoragePath}/{targetFolderName}/uet.osx";
                                 preparationInfo.MacPath = selfTargetPath;
                             }
-#if ENABLE_LINUX_SUPPORT
                             else if (OperatingSystem.IsLinux())
                             {
                                 if (linuxSharedStoragePath == null)
@@ -249,7 +241,6 @@
                                 selfTargetPath = $"{linuxSharedStoragePath}/{targetFolderName}/uet.linux";
                                 preparationInfo.LinuxPath = selfTargetPath;
                             }
-#endif
                             else
                             {
                                 throw new PlatformNotSupportedException();
@@ -280,7 +271,6 @@
                                 }
                                 preparationInfo.MacPath = $"{macSharedStoragePath}/{targetFolderName}/uet";
                             }
-#if ENABLE_LINUX_SUPPORT
                             else if (OperatingSystem.IsLinux())
                             {
                                 if (linuxSharedStoragePath == null)
@@ -289,7 +279,6 @@
                                 }
                                 preparationInfo.LinuxPath = $"{linuxSharedStoragePath}/{targetFolderName}/uet";
                             }
-#endif
                             else
                             {
                                 throw new PlatformNotSupportedException();
@@ -339,7 +328,6 @@
             {
                 _logger.LogInformation($"UET (mac    ): Not copied");
             }
-#if ENABLE_LINUX_SUPPORT
             if (preparationInfo.LinuxPath != null)
             {
                 _logger.LogInformation($"UET (linux  ): Copied to {preparationInfo.LinuxPath}");
@@ -348,7 +336,6 @@
             {
                 _logger.LogInformation($"UET (linux  ): Not copied");
             }
-#endif
 
             if (mobileProvisions.Count > 0)
             {

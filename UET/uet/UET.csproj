@@ -90,7 +90,7 @@
     <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\osx-arm64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'osx-arm64' and '$(EmbeddingCrossPlatform)' == 'true' and Exists('$(ProjectDir)bin\$(Configuration)\$(TargetFramework)\osx-arm64\publish\uet')">
       <Link>Embedded\osx-arm64\uet</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'linux-x64' and '$(EmbeddingCrossPlatform)' == 'true' and '$(EnableLinuxSupport)' == 'true' and Exists('$(ProjectDir)bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\uet')">
+    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'linux-x64' and '$(EmbeddingCrossPlatform)' == 'true' and Exists('$(ProjectDir)bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\uet')">
       <Link>Embedded\linux-x64\uet</Link>
     </EmbeddedResource>
   </ItemGroup>

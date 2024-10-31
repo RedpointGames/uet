@@ -1,0 +1,14 @@
+syntax = 'proto3';
+
+package Redpoint.Uet.Workspace.RemoteZfs;
+
+message EmptyRequest {
+}
+
+message AcquireResponse {
+	string windowsSharePath = 1;
+}
+
+service RemoteZfs {
+	rpc Acquire(stream EmptyRequest) returns (stream AcquireResponse) {}
+}
