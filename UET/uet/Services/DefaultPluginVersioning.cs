@@ -72,14 +72,14 @@
                 var versionNumber = pluginVersioningType switch
                 {
                     BuildConfigPluginPackageType.Marketplace => $"{unixTimestamp}{engineInfo.MinorVersion}",
-                    BuildConfigPluginPackageType.Fab => $"{unixTimestamp}",
+                    BuildConfigPluginPackageType.Fab => $"{unixTimestamp}{engineInfo.MinorVersion}",
                     BuildConfigPluginPackageType.Generic => $"{unixTimestamp}{engineInfo.MinorVersion}",
                     _ => throw new NotSupportedException("The value of 'BuildConfigPluginPackageType' is not supported in ComputeVersionNameAndNumberAsync."),
                 };
                 var versionName = pluginVersioningType switch
                 {
                     BuildConfigPluginPackageType.Marketplace => $"{versionDateTime}-{engineInfo.MajorVersion}.{engineInfo.MinorVersion}-{ciCommitShortSha[..8]}",
-                    BuildConfigPluginPackageType.Fab => $"{versionDateTime}-{ciCommitShortSha[..8]}",
+                    BuildConfigPluginPackageType.Fab => $"{versionDateTime}-{engineInfo.MajorVersion}.{engineInfo.MinorVersion}-{ciCommitShortSha[..8]}",
                     BuildConfigPluginPackageType.Generic => $"{versionDateTime}-{engineInfo.MajorVersion}.{engineInfo.MinorVersion}-{ciCommitShortSha[..8]}",
                     _ => throw new NotSupportedException("The value of 'BuildConfigPluginPackageType' is not supported in ComputeVersionNameAndNumberAsync."),
                 };
