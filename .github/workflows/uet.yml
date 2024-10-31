@@ -529,8 +529,10 @@ jobs:
         UET_ARTIFACT_NAME: libs-win
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
 
+  # note: This doesn't run tests on macOS like we used to on GitLab, since the GitHub Runners
+  #       seem to randomly stall when running xUnit tests.
   libs-mac:
-    name: "Build and Test Libraries on macOS"
+    name: "Build Libraries on macOS"
     runs-on: macos-latest
     needs:
       - timestamp
@@ -560,21 +562,6 @@ jobs:
         set -e
         echo "Package version: $UET_PACKAGE_VERSION"
         dotnet build -c Release /p:PackageVersion=$UET_PACKAGE_VERSION UET/UET.sln
-        for TEST_PATH in $(find UET -type d -name "*.Tests"); do
-          TEST_NAME=${TEST_PATH:4}
-          if [ -e "$TEST_PATH/$TEST_NAME.csproj" ]; then
-            echo "============ STARTING: $TEST_NAME ============"
-            dotnet test --logger:"console" --logger:"trx;LogFileName=$TEST_NAME.test-result.trx" --results-directory "$(pwd)/TestResults/" "$TEST_PATH/bin/Release/net8.0/$TEST_NAME.dll"
-            echo "============ PASSED:   $TEST_NAME ============"
-          fi
-        done
-    - name: Report Test Results
-      uses: dorny/test-reporter@v1
-      if: success() || failure()
-      with:
-        name: macOS Test Results
-        path: TestResults/*.test-result.trx
-        reporter: dotnet-trx
 
   pass-2-win:
     name: "Build Windows Pass 2"
