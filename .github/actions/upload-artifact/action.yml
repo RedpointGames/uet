@@ -1,0 +1,129 @@
+name: Upload Artifact
+description: Upload a named artifact
+inputs:
+  UET_ARTIFACT_NAME:
+    description: "The known name of the artifact."
+    required: true
+  UET_FRAMEWORK_TARGET:
+    description: "The target framework."
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - name: Upload Timestamp
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'timestamp' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: timestamp
+        if-no-files-found: error
+        path: |
+          package.version
+
+    - name: Upload AutoDiscovery
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'autodiscovery' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: autodiscovery
+        if-no-files-found: error
+        path: |
+          UET/Redpoint.AutoDiscovery.Win64/bin/x64/Debug/${{ inputs.UET_FRAMEWORK_TARGET }}/**
+          UET/Redpoint.AutoDiscovery.Win32/bin/x86/Debug/${{ inputs.UET_FRAMEWORK_TARGET }}/**
+          UET/Redpoint.AutoDiscovery.Win64/bin/x64/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/**
+          UET/Redpoint.AutoDiscovery.Win32/bin/x86/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/**
+          UET/Redpoint.AutoDiscovery/bin/Release/Redpoint.AutoDiscovery.*.nupkg
+    - name: Upload Mac Logging
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'mac-logging' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: mac-logging
+        if-no-files-found: error
+        path: |
+          UET/Redpoint.Logging.Mac.Native/runtimes/osx-arm64/libLogging.arm64.dylib
+          UET/Redpoint.Logging.Mac.Native/runtimes/osx-x64/libLogging.x64.dylib
+          UET/Redpoint.Logging.Mac/bin/Redpoint.Logging.Mac.Native.*.nupkg
+
+    - name: Upload UEFS Win
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'uefs-win' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: uefs-win
+        if-no-files-found: error
+        path: |
+          UET/Redpoint.Uefs.Client/bin/Release/net8.0/win-x64/publish/uefs.exe
+          UET/Redpoint.Uefs.Daemon/bin/Release/net8.0/win-x64/publish/uefs-daemon.exe
+    - name: Upload Shim Win
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'shim-win' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: shim-win
+        if-no-files-found: error
+        path: |
+          UET/uet.shim/bin/Release/net8.0/win-x64/publish/uet.exe
+    - name: Upload Pass 1 Win
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-1-win' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: pass-1-win
+        if-no-files-found: error
+        path: |
+          UET/uet/bin/Release/net8.0/win-x64/publish/uet.exe
+    - name: Upload Pass 2 Win
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-2-win' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: pass-2-win
+        if-no-files-found: error
+        path: |
+          UET/uet/bin/Release/net8.0/win-x64/publish/uet.exe
+        
+    - name: Upload UEFS Mac
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'uefs-mac' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: uefs-mac
+        if-no-files-found: error
+        path: |
+          UET/Redpoint.Uefs.Client/bin/Release/net8.0/osx-arm64/publish/uefs
+          UET/Redpoint.Uefs.Daemon/bin/Release/net8.0/osx-arm64/publish/uefs-daemon
+    - name: Upload Shim Mac
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'shim-mac' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: shim-mac
+        if-no-files-found: error
+        path: |
+          UET/uet.shim/bin/Release/net8.0/osx-arm64/publish/uet
+    - name: Upload Pass 1 Mac
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-1-mac' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: pass-1-mac
+        if-no-files-found: error
+        path: |
+          UET/uet/bin/Release/net8.0/osx-arm64/publish/uet
+    - name: Upload Pass 2 Mac
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-2-mac' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: pass-2-mac
+        if-no-files-found: error
+        path: |
+          UET/uet/bin/Release/net8.0/osx-arm64/publish/uet
+
+    - name: Upload Libs Win
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'libs-win' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: libs-win
+        if-no-files-found: error
+        path: |
+          **/*.nupkg
+    - name: Upload Libs Mac
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'libs-mac' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: libs-mac
+        if-no-files-found: error
+        path: |
+          **/*.nupkg
+          
