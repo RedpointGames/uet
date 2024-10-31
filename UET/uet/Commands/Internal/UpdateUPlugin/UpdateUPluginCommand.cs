@@ -74,18 +74,19 @@
                     return 1;
                 }
 
-                if (packageType != BuildConfigPluginPackageType.Fab)
+
+                //if (packageType != BuildConfigPluginPackageType.Fab)
                 {
                     node["EngineVersion"] = engineVersion;
                 }
-                else
+                /*else
                 {
                     var obj = node.AsObject();
                     if (obj.ContainsKey("EngineVersion"))
                     {
                         obj.Remove("EngineVersion");
                     }
-                }
+                }*/
                 node["VersionName"] = versionName;
                 node["Version"] = ulong.Parse(versionNumber, CultureInfo.InvariantCulture);
                 node["Installed"] = true;
