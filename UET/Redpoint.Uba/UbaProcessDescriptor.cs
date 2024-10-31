@@ -18,6 +18,8 @@
 
         public required bool PreferRemote { get; set; }
 
+        public required bool AllowRemote { get; set; }
+
         public required Gate CompletionGate { get; init; }
 
         public int ExitCode { get; set; }

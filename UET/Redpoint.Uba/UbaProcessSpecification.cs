@@ -13,5 +13,10 @@
         /// remote agent.
         /// </summary>
         public bool PreferRemote { get; set; }
+
+        /// <summary>
+        /// If true, this command can be run remotely. Defaults to true if not set.
+        /// </summary>
+        public bool AllowRemote { get; set; } = true;
     }
 }
