@@ -29,7 +29,15 @@ jobs:
       run: |
         $Timestamp = ([DateTime]::UtcNow)
         $PackageVersion = "$($Timestamp.Year).$($Timestamp.DayOfYear + 1000).$(($Timestamp.Hour * 60) + $Timestamp.Minute)"
+        Set-Content -NoNewline -Path "package.version" -Value "$($PackageVersion)"
         Set-Content -NoNewline -Path "$env:GITHUB_OUTPUT" -Value "version=$($PackageVersion)"
+    - name: Upload Timestamp
+      uses: actions/upload-artifact@v4
+      with:
+        name: timestamp
+        if-no-files-found: error
+        path: |
+          package.version
 
   prereq-autodiscovery:
     name: "Build AutoDiscovery"
@@ -835,3 +843,180 @@ jobs:
         path: |
           UET/uet/bin/Release/net8.0/osx-arm64/publish/uet
   
+  publish-nuget:
+    name: "Publish to NuGet"
+    runs-on: windows-latest
+    if: github.ref == 'refs/heads/main'
+    needs:
+      - timestamp
+      - libs-win
+      - libs-mac
+      - pass-2-win
+      - pass-2-mac
+    env:
+      UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Cache .NET SDK
+      id: cache-sdk
+      uses: actions/cache@v4
+      with:
+        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
+        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
+        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
+    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
+      name: Download .NET SDK
+      shell: pwsh
+      run: |
+        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted)) {
+          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
+            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
+          }
+          Write-Host "Setting up .NET SDK..."
+          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
+          curl.exe -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" "${env:UET_DOTNET_WIN_DL}"
+          if ($LastExitCode -ne 0) {
+            exit $LastExitCode
+          }
+          Expand-Archive -Path ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" -DestinationPath ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet" -Force | Out-Null
+          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted -Value "done"
+        }
+    - name: Add .NET SDK to PATH
+      shell: pwsh
+      run: |
+        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet"
+    - name: Download NuGet Packages
+      uses: actions/download-artifact@v4
+      with:
+        name: libs-win
+        path: UET/
+        merge-multiple: true
+    - name: Publish Packages
+      shell: pwsh
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      run: |
+        dotnet `
+          nuget `
+          push `
+          --source https://api.nuget.org/v3/index.json `
+          --api-key $env:NUGET_API_KEY `
+          (Get-ChildItem -Recurse -Filter "*.$PackageVersion.nupkg" | % { $_.FullName })
+        if ($LastExitCode -ne 0) {
+          Write-Host "dotnet push failed with exit code $LastExitCode"
+          exit $LastExitCode 
+        }
+  
+  publish-github:
+    name: "Publish to GitHub"
+    runs-on: windows-latest
+    if: github.ref == 'refs/heads/main'
+    needs:
+      - timestamp
+      - pass-1-win
+      - pass-1-mac
+      - libs-win
+      - libs-mac
+      - pass-2-win
+      - pass-2-mac
+    env:
+      UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
+    steps:
+    - name: Download Windows Pass 1
+      uses: actions/download-artifact@v4
+      with:
+        name: pass-1-win
+        path: UET/
+        merge-multiple: true
+    - name: Download Windows Pass 2
+      uses: actions/download-artifact@v4
+      with:
+        name: pass-2-win
+        path: UET/
+        merge-multiple: true
+    - name: Download macOS Pass 1
+      uses: actions/download-artifact@v4
+      with:
+        name: pass-1-mac
+        path: UET/
+        merge-multiple: true
+    - name: Download macOS Pass 2
+      uses: actions/download-artifact@v4
+      with:
+        name: pass-2-mac
+        path: UET/
+        merge-multiple: true
+    - name: Download package.version
+      uses: actions/download-artifact@v4
+      with:
+        name: timestamp
+        path: ""
+        merge-multiple: true
+    - name: Publish to GitHub
+      shell: pwsh
+      env:
+        UET_GITHUB_RELEASES_PAT: ${{ secrets.UET_GITHUB_RELEASES_PAT }}
+      run: |
+        UET/uet/bin/Release/net8.0/win-x64/publish/uet.exe internal create-github-release `
+          --version ${env:UET_PACKAGE_VERSION} `
+          --file "uet.exe=UET for Windows=UET/uet/bin/Release/net8.0/win-x64/publish/uet.exe" `
+          --file "uefs.exe=UEFS Client for Windows=UET/Redpoint.Uefs.Client/bin/Release/net8.0/win-x64/publish/uefs.exe" `
+          --file "uefs-daemon.exe=UEFS Daemon for Windows=UET/Redpoint.Uefs.Daemon/bin/Release/net8.0/win-x64/publish/uefs-daemon.exe" `
+          --file "uet.shim.exe=UET Shim for Windows=UET/uet.shim/bin/Release/net8.0/win-x64/publish/uet.exe" `
+          --file "uet=UET for macOS=UET/uet/bin/Release/net8.0/osx-arm64/publish/uet" `
+          --file "uefs=UEFS Client for macOS=UET/Redpoint.Uefs.Client/bin/Release/net8.0/osx-arm64/publish/uefs" `
+          --file "uefs-daemon=UEFS Daemon for macOS=UET/Redpoint.Uefs.Daemon/bin/Release/net8.0/osx-arm64/publish/uefs-daemon" `
+          --file "uet.shim=UET Shim for macOS=UET/uet.shim/bin/Release/net8.0/osx-arm64/publish/uet" `
+          --file "package.version=Version File=package.version"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  
+  uefs-container:
+    name: "UEFS Container"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    needs:
+      - timestamp
+      - pass-1-win
+      - pass-1-mac
+      - libs-win
+      - libs-mac
+      - pass-2-win
+      - pass-2-mac
+    env:
+      UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Download Windows Pass 1
+      uses: actions/download-artifact@v4
+      with:
+        name: pass-1-win
+        path: UET/
+        merge-multiple: true
+    - name: Log in to the Container registry
+      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build UEFS Container
+      shell: pwsh
+      run: |
+        docker buildx create --name img-builder --use --platform windows/amd64
+        docker buildx build --platform windows/amd64 --output=type=docker -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/RedpointGames/uet/uefs:$UET_PACKAGE_VERSION" .
+        docker buildx build --platform windows/amd64 --output=type=docker -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/RedpointGames/uet/uefs:latest" .
+    - name: Publish UEFS Container
+      shell: pwsh
+      if: github.ref == 'refs/heads/main'
+      run: |
+        docker push ghcr.io/RedpointGames/uet/uefs:$UET_PACKAGE_VERSION
+        docker push ghcr.io/RedpointGames/uet/uefs:latest
