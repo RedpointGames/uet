@@ -6,7 +6,10 @@
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.Reflection;
+    using System.Security.Cryptography;
     using System.Threading.Tasks;
+    using static System.Runtime.InteropServices.JavaScript.JSType;
 
     internal sealed class SyncEngineFromPerforceCommand
     {
@@ -73,6 +76,9 @@
                     _logger.LogInformation($"Using Perforce username: {argUser}");
                     repository.Connection.UserName = argUser;
                     repository.Connection.Connect(null);
+                    repository.Connection.getP4Server()
+                        .GetType().GetField("ParallelTransferCallbackFn", BindingFlags.NonPublic | BindingFlags.Instance)!
+                        .SetValue(repository.Connection.getP4Server(), IntPtr.Zero);
                     _logger.LogInformation($"Syncing to target directory: {Environment.CurrentDirectory}");
 
                     // Authenticate with Perforce server.
@@ -124,7 +130,23 @@
                     var p4Server = repository.Connection.getP4Server();
                     p4Server.CommandEcho += P4Server_CommandEcho;
                     p4Server.ErrorReceived += P4Server_ErrorReceived;
-                    var syncOptions = new SyncFilesCmdOptions(SyncFilesCmdFlags.None, pthreads: Environment.ProcessorCount);
+                    p4Server.BinaryResultsReceived += P4Server_BinaryResultsReceived;
+                    p4Server.InfoResultsReceived += P4Server_InfoResultsReceived;
+                    p4Server.ResponseTimeEcho += P4Server_ResponseTimeEcho;
+                    p4Server.TaggedOutputReceived += P4Server_TaggedOutputReceived;
+                    p4Server.TextResultsReceived += P4Server_TextResultsReceived;
+#pragma warning disable IL2026
+#pragma warning disable IL2075
+                    var pserver = (IntPtr)repository.Connection.getP4Server().GetType()
+                        .GetField("pServer", BindingFlags.Instance | BindingFlags.NonPublic)!
+                        .GetValue(repository.Connection.getP4Server())!;
+                    typeof(P4Server).Assembly.GetTypes().First(x => x.Name == "P4Bridge")
+                        .GetMethod("SetParallelTransferCallbackFn", BindingFlags.Static | BindingFlags.Public)!
+                        .Invoke(null, new object?[] { pserver, IntPtr.Zero });
+#pragma warning restore IL2026
+#pragma warning restore IL2075
+                    var syncOptions = new SyncFilesCmdOptions(SyncFilesCmdFlags.None);
+                    syncOptions.Add("--parallel=threads=12", "");
                     client.SyncFiles(
                         syncOptions,
                         new FileSpec(
@@ -138,6 +160,39 @@
                 }
 
                 return Task.FromResult(0);
+            }
+
+            private void P4Server_TextResultsReceived(uint cmdId, string data)
+            {
+                _logger.LogInformation($"Text results: {cmdId}");
+            }
+
+            private void P4Server_TaggedOutputReceived(uint cmdId, int ObjId, TaggedObject Obj)
+            {
+                if (Obj.TryGetValue("totalFileCount", out string? count))
+                {
+                    _logger.LogInformation($"Total file count: {count}");
+                }
+                if (Obj.TryGetValue("totalFileSize", out string? size))
+                {
+                    _logger.LogInformation($"Total file size: {size}");
+                }
+                _logger.LogInformation($"Tagged output time: {cmdId} {ObjId} {Obj["depotFile"]}");
+            }
+
+            private void P4Server_ResponseTimeEcho(string data)
+            {
+                _logger.LogInformation($"Response time: {data}");
+            }
+
+            private void P4Server_InfoResultsReceived(uint cmdId, int msgId, int level, string data)
+            {
+                _logger.LogInformation($"Info results: {cmdId} {msgId} {level} {data}");
+            }
+
+            private void P4Server_BinaryResultsReceived(uint cmdId, byte[] data)
+            {
+                _logger.LogInformation($"Binary results: {cmdId}");
             }
 
             private void P4Server_CommandEcho(string data)
