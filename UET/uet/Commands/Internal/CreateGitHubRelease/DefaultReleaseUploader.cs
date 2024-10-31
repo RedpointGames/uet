@@ -61,9 +61,10 @@
                     {
                         TagName = "latest",
                         Name = version,
-                        Body = "This is an automatic release from the GitLab build server.",
+                        Body = "This is an automatic release from GitHub Actions. Refer to the [latest release](https://github.com/RedpointGames/uet/releases/tag/latest) instead.",
                         Draft = true,
                         MakeLatest = "false",
+                        TargetCommitish = Environment.GetEnvironmentVariable("GITHUB_SHA"),
                     },
                     GitHubJsonSerializerContext.Default.GitHubNewRelease),
                 context.GetCancellationToken()).ConfigureAwait(false);
