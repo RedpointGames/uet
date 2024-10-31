@@ -8,12 +8,6 @@ on:
 
 env:
   UET_FRAMEWORK_TARGET: net8.0
-  UET_DOTNET_WIN_DL: https://download.visualstudio.microsoft.com/download/pr/6902745c-34bd-4d66-8e84-d5b61a17dfb7/e61732b00f7e144e162d7e6914291f16/dotnet-sdk-8.0.101-win-x64.zip
-  UET_DOTNET_MAC_DL: https://download.visualstudio.microsoft.com/download/pr/ef083c06-7aee-4a4f-b18b-50c9a8990753/e206864e7910e81bbd9cb7e674ff1b4c/dotnet-sdk-8.0.101-osx-arm64.tar.gz
-  UET_DOTNET_LINUX_DL: https://download.visualstudio.microsoft.com/download/pr/9454f7dc-b98e-4a64-a96d-4eb08c7b6e66/da76f9c6bc4276332b587b771243ae34/dotnet-sdk-8.0.101-linux-x64.tar.gz
-  UET_DOTNET_WIN_PATH: ./.dotnet-net8.0/dotnet/dotnet.exe
-  UET_DOTNET_MAC_PATH: ./.dotnet-net8.0/dotnet/dotnet
-  UET_DOTNET_LINUX_PATH: ./.dotnet-net8.0/dotnet/dotnet
   UET_BUILDING_ON_BUILD_SERVER: "true"
 
 jobs:
@@ -51,34 +45,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Cache .NET SDK
-      id: cache-sdk
-      uses: actions/cache@v4
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
       with:
-        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
-    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
-      name: Download .NET SDK
-      shell: pwsh
-      run: |
-        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted)) {
-          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
-            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
-          }
-          Write-Host "Setting up .NET SDK..."
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
-          curl.exe -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" "${env:UET_DOTNET_WIN_DL}"
-          if ($LastExitCode -ne 0) {
-            exit $LastExitCode
-          }
-          Expand-Archive -Path ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" -DestinationPath ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet" -Force | Out-Null
-          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted -Value "done"
-        }
-    - name: Add .NET SDK to PATH
-      shell: pwsh
-      run: |
-        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet"
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Build AutoDiscovery
       shell: pwsh
       run: |
@@ -158,40 +128,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Cache .NET SDK
-      id: cache-sdk
-      uses: actions/cache@v4
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
       with:
-        key: dotnet-sdk-mac-${{ env.UET_FRAMEWORK_TARGET }}
-        restore-keys: dotnet-sdk-mac-${{ env.UET_FRAMEWORK_TARGET }}
-        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
-    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
-      name: Download .NET SDK
-      shell: pwsh
-      run: |
-        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted)) {
-          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
-            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
-          }
-          Write-Host "Setting up .NET SDK..."
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
-          curl -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet.tar.gz" "${env:UET_DOTNET_MAC_DL}"
-          if ($LastExitCode -ne 0) {
-            exit $LastExitCode
-          }
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet" | Out-Null
-          Push-Location ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
-          try {
-            tar -xvf "../dotnet.tar.gz"
-          } finally {
-            Pop-Location
-          }
-          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted -Value "done"
-        }
-    - name: Add .NET SDK to PATH
-      shell: pwsh
-      run: |
-        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Build Mac Logging
       run: |
         echo "Package version: $UET_PACKAGE_VERSION"
@@ -245,34 +185,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Cache .NET SDK
-      id: cache-sdk
-      uses: actions/cache@v4
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
       with:
-        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
-    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
-      name: Download .NET SDK
-      shell: pwsh
-      run: |
-        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted)) {
-          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
-            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
-          }
-          Write-Host "Setting up .NET SDK..."
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
-          curl.exe -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" "${env:UET_DOTNET_WIN_DL}"
-          if ($LastExitCode -ne 0) {
-            exit $LastExitCode
-          }
-          Expand-Archive -Path ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" -DestinationPath ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet" -Force | Out-Null
-          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted -Value "done"
-        }
-    - name: Add .NET SDK to PATH
-      shell: pwsh
-      run: |
-        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet"
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
       uses: actions/download-artifact@v4
       with:
@@ -334,40 +250,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Cache .NET SDK
-      id: cache-sdk
-      uses: actions/cache@v4
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
       with:
-        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
-    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
-      name: Download .NET SDK
-      shell: pwsh
-      run: |
-        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted)) {
-          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
-            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
-          }
-          Write-Host "Setting up .NET SDK..."
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
-          curl -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet.tar.gz" "${env:UET_DOTNET_MAC_DL}"
-          if ($LastExitCode -ne 0) {
-            exit $LastExitCode
-          }
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet" | Out-Null
-          Push-Location ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
-          try {
-            tar -xvf "../dotnet.tar.gz"
-          } finally {
-            Pop-Location
-          }
-          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted -Value "done"
-        }
-    - name: Add .NET SDK to PATH
-      shell: pwsh
-      run: |
-        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
       uses: actions/download-artifact@v4
       with:
@@ -432,34 +318,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Cache .NET SDK
-      id: cache-sdk
-      uses: actions/cache@v4
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
       with:
-        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
-    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
-      name: Download .NET SDK
-      shell: pwsh
-      run: |
-        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted)) {
-          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
-            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
-          }
-          Write-Host "Setting up .NET SDK..."
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
-          curl.exe -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" "${env:UET_DOTNET_WIN_DL}"
-          if ($LastExitCode -ne 0) {
-            exit $LastExitCode
-          }
-          Expand-Archive -Path ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" -DestinationPath ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet" -Force | Out-Null
-          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted -Value "done"
-        }
-    - name: Add .NET SDK to PATH
-      shell: pwsh
-      run: |
-        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet"
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
       uses: actions/download-artifact@v4
       with:
@@ -507,40 +369,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Cache .NET SDK
-      id: cache-sdk
-      uses: actions/cache@v4
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
       with:
-        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
-    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
-      name: Download .NET SDK
-      shell: pwsh
-      run: |
-        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted)) {
-          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
-            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
-          }
-          Write-Host "Setting up .NET SDK..."
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
-          curl -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet.tar.gz" "${env:UET_DOTNET_MAC_DL}"
-          if ($LastExitCode -ne 0) {
-            exit $LastExitCode
-          }
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet" | Out-Null
-          Push-Location ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
-          try {
-            tar -xvf "../dotnet.tar.gz"
-          } finally {
-            Pop-Location
-          }
-          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted -Value "done"
-        }
-    - name: Add .NET SDK to PATH
-      shell: pwsh
-      run: |
-        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
       uses: actions/download-artifact@v4
       with:
@@ -588,34 +420,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Cache .NET SDK
-      id: cache-sdk
-      uses: actions/cache@v4
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
       with:
-        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
-    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
-      name: Download .NET SDK
-      shell: pwsh
-      run: |
-        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted)) {
-          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
-            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
-          }
-          Write-Host "Setting up .NET SDK..."
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
-          curl.exe -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" "${env:UET_DOTNET_WIN_DL}"
-          if ($LastExitCode -ne 0) {
-            exit $LastExitCode
-          }
-          Expand-Archive -Path ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" -DestinationPath ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet" -Force | Out-Null
-          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted -Value "done"
-        }
-    - name: Add .NET SDK to PATH
-      shell: pwsh
-      run: |
-        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet"
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
       uses: actions/download-artifact@v4
       with:
@@ -663,40 +471,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Cache .NET SDK
-      id: cache-sdk
-      uses: actions/cache@v4
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
       with:
-        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
-    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
-      name: Download .NET SDK
-      shell: pwsh
-      run: |
-        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted)) {
-          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
-            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
-          }
-          Write-Host "Setting up .NET SDK..."
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
-          curl -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet.tar.gz" "${env:UET_DOTNET_MAC_DL}"
-          if ($LastExitCode -ne 0) {
-            exit $LastExitCode
-          }
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet" | Out-Null
-          Push-Location ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
-          try {
-            tar -xvf "../dotnet.tar.gz"
-          } finally {
-            Pop-Location
-          }
-          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted -Value "done"
-        }
-    - name: Add .NET SDK to PATH
-      shell: pwsh
-      run: |
-        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
       uses: actions/download-artifact@v4
       with:
@@ -747,34 +525,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Cache .NET SDK
-      id: cache-sdk
-      uses: actions/cache@v4
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
       with:
-        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
-    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
-      name: Download .NET SDK
-      shell: pwsh
-      run: |
-        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted)) {
-          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
-            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
-          }
-          Write-Host "Setting up .NET SDK..."
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
-          curl.exe -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" "${env:UET_DOTNET_WIN_DL}"
-          if ($LastExitCode -ne 0) {
-            exit $LastExitCode
-          }
-          Expand-Archive -Path ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" -DestinationPath ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet" -Force | Out-Null
-          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted -Value "done"
-        }
-    - name: Add .NET SDK to PATH
-      shell: pwsh
-      run: |
-        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet"
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
       uses: actions/download-artifact@v4
       with:
@@ -841,40 +595,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Cache .NET SDK
-      id: cache-sdk
-      uses: actions/cache@v4
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
       with:
-        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
-    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
-      name: Download .NET SDK
-      shell: pwsh
-      run: |
-        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted)) {
-          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
-            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
-          }
-          Write-Host "Setting up .NET SDK..."
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
-          curl -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet.tar.gz" "${env:UET_DOTNET_MAC_DL}"
-          if ($LastExitCode -ne 0) {
-            exit $LastExitCode
-          }
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet" | Out-Null
-          Push-Location ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
-          try {
-            tar -xvf "../dotnet.tar.gz"
-          } finally {
-            Pop-Location
-          }
-          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted -Value "done"
-        }
-    - name: Add .NET SDK to PATH
-      shell: pwsh
-      run: |
-        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
       uses: actions/download-artifact@v4
       with:
@@ -924,34 +648,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Cache .NET SDK
-      id: cache-sdk
-      uses: actions/cache@v4
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
       with:
-        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
-    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
-      name: Download .NET SDK
-      shell: pwsh
-      run: |
-        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted)) {
-          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
-            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
-          }
-          Write-Host "Setting up .NET SDK..."
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
-          curl.exe -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" "${env:UET_DOTNET_WIN_DL}"
-          if ($LastExitCode -ne 0) {
-            exit $LastExitCode
-          }
-          Expand-Archive -Path ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" -DestinationPath ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet" -Force | Out-Null
-          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted -Value "done"
-        }
-    - name: Add .NET SDK to PATH
-      shell: pwsh
-      run: |
-        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet"
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
       uses: actions/download-artifact@v4
       with:
@@ -1014,40 +714,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Cache .NET SDK
-      id: cache-sdk
-      uses: actions/cache@v4
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
       with:
-        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
-    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
-      name: Download .NET SDK
-      shell: pwsh
-      run: |
-        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted)) {
-          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
-            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
-          }
-          Write-Host "Setting up .NET SDK..."
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
-          curl -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet.tar.gz" "${env:UET_DOTNET_MAC_DL}"
-          if ($LastExitCode -ne 0) {
-            exit $LastExitCode
-          }
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet" | Out-Null
-          Push-Location ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
-          try {
-            tar -xvf "../dotnet.tar.gz"
-          } finally {
-            Pop-Location
-          }
-          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted -Value "done"
-        }
-    - name: Add .NET SDK to PATH
-      shell: pwsh
-      run: |
-        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
       uses: actions/download-artifact@v4
       with:
@@ -1118,34 +788,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Cache .NET SDK
-      id: cache-sdk
-      uses: actions/cache@v4
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
       with:
-        key: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        restore-keys: dotnet-sdk-windows-${{ env.UET_FRAMEWORK_TARGET }}
-        path: .dotnet-${{ env.UET_FRAMEWORK_TARGET }}
-    - if: ${{ steps.cache-sdk.outputs.cache-hit != 'true' }}
-      name: Download .NET SDK
-      shell: pwsh
-      run: |
-        if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted)) {
-          if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
-            Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
-          }
-          Write-Host "Setting up .NET SDK..."
-          New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
-          curl.exe -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" "${env:UET_DOTNET_WIN_DL}"
-          if ($LastExitCode -ne 0) {
-            exit $LastExitCode
-          }
-          Expand-Archive -Path ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" -DestinationPath ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet" -Force | Out-Null
-          Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted -Value "done"
-        }
-    - name: Add .NET SDK to PATH
-      shell: pwsh
-      run: |
-        Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet"
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download NuGet Packages
       uses: actions/download-artifact@v4
       with:
