@@ -830,10 +830,10 @@ jobs:
       shell: pwsh
       run: |
         docker buildx create --name img-builder --use --platform windows/amd64
-        docker buildx build --platform windows/amd64 --output=type=docker -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/RedpointGames/uet/uefs:$UET_PACKAGE_VERSION" .
-        docker buildx build --platform windows/amd64 --output=type=docker -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/RedpointGames/uet/uefs:latest" .
+        docker buildx build --platform windows/amd64 --output=type=docker -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/redpointgames/uet/uefs:${env:UET_PACKAGE_VERSION}" .
+        docker buildx build --platform windows/amd64 --output=type=docker -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/redpointgames/uet/uefs:latest" .
     - name: Publish UEFS Container
       shell: pwsh
       run: |
-        docker push ghcr.io/RedpointGames/uet/uefs:$UET_PACKAGE_VERSION
-        docker push ghcr.io/RedpointGames/uet/uefs:latest
+        docker push ghcr.io/redpointgames/uet/uefs:${env:UET_PACKAGE_VERSION}
+        docker push ghcr.io/redpointgames/uet/uefs:latest
