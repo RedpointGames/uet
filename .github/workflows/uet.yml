@@ -17,6 +17,10 @@ jobs:
     outputs:
       version: ${{ steps.timestamp.outputs.version }}
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     - id: timestamp
       name: Generate Timestamp
       shell: pwsh
@@ -26,12 +30,10 @@ jobs:
         Set-Content -NoNewline -Path "package.version" -Value "$($PackageVersion)"
         Set-Content -NoNewline -Path "$env:GITHUB_OUTPUT" -Value "version=$($PackageVersion)"
     - name: Upload Timestamp
-      uses: actions/upload-artifact@v4
+      uses: ./.github/actions/upload-artifact
       with:
-        name: timestamp
-        if-no-files-found: error
-        path: |
-          package.version
+        UET_ARTIFACT_NAME: timestamp
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
 
   prereq-autodiscovery:
     name: "Build AutoDiscovery"
@@ -105,16 +107,10 @@ jobs:
           UET/Redpoint.AutoDiscovery/Redpoint.AutoDiscovery.csproj
         if ($LastExitCode -ne 0) { exit $LastExitCode }
     - name: Upload AutoDiscovery Package
-      uses: actions/upload-artifact@v4
+      uses: ./.github/actions/upload-artifact
       with:
-        name: autodiscovery-nupkg
-        if-no-files-found: error
-        path: |
-          UET/Redpoint.AutoDiscovery.Win64/bin/x64/Debug/${{ env.UET_FRAMEWORK_TARGET }}/**
-          UET/Redpoint.AutoDiscovery.Win32/bin/x86/Debug/${{ env.UET_FRAMEWORK_TARGET }}/**
-          UET/Redpoint.AutoDiscovery.Win64/bin/x64/Release/${{ env.UET_FRAMEWORK_TARGET }}/**
-          UET/Redpoint.AutoDiscovery.Win32/bin/x86/Release/${{ env.UET_FRAMEWORK_TARGET }}/**
-          UET/Redpoint.AutoDiscovery/bin/Release/Redpoint.AutoDiscovery.*.nupkg
+        UET_ARTIFACT_NAME: autodiscovery
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
   
   prereq-mac-logging:
     name: "Build Mac Logging"
@@ -138,14 +134,10 @@ jobs:
         dotnet msbuild -t:BuildNativeMacLibraries -p:Configuration=Release -p:BaseUetVersion=$UET_PACKAGE_VERSION -p:PackageVersion=$UET_PACKAGE_VERSION UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.csproj
         dotnet msbuild -t:BuildAndReferenceNupkg -p:Configuration=Release -p:BaseUetVersion=$UET_PACKAGE_VERSION -p:PackageVersion=$UET_PACKAGE_VERSION UET/Redpoint.Logging.Mac/Redpoint.Logging.Mac.csproj
     - name: Upload Mac Logging Package
-      uses: actions/upload-artifact@v4
+      uses: ./.github/actions/upload-artifact
       with:
-        name: mac-logging-nupkg
-        if-no-files-found: error
-        path: |
-          UET/Redpoint.Logging.Mac.Native/runtimes/osx-arm64/libLogging.arm64.dylib
-          UET/Redpoint.Logging.Mac.Native/runtimes/osx-x64/libLogging.x64.dylib
-          UET/Redpoint.Logging.Mac/bin/Redpoint.Logging.Mac.Native.*.nupkg
+        UET_ARTIFACT_NAME: mac-logging
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
   
   test-stringenum-trimmed:
     name: "Test StringEnum Trimmed"
@@ -190,17 +182,13 @@ jobs:
       with:
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: autodiscovery-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: autodiscovery
     - name: Download Mac Logging
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: mac-logging-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: mac-logging
     - name: Build UEFS Client
       shell: pwsh
       run: |
@@ -228,13 +216,10 @@ jobs:
           UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
         if ($LastExitCode -ne 0) { exit $LastExitCode }
     - name: Upload Binaries
-      uses: actions/upload-artifact@v4
+      uses: ./.github/actions/upload-artifact
       with:
-        name: uefs-win
-        if-no-files-found: error
-        path: |
-          UET/Redpoint.Uefs.Client/bin/Release/net8.0/win-x64/publish/uefs.exe
-          UET/Redpoint.Uefs.Daemon/bin/Release/net8.0/win-x64/publish/uefs-daemon.exe
+        UET_ARTIFACT_NAME: uefs-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
   
   uefs-mac:
     name: "Build macOS UEFS"
@@ -255,17 +240,13 @@ jobs:
       with:
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: autodiscovery-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: autodiscovery
     - name: Download Mac Logging
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: mac-logging-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: mac-logging
     - name: Build UEFS Client
       shell: pwsh
       run: |
@@ -296,13 +277,10 @@ jobs:
           UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
         if ($LastExitCode -ne 0) { exit $LastExitCode }
     - name: Upload Binaries
-      uses: actions/upload-artifact@v4
+      uses: ./.github/actions/upload-artifact
       with:
-        name: uefs-mac
-        if-no-files-found: error
-        path: |
-          UET/Redpoint.Uefs.Client/bin/Release/net8.0/osx-arm64/publish/uefs
-          UET/Redpoint.Uefs.Daemon/bin/Release/net8.0/osx-arm64/publish/uefs-daemon
+        UET_ARTIFACT_NAME: uefs-mac
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
   
   shim-win:
     name: "Build Windows Shim"
@@ -323,17 +301,13 @@ jobs:
       with:
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: autodiscovery-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: autodiscovery
     - name: Download Mac Logging
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: mac-logging-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: mac-logging
     - name: Build UET Shim
       shell: pwsh
       run: |
@@ -348,12 +322,10 @@ jobs:
           UET/uet.shim/uet.shim.csproj
         if ($LastExitCode -ne 0) { exit $LastExitCode }
     - name: Upload Binaries
-      uses: actions/upload-artifact@v4
+      uses: ./.github/actions/upload-artifact
       with:
-        name: shim-win
-        if-no-files-found: error
-        path: |
-          UET/uet.shim/bin/Release/net8.0/win-x64/publish/uet.exe
+        UET_ARTIFACT_NAME: shim-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
   
   shim-mac:
     name: "Build macOS Shim"
@@ -374,17 +346,13 @@ jobs:
       with:
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: autodiscovery-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: autodiscovery
     - name: Download Mac Logging
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: mac-logging-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: mac-logging
     - name: Build UET Shim
       shell: pwsh
       run: |
@@ -399,12 +367,10 @@ jobs:
           UET/uet.shim/uet.shim.csproj
         if ($LastExitCode -ne 0) { exit $LastExitCode }
     - name: Upload Binaries
-      uses: actions/upload-artifact@v4
+      uses: ./.github/actions/upload-artifact
       with:
-        name: shim-mac
-        if-no-files-found: error
-        path: |
-          UET/uet.shim/bin/Release/net8.0/osx-arm64/publish/uet
+        UET_ARTIFACT_NAME: shim-mac
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
   
   pass-1-win:
     name: "Build Windows Pass 1"
@@ -425,17 +391,13 @@ jobs:
       with:
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: autodiscovery-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: autodiscovery
     - name: Download Mac Logging
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: mac-logging-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: mac-logging
     - name: Build UET Pass 1
       shell: pwsh
       run: |
@@ -450,12 +412,10 @@ jobs:
           UET/uet/uet.csproj
         if ($LastExitCode -ne 0) { exit $LastExitCode }
     - name: Upload Binaries
-      uses: actions/upload-artifact@v4
+      uses: ./.github/actions/upload-artifact
       with:
-        name: pass-1-win
-        if-no-files-found: error
-        path: |
-          UET/uet/bin/Release/net8.0/win-x64/publish/uet.exe
+        UET_ARTIFACT_NAME: pass-1-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
   
   pass-1-mac:
     name: "Build macOS Pass 1"
@@ -476,17 +436,13 @@ jobs:
       with:
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: autodiscovery-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: autodiscovery
     - name: Download Mac Logging
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: mac-logging-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: mac-logging
     - name: Build UET Pass 1
       shell: pwsh
       run: |
@@ -504,12 +460,10 @@ jobs:
         ./UET/uet/bin/Release/net8.0/osx-arm64/publish/uet --help
         if ($LastExitCode -ne 0) { exit $LastExitCode }
     - name: Upload Binaries
-      uses: actions/upload-artifact@v4
+      uses: ./.github/actions/upload-artifact
       with:
-        name: pass-1-mac
-        if-no-files-found: error
-        path: |
-          UET/uet/bin/Release/net8.0/osx-arm64/publish/uet
+        UET_ARTIFACT_NAME: pass-1-mac
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
   
   libs-win:
     name: "Build and Test Libraries on Windows"
@@ -530,17 +484,13 @@ jobs:
       with:
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: autodiscovery-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: autodiscovery
     - name: Download Mac Logging
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: mac-logging-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: mac-logging
     - name: Install WinFsp
       shell: pwsh
       run: |
@@ -574,12 +524,10 @@ jobs:
         path: TestResults/*.test-result.trx
         reporter: dotnet-trx
     - name: Upload Packages
-      uses: actions/upload-artifact@v4
+      uses: ./.github/actions/upload-artifact
       with:
-        name: libs-win
-        if-no-files-found: error
-        path: |
-          **/*.nupkg
+        UET_ARTIFACT_NAME: libs-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
 
   libs-mac:
     name: "Build and Test Libraries on macOS"
@@ -600,17 +548,13 @@ jobs:
       with:
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: autodiscovery-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: autodiscovery
     - name: Download Mac Logging
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: mac-logging-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: mac-logging
     - name: Build and Test Libraries on macOS
       run: |
         set -e
@@ -653,29 +597,21 @@ jobs:
       with:
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: autodiscovery-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: autodiscovery
     - name: Download Mac Logging
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: mac-logging-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: mac-logging
     - name: Download Windows Pass 1
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: pass-1-win
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: pass-1-win
     - name: Download macOS Pass 1
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: pass-1-mac
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: pass-1-mac
     - name: Build UET Pass 2
       shell: pwsh
       run: |
@@ -691,12 +627,10 @@ jobs:
           UET/uet/uet.csproj
         if ($LastExitCode -ne 0) { exit $LastExitCode }
     - name: Upload Binaries
-      uses: actions/upload-artifact@v4
+      uses: ./.github/actions/upload-artifact
       with:
-        name: pass-2-win
-        if-no-files-found: error
-        path: |
-          UET/uet/bin/Release/net8.0/win-x64/publish/uet.exe
+        UET_ARTIFACT_NAME: pass-2-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
   
   pass-2-mac:
     name: "Build macOS Pass 2"
@@ -719,29 +653,21 @@ jobs:
       with:
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download AutoDiscovery
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: autodiscovery-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: autodiscovery
     - name: Download Mac Logging
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: mac-logging-nupkg
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: mac-logging
     - name: Download Windows Pass 1
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: pass-1-win
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: pass-1-win
     - name: Download macOS Pass 1
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: pass-1-mac
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: pass-1-mac
     - name: Build UET Pass 2
       shell: pwsh
       run: |
@@ -760,12 +686,10 @@ jobs:
         ./UET/uet/bin/Release/net8.0/osx-arm64/publish/uet --help
         if ($LastExitCode -ne 0) { exit $LastExitCode }
     - name: Upload Binaries
-      uses: actions/upload-artifact@v4
+      uses: ./.github/actions/upload-artifact
       with:
-        name: pass-2-mac
-        if-no-files-found: error
-        path: |
-          UET/uet/bin/Release/net8.0/osx-arm64/publish/uet
+        UET_ARTIFACT_NAME: pass-2-mac
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
   
   publish-nuget:
     name: "Publish to NuGet"
@@ -793,11 +717,9 @@ jobs:
       with:
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download NuGet Packages
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: libs-win
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: libs-win
     - name: Publish Packages
       shell: pwsh
       env:
@@ -831,48 +753,38 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     - name: Download Windows UEFS
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: uefs-win
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: uefs-win
     - name: Download Windows Shim
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: shim-win
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: shim-win
     - name: Download Windows Pass 2
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: pass-2-win
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: pass-2-win
     - name: Download macOS UEFS
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: uefs-mac
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: uefs-mac
     - name: Download macOS Shim
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: shim-mac
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: shim-mac
     - name: Download macOS Pass 2
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: pass-2-mac
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: pass-2-mac
     - name: Download package.version
-      uses: actions/download-artifact@v4
+      uses: ./.github/actions/download-artifact
       with:
-        name: timestamp
-        path: ""
-        merge-multiple: true
+        UET_ARTIFACT_NAME: timestamp
     - name: Publish to GitHub
       shell: pwsh
       env:
@@ -917,12 +829,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Download Windows Pass 1
-      uses: actions/download-artifact@v4
+    - name: Download Windows UEFS
+      uses: ./.github/actions/download-artifact
       with:
-        name: pass-1-win
-        path: UET/
-        merge-multiple: true
+        UET_ARTIFACT_NAME: uefs-win
     - name: Log in to the Container registry
       uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
       with:
