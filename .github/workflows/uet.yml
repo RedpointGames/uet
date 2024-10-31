@@ -717,7 +717,7 @@ jobs:
           push `
           --source https://api.nuget.org/v3/index.json `
           --api-key $env:NUGET_API_KEY `
-          (Get-ChildItem -Recurse -Filter "*.$PackageVersion.nupkg" | % { $_.FullName })
+          (Get-ChildItem -Recurse -Filter "*.${env:UET_PACKAGE_VERSION}.nupkg" | % { $_.FullName })
         if ($LastExitCode -ne 0) {
           Write-Host "dotnet push failed with exit code $LastExitCode"
           exit $LastExitCode 
@@ -823,7 +823,7 @@ jobs:
     - name: Log in to the Container registry
       uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
       with:
-        registry: ${{ env.REGISTRY }}
+        registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build UEFS Container

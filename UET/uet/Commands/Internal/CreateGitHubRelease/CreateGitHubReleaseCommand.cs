@@ -97,10 +97,10 @@
                 }).ToArray();
                 var schemaOnly = context.ParseResult.GetValueForOption(_options.SchemaOnly);
 
-                var pat = Environment.GetEnvironmentVariable("GITHUB_RELEASES_PAT");
+                var pat = Environment.GetEnvironmentVariable("UET_GITHUB_RELEASES_PAT");
                 if (string.IsNullOrWhiteSpace(pat))
                 {
-                    _logger.LogError("Expected environment variable GITHUB_RELEASES_PAT to be set (this is an internal command).");
+                    _logger.LogError("Expected environment variable UET_GITHUB_RELEASES_PAT to be set (this is an internal command).");
                     return 1;
                 }
 
