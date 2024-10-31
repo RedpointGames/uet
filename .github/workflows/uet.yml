@@ -198,6 +198,7 @@ jobs:
           -t:Publish `
           -p:RuntimeIdentifier=win-x64 `
           -p:Configuration=Release `
+          -p:UetSkipNuGetPackaging=true `
           "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
           "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
           UET/Redpoint.Uefs.Client/Redpoint.Uefs.Client.csproj
@@ -211,6 +212,7 @@ jobs:
           -t:Publish `
           -p:RuntimeIdentifier=win-x64 `
           -p:Configuration=Release `
+          -p:UetSkipNuGetPackaging=true `
           "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
           "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
           UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
@@ -256,6 +258,7 @@ jobs:
           -t:Publish `
           -p:RuntimeIdentifier=osx-arm64 `
           -p:Configuration=Release `
+          -p:UetSkipNuGetPackaging=true `
           "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
           "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
           UET/Redpoint.Uefs.Client/Redpoint.Uefs.Client.csproj
@@ -272,6 +275,7 @@ jobs:
           -t:Publish `
           -p:RuntimeIdentifier=osx-arm64 `
           -p:Configuration=Release `
+          -p:UetSkipNuGetPackaging=true `
           "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
           "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
           UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
@@ -317,6 +321,7 @@ jobs:
           -t:Publish `
           -p:RuntimeIdentifier=win-x64 `
           -p:Configuration=Release `
+          -p:UetSkipNuGetPackaging=true `
           "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
           "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
           UET/uet.shim/uet.shim.csproj
@@ -362,6 +367,7 @@ jobs:
           -t:Publish `
           -p:RuntimeIdentifier=osx-arm64 `
           -p:Configuration=Release `
+          -p:UetSkipNuGetPackaging=true `
           "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
           "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
           UET/uet.shim/uet.shim.csproj
@@ -407,6 +413,7 @@ jobs:
           -t:Publish `
           -p:RuntimeIdentifier=win-x64 `
           -p:Configuration=Release `
+          -p:UetSkipNuGetPackaging=true `
           "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
           "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
           UET/uet/uet.csproj
@@ -452,6 +459,7 @@ jobs:
           -t:Publish `
           -p:RuntimeIdentifier=osx-arm64 `
           -p:Configuration=Release `
+          -p:UetSkipNuGetPackaging=true `
           "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
           "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
           UET/uet/uet.csproj
@@ -609,6 +617,7 @@ jobs:
           -p:RuntimeIdentifier=win-x64 `
           -p:Configuration=Release `
           -p:EmbeddingCrossPlatform=true `
+          -p:UetSkipNuGetPackaging=true `
           "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
           "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
           UET/uet/uet.csproj
@@ -665,6 +674,7 @@ jobs:
           -p:RuntimeIdentifier=osx-arm64 `
           -p:Configuration=Release `
           -p:EmbeddingCrossPlatform=true `
+          -p:UetSkipNuGetPackaging=true `
           "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
           "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
           UET/uet/uet.csproj
