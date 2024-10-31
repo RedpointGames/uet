@@ -523,6 +523,12 @@ jobs:
         name: mac-logging-nupkg
         path: UET/
         merge-multiple: true
+    - name: Install WinFsp
+      shell: pwsh
+      run: |
+        Invoke-WebRequest -Uri https://github.com/winfsp/winfsp/releases/download/v2.0/winfsp-2.0.23075.msi -UseBasicParsing -OutFile winfsp.msi -ProgressAction SilentlyContinue
+        $Process = Start-Process -FilePath "$env:SystemRoot\system32\msiexec.exe" -ArgumentList @("/i", "winfsp.msi", "/qn", "/norestart") -Verb runas -PassThru
+        $Process.WaitForExit()
     - name: Build and Test Libraries on Windows
       shell: pwsh
       run: |
