@@ -59,9 +59,53 @@
                 MakeContent(
                     new GitHubNewRelease
                     {
-                        TagName = "latest",
+                        TagName = version,
                         Name = version,
-                        Body = "This is an automatic release from GitHub Actions. Refer to the [latest release](https://github.com/RedpointGames/uet/releases/tag/latest) instead.",
+                        Body =
+                        $"""
+                        This is the release of UET {version}. UET employs a "rolling release" strategy, so releases are extremely frequent. You can stay up-to-date by using the `uet upgrade` command after you install it (see below).
+                        
+                        ## Download the latest version of UET
+
+                        To download the latest version of UET, regardless of whether this release is the latest or not, you'll want to use one of these download links depending on your platform:
+                        
+                        - **[UET for Windows](https://github.com/RedpointGames/uet/releases/latest/download/uet.exe)**, or
+                        - **[UET for macOS](https://github.com/RedpointGames/uet/releases/latest/download/uet)**.
+
+                        The other files in this release are exist so they can be fetched on-demand by UET.
+
+                        ## Download links for CI/CD, scripting and automation
+                        
+                        You should not embed the URLs to the files below in scripts or CI/CD. Instead, use the URL that always points to the latest version:
+
+                        ```bash
+                        # Tiny shim executables that download and cache the latest release on-demand, suitable for 
+                        # always downloading at the start of CI/CD scripts.
+                        https://github.com/RedpointGames/uet/releases/latest/download/uet.shim.exe
+                        https://github.com/RedpointGames/uet/releases/latest/download/uet.shim
+
+                        # The latest full release executables, which might be much larger.
+                        https://github.com/RedpointGames/uet/releases/latest/download/uet.exe
+                        https://github.com/RedpointGames/uet/releases/latest/download/uet
+                        ```
+
+                        ## Installing/upgrading UET and adding it to your PATH
+
+                        Once you've downloaded UET using the links above, you can install it system-wide by running one of the following commands depending on your platform:
+
+                        ```bash
+                        # for Windows
+                        .\uet.exe upgrade
+
+                        # for macOS
+                        chmod a+x ./uet
+                        ./uet upgrade
+                        ```
+
+                        After you run the commands above and re-open your terminal, you'll be able to just run `uet ...` without specifying the path to the downloaded executable.
+                        
+                        In addition, to upgrade UET after you've already installed it system-wide, you can run `uet upgrade` and it will update itself.
+                        """,
                         Draft = true,
                         MakeLatest = "false",
                         TargetCommitish = Environment.GetEnvironmentVariable("GITHUB_SHA"),
@@ -148,7 +192,7 @@
                     {
                         TagName = version,
                         Draft = false,
-                        MakeLatest = "false",
+                        MakeLatest = "true",
                     },
                     GitHubJsonSerializerContext.Default.GitHubNewRelease),
                 context.GetCancellationToken()).ConfigureAwait(false);
@@ -162,14 +206,17 @@
         {
             var latestDescription =
                 $"""
-                This is the latest release of UET, currently {version}. This tag is always updated to the latest version on every release, so you can download UET from the URLs below as part of CI scripts and always get the latest files.
+                # [Click here to view the latest release of UET](https://github.com/RedpointGames/uet/releases)
 
-                The file you want to download is either:
+                **⚠️ Use of the "latest" tag is now deprecated.** You should download the latest release using the link above, which also includes the new URLs to use in CI/CD and automation scripts.
+                
+                ## Why is this tag deprecated?
+                
+                This tag was previously used as the "latest" URL for downloading UET, which helped UET perform self-updates.
 
-                - **[UET for Windows](https://github.com/RedpointGames/uet/releases/download/latest/uet.exe)**, or
-                - **[UET for macOS](https://github.com/RedpointGames/uet/releases/download/latest/uet)**.
+                While it is still kept up-to-date so that older versions of UET can self-update to the newest version, we now use GitHub's magic "latest" URL so that the GitHub releases system can track the date of new versions correctly.
 
-                The other files in this release are exist so they can be fetched on-demand by UET, or they are for specific use cases where the general UET binary is not suitable.
+                We'll continue to update this tag until at least 1st November 2025, but after that point it may be no longer updated - if you're still running an older version of UET at that point, you can still get up-to-date by running `uet upgrade` twice.
                 """;
 
             // If the "latest" release doesn't exist, make it first.
@@ -185,10 +232,10 @@
                         new GitHubNewRelease
                         {
                             TagName = "latest",
-                            Name = $"{version} (latest)",
+                            Name = $"(deprecated tag)",
                             Body = latestDescription,
                             Draft = false,
-                            MakeLatest = "true",
+                            MakeLatest = "false",
                         },
                         GitHubJsonSerializerContext.Default.GitHubNewRelease),
                     context.GetCancellationToken()).ConfigureAwait(false);
@@ -350,10 +397,10 @@
                     new GitHubNewRelease
                     {
                         TagName = "latest",
-                        Name = $"{version} (latest)",
+                        Name = $"(deprecated tag)",
                         Body = latestDescription,
                         Draft = false,
-                        MakeLatest = "true",
+                        MakeLatest = "false",
                     },
                     GitHubJsonSerializerContext.Default.GitHubNewRelease),
                 context.GetCancellationToken()).ConfigureAwait(false);
