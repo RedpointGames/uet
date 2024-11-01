@@ -122,7 +122,7 @@
             var targets = target.Targets ?? new[] { $"Unreal{name}" };
             var targetPlatforms = FilterIncompatiblePlatforms(target.Platforms.Select(x => x.Platform).ToArray(), localExecutor);
             var configurations = target.Configurations ?? new[] { "Development", "Shipping" };
-            var cookFlavors = target.Platforms.First(x => x.Platform == "Android")?.CookFlavors ?? [];
+            var cookFlavors = target.Platforms.FirstOrDefault(x => x.Platform == "Android")?.CookFlavors ?? [];
 
             return new TargetConfig
             {
