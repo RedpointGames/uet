@@ -35,7 +35,8 @@
             bool localExecutor,
             bool isPluginRooted,
             string? commandlinePluginVersionName,
-            long? commandlinePluginVersionNumber);
+            long? commandlinePluginVersionNumber,
+            bool legacy);
 
         Task<BuildSpecification> BuildConfigEngineToBuildSpecAsync(
             BuildEngineSpecification engineSpec,

@@ -153,6 +153,24 @@
 
         public async Task PatchBuildGraphAsync(string enginePath, bool isEngineBuild)
         {
+            var buildVersionFilePath = Path.Combine(enginePath, "Engine", "Build", "Build.version");
+            var isTargetingUnrealEngine4 = false;
+            if (File.Exists(buildVersionFilePath))
+            {
+                if (File.ReadAllText(buildVersionFilePath).Contains("UE4", StringComparison.Ordinal))
+                {
+                    isTargetingUnrealEngine4 = true;
+                }
+            }
+            if (isTargetingUnrealEngine4)
+            {
+                _logger.LogTrace("Detected Unreal Engine 4.");
+            }
+            else
+            {
+                _logger.LogTrace("Detected Unreal Engine 5.");
+            }
+
             var patchLevelFilePath = Path.Combine(enginePath, "Engine", "Source", "Programs", "UET.BuildGraphPatchLevel.json");
             var buildGraphPatchStatus = new BuildGraphPatchStatus();
             var applyPatches = false;
@@ -199,6 +217,15 @@
 
             foreach (var patchDefinition in _patches)
             {
+                if (string.IsNullOrWhiteSpace(patchDefinition.Output4) && isTargetingUnrealEngine4)
+                {
+                    continue;
+                }
+                if (string.IsNullOrWhiteSpace(patchDefinition.Output5) && !isTargetingUnrealEngine4)
+                {
+                    continue;
+                }
+
                 var filename = patchDefinition.File.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
 
                 var sourceFile = Path.Combine(enginePath, filename);
@@ -396,32 +423,35 @@
                 };
                 foreach (var project in projects)
                 {
-                    _logger.LogInformation($"Restoring packages for: {project.name}");
-                    var exitCode = await _processExecutor.ExecuteAsync(
-                        new ProcessSpecification
-                        {
-                            FilePath = dotnetPath,
-                            Arguments = [
-                                "msbuild",
-                                "/nologo",
-                                "/verbosity:quiet",
-                                project.path,
-                                "/property:Configuration=Development",
-                                "/property:Platform=AnyCPU",
-                                "/p:WarningLevel=0",
-                                "/target:Restore",
-                                "/p:NuGetAudit=False",
-                            ],
-                            EnvironmentVariables = new Dictionary<string, string>
-                            {
-                                { "NUGET_PACKAGES", nugetStoragePath.Path }
-                            }
-                        },
-                        CaptureSpecification.Passthrough,
-                        CancellationToken.None).ConfigureAwait(false);
-                    if (exitCode != 0)
+                    if (Path.Exists(project.path))
                     {
-                        throw new InvalidOperationException($"Failed to rebuild BuildGraph (msbuild restore exited with exit code {exitCode})");
+                        _logger.LogInformation($"Restoring packages for: {project.name}");
+                        var exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = dotnetPath,
+                                Arguments = [
+                                    "msbuild",
+                                    "/nologo",
+                                    "/verbosity:quiet",
+                                    project.path,
+                                    "/property:Configuration=Development",
+                                    "/property:Platform=AnyCPU",
+                                    "/p:WarningLevel=0",
+                                    "/target:Restore",
+                                    "/p:NuGetAudit=False",
+                                ],
+                                EnvironmentVariables = new Dictionary<string, string>
+                                {
+                                    { "NUGET_PACKAGES", nugetStoragePath.Path }
+                                }
+                            },
+                            CaptureSpecification.Passthrough,
+                            CancellationToken.None).ConfigureAwait(false);
+                        if (exitCode != 0)
+                        {
+                            throw new InvalidOperationException($"Failed to rebuild BuildGraph (msbuild restore exited with exit code {exitCode})");
+                        }
                     }
                 }
                 foreach (var project in projects)
@@ -431,31 +461,34 @@
                         continue;
                     }
 
-                    _logger.LogInformation($"Building: {project.name}");
-                    var exitCode = await _processExecutor.ExecuteAsync(
-                        new ProcessSpecification
-                        {
-                            FilePath = dotnetPath,
-                            Arguments = [
-                                "msbuild",
-                                "/nologo",
-                                "/verbosity:quiet",
-                                project.path,
-                                "/property:Configuration=Development",
-                                "/property:Platform=AnyCPU",
-                                "/p:WarningLevel=0",
-                                "/p:NuGetAudit=False",
-                            ],
-                            EnvironmentVariables = new Dictionary<string, string>
-                            {
-                                { "NUGET_PACKAGES", nugetStoragePath.Path }
-                            }
-                        },
-                        CaptureSpecification.Passthrough,
-                        CancellationToken.None).ConfigureAwait(false);
-                    if (exitCode != 0)
+                    if (Path.Exists(project.path))
                     {
-                        throw new InvalidOperationException($"Failed to rebuild BuildGraph (msbuild compile exited with exit code {exitCode})");
+                        _logger.LogInformation($"Building: {project.name}");
+                        var exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = dotnetPath,
+                                Arguments = [
+                                    "msbuild",
+                                    "/nologo",
+                                    "/verbosity:quiet",
+                                    project.path,
+                                    "/property:Configuration=Development",
+                                    "/property:Platform=AnyCPU",
+                                    "/p:WarningLevel=0",
+                                    "/p:NuGetAudit=False",
+                                ],
+                                EnvironmentVariables = new Dictionary<string, string>
+                                {
+                                    { "NUGET_PACKAGES", nugetStoragePath.Path }
+                                }
+                            },
+                            CaptureSpecification.Passthrough,
+                            CancellationToken.None).ConfigureAwait(false);
+                        if (exitCode != 0)
+                        {
+                            throw new InvalidOperationException($"Failed to rebuild BuildGraph (msbuild compile exited with exit code {exitCode})");
+                        }
                     }
                 }
 

@@ -285,7 +285,8 @@
                                 localExecutor: true,
                                 isPluginRooted: true,
                                 commandlinePluginVersionName: null,
-                                commandlinePluginVersionNumber: null).ConfigureAwait(false);
+                                commandlinePluginVersionNumber: null,
+                                false).ConfigureAwait(false);
                             break;
                         default:
                             throw new NotSupportedException();

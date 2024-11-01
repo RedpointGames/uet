@@ -31,6 +31,7 @@
             public Option<bool> Deploy;
             public Option<bool> StrictIncludes;
             public Option<bool> StorageVirtualisation;
+            public Option<bool> Legacy;
 
             public Option<DistributionSpec?> Distribution;
 
@@ -106,6 +107,11 @@
                     getDefaultValue: () => Environment.GetEnvironmentVariable("UET_USE_STORAGE_VIRTUALIZATION") == "true",
                     description: "If set, enables storage virtualisation via UEFS.");
                 StorageVirtualisation.AddAlias("-u");
+
+                Legacy = new Option<bool>(
+                    "--legacy",
+                    description: "If set, indicates that the engine is Unreal Engine 4, not Unreal Engine 5. Do not report bugs when using this option - it is unsupported and 'best effort' only.");
+                Legacy.IsHidden = true;
 
                 // ==== .uproject / .uplugin options
 
@@ -288,6 +294,7 @@
                 var pluginPackage = context.ParseResult.GetValueForOption(_options.PluginPackage);
                 var pluginVersionName = context.ParseResult.GetValueForOption(_options.PluginVersionName);
                 var pluginVersionNumber = context.ParseResult.GetValueForOption(_options.PluginVersionNumber);
+                var legacy = context.ParseResult.GetValueForOption(_options.Legacy);
 
                 // Configure the dynamic workspace provider to use workspace virtualisation
                 // if appropriate.
@@ -370,6 +377,13 @@
                 _logger.LogInformation($"--plugin-package:                {pluginPackage}");
                 _logger.LogInformation($"--plugin-version-name:           {pluginVersionName}");
                 _logger.LogInformation($"--plugin-version-number:         {pluginVersionNumber}");
+                if (legacy)
+                {
+                    _logger.LogInformation($"--legacy:                        yes (unsupported)");
+                    _logger.LogWarning("");
+                    _logger.LogWarning("Use of the --legacy option is unsupported. Do not report bugs or issues when using this flag.");
+                    _logger.LogWarning("");
+                }
 
                 BuildEngineSpecification engineSpec;
                 switch (engine.Type)
@@ -506,7 +520,8 @@
                                         localExecutor: executorName == "local",
                                         isPluginRooted: false,
                                         commandlinePluginVersionName: pluginVersionName,
-                                        commandlinePluginVersionNumber: pluginVersionNumber).ConfigureAwait(false);
+                                        commandlinePluginVersionNumber: pluginVersionNumber,
+                                        legacy).ConfigureAwait(false);
                                     preparePlugin = pluginDistribution.Prepare;
                                     break;
                                 case BuildConfigEngineDistribution engineDistribution:
