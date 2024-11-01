@@ -76,7 +76,7 @@
 
                         ## Download links for CI/CD, scripting and automation
                         
-                        You should not embed the URLs to the files below in scripts or CI/CD. Instead, use the URL that always points to the latest version:
+                        You should not embed URLs to a specific version of UET in scripts or CI/CD. Instead, use the URL that always points to the latest version:
 
                         ```bash
                         # Tiny shim executables that download and cache the latest release on-demand, suitable for 
