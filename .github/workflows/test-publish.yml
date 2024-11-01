@@ -1,0 +1,25 @@
+name: Publish Test Results
+
+on:
+  workflow_run:
+    workflows: ["Unreal Engine Tool"]
+    types:
+      - completed
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
+jobs:
+  report:
+    name: Report Test Results
+    runs-on: ubuntu-latest
+    steps:
+    - name: Report Test Results
+      uses: dorny/test-reporter@v1
+      with:
+        artifact: test-results
+        name: Windows Test Results
+        path: '*.test-result.trx'
+        reporter: dotnet-trx

@@ -64,7 +64,7 @@
                 }
                 else
                 {
-                    const string latestUrl = "https://github.com/RedpointGames/uet/releases/download/latest/package.version";
+                    const string latestUrl = "https://github.com/RedpointGames/uet/releases/latest/download/package.version";
 
                     _logger.LogInformation("Checking for the latest version...");
                     using (var client = new HttpClient())

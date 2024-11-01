@@ -524,13 +524,11 @@ jobs:
             Write-Host "============ PASSED:   $($Item.Name) ============"
           }
         }
-    - name: Report Test Results
-      uses: dorny/test-reporter@v1
-      if: success() || failure()
+    - name: Upload Test Results
+      uses: ./.github/actions/upload-artifact
       with:
-        name: Windows Test Results
-        path: TestResults/*.test-result.trx
-        reporter: dotnet-trx
+        UET_ARTIFACT_NAME: test-results
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Upload Packages
       uses: ./.github/actions/upload-artifact
       with:

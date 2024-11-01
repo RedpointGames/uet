@@ -126,4 +126,13 @@ runs:
         if-no-files-found: error
         path: |
           **/*.nupkg
+
+    - name: Upload Test Results
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'test-results' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        if-no-files-found: error
+        path: |
+          TestResults/*.test-result.trx
           
