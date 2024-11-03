@@ -280,7 +280,9 @@
           <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetPlatform)' == 'Android'" />
           <ForEach Name="CookFlavor" Values="$(CookFlavors)">
             <Agent Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor) (Windows Pak and Stage)" Type="Win64">
-              <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor)" Requires="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#GameCookedContent_$(TargetPlatform)_$(CookFlavor)" Produces="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor)"  If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <Property Name="StageOutputs" Value="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+              <Property Name="StageOutputs" Value="$(StageOutputs)_$(CookFlavor)" If="'$(CookFlavor)' != 'NoCookFlavor'" />
+              <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor)" Requires="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#GameCookedContent_$(TargetPlatform)_$(CookFlavor)" Produces="$(StageOutputs)"  If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
                 <Property Name="StagePlatform" Value="$(TargetPlatform)" />
                 <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
                 <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="(('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
@@ -291,10 +293,10 @@
                 <Property Name="PackageFlag" Value="" />
                 <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
                 <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; $(CookFlavorArg) &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -target=$(TargetName)" />
-                <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor)" />
-                <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
+                <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="$(StageOutputs)" />
+                <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
               </Node>
-              <Property Name="GameStaged" Value="$(GameStaged)#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor);"  If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
+              <Property Name="GameStaged" Value="$(GameStaged)$(StageOutputs);"  If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
             </Agent>
           </ForEach>
         </ForEach>
@@ -309,7 +311,9 @@
           <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetPlatform)' == 'Android'" />
           <ForEach Name="CookFlavor" Values="$(CookFlavors)">
             <Agent Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor) (Windows Pak and Stage)" Type="Win64">
-              <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor)" Requires="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#ClientCookedContent_$(TargetPlatform)_$(CookFlavor)" Produces="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <Property Name="StageOutputs" Value="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+              <Property Name="StageOutputs" Value="$(StageOutputs)_$(CookFlavor)" If="'$(CookFlavor)' != 'NoCookFlavor'" />
+              <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor)" Requires="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#ClientCookedContent_$(TargetPlatform)_$(CookFlavor)" Produces="$(StageOutputs)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
                 <Property Name="StagePlatform" Value="$(TargetPlatform)" />
                 <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
                 <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="(('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
@@ -320,10 +324,10 @@
                 <Property Name="PackageFlag" Value="" />
                 <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
                 <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; $(CookFlavorArg) &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -client -target=$(TargetName)" />
-                <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor)" />
-                <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
+                <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="$(StageOutputs)" />
+                <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
               </Node>
-              <Property Name="ClientStaged" Value="$(ClientStaged)#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
+              <Property Name="ClientStaged" Value="$(ClientStaged)$(StageOutputs);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
             </Agent>
           </ForEach>
         </ForEach>
@@ -363,7 +367,9 @@
           <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetPlatform)' == 'Android'" />
           <ForEach Name="CookFlavor" Values="$(CookFlavors)">
             <Agent Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor) (macOS Pak and Stage)" Type="Mac">
-              <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor)" Requires="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#GameCookedContent_$(TargetPlatform)_$(CookFlavor)" Produces="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <Property Name="StageOutputs" Value="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+              <Property Name="StageOutputs" Value="$(StageOutputs)_$(CookFlavor)" If="'$(CookFlavor)' != 'NoCookFlavor'" />
+              <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor)" Requires="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#GameCookedContent_$(TargetPlatform)_$(CookFlavor)" Produces="$(StageOutputs)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
                 <Property Name="StagePlatform" Value="$(TargetPlatform)" />
                 <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
                 <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="(('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
@@ -374,10 +380,10 @@
                 <Property Name="PackageFlag" Value="" />
                 <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
                 <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; $(CookFlavorArg) &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -target=$(TargetName)" />
-                <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor)" />
-                <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
+                <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="$(StageOutputs)" />
+                <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
               </Node>
-              <Property Name="GameStaged" Value="$(GameStaged)#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"/>
+              <Property Name="GameStaged" Value="$(GameStaged)$(StageOutputs);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"/>
             </Agent>
           </ForEach>
         </ForEach>
@@ -392,7 +398,9 @@
           <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetPlatform)' == 'Android'" />
           <ForEach Name="CookFlavor" Values="$(CookFlavors)">
             <Agent Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor) (macOS Pak and Stage)" Type="Mac">
-              <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor)" Requires="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#ClientCookedContent_$(TargetPlatform)_$(CookFlavor)" Produces="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
+              <Property Name="StageOutputs" Value="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+              <Property Name="StageOutputs" Value="$(StageOutputs)_$(CookFlavor)" If="'$(CookFlavor)' != 'NoCookFlavor'" />
+              <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor)" Requires="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#ClientCookedContent_$(TargetPlatform)_$(CookFlavor)" Produces="$(StageOutputs)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
                 <Property Name="StagePlatform" Value="$(TargetPlatform)" />
                 <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
                 <Property Name="StagePlatform" Value="$(StagePlatform)NoEditor" If="(('$(CookPlatform)' == 'Windows') or ('$(CookPlatform)' == 'Mac') or ('$(CookPlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false')" />
@@ -403,10 +411,10 @@
                 <Property Name="PackageFlag" Value="" />
                 <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
                 <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; $(CookFlavorArg) &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -client -target=$(TargetName)" />
-                <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor)" />
-                <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
+                <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="$(StageOutputs)" />
+                <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS')" />
               </Node>
-              <Property Name="ClientStaged" Value="$(ClientStaged)#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_$(CookFlavor);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"/>
+              <Property Name="ClientStaged" Value="$(ClientStaged)$(StageOutputs);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"/>
             </Agent>
           </ForEach>
         </ForEach>
