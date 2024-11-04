@@ -15,6 +15,10 @@
   <Option Name="Distribution" Restrict="[^ ]*" DefaultValue="" Description="The distribution being built" />
   <Option Name="IsUnrealEngine5" Restrict="true|false" DefaultValue="false" Description="If true, this is an Unreal Engine 5 plugin" />
 
+  <!-- Platform extension options -->
+  <Option Name="PlatformExtensionDirectory" DefaultValue="" Description="Path to the directory that contains the platform extension .uplugin" />
+  <Option Name="PlatformExtensionPlatform" Restrict="[^ ]+" DefaultValue="NotSet" Description="Name of the platform this extension is for" />
+
   <!-- Clean options -->
   <Option Name="CleanDirectories" DefaultValue="" Description="Semicolon separated list of folders and files to delete after copying the plugin into the host project" />
 
@@ -325,11 +329,32 @@ $(PackageExclude);
 "
         With="#CopyForHostProject"
       />
+      <Tag
+        BaseDir="$(PlatformExtensionDirectory)"
+        Files="..."
+        Filter="
+/Config/...;
+/Content/...;
+/Resources/...;
+/Source/...;
+"
+        Except="
+.../.git;
+.../.gitcheckout;
+.../.git/...
+"
+        With="#CopyForHostProjectPlatformExtension"
+        If="'$(PlatformExtensionDirectory)' != ''"
+      />
       <Copy From="$(PluginDirectory)/..." Files="#CopyForHostProject" To="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/" Tag="#HostProject" />
       <Copy From="$(PluginDirectory)/$(PluginName).uplugin" To="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin" Tag="#HostProject" />
+      <Copy From="$(PlatformExtensionDirectory)/..." Files="#CopyForHostProjectPlatformExtension" To="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)_$(PlatformExtensionPlatform)/" Tag="#HostProject" If="'$(PlatformExtensionDirectory)' != ''" />
+      <Copy From="$(PlatformExtensionDirectory)/$(PluginName)_$(PlatformExtensionPlatform).uplugin" To="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)_$(PlatformExtensionPlatform)/$(PluginName)_$(PlatformExtensionPlatform).uplugin" Tag="#HostProject" If="'$(PlatformExtensionDirectory)' != ''" />
       <ForEach Name="CleanDirectory" Values="$(CleanDirectories)">
         <Log Message="Cleaning filespec: $(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(CleanDirectory)" />
         <Delete Files="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(CleanDirectory)" />
+        <Log Message="Cleaning filespec: $(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)_$(PlatformExtensionPlatform)/$(CleanDirectory)" If="'$(PlatformExtensionDirectory)' != ''" />
+        <Delete Files="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)_$(PlatformExtensionPlatform)/$(CleanDirectory)" If="'$(PlatformExtensionDirectory)' != ''" />
       </ForEach>
       <ForEach Name="MacroName" Values="$(DynamicBeforeAssembleFinalizeMacros)">
         <Expand Name="$(MacroName)" PackagePath="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)" />
@@ -354,6 +379,23 @@ $(PackageExclude);
 "
         With="#HostProject"
         If="'$(DynamicBeforeAssembleFinalizeMacros)' != ''"
+      />
+      <Tag
+        BaseDir="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)_$(PlatformExtensionPlatform)"
+        Files="..."
+        Filter="
+/Config/...;
+/Content/...;
+/Resources/...;
+/Source/...;
+"
+        Except="
+.../.git;
+.../.gitcheckout;
+.../.git/...
+"
+        With="#HostProject"
+        If="'$(DynamicBeforeAssembleFinalizeMacros)' != '' and '$(PlatformExtensionDirectory)' != ''"
       />
     </Node>
   </Agent>

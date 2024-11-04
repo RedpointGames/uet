@@ -40,20 +40,25 @@ namespace Redpoint.Uet.BuildPipeline.Tests
             var generator = serviceProvider.GetRequiredService<IBuildGraphExecutor>();
 
             var buildGraph = await generator.GenerateGraphAsync(
-                @"E:\EpicGames\UE_5.2",
-                projectPath,
-                string.Empty,
-                string.Empty,
+                new BuildGraphArgumentContext
+                {
+                    RepositoryRootOutput = projectPath,
+                    RepositoryRootBaseCode = projectPath,
+                    RepositoryRootPlatformCode = string.Empty,
+                    UetPath = string.Empty,
+                    EnginePath = @"E:\EpicGames\UE_5.2",
+                    SharedStoragePath = Path.Combine(projectPath, ".uet", "shared-storage"),
+                    ArtifactExportPath = string.Empty,
+                },
                 BuildGraphScriptSpecification.ForProject(),
                 "End",
-                Path.Combine(projectPath, ".uet", "shared-storage"),
                 new Dictionary<string, string>
                 {
                     { $"UETPath", $"uet" },
-                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
-                    { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
-                    { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
-                    { $"UProjectPath", $"__REPOSITORY_ROOT__/ExampleOSS.uproject" },
+                    { $"TempPath", $"__REPOSITORY_ROOT_OUTPUT__/.uet/tmp" },
+                    { $"ProjectRoot", $"__REPOSITORY_ROOT_BASE_CODE__" },
+                    { $"RepositoryRoot", $"__REPOSITORY_ROOT_BASE_CODE__" },
+                    { $"UProjectPath", $"__REPOSITORY_ROOT_BASE_CODE__/ExampleOSS.uproject" },
                     { $"Distribution", $"Default" },
                     { $"ExecuteBuild", $"true" },
                     { $"EditorTarget", $"ExampleOSSEditor" },
@@ -68,11 +73,12 @@ namespace Redpoint.Uet.BuildPipeline.Tests
                     { $"ServerConfigurations", $"" },
                     { $"MacPlatforms", $"IOS;Mac" },
                     { $"StrictIncludes", $"false" },
-                    { $"StageDirectory", $"__REPOSITORY_ROOT__/Saved/StagedBuilds" },
+                    { $"StageDirectory", $"__REPOSITORY_ROOT_OUTPUT__/Saved/StagedBuilds" },
                 },
                 new Dictionary<string, string>
                 {
-                    { "__REPOSITORY_ROOT__", projectPath },
+                    { "__REPOSITORY_ROOT_OUTPUT__", projectPath },
+                    { "__REPOSITORY_ROOT_BASE_CODE__", projectPath },
                 },
                 CaptureSpecification.Passthrough,
                 CancellationToken.None);
@@ -96,19 +102,24 @@ namespace Redpoint.Uet.BuildPipeline.Tests
             var generator = serviceProvider.GetRequiredService<IBuildGraphExecutor>();
 
             var buildGraph = await generator.GenerateGraphAsync(
-                @"E:\EpicGames\UE_5.2",
-                pluginPath,
-                string.Empty,
-                string.Empty,
+                new BuildGraphArgumentContext
+                {
+                    RepositoryRootOutput = pluginPath,
+                    RepositoryRootBaseCode = pluginPath,
+                    RepositoryRootPlatformCode = string.Empty,
+                    UetPath = string.Empty,
+                    EnginePath = @"E:\EpicGames\UE_5.2",
+                    SharedStoragePath = Path.Combine(pluginPath, ".uet", "shared-storage"),
+                    ArtifactExportPath = string.Empty,
+                },
                 BuildGraphScriptSpecification.ForPlugin(),
                 "End",
-                Path.Combine(pluginPath, ".uet", "shared-storage"),
                 new Dictionary<string, string>
                 {
                     { $"UETPath", $"uet" },
-                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
-                    { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
-                    { $"PluginDirectory", $"__REPOSITORY_ROOT__/OnlineSubsystemRedpointEOS" },
+                    { $"TempPath", $"__REPOSITORY_ROOT_OUTPUT__/.uet/tmp" },
+                    { $"ProjectRoot", $"__REPOSITORY_ROOT_BASE_CODE__" },
+                    { $"PluginDirectory", $"__REPOSITORY_ROOT_BASE_CODE__/OnlineSubsystemRedpointEOS" },
                     { $"PluginName", $"OnlineSubsystemRedpointEOS" },
                     { $"Distribution", $"Default" },
                     { $"IsUnrealEngine5", $"true" },
@@ -137,7 +148,8 @@ namespace Redpoint.Uet.BuildPipeline.Tests
                 },
                 new Dictionary<string, string>
                 {
-                    { "__REPOSITORY_ROOT__", pluginPath },
+                    { "__REPOSITORY_ROOT_OUTPUT__", pluginPath },
+                    { "__REPOSITORY_ROOT_BASE_CODE__", pluginPath },
                 },
                 CaptureSpecification.Passthrough,
                 CancellationToken.None);

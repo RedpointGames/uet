@@ -159,6 +159,9 @@
                 ]);
             }
 
+            // Need a unique path per worker, and then unify it afterwards.
+            // & "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe" --sources "OnlineSubsystemRedpointEOS*" --modules "*Redpoint*" --export_type cobertura:<path> --
+
             // Start the process in the background.
             var st = Stopwatch.StartNew();
             var automationTask = Task.Run(async () => await _processExecutor.ExecuteAsync(

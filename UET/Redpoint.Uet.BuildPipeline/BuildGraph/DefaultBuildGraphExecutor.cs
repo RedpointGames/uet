@@ -48,12 +48,19 @@
             CancellationToken cancellationToken)
         {
             var exitCode = await InternalRunAsync(
-                enginePath,
-                string.Empty,
-                string.Empty,
-                string.Empty,
+                new BuildGraphArgumentContext
+                {
+                    RepositoryRoot = new RepositoryRoot
+                    {
+                        BaseCodePath = string.Empty,
+                        PlatformCodePath = string.Empty,
+                    },
+                    UetPath = string.Empty,
+                    EnginePath = enginePath,
+                    SharedStoragePath = string.Empty,
+                    ArtifactExportPath = string.Empty,
+                },
                 buildGraphScript,
-                string.Empty,
                 string.Empty,
                 new[] { $"-ListOnly" },
                 new Dictionary<string, string>(),
@@ -73,14 +80,10 @@
         }
 
         public async Task<int> ExecuteGraphNodeAsync(
-            string enginePath,
-            string buildGraphRepositoryRootPath,
-            string uetPath,
-            string artifactExportPath,
+            BuildGraphArgumentContext buildGraphArgumentContext,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
             string buildGraphNodeName,
-            string buildGraphSharedStorageDir,
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
             Dictionary<string, string> globalEnvironmentVariables,
@@ -101,7 +104,7 @@
                     var environmentVariables = new Dictionary<string, string>
                     {
                         { "IsBuildMachine", "1" },
-                        { "uebp_LOCAL_ROOT", enginePath.TrimEnd('\\') },
+                        { "uebp_LOCAL_ROOT", buildGraphArgumentContext.EnginePath.TrimEnd('\\') },
                         // BuildGraph in Unreal Engine 5.0 causes input files to be unnecessarily modified. Just allow mutation since I'm not sure what the bug is.
                         { "BUILD_GRAPH_ALLOW_MUTATION", "true" },
                         // Make sure UET knows it's running under BuildGraph for subcommands
@@ -116,13 +119,13 @@
                         // Adjust Gradle cache path so that Android packaging works under SYSTEM.
                         { "GRADLE_USER_HOME", gradleUserHome.Path },
                     };
-                    if (!string.IsNullOrWhiteSpace(buildGraphRepositoryRootPath))
+                    if (!string.IsNullOrWhiteSpace(buildGraphArgumentContext.RepositoryRoot.OutputPath))
                     {
-                        environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = buildGraphRepositoryRootPath;
+                        environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = buildGraphArgumentContext.RepositoryRoot.OutputPath;
                     }
                     else
                     {
-                        environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = enginePath.TrimEnd('\\');
+                        environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = buildGraphArgumentContext.EnginePath.TrimEnd('\\');
                     }
                     if (string.IsNullOrWhiteSpace(environmentVariables["BUILD_GRAPH_PROJECT_ROOT"]))
                     {
@@ -155,18 +158,14 @@
                     try
                     {
                         return await InternalRunAsync(
-                            enginePath,
-                            buildGraphRepositoryRootPath,
-                            uetPath,
-                            artifactExportPath,
+                            buildGraphArgumentContext,
                             buildGraphScript,
                             buildGraphTarget,
-                            buildGraphSharedStorageDir,
                             new[]
                             {
                                 $"-SingleNode={buildGraphNodeName}",
                                 "-WriteToSharedStorage",
-                                $"-SharedStorageDir={buildGraphSharedStorageDir}"
+                                $"-SharedStorageDir={buildGraphArgumentContext.SharedStoragePath}"
                             },
                             buildGraphArguments,
                             buildGraphArgumentReplacements,
@@ -187,13 +186,9 @@
         }
 
         public async Task<BuildGraphExport> GenerateGraphAsync(
-            string enginePath,
-            string buildGraphRepositoryRootPath,
-            string uetPath,
-            string artifactExportPath,
+            BuildGraphArgumentContext buildGraphArgumentContext,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
-            string buildGraphSharedStorageDir,
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
             ICaptureSpecification captureSpecification,
@@ -204,20 +199,16 @@
             try
             {
                 var exitCode = await InternalRunAsync(
-                    enginePath,
-                    buildGraphRepositoryRootPath,
-                    uetPath,
-                    artifactExportPath,
+                    buildGraphArgumentContext,
                     buildGraphScript,
                     buildGraphTarget,
-                    buildGraphSharedStorageDir,
                     new[] { $"-Export={buildGraphOutput}" },
                     buildGraphArguments,
                     buildGraphArgumentReplacements,
                     new Dictionary<string, string>
                     {
                         { "IsBuildMachine", "1" },
-                        { "uebp_LOCAL_ROOT", enginePath.TrimEnd('\\') },
+                        { "uebp_LOCAL_ROOT", buildGraphArgumentContext.EnginePath.TrimEnd('\\') },
                     },
                     null,
                     captureSpecification,
@@ -256,13 +247,9 @@
         }
 
         private async Task<int> InternalRunAsync(
-            string enginePath,
-            string buildGraphRepositoryRootPath,
-            string uetPath,
-            string artifactExportPath,
+            BuildGraphArgumentContext buildGraphArgumentContext,
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
-            string buildGraphSharedStorageDir,
             string[] internalArguments,
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
@@ -276,7 +263,7 @@
             if (buildGraphScript._forEngine)
             {
                 buildGraphScriptPath = Path.Combine(
-                    enginePath,
+                    buildGraphArgumentContext.EnginePath,
                     "Engine",
                     "Build",
                     "InstalledEngineBuild.xml");
@@ -310,11 +297,17 @@
                 throw new NotSupportedException();
             }
 
-            await _buildGraphPatcher.PatchBuildGraphAsync(enginePath, buildGraphScript._forEngine).ConfigureAwait(false);
+            await _buildGraphPatcher.PatchBuildGraphAsync(
+                buildGraphArgumentContext.EnginePath,
+                buildGraphScript._forEngine).ConfigureAwait(false);
 
             if (mobileProvisions != null)
             {
-                await _mobileProvisioning.InstallMobileProvisions(enginePath, buildGraphScript._forEngine, mobileProvisions, cancellationToken).ConfigureAwait(false);
+                await _mobileProvisioning.InstallMobileProvisions(
+                    buildGraphArgumentContext.EnginePath,
+                    buildGraphScript._forEngine,
+                    mobileProvisions,
+                    cancellationToken).ConfigureAwait(false);
             }
 
             if (buildGraphEnvironmentVariables.Count == 0)
@@ -333,7 +326,7 @@
             try
             {
                 return await _uatExecutor.ExecuteAsync(
-                    enginePath,
+                    buildGraphArgumentContext.EnginePath,
                     new UATSpecification
                     {
                         Command = "BuildGraph",
@@ -348,11 +341,7 @@
                             .Concat(_buildGraphArgumentGenerator.GenerateBuildGraphArguments(
                                 buildGraphArguments,
                                 buildGraphArgumentReplacements,
-                                buildGraphRepositoryRootPath,
-                                uetPath,
-                                enginePath,
-                                buildGraphSharedStorageDir,
-                                artifactExportPath).Select(x => new LogicalProcessArgument(x))),
+                                buildGraphArgumentContext).Select(x => new LogicalProcessArgument(x))),
                         EnvironmentVariables = buildGraphEnvironmentVariables
                     },
                     captureSpecification,

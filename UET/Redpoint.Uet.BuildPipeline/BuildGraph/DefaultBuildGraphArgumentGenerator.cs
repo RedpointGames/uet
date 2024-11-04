@@ -7,21 +7,19 @@
         public IEnumerable<string> GenerateBuildGraphArguments(
             Dictionary<string, string> arguments,
             Dictionary<string, string> replacements,
-            string repositoryRoot,
-            string uetPath,
-            string enginePath,
-            string sharedStoragePath,
-            string artifactExportPath)
+            BuildGraphArgumentContext argumentContext)
         {
             var results = new List<string>();
             foreach (var kv in arguments)
             {
                 var value = kv.Value;
-                value = value.Replace("__REPOSITORY_ROOT__", repositoryRoot, StringComparison.Ordinal);
-                value = value.Replace("__UET_PATH__", uetPath, StringComparison.Ordinal);
-                value = value.Replace("__ENGINE_PATH__", enginePath.TrimEnd('\\'), StringComparison.Ordinal);
-                value = value.Replace("__SHARED_STORAGE_PATH__", sharedStoragePath, StringComparison.Ordinal);
-                value = value.Replace("__ARTIFACT_EXPORT_PATH__", artifactExportPath, StringComparison.Ordinal);
+                value = value.Replace("__REPOSITORY_ROOT_OUTPUT__", argumentContext.RepositoryRoot.OutputPath, StringComparison.Ordinal);
+                value = value.Replace("__REPOSITORY_ROOT_BASE_CODE__", argumentContext.RepositoryRoot.BaseCodePath, StringComparison.Ordinal);
+                value = value.Replace("__REPOSITORY_ROOT_PLATFORM_CODE__", argumentContext.RepositoryRoot.PlatformCodePath, StringComparison.Ordinal);
+                value = value.Replace("__UET_PATH__", argumentContext.UetPath, StringComparison.Ordinal);
+                value = value.Replace("__ENGINE_PATH__", argumentContext.EnginePath.TrimEnd('\\'), StringComparison.Ordinal);
+                value = value.Replace("__SHARED_STORAGE_PATH__", argumentContext.SharedStoragePath, StringComparison.Ordinal);
+                value = value.Replace("__ARTIFACT_EXPORT_PATH__", argumentContext.ArtifactExportPath, StringComparison.Ordinal);
                 foreach (var sr in replacements)
                 {
                     value = value.Replace(sr.Key, sr.Value, StringComparison.Ordinal);
@@ -34,21 +32,19 @@
         public IReadOnlyDictionary<string, string> GeneratePreBuildGraphArguments(
             Dictionary<string, string> arguments,
             Dictionary<string, string> replacements,
-            string repositoryRoot,
-            string uetPath,
-            string enginePath,
-            string sharedStoragePath,
-            string artifactExportPath)
+            BuildGraphArgumentContext argumentContext)
         {
             var results = new Dictionary<string, string>();
             foreach (var kv in arguments)
             {
                 var value = kv.Value;
-                value = value.Replace("__REPOSITORY_ROOT__", repositoryRoot, StringComparison.Ordinal);
-                value = value.Replace("__UET_PATH__", uetPath, StringComparison.Ordinal);
-                value = value.Replace("__ENGINE_PATH__", enginePath.TrimEnd('\\'), StringComparison.Ordinal);
-                value = value.Replace("__SHARED_STORAGE_PATH__", sharedStoragePath, StringComparison.Ordinal);
-                value = value.Replace("__ARTIFACT_EXPORT_PATH__", artifactExportPath, StringComparison.Ordinal);
+                value = value.Replace("__REPOSITORY_ROOT_OUTPUT__", argumentContext.RepositoryRoot.OutputPath, StringComparison.Ordinal);
+                value = value.Replace("__REPOSITORY_ROOT_BASE_CODE__", argumentContext.RepositoryRoot.BaseCodePath, StringComparison.Ordinal);
+                value = value.Replace("__REPOSITORY_ROOT_PLATFORM_CODE__", argumentContext.RepositoryRoot.PlatformCodePath, StringComparison.Ordinal);
+                value = value.Replace("__UET_PATH__", argumentContext.UetPath, StringComparison.Ordinal);
+                value = value.Replace("__ENGINE_PATH__", argumentContext.EnginePath.TrimEnd('\\'), StringComparison.Ordinal);
+                value = value.Replace("__SHARED_STORAGE_PATH__", argumentContext.SharedStoragePath, StringComparison.Ordinal);
+                value = value.Replace("__ARTIFACT_EXPORT_PATH__", argumentContext.ArtifactExportPath, StringComparison.Ordinal);
                 foreach (var sr in replacements)
                 {
                     value = value.Replace(sr.Key, sr.Value, StringComparison.Ordinal);

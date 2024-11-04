@@ -482,15 +482,22 @@
                 {
                     _logger.LogInformation("Generating BuildGraph JSON based on settings...");
                     buildGraph = await _buildGraphExecutor.GenerateGraphAsync(
-                        engineWorkspace.Path,
-                        temporaryWorkspace.Path,
-                        buildSpecification.UETPath,
-                        buildSpecification.ArtifactExportPath,
+                        new BuildGraphArgumentContext
+                        {
+                            RepositoryRoot = new RepositoryRoot
+                            {
+                                BaseCodePath = temporaryWorkspace.Path,
+                                PlatformCodePath = string.Empty,
+                            },
+                            UetPath = buildSpecification.UETPath,
+                            EnginePath = engineWorkspace.Path,
+                            SharedStoragePath = OperatingSystem.IsWindows()
+                                ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
+                                : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                            ArtifactExportPath = buildSpecification.ArtifactExportPath,
+                        },
                         buildSpecification.BuildGraphScript,
                         buildSpecification.BuildGraphTarget,
-                        OperatingSystem.IsWindows()
-                            ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
-                            : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                         buildSpecification.BuildGraphSettings,
                         buildSpecification.BuildGraphSettingReplacements,
                         generationCaptureSpecification,
