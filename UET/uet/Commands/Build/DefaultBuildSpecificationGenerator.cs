@@ -127,7 +127,7 @@
             return new TargetConfig
             {
                 Targets = string.Join(";", targets),
-                TargetPlatforms =  string.Join(";", targetPlatforms),
+                TargetPlatforms = string.Join(";", targetPlatforms),
                 Configurations = string.Join(";", configurations),
                 CookFlavors = string.Join(";", cookFlavors),
             };
