@@ -391,8 +391,8 @@
                 <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="$(StageOutputs)" />
                 <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="'$(TargetPlatform)' == 'IOS'" />
                 <Do If="'$(TargetPlatform)' == 'Android'">
-                  <Copy From="$(ProjectRoot)\Binaries\$(TargetPlatform)\..." To="$(ProjectRoot)\Binaries\$(TargetPlatform)_$(CookFlavor)" />
-                  <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)_$(CookFlavor)" Files="..." With="$(StageOutputs)" />
+                  <Copy From="$(ProjectRoot)/Binaries/$(TargetPlatform)/..." To="$(ProjectRoot)/Binaries/$(TargetPlatform)_$(CookFlavor)" />
+                  <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)_$(CookFlavor)" Files="..." With="$(StageOutputs)" />
                 </Do>
               </Node>
               <Property Name="GameStaged" Value="$(GameStaged)$(StageOutputs);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"/>
@@ -426,8 +426,8 @@
                 <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="$(StageOutputs)" />
                 <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="'$(TargetPlatform)' == 'IOS'" />
                 <Do If="'$(TargetPlatform)' == 'Android'">
-                  <Copy From="$(ProjectRoot)\Binaries\$(TargetPlatform)\..." To="$(ProjectRoot)\Binaries\$(TargetPlatform)_$(CookFlavor)" />
-                  <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)_$(CookFlavor)" Files="..." With="$(StageOutputs)" />
+                  <Copy From="$(ProjectRoot)/Binaries/$(TargetPlatform)/..." To="$(ProjectRoot)/Binaries/$(TargetPlatform)_$(CookFlavor)" />
+                  <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)_$(CookFlavor)" Files="..." With="$(StageOutputs)" />
                 </Do>
               </Node>
               <Property Name="ClientStaged" Value="$(ClientStaged)$(StageOutputs);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"/>
