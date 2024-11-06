@@ -59,6 +59,7 @@
             public required string Targets;
             public required string TargetPlatforms;
             public required string Configurations;
+            public required string CookFlavors;
         }
 
         private bool VerifySourceFilesDoNotExceedSubmissionPathLimit(
@@ -114,18 +115,21 @@
                     Targets = string.Empty,
                     TargetPlatforms = string.Empty,
                     Configurations = string.Empty,
+                    CookFlavors = string.Empty,
                 };
             }
 
             var targets = target.Targets ?? new[] { $"Unreal{name}" };
-            var targetPlatforms = FilterIncompatiblePlatforms(target.Platforms, localExecutor);
+            var targetPlatforms = FilterIncompatiblePlatforms(target.Platforms.Select(x => x.Platform).ToArray(), localExecutor);
             var configurations = target.Configurations ?? new[] { "Development", "Shipping" };
+            var cookFlavors = target.Platforms.FirstOrDefault(x => x.Platform == "Android")?.CookFlavors ?? [];
 
             return new TargetConfig
             {
                 Targets = string.Join(";", targets),
                 TargetPlatforms = string.Join(";", targetPlatforms),
                 Configurations = string.Join(";", configurations),
+                CookFlavors = string.Join(";", cookFlavors),
             };
         }
 
@@ -138,11 +142,12 @@
                     Targets = string.Empty,
                     TargetPlatforms = string.Empty,
                     Configurations = string.Empty,
+                    CookFlavors = string.Empty,
                 };
             }
 
             var targets = new[] { $"Unreal{name}" };
-            var targetPlatforms = FilterIncompatiblePlatforms(target.Platforms, localExecutor);
+            var targetPlatforms = FilterIncompatiblePlatforms(target.Platforms.Select(x => x.Platform).ToArray(), localExecutor);
             var configurations = target.Configurations ?? new[] { "Development", "Shipping" };
 
             return new TargetConfig
@@ -150,6 +155,7 @@
                 Targets = string.Join(";", targets),
                 TargetPlatforms = string.Join(";", targetPlatforms),
                 Configurations = string.Join(";", configurations),
+                CookFlavors = string.Empty,
             };
         }
 
@@ -623,6 +629,8 @@
                     { $"GameConfigurations", gameConfig.Configurations },
                     { $"ClientConfigurations", clientConfig.Configurations },
                     { $"ServerConfigurations", serverConfig.Configurations },
+                    { $"AndroidGameCookFlavors", gameConfig.CookFlavors },
+                    { $"AndroidClientCookFlavors", clientConfig.CookFlavors },
                     { $"MacPlatforms", $"IOS;Mac" },
                     { $"StrictIncludes", strictIncludes ? "true" : "false" },
 
@@ -824,6 +832,8 @@
                     { $"GameConfigurations", gameConfigurations },
                     { $"ClientConfigurations", string.Empty },
                     { $"ServerConfigurations", string.Empty },
+                    { $"AndroidGameCookFlavors", string.Empty },
+                    { $"AndroidClientCookFlavors", string.Empty },
                     { $"MacPlatforms", $"IOS;Mac" },
                     { $"StrictIncludes", strictIncludes ? "true" : "false" },
 

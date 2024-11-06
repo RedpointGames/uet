@@ -66,6 +66,8 @@ namespace Redpoint.Uet.BuildPipeline.Tests
                     { $"GameConfigurations", $"DebugGame" },
                     { $"ClientConfigurations", $"" },
                     { $"ServerConfigurations", $"" },
+                    { $"AndroidGameCookFlavors", $"" },
+                    { $"AndroidClientCookFlavors", $"" },
                     { $"MacPlatforms", $"IOS;Mac" },
                     { $"StrictIncludes", $"false" },
                     { $"StageDirectory", $"__REPOSITORY_ROOT__/Saved/StagedBuilds" },
