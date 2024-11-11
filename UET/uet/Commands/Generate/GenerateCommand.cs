@@ -8,6 +8,7 @@
     using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.CommandLine.Parsing;
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
@@ -137,12 +138,32 @@
                 }
             }
 
+            private static bool IsGeneratingEngineFiles(EngineSpec engine, PathSpec[] paths, OptionResult? pathResult)
+            {
+                var isEngineSourceInThisDirectory =
+                    engine.Type == EngineSpecType.Path &&
+                    string.Equals(engine.Path, Environment.CurrentDirectory, StringComparison.OrdinalIgnoreCase) &&
+                    !File.Exists(Path.Combine(engine.Path!, "Engine", "Build", "InstalledBuild.txt"));
+                if (isEngineSourceInThisDirectory)
+                {
+                    return true;
+                }
+
+                var isNonSinglePath = paths.Length != 1;
+                if (isNonSinglePath)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
                 var engine = context.ParseResult.GetValueForOption(_options.Engine)!;
-                var paths = context.ParseResult.GetValueForOption(_options.Path) ?? Array.Empty<PathSpec>();
+                var paths = context.ParseResult.GetValueForOption(_options.Path) ?? [];
                 var open = context.ParseResult.GetValueForOption(_options.Open);
-                var automationPaths = context.ParseResult.GetValueForOption(_options.AutomationPath) ?? Array.Empty<DirectoryInfo>();
+                var automationPaths = context.ParseResult.GetValueForOption(_options.AutomationPath) ?? [];
 
                 // Compute how to invoke project generation.
                 string workingDirectory;
@@ -150,12 +171,7 @@
                 string outputFilenameWithoutExtension;
                 string scriptName;
                 var arguments = new List<string>();
-                if ((engine.Type == EngineSpecType.Path &&
-                     string.Equals(engine.Path, Environment.CurrentDirectory, StringComparison.OrdinalIgnoreCase) &&
-                     !File.Exists(Path.Combine(engine.Path!, "Engine", "Build", "InstalledBuild.txt"))) ||
-                     paths.Length != 1 ||
-                     ((context.ParseResult.FindResultFor(_options.Path)?.Tokens?.Count ?? 0) == 0 &&
-                      paths.First().Type != PathSpecType.UProject))
+                if (IsGeneratingEngineFiles(engine, paths, context.ParseResult.FindResultFor(_options.Path)))
                 {
                     // We want to generate project files for an engine.
                     var installedBuild = Path.Combine(engine.Path!, "Engine", "Build", "InstalledBuild.txt");
@@ -246,7 +262,7 @@
                             uprojectDirs,
                             projectLines);
                     }
-                    else
+                    else if (paths.Length == 1)
                     {
                         arguments.Add($"-project={paths[0].UProjectPath}");
                     }
