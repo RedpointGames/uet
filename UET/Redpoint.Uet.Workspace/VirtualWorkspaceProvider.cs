@@ -377,6 +377,10 @@
                         {
                             mountIsValid = false;
                         }
+                        catch (IOException)
+                        {
+                            mountIsValid = false;
+                        }
 
                         if (mountIsValid)
                         {
