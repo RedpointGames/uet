@@ -24,9 +24,6 @@
         /// </summary>
         public string? ProjectFolderName { get; set; }
 
-        /// <summary>
-        /// If set, this is a checkout of the engine itself, instead of a project or plugin.
-        /// </summary>
-        public bool IsEngineBuild { get; set; }
+        public GitWorkspaceDescriptorBuildType BuildType { get; set; }
     }
 }

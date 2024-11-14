@@ -218,7 +218,7 @@
                                 AdditionalFolderZips = Array.Empty<string>(),
                                 WorkspaceDisambiguators = nodeNames,
                                 ProjectFolderName = buildSpecification.ProjectFolderName,
-                                IsEngineBuild = false,
+                                BuildType = GitWorkspaceDescriptorBuildType.Generic,
                                 WindowsSharedGitCachePath = null,
                                 MacSharedGitCachePath = null,
                             },
