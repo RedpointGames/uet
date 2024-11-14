@@ -41,6 +41,7 @@
             {
                 { "GIT_SSH_COMMAND", $@"ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -i {identityPath}" },
                 { "GIT_ASK_YESNO", "false" },
+                { "GIT_LFS_FORCE_PROGRESS", "1" },
             };
         }
 

@@ -1499,8 +1499,8 @@
                 Git = git,
                 GitEnvs = gitEnvs,
                 FetchEnvironmentVariablesFactory = fetchEnvironmentVariablesFactory,
-                EnableLfsSupport = !descriptor.IsEngineBuild,
-                EnableSubmoduleSupport = !descriptor.IsEngineBuild,
+                EnableLfsSupport = descriptor.BuildType != GitWorkspaceDescriptorBuildType.Engine,
+                EnableSubmoduleSupport = descriptor.BuildType == GitWorkspaceDescriptorBuildType.Generic,
             };
 
             // Initialize the Git repository if needed.
@@ -1555,7 +1555,7 @@
                 cancellationToken).ConfigureAwait(false);
 
             // Clean all Source, Config, Resources and Content folders so that we don't have stale files accidentally included in build steps.
-            if (!descriptor.IsEngineBuild)
+            if (descriptor.BuildType == GitWorkspaceDescriptorBuildType.Generic)
             {
                 await CleanBuildSensitiveDirectoriesForProjectsAndPluginsAsync(
                     repositoryPath,
@@ -1580,7 +1580,7 @@
                 }
             }
 
-            if (descriptor.IsEngineBuild)
+            if (descriptor.BuildType == GitWorkspaceDescriptorBuildType.Engine)
             {
                 // Copy our additional folder layers on top.
                 await ExtractAdditionalLayersToEngineWorkspaceAsync(
