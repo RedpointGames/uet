@@ -15,12 +15,14 @@
             public Option<string> Path;
             public Option<string> RepositoryUri;
             public Option<string> Branch;
+            public Option<string> LfsStoragePath;
 
             public Options()
             {
                 Path = new Option<string>("--path");
                 RepositoryUri = new Option<string>("--uri");
                 Branch = new Option<string>("--branch");
+                LfsStoragePath = new Option<string>("--lfs-storage-path");
             }
         }
 
@@ -66,6 +68,7 @@
                         MacSharedGitCachePath = null,
                         ProjectFolderName = null,
                         BuildType = GitWorkspaceDescriptorBuildType.EngineLfs,
+                        LfsStoragePath = context.ParseResult.GetValueForOption(_options.LfsStoragePath),
                     },
                     context.GetCancellationToken()).ConfigureAwait(false);
                 return 0;

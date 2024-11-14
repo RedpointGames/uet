@@ -55,6 +55,7 @@
         /// </summary>
         private async Task InitGitWorkspaceIfNeededAsync(
             string repositoryPath,
+            GitWorkspaceDescriptor workspaceDescriptor,
             GitExecutionContext gitContext,
             CancellationToken cancellationToken)
         {
@@ -91,6 +92,7 @@
                             "-C",
                             repositoryPath,
                             "config",
+                            "set",
                             "core.symlinks",
                             "true"
                         ],
@@ -101,8 +103,50 @@
                     cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
-                    throw new InvalidOperationException($"'git -C ... config core.symlinks true' exited with non-zero exit code {exitCode}");
+                    throw new InvalidOperationException($"'git -C ... config set core.symlinks true' exited with non-zero exit code {exitCode}");
                 }
+            }
+
+            if (workspaceDescriptor.LfsStoragePath != null)
+            {
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = gitContext.Git,
+                        Arguments =
+                        [
+                            "-C",
+                            repositoryPath,
+                            "config",
+                            "set",
+                            "lfs.storage",
+                            workspaceDescriptor.LfsStoragePath
+                        ],
+                        WorkingDirectory = repositoryPath,
+                        EnvironmentVariables = gitContext.GitEnvs,
+                    },
+                    CaptureSpecification.Sanitized,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = gitContext.Git,
+                        Arguments =
+                        [
+                            "-C",
+                            repositoryPath,
+                            "config",
+                            "unset",
+                            "lfs.storage"
+                        ],
+                        WorkingDirectory = repositoryPath,
+                        EnvironmentVariables = gitContext.GitEnvs,
+                    },
+                    CaptureSpecification.Sanitized,
+                    cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -700,6 +744,7 @@
                         "-c",
                         "advice.detachedHead=false",
                         "checkout",
+                        "--progress",
                         "-f",
                         resolvedReference.TargetCommit,
                     ],
@@ -731,6 +776,7 @@
                             "-c",
                             "advice.detachedHead=false",
                             "checkout",
+                            "--progress",
                             "-f",
                             resolvedReference.TargetCommit,
                         ],
@@ -1223,6 +1269,7 @@
                         "-c",
                         "advice.detachedHead=false",
                         "checkout",
+                        "--progress",
                         "-f",
                         submoduleCommit,
                     ],
@@ -1504,7 +1551,7 @@
             };
 
             // Initialize the Git repository if needed.
-            await InitGitWorkspaceIfNeededAsync(repositoryPath, gitContext, cancellationToken).ConfigureAwait(false);
+            await InitGitWorkspaceIfNeededAsync(repositoryPath, descriptor, gitContext, cancellationToken).ConfigureAwait(false);
 
             // Resolve tags and refs if needed.
             var potentiallyResolvedReference = await AttemptResolveReferenceToCommitWithoutFetchAsync(

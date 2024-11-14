@@ -25,5 +25,7 @@
         public string? ProjectFolderName { get; set; }
 
         public GitWorkspaceDescriptorBuildType BuildType { get; set; }
+
+        public string? LfsStoragePath { get; set; }
     }
 }
