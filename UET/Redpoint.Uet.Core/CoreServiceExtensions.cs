@@ -42,6 +42,22 @@
                             options.IncludeTracing = minimumLogLevel == LogLevel.Trace;
                         });
                         Directory.CreateDirectory(RunbackGlobalState.RunbackDirectoryPath);
+
+                        // Automatically delete runbacks older than 30 days so they don't consume space forever.
+                        foreach (var file in new DirectoryInfo(RunbackGlobalState.RunbackDirectoryPath).GetFiles())
+                        {
+                            if (file.LastWriteTimeUtc < DateTime.UtcNow - TimeSpan.FromDays(30))
+                            {
+                                try
+                                {
+                                    file.Delete();
+                                }
+                                catch
+                                {
+                                }
+                            }
+                        }
+
                         builder.AddFile(new FileStream(RunbackGlobalState.RunbackLogPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read | FileShare.Delete));
                     }
                     else
