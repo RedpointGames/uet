@@ -1762,6 +1762,16 @@
             GitWorkspaceDescriptor descriptor,
             CancellationToken cancellationToken)
         {
+            // Automatically upgrade Git if needed.
+            await UpgradeSystemWideGitIfPossibleAsync().ConfigureAwait(false);
+
+            // Ensure Git is on our PATH (this fixes up the PATH variable if we just installed Git via UpgradeSystemWideGitIfPossibleAsync).
+            await EnsureGitIsOnProcessPATH().ConfigureAwait(false);
+
+            // Ensure Git is new enough.
+            await EnsureGitIsNewEnoughVersionAsync().ConfigureAwait(false);
+
+            // Find Git and set up environment variables.
             var git = await _pathResolver.ResolveBinaryPath("git").ConfigureAwait(false);
             var gitEnvs = new Dictionary<string, string>
             {
@@ -1780,15 +1790,6 @@
                 EnableLfsSupport = descriptor.BuildType != GitWorkspaceDescriptorBuildType.Engine,
                 EnableSubmoduleSupport = descriptor.BuildType == GitWorkspaceDescriptorBuildType.Generic,
             };
-
-            // Automatically upgrade Git if needed.
-            await UpgradeSystemWideGitIfPossibleAsync().ConfigureAwait(false);
-
-            // Ensure Git is on our PATH (this fixes up the PATH variable if we just installed Git via UpgradeSystemWideGitIfPossibleAsync).
-            await EnsureGitIsOnProcessPATH().ConfigureAwait(false);
-
-            // Ensure Git is new enough.
-            await EnsureGitIsNewEnoughVersionAsync().ConfigureAwait(false);
 
             // Initialize the Git repository if needed.
             await InitGitWorkspaceIfNeededAsync(repositoryPath, descriptor, gitContext, cancellationToken).ConfigureAwait(false);
