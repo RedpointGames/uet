@@ -51,7 +51,7 @@
   <Property Name="GameStaged" Value="" />
   <Property Name="ClientStaged" Value="" />
   <Property Name="ServerStaged" Value="" />
-  <Property Name="AdditionalArguments" Value="" If="'$(StrictIncludes)' == 'false'" />
+  <Property Name="AdditionalArguments" Value=" -DisableAdaptiveUnity" If="'$(StrictIncludes)' == 'false'" />
   <Property Name="AdditionalArguments" Value=" -NoPCH -NoSharedPCH -DisableUnity" If="'$(StrictIncludes)' == 'true'" />
   <Property Name="DynamicNodes" Value="" />
   <Property Name="DynamicOutputFiles" Value="" />
@@ -160,7 +160,7 @@
                 <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
               </ForEach>
               <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
-              <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; -DisableAdaptiveUnity $(AdditionalArguments)"/>
+              <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
               <Tag Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
               <SanitizeReceipt Files="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
             </Node>
@@ -180,7 +180,7 @@
                 <Expand Name="$(MacroName)" TargetType="Client" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
               </ForEach>
               <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
-              <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; -DisableAdaptiveUnity $(AdditionalArguments)"/>
+              <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
               <Tag Files="#ClientBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
               <SanitizeReceipt Files="#ClientReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
             </Node>
@@ -200,7 +200,7 @@
                 <Expand Name="$(MacroName)" TargetType="Server" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
               </ForEach>
               <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
-              <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; -DisableAdaptiveUnity $(AdditionalArguments)"/>
+              <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
               <Tag Files="#ServerBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
               <SanitizeReceipt Files="#ServerReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
             </Node>
