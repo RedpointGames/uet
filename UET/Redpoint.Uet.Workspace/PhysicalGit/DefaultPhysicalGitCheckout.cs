@@ -20,6 +20,7 @@
     using System.Threading;
     using System.Threading.Tasks;
     using System.Security.Principal;
+    using System.Buffers.Text;
 
     internal class DefaultPhysicalGitCheckout : IPhysicalGitCheckout
     {
@@ -73,38 +74,18 @@
                     return;
                 }
 
-                // Try to find WinGet via PATH.
-                string? winget = null;
+                // Try to find PowerShell 7 via PATH. The WinGet CLI doesn't work under SYSTEM (even with absolute path) due to MSIX nonsense, but apparently the PowerShell scripts use a COM API that does?
+                string? pwsh = null;
                 try
                 {
-                    winget = await _pathResolver.ResolveBinaryPath("winget").ConfigureAwait(false);
+                    pwsh = await _pathResolver.ResolveBinaryPath("pwsh").ConfigureAwait(false);
                 }
                 catch (FileNotFoundException)
                 {
                 }
-
-                // When we're running as SYSTEM, WinGet isn't on the PATH, but it is usable.
-                if (winget == null)
+                if (pwsh == null)
                 {
-                    var windowsApps = new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "WindowsApps"));
-                    if (windowsApps.Exists)
-                    {
-                        var wingetInstallFolder = windowsApps
-                            .GetDirectories("Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe")
-                            .Where(x => File.Exists(Path.Combine(x.FullName, "winget.exe")))
-                            .OrderByDescending(x => x.FullName)
-                            .FirstOrDefault();
-                        if (wingetInstallFolder != null)
-                        {
-                            winget = Path.Combine(wingetInstallFolder.FullName, "winget.exe");
-                        }
-                    }
-                }
-
-                // Check if we could find WinGet via either of the strategies above.
-                if (winget == null)
-                {
-                    _logger.LogInformation("Skipping automatic upgrade/install of Git because WinGet is not available.");
+                    _logger.LogInformation("Skipping automatic upgrade/install of Git because this system does not have PowerShell 7 or later installed.");
                     return;
                 }
 
@@ -139,7 +120,7 @@
                         await _processExecutor.ExecuteAsync(
                             new ProcessSpecification
                             {
-                                FilePath = winget,
+                                FilePath = choco,
                                 Arguments = new LogicalProcessArgument[]
                                 {
                                     "uninstall",
@@ -156,20 +137,21 @@
                 await using (await _globalMutexReservationManager.TryReserveExactAsync("GitUpgrade").ConfigureAwait(false))
                 {
                     _logger.LogInformation("Ensuring Git is up-to-date...");
+                    var script =
+                        """
+                        Install-Module -Name Microsoft.WinGet.Client -Force;
+                        Install-WinGetPackage -Id Microsoft.Git -Mode Silent;
+                        """;
+                    var encodedScript = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
+
                     await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
-                            FilePath = winget,
+                            FilePath = pwsh,
                             Arguments = [
-                                "install",
-                                "--id",
-                                "Microsoft.Git",
-                                "-h",
-                                "--disable-interactivity",
-                                "--accept-source-agreements",
-                                "--authentication-mode",
-                                "silent",
-                                "--uninstall-previous",
+                                "-NonInteractive",
+                                "-EncodedCommand",
+                                encodedScript,
                             ]
                         },
                         CaptureSpecification.Passthrough,
