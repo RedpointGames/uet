@@ -73,8 +73,35 @@
                     return;
                 }
 
-                // Make sure WinGet is available so we can automate install/upgrade of Git.
-                var winget = await _pathResolver.ResolveBinaryPath("winget.exe").ConfigureAwait(false);
+                // Try to find WinGet via PATH.
+                string? winget = null;
+                try
+                {
+                    winget = await _pathResolver.ResolveBinaryPath("winget").ConfigureAwait(false);
+                }
+                catch (FileNotFoundException)
+                {
+                }
+
+                // When we're running as SYSTEM, WinGet isn't on the PATH, but it is usable.
+                if (winget == null)
+                {
+                    var windowsApps = new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "WindowsApps"));
+                    if (windowsApps.Exists)
+                    {
+                        var wingetInstallFolder = windowsApps
+                            .GetDirectories("Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe")
+                            .Where(x => File.Exists(Path.Combine(x.FullName, "winget.exe")))
+                            .OrderByDescending(x => x.FullName)
+                            .FirstOrDefault();
+                        if (wingetInstallFolder != null)
+                        {
+                            winget = Path.Combine(wingetInstallFolder.FullName, "winget.exe");
+                        }
+                    }
+                }
+
+                // Check if we could find WinGet via either of the strategies above.
                 if (winget == null)
                 {
                     _logger.LogInformation("Skipping automatic upgrade/install of Git because WinGet is not available.");
@@ -82,7 +109,14 @@
                 }
 
                 // If Chocolatey is installed, remove any version of Git that Chocolatey has previously installed because we'll manage it with WinGet from here on out.
-                var choco = await _pathResolver.ResolveBinaryPath("choco.exe").ConfigureAwait(false);
+                string? choco = null;
+                try
+                {
+                    choco = await _pathResolver.ResolveBinaryPath("choco").ConfigureAwait(false);
+                }
+                catch (FileNotFoundException)
+                {
+                }
                 if (choco != null)
                 {
                     var packagesToRemove = new List<LogicalProcessArgument>();
@@ -145,7 +179,14 @@
             else if (OperatingSystem.IsMacOS())
             {
                 // Make sure Homebrew is installed so we can automate install/upgrade of Git.
-                var brew = await _pathResolver.ResolveBinaryPath("brew").ConfigureAwait(false);
+                string? brew = null;
+                try
+                {
+                    brew = await _pathResolver.ResolveBinaryPath("brew").ConfigureAwait(false);
+                }
+                catch (FileNotFoundException)
+                {
+                }
                 if (brew == null)
                 {
                     _logger.LogInformation("Skipping automatic upgrade/install of Git because Homebrew is not installed.");
@@ -217,7 +258,14 @@
         private async Task EnsureGitIsNewEnoughVersionAsync()
         {
             // Ensure Git is installed at all.
-            var git = await _pathResolver.ResolveBinaryPath("git.exe").ConfigureAwait(false);
+            string? git = null;
+            try
+            {
+                git = await _pathResolver.ResolveBinaryPath("git").ConfigureAwait(false);
+            }
+            catch (FileNotFoundException)
+            {
+            }
             if (git == null)
             {
                 throw new InvalidOperationException($"Git is not currently installed, and could not be installed by UET. Please install it before running UET on build servers, or ensure that UET is running with administrative privileges.");
