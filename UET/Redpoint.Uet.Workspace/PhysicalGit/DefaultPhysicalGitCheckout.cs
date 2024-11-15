@@ -19,6 +19,7 @@
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using System.Security.Principal;
 
     internal class DefaultPhysicalGitCheckout : IPhysicalGitCheckout
     {
@@ -30,6 +31,7 @@
         private readonly IReservationManagerFactory _reservationManagerFactory;
         private readonly IWorldPermissionApplier _worldPermissionApplier;
         private readonly ConcurrentDictionary<string, IReservationManager> _sharedReservationManagers;
+        private readonly IGlobalMutexReservationManager _globalMutexReservationManager;
 
         public DefaultPhysicalGitCheckout(
             ILogger<DefaultPhysicalGitCheckout> logger,
@@ -48,6 +50,205 @@
             _reservationManagerFactory = reservationManagerFactory;
             _worldPermissionApplier = worldPermissionApplier;
             _sharedReservationManagers = new ConcurrentDictionary<string, IReservationManager>();
+            _globalMutexReservationManager = _reservationManagerFactory.CreateGlobalMutexReservationManager();
+        }
+
+        /// <summary>
+        /// Upgrades the system-wide version of Git if necessary.
+        /// </summary>
+        private async Task UpgradeSystemWideGitIfPossibleAsync()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                // Make sure we're an Administrator.
+                var isAdministrator = false;
+                using (var identity = WindowsIdentity.GetCurrent())
+                {
+                    var principal = new WindowsPrincipal(identity);
+                    isAdministrator = principal.IsInRole(WindowsBuiltInRole.Administrator);
+                }
+                if (!isAdministrator)
+                {
+                    _logger.LogInformation("Skipping automatic upgrade/install of Git because this process is not running as an Administrator.");
+                    return;
+                }
+
+                // Make sure WinGet is available so we can automate install/upgrade of Git.
+                var winget = await _pathResolver.ResolveBinaryPath("winget.exe").ConfigureAwait(false);
+                if (winget == null)
+                {
+                    _logger.LogInformation("Skipping automatic upgrade/install of Git because WinGet is not available.");
+                    return;
+                }
+
+                // If Chocolatey is installed, remove any version of Git that Chocolatey has previously installed because we'll manage it with WinGet from here on out.
+                var choco = await _pathResolver.ResolveBinaryPath("choco.exe").ConfigureAwait(false);
+                if (choco != null)
+                {
+                    var packagesToRemove = new List<LogicalProcessArgument>();
+                    if (Directory.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "chocolatey", "lib", "git")))
+                    {
+                        packagesToRemove.Add("git");
+                    }
+                    if (Directory.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "chocolatey", "lib", "git.install")))
+                    {
+                        packagesToRemove.Add("git.install");
+                    }
+                    if (Directory.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "chocolatey", "lib", "git.portable")))
+                    {
+                        packagesToRemove.Add("git.portable");
+                    }
+
+                    if (packagesToRemove.Count > 0)
+                    {
+                        _logger.LogInformation("Removing any version of Git that is managed by Chocolatey...");
+                        await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = winget,
+                                Arguments = new LogicalProcessArgument[]
+                                {
+                                    "uninstall",
+                                    "-r",
+                                    "-y",
+                                }.Concat(packagesToRemove)
+                            },
+                            CaptureSpecification.Passthrough,
+                            CancellationToken.None).ConfigureAwait(false);
+                    }
+                }
+
+                // Make sure Git is up-to-date.
+                await using (await _globalMutexReservationManager.TryReserveExactAsync("GitUpgrade").ConfigureAwait(false))
+                {
+                    _logger.LogInformation("Ensuring Git is up-to-date...");
+                    await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = winget,
+                            Arguments = [
+                                "install",
+                                "--id",
+                                "Microsoft.Git",
+                                "-h",
+                                "--disable-interactivity",
+                                "--accept-source-agreements",
+                                "--authentication-mode",
+                                "silent",
+                                "--uninstall-previous",
+                            ]
+                        },
+                        CaptureSpecification.Passthrough,
+                        CancellationToken.None).ConfigureAwait(false);
+                }
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                // Make sure Homebrew is installed so we can automate install/upgrade of Git.
+                var brew = await _pathResolver.ResolveBinaryPath("brew").ConfigureAwait(false);
+                if (brew == null)
+                {
+                    _logger.LogInformation("Skipping automatic upgrade/install of Git because Homebrew is not installed.");
+                    return;
+                }
+
+                // Make sure Git is up-to-date.
+                await using (await _globalMutexReservationManager.TryReserveExactAsync("GitUpgrade").ConfigureAwait(false))
+                {
+                    _logger.LogInformation("Ensuring Git is up-to-date...");
+                    await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = brew,
+                            Arguments = [
+                                "upgrade",
+                                File.Exists("/opt/homebrew/bin/git") ? "upgrade" : "install"
+                            ]
+                        },
+                        CaptureSpecification.Passthrough,
+                        CancellationToken.None).ConfigureAwait(false);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Ensures that the directory we potentially installed Git to in UpgradeSystemWideGitIfPossibleAsync is on the process's current PATH variable.
+        /// </summary>
+        private Task EnsureGitIsOnProcessPATH()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                var targetPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    "Git",
+                    "cmd");
+                if (File.Exists(Path.Combine(targetPath, "git.exe")))
+                {
+                    var path = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty).Split(';').ToList();
+                    if (!path.Contains(targetPath))
+                    {
+                        _logger.LogInformation($"Adding '{targetPath}' to process PATH as it is not currently present.");
+                        path.Insert(0, targetPath);
+                        Environment.SetEnvironmentVariable("PATH", string.Join(';', path));
+                    }
+                }
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                var targetPath = "/opt/homebrew/bin";
+                if (File.Exists(Path.Combine(targetPath, "git")))
+                {
+                    var path = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty).Split(':').ToList();
+                    if (!path.Contains(targetPath))
+                    {
+                        _logger.LogInformation($"Adding '{targetPath}' to process PATH as it is not currently present.");
+                        path.Insert(0, targetPath);
+                        Environment.SetEnvironmentVariable("PATH", string.Join(':', path));
+                    }
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Ensures that Git is currently a new enough version for UET to use.
+        /// </summary>
+        private async Task EnsureGitIsNewEnoughVersionAsync()
+        {
+            // Ensure Git is installed at all.
+            var git = await _pathResolver.ResolveBinaryPath("git.exe").ConfigureAwait(false);
+            if (git == null)
+            {
+                throw new InvalidOperationException($"Git is not currently installed, and could not be installed by UET. Please install it before running UET on build servers, or ensure that UET is running with administrative privileges.");
+            }
+
+            // Run --version to get the full version string.
+            var stdout = new StringBuilder();
+            await _processExecutor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = git,
+                    Arguments = ["--version"],
+                },
+                CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
+                CancellationToken.None).ConfigureAwait(false);
+
+            // Get the version number component.
+            var versionNumber = new Regex(" ([0-9]+)\\.([0-9]+)\\.[0-9]").Match(stdout.ToString());
+            if (versionNumber.Success && versionNumber.Groups.Count >= 3 &&
+                int.TryParse(versionNumber.Groups[1].Value, out var major) &&
+                int.TryParse(versionNumber.Groups[2].Value, out var minor))
+            {
+                if (major < 2 || (major == 2 && minor < 46))
+                {
+                    throw new InvalidOperationException($"This version of Git is too old. UET requires at least Git 2.46.0. Please upgrade Git on this machine, or ensure that UET is running with administrative privileges.");
+                }
+            }
+            else
+            {
+                _logger.LogWarning($"Unable to determine Git version from version string '{stdout.ToString()}'.");
+            }
         }
 
         /// <summary>
@@ -1549,6 +1750,15 @@
                 EnableLfsSupport = descriptor.BuildType != GitWorkspaceDescriptorBuildType.Engine,
                 EnableSubmoduleSupport = descriptor.BuildType == GitWorkspaceDescriptorBuildType.Generic,
             };
+
+            // Automatically upgrade Git if needed.
+            await UpgradeSystemWideGitIfPossibleAsync().ConfigureAwait(false);
+
+            // Ensure Git is on our PATH (this fixes up the PATH variable if we just installed Git via UpgradeSystemWideGitIfPossibleAsync).
+            await EnsureGitIsOnProcessPATH().ConfigureAwait(false);
+
+            // Ensure Git is new enough.
+            await EnsureGitIsNewEnoughVersionAsync().ConfigureAwait(false);
 
             // Initialize the Git repository if needed.
             await InitGitWorkspaceIfNeededAsync(repositoryPath, descriptor, gitContext, cancellationToken).ConfigureAwait(false);
