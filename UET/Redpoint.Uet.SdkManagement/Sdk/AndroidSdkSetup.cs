@@ -28,8 +28,10 @@
 
         // @note: Gradle is always backwards compatible to Java 8, but is not forward compatible with newer JDK versions.
         // Therefore we have to pick a JDK version that will be usable by the Gradle that Unreal wants to use.
-        private const string _jdkVersion = "jdk-11.0.19+7";
-        private const string _jdkDownloadUrl = "https://aka.ms/download-jdk/microsoft-jdk-11.0.19-windows-x64.zip";
+        //
+        // JDK 17 required by Unreal Engine 5.5.
+        private const string _jdkVersion = "jdk-17.0.13+11";
+        private const string _jdkDownloadUrl = "https://aka.ms/download-jdk/microsoft-jdk-17.0.13-windows-x64.zip";
 
         public IReadOnlyList<string> PlatformNames => new[] { "Android" };
 
