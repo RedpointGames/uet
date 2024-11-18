@@ -140,9 +140,19 @@
                     var script =
                         """
                         if ($null -eq (Get-InstalledModule -ErrorAction SilentlyContinue -Name Microsoft.WinGet.Client)) {
+                            Write-Host "Installing WinGet PowerShell module because it's not currently installed...";
                             Install-Module -Name Microsoft.WinGet.Client -Force;
                         }
-                        Install-WinGetPackage -Id Microsoft.Git -Mode Silent;
+                        $InstalledPackage = (Get-WinGetPackage -Id Microsoft.Git -ErrorAction SilentlyContinue);
+                        if ($null -eq $InstalledPackage) {
+                            Write-Host "Installing Git because it's not currently installed...";
+                            Install-WinGetPackage -Id Microsoft.Git -Mode Silent;
+                            exit 0;
+                        } else if ($InstalledPackage.Version -ne (Find-WinGetPackage -Id Microsoft.Git).Version) {
+                            Write-Host "Updating Git because it's not the latest version...";
+                            Update-WinGetPackage -Id Microsoft.Git -Mode Silent;
+                            exit 0;
+                        }
                         """;
                     var encodedScript = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
 
@@ -152,6 +162,8 @@
                             FilePath = pwsh,
                             Arguments = [
                                 "-NonInteractive",
+                                "-OutputFormat",
+                                "Text",
                                 "-EncodedCommand",
                                 encodedScript,
                             ]
@@ -187,7 +199,8 @@
                             FilePath = brew,
                             Arguments = [
                                 "upgrade",
-                                File.Exists("/opt/homebrew/bin/git") ? "upgrade" : "install"
+                                File.Exists("/opt/homebrew/bin/git") ? "upgrade" : "install",
+                                "git",
                             ]
                         },
                         CaptureSpecification.Passthrough,
