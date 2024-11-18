@@ -148,7 +148,7 @@
                             Write-Host "Installing Git because it's not currently installed...";
                             Install-WinGetPackage -Id Microsoft.Git -Mode Silent;
                             exit 0;
-                        } else if ($InstalledPackage.Version -ne (Find-WinGetPackage -Id Microsoft.Git).Version) {
+                        } elseif ($InstalledPackage.Version -ne (Find-WinGetPackage -Id Microsoft.Git).Version) {
                             Write-Host "Updating Git because it's not the latest version...";
                             Update-WinGetPackage -Id Microsoft.Git -Mode Silent;
                             exit 0;
