@@ -139,7 +139,9 @@
                     _logger.LogInformation("Ensuring Git is up-to-date...");
                     var script =
                         """
-                        Install-Module -Name Microsoft.WinGet.Client -Force;
+                        if ($null -eq (Get-InstalledModule -ErrorAction SilentlyContinue -Name Microsoft.WinGet.Client)) {
+                            Install-Module -Name Microsoft.WinGet.Client -Force;
+                        }
                         Install-WinGetPackage -Id Microsoft.Git -Mode Silent;
                         """;
                     var encodedScript = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
