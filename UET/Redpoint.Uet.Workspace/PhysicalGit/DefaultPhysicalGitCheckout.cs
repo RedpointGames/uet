@@ -198,7 +198,6 @@
                         {
                             FilePath = brew,
                             Arguments = [
-                                "upgrade",
                                 File.Exists("/opt/homebrew/bin/git") ? "upgrade" : "install",
                                 "git",
                             ]
