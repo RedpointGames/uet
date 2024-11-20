@@ -345,6 +345,19 @@
             return ($"__SHARED_STORAGE_PATH__/{nodeFilename}", $"__SHARED_STORAGE_PATH__/{macroFilename}");
         }
 
+        private static bool IsUnrealEngine4(string enginePath)
+        {
+            var buildVersionFilePath = Path.Combine(enginePath, "Engine", "Build", "Build.version");
+            if (File.Exists(buildVersionFilePath))
+            {
+                if (File.ReadAllText(buildVersionFilePath).Contains("UE4", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public async Task<BuildSpecification> BuildConfigPluginToBuildSpecAsync(
             BuildEngineSpecification engineSpec,
             BuildGraphEnvironment buildGraphEnvironment,
@@ -359,7 +372,8 @@
             bool localExecutor,
             bool isPluginRooted,
             string? commandlinePluginVersionName,
-            long? commandlinePluginVersionNumber)
+            long? commandlinePluginVersionNumber,
+            bool legacy)
         {
             // Determine build matrix.
             var editorTargetPlatforms = FilterIncompatiblePlatforms((distribution.Build.Editor?.Platforms ?? new[] { BuildConfigPluginBuildEditorPlatform.Win64 }).Select(x =>
@@ -526,7 +540,7 @@
                     { "ScriptMacroIncludes", scriptMacroIncludes },
 
                     // General options
-                    { "IsUnrealEngine5", "true" },
+                    { "IsUnrealEngine5", legacy ? "false" : "true" },
 
                     // Clean options
                     { $"CleanDirectories", string.Join(";", cleanDirectories) },
@@ -543,7 +557,7 @@
                     { $"MacPlatforms", $"IOS;Mac" },
                     { $"StrictIncludes", strictIncludes || strictIncludesAtPluginLevel ? "true" : "false" },
                     { $"Allow2019", "false" },
-                    { $"EnginePrefix", "Unreal" },
+                    { $"EnginePrefix", legacy ? "UE4" : "Unreal" },
 
                     // Package options
                     { $"ExecutePackage", executePackage ? "true" : "false" },
