@@ -12,6 +12,13 @@
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.Core\Redpoint.Uet.Core.csproj" />
     <ProjectReference Include="..\Redpoint.Windows.HandleManagement\Redpoint.Windows.HandleManagement.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.Patching.Runtime\Redpoint.Uet.Patching.Runtime.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\Redpoint.Uet.Patching.Runtime\bin\$(Configuration)\$(TargetFramework)\*.dll">
+      <Link>Embedded\%(Filename)%(Extension)</Link>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>
