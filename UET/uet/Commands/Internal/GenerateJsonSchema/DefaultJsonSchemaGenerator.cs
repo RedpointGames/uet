@@ -105,9 +105,12 @@
 
         private void GenerateSchemaForObject(Utf8JsonWriter writer, JsonTypeInfo jsonTypeInfo, JsonSerializerContext jsonTypeInfoResolver)
         {
+            var isDynamicObject = jsonTypeInfo.Type.IsConstructedGenericType &&
+                (jsonTypeInfo.Type.GetGenericTypeDefinition() == typeof(BuildConfigDynamic<,>) ||
+                 jsonTypeInfo.Type.GetGenericTypeDefinition() == typeof(BuildConfigPredefinedDynamic<,,>));
+
             var properties = jsonTypeInfo.Properties;
-            if (jsonTypeInfo.Type.IsConstructedGenericType &&
-                jsonTypeInfo.Type.GetGenericTypeDefinition() == typeof(BuildConfigDynamic<,>))
+            if (isDynamicObject)
             {
                 // Exclude dynamically driven properties for BuildConfigDynamic.
                 properties = properties.Where(x => x.Name != "DynamicSettings" && x.Name != "Type").ToList();
@@ -147,8 +150,7 @@
                 properties);
 
             // Write out all the possible values of Type.
-            if (jsonTypeInfo.Type.IsConstructedGenericType &&
-                jsonTypeInfo.Type.GetGenericTypeDefinition() == typeof(BuildConfigDynamic<,>))
+            if (isDynamicObject)
             {
                 var dynamicProviderType = typeof(IDynamicProvider<,>)
                     .MakeGenericType(jsonTypeInfo.Type.GetGenericArguments());
@@ -246,8 +248,7 @@
                 }
                 writer.WriteEndArray();
             }
-            else if (jsonTypeInfo.Type.IsConstructedGenericType &&
-                jsonTypeInfo.Type.GetGenericTypeDefinition() == typeof(BuildConfigDynamic<,>))
+            else if (isDynamicObject)
             {
                 writer.WritePropertyName("allOf");
                 writer.WriteStartArray();
