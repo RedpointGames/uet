@@ -7,6 +7,7 @@
         Task WriteBuildGraphNodeInclude(
             Stream stream,
             bool filterHostToCurrentPlatformOnly,
+            object buildConfig,
             object buildConfigDistribution,
             bool executeTests,
             bool executeDeployment);
@@ -14,6 +15,7 @@
         Task WriteBuildGraphMacroInclude(
             Stream stream,
             bool filterHostToCurrentPlatformOnly,
+            object buildConfig,
             object buildConfigDistribution);
     }
 }

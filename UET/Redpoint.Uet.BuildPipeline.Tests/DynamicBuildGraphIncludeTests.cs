@@ -52,6 +52,7 @@
                 await writer.WriteBuildGraphNodeInclude(
                     memory,
                     false,
+                    new BuildConfigPlugin(),
                     new BuildConfigPluginDistribution
                     {
                         Name = "Test",

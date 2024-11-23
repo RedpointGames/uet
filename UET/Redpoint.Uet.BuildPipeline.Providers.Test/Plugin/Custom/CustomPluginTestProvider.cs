@@ -22,7 +22,6 @@
 
         public IRuntimeJson DynamicSettings { get; } = new TestProviderRuntimeJson(TestProviderSourceGenerationContext.WithStringEnum).BuildConfigPluginTestCustom;
 
-
         public async Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,
             XmlWriter writer,

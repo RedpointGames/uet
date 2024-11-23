@@ -16,6 +16,7 @@
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
+    using UET.BuildConfig;
     using UET.Commands.Build;
     using UET.Commands.EngineSpec;
     using static Crayon.Output;
@@ -28,13 +29,14 @@
             public Option<PathSpec> Path;
 
             public Option<string> Prefix;
+            public Option<string> Name;
 
             public Options()
             {
                 Path = new Option<PathSpec>(
                     "--path",
-                    description: "The directory path that contains a .uproject file or a .uplugin file. BuildConfig.json files will be ignored for this command; if you need to run tests for a BuildConfig.json, use the 'build' command instead with the --test option.",
-                    parseArgument: result => PathSpec.ParsePathSpec(result, true),
+                    description: "The directory path that contains a .uproject file, .uplugin file or BuildConfig.json file.",
+                    parseArgument: result => PathSpec.ParsePathSpec(result, false),
                     isDefault: true);
                 Path.AddAlias("-p");
                 Path.Arity = ArgumentArity.ExactlyOne;
@@ -50,12 +52,34 @@
                 Prefix = new Option<string>(
                     "--prefix",
                     description: "The prefix for tests to run. If not set, defaults to either '<project name>.' or '<plugin name>.'.");
+
+                Name = new Option<string>(
+                    "--name",
+                    description: "When testing against a BuildConfig.json file, the name or short name of the predefined test to run.");
+                Name.AddAlias("-n");
             }
         }
 
         public static Command CreateTestCommand()
         {
-            var command = new Command("test", "Run automation tests in the editor for a project or plugin.");
+            var command = new Command("test", "Run tests in the editor for a project or plugin.")
+            {
+                FullDescription = """
+                This command runs tests for either an Unreal Engine project or plugin. The behaviour of this command depends on the arguments that you've passed to it and the current directory.
+
+                -------------
+
+                If this command is run in a directory with a .uproject or .uplugin file (but no BuildConfig.json file), this command runs automation tests against the Unreal Engine project or plugin using the editor binary for the current platform.
+
+                If you don't specify --prefix, all automation tests are run. This is usually a lot more tests than you want, so you should specify --prefix in most cases.
+
+                -------------
+
+                If this command is run in a directory with a BuildConfig.json file, where that BuildConfig.json file describes a plugin, you must specify --name.
+
+                The specified --name must match a test predefined in the 'Tests' section (outside of 'Distributions').
+                """
+            };
             command.AddServicedOptionsHandler<TestCommandInstance, Options>(
                 services =>
                 {
@@ -71,26 +95,30 @@
             private readonly IBuildSpecificationGenerator _buildSpecificationGenerator;
             private readonly LocalBuildExecutorFactory _localBuildExecutorFactory;
             private readonly IStringUtilities _stringUtilities;
+            private readonly IServiceProvider _serviceProvider;
 
             public TestCommandInstance(
                 ILogger<TestCommandInstance> logger,
                 Options options,
                 IBuildSpecificationGenerator buildSpecificationGenerator,
                 LocalBuildExecutorFactory localBuildExecutorFactory,
-                IStringUtilities stringUtilities)
+                IStringUtilities stringUtilities,
+                IServiceProvider serviceProvider)
             {
                 _logger = logger;
                 _options = options;
                 _buildSpecificationGenerator = buildSpecificationGenerator;
                 _localBuildExecutorFactory = localBuildExecutorFactory;
                 _stringUtilities = stringUtilities;
+                _serviceProvider = serviceProvider;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
                 var engine = context.ParseResult.GetValueForOption(_options.Engine)!;
                 var path = context.ParseResult.GetValueForOption(_options.Path)!;
-                var prefix = context.ParseResult.GetValueForOption(_options.Prefix)!;
+                var prefix = context.ParseResult.GetValueForOption(_options.Prefix);
+                var name = context.ParseResult.GetValueForOption(_options.Name);
 
                 // @todo: Should we surface these options?
                 var windowsSharedStoragePath = Path.Combine(path.DirectoryPath, ".uet", "shared-storage");
@@ -113,6 +141,7 @@
                 _logger.LogInformation($"--engine:                      {engine}");
                 _logger.LogInformation($"--path:                        {path}");
                 _logger.LogInformation($"--prefix:                      {prefix}");
+                _logger.LogInformation($"--name:                        {name}");
 
                 BuildEngineSpecification engineSpec;
                 switch (engine.Type)
@@ -166,127 +195,214 @@
                     switch (path!.Type)
                     {
                         case PathSpecType.UProject:
-                            // Use heuristics to guess the targets for this build.
-                            string editorTarget;
-                            string gameTarget;
-                            if (Directory.Exists(Path.Combine(path.DirectoryPath, "Source")))
                             {
-                                var files = Directory.GetFiles(Path.Combine(path.DirectoryPath, "Source"), "*.Target.cs");
-                                editorTarget = files.Where(x => x.EndsWith("Editor.Target.cs", StringComparison.Ordinal)).Select(x => Path.GetFileName(x)).First();
-                                editorTarget = editorTarget[..editorTarget.LastIndexOf(".Target.cs", StringComparison.Ordinal)];
-                                gameTarget = editorTarget[..editorTarget.LastIndexOf("Editor", StringComparison.Ordinal)];
-                            }
-                            else
-                            {
-                                editorTarget = "UnrealEditor";
-                                gameTarget = "UnrealGame";
-                            }
-
-                            var buildConfigProject = new BuildConfigProject
-                            {
-                                Type = Redpoint.Uet.Configuration.BuildConfigType.Plugin,
-                                Distributions = new List<BuildConfigProjectDistribution>
+                                // Use heuristics to guess the targets for this build.
+                                string editorTarget;
+                                string gameTarget;
+                                if (Directory.Exists(Path.Combine(path.DirectoryPath, "Source")))
                                 {
-                                    new BuildConfigProjectDistribution
+                                    var files = Directory.GetFiles(Path.Combine(path.DirectoryPath, "Source"), "*.Target.cs");
+                                    editorTarget = files.Where(x => x.EndsWith("Editor.Target.cs", StringComparison.Ordinal)).Select(x => Path.GetFileName(x)).First();
+                                    editorTarget = editorTarget[..editorTarget.LastIndexOf(".Target.cs", StringComparison.Ordinal)];
+                                    gameTarget = editorTarget[..editorTarget.LastIndexOf("Editor", StringComparison.Ordinal)];
+                                }
+                                else
+                                {
+                                    editorTarget = "UnrealEditor";
+                                    gameTarget = "UnrealGame";
+                                }
+
+                                var buildConfigProject = new BuildConfigProject
+                                {
+                                    Type = BuildConfigType.Plugin,
+                                    Distributions = new List<BuildConfigProjectDistribution>
                                     {
-                                        Name = "Test",
-                                        ProjectName = Path.GetFileNameWithoutExtension(path.UProjectPath)!,
-                                        Build = new BuildConfigProjectBuild
+                                        new BuildConfigProjectDistribution
                                         {
-                                            Editor = new BuildConfigProjectBuildEditor
+                                            Name = "Test",
+                                            ProjectName = Path.GetFileNameWithoutExtension(path.UProjectPath)!,
+                                            Build = new BuildConfigProjectBuild
                                             {
-                                                Target = editorTarget,
-                                            }
-                                        },
-                                        Tests = new[]
-                                        {
-                                            new BuildConfigDynamic<BuildConfigProjectDistribution, ITestProvider>
-                                            {
-                                                Type = "Automation",
-                                                Name = "Test",
-                                                Manual = false,
-                                                DynamicSettings = new BuildConfigProjectTestAutomation
+                                                Editor = new BuildConfigProjectBuildEditor
                                                 {
-                                                    TestPrefix = prefix,
-                                                    TargetName = editorTarget,
+                                                    Target = editorTarget,
+                                                }
+                                            },
+                                            Tests = new[]
+                                            {
+                                                new BuildConfigDynamic<BuildConfigProjectDistribution, ITestProvider>
+                                                {
+                                                    Type = "Automation",
+                                                    Name = "Test",
+                                                    Manual = false,
+                                                    DynamicSettings = new BuildConfigProjectTestAutomation
+                                                    {
+                                                        TestPrefix = prefix ?? string.Empty,
+                                                        TargetName = editorTarget,
+                                                    }
                                                 }
                                             }
                                         }
                                     }
-                                }
-                            };
-                            buildSpec = await _buildSpecificationGenerator.BuildConfigProjectToBuildSpecAsync(
-                                engineSpec,
-                                buildGraphEnvironment,
-                                buildConfigProject.Distributions[0],
-                                repositoryRoot: path.DirectoryPath,
-                                executeBuild: true,
-                                executeTests: true,
-                                executeDeployment: false,
-                                strictIncludes: false,
-                                localExecutor: true,
-                                alternateStagingDirectory: null).ConfigureAwait(false);
-                            break;
+                                };
+                                buildSpec = await _buildSpecificationGenerator.BuildConfigProjectToBuildSpecAsync(
+                                    engineSpec,
+                                    buildGraphEnvironment,
+                                    buildConfigProject,
+                                    buildConfigProject.Distributions[0],
+                                    repositoryRoot: path.DirectoryPath,
+                                    executeBuild: true,
+                                    executeTests: true,
+                                    executeDeployment: false,
+                                    strictIncludes: false,
+                                    localExecutor: true,
+                                    alternateStagingDirectory: null).ConfigureAwait(false);
+                                break;
+                            }
                         case PathSpecType.UPlugin:
-                            var buildConfigPlugin = new BuildConfigPlugin
                             {
-                                PluginName = Path.GetFileNameWithoutExtension(path.UPluginPath!),
-                                Type = Redpoint.Uet.Configuration.BuildConfigType.Plugin,
-                                Distributions = new List<BuildConfigPluginDistribution>
+                                var buildConfigPlugin = new BuildConfigPlugin
                                 {
-                                    new BuildConfigPluginDistribution
+                                    PluginName = Path.GetFileNameWithoutExtension(path.UPluginPath!),
+                                    Type = BuildConfigType.Plugin,
+                                    Distributions = new List<BuildConfigPluginDistribution>
                                     {
-                                        Name = "Test",
-                                        Build = new BuildConfigPluginBuild
+                                        new BuildConfigPluginDistribution
                                         {
-                                            Editor = new BuildConfigPluginBuildEditor
+                                            Name = "Test",
+                                            Build = new BuildConfigPluginBuild
                                             {
-                                                Platforms = new[]
-                                                {
-                                                    OperatingSystem.IsWindows()
-                                                        ? BuildConfigPluginBuildEditorPlatform.Win64
-                                                        : BuildConfigPluginBuildEditorPlatform.Mac
-                                                },
-                                            }
-                                        },
-                                        Tests = new[]
-                                        {
-                                            new BuildConfigDynamic<BuildConfigPluginDistribution, ITestProvider>
-                                            {
-                                                Type = "Automation",
-                                                Name = "Test",
-                                                Manual = false,
-                                                DynamicSettings = new BuildConfigPluginTestAutomation
+                                                Editor = new BuildConfigPluginBuildEditor
                                                 {
                                                     Platforms = new[]
                                                     {
                                                         OperatingSystem.IsWindows()
-                                                            ? BuildConfigHostPlatform.Win64
-                                                            : BuildConfigHostPlatform.Mac
+                                                            ? BuildConfigPluginBuildEditorPlatform.Win64
+                                                            : BuildConfigPluginBuildEditorPlatform.Mac
                                                     },
-                                                    TestPrefix = prefix,
+                                                }
+                                            },
+                                            Tests = new[]
+                                            {
+                                                new BuildConfigDynamic<BuildConfigPluginDistribution, ITestProvider>
+                                                {
+                                                    Type = "Automation",
+                                                    Name = "Test",
+                                                    Manual = false,
+                                                    DynamicSettings = new BuildConfigPluginTestAutomation
+                                                    {
+                                                        Platforms = new[]
+                                                        {
+                                                            OperatingSystem.IsWindows()
+                                                                ? BuildConfigHostPlatform.Win64
+                                                                : BuildConfigHostPlatform.Mac
+                                                        },
+                                                        TestPrefix = prefix ?? string.Empty,
+                                                    }
                                                 }
                                             }
                                         }
                                     }
+                                };
+                                buildSpec = await _buildSpecificationGenerator.BuildConfigPluginToBuildSpecAsync(
+                                    engineSpec,
+                                    buildGraphEnvironment,
+                                    buildConfigPlugin,
+                                    buildConfigPlugin.Distributions[0],
+                                    repositoryRoot: path.DirectoryPath,
+                                    executeBuild: true,
+                                    executePackage: true,
+                                    executeZip: true,
+                                    executeTests: true,
+                                    executeDeployment: false,
+                                    strictIncludes: false,
+                                    localExecutor: true,
+                                    isPluginRooted: true,
+                                    commandlinePluginVersionName: null,
+                                    commandlinePluginVersionNumber: null).ConfigureAwait(false);
+                                break;
+                            }
+                        case PathSpecType.BuildConfig:
+                            {
+                                var loadResult = BuildConfigLoader.TryLoad(
+                                    _serviceProvider,
+                                    Path.Combine(path.DirectoryPath, "BuildConfig.json"));
+                                if (!loadResult.Success)
+                                {
+                                    _logger.LogError(string.Join("\n", loadResult.ErrorList));
+                                    return 1;
                                 }
-                            };
-                            buildSpec = await _buildSpecificationGenerator.BuildConfigPluginToBuildSpecAsync(
-                                engineSpec,
-                                buildGraphEnvironment,
-                                buildConfigPlugin.Distributions[0],
-                                buildConfigPlugin,
-                                repositoryRoot: path.DirectoryPath,
-                                executeBuild: true,
-                                executePackage: true,
-                                executeTests: true,
-                                executeDeployment: false,
-                                strictIncludes: false,
-                                localExecutor: true,
-                                isPluginRooted: true,
-                                commandlinePluginVersionName: null,
-                                commandlinePluginVersionNumber: null).ConfigureAwait(false);
-                            break;
+                                if (loadResult.BuildConfig is BuildConfigPlugin buildConfigPlugin &&
+                                    buildConfigPlugin.Tests != null)
+                                {
+                                    var test = buildConfigPlugin.Tests.FirstOrDefault(
+                                        t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
+                                            || (t.ShortName != null && t.ShortName.Equals(name, StringComparison.OrdinalIgnoreCase)));
+                                    if (test == null)
+                                    {
+                                        _logger.LogError($"This BuildConfig.json does not have a predefined test with a name or short name that matches '{name}'.");
+                                        return 1;
+                                    }
+
+                                    // Now we make a synthetic BuildConfig.json file with a synthetic distribution that
+                                    // specifies the dependencies correctly.
+                                    var syntheticBuildConfigPlugin = new BuildConfigPlugin
+                                    {
+                                        PluginName = buildConfigPlugin.PluginName,
+                                        Type = BuildConfigType.Plugin,
+                                        Copyright = buildConfigPlugin.Copyright,
+                                        Distributions = new List<BuildConfigPluginDistribution>
+                                        {
+                                            new BuildConfigPluginDistribution
+                                            {
+                                                Name = "Test",
+                                                EnvironmentVariables = test.Dependencies?.EnvironmentVariables,
+                                                Package = test.Dependencies?.Package ?? new BuildConfigPluginPackage
+                                                {
+                                                },
+                                                Build = test.Dependencies?.Build ?? new BuildConfigPluginBuild
+                                                {
+                                                    Editor = new BuildConfigPluginBuildEditor
+                                                    {
+                                                        Platforms = new[]
+                                                        {
+                                                            OperatingSystem.IsWindows()
+                                                                ? BuildConfigPluginBuildEditorPlatform.Win64
+                                                                : BuildConfigPluginBuildEditorPlatform.Mac
+                                                        },
+                                                    }
+                                                },
+                                                Tests =
+                                                [
+                                                    test
+                                                ]
+                                            }
+                                        }
+                                    };
+                                    buildSpec = await _buildSpecificationGenerator.BuildConfigPluginToBuildSpecAsync(
+                                        engineSpec,
+                                        buildGraphEnvironment,
+                                        syntheticBuildConfigPlugin,
+                                        syntheticBuildConfigPlugin.Distributions[0],
+                                        repositoryRoot: path.DirectoryPath,
+                                        executeBuild: true,
+                                        executePackage: true,
+                                        executeZip: false,
+                                        executeTests: true,
+                                        executeDeployment: false,
+                                        strictIncludes: false,
+                                        localExecutor: true,
+                                        isPluginRooted: false,
+                                        commandlinePluginVersionName: null,
+                                        commandlinePluginVersionNumber: null).ConfigureAwait(false);
+                                }
+                                else
+                                {
+                                    _logger.LogError("This type of BuildConfig.json file is not supported.");
+                                    return 1;
+                                }
+                                break;
+                            }
                         default:
                             throw new NotSupportedException();
                     }

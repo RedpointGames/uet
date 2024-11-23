@@ -34,6 +34,7 @@
 
   <!-- Package options -->
   <Option Name="ExecutePackage" Restrict="true|false" DefaultValue="true" Description="If false, the default Create Package and Zip Plugin steps are not run" />
+  <Option Name="ExecuteZip" Restrict="true|false" DefaultValue="true" Description="If false, the Create Package step will not generate a .zip file" />
   <Option Name="VersionNumber" Restrict="[0-9]+" DefaultValue="10000" Description="The version number to embed in the packaged .uplugin file" />
   <Option Name="VersionName" Restrict="[^ ]+" DefaultValue="Unversioned" Description="The version name to embed in the packaged .uplugin file" />
   <Option Name="PackageFolder" Restrict="[^ ]+" DefaultValue="Packaged" Description="The folder to place the packaged plugin in" />
@@ -606,7 +607,9 @@ $(PackageExclude);
       OutputTag="#PackagedPlugin"
       If="'$(ExecutePackage)' == 'true'"
     />
-    <Agent Name="Zip Plugin (Create Final Package)" Type="Win64">
+    <Property Name="PackageTasks" Value="$(PackageTasks)#PackagedPlugin;" />
+
+    <Agent Name="Zip Plugin (Create Final Package)" Type="Win64" If="'$(ExecuteZip)' == 'true'">
       <Node Name="Zip Plugin" Requires="#PackagedPlugin" Produces="#PackagedZip">
         <Delete Files="$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip" />
         <Zip
@@ -617,7 +620,7 @@ $(PackageExclude);
       />
       </Node>
     </Agent>
-    <Property Name="PackageTasks" Value="$(PackageTasks)#PackagedZip;#PackagedPlugin;" />
+    <Property Name="PackageTasks" Value="$(PackageTasks)#PackagedZip;" If="'$(ExecuteZip)' == 'true'" />
   </Do>
 
   <!-- 

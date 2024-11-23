@@ -163,6 +163,7 @@
                 {
                     writer.WriteStringValue(type);
                 }
+                writer.WriteStringValue(BuildConfigConstants.Predefined);
                 writer.WriteEndArray();
             }
 
@@ -278,6 +279,7 @@
                     writer.WriteEndArray();
                     writer.WritePropertyName("properties");
                     writer.WriteStartObject();
+                    writer.WriteBoolean(BuildConfigConstants.Predefined, false);
                     foreach (var otherProvider in providers.Where(x => ((IDynamicProviderRegistration)x).Type != ((IDynamicProviderRegistration)type).Type))
                     {
                         writer.WriteBoolean(((IDynamicProviderRegistration)otherProvider).Type, false);
@@ -302,6 +304,39 @@
                         }
                         writer.WriteEndArray();
                     }
+                    writer.WriteEndObject();
+                    writer.WriteEndObject();
+                    writer.WriteEndObject();
+                    writer.WriteEndObject();
+                }
+                {
+                    writer.WriteStartObject();
+                    writer.WritePropertyName("if");
+                    writer.WriteStartObject();
+                    writer.WritePropertyName("properties");
+                    writer.WriteStartObject();
+                    writer.WritePropertyName("Type");
+                    writer.WriteStartObject();
+                    writer.WriteString("const", BuildConfigConstants.Predefined);
+                    writer.WriteEndObject();
+                    writer.WriteEndObject();
+                    writer.WriteEndObject();
+                    writer.WritePropertyName("then");
+                    writer.WriteStartObject();
+                    writer.WritePropertyName("required");
+                    writer.WriteStartArray();
+                    writer.WriteStringValue(BuildConfigConstants.Predefined);
+                    writer.WriteEndArray();
+                    writer.WritePropertyName("properties");
+                    writer.WriteStartObject();
+                    foreach (var otherProvider in providers)
+                    {
+                        writer.WriteBoolean(((IDynamicProviderRegistration)otherProvider).Type, false);
+                    }
+                    writer.WritePropertyName(BuildConfigConstants.Predefined);
+                    writer.WriteStartObject();
+                    writer.WriteString("type", "string");
+                    writer.WriteString("description", "The predefined name defined earlier in configuration.");
                     writer.WriteEndObject();
                     writer.WriteEndObject();
                     writer.WriteEndObject();

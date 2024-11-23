@@ -128,6 +128,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
                     { $"Allow2019", $"false" },
                     { $"EnginePrefix", $"Unreal" },
                     { $"ExecutePackage", $"false" },
+                    { $"ExecuteZip", $"false" },
                     { $"VersionNumber", $"10000" },
                     { $"VersionName", $"2023.05.17" },
                     { $"PackageName", $"Packaged" },

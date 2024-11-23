@@ -12,6 +12,7 @@
         Task<BuildSpecification> BuildConfigProjectToBuildSpecAsync(
             BuildEngineSpecification engineSpec,
             BuildGraphEnvironment buildGraphEnvironment,
+            BuildConfigProject buildConfig,
             BuildConfigProjectDistribution distribution,
             string repositoryRoot,
             bool executeBuild,
@@ -24,11 +25,12 @@
         Task<BuildSpecification> BuildConfigPluginToBuildSpecAsync(
             BuildEngineSpecification engineSpec,
             BuildGraphEnvironment buildGraphEnvironment,
+            BuildConfigPlugin buildConfig,
             BuildConfigPluginDistribution distribution,
-            BuildConfigPlugin pluginInfo,
             string repositoryRoot,
             bool executeBuild,
             bool executePackage,
+            bool executeZip,
             bool executeTests,
             bool executeDeployment,
             bool strictIncludes,
