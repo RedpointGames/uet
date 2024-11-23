@@ -24,6 +24,7 @@
         /// <summary>
         /// If set, this will be emitted as a manual job on build servers. Only applies to deployments. Defaults to false.
         /// </summary>
+        [JsonPropertyName("Manual")]
         public bool? Manual { get; set; }
 
         /// <summary>

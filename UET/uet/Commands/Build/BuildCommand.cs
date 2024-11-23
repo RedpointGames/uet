@@ -476,6 +476,7 @@
                                     buildSpec = await _buildSpecificationGenerator.BuildConfigProjectToBuildSpecAsync(
                                         engineSpec,
                                         buildGraphEnvironment,
+                                        (BuildConfigProject)distribution.BuildConfig,
                                         projectDistribution,
                                         repositoryRoot: path.DirectoryPath,
                                         executeBuild: true,
@@ -495,11 +496,12 @@
                                     buildSpec = await _buildSpecificationGenerator.BuildConfigPluginToBuildSpecAsync(
                                         engineSpec,
                                         buildGraphEnvironment,
-                                        pluginDistribution,
                                         (BuildConfigPlugin)distribution.BuildConfig,
+                                        pluginDistribution,
                                         repositoryRoot: path.DirectoryPath,
                                         executeBuild: true,
                                         executePackage: true,
+                                        executeZip: true,
                                         executeTests: test,
                                         executeDeployment: deploy,
                                         strictIncludes: strictIncludes,

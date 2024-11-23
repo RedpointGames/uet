@@ -80,9 +80,41 @@
             XmlWriter writer,
             TDistribution buildConfigDistribution,
             IDynamicProvider<TDistribution, TBaseClass>[] providers,
-            BuildConfigDynamic<TDistribution, TBaseClass>[] dynamicSettings)
+            BuildConfigDynamic<TDistribution, TBaseClass>[] dynamicSettings,
+            BuildConfigDynamic<TDistribution, TBaseClass>[] predefinedDynamicSettings)
         {
-            foreach (var byType in dynamicSettings.GroupBy(x => x.Type))
+            var predefinedDynamicSettingsLookup = predefinedDynamicSettings == null
+                ? new Dictionary<string, BuildConfigDynamic<TDistribution, TBaseClass>>()
+                : predefinedDynamicSettings.ToDictionary(k => k.Name, v => v);
+
+            var resolvedDynamicSettings = new List<BuildConfigDynamic<TDistribution, TBaseClass>>();
+            foreach (var dynamicSetting in dynamicSettings)
+            {
+                if (dynamicSetting.Type == BuildConfigConstants.Predefined)
+                {
+                    if (dynamicSetting.DynamicSettings is string predefinedName)
+                    {
+                        if (predefinedDynamicSettingsLookup.TryGetValue(predefinedName, out var resolvedDynamicSetting))
+                        {
+                            resolvedDynamicSettings.Add(resolvedDynamicSetting);
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException($"Entry '{dynamicSetting.Name}' refers to predefined entry by name '{predefinedName}', but no such predefined entry is available.");
+                        }
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"Entry '{dynamicSetting.Name}' has invalid 'Predefined' value; it should be a string value.");
+                    }
+                }
+                else
+                {
+                    resolvedDynamicSettings.Add(dynamicSetting);
+                }
+            }
+
+            foreach (var byType in resolvedDynamicSettings.GroupBy(x => x.Type))
             {
                 var provider = providers.First(x => x.Type == byType.Key);
                 await provider.WriteBuildGraphNodesAsync(
@@ -96,6 +128,7 @@
         public async Task WriteBuildGraphNodeInclude(
             Stream stream,
             bool filterHostToCurrentPlatformOnly,
+            object buildConfig,
             object buildConfigDistribution,
             bool executeTests,
             bool executeDeployment)
@@ -124,7 +157,10 @@
                             writer,
                             pluginDistribution,
                             _pluginTests,
-                            pluginDistribution.Tests).ConfigureAwait(false);
+                            pluginDistribution.Tests,
+                            buildConfig is BuildConfigPlugin buildConfigPlugin && buildConfigPlugin.Tests != null
+                                ? buildConfigPlugin.Tests
+                                : []).ConfigureAwait(false);
                     }
 
                     if (pluginDistribution.Deployment != null && executeDeployment)
@@ -134,7 +170,8 @@
                             writer,
                             pluginDistribution,
                             _pluginDeployments,
-                            pluginDistribution.Deployment).ConfigureAwait(false);
+                            pluginDistribution.Deployment,
+                            []).ConfigureAwait(false);
                     }
                 }
                 else if (buildConfigDistribution is BuildConfigProjectDistribution projectDistribution)
@@ -146,7 +183,8 @@
                             writer,
                             projectDistribution,
                             _projectTests,
-                            projectDistribution.Tests).ConfigureAwait(false);
+                            projectDistribution.Tests,
+                            []).ConfigureAwait(false);
                     }
 
                     if (projectDistribution.Deployment != null && executeDeployment)
@@ -156,7 +194,8 @@
                             writer,
                             projectDistribution,
                             _projectDeployments,
-                            projectDistribution.Deployment).ConfigureAwait(false);
+                            projectDistribution.Deployment,
+                            []).ConfigureAwait(false);
                     }
                 }
                 else
@@ -172,6 +211,7 @@
         public async Task WriteBuildGraphMacroInclude(
             Stream stream,
             bool filterHostToCurrentPlatformOnly,
+            object buildConfig,
             object buildConfigDistribution)
         {
             var emitContext = new BuildGraphEmitContext(
@@ -198,7 +238,8 @@
                             writer,
                             pluginDistribution,
                             _pluginPrepare,
-                            pluginDistribution.Prepare).ConfigureAwait(false);
+                            pluginDistribution.Prepare,
+                            []).ConfigureAwait(false);
                     }
                 }
                 else if (buildConfigDistribution is BuildConfigProjectDistribution projectDistribution)
@@ -210,7 +251,8 @@
                             writer,
                             projectDistribution,
                             _projectPrepare,
-                            projectDistribution.Prepare).ConfigureAwait(false);
+                            projectDistribution.Prepare,
+                            []).ConfigureAwait(false);
                     }
                 }
                 else

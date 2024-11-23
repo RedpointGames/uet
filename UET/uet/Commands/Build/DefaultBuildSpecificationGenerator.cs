@@ -310,6 +310,7 @@
         private async Task<(string nodeInclude, string macroInclude)> WriteDynamicBuildGraphIncludeAsync(
             BuildGraphEnvironment env,
             bool localExecutor,
+            object buildConfig,
             object distribution,
             bool executeTests,
             bool executeDeployment)
@@ -327,6 +328,7 @@
                 await _dynamicBuildGraphIncludeWriter.WriteBuildGraphNodeInclude(
                     stream,
                     localExecutor,
+                    buildConfig,
                     distribution,
                     executeTests,
                     executeDeployment).ConfigureAwait(false);
@@ -338,6 +340,7 @@
                 await _dynamicBuildGraphIncludeWriter.WriteBuildGraphMacroInclude(
                     stream,
                     localExecutor,
+                    buildConfig,
                     distribution).ConfigureAwait(false);
             }
             await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(sharedStorageAbsolutePath, macroFilename), CancellationToken.None).ConfigureAwait(false);
@@ -348,11 +351,12 @@
         public async Task<BuildSpecification> BuildConfigPluginToBuildSpecAsync(
             BuildEngineSpecification engineSpec,
             BuildGraphEnvironment buildGraphEnvironment,
-            BuildConfigPluginDistribution distribution,
             BuildConfigPlugin pluginInfo,
+            BuildConfigPluginDistribution distribution,
             string repositoryRoot,
             bool executeBuild,
             bool executePackage,
+            bool executeZip,
             bool executeTests,
             bool executeDeployment,
             bool strictIncludes,
@@ -448,6 +452,7 @@
             var (scriptNodeIncludes, scriptMacroIncludes) = await WriteDynamicBuildGraphIncludeAsync(
                 buildGraphEnvironment,
                 localExecutor,
+                pluginInfo,
                 distribution,
                 executeTests,
                 executeDeployment).ConfigureAwait(false);
@@ -547,6 +552,7 @@
 
                     // Package options
                     { $"ExecutePackage", executePackage ? "true" : "false" },
+                    { $"ExecuteZip", executeZip ? "true" : "false" },
                     { "VersionNumber", versionInfo.versionNumber },
                     { "VersionName", versionInfo.versionName },
                     { "PackageFolder", distribution.Package?.OutputFolderName ?? "Packaged" },
@@ -569,6 +575,7 @@
         public async Task<BuildSpecification> BuildConfigProjectToBuildSpecAsync(
             BuildEngineSpecification engineSpec,
             BuildGraphEnvironment buildGraphEnvironment,
+            BuildConfigProject buildConfig,
             BuildConfigProjectDistribution distribution,
             string repositoryRoot,
             bool executeBuild,
@@ -588,6 +595,7 @@
             var (scriptNodeIncludes, scriptMacroIncludes) = await WriteDynamicBuildGraphIncludeAsync(
                 buildGraphEnvironment,
                 localExecutor,
+                buildConfig,
                 distribution,
                 executeTests,
                 executeDeployment).ConfigureAwait(false);
@@ -746,6 +754,7 @@
 
                     // Package options
                     { $"ExecutePackage", package ? "true" : "false" },
+                    { $"ExecuteZip", "true" },
                     { "VersionNumber", versionInfo.versionNumber },
                     { "VersionName", versionInfo.versionName },
                     { "PackageFolder", packageType.ToString() },

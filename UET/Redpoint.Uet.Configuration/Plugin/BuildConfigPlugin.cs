@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.Configuration.Plugin
 {
+    using Redpoint.Uet.Configuration.Dynamic;
     using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
@@ -16,6 +17,13 @@
         /// </summary>
         [JsonPropertyName("Copyright"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public BuildConfigPluginCopyright? Copyright { get; set; }
+
+        /// <summary>
+        /// A list of predefined tests that you can use with `uet test` or in other "Tests" sections for distributions.
+        /// </summary>
+        [JsonPropertyName("Tests"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        public BuildConfigPredefinedDynamic<BuildConfigPluginDistribution, ITestProvider, BuildConfigPluginPredefinedTestDependencies>[]? Tests { get; set; }
 
         /// <summary>
         /// A list of distributions.
