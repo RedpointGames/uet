@@ -37,7 +37,8 @@
 
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
-            return await _versionNumberResolver.For<IMacVersionNumbers>(unrealEnginePath).GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
+            var versionNumber = await _versionNumberResolver.For<IMacVersionNumbers>(unrealEnginePath).GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
+            return $"{versionNumber}-iOS";
         }
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
@@ -222,6 +223,51 @@
             {
                 _logger.LogInformation($"Removing temporary .xip file to reduce disk space...");
                 File.Delete(xipPath);
+            }
+
+            // Perform first run.
+            _logger.LogInformation("Performing Xcode first-run...");
+            exitCode = await _processExecutor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = "/usr/bin/xcodebuild",
+                    Arguments = new LogicalProcessArgument[]
+                    {
+                        "-runFirstLaunch"
+                    },
+                    EnvironmentVariables = new Dictionary<string, string>
+                    {
+                        { "DEVELOPER_DIR", Path.Combine(sdkPackagePath, "Xcode.app") },
+                    }
+                },
+                CaptureSpecification.Passthrough,
+                cancellationToken).ConfigureAwait(false);
+            if (exitCode != 0)
+            {
+                throw new SdkSetupPackageGenerationFailedException("Xcode was unable to perform first-run launch.");
+            }
+
+            // Install iOS platform if needed.
+            _logger.LogInformation("Installing iOS platform...");
+            exitCode = await _processExecutor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = "/usr/bin/xcodebuild",
+                    Arguments = new LogicalProcessArgument[]
+                    {
+                        "-downloadPlatform",
+                        "iOS"
+                    },
+                    EnvironmentVariables = new Dictionary<string, string>
+                    {
+                        { "DEVELOPER_DIR", Path.Combine(sdkPackagePath, "Xcode.app") },
+                    }
+                },
+                CaptureSpecification.Passthrough,
+                cancellationToken).ConfigureAwait(false);
+            if (exitCode != 0)
+            {
+                throw new SdkSetupPackageGenerationFailedException("Xcode was unable to install iOS platform support.");
             }
         }
 
