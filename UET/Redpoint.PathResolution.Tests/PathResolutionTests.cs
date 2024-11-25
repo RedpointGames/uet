@@ -11,7 +11,7 @@ namespace Redpoint.PathResolution.Tests
             if (OperatingSystem.IsWindows())
             {
                 var expectedPath = Path.Combine(Environment.GetEnvironmentVariable("SYSTEMROOT")!, "system32", "cmd.exe");
-                var resolvedPath = await new DefaultPathResolver().ResolveBinaryPath("cmd").ConfigureAwait(false);
+                var resolvedPath = await new DefaultPathResolver().ResolveBinaryPath("cmd").ConfigureAwait(true);
                 Assert.Equal(expectedPath, resolvedPath, ignoreCase: true);
             }
             else
@@ -27,7 +27,7 @@ namespace Redpoint.PathResolution.Tests
             if (OperatingSystem.IsWindows())
             {
                 var expectedPath = Path.Combine(Environment.GetEnvironmentVariable("SYSTEMROOT")!, "system32", "WindowsPowerShell", "v1.0", "powershell.exe");
-                var resolvedPath = await new DefaultPathResolver().ResolveBinaryPath("powershell").ConfigureAwait(false);
+                var resolvedPath = await new DefaultPathResolver().ResolveBinaryPath("powershell").ConfigureAwait(true);
                 Assert.Equal(expectedPath, resolvedPath, ignoreCase: true);
             }
             else

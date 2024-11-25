@@ -20,7 +20,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="$(RedpointSystemLibraryVersion)" />
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(RedpointSystemLibraryVersion)" />
-    <PackageReference Include="Redpoint.Logging.Mac.Native" Version="$(PackageVersion)" />
+    <PackageReference Include="Redpoint.Logging.Mac.Native" Version="*" Condition="$(PackageVersion.Contains('-pre'))" />
+    <PackageReference Include="Redpoint.Logging.Mac.Native" Version="$(PackageVersion)" Condition="!$(PackageVersion.Contains('-pre'))" />
   </ItemGroup>
 
   <ItemGroup>

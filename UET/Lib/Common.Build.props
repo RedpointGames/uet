@@ -1,5 +1,7 @@
 <Project>
 
+  <Import Project="$(MSBuildThisFileDirectory)./Framework.Build.props" />
+
   <PropertyGroup>
     <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
     <RestoreAdditionalProjectSources>$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin;$(MSBuildThisFileDirectory)../Redpoint.AutoDiscovery/bin/$(Configuration)</RestoreAdditionalProjectSources>
@@ -19,18 +21,17 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup>
-    <NoWarn>SYSLIB1224</NoWarn>
+    <NoWarn>$(NoWarn);SYSLIB1224</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../.analyzerconfig" />
   </ItemGroup>
-
-  <Import Project="$(MSBuildThisFileDirectory)./Framework.Build.props" />
-
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
