@@ -5,7 +5,7 @@
   <PropertyGroup>
     <RootNamespace>Lextm.SharpSnmpLib</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>S5547;S907;S1133;S101;S1135</NoWarn>
+    <NoWarn>$(NoWarn);S5547;S907;S1133;S101;S1135</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup>

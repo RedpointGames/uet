@@ -12,7 +12,7 @@
     <RootNamespace>Microsoft.Extensions.Logging.Console</RootNamespace>
     <AssemblyName>Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console</AssemblyName>
     <Nullable>enable</Nullable>
-    <NoWarn>1591</NoWarn>
+    <NoWarn>$(NoWarn);1591</NoWarn>
     <AnalysisLevel>latest</AnalysisLevel>
     <AnalysisMode></AnalysisMode>
     <EnableNETAnalyzers>false</EnableNETAnalyzers>

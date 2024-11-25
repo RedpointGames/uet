@@ -259,13 +259,16 @@ dotnet_diagnostic.IDE0058.severity = suggestion
 dotnet_diagnostic.IDE0072.severity = suggestion
 dotnet_diagnostic.IDE0100.severity = suggestion
 dotnet_diagnostic.IDE0180.severity = suggestion
+dotnet_diagnostic.IDE0230.severity = suggestion
 dotnet_diagnostic.IDE0250.severity = suggestion
 dotnet_diagnostic.IDE0251.severity = suggestion
 dotnet_diagnostic.IDE0305.severity = suggestion
 dotnet_diagnostic.CA1514.severity = suggestion
 dotnet_diagnostic.CA1515.severity = suggestion
+dotnet_diagnostic.CA1859.severity = suggestion
 dotnet_diagnostic.CA2007.severity = suggestion
 dotnet_diagnostic.CA2022.severity = suggestion
+dotnet_diagnostic.CA2263.severity = suggestion
 
 # Turn off "non-incremental generators not allowed"
 dotnet_diagnostic.RS1035.severity = none
