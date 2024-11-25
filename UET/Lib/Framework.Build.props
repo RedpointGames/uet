@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    
+    <!-- This is used for libraries that we want to make available to .NET Framework. -->
+    <RedpointTargetFrameworks>net8.0;net48</RedpointTargetFrameworks>
   </PropertyGroup>
 
 </Project>

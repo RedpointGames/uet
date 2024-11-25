@@ -5,7 +5,7 @@ inputs:
     description: "The known name of the artifact."
     required: true
   UET_FRAMEWORK_TARGET:
-    description: "The target framework."
+    description: "The .NET framework identifier."
     required: true
 runs:
   using: 'composite'
@@ -49,8 +49,8 @@ runs:
         name: uefs-win
         if-no-files-found: error
         path: |
-          UET/Redpoint.Uefs.Client/bin/Release/net8.0/win-x64/publish/uefs.exe
-          UET/Redpoint.Uefs.Daemon/bin/Release/net8.0/win-x64/publish/uefs-daemon.exe
+          UET/Redpoint.Uefs.Client/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/win-x64/publish/uefs.exe
+          UET/Redpoint.Uefs.Daemon/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/win-x64/publish/uefs-daemon.exe
     - name: Upload Shim Win
       if: ${{ inputs.UET_ARTIFACT_NAME == 'shim-win' }}
       uses: actions/upload-artifact@v4
@@ -58,7 +58,7 @@ runs:
         name: shim-win
         if-no-files-found: error
         path: |
-          UET/uet.shim/bin/Release/net8.0/win-x64/publish/uet.exe
+          UET/uet.shim/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe
     - name: Upload Pass 1 Win
       if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-1-win' }}
       uses: actions/upload-artifact@v4
@@ -66,7 +66,7 @@ runs:
         name: pass-1-win
         if-no-files-found: error
         path: |
-          UET/uet/bin/Release/net8.0/win-x64/publish/uet.exe
+          UET/uet/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe
     - name: Upload Pass 2 Win
       if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-2-win' }}
       uses: actions/upload-artifact@v4
@@ -74,7 +74,7 @@ runs:
         name: pass-2-win
         if-no-files-found: error
         path: |
-          UET/uet/bin/Release/net8.0/win-x64/publish/uet.exe
+          UET/uet/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe
         
     - name: Upload UEFS Mac
       if: ${{ inputs.UET_ARTIFACT_NAME == 'uefs-mac' }}
@@ -83,8 +83,8 @@ runs:
         name: uefs-mac
         if-no-files-found: error
         path: |
-          UET/Redpoint.Uefs.Client/bin/Release/net8.0/osx-arm64/publish/uefs
-          UET/Redpoint.Uefs.Daemon/bin/Release/net8.0/osx-arm64/publish/uefs-daemon
+          UET/Redpoint.Uefs.Client/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uefs
+          UET/Redpoint.Uefs.Daemon/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uefs-daemon
     - name: Upload Shim Mac
       if: ${{ inputs.UET_ARTIFACT_NAME == 'shim-mac' }}
       uses: actions/upload-artifact@v4
@@ -92,7 +92,7 @@ runs:
         name: shim-mac
         if-no-files-found: error
         path: |
-          UET/uet.shim/bin/Release/net8.0/osx-arm64/publish/uet
+          UET/uet.shim/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet
     - name: Upload Pass 1 Mac
       if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-1-mac' }}
       uses: actions/upload-artifact@v4
@@ -100,7 +100,7 @@ runs:
         name: pass-1-mac
         if-no-files-found: error
         path: |
-          UET/uet/bin/Release/net8.0/osx-arm64/publish/uet
+          UET/uet/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet
     - name: Upload Pass 2 Mac
       if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-2-mac' }}
       uses: actions/upload-artifact@v4
@@ -108,7 +108,7 @@ runs:
         name: pass-2-mac
         if-no-files-found: error
         path: |
-          UET/uet/bin/Release/net8.0/osx-arm64/publish/uet
+          UET/uet/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet
 
     - name: Upload Libs Win
       if: ${{ inputs.UET_ARTIFACT_NAME == 'libs-win' }}
