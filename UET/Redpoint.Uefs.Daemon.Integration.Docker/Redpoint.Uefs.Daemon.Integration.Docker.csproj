@@ -3,7 +3,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <ItemGroup>
-    <PackageReference Include="Docker.DotNet" Version="3.125.10" />
+    <PackageReference Include="Docker.DotNet" Version="3.125.15" />
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.Docker.Registry.DotNet\Redpoint.ThirdParty.Docker.Registry.DotNet.csproj" />
     <ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />
   </ItemGroup>

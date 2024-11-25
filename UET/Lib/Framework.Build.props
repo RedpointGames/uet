@@ -5,6 +5,8 @@
     
     <!-- This is used for libraries that we want to make available to .NET Framework. -->
     <RedpointTargetFrameworks>net8.0;net48</RedpointTargetFrameworks>
+
+    <RedpointSystemLibraryVersion>[8.0.0,9.0.0)</RedpointSystemLibraryVersion>
   </PropertyGroup>
 
 </Project>
