@@ -73,7 +73,7 @@ namespace Redpoint.Git.Managed.Tests
                     }
                 });
                 Assert.True(
-                    await s.WaitAsync(5000, CancellationToken.None).ConfigureAwait(false),
+                    await s.WaitAsync(5000, CancellationToken.None).ConfigureAwait(true),
                     "Expected Git operation to complete within 5 seconds");
             }
         }

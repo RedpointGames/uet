@@ -152,12 +152,12 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y clang zlib1g-dev dotnet-sdk-8.0
-        dotnet publish /p:TargetFramework=net8.0 -c Release -r linux-x64 UET/Redpoint.StringEnum.TrimTests/Redpoint.StringEnum.TrimTests.csproj
+        dotnet publish /p:TargetFramework=${{ env.UET_FRAMEWORK_TARGET }} -c Release -r linux-x64 UET/Redpoint.StringEnum.TrimTests/Redpoint.StringEnum.TrimTests.csproj
         if ($LastExitCode -ne 0) {
           Write-Host "dotnet build (Redpoint.StringEnum.TrimTests.csproj) failed with exit code $LastExitCode"
           exit $LastExitCode 
         }
-        UET/Redpoint.StringEnum.TrimTests/bin/Release/net8.0/linux-x64/publish/Redpoint.StringEnum.TrimTests
+        UET/Redpoint.StringEnum.TrimTests/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/Redpoint.StringEnum.TrimTests
         if ($LastExitCode -ne 0) {
           Write-Host "Redpoint.StringEnum.TrimTests failed with exit code $LastExitCode"
           exit $LastExitCode 
@@ -185,10 +185,12 @@ jobs:
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: autodiscovery
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download Mac Logging
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: mac-logging
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Build UEFS Client
       shell: pwsh
       run: |
@@ -245,10 +247,12 @@ jobs:
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: autodiscovery
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download Mac Logging
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: mac-logging
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Build UEFS Client
       shell: pwsh
       run: |
@@ -264,7 +268,7 @@ jobs:
           UET/Redpoint.Uefs.Client/Redpoint.Uefs.Client.csproj
         if ($LastExitCode -ne 0) { exit $LastExitCode }
         # Ensure the thing we built will actually run...
-        ./UET/Redpoint.Uefs.Client/bin/Release/net8.0/osx-arm64/publish/uefs --help
+        ./UET/Redpoint.Uefs.Client/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uefs --help
         if ($LastExitCode -ne 0) { exit $LastExitCode }
     - name: Build UEFS Daemon
       shell: pwsh
@@ -308,10 +312,12 @@ jobs:
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: autodiscovery
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download Mac Logging
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: mac-logging
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Build UET Shim
       shell: pwsh
       run: |
@@ -354,10 +360,12 @@ jobs:
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: autodiscovery
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download Mac Logging
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: mac-logging
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Build UET Shim
       shell: pwsh
       run: |
@@ -400,10 +408,12 @@ jobs:
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: autodiscovery
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download Mac Logging
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: mac-logging
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Build UET Pass 1
       shell: pwsh
       run: |
@@ -446,10 +456,12 @@ jobs:
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: autodiscovery
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download Mac Logging
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: mac-logging
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Build UET Pass 1
       shell: pwsh
       run: |
@@ -465,7 +477,7 @@ jobs:
           UET/uet/uet.csproj
         if ($LastExitCode -ne 0) { exit $LastExitCode }
         # Ensure the thing we built will actually run...
-        ./UET/uet/bin/Release/net8.0/osx-arm64/publish/uet --help
+        ./UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet --help
         if ($LastExitCode -ne 0) { exit $LastExitCode }
     - name: Upload Binaries
       uses: ./.github/actions/upload-artifact
@@ -495,10 +507,12 @@ jobs:
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: autodiscovery
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download Mac Logging
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: mac-logging
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Install WinFsp
       shell: pwsh
       run: |
@@ -516,7 +530,7 @@ jobs:
         foreach ($Item in (Get-ChildItem UET -Filter *.Tests)) {
           if (Test-Path "$($Item.FullName)/$($Item.Name).csproj") {
             Write-Host "============ STARTING: $($Item.Name) ============"
-            dotnet test --logger:"console" --logger:"trx;LogFileName=$($Item.Name).test-result.trx" --results-directory "$((Get-Location).Path)\TestResults" "$($Item.FullName)/bin/Release/net8.0/$($Item.Name).dll"
+            dotnet test --logger:"console" --logger:"trx;LogFileName=$($Item.Name).test-result.trx" --results-directory "$((Get-Location).Path)\TestResults" "$($Item.FullName)/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/$($Item.Name).dll"
             if ($LastExitCode -ne 0) {
               Write-Host "============ FAILED:   $($Item.Name) ============"
               exit $LastExitCode
@@ -559,10 +573,12 @@ jobs:
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: autodiscovery
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download Mac Logging
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: mac-logging
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Build and Test Libraries on macOS
       run: |
         set -e
@@ -593,18 +609,22 @@ jobs:
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: autodiscovery
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download Mac Logging
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: mac-logging
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download Windows Pass 1
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: pass-1-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download macOS Pass 1
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: pass-1-mac
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Build UET Pass 2
       shell: pwsh
       run: |
@@ -650,18 +670,22 @@ jobs:
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: autodiscovery
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download Mac Logging
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: mac-logging
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download Windows Pass 1
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: pass-1-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download macOS Pass 1
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: pass-1-mac
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Build UET Pass 2
       shell: pwsh
       run: |
@@ -678,7 +702,7 @@ jobs:
           UET/uet/uet.csproj
         if ($LastExitCode -ne 0) { exit $LastExitCode }
         # Ensure the thing we built will actually run...
-        ./UET/uet/bin/Release/net8.0/osx-arm64/publish/uet --help
+        ./UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet --help
         if ($LastExitCode -ne 0) { exit $LastExitCode }
     - name: Upload Binaries
       uses: ./.github/actions/upload-artifact
@@ -715,6 +739,7 @@ jobs:
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: libs-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Publish Packages
       shell: pwsh
       env:
@@ -756,45 +781,52 @@ jobs:
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: uefs-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download Windows Shim
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: shim-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download Windows Pass 2
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: pass-2-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download macOS UEFS
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: uefs-mac
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download macOS Shim
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: shim-mac
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download macOS Pass 2
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: pass-2-mac
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download package.version
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: timestamp
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Publish to GitHub
       shell: pwsh
       env:
         UET_GITHUB_RELEASES_PAT: ${{ secrets.UET_GITHUB_RELEASES_PAT }}
       run: |
-        UET/uet/bin/Release/net8.0/win-x64/publish/uet.exe internal create-github-release `
+        UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe internal create-github-release `
           --version ${env:UET_PACKAGE_VERSION} `
-          --file "uet.exe=UET for Windows=UET/uet/bin/Release/net8.0/win-x64/publish/uet.exe" `
-          --file "uefs.exe=UEFS Client for Windows=UET/Redpoint.Uefs.Client/bin/Release/net8.0/win-x64/publish/uefs.exe" `
-          --file "uefs-daemon.exe=UEFS Daemon for Windows=UET/Redpoint.Uefs.Daemon/bin/Release/net8.0/win-x64/publish/uefs-daemon.exe" `
-          --file "uet.shim.exe=UET Shim for Windows=UET/uet.shim/bin/Release/net8.0/win-x64/publish/uet.exe" `
-          --file "uet=UET for macOS=UET/uet/bin/Release/net8.0/osx-arm64/publish/uet" `
-          --file "uefs=UEFS Client for macOS=UET/Redpoint.Uefs.Client/bin/Release/net8.0/osx-arm64/publish/uefs" `
-          --file "uefs-daemon=UEFS Daemon for macOS=UET/Redpoint.Uefs.Daemon/bin/Release/net8.0/osx-arm64/publish/uefs-daemon" `
-          --file "uet.shim=UET Shim for macOS=UET/uet.shim/bin/Release/net8.0/osx-arm64/publish/uet" `
+          --file "uet.exe=UET for Windows=UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe" `
+          --file "uefs.exe=UEFS Client for Windows=UET/Redpoint.Uefs.Client/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uefs.exe" `
+          --file "uefs-daemon.exe=UEFS Daemon for Windows=UET/Redpoint.Uefs.Daemon/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uefs-daemon.exe" `
+          --file "uet.shim.exe=UET Shim for Windows=UET/uet.shim/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe" `
+          --file "uet=UET for macOS=UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet" `
+          --file "uefs=UEFS Client for macOS=UET/Redpoint.Uefs.Client/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uefs" `
+          --file "uefs-daemon=UEFS Daemon for macOS=UET/Redpoint.Uefs.Daemon/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uefs-daemon" `
+          --file "uet.shim=UET Shim for macOS=UET/uet.shim/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet" `
           --file "package.version=Version File=package.version"
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   
@@ -828,6 +860,7 @@ jobs:
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: uefs-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Log in to the Container registry
       uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
       with:
@@ -838,5 +871,5 @@ jobs:
       shell: pwsh
       run: |
         docker buildx create --name img-builder --use --platform windows/amd64
-        docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/redpointgames/uet/uefs:${env:UET_PACKAGE_VERSION}" .
-        docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/redpointgames/uet/uefs:latest" .
+        docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/redpointgames/uet/uefs:${env:UET_PACKAGE_VERSION}" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
+        docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/redpointgames/uet/uefs:latest" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .

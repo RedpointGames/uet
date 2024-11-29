@@ -12,7 +12,7 @@
     <RootNamespace>Microsoft.Extensions.Logging.Console</RootNamespace>
     <AssemblyName>Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console</AssemblyName>
     <Nullable>enable</Nullable>
-    <NoWarn>1591</NoWarn>
+    <NoWarn>$(NoWarn);1591</NoWarn>
     <AnalysisLevel>latest</AnalysisLevel>
     <AnalysisMode></AnalysisMode>
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
@@ -30,11 +30,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(RedpointSystemLibraryVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(RedpointSystemLibraryVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(RedpointSystemLibraryVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="$(RedpointSystemLibraryVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="$(RedpointSystemLibraryVersion)" />
   </ItemGroup>
 
 </Project>

@@ -14,9 +14,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="7.0.1" />
-    <PackageReference Include="Sentry" Version="3.33.1" />
-    <PackageReference Include="Sentry.Extensions.Logging" Version="3.33.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="$(RedpointSystemLibraryVersion)" />
+    <PackageReference Include="Sentry" Version="4.13.0" />
+    <PackageReference Include="Sentry.Extensions.Logging" Version="4.13.0" />
     <ProjectReference Include="..\Redpoint.Tasks\Redpoint.Tasks.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Package.SparseImage\Redpoint.Uefs.Package.SparseImage.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Package.Vhd\Redpoint.Uefs.Package.Vhd.csproj" />

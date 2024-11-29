@@ -8,11 +8,11 @@
 
   <ItemGroup>
     <PackageReference Include="Crayon" Version="2.0.69" />
-    <PackageReference Include="Grpc.Tools" Version="2.63.0">
+    <PackageReference Include="Grpc.Tools" Version="2.67.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(RedpointSystemLibraryVersion)" />
   </ItemGroup>
 
   <ItemGroup>

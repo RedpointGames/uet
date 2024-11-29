@@ -9,8 +9,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.Hashing\Redpoint.Hashing.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Protocol\Redpoint.Uefs.Protocol.csproj" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(RedpointSystemLibraryVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(RedpointSystemLibraryVersion)" />
     <ProjectReference Include="..\Redpoint.Vfs.Driver\Redpoint.Vfs.Driver.csproj" />
   </ItemGroup>
 

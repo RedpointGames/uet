@@ -6,7 +6,6 @@
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     <NeutralLanguage>en-US</NeutralLanguage>
-    <TargetFramework>net8.0</TargetFramework>
     <RepositoryUrl>https://github.com/koculu/ZoneTree</RepositoryUrl>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -66,7 +65,7 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="K4os.Compression.LZ4" Version="1.2.16" />
+    <PackageReference Include="K4os.Compression.LZ4" Version="1.3.8" />
     <PackageReference Include="ZstdNet" Version="1.4.5" />
   </ItemGroup>
 </Project>

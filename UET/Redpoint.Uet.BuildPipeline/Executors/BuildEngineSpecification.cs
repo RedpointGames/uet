@@ -69,7 +69,7 @@
         }
 
         /// <remarks>
-        /// These values are parsed in <see cref="UET.Commands.EngineSpec.EngineSpec.TryParseEngine"/>.
+        /// These values are parsed in `UET.Commands.EngineSpec.EngineSpec.TryParseEngine`.
         /// </remarks>
         public string ToReparsableString()
         {

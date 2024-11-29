@@ -4,6 +4,9 @@ inputs:
   UET_ARTIFACT_NAME:
     description: "The known name of the artifact."
     required: true
+  UET_FRAMEWORK_TARGET:
+    description: "The .NET framework identifier."
+    required: true
 runs:
   using: 'composite'
   steps:
@@ -42,21 +45,21 @@ runs:
       uses: actions/download-artifact@v4
       with:
         name: shim-win
-        path: UET/uet.shim/bin/Release/net8.0/win-x64/publish/
+        path: UET/uet.shim/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/win-x64/publish/
         merge-multiple: true
     - name: Download Pass 1 Win
       if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-1-win' }}
       uses: actions/download-artifact@v4
       with:
         name: pass-1-win
-        path: UET/uet/bin/Release/net8.0/win-x64/publish/
+        path: UET/uet/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/win-x64/publish/
         merge-multiple: true
     - name: Download Pass 2 Win
       if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-2-win' }}
       uses: actions/download-artifact@v4
       with:
         name: pass-2-win
-        path: UET/uet/bin/Release/net8.0/win-x64/publish/
+        path: UET/uet/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/win-x64/publish/
         merge-multiple: true
         
     - name: Download UEFS Mac
@@ -71,21 +74,21 @@ runs:
       uses: actions/download-artifact@v4
       with:
         name: shim-mac
-        path: UET/uet.shim/bin/Release/net8.0/osx-arm64/publish/
+        path: UET/uet.shim/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/
         merge-multiple: true
     - name: Download Pass 1 Mac
       if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-1-mac' }}
       uses: actions/download-artifact@v4
       with:
         name: pass-1-mac
-        path: UET/uet/bin/Release/net8.0/osx-arm64/publish/
+        path: UET/uet/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/
         merge-multiple: true
     - name: Download Pass 2 Mac
       if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-2-mac' }}
       uses: actions/download-artifact@v4
       with:
         name: pass-2-mac
-        path: UET/uet/bin/Release/net8.0/osx-arm64/publish/
+        path: UET/uet/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/
         merge-multiple: true
 
     - name: Download Libs Win
