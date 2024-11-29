@@ -16,6 +16,7 @@
     using System.Xml;
     using System.IO;
     using Microsoft.Extensions.Logging;
+    using System.Diagnostics.CodeAnalysis;
 
     internal sealed class DefaultJsonSchemaGenerator : IJsonSchemaGenerator
     {
@@ -103,6 +104,23 @@
             return nsb.ToString().Trim().Replace("\r\n", "\n", StringComparison.Ordinal);
         }
 
+        private static Type GetDynamicInterfaceFromType(Type type)
+        {
+            Type? currentType = type;
+            while (currentType != null)
+            {
+                if (currentType.IsConstructedGenericType && currentType.GetGenericTypeDefinition() == typeof(BuildConfigDynamic<,>))
+                {
+                    return currentType;
+                }
+                currentType = type.BaseType;
+            }
+
+            // Fallback - this should produce an error message that can help us diagnose what type is causing the issue.
+            return typeof(IDynamicProvider<,>)
+                .MakeGenericType((currentType ?? type).GetGenericArguments());
+        }
+
         private void GenerateSchemaForObject(Utf8JsonWriter writer, JsonTypeInfo jsonTypeInfo, JsonSerializerContext jsonTypeInfoResolver)
         {
             var isDynamicObject = jsonTypeInfo.Type.IsConstructedGenericType &&
@@ -155,8 +173,7 @@
                 Type? dynamicProviderType = null;
                 try
                 {
-                    dynamicProviderType = typeof(IDynamicProvider<,>)
-                        .MakeGenericType(jsonTypeInfo.Type.GetGenericArguments());
+                    dynamicProviderType = GetDynamicInterfaceFromType(jsonTypeInfo.Type);
                 }
                 catch (ArgumentException ex)
                 {
@@ -266,8 +283,7 @@
                 Type? dynamicProviderType = null;
                 try
                 {
-                    dynamicProviderType = typeof(IDynamicProvider<,>)
-                        .MakeGenericType(jsonTypeInfo.Type.GetGenericArguments());
+                    dynamicProviderType = GetDynamicInterfaceFromType(jsonTypeInfo.Type);
                 }
                 catch (ArgumentException ex)
                 {
