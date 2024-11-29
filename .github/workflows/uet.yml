@@ -710,6 +710,37 @@ jobs:
         UET_ARTIFACT_NAME: pass-2-mac
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
   
+  test-schema-generate:
+    name: "Test Schema Generation"
+    runs-on: windows-latest
+    if: github.ref != 'refs/heads/main'
+    needs:
+      - timestamp
+      - pass-2-win
+    env:
+      UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Download Windows Pass 2
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: pass-2-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Download package.version
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: timestamp
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Test Schema Generation
+      shell: pwsh
+      run: |
+        UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe internal generate-json-schema `
+          --output-path test-schema.json
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  
   publish-nuget:
     name: "Publish to NuGet"
     runs-on: windows-latest
