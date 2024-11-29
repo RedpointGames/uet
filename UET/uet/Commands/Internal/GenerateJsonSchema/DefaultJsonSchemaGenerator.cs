@@ -152,21 +152,32 @@
             // Write out all the possible values of Type.
             if (isDynamicObject)
             {
-                var dynamicProviderType = typeof(IDynamicProvider<,>)
-                    .MakeGenericType(jsonTypeInfo.Type.GetGenericArguments());
-                var types = _serviceProvider
-                    .GetServices(dynamicProviderType)
-                    .OfType<IDynamicProviderRegistration>()
-                    .Select(x => x.Type)
-                    .ToArray();
-                writer.WritePropertyName("Type");
-                writer.WriteStartArray();
-                foreach (var type in types)
+                Type? dynamicProviderType = null;
+                try
                 {
-                    writer.WriteStringValue(type);
+                    dynamicProviderType = typeof(IDynamicProvider<,>)
+                        .MakeGenericType(jsonTypeInfo.Type.GetGenericArguments());
                 }
-                writer.WriteStringValue(BuildConfigConstants.Predefined);
-                writer.WriteEndArray();
+                catch (ArgumentException ex)
+                {
+                    throw new InvalidOperationException($"Failed to generate schema for dynamic type {jsonTypeInfo.Type.FullName}: {ex.Message}", ex);
+                }
+                if (dynamicProviderType != null)
+                {
+                    var types = _serviceProvider
+                        .GetServices(dynamicProviderType)
+                        .OfType<IDynamicProviderRegistration>()
+                        .Select(x => x.Type)
+                        .ToArray();
+                    writer.WritePropertyName("Type");
+                    writer.WriteStartArray();
+                    foreach (var type in types)
+                    {
+                        writer.WriteStringValue(type);
+                    }
+                    writer.WriteStringValue(BuildConfigConstants.Predefined);
+                    writer.WriteEndArray();
+                }
             }
 
             writer.WriteEndObject();
@@ -252,98 +263,109 @@
             {
                 writer.WritePropertyName("allOf");
                 writer.WriteStartArray();
-                var dynamicProviderType = typeof(IDynamicProvider<,>)
-                    .MakeGenericType(jsonTypeInfo.Type.GetGenericArguments());
-                var providers = _serviceProvider
-                    .GetServices(dynamicProviderType)
-                    .OfType<IDynamicProviderRegistration>()
-                    .OfType<IDynamicProvider>()
-                    .ToList();
-                foreach (var type in providers)
+                Type? dynamicProviderType = null;
+                try
                 {
-                    writer.WriteStartObject();
-                    writer.WritePropertyName("if");
-                    writer.WriteStartObject();
-                    writer.WritePropertyName("properties");
-                    writer.WriteStartObject();
-                    writer.WritePropertyName("Type");
-                    writer.WriteStartObject();
-                    writer.WriteString("const", ((IDynamicProviderRegistration)type).Type);
-                    writer.WriteEndObject();
-                    writer.WriteEndObject();
-                    writer.WriteEndObject();
-                    writer.WritePropertyName("then");
-                    writer.WriteStartObject();
-                    writer.WritePropertyName("required");
-                    writer.WriteStartArray();
-                    writer.WriteStringValue(((IDynamicProviderRegistration)type).Type);
-                    writer.WriteEndArray();
-                    writer.WritePropertyName("properties");
-                    writer.WriteStartObject();
-                    writer.WriteBoolean(BuildConfigConstants.Predefined, false);
-                    foreach (var otherProvider in providers.Where(x => ((IDynamicProviderRegistration)x).Type != ((IDynamicProviderRegistration)type).Type))
+                    dynamicProviderType = typeof(IDynamicProvider<,>)
+                        .MakeGenericType(jsonTypeInfo.Type.GetGenericArguments());
+                }
+                catch (ArgumentException ex)
+                {
+                    throw new InvalidOperationException($"Failed to generate schema for dynamic type {jsonTypeInfo.Type.FullName}: {ex.Message}", ex);
+                }
+                if (dynamicProviderType != null)
+                {
+                    var providers = _serviceProvider
+                        .GetServices(dynamicProviderType)
+                        .OfType<IDynamicProviderRegistration>()
+                        .OfType<IDynamicProvider>()
+                        .ToList();
+                    foreach (var type in providers)
                     {
-                        writer.WriteBoolean(((IDynamicProviderRegistration)otherProvider).Type, false);
-                    }
-                    writer.WritePropertyName(((IDynamicProviderRegistration)type).Type);
-                    writer.WriteStartObject();
-                    writer.WritePropertyName("properties");
-                    writer.WriteStartObject();
-                    GeneratePropertiesForObject(
-                        writer,
-                        type.DynamicSettings.JsonTypeInfo,
-                        type.DynamicSettings.JsonSerializerContext,
-                        type.DynamicSettings.JsonTypeInfo.Properties);
-                    writer.WriteEndObject();
-                    if (type.DynamicSettings.JsonTypeInfo.Properties.Any(x => x.IsRequired))
-                    {
+                        writer.WriteStartObject();
+                        writer.WritePropertyName("if");
+                        writer.WriteStartObject();
+                        writer.WritePropertyName("properties");
+                        writer.WriteStartObject();
+                        writer.WritePropertyName("Type");
+                        writer.WriteStartObject();
+                        writer.WriteString("const", ((IDynamicProviderRegistration)type).Type);
+                        writer.WriteEndObject();
+                        writer.WriteEndObject();
+                        writer.WriteEndObject();
+                        writer.WritePropertyName("then");
+                        writer.WriteStartObject();
                         writer.WritePropertyName("required");
                         writer.WriteStartArray();
-                        foreach (var property in type.DynamicSettings.JsonTypeInfo.Properties.Where(x => x.IsRequired))
-                        {
-                            writer.WriteStringValue(property.Name);
-                        }
+                        writer.WriteStringValue(((IDynamicProviderRegistration)type).Type);
                         writer.WriteEndArray();
+                        writer.WritePropertyName("properties");
+                        writer.WriteStartObject();
+                        writer.WriteBoolean(BuildConfigConstants.Predefined, false);
+                        foreach (var otherProvider in providers.Where(x => ((IDynamicProviderRegistration)x).Type != ((IDynamicProviderRegistration)type).Type))
+                        {
+                            writer.WriteBoolean(((IDynamicProviderRegistration)otherProvider).Type, false);
+                        }
+                        writer.WritePropertyName(((IDynamicProviderRegistration)type).Type);
+                        writer.WriteStartObject();
+                        writer.WritePropertyName("properties");
+                        writer.WriteStartObject();
+                        GeneratePropertiesForObject(
+                            writer,
+                            type.DynamicSettings.JsonTypeInfo,
+                            type.DynamicSettings.JsonSerializerContext,
+                            type.DynamicSettings.JsonTypeInfo.Properties);
+                        writer.WriteEndObject();
+                        if (type.DynamicSettings.JsonTypeInfo.Properties.Any(x => x.IsRequired))
+                        {
+                            writer.WritePropertyName("required");
+                            writer.WriteStartArray();
+                            foreach (var property in type.DynamicSettings.JsonTypeInfo.Properties.Where(x => x.IsRequired))
+                            {
+                                writer.WriteStringValue(property.Name);
+                            }
+                            writer.WriteEndArray();
+                        }
+                        writer.WriteEndObject();
+                        writer.WriteEndObject();
+                        writer.WriteEndObject();
+                        writer.WriteEndObject();
                     }
-                    writer.WriteEndObject();
-                    writer.WriteEndObject();
-                    writer.WriteEndObject();
-                    writer.WriteEndObject();
-                }
-                {
-                    writer.WriteStartObject();
-                    writer.WritePropertyName("if");
-                    writer.WriteStartObject();
-                    writer.WritePropertyName("properties");
-                    writer.WriteStartObject();
-                    writer.WritePropertyName("Type");
-                    writer.WriteStartObject();
-                    writer.WriteString("const", BuildConfigConstants.Predefined);
-                    writer.WriteEndObject();
-                    writer.WriteEndObject();
-                    writer.WriteEndObject();
-                    writer.WritePropertyName("then");
-                    writer.WriteStartObject();
-                    writer.WritePropertyName("required");
-                    writer.WriteStartArray();
-                    writer.WriteStringValue(BuildConfigConstants.Predefined);
-                    writer.WriteEndArray();
-                    writer.WritePropertyName("properties");
-                    writer.WriteStartObject();
-                    foreach (var otherProvider in providers)
                     {
-                        writer.WriteBoolean(((IDynamicProviderRegistration)otherProvider).Type, false);
+                        writer.WriteStartObject();
+                        writer.WritePropertyName("if");
+                        writer.WriteStartObject();
+                        writer.WritePropertyName("properties");
+                        writer.WriteStartObject();
+                        writer.WritePropertyName("Type");
+                        writer.WriteStartObject();
+                        writer.WriteString("const", BuildConfigConstants.Predefined);
+                        writer.WriteEndObject();
+                        writer.WriteEndObject();
+                        writer.WriteEndObject();
+                        writer.WritePropertyName("then");
+                        writer.WriteStartObject();
+                        writer.WritePropertyName("required");
+                        writer.WriteStartArray();
+                        writer.WriteStringValue(BuildConfigConstants.Predefined);
+                        writer.WriteEndArray();
+                        writer.WritePropertyName("properties");
+                        writer.WriteStartObject();
+                        foreach (var otherProvider in providers)
+                        {
+                            writer.WriteBoolean(((IDynamicProviderRegistration)otherProvider).Type, false);
+                        }
+                        writer.WritePropertyName(BuildConfigConstants.Predefined);
+                        writer.WriteStartObject();
+                        writer.WriteString("type", "string");
+                        writer.WriteString("description", "The predefined name defined earlier in configuration.");
+                        writer.WriteEndObject();
+                        writer.WriteEndObject();
+                        writer.WriteEndObject();
+                        writer.WriteEndObject();
                     }
-                    writer.WritePropertyName(BuildConfigConstants.Predefined);
-                    writer.WriteStartObject();
-                    writer.WriteString("type", "string");
-                    writer.WriteString("description", "The predefined name defined earlier in configuration.");
-                    writer.WriteEndObject();
-                    writer.WriteEndObject();
-                    writer.WriteEndObject();
-                    writer.WriteEndObject();
+                    writer.WriteEndArray();
                 }
-                writer.WriteEndArray();
             }
             else
             {
