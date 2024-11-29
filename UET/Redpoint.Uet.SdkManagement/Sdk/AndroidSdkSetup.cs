@@ -26,12 +26,59 @@
             _versionNumberResolver = versionNumberResolver;
         }
 
+        private struct JdkInfo
+        {
+            public required string JdkVersion;
+            public required string JdkDownloadUrl;
+        }
+
         // @note: Gradle is always backwards compatible to Java 8, but is not forward compatible with newer JDK versions.
         // Therefore we have to pick a JDK version that will be usable by the Gradle that Unreal wants to use.
-        //
-        // JDK 17 required by Unreal Engine 5.5.
-        private const string _jdkVersion = "jdk-17.0.13+11";
-        private const string _jdkDownloadUrl = "https://aka.ms/download-jdk/microsoft-jdk-17.0.13-windows-x64.zip";
+        private const string _jdkInfoDefault = "17";
+        private readonly Dictionary<string, JdkInfo> _jdkInfos = new()
+        {
+            // JDK 11 required by earlier Unreal Engine versions.
+            {
+                "11",
+                new JdkInfo
+                {
+                    JdkVersion = "jdk-11.0.19+7",
+                    JdkDownloadUrl = "https://aka.ms/download-jdk/microsoft-jdk-11.0.19-windows-x64.zip"
+                }
+            },
+            // JDK 17 required by Unreal Engine 5.5.
+            {
+                "17",
+                new JdkInfo
+                {
+                    JdkVersion = "jdk-17.0.13+11",
+                    JdkDownloadUrl = "https://aka.ms/download-jdk/microsoft-jdk-17.0.13-windows-x64.zip"
+                }
+            }
+            // @note: If adding a new version, also update _jdkInfoDefault!
+        };
+
+        private JdkInfo GetJdkInfo()
+        {
+            var jdkOverride = Environment.GetEnvironmentVariable("UET_OVERRIDE_JDK_VERSION");
+            if (!string.IsNullOrWhiteSpace(jdkOverride))
+            {
+                if (_jdkInfos.TryGetValue(jdkOverride.Trim(), out var jdkInfo))
+                {
+                    return jdkInfo;
+                }
+
+                _logger.LogError($"The environment variable UET_OVERRIDE_JDK_VERSION is set to '{jdkOverride}', but this is not a supported version. Supported versions are one of: {string.Join(", ", _jdkInfos.Keys.Select(x => $"\"{x}\""))}. The environment variable will be ignored, and we'll install the latest version, which may cause Android build issues.");
+            }
+
+            if (_jdkInfos.TryGetValue(_jdkInfoDefault, out var jdkDefaultInfo))
+            {
+                return jdkDefaultInfo;
+            }
+
+            _logger.LogError($"Detected bug! The default JDK version is set to '{_jdkInfoDefault}' in the code, but this is not a supported version. Supported versions are one of: {string.Join(", ", _jdkInfos.Keys.Select(x => $"\"{x}\""))}. UET will have to pick a version at random.");
+            return _jdkInfos.Last().Value;
+        }
 
         public IReadOnlyList<string> PlatformNames => new[] { "Android" };
 
@@ -39,15 +86,17 @@
 
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
+            var jdkInfo = GetJdkInfo();
             var versions = await _versionNumberResolver.For<IAndroidVersionNumbers>(unrealEnginePath).GetVersions(unrealEnginePath).ConfigureAwait(false);
-            return $"{versions.platforms}-{versions.buildTools}-{versions.cmake}-{versions.ndk}-{_jdkVersion}";
+            return $"{versions.platforms}-{versions.buildTools}-{versions.cmake}-{versions.ndk}-{jdkInfo.JdkVersion}";
         }
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
         {
+            var jdkInfo = GetJdkInfo();
             var versions = await _versionNumberResolver.For<IAndroidVersionNumbers>(unrealEnginePath).GetVersions(unrealEnginePath).ConfigureAwait(false);
 
-            if (!File.Exists(Path.Combine(sdkPackagePath, "Jdk", _jdkVersion, "bin", "java.exe")))
+            if (!File.Exists(Path.Combine(sdkPackagePath, "Jdk", jdkInfo.JdkVersion, "bin", "java.exe")))
             {
                 _logger.LogInformation("Downloading and extracting the Microsoft JDK (about 177MB)...");
                 if (Directory.Exists(Path.Combine(sdkPackagePath, "Jdk")))
@@ -56,7 +105,7 @@
                 }
                 using (var client = new HttpClient())
                 {
-                    var response = await client.GetAsync(new Uri(_jdkDownloadUrl), HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var response = await client.GetAsync(new Uri(jdkInfo.JdkDownloadUrl), HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                     var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
                     Directory.CreateDirectory(Path.Combine(sdkPackagePath, "Jdk"));
                     var archive = new ZipArchive(stream);
@@ -99,7 +148,7 @@
                     {
                         { "ANDROID_HOME", Path.Combine(sdkPackagePath, "Sdk") },
                         { "NDKROOT", Path.Combine(sdkPackagePath, "Sdk", "ndk", versions.ndk) },
-                        { "JAVA_HOME", Path.Combine(sdkPackagePath, "Jdk", _jdkVersion) },
+                        { "JAVA_HOME", Path.Combine(sdkPackagePath, "Jdk", jdkInfo.JdkVersion) },
                     }
                 },
                 CaptureSpecification.Passthrough,
@@ -135,7 +184,7 @@
                             {
                                 { "ANDROID_HOME", Path.Combine(sdkPackagePath, "Sdk") },
                                 { "NDKROOT", Path.Combine(sdkPackagePath, "Sdk", "ndk", versions.ndk) },
-                                { "JAVA_HOME", Path.Combine(sdkPackagePath, "Jdk", _jdkVersion) },
+                                { "JAVA_HOME", Path.Combine(sdkPackagePath, "Jdk", jdkInfo.JdkVersion) },
                             }
                         },
                         CaptureSpecification.Passthrough,
@@ -143,7 +192,7 @@
                 }
             }
             File.WriteAllText(Path.Combine(sdkPackagePath, "ndk-version.txt"), versions.ndk);
-            File.WriteAllText(Path.Combine(sdkPackagePath, "jre-version.txt"), _jdkVersion);
+            File.WriteAllText(Path.Combine(sdkPackagePath, "jre-version.txt"), jdkInfo.JdkVersion);
         }
 
         public Task<AutoSdkMapping[]> GetAutoSdkMappingsForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
