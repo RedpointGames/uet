@@ -15,7 +15,6 @@
     {
         public static void AddSdkManagement(this IServiceCollection services)
         {
-            services.AddSingleton<ISimpleDownloadProgress, SimpleDownloadProgress>();
             services.AddSingleton<ILocalSdkManager, DefaultLocalSdkManager>();
 
             services.AddSingleton<IVersionNumberResolver, DefaultVersionNumberResolver>();

@@ -11,6 +11,7 @@
     using System.Reflection;
     using System.Text.RegularExpressions;
     using Redpoint.Uet.SdkManagement.Sdk.VersionNumbers;
+    using Redpoint.ProgressMonitor.Utils;
 
     [SupportedOSPlatform("windows")]
     public class LinuxSdkSetup : ISdkSetup
