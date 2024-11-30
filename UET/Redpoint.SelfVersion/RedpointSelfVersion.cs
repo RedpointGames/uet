@@ -4,7 +4,7 @@ using System.Reflection;
 
 internal class RedpointSelfVersion
 {
-    [return: NotNullIfNotNull("attribute")]
+    [return: NotNullIfNotNull(nameof(attribute))]
     public static string? GetInformationalVersion(AssemblyInformationalVersionAttribute? attribute)
     {
         if (attribute == null)

@@ -98,10 +98,7 @@
                 else
                 {
                     var obj = node.AsObject();
-                    if (obj.ContainsKey("EnabledByDefault"))
-                    {
-                        obj.Remove("EnabledByDefault");
-                    }
+                    obj.Remove("EnabledByDefault");
 
                     foreach (var module in node["Modules"]?.AsArray() ?? new JsonArray())
                     {
