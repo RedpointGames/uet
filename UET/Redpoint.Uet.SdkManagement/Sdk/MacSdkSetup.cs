@@ -213,8 +213,7 @@
                 _logger.LogInformation($"Setting up symbolic link for Xcode.app...");
                 var xcodeDirectory = Directory.GetDirectories(sdkPackagePath)
                     .Select(x => Path.GetFileName(x))
-                    .Where(x => x.StartsWith("Xcode", StringComparison.Ordinal))
-                    .First();
+                    .First(x => x.StartsWith("Xcode", StringComparison.Ordinal));
                 File.CreateSymbolicLink(
                     Path.Combine(sdkPackagePath, "Xcode.app"),
                     xcodeDirectory);
