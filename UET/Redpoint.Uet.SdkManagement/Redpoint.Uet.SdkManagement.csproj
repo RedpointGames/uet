@@ -3,10 +3,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <ItemGroup>
-    <EmbeddedResource Include="7z.exe" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.PackageManagement\Redpoint.PackageManagement.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
     <ProjectReference Include="..\Redpoint.Registry\Redpoint.Registry.csproj" />
