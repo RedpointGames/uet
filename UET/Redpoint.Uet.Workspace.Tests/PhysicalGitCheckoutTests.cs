@@ -7,6 +7,7 @@
     using Redpoint.PackageManagement;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
+    using Redpoint.ProgressMonitor;
     using Redpoint.Reservation;
     using Redpoint.Uefs.Protocol;
     using Redpoint.Uet.Core;
@@ -48,6 +49,7 @@
             services.AddUefs();
             services.AddUetWorkspace();
             services.AddPackageManagement();
+            services.AddProgressMonitor();
             services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
@@ -105,6 +107,7 @@
             services.AddPackageManagement();
             services.AddUefs();
             services.AddUetWorkspace();
+            services.AddProgressMonitor();
             services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
@@ -190,6 +193,7 @@
             services.AddPackageManagement();
             services.AddUefs();
             services.AddUetWorkspace();
+            services.AddProgressMonitor();
             services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
@@ -250,6 +254,7 @@
             services.AddPackageManagement();
             services.AddUefs();
             services.AddUetWorkspace();
+            services.AddProgressMonitor();
             services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
