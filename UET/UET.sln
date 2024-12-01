@@ -315,6 +315,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Redpoint.Uba", "Redpoint.Ub
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uba", "Redpoint.Uba\Redpoint.Uba.csproj", "{2AAD5971-F06A-4B7A-9E11-538BEC82F247}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.PackageManagement", "Redpoint.PackageManagement\Redpoint.PackageManagement.csproj", "{2136131B-7D12-45D5-9CEF-A255FCF26A44}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -857,6 +859,10 @@ Global
 		{2AAD5971-F06A-4B7A-9E11-538BEC82F247}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2AAD5971-F06A-4B7A-9E11-538BEC82F247}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2AAD5971-F06A-4B7A-9E11-538BEC82F247}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2136131B-7D12-45D5-9CEF-A255FCF26A44}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2136131B-7D12-45D5-9CEF-A255FCF26A44}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2136131B-7D12-45D5-9CEF-A255FCF26A44}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2136131B-7D12-45D5-9CEF-A255FCF26A44}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

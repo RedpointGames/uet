@@ -3,14 +3,6 @@
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Represents a lock obtained on a global mutex. You must call <see cref="IAsyncDisposable.DisposeAsync"/>
-    /// once you are finished with the reservation.
-    /// </summary>
-    public interface IGlobalMutexReservation : IAsyncDisposable
-    {
-    }
-
-    /// <summary>
     /// Supports making reservations on global mutexes, such that only the code using the
     /// returned <see cref="IReservation"/> has the lock of the global mutex. Mutexes are shared
     /// for the current user (not system-wide).

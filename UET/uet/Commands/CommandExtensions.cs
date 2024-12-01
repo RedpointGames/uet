@@ -33,6 +33,7 @@
     using Redpoint.CredentialDiscovery;
     using Redpoint.Concurrency;
     using Redpoint.GrpcPipes.Transport.Tcp;
+    using Redpoint.PackageManagement;
 
     internal static class CommandExtensions
     {
@@ -62,6 +63,7 @@
             services.AddSdkManagement();
             services.AddGrpcPipes<TcpGrpcPipeFactory>();
             services.AddUefs();
+            services.AddPackageManagement();
             services.AddUETAutomation();
             services.AddUETUAT();
             services.AddUETBuildPipeline();
@@ -70,7 +72,7 @@
             services.AddUetBuildPipelineProvidersPrepare();
             services.AddUETBuildPipelineProvidersTest();
             services.AddUETBuildPipelineProvidersDeployment();
-            services.AddUETWorkspace();
+            services.AddUetWorkspace();
             services.AddUETCore(minimumLogLevel: minimumLogLevel, permitRunbackLogging: permitRunbackLogging);
             services.AddCredentialDiscovery();
             services.AddSingleton<ISelfLocation, DefaultSelfLocation>();

@@ -4,8 +4,10 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.CredentialDiscovery;
     using Redpoint.IO;
+    using Redpoint.PackageManagement;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
+    using Redpoint.ProgressMonitor;
     using Redpoint.Reservation;
     using Redpoint.Uefs.Protocol;
     using Redpoint.Uet.Core;
@@ -45,7 +47,9 @@
             services.AddPathResolution();
             services.AddProcessExecution();
             services.AddUefs();
-            services.AddUETWorkspace();
+            services.AddUetWorkspace();
+            services.AddPackageManagement();
+            services.AddProgressMonitor();
             services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
@@ -100,8 +104,10 @@
             });
             services.AddPathResolution();
             services.AddProcessExecution();
+            services.AddPackageManagement();
             services.AddUefs();
-            services.AddUETWorkspace();
+            services.AddUetWorkspace();
+            services.AddProgressMonitor();
             services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
@@ -184,8 +190,10 @@
             });
             services.AddPathResolution();
             services.AddProcessExecution();
+            services.AddPackageManagement();
             services.AddUefs();
-            services.AddUETWorkspace();
+            services.AddUetWorkspace();
+            services.AddProgressMonitor();
             services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
@@ -243,8 +251,10 @@
             });
             services.AddPathResolution();
             services.AddProcessExecution();
+            services.AddPackageManagement();
             services.AddUefs();
-            services.AddUETWorkspace();
+            services.AddUetWorkspace();
+            services.AddProgressMonitor();
             services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();

@@ -21,6 +21,7 @@
     using System.Threading.Tasks;
     using System.Security.Principal;
     using System.Buffers.Text;
+    using Redpoint.PackageManagement;
 
     internal class DefaultPhysicalGitCheckout : IPhysicalGitCheckout
     {
@@ -31,6 +32,7 @@
         private readonly ICredentialDiscovery _credentialDiscovery;
         private readonly IReservationManagerFactory _reservationManagerFactory;
         private readonly IWorldPermissionApplier _worldPermissionApplier;
+        private readonly IPackageManager _packageManager;
         private readonly ConcurrentDictionary<string, IReservationManager> _sharedReservationManagers;
         private readonly IGlobalMutexReservationManager _globalMutexReservationManager;
 
@@ -41,7 +43,8 @@
             IReservationManagerForUet reservationManagerForUet,
             ICredentialDiscovery credentialDiscovery,
             IReservationManagerFactory reservationManagerFactory,
-            IWorldPermissionApplier worldPermissionApplier)
+            IWorldPermissionApplier worldPermissionApplier,
+            IPackageManager packageManager)
         {
             _logger = logger;
             _pathResolver = pathResolver;
@@ -50,6 +53,7 @@
             _credentialDiscovery = credentialDiscovery;
             _reservationManagerFactory = reservationManagerFactory;
             _worldPermissionApplier = worldPermissionApplier;
+            _packageManager = packageManager;
             _sharedReservationManagers = new ConcurrentDictionary<string, IReservationManager>();
             _globalMutexReservationManager = _reservationManagerFactory.CreateGlobalMutexReservationManager();
         }
@@ -71,21 +75,6 @@
                 if (!isAdministrator)
                 {
                     _logger.LogInformation("Skipping automatic upgrade/install of Git because this process is not running as an Administrator.");
-                    return;
-                }
-
-                // Try to find PowerShell 7 via PATH. The WinGet CLI doesn't work under SYSTEM (even with absolute path) due to MSIX nonsense, but apparently the PowerShell scripts use a COM API that does?
-                string? pwsh = null;
-                try
-                {
-                    pwsh = await _pathResolver.ResolveBinaryPath("pwsh").ConfigureAwait(false);
-                }
-                catch (FileNotFoundException)
-                {
-                }
-                if (pwsh == null)
-                {
-                    _logger.LogInformation("Skipping automatic upgrade/install of Git because this system does not have PowerShell 7 or later installed.");
                     return;
                 }
 
@@ -134,77 +123,12 @@
                 }
 
                 // Make sure Git is up-to-date.
-                await using (await _globalMutexReservationManager.TryReserveExactAsync("GitUpgrade").ConfigureAwait(false))
-                {
-                    _logger.LogInformation("Ensuring Git is up-to-date...");
-                    var script =
-                        """
-                        if ($null -eq (Get-InstalledModule -ErrorAction SilentlyContinue -Name Microsoft.WinGet.Client)) {
-                            Write-Host "Installing WinGet PowerShell module because it's not currently installed...";
-                            Install-Module -Name Microsoft.WinGet.Client -Force;
-                        }
-                        $InstalledPackage = (Get-WinGetPackage -Id Microsoft.Git -ErrorAction SilentlyContinue);
-                        if ($null -eq $InstalledPackage) {
-                            Write-Host "Installing Git because it's not currently installed...";
-                            Install-WinGetPackage -Id Microsoft.Git -Mode Silent;
-                            exit 0;
-                        } elseif ($InstalledPackage.Version -ne (Find-WinGetPackage -Id Microsoft.Git).Version) {
-                            Write-Host "Updating Git because it's not the latest version...";
-                            Update-WinGetPackage -Id Microsoft.Git -Mode Silent;
-                            exit 0;
-                        }
-                        """;
-                    var encodedScript = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
-
-                    await _processExecutor.ExecuteAsync(
-                        new ProcessSpecification
-                        {
-                            FilePath = pwsh,
-                            Arguments = [
-                                "-NonInteractive",
-                                "-OutputFormat",
-                                "Text",
-                                "-EncodedCommand",
-                                encodedScript,
-                            ]
-                        },
-                        CaptureSpecification.Passthrough,
-                        CancellationToken.None).ConfigureAwait(false);
-                }
+                await _packageManager.InstallOrUpgradePackageToLatestAsync("Microsoft.Git", CancellationToken.None);
             }
             else if (OperatingSystem.IsMacOS())
             {
-                // Make sure Homebrew is installed so we can automate install/upgrade of Git.
-                string? brew = null;
-                try
-                {
-                    brew = await _pathResolver.ResolveBinaryPath("brew").ConfigureAwait(false);
-                }
-                catch (FileNotFoundException)
-                {
-                }
-                if (brew == null)
-                {
-                    _logger.LogInformation("Skipping automatic upgrade/install of Git because Homebrew is not installed.");
-                    return;
-                }
-
                 // Make sure Git is up-to-date.
-                await using (await _globalMutexReservationManager.TryReserveExactAsync("GitUpgrade").ConfigureAwait(false))
-                {
-                    _logger.LogInformation("Ensuring Git is up-to-date...");
-                    await _processExecutor.ExecuteAsync(
-                        new ProcessSpecification
-                        {
-                            FilePath = brew,
-                            Arguments = [
-                                File.Exists("/opt/homebrew/bin/git") ? "upgrade" : "install",
-                                "git",
-                            ]
-                        },
-                        CaptureSpecification.Passthrough,
-                        CancellationToken.None).ConfigureAwait(false);
-                }
+                await _packageManager.InstallOrUpgradePackageToLatestAsync("git", CancellationToken.None);
             }
         }
 
