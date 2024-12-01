@@ -3,6 +3,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.IO;
     using Redpoint.ProcessExecution;
+    using Redpoint.ProgressMonitor.Utils;
     using System;
     using System.Collections.Generic;
     using System.IO.Compression;
