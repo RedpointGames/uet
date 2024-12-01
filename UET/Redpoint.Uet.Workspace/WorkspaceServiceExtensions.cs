@@ -10,7 +10,7 @@
 
     public static class WorkspaceServiceExtensions
     {
-        public static void AddUETWorkspace(this IServiceCollection services)
+        public static void AddUetWorkspace(this IServiceCollection services)
         {
             services.AddSingleton<IPhysicalGitCheckout, DefaultPhysicalGitCheckout>();
             services.AddSingleton<IParallelCopy, DefaultParallelCopy>();

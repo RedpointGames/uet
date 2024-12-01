@@ -18,6 +18,7 @@
     using Redpoint.Uet.Workspace;
     using Redpoint.CredentialDiscovery;
     using Redpoint.Uet.Core;
+    using Redpoint.PackageManagement;
 
     public class DynamicBuildGraphIncludeTests
     {
@@ -32,7 +33,8 @@
             services.AddUETBuildPipelineProvidersTest();
             services.AddUETBuildPipelineProvidersDeployment();
             services.AddUETAutomation();
-            services.AddUETWorkspace();
+            services.AddUetWorkspace();
+            services.AddPackageManagement();
             services.AddReservation();
             services.AddCredentialDiscovery();
             services.AddUETCore(skipLoggingRegistration: true);

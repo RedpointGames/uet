@@ -4,6 +4,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.CredentialDiscovery;
     using Redpoint.IO;
+    using Redpoint.PackageManagement;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
@@ -45,7 +46,8 @@
             services.AddPathResolution();
             services.AddProcessExecution();
             services.AddUefs();
-            services.AddUETWorkspace();
+            services.AddUetWorkspace();
+            services.AddPackageManagement();
             services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
@@ -100,8 +102,9 @@
             });
             services.AddPathResolution();
             services.AddProcessExecution();
+            services.AddPackageManagement();
             services.AddUefs();
-            services.AddUETWorkspace();
+            services.AddUetWorkspace();
             services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
@@ -184,8 +187,9 @@
             });
             services.AddPathResolution();
             services.AddProcessExecution();
+            services.AddPackageManagement();
             services.AddUefs();
-            services.AddUETWorkspace();
+            services.AddUetWorkspace();
             services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
@@ -243,8 +247,9 @@
             });
             services.AddPathResolution();
             services.AddProcessExecution();
+            services.AddPackageManagement();
             services.AddUefs();
-            services.AddUETWorkspace();
+            services.AddUetWorkspace();
             services.AddUETCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();

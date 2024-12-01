@@ -4,6 +4,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.CredentialDiscovery\Redpoint.CredentialDiscovery.csproj" />
+    <ProjectReference Include="..\Redpoint.PackageManagement\Redpoint.PackageManagement.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
     <ProjectReference Include="..\Redpoint.Reservation\Redpoint.Reservation.csproj" />
