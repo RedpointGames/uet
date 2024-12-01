@@ -4,26 +4,32 @@
     {
         public Task<string> ResolveBinaryPath(string binaryName)
         {
-            var paths = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-            var pathExts = OperatingSystem.IsWindows() ? (Environment.GetEnvironmentVariable("PATHEXT") ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries) : Array.Empty<string>();
-
-            foreach (var path in paths)
+            EnvironmentVariableTarget[] targets = OperatingSystem.IsWindows()
+                ? [EnvironmentVariableTarget.Process, EnvironmentVariableTarget.User, EnvironmentVariableTarget.Machine]
+                : [EnvironmentVariableTarget.Process];
+            foreach (var target in targets)
             {
-                if (pathExts.Length > 0)
+                var paths = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+                var pathExts = OperatingSystem.IsWindows() ? (Environment.GetEnvironmentVariable("PATHEXT") ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries) : [];
+
+                foreach (var path in paths)
                 {
-                    foreach (var pathExt in pathExts)
+                    if (pathExts.Length > 0)
                     {
-                        if (File.Exists(Path.Combine(path, $"{binaryName}{pathExt}")))
+                        foreach (var pathExt in pathExts)
                         {
-                            return Task.FromResult(Path.Combine(path, $"{binaryName}{pathExt}"));
+                            if (File.Exists(Path.Combine(path, $"{binaryName}{pathExt}")))
+                            {
+                                return Task.FromResult(Path.Combine(path, $"{binaryName}{pathExt}"));
+                            }
                         }
                     }
-                }
-                else
-                {
-                    if (File.Exists(Path.Combine(path, binaryName)))
+                    else
                     {
-                        return Task.FromResult(Path.Combine(path, binaryName));
+                        if (File.Exists(Path.Combine(path, binaryName)))
+                        {
+                            return Task.FromResult(Path.Combine(path, binaryName));
+                        }
                     }
                 }
             }
