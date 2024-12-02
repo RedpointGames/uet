@@ -4,6 +4,7 @@
     using Redpoint.ProcessExecution;
     using Redpoint.RuntimeJson;
     using Redpoint.Uet.BuildGraph;
+    using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Package;
     using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Project;

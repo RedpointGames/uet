@@ -1,4 +1,4 @@
-﻿namespace Redpoint.Uet.Configuration.Project
+﻿namespace Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Package
 {
     using System.Text.Json.Serialization;
 

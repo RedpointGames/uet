@@ -1,7 +1,8 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Deployment
 {
-    using Redpoint.Uet.Configuration.Plugin;
-    using Redpoint.Uet.Configuration.Project;
+    using Redpoint.Uet.BuildPipeline.Providers.Deployment.Plugin.BackblazeB2;
+    using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Custom;
+    using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Steam;
     using System.Text.Json;
     using System.Text.Json.Serialization;
 
