@@ -58,6 +58,9 @@
                 job.Variables = new Dictionary<string, string>(sourceJob.EnvironmentVariables);
                 job.Needs = sourceJob.Agent.IsManual ? new List<string>() : sourceJob.Needs.ToList();
 
+                // Ensure that older jobs are stopped when replaced with newer ones.
+                job.Interruptible = true;
+
                 if (sourceJob.Agent.Platform == BuildServerJobPlatform.Windows)
                 {
                     job.Tags = new List<string> { "buildgraph-windows" };
