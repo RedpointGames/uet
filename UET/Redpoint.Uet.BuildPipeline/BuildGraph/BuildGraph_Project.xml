@@ -221,7 +221,7 @@
     <!-- Cook for game platforms (targeting the Game target, not Client) -->
     <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
       <Property Name="CookFlavors" Value="NoCookFlavor" />
-      <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetPlatform)' == 'Android'" />
+      <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetPlatform)' == 'Android' and '$(AndroidGameCookFlavors)' != ''" />
       <ForEach Name="CookFlavor" Values="$(CookFlavors)">
         <Agent Name="Cook Game $(TargetPlatform) $(CookFlavor) (Windows Cook)" Type="Win64">
           <Node Name="Cook Game $(TargetPlatform) $(CookFlavor)" Requires="#EditorBinaries" Produces="#GameCookedContent_$(TargetPlatform)_$(CookFlavor)">
@@ -239,7 +239,7 @@
     <!-- Cook for client platforms (targeting the Client target, not Game) -->
     <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
       <Property Name="CookFlavors" Value="NoCookFlavor" />
-      <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetPlatform)' == 'Android'" />
+      <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetPlatform)' == 'Android' and '$(AndroidClientCookFlavors)' != ''" />
       <ForEach Name="CookFlavor" Values="$(CookFlavors)">
         <Agent Name="Cook Client $(TargetPlatform) $(CookFlavor) (Windows Cook)" Type="Win64">
           <Node Name="Cook Client $(TargetPlatform) $(CookFlavor)" Requires="#EditorBinaries" Produces="#ClientCookedContent_$(TargetPlatform)_$(CookFlavor)">
@@ -278,7 +278,7 @@
       <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
           <Property Name="CookFlavors" Value="NoCookFlavor" />
-          <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetPlatform)' == 'Android'" />
+          <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetPlatform)' == 'Android' and '$(AndroidGameCookFlavors)' != ''" />
           <ForEach Name="CookFlavor" Values="$(CookFlavors)">
             <Agent Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor) (Windows Pak and Stage)" Type="Win64">
               <Property Name="StageOutputs" Value="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
@@ -297,8 +297,8 @@
                 <Property Name="PackageFlag" Value="$(PackageFlag) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" If="'$(TargetPlatform)' == 'Android'" />
                 <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; $(CookFlavorArg) &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -target=$(TargetName)" />
                 <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="$(StageOutputs)" />
-                <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="'$(TargetPlatform)' == 'IOS'" />
-                <Do If="'$(TargetPlatform)' == 'Android'">
+                <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android' and '$(CookFlavor)' == 'NoCookFlavor')" />
+                <Do If="'$(TargetPlatform)' == 'Android' and '$(CookFlavor)' != 'NoCookFlavor'">
                   <Copy From="$(ProjectRoot)\Binaries\$(TargetPlatform)\..." To="$(ProjectRoot)\Binaries\$(TargetPlatform)_$(CookFlavor)" />
                   <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)_$(CookFlavor)" Files="..." With="$(StageOutputs)" />
                 </Do>
@@ -315,7 +315,7 @@
       <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ClientConfigurations)">
           <Property Name="CookFlavors" Value="NoCookFlavor" />
-          <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetPlatform)' == 'Android'" />
+          <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetPlatform)' == 'Android' and '$(AndroidClientCookFlavors)' != ''" />
           <ForEach Name="CookFlavor" Values="$(CookFlavors)">
             <Agent Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor) (Windows Pak and Stage)" Type="Win64">
               <Property Name="StageOutputs" Value="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
@@ -334,8 +334,8 @@
                 <Property Name="PackageFlag" Value="$(PackageFlag) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" If="'$(TargetPlatform)' == 'Android'" />
                 <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; $(CookFlavorArg) &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -client -target=$(TargetName)" />
                 <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="$(StageOutputs)" />
-                <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="'$(TargetPlatform)' == 'IOS'" />
-                <Do If="'$(TargetPlatform)' == 'Android'">
+                <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android' and '$(CookFlavor)' == 'NoCookFlavor')" />
+                <Do If="'$(TargetPlatform)' == 'Android' and '$(CookFlavor)' != 'NoCookFlavor'">
                   <Copy From="$(ProjectRoot)\Binaries\$(TargetPlatform)\..." To="$(ProjectRoot)\Binaries\$(TargetPlatform)_$(CookFlavor)" />
                   <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)_$(CookFlavor)" Files="..." With="$(StageOutputs)" />
                 </Do>
@@ -377,7 +377,7 @@
       <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
           <Property Name="CookFlavors" Value="NoCookFlavor" />
-          <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetPlatform)' == 'Android'" />
+          <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetPlatform)' == 'Android' and '$(AndroidGameCookFlavors)' != ''" />
           <ForEach Name="CookFlavor" Values="$(CookFlavors)">
             <Agent Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor) (macOS Pak and Stage)" Type="Mac">
               <Property Name="StageOutputs" Value="#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
@@ -396,8 +396,8 @@
                 <Property Name="PackageFlag" Value="$(PackageFlag) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" If="'$(TargetPlatform)' == 'Android'" />
                 <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; $(CookFlavorArg) &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -target=$(TargetName)" />
                 <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="$(StageOutputs)" />
-                <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="'$(TargetPlatform)' == 'IOS'" />
-                <Do If="'$(TargetPlatform)' == 'Android'">
+                <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android' and '$(CookFlavor)' == 'NoCookFlavor')" />
+                <Do If="'$(TargetPlatform)' == 'Android' and '$(CookFlavor)' != 'NoCookFlavor'">
                   <Copy From="$(ProjectRoot)/Binaries/$(TargetPlatform)/..." To="$(ProjectRoot)/Binaries/$(TargetPlatform)_$(CookFlavor)" />
                   <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)_$(CookFlavor)" Files="..." With="$(StageOutputs)" />
                 </Do>
@@ -414,7 +414,7 @@
       <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ClientConfigurations)">
           <Property Name="CookFlavors" Value="NoCookFlavor" />
-          <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetPlatform)' == 'Android'" />
+          <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetPlatform)' == 'Android' and '$(AndroidClientCookFlavors)' != ''" />
           <ForEach Name="CookFlavor" Values="$(CookFlavors)">
             <Agent Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor) (macOS Pak and Stage)" Type="Mac">
               <Property Name="StageOutputs" Value="#ClientStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
@@ -433,8 +433,8 @@
                 <Property Name="PackageFlag" Value="$(PackageFlag) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" If="'$(TargetPlatform)' == 'Android'" />
                 <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; $(CookFlavorArg) &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -client -target=$(TargetName)" />
                 <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="$(StageOutputs)" />
-                <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="'$(TargetPlatform)' == 'IOS'" />
-                <Do If="'$(TargetPlatform)' == 'Android'">
+                <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android' and '$(CookFlavor)' == 'NoCookFlavor')" />
+                <Do If="'$(TargetPlatform)' == 'Android' and '$(CookFlavor)' != 'NoCookFlavor'">
                   <Copy From="$(ProjectRoot)/Binaries/$(TargetPlatform)/..." To="$(ProjectRoot)/Binaries/$(TargetPlatform)_$(CookFlavor)" />
                   <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)_$(CookFlavor)" Files="..." With="$(StageOutputs)" />
                 </Do>
