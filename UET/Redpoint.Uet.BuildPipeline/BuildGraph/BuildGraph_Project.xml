@@ -14,6 +14,7 @@
   <Option Name="UProjectPath" Restrict=".*" DefaultValue="" Description="Path to the .uproject file" />
   <Option Name="Distribution" Restrict=".*" DefaultValue="" Description="The distribution being built" />
   <Option Name="IsUnrealEngine5" Restrict="true|false" DefaultValue="false" Description="If true, this is an Unreal Engine 5 project" />
+  <Option Name="Timestamp" Restrict="[0-9]+" DefaultValue="0" Description="The UNIX timestamp when this build was generated" />
 
   <!-- Build options -->
   <Option Name="ExecuteBuild" Restrict="true|false" DefaultValue="true" Description="Whether the build steps should be executed" />
@@ -292,6 +293,7 @@
                 <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
                 <Property Name="PackageFlag" Value="" />
                 <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
+                <Property Name="PackageFlag" Value="$(PackageFlag) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" If="'$(TargetPlatform)' == 'Android'" />
                 <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; $(CookFlavorArg) &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -target=$(TargetName)" />
                 <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="$(StageOutputs)" />
                 <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="'$(TargetPlatform)' == 'IOS'" />
@@ -327,6 +329,7 @@
                 <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
                 <Property Name="PackageFlag" Value="" />
                 <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
+                <Property Name="PackageFlag" Value="$(PackageFlag) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" If="'$(TargetPlatform)' == 'Android'" />
                 <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; $(CookFlavorArg) &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -client -target=$(TargetName)" />
                 <Tag BaseDir="$(StageDirectory)\$(StagePlatform)" Files="..." With="$(StageOutputs)" />
                 <Tag BaseDir="$(ProjectRoot)\Binaries\$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="'$(TargetPlatform)' == 'IOS'" />
@@ -387,6 +390,7 @@
                 <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
                 <Property Name="PackageFlag" Value="" />
                 <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
+                <Property Name="PackageFlag" Value="$(PackageFlag) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" If="'$(TargetPlatform)' == 'Android'" />
                 <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; $(CookFlavorArg) &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -target=$(TargetName)" />
                 <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="$(StageOutputs)" />
                 <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="'$(TargetPlatform)' == 'IOS'" />
@@ -422,6 +426,7 @@
                 <Property Name="DisableCodeSign" Value="-NoCodeSign" If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')" />
                 <Property Name="PackageFlag" Value="" />
                 <Property Name="PackageFlag" Value="-package" If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')" />
+                <Property Name="PackageFlag" Value="$(PackageFlag) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" If="'$(TargetPlatform)' == 'Android'" />
                 <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 $(DisableCodeSign) &quot;-platform=$(TargetPlatform)&quot; $(CookFlavorArg) &quot;-clientconfig=$(TargetConfiguration)&quot; -SkipCook -cook -pak $(PackageFlag) -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -ClientCookedTargets=$(TargetName) -client -target=$(TargetName)" />
                 <Tag BaseDir="$(StageDirectory)/$(StagePlatform)" Files="..." With="$(StageOutputs)" />
                 <Tag BaseDir="$(ProjectRoot)/Binaries/$(TargetPlatform)" Files="..." With="$(StageOutputs)" If="'$(TargetPlatform)' == 'IOS'" />
