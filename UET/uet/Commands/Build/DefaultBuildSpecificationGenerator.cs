@@ -624,6 +624,7 @@
                     { $"UProjectPath", $"__REPOSITORY_ROOT__/{distribution.FolderName}/{distribution.ProjectName}.uproject" },
                     { $"Distribution", distribution.Name },
                     { "IsUnrealEngine5", "true" },
+                    { "Timestamp", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture) },
 
                     // Build options
                     { $"ExecuteBuild", executeBuild ? "true" : "false" },
@@ -828,6 +829,7 @@
                     { $"UProjectPath", $"__REPOSITORY_ROOT__/{Path.GetFileName(pathSpec.UProjectPath)}" },
                     { $"Distribution", "None" },
                     { "IsUnrealEngine5", "true" },
+                    { "Timestamp", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture) },
 
                     // Build options
                     { $"ExecuteBuild", "true" },
