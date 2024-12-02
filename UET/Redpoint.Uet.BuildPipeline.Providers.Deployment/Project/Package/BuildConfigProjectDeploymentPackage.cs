@@ -27,5 +27,11 @@
         /// </summary>
         [JsonPropertyName("Configuration"), JsonRequired]
         public string Configuration { get; set; } = string.Empty;
+
+        /// <summary>
+        /// If set, use this cook flavor instead of the default cook flavor.
+        /// </summary>
+        [JsonPropertyName("CookFlavor")]
+        public string? CookFlavor { get; set; }
     }
 }
