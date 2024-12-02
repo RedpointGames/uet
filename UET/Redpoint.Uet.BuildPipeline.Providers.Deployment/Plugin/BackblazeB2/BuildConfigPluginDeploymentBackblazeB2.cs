@@ -1,4 +1,4 @@
-﻿namespace Redpoint.Uet.Configuration.Plugin
+﻿namespace Redpoint.Uet.BuildPipeline.Providers.Deployment.Plugin.BackblazeB2
 {
     using System.Text.Json.Serialization;
 
