@@ -80,6 +80,8 @@
                                                 @"""$(TargetPlatform)""",
                                                 "-TargetConfiguration",
                                                 @"""$(TargetConfiguration)""",
+                                                "-EnginePath",
+                                                @"""$(EnginePath)""",
                                             },
                                             If = "$(HostPlatform) == 'Win64'"
                                         }).ConfigureAwait(false);
@@ -100,6 +102,8 @@
                                                 @"""$(TargetPlatform)""",
                                                 "-TargetConfiguration",
                                                 @"""$(TargetConfiguration)""",
+                                                "-EnginePath",
+                                                @"""$(EnginePath)""",
                                             },
                                             If = "$(HostPlatform) == 'Mac'"
                                         }).ConfigureAwait(false);
@@ -145,6 +149,11 @@
                 foreach (var argument in entry.settings.ScriptArguments ?? [])
                 {
                     arguments.Add(argument);
+                }
+                if (preBuildGraphArguments.TryGetValue("EnginePath", out var enginePath))
+                {
+                    arguments.Add("-EnginePath");
+                    arguments.Add(enginePath);
                 }
 
                 _logger.LogInformation($"Executing pre-BuildGraph custom preparation step '{entry.name}' in directory '{repositoryRoot}': '{scriptPath}'");
