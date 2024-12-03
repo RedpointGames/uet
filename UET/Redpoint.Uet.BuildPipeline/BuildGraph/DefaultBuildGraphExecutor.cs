@@ -98,6 +98,23 @@
                     Name = "GradleUserHome"
                 }, cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var gradleUserHome).ConfigureAwait(false))
                 {
+                    // Delete the Gradle 'tarnsforms-4' cache folder, since it can become corrupt and then prevent
+                    // any further Android build jobs from working on this machine.
+                    var transformsFolder = Path.Combine(gradleUserHome.Path, "caches", "transforms-4");
+                    if (Directory.Exists(transformsFolder))
+                    {
+                        _logger.LogInformation("Deleting Gradle 'transforms-4' cache...");
+                        try
+                        {
+                            await DirectoryAsync.DeleteAsync(transformsFolder, true);
+                            _logger.LogInformation("Successfully deleted Gradle 'transforms-4' cache.");
+                        }
+                        catch
+                        {
+                            _logger.LogWarning("Failed to delete Gradle 'transforms-4' cache.");
+                        }
+                    }
+
                     var environmentVariables = new Dictionary<string, string>
                     {
                         { "IsBuildMachine", "1" },
