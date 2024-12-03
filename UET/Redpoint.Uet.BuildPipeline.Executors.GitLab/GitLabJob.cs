@@ -17,7 +17,7 @@
         [SuppressMessage("Design", "CA1002:Do not expose generic lists", Justification = "This property is used for YAML serialization.")]
         public List<string>? Tags { get; set; } = null;
 
-        [YamlMember(Alias = "interruptible", DefaultValuesHandling = DefaultValuesHandling.OmitNull, ScalarStyle = YamlDotNet.Core.ScalarStyle.Literal)]
+        [YamlMember(Alias = "interruptible", DefaultValuesHandling = DefaultValuesHandling.OmitNull, ScalarStyle = YamlDotNet.Core.ScalarStyle.Plain)]
         public bool? Interruptible { get; set; } = null;
 
         [YamlMember(Alias = "rules", DefaultValuesHandling = DefaultValuesHandling.OmitNull, ScalarStyle = YamlDotNet.Core.ScalarStyle.DoubleQuoted)]
