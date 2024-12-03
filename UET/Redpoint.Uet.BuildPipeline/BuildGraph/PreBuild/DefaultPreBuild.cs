@@ -29,16 +29,31 @@
             }
 
             var components = nodeName.Split(' ');
-            if (!components.Contains("MetaQuest") &&
-                !components.Contains("GooglePlay"))
+
+            // Figure out what Android platforms we would need to clean for this job.
+            var androidPlatformNames = new HashSet<string>();
+            if (components.Contains("Android") ||
+                components.Contains("MetaQuest") ||
+                components.Contains("GooglePlay"))
             {
-                // Not a node that would be affected by stale Android files.
+                androidPlatformNames.Add("Android");
+            }
+            if (components.Contains("MetaQuest"))
+            {
+                androidPlatformNames.Add("MetaQuest");
+            }
+            if (components.Contains("GooglePlay"))
+            {
+                androidPlatformNames.Add("GooglePlay");
+            }
+
+            // If this job isn't affected by Android platforms, we don't need to do anything.
+            if (androidPlatformNames.Count == 0)
+            {
                 return Task.FromResult(0);
             }
-            var platformName = components.Contains("MetaQuest") ? "MetaQuest" : "GooglePlay";
 
             // We need to clear out 'Binaries/' and 'Saved/StagedBuilds/' of potential stale folders.
-            var androidPlatformNames = new[] { "Android", platformName };
             var binariesFolder = new DirectoryInfo(Path.Combine(projectRoot, "Binaries"));
             var stagedBuildsFolder = new DirectoryInfo(Path.Combine(projectRoot, "Saved", "StagedBuilds"));
             if (binariesFolder.Exists)
