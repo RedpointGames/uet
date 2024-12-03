@@ -387,9 +387,6 @@
         <!-- Execute the BuildCookRun command with all the desired arguments. -->
         <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 -SkipCook -cook -pak -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -target=$(TargetName) $(BCRArgs)" />
 
-        <!-- Tag all of the outputs with the staging label. -->
-        <Tag BaseDir="$(StageDirectory)$(Slash)$(StagePlatform)" Files="..." With="$(StageOutputs)" />
-
         <!-- Figure out the target directory. -->
         <Property Name="TargetDirectoryName" Value="$(TargetStore)" />
         <Do If="'$(TargetPlatform)' == 'Android' and '$(CookFlavor)' != 'NoCookFlavor'">
@@ -398,6 +395,10 @@
 
         <!-- If the target directory is the same as the target platform, tag directly. -->
         <Do If="'$(TargetDirectoryName)' == '$(TargetPlatform)'">
+          <Tag
+            BaseDir="$(StageDirectory)$(Slash)$(StagePlatform)"
+            Files="..."
+            With="$(StageOutputs)" />
           <Tag
             BaseDir="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetPlatform)"
             Files="..."
@@ -409,6 +410,13 @@
           Android builds using a store variant or cook flavor.
         -->
         <Do If="'$(TargetDirectoryName)' != '$(TargetPlatform)'">
+          <Copy
+            From="$(StageDirectory)$(Slash)$(StagePlatform)$(Slash)..."
+            To="$(StageDirectory)$(Slash)$(TargetDirectoryName)" />
+          <Tag
+            BaseDir="$(StageDirectory)$(Slash)$(TargetDirectoryName)"
+            Files="..."
+            With="$(StageOutputs)" />
           <Copy
             From="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetPlatform)$(Slash)..."
             To="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetDirectoryName)" />
