@@ -15,6 +15,7 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Redpoint.Concurrency;
+    using Redpoint.Uet.BuildPipeline.BuildGraph.PreBuild;
 
     public class GitLabBuildNodeExecutor : IBuildNodeExecutor
     {
@@ -24,6 +25,7 @@
         private readonly IDynamicWorkspaceProvider _workspaceProvider;
         private readonly ISdkSetupForBuildExecutor _sdkSetupForBuildExecutor;
         private readonly IBuildGraphArgumentGenerator _buildGraphArgumentGenerator;
+        private readonly IPreBuild _preBuild;
         private readonly IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>[] _pluginPrepare;
         private readonly IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>[] _projectPrepare;
 
@@ -34,7 +36,8 @@
             IEngineWorkspaceProvider engineWorkspaceProvider,
             IDynamicWorkspaceProvider workspaceProvider,
             ISdkSetupForBuildExecutor sdkSetupForBuildExecutor,
-            IBuildGraphArgumentGenerator buildGraphArgumentGenerator)
+            IBuildGraphArgumentGenerator buildGraphArgumentGenerator,
+            IPreBuild preBuild)
         {
             _logger = logger;
             _buildGraphExecutor = buildGraphExecutor;
@@ -42,6 +45,7 @@
             _workspaceProvider = workspaceProvider;
             _sdkSetupForBuildExecutor = sdkSetupForBuildExecutor;
             _buildGraphArgumentGenerator = buildGraphArgumentGenerator;
+            _preBuild = preBuild;
             _pluginPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>>().ToArray();
             _projectPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>>().ToArray();
         }
@@ -99,6 +103,19 @@
                                 ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
                                 : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                             buildSpecification.ArtifactExportPath);
+
+                        {
+                            var exitCode = await _preBuild.RunGeneralPreBuild(
+                                targetWorkspacePath,
+                                nodeName,
+                                preBuildGraphArguments,
+                                cancellationToken).ConfigureAwait(false);
+                            if (exitCode != 0)
+                            {
+                                _logger.LogError($"General pre-build failed with exit code {exitCode}.");
+                                return exitCode;
+                            }
+                        }
 
                         if (preparePlugin != null && preparePlugin.Length > 0)
                         {

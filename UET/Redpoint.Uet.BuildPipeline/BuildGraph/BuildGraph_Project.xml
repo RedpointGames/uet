@@ -59,6 +59,8 @@
   <Property Name="DynamicPreDeploymentNodes" Value="" />
   <Property Name="DynamicBeforeCompileMacros" Value="" />
 
+  <Property Name="GeneratedVariantsList" Value="" />
+
   <!-- 
     Include all the macros dynamically defined by UET.
   -->
@@ -90,14 +92,25 @@
   <!--
     Macro for compiling a variant.
   -->
-  <Macro Name="CompileVariant" Arguments="TargetType;TargetName;TargetPlatform;TargetConfiguration">
+  <Macro Name="CompileVariant" Arguments="TargetType;TargetName;TargetStore;TargetConfiguration">
+
+    <Property Name="TargetPlatform" Value="$(TargetStore)" />
+    <Property Name="TargetPlatform" Value="Android" If="'$(TargetStore)' == 'MetaQuest'" />
+    <Property Name="TargetPlatform" Value="Android" If="'$(TargetStore)' == 'GooglePlay'" />
+
+    <Property Name="VariantName" Value="Compile_$(TargetType)_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+
     <Property Name="HostPlatform" Value="Win64" />
     <Property Name="HostPlatform" Value="Mac" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
 
     <Property Name="AgentSuffix" Value="(Windows Build)" />
     <Property Name="AgentSuffix" Value="(macOS Build)" If="'$(HostPlatform)' == 'Mac'" />
 
-    <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(AgentSuffix)" Type="$(HostPlatform)">
+    <Agent
+      Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(AgentSuffix)"
+      Type="$(HostPlatform)"
+      If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')"
+    >
       <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)">
         <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
           <Expand Name="$(MacroName)" TargetType="$(TargetType)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="$(HostPlatform)" />
@@ -109,13 +122,30 @@
       </Node>
       <Property Name="$(TargetType)Binaries" Value="$($(TargetType)Binaries)#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"/>
     </Agent>
+
+    <Property
+      Name="GeneratedVariantsList"
+      Value="$(GeneratedVariantsList)$(VariantName);"
+      If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')" />
+
   </Macro>
 
   <!--
     Macro for cooking a variant.
   -->
-  <Macro Name="CookVariant" Arguments="TargetType;TargetPlatform;CookFlavor">
-    <Agent Name="Cook $(TargetType) $(TargetPlatform) $(CookFlavor) (Windows Cook)" Type="Win64">
+  <Macro Name="CookVariant" Arguments="TargetType;TargetStore;CookFlavor">
+
+    <Property Name="TargetPlatform" Value="$(TargetStore)" />
+    <Property Name="TargetPlatform" Value="Android" If="'$(TargetStore)' == 'MetaQuest'" />
+    <Property Name="TargetPlatform" Value="Android" If="'$(TargetStore)' == 'GooglePlay'" />
+
+    <Property Name="VariantName" Value="Cook_$(TargetType)_$(TargetPlatform)_$(CookFlavor)" />
+
+    <Agent
+      Name="Cook $(TargetType) $(TargetPlatform) $(CookFlavor) (Windows Cook)"
+      Type="Win64"
+      If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')"
+    >
       <Node Name="Cook $(TargetType) $(TargetPlatform) $(CookFlavor)" Requires="#EditorBinaries" Produces="#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)">
         <Property Name="CookPlatform" Value="$(TargetPlatform)" />
         <Property Name="CookPlatform" Value="Windows" If="'$(CookPlatform)' == 'Win64'" />
@@ -127,12 +157,26 @@
       </Node>
       <Property Name="$(TargetType)CookedContent" Value="$($(TargetType)CookedContent)#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor);"/>
     </Agent>
+
+    <Property
+      Name="GeneratedVariantsList"
+      Value="$(GeneratedVariantsList)$(VariantName);"
+      If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')" />
+
   </Macro>
 
   <!--
     Macro for packaging a variant.
   -->
-  <Macro Name="PackageVariant" Arguments="TargetType;TargetName;TargetPlatform;TargetConfiguration;CookFlavor">
+  <Macro Name="PackageVariant" Arguments="TargetType;TargetName;TargetStore;TargetConfiguration;CookFlavor">
+
+    <!-- Variant name calculated before normalization this time, since we want multiple packaging jobs when targeting multiple stores. -->
+    <Property Name="VariantName" Value="Package_$(TargetType)_$(TargetName)_$(TargetStore)_$(TargetConfiguration)_$(CookFlavor)" />
+
+    <Property Name="TargetPlatform" Value="$(TargetStore)" />
+    <Property Name="TargetPlatform" Value="Android" If="'$(TargetStore)' == 'MetaQuest'" />
+    <Property Name="TargetPlatform" Value="Android" If="'$(TargetStore)' == 'GooglePlay'" />
+
     <Property Name="HostPlatform" Value="Win64" />
     <Property Name="HostPlatform" Value="Mac" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
 
@@ -140,14 +184,17 @@
     <Property Name="AgentSuffix" Value="(macOS Pak and Stage)" If="'$(HostPlatform)' == 'Mac'" />
 
     <!-- Specify the agent that this job will run on for this variant. -->
-    <Agent Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor) $(AgentSuffix)" Type="$(HostPlatform)">
-
+    <Agent
+      Name="Pak and Stage $(TargetName) $(TargetStore) $(TargetConfiguration) $(CookFlavor) $(AgentSuffix)"
+      Type="$(HostPlatform)"
+      If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')"
+    >
       <!-- Figure out the label to tag the stage outputs with, based on whether we have a cook flavor. -->
-      <Property Name="StageOutputs" Value="#$(TargetType)Staged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
+      <Property Name="StageOutputs" Value="#$(TargetType)Staged_$(TargetName)_$(TargetStore)_$(TargetConfiguration)" />
       <Property Name="StageOutputs" Value="$(StageOutputs)_$(CookFlavor)" If="'$(CookFlavor)' != 'NoCookFlavor'" />
 
       <!-- Specify the job to run. We do all our other property declarations under here due to BuildGraph quirks. -->
-      <Node Name="Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(CookFlavor)" Requires="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)" Produces="$(StageOutputs)">
+      <Node Name="Pak and Stage $(TargetName) $(TargetStore) $(TargetConfiguration) $(CookFlavor)" Requires="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)" Produces="$(StageOutputs)">
 
         <!-- Configure directory seperator based on host platform. -->
         <Property Name="Slash" Value="\" />
@@ -195,9 +242,9 @@
           Value="$(BCRArgs) -distribution" />
 
         <!-- 
-            Automatically set the StoreVersion for Android so that it increments over time. 
-            This is necessary for store submission pretty much everywhere. 
-          -->
+          Automatically set the StoreVersion for Android so that it increments over time. 
+          This is necessary for store submission pretty much everywhere. 
+        -->
         <Property
           If="'$(TargetPlatform)' == 'Android'"
           Name="BCRArgs"
@@ -237,17 +284,121 @@
             Value="$(BCRArgs) -ServerCookedTargets=$(TargetName)" />
         </Do>
 
+        <!-- 
+          If the original target platform is "MetaQuest", then we need to set packaging arguments 
+          necessary for Meta Quest. This is because Unreal Engine bundles all Android platforms
+          under the same 'Android' platform, even though they can have radically different
+          packaging requirements.
+        -->
+        <Do If="'$(TargetStore)' == 'MetaQuest'">
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:InstallLocation=InternalOnly" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bPackageDataInsideApk=False" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bForceSmallOBBFiles=False" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bAllowLargeOBBFiles=False" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bAllowPatchOBBFile=False" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bAllowOverflowOBBFiles=False" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bUseExternalFilesDir=False" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bEnableBundle=False" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) &quot;-ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:ExtraApplicationSettings&#x3D;&lt;meta-data android:name&#x3D;\&quot;com.oculus.supportedDevices\&quot; android:value&#x3D;\&quot;quest|quest2|questpro|quest3\&quot; &#x2F;&gt;&quot;" />
+          <Property
+            If="'$(TargetConfiguration)' == 'Shipping'"
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bRemoveOSIG=True" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bBuildForArm64=True" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bBuildForX8664=False" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bEnableGooglePlaySupport=False" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bPackageForMetaQuest=True" />
+        </Do>
+
+        <!-- 
+          If the original target platform is "GooglePlay", then we need to set packaging arguments 
+          necessary for Google Play. This is because Unreal Engine bundles all Android platforms
+          under the same 'Android' platform, even though they can have radically different
+          packaging requirements.
+        -->
+        <Do If="'$(TargetStore)' == 'GooglePlay'">
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bPackageDataInsideApk=False" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bForceSmallOBBFiles=False" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bAllowLargeOBBFiles=False" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bAllowPatchOBBFile=False" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bAllowOverflowOBBFiles=False" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bEnableBundle=True" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bEnableUniversalAPK=True" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bBundleABISplit=True" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bBundleLanguageSplit=True" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bBundleDensitySplit=True" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:ExtraApplicationSettings=" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bEnableGooglePlaySupport=True" />
+          <Property
+            Name="BCRArgs"
+            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bPackageForMetaQuest=False" />
+        </Do>
+
         <!-- Execute the BuildCookRun command with all the desired arguments. -->
         <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 -SkipCook -cook -pak -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -target=$(TargetName) $(BCRArgs)" />
 
-        <!-- Tag all of the outputs with the staging label. -->
-        <Tag BaseDir="$(StageDirectory)$(Slash)$(StagePlatform)" Files="..." With="$(StageOutputs)" />
+        <!-- Figure out the target directory. -->
+        <Property Name="TargetDirectoryName" Value="$(TargetStore)" />
+        <Do If="'$(TargetPlatform)' == 'Android' and '$(CookFlavor)' != 'NoCookFlavor'">
+          <Property Name="TargetDirectoryName" Value="$(TargetDirectoryName)_$(CookFlavor)" />
+        </Do>
 
-        <!-- 
-            When targeting iOS, or Android with no cook flavor, we need to tag the 'Binaries' 
-            folder as well, since that's where -package writes the APK files. 
-          -->
-        <Do If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android' and '$(CookFlavor)' == 'NoCookFlavor')">
+        <!-- If the target directory is the same as the target platform, tag directly. -->
+        <Do If="'$(TargetDirectoryName)' == '$(TargetPlatform)'">
+          <Tag
+            BaseDir="$(StageDirectory)$(Slash)$(StagePlatform)"
+            Files="..."
+            With="$(StageOutputs)" />
           <Tag
             BaseDir="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetPlatform)"
             Files="..."
@@ -255,16 +406,22 @@
         </Do>
 
         <!-- 
-            When targeting Android WITH a cook flavor, we need to move the contents of the 'Binaries' 
-            folder to a cook-specific folder and then tag the copied files, so that BuildGraph doesn't complain
-            about conflicting output files with the same path.
-          -->
-        <Do If="'$(TargetPlatform)' == 'Android' and '$(CookFlavor)' != 'NoCookFlavor'">
+          Otherwise, copy the files to the target directory and tag there. This is necessary for
+          Android builds using a store variant or cook flavor.
+        -->
+        <Do If="'$(TargetDirectoryName)' != '$(TargetPlatform)'">
+          <Copy
+            From="$(StageDirectory)$(Slash)$(StagePlatform)$(Slash)..."
+            To="$(StageDirectory)$(Slash)$(TargetDirectoryName)" />
+          <Tag
+            BaseDir="$(StageDirectory)$(Slash)$(TargetDirectoryName)"
+            Files="..."
+            With="$(StageOutputs)" />
           <Copy
             From="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetPlatform)$(Slash)..."
-            To="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetPlatform)_$(CookFlavor)" />
+            To="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetDirectoryName)" />
           <Tag
-            BaseDir="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetPlatform)_$(CookFlavor)"
+            BaseDir="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetDirectoryName)"
             Files="..."
             With="$(StageOutputs)" />
         </Do>
@@ -273,6 +430,12 @@
       <!-- Add the staged outputs to the overall stage label so we can depend on all of them later. -->
       <Property Name="$(TargetType)Staged" Value="$($(TargetType)Staged)$(StageOutputs);" />
     </Agent>
+
+    <Property
+      Name="GeneratedVariantsList"
+      Value="$(GeneratedVariantsList)$(VariantName);"
+      If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')" />
+
   </Macro>
 
   <!-- Compilation targets; the expanded macro picks the correct platform to run the compile on depending on the target platform. -->
@@ -283,27 +446,27 @@
 
     <!-- Compile the game (targeting the Game target, not Client) -->
     <ForEach Name="TargetName" Values="$(GameTargets)">
-      <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
+      <ForEach Name="TargetStore" Values="$(GameTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
-          <Expand Name="CompileVariant" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
+          <Expand Name="CompileVariant" TargetType="Game" TargetName="$(TargetName)" TargetStore="$(TargetStore)" TargetConfiguration="$(TargetConfiguration)" />
         </ForEach>
       </ForEach>
     </ForEach>
 
     <!-- Compile the client (targeting the Client target, not Game) -->
     <ForEach Name="TargetName" Values="$(ClientTargets)">
-      <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
+      <ForEach Name="TargetStore" Values="$(ClientTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ClientConfigurations)">
-          <Expand Name="CompileVariant" TargetType="Client" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
+          <Expand Name="CompileVariant" TargetType="Client" TargetName="$(TargetName)" TargetStore="$(TargetStore)" TargetConfiguration="$(TargetConfiguration)" />
         </ForEach>
       </ForEach>
     </ForEach>
 
     <!-- Compile the dedicated server -->
     <ForEach Name="TargetName" Values="$(ServerTargets)">
-      <ForEach Name="TargetPlatform" Values="$(ServerTargetPlatforms)">
+      <ForEach Name="TargetStore" Values="$(ServerTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ServerConfigurations)">
-          <Expand Name="CompileVariant" TargetType="Server" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
+          <Expand Name="CompileVariant" TargetType="Server" TargetName="$(TargetName)" TargetStore="$(TargetStore)" TargetConfiguration="$(TargetConfiguration)" />
         </ForEach>
       </ForEach>
     </ForEach>
@@ -314,26 +477,32 @@
   <Do If="'$(ExecuteBuild)' == 'true'">
 
     <!-- Cook for game platforms (targeting the Game target, not Client) -->
-    <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
+    <ForEach Name="TargetStore" Values="$(GameTargetPlatforms)">
       <Property Name="CookFlavors" Value="NoCookFlavor" />
-      <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetPlatform)' == 'Android' and '$(AndroidGameCookFlavors)' != ''" />
+      <!-- @todo Tidy this up; probably when we generate these blocks instead of only supporting matrixes. -->
+      <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetStore)' == 'Android' and '$(AndroidGameCookFlavors)' != ''" />
+      <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetStore)' == 'MetaQuest' and '$(AndroidGameCookFlavors)' != ''" />
+      <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetStore)' == 'GooglePlay' and '$(AndroidGameCookFlavors)' != ''" />
       <ForEach Name="CookFlavor" Values="$(CookFlavors)">
-        <Expand Name="CookVariant" TargetType="Game" TargetPlatform="$(TargetPlatform)" CookFlavor="$(CookFlavor)" />
+        <Expand Name="CookVariant" TargetType="Game" TargetStore="$(TargetStore)" CookFlavor="$(CookFlavor)" />
       </ForEach>
     </ForEach>
 
     <!-- Cook for client platforms (targeting the Client target, not Game) -->
-    <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
+    <ForEach Name="TargetStore" Values="$(ClientTargetPlatforms)">
       <Property Name="CookFlavors" Value="NoCookFlavor" />
-      <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetPlatform)' == 'Android' and '$(AndroidClientCookFlavors)' != ''" />
+      <!-- @todo Tidy this up; probably when we generate these blocks instead of only supporting matrixes. -->
+      <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetStore)' == 'Android' and '$(AndroidClientCookFlavors)' != ''" />
+      <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetStore)' == 'MetaQuest' and '$(AndroidClientCookFlavors)' != ''" />
+      <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetStore)' == 'GooglePlay' and '$(AndroidClientCookFlavors)' != ''" />
       <ForEach Name="CookFlavor" Values="$(CookFlavors)">
-        <Expand Name="CookVariant" TargetType="Client" TargetPlatform="$(TargetPlatform)" CookFlavor="$(CookFlavor)" />
+        <Expand Name="CookVariant" TargetType="Client" TargetStore="$(TargetStore)" CookFlavor="$(CookFlavor)" />
       </ForEach>
     </ForEach>
 
     <!-- Cook for dedicated servers -->
-    <ForEach Name="TargetPlatform" Values="$(ServerTargetPlatforms)">
-      <Expand Name="CookVariant" TargetType="Server" TargetPlatform="$(TargetPlatform)" CookFlavor="NoCookFlavor" />
+    <ForEach Name="TargetStore" Values="$(ServerTargetPlatforms)">
+      <Expand Name="CookVariant" TargetType="Server" TargetStore="$(TargetStore)" CookFlavor="NoCookFlavor" />
     </ForEach>
 
   </Do>
@@ -343,16 +512,19 @@
 
     <!-- Pak and stage the game (targeting the Game target, not Client) -->
     <ForEach Name="TargetName" Values="$(GameTargets)">
-      <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
+      <ForEach Name="TargetStore" Values="$(GameTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
           <Property Name="CookFlavors" Value="NoCookFlavor" />
-          <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetPlatform)' == 'Android' and '$(AndroidGameCookFlavors)' != ''" />
+          <!-- @todo Tidy this up; probably when we generate these blocks instead of only supporting matrixes. -->
+          <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetStore)' == 'Android' and '$(AndroidGameCookFlavors)' != ''" />
+          <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetStore)' == 'MetaQuest' and '$(AndroidGameCookFlavors)' != ''" />
+          <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetStore)' == 'GooglePlay' and '$(AndroidGameCookFlavors)' != ''" />
           <ForEach Name="CookFlavor" Values="$(CookFlavors)">
             <Expand
               Name="PackageVariant"
               TargetType="Game"
               TargetName="$(TargetName)"
-              TargetPlatform="$(TargetPlatform)"
+              TargetStore="$(TargetStore)"
               TargetConfiguration="$(TargetConfiguration)"
               CookFlavor="$(CookFlavor)" />
           </ForEach>
@@ -362,16 +534,19 @@
 
     <!-- Pak and stage the client (targeting the Client target, not Game) -->
     <ForEach Name="TargetName" Values="$(ClientTargets)">
-      <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
+      <ForEach Name="TargetStore" Values="$(ClientTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ClientConfigurations)">
           <Property Name="CookFlavors" Value="NoCookFlavor" />
-          <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetPlatform)' == 'Android' and '$(AndroidClientCookFlavors)' != ''" />
+          <!-- @todo Tidy this up; probably when we generate these blocks instead of only supporting matrixes. -->
+          <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetStore)' == 'Android' and '$(AndroidClientCookFlavors)' != ''" />
+          <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetStore)' == 'MetaQuest' and '$(AndroidClientCookFlavors)' != ''" />
+          <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetStore)' == 'GooglePlay' and '$(AndroidClientCookFlavors)' != ''" />
           <ForEach Name="CookFlavor" Values="$(CookFlavors)">
             <Expand
               Name="PackageVariant"
               TargetType="Client"
               TargetName="$(TargetName)"
-              TargetPlatform="$(TargetPlatform)"
+              TargetStore="$(TargetStore)"
               TargetConfiguration="$(TargetConfiguration)"
               CookFlavor="$(CookFlavor)" />
           </ForEach>
@@ -381,13 +556,13 @@
 
     <!-- Pak and stage the dedicated server -->
     <ForEach Name="TargetName" Values="$(ServerTargets)">
-      <ForEach Name="TargetPlatform" Values="$(ServerTargetPlatforms)">
+      <ForEach Name="TargetStore" Values="$(ServerTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ServerConfigurations)">
           <Expand
             Name="PackageVariant"
             TargetType="Server"
             TargetName="$(TargetName)"
-            TargetPlatform="$(TargetPlatform)"
+            TargetStore="$(TargetStore)"
             TargetConfiguration="$(TargetConfiguration)"
             CookFlavor="NoCookFlavor" />
         </ForEach>
