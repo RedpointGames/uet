@@ -244,11 +244,19 @@
         <!-- 
           Automatically set the StoreVersion for Android so that it increments over time. 
           This is necessary for store submission pretty much everywhere. 
+          
+          Automatically set the VersionDisplayName for Android so that it matches the store 
+          version and allows you to determine exactly what version of the application a user 
+          has installed on their device.
         -->
         <Property
           If="'$(TargetPlatform)' == 'Android'"
           Name="BCRArgs"
           Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" />
+        <Property
+          If="'$(TargetPlatform)' == 'Android'"
+          Name="BCRArgs"
+          Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:VersionDisplayName=$(Timestamp)" />
 
         <!-- If we're not packaging a dedicated server, add the parameters necessary to package Game/Client targets. -->
         <Do If="'$(TargetType)' != 'Server'">
