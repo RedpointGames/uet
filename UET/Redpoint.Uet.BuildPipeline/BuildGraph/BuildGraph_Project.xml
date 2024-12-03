@@ -116,6 +116,19 @@
           <Expand Name="$(MacroName)" TargetType="$(TargetType)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="$(HostPlatform)" />
         </ForEach>
         <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
+
+        <!-- 
+          Automatically set the StoreVersion for Android so that it increments over time. 
+          This is necessary for store submission pretty much everywhere. 
+          
+          We have to pass this to the Compile tag as well, since the store version is used
+          for the debug symbols folder.
+        -->
+        <Property
+          If="'$(TargetPlatform)' == 'Android'"
+          Name="AdditionalArguments"
+          Value="$(AdditionalArguments) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" />
+
         <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
         <Tag Files="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#$(TargetType)Receipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
         <SanitizeReceipt Files="#$(TargetType)Receipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
