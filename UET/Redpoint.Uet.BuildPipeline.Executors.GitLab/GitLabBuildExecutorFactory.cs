@@ -3,6 +3,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
+    using Redpoint.Uet.BuildPipeline.BuildGraph.PreBuild;
     using Redpoint.Uet.BuildPipeline.Executors.BuildServer;
     using Redpoint.Uet.BuildPipeline.Executors.Engine;
     using Redpoint.Uet.Configuration;
@@ -37,7 +38,8 @@
                 _serviceProvider.GetRequiredService<IEngineWorkspaceProvider>(),
                 _serviceProvider.GetRequiredService<IDynamicWorkspaceProvider>(),
                 _serviceProvider.GetRequiredService<ISdkSetupForBuildExecutor>(),
-                _serviceProvider.GetRequiredService<IBuildGraphArgumentGenerator>());
+                _serviceProvider.GetRequiredService<IBuildGraphArgumentGenerator>(),
+                _serviceProvider.GetRequiredService<IPreBuild>());
         }
     }
 }

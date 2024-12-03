@@ -6,6 +6,7 @@
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Export;
+    using Redpoint.Uet.BuildPipeline.BuildGraph.PreBuild;
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.Engine;
     using Redpoint.Uet.BuildPipeline.Providers.Prepare;
@@ -29,6 +30,7 @@
         private readonly IBuildGraphArgumentGenerator _buildGraphArgumentGenerator;
         private readonly IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>[] _pluginPrepare;
         private readonly IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>[] _projectPrepare;
+        private readonly IPreBuild _preBuild;
 
         public LocalBuildExecutor(
             IServiceProvider serviceProvider,
@@ -37,7 +39,8 @@
             IEngineWorkspaceProvider engineWorkspaceProvider,
             IDynamicWorkspaceProvider workspaceProvider,
             ISdkSetupForBuildExecutor sdkSetupForBuildExecutor,
-            IBuildGraphArgumentGenerator buildGraphArgumentGenerator)
+            IBuildGraphArgumentGenerator buildGraphArgumentGenerator,
+            IPreBuild preBuild)
         {
             _logger = logger;
             _buildGraphExecutor = buildGraphGenerator;
@@ -47,6 +50,7 @@
             _buildGraphArgumentGenerator = buildGraphArgumentGenerator;
             _pluginPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>>().ToArray();
             _projectPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>>().ToArray();
+            _preBuild = preBuild;
         }
 
         public string DiscoverPipelineId()
@@ -178,6 +182,19 @@
                                     ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
                                     : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
                                 buildSpecification.ArtifactExportPath);
+
+                            {
+                                var exitCode = await _preBuild.RunGeneralPreBuild(
+                                    targetWorkspacePath,
+                                    node.Node.Name,
+                                    preBuildGraphArguments,
+                                    cancellationToken).ConfigureAwait(false);
+                                if (exitCode != 0)
+                                {
+                                    _logger.LogError($"General pre-build failed with exit code {exitCode}.");
+                                    return exitCode;
+                                }
+                            }
 
                             if (preparePlugin != null && preparePlugin.Length > 0)
                             {
