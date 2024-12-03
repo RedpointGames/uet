@@ -8,6 +8,7 @@
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
     using Redpoint.Uet.Configuration;
+    using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Meta;
 
     public static class DeploymentProviderServiceCollections
     {
@@ -16,6 +17,7 @@
             services.AddDynamicProvider<BuildConfigPluginDistribution, IDeploymentProvider, BackblazeB2PluginDeploymentProvider>();
             services.AddDynamicProvider<BuildConfigProjectDistribution, IDeploymentProvider, CustomProjectDeploymentProvider>();
             services.AddDynamicProvider<BuildConfigProjectDistribution, IDeploymentProvider, SteamProjectDeploymentProvider>();
+            services.AddDynamicProvider<BuildConfigProjectDistribution, IDeploymentProvider, MetaProjectDeploymentProvider>();
         }
     }
 }
