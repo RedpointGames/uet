@@ -109,9 +109,9 @@
                             await DirectoryAsync.DeleteAsync(transformsFolder, true);
                             _logger.LogInformation("Successfully deleted Gradle 'transforms-4' cache.");
                         }
-                        catch
+                        catch (Exception ex)
                         {
-                            _logger.LogWarning("Failed to delete Gradle 'transforms-4' cache.");
+                            _logger.LogWarning($"Failed to delete Gradle 'transforms-4' cache: {ex}");
                         }
                     }
 
