@@ -7,6 +7,7 @@ namespace Redpoint.Uet.BuildPipeline
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Dynamic;
+    using Redpoint.Uet.BuildPipeline.BuildGraph.Gradle;
     using Redpoint.Uet.BuildPipeline.BuildGraph.MobileProvisioning;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Patching;
     using Redpoint.Uet.BuildPipeline.BuildGraph.PreBuild;
@@ -24,6 +25,7 @@ namespace Redpoint.Uet.BuildPipeline
             services.AddSingleton<ISdkSetupForBuildExecutor, DefaultSdkSetupForBuildExecutor>();
             services.AddSingleton<IDynamicBuildGraphIncludeWriter, DefaultDynamicBuildGraphIncludeWriter>();
             services.AddSingleton<IPreBuild, DefaultPreBuild>();
+            services.AddSingleton<IGradleWorkspace, DefaultGradleWorkspace>();
             if (OperatingSystem.IsMacOS())
             {
                 services.AddSingleton<IMobileProvisioning, MacMobileProvisioning>();

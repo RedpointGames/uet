@@ -5,6 +5,7 @@
     using Redpoint.IO;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Export;
+    using Redpoint.Uet.BuildPipeline.BuildGraph.Gradle;
     using Redpoint.Uet.BuildPipeline.BuildGraph.MobileProvisioning;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Patching;
     using Redpoint.Uet.Configuration.Engine;
@@ -24,6 +25,7 @@
         private readonly IBuildGraphPatcher _buildGraphPatcher;
         private readonly IDynamicWorkspaceProvider _dynamicWorkspaceProvider;
         private readonly IMobileProvisioning _mobileProvisioning;
+        private readonly IGradleWorkspace _gradleWorkspace;
 
         public DefaultBuildGraphExecutor(
             ILogger<DefaultBuildGraphExecutor> logger,
@@ -31,7 +33,8 @@
             IBuildGraphArgumentGenerator buildGraphArgumentGenerator,
             IBuildGraphPatcher buildGraphPatcher,
             IDynamicWorkspaceProvider dynamicWorkspaceProvider,
-            IMobileProvisioning mobileProvisioning)
+            IMobileProvisioning mobileProvisioning,
+            IGradleWorkspace gradleWorkspace)
         {
             _logger = logger;
             _uatExecutor = uatExecutor;
@@ -39,6 +42,7 @@
             _buildGraphPatcher = buildGraphPatcher;
             _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
             _mobileProvisioning = mobileProvisioning;
+            _gradleWorkspace = gradleWorkspace;
         }
 
         public async Task ListGraphAsync(
@@ -93,28 +97,18 @@
                 Name = "NuGetPackages"
             }, cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var nugetPackages).ConfigureAwait(false))
             {
-                await using ((await _dynamicWorkspaceProvider.GetWorkspaceAsync(new TemporaryWorkspaceDescriptor
+                GradleWorkspaceInstance? gradleInstance = null;
+                if (buildGraphNodeName.Contains("Android", StringComparison.InvariantCultureIgnoreCase) ||
+                    buildGraphNodeName.Contains("MetaQuest", StringComparison.InvariantCultureIgnoreCase) ||
+                    buildGraphNodeName.Contains("GooglePlay", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    Name = "GradleUserHome"
-                }, cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var gradleUserHome).ConfigureAwait(false))
+                    // Only set up and tear down the Gradle workspace if the node is for Android,
+                    // since it's quite expensive to copy the cache back and forth (but necessary
+                    // to mitigate Gradle concurrency bugs).
+                    gradleInstance = await _gradleWorkspace.GetGradleWorkspaceInstance(cancellationToken).ConfigureAwait(false);
+                }
+                try
                 {
-                    // Delete the Gradle 'tarnsforms-4' cache folder, since it can become corrupt and then prevent
-                    // any further Android build jobs from working on this machine.
-                    var transformsFolder = Path.Combine(gradleUserHome.Path, "caches", "transforms-4");
-                    if (Directory.Exists(transformsFolder))
-                    {
-                        _logger.LogInformation("Deleting Gradle 'transforms-4' cache...");
-                        try
-                        {
-                            await DirectoryAsync.DeleteAsync(transformsFolder, true);
-                            _logger.LogInformation("Successfully deleted Gradle 'transforms-4' cache.");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning($"Failed to delete Gradle 'transforms-4' cache: {ex}");
-                        }
-                    }
-
                     var environmentVariables = new Dictionary<string, string>
                     {
                         { "IsBuildMachine", "1" },
@@ -130,9 +124,12 @@
                         // Isolate NuGet package restore so that multiple jobs can restore at
                         // the same time.
                         { "NUGET_PACKAGES", nugetPackages.Path },
-                        // Adjust Gradle cache path so that Android packaging works under SYSTEM.
-                        { "GRADLE_USER_HOME", gradleUserHome.Path },
                     };
+                    if (gradleInstance != null)
+                    {
+                        // Adjust Gradle cache path so that Android packaging works under SYSTEM.
+                        environmentVariables["GRADLE_USER_HOME"] = gradleInstance.GradleHomePath;
+                    }
                     if (!string.IsNullOrWhiteSpace(buildGraphRepositoryRootPath))
                     {
                         environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = buildGraphRepositoryRootPath;
@@ -171,7 +168,7 @@
                     }
                     try
                     {
-                        return await InternalRunAsync(
+                        var exitCode = await InternalRunAsync(
                             enginePath,
                             buildGraphRepositoryRootPath,
                             uetPath,
@@ -191,6 +188,11 @@
                             mobileProvisions,
                             captureSpecification,
                             cancellationToken).ConfigureAwait(false);
+                        if (exitCode == 0)
+                        {
+                            gradleInstance?.MarkBuildAsSuccessful();
+                        }
+                        return exitCode;
                     }
                     finally
                     {
@@ -199,6 +201,14 @@
                             await DirectoryAsync.DeleteAsync(buildGraphLocalManifestPath, true).ConfigureAwait(false);
                         }
                     }
+                }
+                catch
+                {
+                    if (gradleInstance != null)
+                    {
+                        await gradleInstance.DisposeAsync().ConfigureAwait(false);
+                    }
+                    throw;
                 }
             }
         }
