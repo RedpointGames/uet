@@ -44,6 +44,10 @@
                     // Now try to delete again.
                     Directory.Delete(path, recursive);
                 }
+                catch (DirectoryNotFoundException)
+                {
+                    // Directory already doesn't exist; ignore.
+                }
             }).ConfigureAwait(false);
         }
 
