@@ -147,7 +147,9 @@
                 // Increase logging for TCP messaging.
                 "-ini:Engine:[Core.Log]:LogTcpMessaging=VeryVerbose",
                 // Disable Zen cache, as it does not work under SYSTEM.
-                "-DDC=NoZenLocalFallback"
+                "-DDC=NoZenLocalFallback",
+                // Force source control provider to be 'None'.
+                "-SCCProvider=None"
             };
             if (!Descriptor.EnableRendering)
             {
