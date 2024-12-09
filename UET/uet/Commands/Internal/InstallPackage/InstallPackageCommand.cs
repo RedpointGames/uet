@@ -19,7 +19,7 @@
             public Options()
             {
                 Package = new Argument<string>(
-                    name: "--id",
+                    name: "id",
                     description: "The package ID in WinGet or Homebrew.")
                 {
                     Arity = ArgumentArity.ExactlyOne
