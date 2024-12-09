@@ -101,7 +101,7 @@
                 _logger.LogInformation($"Ensuring {packageId} is installed and is up-to-date...");
                 var script =
                     $$"""
-                    if ($null -eq (Get-InstalledModule -ErrorAction SilentlyContinue -Name {{packageId}})) {
+                    if ($null -eq (Get-InstalledModule -ErrorAction SilentlyContinue -Name Microsoft.WinGet.Client)) {
                         Write-Host "Installing WinGet PowerShell module because it's not currently installed...";
                         Install-Module -Name Microsoft.WinGet.Client -Force;
                     }
