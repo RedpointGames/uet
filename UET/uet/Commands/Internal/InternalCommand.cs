@@ -29,6 +29,7 @@
     using UET.Commands.Internal.WakeOnLan;
     using UET.Commands.Internal.TestUba;
     using UET.Commands.Internal.EngineCheckout;
+    using UET.Commands.Internal.InstallPackage;
 
     internal sealed class InternalCommand
     {
@@ -65,6 +66,7 @@
                 RemoteZfsServerCommand.CreateRemoteZfsServerCommand(),
                 RemoteZfsTestCommand.CreateRemoteZfsTestCommand(),
                 EngineCheckoutCommand.CreateEngineCheckoutCommand(),
+                InstallPackageCommand.CreateInstallPackageCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
