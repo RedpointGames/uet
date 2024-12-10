@@ -129,7 +129,7 @@
           Name="AdditionalArguments"
           Value="$(AdditionalArguments) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" />
 
-        <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)"/>
+        <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; -SkipDeploy $(AdditionalArguments)"/>
         <Tag Files="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#$(TargetType)Receipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
         <SanitizeReceipt Files="#$(TargetType)Receipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
       </Node>
