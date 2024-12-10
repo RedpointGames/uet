@@ -1,0 +1,31 @@
+name: Wine Container
+
+on: workflow_dispatch
+
+jobs:
+  wine-container:
+    name: "Build Wine Container"
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        repository: EpicGamesExt/WineResources
+        ref: main
+        fetch-depth: 0
+    - name: Build Container
+      run: |
+        cd build
+        ./build.sh --layout
+        docker buildx build --progress=plain --platform linux/amd64 -t ghcr.io/redpointgames/uet/wine:9.0.0 ./context/
+    - name: Log in to the Container registry
+      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+      if: github.ref == 'refs/heads/main'
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Push Container
+      if: github.ref == 'refs/heads/main'
+      run: |
+        docker push ghcr.io/redpointgames/uet/wine:9.0.0
