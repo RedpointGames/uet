@@ -103,16 +103,21 @@
                     $$"""
                     if ($null -eq (Get-InstalledModule -ErrorAction SilentlyContinue -Name Microsoft.WinGet.Client)) {
                         Write-Host "Installing WinGet PowerShell module because it's not currently installed...";
-                        Install-Module -Name Microsoft.WinGet.Client -Force;
+                        Install-Module -Scope CurrentUser -Name Microsoft.WinGet.Client -Force;
+                        Import-Module -Name Microsoft.WinGet.Client;
                     }
                     $InstalledPackage = (Get-WinGetPackage -Id {{packageId}} -ErrorAction SilentlyContinue);
                     if ($null -eq $InstalledPackage) {
                         Write-Host "Installing {{packageId}} because it's not currently installed...";
                         Install-WinGetPackage -Id {{packageId}} -Mode Silent;
                         exit 0;
-                    } elseif ($InstalledPackage.Version -ne (Find-WinGetPackage -Id {{packageId}}).Version) {
-                        Write-Host "Updating {{packageId}} because it's not the latest version...";
-                        Update-WinGetPackage -Id {{packageId}} -Mode Silent;
+                    } else {
+                        $InstalledVersion = $InstalledPackage.InstalledVersion
+                        $TargetVersion = (Find-WinGetPackage -Id {{packageId}}).Version
+                        if ($InstalledVersion -ne $TargetVersion) {
+                            Write-Host "Updating {{packageId}} because the installed version $InstalledVersion is not the target version $TargetVersion...";
+                            Update-WinGetPackage -Id {{packageId}} -Mode Silent;
+                        }
                         exit 0;
                     }
                     """;
