@@ -406,7 +406,7 @@
         </Do>
 
         <!-- Run our reparenting hook, which is necessary to fix up Android UPL paths when not building against a source engine. -->
-        <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal reparent-additional-properties-in-targets --project-directory-path &quot;$(ProjectPath)&quot;" />
+        <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal reparent-additional-properties-in-targets --project-directory-path &quot;$(ProjectRoot)&quot;" />
 
         <!-- Execute the BuildCookRun command with all the desired arguments. -->
         <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 -SkipCook -cook -pak -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -target=$(TargetName) $(BCRArgs)" />
