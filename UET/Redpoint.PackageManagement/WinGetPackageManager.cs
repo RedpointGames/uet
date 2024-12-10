@@ -6,6 +6,7 @@
     using Redpoint.ProcessExecution;
     using Redpoint.ProgressMonitor.Utils;
     using Redpoint.Reservation;
+    using System.Diagnostics;
     using System.Runtime.Versioning;
     using System.Text;
     using System.Threading;
@@ -98,45 +99,92 @@
 
             await using (await _globalMutexReservationManager.TryReserveExactAsync($"PackageInstall-{packageId}").ConfigureAwait(false))
             {
-                _logger.LogInformation($"Ensuring {packageId} is installed and is up-to-date...");
-                var script =
-                    $$"""
-                    if ($null -eq (Get-InstalledModule -ErrorAction SilentlyContinue -Name Microsoft.WinGet.Client)) {
-                        Write-Host "Installing WinGet PowerShell module because it's not currently installed...";
-                        Install-Module -Scope CurrentUser -Name Microsoft.WinGet.Client -Force;
-                        Import-Module -Name Microsoft.WinGet.Client;
-                    }
-                    $InstalledPackage = (Get-WinGetPackage -Id {{packageId}} -ErrorAction SilentlyContinue);
-                    if ($null -eq $InstalledPackage) {
-                        Write-Host "Installing {{packageId}} because it's not currently installed...";
-                        Install-WinGetPackage -Id {{packageId}} -Mode Silent;
-                        exit 0;
-                    } else {
-                        $InstalledVersion = $InstalledPackage.InstalledVersion
-                        $TargetVersion = (Find-WinGetPackage -Id {{packageId}}).Version
-                        if ($InstalledVersion -ne $TargetVersion) {
-                            Write-Host "Updating {{packageId}} because the installed version $InstalledVersion is not the target version $TargetVersion...";
-                            Update-WinGetPackage -Id {{packageId}} -Mode Silent;
+                var stopwatch = Stopwatch.StartNew();
+                _logger.LogInformation($"Ensuring {packageId} is installed and up-to-date...");
+                try
+                {
+                    var script =
+                        $$"""
+                        $ErrorActionPreference = "Stop";
+
+                        $PackageId = "{{packageId}}";
+
+                        if ($null -eq (Get-Module -ListAvailable -Name Microsoft.WinGet.Client -ErrorAction SilentlyContinue)) {
+                            Write-Host "Installing WinGet PowerShell module because it's not currently installed...";
+                            Install-Module -Scope CurrentUser -Name Microsoft.WinGet.Client -Force;
+                            Import-Module -Name Microsoft.WinGet.Client;
+                        }
+
+                        $InstalledVersionPath = "$env:USERPROFILE\$PackageId.pkgiv";
+                        $InstalledVersionFile = Get-Item -Path $InstalledVersionPath -ErrorAction SilentlyContinue;
+                        $InstalledVersionStopwatch = [System.Diagnostics.Stopwatch]::StartNew();
+                        $InstalledVersion = $null;
+                        if ($null -eq $InstalledVersionFile -or
+                            ((Get-Date) - $InstalledVersionFile.LastWriteTime).TotalMinutes -gt 10) {
+                            $InstalledPackage = (Get-WinGetPackage -Id $PackageId -ErrorAction SilentlyContinue);
+                            if ($null -eq $InstalledPackage) {
+                                $InstalledVersion = $null;
+                            } else {
+                                $InstalledVersion = $InstalledPackage.InstalledVersion;
+                            }
+                            try {
+                                Set-Content -Path $InstalledVersionPath -Value "$InstalledVersion";
+                            } catch {
+                            }
+                            Write-Host "Detected installed version of $PackageId as '$InstalledVersion' in $($InstalledVersionStopwatch.Elapsed.TotalSeconds.ToString("F2")) seconds."
+                        } else {
+                            $InstalledVersion = (Get-Content -Path $InstalledVersionFile.FullName -Raw).Trim();
+                            Write-Host "Detected installed version of $PackageId as '$InstalledVersion' in $($InstalledVersionStopwatch.Elapsed.TotalSeconds.ToString("F2")) seconds (from cache)."
+                        }
+                        
+                        $TargetVersionPath = "$env:USERPROFILE\$PackageId.pkgtv";
+                        $TargetVersionFile = Get-Item -Path $TargetVersionPath -ErrorAction SilentlyContinue;
+                        $TargetVersionStopwatch = [System.Diagnostics.Stopwatch]::StartNew();
+                        $TargetVersion = $null;
+                        if ($null -eq $TargetVersionFile -or
+                            ((Get-Date) - $TargetVersionFile.LastWriteTime).TotalMinutes -gt 60) {
+                            $TargetVersion = (Find-WinGetPackage -Id {{packageId}}).Version;
+                            try {
+                                Set-Content -Path $TargetVersionPath -Value "$TargetVersion";
+                            } catch {
+                            }
+                            Write-Host "Detected target version of $PackageId as '$TargetVersion' in $($TargetVersionStopwatch.Elapsed.TotalSeconds.ToString("F2")) seconds."
+                        } else {
+                            $TargetVersion = (Get-Content -Path $TargetVersionFile.FullName -Raw).Trim();
+                            Write-Host "Detected target version of $PackageId as '$TargetVersion' in $($TargetVersionStopwatch.Elapsed.TotalSeconds.ToString("F2")) seconds (from cache)."
+                        }
+
+                        if ($null -eq $InstalledVersion -or $InstalledVersion -eq "") {
+                            Write-Host "Installing $PackageId because it's not currently installed...";
+                            Install-WinGetPackage -Id $PackageId -Mode Silent;
+                        }
+                        elseif ($InstalledVersion -ne $TargetVersion) {
+                            Write-Host "Updating $PackageId because the installed version $InstalledVersion is not the target version $TargetVersion...";
+                            Update-WinGetPackage -Id $PackageId -Mode Silent;
                         }
                         exit 0;
-                    }
-                    """;
-                var encodedScript = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
+                        """;
+                    var encodedScript = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
 
-                await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = pwsh,
-                        Arguments = [
-                            "-NonInteractive",
-                            "-OutputFormat",
-                            "Text",
-                            "-EncodedCommand",
-                            encodedScript,
-                        ]
-                    },
-                    CaptureSpecification.Passthrough,
-                    cancellationToken).ConfigureAwait(false);
+                    await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = pwsh,
+                            Arguments = [
+                                "-NonInteractive",
+                                "-OutputFormat",
+                                "Text",
+                                "-EncodedCommand",
+                                encodedScript,
+                            ]
+                        },
+                        CaptureSpecification.Passthrough,
+                        cancellationToken).ConfigureAwait(false);
+                }
+                finally
+                {
+                    _logger.LogInformation($"Took {stopwatch.Elapsed.TotalSeconds:F2} seconds to ensure {packageId} is installed and up-to-date.");
+                }
             }
         }
     }
