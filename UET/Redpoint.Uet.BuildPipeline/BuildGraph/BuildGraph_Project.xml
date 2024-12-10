@@ -306,103 +306,157 @@
         </Do>
 
         <!-- 
-          If the original target platform is "MetaQuest", then we need to set packaging arguments 
-          necessary for Meta Quest. This is because Unreal Engine bundles all Android platforms
-          under the same 'Android' platform, even though they can have radically different
-          packaging requirements.
+          If the original target platform is "MetaQuest", then modify the configuration files
+          so that we correctly package for Meta Quest. This is because Unreal Engine bundles 
+          all Android platforms under the same 'Android' platform, even though they can have
+          radically different packaging requirements.
         -->
         <Do If="'$(TargetStore)' == 'MetaQuest'">
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:InstallLocation=InternalOnly" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bPackageDataInsideApk=False" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bForceSmallOBBFiles=False" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bAllowLargeOBBFiles=False" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bAllowPatchOBBFile=False" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bAllowOverflowOBBFiles=False" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bUseExternalFilesDir=False" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bEnableBundle=False" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) &quot;-ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:ExtraApplicationSettings&#x3D;&lt;meta-data android:name&#x3D;\&quot;com.oculus.supportedDevices\&quot; android:value&#x3D;\&quot;quest|quest2|questpro|quest3\&quot; &#x2F;&gt;&quot;" />
-          <Property
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="InstallLocation"
+            Value="InternalOnly" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bPackageDataInsideApk"
+            Value="False" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bForceSmallOBBFiles"
+            Value="False" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bAllowLargeOBBFiles"
+            Value="False" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bAllowPatchOBBFile"
+            Value="False" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bAllowOverflowOBBFiles"
+            Value="False" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bUseExternalFilesDir"
+            Value="False" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bEnableBundle"
+            Value="False" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="ExtraApplicationSettings"
+            Value="&lt;meta-data android:name&#x3D;&quot;com.oculus.supportedDevices&quot; android:value&#x3D;&quot;quest|quest2|questpro|quest3&quot; &#x2F;&gt;" />
+          <ModifyConfig
             If="'$(TargetConfiguration)' == 'Shipping'"
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bRemoveOSIG=True" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bBuildForArm64=True" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bBuildForX8664=False" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bEnableGooglePlaySupport=False" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bPackageForMetaQuest=True" />
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bRemoveOSIG"
+            Value="True" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bBuildForArm64"
+            Value="True" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bBuildForX8664"
+            Value="False" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bEnableGooglePlaySupport"
+            Value="False" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bPackageForMetaQuest"
+            Value="True" />
         </Do>
 
         <!-- 
-          If the original target platform is "GooglePlay", then we need to set packaging arguments 
-          necessary for Google Play. This is because Unreal Engine bundles all Android platforms
+          If the original target platform is "GooglePlay", then we need to modify the configuration
+          files for packaging for Google Play. This is because Unreal Engine bundles all Android platforms
           under the same 'Android' platform, even though they can have radically different
           packaging requirements.
         -->
         <Do If="'$(TargetStore)' == 'GooglePlay'">
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bPackageDataInsideApk=False" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bForceSmallOBBFiles=False" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bAllowLargeOBBFiles=False" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bAllowPatchOBBFile=False" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bAllowOverflowOBBFiles=False" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bEnableBundle=True" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bEnableUniversalAPK=True" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bBundleABISplit=True" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bBundleLanguageSplit=True" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bBundleDensitySplit=True" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:ExtraApplicationSettings=" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bEnableGooglePlaySupport=True" />
-          <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:bPackageForMetaQuest=False" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bPackageDataInsideApk"
+            Value="False" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bForceSmallOBBFiles"
+            Value="False" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bAllowLargeOBBFiles"
+            Value="False" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bAllowPatchOBBFile"
+            Value="False" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bAllowOverflowOBBFiles"
+            Value="False" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bEnableBundle"
+            Value="True" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bEnableUniversalAPK"
+            Value="True" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bBundleABISplit"
+            Value="True" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bBundleLanguageSplit"
+            Value="True" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bBundleDensitySplit"
+            Value="True" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="ExtraApplicationSettings"
+            Value="" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bEnableGooglePlaySupport"
+            Value="True" />
+          <ModifyConfig
+            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+            Key="bPackageForMetaQuest"
+            Value="False" />
         </Do>
 
         <!-- Run our reparenting hook, which is necessary to fix up Android UPL paths when not building against a source engine. -->
