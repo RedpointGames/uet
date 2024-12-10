@@ -80,7 +80,7 @@
             return _jdkInfos.Last().Value;
         }
 
-        public IReadOnlyList<string> PlatformNames => new[] { "Android" };
+        public IReadOnlyList<string> PlatformNames => new[] { "Android", "GooglePlay", "MetaQuest" };
 
         public string CommonPlatformNameForPackageId => "Android";
 
