@@ -144,9 +144,8 @@
 
                 PluginPackage = new Option<string>(
                     "--plugin-package",
-                    description: "When building a .uplugin file, specifies if and how the plugin should be packaged.");
+                    description: "When building a .uplugin file, specifies if and how the plugin should be packaged (defaults to 'none'). When building from a BuildConfig.json file, it can be explicitly set to 'none' to turn off the plugin packaging steps (values other than 'none' are not permitted; the BuildConfig.json file controls how the plugin is packaged).");
                 PluginPackage.FromAmong("none", "generic", "marketplace", "fab");
-                PluginPackage.SetDefaultValue("none");
                 PluginPackage.ArgumentGroupName = uprojectpluginOptions;
 
                 // ==== Plugin options, regardless of build type
@@ -488,9 +487,14 @@
                                     prepareProject = projectDistribution.Prepare;
                                     break;
                                 case BuildConfigPluginDistribution pluginDistribution:
-                                    if (pluginPackage != "none")
+                                    if (pluginPackage is not null and not "none")
                                     {
-                                        _logger.LogError("The --plugin-package option can not be used when building using a BuildConfig.json file, as the BuildConfig.json file controls how the plugin will be packaged instead.");
+                                        _logger.LogError("The --plugin-package option can not be used when building using a BuildConfig.json file (unless it is set to 'none'), as the BuildConfig.json file controls how the plugin will be packaged instead.");
+                                        return 1;
+                                    }
+                                    if (pluginPackage == "none" && (test || deploy))
+                                    {
+                                        _logger.LogError("The --plugin-package option can not be set to 'none' while also passing --test or --deploy (as plugin packaging is required for those steps), when building using a BuildConfig.json file. Either remove --test and --deploy or remove --plugin-package 'none' from the command line.");
                                         return 1;
                                     }
                                     buildSpec = await _buildSpecificationGenerator.BuildConfigPluginToBuildSpecAsync(
@@ -500,10 +504,10 @@
                                         pluginDistribution,
                                         repositoryRoot: path.DirectoryPath,
                                         executeBuild: true,
-                                        executePackage: true,
-                                        executeZip: true,
-                                        executeTests: test,
-                                        executeDeployment: deploy,
+                                        executePackage: pluginPackage != "none",
+                                        executeZip: pluginPackage != "none",
+                                        executeTests: pluginPackage != "none" && test,
+                                        executeDeployment: pluginPackage != "none" && deploy,
                                         strictIncludes: strictIncludes,
                                         localExecutor: executorName == "local",
                                         isPluginRooted: false,
@@ -540,8 +544,8 @@
                                 shipping,
                                 strictIncludes,
                                 platforms ?? Array.Empty<string>(),
-                                package: pluginPackage != "none",
-                                packageType: pluginPackage switch
+                                package: (pluginPackage ?? "none") != "none",
+                                packageType: (pluginPackage ?? "none") switch
                                 {
                                     "none" => BuildConfigPluginPackageType.Generic,
                                     "generic" => BuildConfigPluginPackageType.Generic,
