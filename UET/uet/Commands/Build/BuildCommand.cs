@@ -139,14 +139,15 @@
 
                 Platform = new Option<string[]>(
                     "--platform",
-                    description: "Add this platform to the build. You can pass this option multiple times to target many platforms. The host platform is always built.");
-                Platform.ArgumentGroupName = uprojectpluginOptions;
+                    description: "Add this platform to the build. You can pass this option multiple times to target many platforms. The host platform is always built.")
+                {
+                    ArgumentGroupName = uprojectpluginOptions
+                };
 
                 PluginPackage = new Option<string>(
                     "--plugin-package",
-                    description: "When building a .uplugin file, specifies if and how the plugin should be packaged.");
+                    description: "When building a .uplugin file, specifies if and how the plugin should be packaged (defaults to 'none'). When building from a BuildConfig.json file, it can be explicitly set to 'none' to turn off the plugin packaging steps (values other than 'none' are not permitted; the BuildConfig.json file controls how the plugin is packaged).");
                 PluginPackage.FromAmong("none", "generic", "marketplace", "fab");
-                PluginPackage.SetDefaultValue("none");
                 PluginPackage.ArgumentGroupName = uprojectpluginOptions;
 
                 // ==== Plugin options, regardless of build type
@@ -159,8 +160,10 @@
                         If this option is not provided, and you are not building on a CI server, the version will be set to 'Unversioned'.
                         If this option is not provided, and you are building on a CI server, UET will use the format, generating versions such as '2023.12.30-5.2-1aeb4233'.
                         If you are building on a CI server and only want to override the date component of the auto-generated version, you can set the 'OVERRIDE_DATE_VERSION' environment variable instead of using this option.
-                        """);
-                PluginVersionName.ArgumentGroupName = pluginOptions;
+                        """)
+                {
+                    ArgumentGroupName = pluginOptions
+                };
 
                 PluginVersionNumber = new Option<long?>(
                     "--plugin-version-number",
@@ -169,15 +172,19 @@
                         Set the plugin package to use this version number instead of the auto-generated default.
                         If this option is not provided, and you are not building on a CI server, the version number will be set to 10000.
                         If this option is not provided, and you are building on a CI server, UET will compute a version number from the UNIX timestamp and engine version number.
-                        """);
-                PluginVersionNumber.ArgumentGroupName = pluginOptions;
+                        """)
+                {
+                    ArgumentGroupName = pluginOptions
+                };
 
                 // ==== Project options, regardless of build type
 
                 ProjectStagingDirectory = new Option<string>(
                     "--project-staging-directory",
-                    description: "When building a project, either as a .uproject or via BuildConfig.json, overrides the path that project builds are staged to. The default is __REPOSITORY_ROOT__/Saved/StagedBuilds which places builds underneath the 'Saved/StagedBuilds' folder in the project. You can use absolute paths here and you can use __REPOSITORY_ROOT__ to refer to the project folder.");
-                ProjectStagingDirectory.ArgumentGroupName = projectOptions;
+                    description: "When building a project, either as a .uproject or via BuildConfig.json, overrides the path that project builds are staged to. The default is __REPOSITORY_ROOT__/Saved/StagedBuilds which places builds underneath the 'Saved/StagedBuilds' folder in the project. You can use absolute paths here and you can use __REPOSITORY_ROOT__ to refer to the project folder.")
+                {
+                    ArgumentGroupName = projectOptions
+                };
 
                 // ==== CI/CD options
 
@@ -191,38 +198,52 @@
 
                 ExecutorOutputFile = new Option<string>(
                     "--executor-output-file",
-                    description: "If the executor runs the build externally (e.g. a build server), this is the path to the emitted file that should be passed as the job or build description into the build server.");
-                ExecutorOutputFile.ArgumentGroupName = cicdOptions;
+                    description: "If the executor runs the build externally (e.g. a build server), this is the path to the emitted file that should be passed as the job or build description into the build server.")
+                {
+                    ArgumentGroupName = cicdOptions
+                };
 
                 WindowsSharedStoragePath = new Option<string?>(
                     "--windows-shared-storage-path",
-                    description: "If the build is running across multiple machines (depending on the executor), this is the network share for Windows machines to access.");
-                WindowsSharedStoragePath.ArgumentGroupName = cicdOptions;
+                    description: "If the build is running across multiple machines (depending on the executor), this is the network share for Windows machines to access.")
+                {
+                    ArgumentGroupName = cicdOptions
+                };
 
                 WindowsSdksPath = new Option<string?>(
                     "--windows-sdks-path",
-                    description: "The path that UET will automatically manage and install platform SDKs, and store them in the provided path on Windows machines. This should be a local path; the SDKs will be installed on each machine as they're needed.");
-                WindowsSdksPath.ArgumentGroupName = cicdOptions;
+                    description: "The path that UET will automatically manage and install platform SDKs, and store them in the provided path on Windows machines. This should be a local path; the SDKs will be installed on each machine as they're needed.")
+                {
+                    ArgumentGroupName = cicdOptions
+                };
 
                 MacSharedStoragePath = new Option<string?>(
                     "--mac-shared-storage-path",
-                    description: "If the build is running across multiple machines (depending on the executor), this is the local path on macOS pre-mounted to the network share.");
-                MacSharedStoragePath.ArgumentGroupName = cicdOptions;
+                    description: "If the build is running across multiple machines (depending on the executor), this is the local path on macOS pre-mounted to the network share.")
+                {
+                    ArgumentGroupName = cicdOptions
+                };
 
                 MacSdksPath = new Option<string?>(
                     "--mac-sdks-path",
-                    description: "The path that UET will automatically manage and install platform SDKs, and store them in the provided path on macOS machines. This should be a local path; the SDKs will be installed on each machine as they're needed.");
-                MacSdksPath.ArgumentGroupName = cicdOptions;
+                    description: "The path that UET will automatically manage and install platform SDKs, and store them in the provided path on macOS machines. This should be a local path; the SDKs will be installed on each machine as they're needed.")
+                {
+                    ArgumentGroupName = cicdOptions
+                };
 
                 WindowsSharedGitCachePath = new Option<string?>(
                     "--windows-shared-git-cache-path",
-                    description: "If the build is running across multiple machines (depending on the executor), this is the network share where Git commits and Git dependencies are cached, so that they don't need to be re-downloaded on each machine. If not specified, each machine will download their own copy of the commits and Git dependencies.");
-                WindowsSharedGitCachePath.ArgumentGroupName = cicdEngineOptions;
+                    description: "If the build is running across multiple machines (depending on the executor), this is the network share where Git commits and Git dependencies are cached, so that they don't need to be re-downloaded on each machine. If not specified, each machine will download their own copy of the commits and Git dependencies.")
+                {
+                    ArgumentGroupName = cicdEngineOptions
+                };
 
                 MacSharedGitCachePath = new Option<string?>(
                     "--mac-shared-git-cache-path",
-                    description: "If the build is running across multiple machines (depending on the executor), this is the local path on macOS pre-mounted to the network share where Git commits and Git dependencies are cached, so that they don't need to be re-downloaded on each machine. If not specified, each machine will download their own copy of the commits and Git dependencies.");
-                MacSharedGitCachePath.ArgumentGroupName = cicdEngineOptions;
+                    description: "If the build is running across multiple machines (depending on the executor), this is the local path on macOS pre-mounted to the network share where Git commits and Git dependencies are cached, so that they don't need to be re-downloaded on each machine. If not specified, each machine will download their own copy of the commits and Git dependencies.")
+                {
+                    ArgumentGroupName = cicdEngineOptions
+                };
             }
         }
 
@@ -366,7 +387,7 @@
                 _logger.LogInformation($"--deploy:                        {(deploy ? "yes" : "no")}");
                 _logger.LogInformation($"--strict-includes:               {(strictIncludes ? "yes" : "no")}");
                 _logger.LogInformation($"--storage-virtualisation:        {(storageVirtualisation ? "yes" : "no")}");
-                _logger.LogInformation($"--platforms:                     {string.Join(", ", platforms ?? Array.Empty<string>())}");
+                _logger.LogInformation($"--platforms:                     {string.Join(", ", platforms ?? [])}");
                 _logger.LogInformation($"--plugin-package:                {pluginPackage}");
                 _logger.LogInformation($"--plugin-version-name:           {pluginVersionName}");
                 _logger.LogInformation($"--plugin-version-number:         {pluginVersionNumber}");
@@ -419,18 +440,12 @@
                 }
 
                 // @note: We need the build executor to get the pipeline ID, which is also used as an input to compute the derived storage path that's specific for this build.
-                IBuildExecutor executor;
-                switch (executorName)
+                var executor = executorName switch
                 {
-                    case "local":
-                        executor = _localBuildExecutorFactory.CreateExecutor();
-                        break;
-                    case "gitlab":
-                        executor = _gitLabBuildExecutorFactory.CreateExecutor(executorOutputFile!);
-                        break;
-                    default:
-                        throw new NotSupportedException();
-                }
+                    "local" => _localBuildExecutorFactory.CreateExecutor(),
+                    "gitlab" => _gitLabBuildExecutorFactory.CreateExecutor(executorOutputFile!),
+                    _ => throw new NotSupportedException(),
+                };
 
                 // Compute the shared storage name for this build.
                 var pipelineId = executor.DiscoverPipelineId();
@@ -488,9 +503,14 @@
                                     prepareProject = projectDistribution.Prepare;
                                     break;
                                 case BuildConfigPluginDistribution pluginDistribution:
-                                    if (pluginPackage != "none")
+                                    if (pluginPackage is not null and not "none")
                                     {
-                                        _logger.LogError("The --plugin-package option can not be used when building using a BuildConfig.json file, as the BuildConfig.json file controls how the plugin will be packaged instead.");
+                                        _logger.LogError("The --plugin-package option can not be used when building using a BuildConfig.json file (unless it is set to 'none'), as the BuildConfig.json file controls how the plugin will be packaged instead.");
+                                        return 1;
+                                    }
+                                    if (pluginPackage == "none" && (test || deploy))
+                                    {
+                                        _logger.LogError("The --plugin-package option can not be set to 'none' while also passing --test or --deploy (as plugin packaging is required for those steps), when building using a BuildConfig.json file. Either remove --test and --deploy or remove --plugin-package 'none' from the command line.");
                                         return 1;
                                     }
                                     buildSpec = await _buildSpecificationGenerator.BuildConfigPluginToBuildSpecAsync(
@@ -500,10 +520,10 @@
                                         pluginDistribution,
                                         repositoryRoot: path.DirectoryPath,
                                         executeBuild: true,
-                                        executePackage: true,
-                                        executeZip: true,
-                                        executeTests: test,
-                                        executeDeployment: deploy,
+                                        executePackage: pluginPackage != "none",
+                                        executeZip: pluginPackage != "none",
+                                        executeTests: pluginPackage != "none" && test,
+                                        executeDeployment: pluginPackage != "none" && deploy,
                                         strictIncludes: strictIncludes,
                                         localExecutor: executorName == "local",
                                         isPluginRooted: false,
@@ -529,7 +549,7 @@
                                 path,
                                 shipping,
                                 strictIncludes,
-                                platforms ?? Array.Empty<string>(),
+                                platforms ?? [],
                                 projectStagingDirectory);
                             break;
                         case PathSpecType.UPlugin:
@@ -539,9 +559,9 @@
                                 path,
                                 shipping,
                                 strictIncludes,
-                                platforms ?? Array.Empty<string>(),
-                                package: pluginPackage != "none",
-                                packageType: pluginPackage switch
+                                platforms ?? [],
+                                package: (pluginPackage ?? "none") != "none",
+                                packageType: (pluginPackage ?? "none") switch
                                 {
                                     "none" => BuildConfigPluginPackageType.Generic,
                                     "generic" => BuildConfigPluginPackageType.Generic,
@@ -579,21 +599,21 @@
                     else
                     {
                         _logger.LogError($"One or more build jobs {Bright.Red("failed")}:");
-                        foreach (var kv in executionEvents.GetResults())
+                        foreach (var (nodeName, resultStatus) in executionEvents.GetResults())
                         {
-                            switch (kv.resultStatus)
+                            switch (resultStatus)
                             {
                                 case BuildResultStatus.Success:
-                                    _logger.LogInformation($"{kv.nodeName} = {Bright.Green("Passed")}");
+                                    _logger.LogInformation($"{nodeName} = {Bright.Green("Passed")}");
                                     break;
                                 case BuildResultStatus.Failed:
-                                    _logger.LogInformation($"{kv.nodeName} = {Bright.Red("Failed")}");
+                                    _logger.LogInformation($"{nodeName} = {Bright.Red("Failed")}");
                                     break;
                                 case BuildResultStatus.Cancelled:
-                                    _logger.LogInformation($"{kv.nodeName} = {Bright.Yellow("Cancelled")}");
+                                    _logger.LogInformation($"{nodeName} = {Bright.Yellow("Cancelled")}");
                                     break;
                                 case BuildResultStatus.NotRun:
-                                    _logger.LogInformation($"{kv.nodeName} = {Bright.Cyan("Not Run")}");
+                                    _logger.LogInformation($"{nodeName} = {Bright.Cyan("Not Run")}");
                                     break;
                             }
                         }
