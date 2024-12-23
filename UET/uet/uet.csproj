@@ -23,7 +23,6 @@
     <None Remove="Commands\AppleCert\AppleWWDRCAG4.cer" />
     <None Remove="Commands\AppleCert\DeveloperIDG2CA.cer" />
     <None Remove="Commands\Config\IwyuBooleanConfigSetting.cs~RF2d2c3a13.TMP" />
-    <None Remove="Commands\Internal\RunRemoteHost\RemoteHostApi.proto" />
     <None Remove="Commands\Internal\TestGrpcPipes\TestPipes.proto" />
   </ItemGroup>
 
@@ -73,14 +72,7 @@
     <ProjectReference Include="..\Redpoint.Unreal.TcpMessaging\Redpoint.Unreal.TcpMessaging.csproj" />
     <ProjectReference Include="..\Redpoint.Windows.HandleManagement\Redpoint.Windows.HandleManagement.csproj" />
     <ProjectReference Include="..\Redpoint.Windows.VolumeManagement\Redpoint.Windows.VolumeManagement.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="$(UET_BUILDING_ON_BUILD_SERVER) != 'true' and '$(UsePrebuiltLibsForAutoDiscovery)' != 'true'">
     <ProjectReference Include="..\Redpoint.AutoDiscovery\Redpoint.AutoDiscovery.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="$(UET_BUILDING_ON_BUILD_SERVER) == 'true' or '$(UsePrebuiltLibsForAutoDiscovery)' == 'true'">
-    <PackageReference Include="Redpoint.AutoDiscovery" Version="$(PackageVersion)" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,15 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Target Name="BuildAndReferenceNupkg" BeforeTargets="ResolvePackageAssets;_LoadRestoreGraphEntryPoints">
-    <Exec Command="/opt/homebrew/bin/brew install mono" Condition="!$([MSBuild]::IsOSPlatform('Windows')) and Exists('/opt/homebrew/bin/brew') and !Exists('/opt/homebrew/bin/mono')" />
-    <PropertyGroup>
-      <NugetPath>/opt/homebrew/bin/mono &quot;$(MSBuildThisFileDirectory)nuget.exe&quot;</NugetPath>
-      <NugetPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">&quot;$(MSBuildThisFileDirectory)nuget.exe&quot;</NugetPath>
-    </PropertyGroup>
-    <DownloadFile SourceUrl="https://dist.nuget.org/win-x86-commandline/latest/nuget.exe" DestinationFolder="$(MSBuildThisFileDirectory)" Condition="!Exists('$(MSBuildThisFileDirectory)/nuget.exe') and !Exists('$(MSBuildThisFileDirectory)/bin/Redpoint.Logging.Mac.Native.$(PackageVersion).nupkg')" />
-    <Exec Command="$(NugetPath) pack &quot;$(MSBuildThisFileDirectory)/../Redpoint.Logging.Mac.Native/Redpoint.Logging.Mac.Native.nuspec&quot; -Version &quot;$(PackageVersion)&quot; -OutputDirectory &quot;$(MSBuildThisFileDirectory)/bin&quot;" Condition="!Exists('$(MSBuildThisFileDirectory)/bin/Redpoint.Logging.Mac.Native.$(PackageVersion).nupkg')" />
-  </Target>
-
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <PropertyGroup>
@@ -20,8 +10,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="$(RedpointSystemLibraryVersion)" />
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(RedpointSystemLibraryVersion)" />
-    <PackageReference Include="Redpoint.Logging.Mac.Native" Version="*" Condition="$(PackageVersion.Contains('-pre'))" />
-    <PackageReference Include="Redpoint.Logging.Mac.Native" Version="$(PackageVersion)" Condition="!$(PackageVersion.Contains('-pre'))" />
+    <PackageReference Include="Redpoint.Logging.Mac.Native" Version="2024.1358.192" />
   </ItemGroup>
 
   <ItemGroup>
@@ -35,11 +24,5 @@
     <Description>Provides a logger which sends log entries to the macOS system logs.</Description>
     <PackageTags>logging, macos</PackageTags>
   </PropertyGroup>
-
-  <Target Name="BuildNativeMacLibraries">
-    <Message Importance="high" Text="Building native logging libraries for macOS..." Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
-    <Exec Command="clang -dynamiclib -o &quot;$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac.Native/runtimes/osx-arm64/libLogging.arm64.dylib&quot; -arch arm64 &quot;$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac.Native/logging.c&quot;" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
-    <Exec Command="clang -dynamiclib -o &quot;$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac.Native/runtimes/osx-x64/libLogging.x64.dylib&quot; -arch x86_64 &quot;$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac.Native/logging.c&quot;" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
-  </Target>
 
 </Project>

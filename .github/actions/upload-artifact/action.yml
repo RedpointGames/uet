@@ -19,29 +19,6 @@ runs:
         path: |
           package.version
 
-    - name: Upload AutoDiscovery
-      if: ${{ inputs.UET_ARTIFACT_NAME == 'autodiscovery' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: autodiscovery
-        if-no-files-found: error
-        path: |
-          UET/Redpoint.AutoDiscovery.Win64/bin/x64/Debug/${{ inputs.UET_FRAMEWORK_TARGET }}/**
-          UET/Redpoint.AutoDiscovery.Win32/bin/x86/Debug/${{ inputs.UET_FRAMEWORK_TARGET }}/**
-          UET/Redpoint.AutoDiscovery.Win64/bin/x64/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/**
-          UET/Redpoint.AutoDiscovery.Win32/bin/x86/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/**
-          UET/Redpoint.AutoDiscovery/bin/Release/Redpoint.AutoDiscovery.*.nupkg
-    - name: Upload Mac Logging
-      if: ${{ inputs.UET_ARTIFACT_NAME == 'mac-logging' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: mac-logging
-        if-no-files-found: error
-        path: |
-          UET/Redpoint.Logging.Mac.Native/runtimes/osx-arm64/libLogging.arm64.dylib
-          UET/Redpoint.Logging.Mac.Native/runtimes/osx-x64/libLogging.x64.dylib
-          UET/Redpoint.Logging.Mac/bin/Redpoint.Logging.Mac.Native.*.nupkg
-
     - name: Upload UEFS Win
       if: ${{ inputs.UET_ARTIFACT_NAME == 'uefs-win' }}
       uses: actions/upload-artifact@v4
