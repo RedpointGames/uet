@@ -386,6 +386,54 @@ jobs:
         UET_ARTIFACT_NAME: shim-mac
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
   
+  shim-linux:
+    name: "Build Linux Shim"
+    runs-on: ubuntu-latest
+    needs:
+      - timestamp
+      - prereq-autodiscovery
+      - prereq-mac-logging
+    env:
+      UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
+      with:
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Download AutoDiscovery
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: autodiscovery
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Download Mac Logging
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: mac-logging
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Build UET Shim
+      shell: pwsh
+      run: |
+        dotnet `
+          msbuild `
+          -restore `
+          -t:Publish `
+          -p:RuntimeIdentifier=linux-x64 `
+          -p:Configuration=Release `
+          -p:UetSkipNuGetPackaging=true `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/uet.shim/uet.shim.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+    - name: Upload Binaries
+      uses: ./.github/actions/upload-artifact
+      with:
+        UET_ARTIFACT_NAME: shim-linux
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+  
   pass-1-win:
     name: "Build Windows Pass 1"
     runs-on: windows-latest
@@ -483,6 +531,54 @@ jobs:
       uses: ./.github/actions/upload-artifact
       with:
         UET_ARTIFACT_NAME: pass-1-mac
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+  
+  pass-1-linux:
+    name: "Build Linux Pass 1"
+    runs-on: ubuntu-latest
+    needs:
+      - timestamp
+      - prereq-autodiscovery
+      - prereq-mac-logging
+    env:
+      UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
+      with:
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Download AutoDiscovery
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: autodiscovery
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Download Mac Logging
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: mac-logging
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Build UET Pass 1
+      shell: pwsh
+      run: |
+        dotnet `
+          msbuild `
+          -restore `
+          -t:Publish `
+          -p:RuntimeIdentifier=linux-x64 `
+          -p:Configuration=Release `
+          -p:UetSkipNuGetPackaging=true `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/uet/uet.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+    - name: Upload Binaries
+      uses: ./.github/actions/upload-artifact
+      with:
+        UET_ARTIFACT_NAME: pass-1-linux
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
   
   libs-win:
@@ -594,6 +690,7 @@ jobs:
       - prereq-mac-logging
       - pass-1-win
       - pass-1-mac
+      - pass-1-linux
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
@@ -624,6 +721,11 @@ jobs:
       uses: ./.github/actions/download-artifact
       with:
         UET_ARTIFACT_NAME: pass-1-mac
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Download Linux Pass 1
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: pass-1-linux
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Build UET Pass 2
       shell: pwsh
@@ -655,6 +757,7 @@ jobs:
       - prereq-mac-logging
       - pass-1-win
       - pass-1-mac
+      - pass-1-linux
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
@@ -686,6 +789,11 @@ jobs:
       with:
         UET_ARTIFACT_NAME: pass-1-mac
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Download Linux Pass 1
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: pass-1-linux
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Build UET Pass 2
       shell: pwsh
       run: |
@@ -708,6 +816,76 @@ jobs:
       uses: ./.github/actions/upload-artifact
       with:
         UET_ARTIFACT_NAME: pass-2-mac
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+  
+  pass-2-linux:
+    name: "Build Linux Pass 2"
+    runs-on: ubuntu-latest
+    needs:
+      - timestamp
+      - prereq-autodiscovery
+      - prereq-mac-logging
+      - pass-1-win
+      - pass-1-mac
+      - pass-1-linux
+    env:
+      UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
+      with:
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Download AutoDiscovery
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: autodiscovery
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Download Mac Logging
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: mac-logging
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Download Windows Pass 1
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: pass-1-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Download macOS Pass 1
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: pass-1-mac
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Download Linux Pass 1
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: pass-1-linux
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Build UET Pass 2
+      shell: pwsh
+      run: |
+        dotnet `
+          msbuild `
+          -restore `
+          -t:Publish `
+          -p:RuntimeIdentifier=linux-x64 `
+          -p:Configuration=Release `
+          -p:EmbeddingCrossPlatform=true `
+          -p:UetSkipNuGetPackaging=true `
+          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+          UET/uet/uet.csproj
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+        # Ensure the thing we built will actually run...
+        ./UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet --help
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+    - name: Upload Binaries
+      uses: ./.github/actions/upload-artifact
+      with:
+        UET_ARTIFACT_NAME: pass-2-linux
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
   
   test-schema-generate:
@@ -753,8 +931,10 @@ jobs:
       - uefs-mac
       - shim-win
       - shim-mac
+      - shim-linux
       - pass-2-win
       - pass-2-mac
+      - pass-2-linux
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
@@ -799,8 +979,10 @@ jobs:
       - uefs-mac
       - shim-win
       - shim-mac
+      - shim-linux
       - pass-2-win
       - pass-2-mac
+      - pass-2-linux
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
@@ -838,6 +1020,16 @@ jobs:
       with:
         UET_ARTIFACT_NAME: pass-2-mac
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Download Linux Shim
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: shim-linux
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Download Linux Pass 2
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: pass-2-linux
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Download package.version
       uses: ./.github/actions/download-artifact
       with:
@@ -858,6 +1050,8 @@ jobs:
           --file "uefs=UEFS Client for macOS=UET/Redpoint.Uefs.Client/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uefs" `
           --file "uefs-daemon=UEFS Daemon for macOS=UET/Redpoint.Uefs.Daemon/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uefs-daemon" `
           --file "uet.shim=UET Shim for macOS=UET/uet.shim/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet" `
+          --file "uet.linux=UET for Linux=UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet" `
+          --file "uet.linux.shim=UET Shim for Linux=UET/uet.shim/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet" `
           --file "package.version=Version File=package.version"
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   
@@ -878,8 +1072,10 @@ jobs:
       - uefs-mac
       - shim-win
       - shim-mac
+      - shim-linux
       - pass-2-win
       - pass-2-mac
+      - pass-2-linux
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
@@ -904,3 +1100,57 @@ jobs:
         docker buildx create --name img-builder --use --platform windows/amd64
         docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/redpointgames/uet/uefs:${env:UET_PACKAGE_VERSION}" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
         docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/redpointgames/uet/uefs:latest" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
+
+  publish-uet-container:
+    name: "Publish UET Container"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    needs:
+      - timestamp
+      - libs-win
+      - libs-mac
+      - uefs-win
+      - uefs-mac
+      - shim-win
+      - shim-mac
+      - shim-linux
+      - pass-2-win
+      - pass-2-mac
+      - pass-2-linux
+    env:
+      UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Download Linux Pass 2
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: pass-2-linux
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Log in to the Container registry
+      if: github.ref == 'refs/heads/main'
+      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build UET Container
+      if: github.ref != 'refs/heads/main'
+      shell: pwsh
+      run: |
+        docker buildx create --name img-builder-linux --use --platform linux/amd64
+        docker buildx build --platform linux/amd64 --output=type=image -f UET/Lib/Container/linux.Dockerfile -t "ghcr.io/redpointgames/uet/uet:${env:UET_PACKAGE_VERSION}" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
+        docker buildx build --platform linux/amd64 --output=type=image -f UET/Lib/Container/linux.Dockerfile -t "ghcr.io/redpointgames/uet/uet:latest" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
+    - name: Publish UET Container
+      if: github.ref == 'refs/heads/main'
+      shell: pwsh
+      run: |
+        docker buildx create --name img-builder-linux --use --platform linux/amd64
+        docker buildx build --platform linux/amd64 --output=type=registry -f UET/Lib/Container/linux.Dockerfile -t "ghcr.io/redpointgames/uet/uet:${env:UET_PACKAGE_VERSION}" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
+        docker buildx build --platform linux/amd64 --output=type=registry -f UET/Lib/Container/linux.Dockerfile -t "ghcr.io/redpointgames/uet/uet:latest" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
