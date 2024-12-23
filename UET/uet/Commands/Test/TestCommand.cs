@@ -152,6 +152,9 @@
                     case EngineSpecType.SESNetworkShare:
                         engineSpec = BuildEngineSpecification.ForSESNetworkShare(engine.SESNetworkShare!);
                         break;
+                    case EngineSpecType.RemoteZfs:
+                        engineSpec = BuildEngineSpecification.ForRemoteZfs(engine.RemoteZfs!);
+                        break;
                     case EngineSpecType.Version:
                         engineSpec = BuildEngineSpecification.ForVersionWithPath(engine.Version!, engine.Path!);
                         break;

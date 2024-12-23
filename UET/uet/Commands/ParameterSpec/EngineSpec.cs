@@ -193,6 +193,7 @@
             LauncherInstalled = 1 << 6,
             WindowsUserRegistry = 1 << 7,
             SESNetworkShare = 1 << 8,
+            RemoteZfs = 1 << 9,
 
             All = 0xFFFFFF,
         }
@@ -220,7 +221,6 @@
 
             if ((flags & EngineParseFlags.SESNetworkShare) != 0)
             {
-                // Detect UEFS tags.
                 if (engine.StartsWith("ses:", StringComparison.Ordinal))
                 {
                     return new EngineSpec
@@ -229,6 +229,19 @@
                         OriginalSpec = engine,
                         // @note: Allow '\' to be passed as '/' to avoid weird escaping on build servers and command line.
                         SESNetworkShare = engine["ses:".Length..].Replace('/', '\\'),
+                    };
+                }
+            }
+
+            if ((flags & EngineParseFlags.RemoteZfs) != 0)
+            {
+                if (engine.StartsWith("rzfs:", StringComparison.Ordinal))
+                {
+                    return new EngineSpec
+                    {
+                        Type = EngineSpecType.RemoteZfs,
+                        OriginalSpec = engine,
+                        RemoteZfs = engine["rzfs:".Length..],
                     };
                 }
             }
@@ -485,6 +498,8 @@
         public string? UEFSPackageTag { get; private init; }
 
         public string? SESNetworkShare { get; private init; }
+
+        public string? RemoteZfs { get; private init; }
 
         public string? GitUrl { get; private init; }
 

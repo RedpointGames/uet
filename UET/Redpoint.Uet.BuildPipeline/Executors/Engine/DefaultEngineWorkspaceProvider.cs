@@ -64,6 +64,12 @@
                     },
                     cancellationToken).ConfigureAwait(false);
             }
+            else if (buildEngineSpecification._remoteZfs != null)
+            {
+                return await _workspaceProvider.GetWorkspaceAsync(
+                    RemoteZfsWorkspaceDescriptor.Parse(buildEngineSpecification._remoteZfs),
+                    cancellationToken).ConfigureAwait(false);
+            }
             else if (buildEngineSpecification._gitCommit != null)
             {
                 return await _workspaceProvider.GetWorkspaceAsync(

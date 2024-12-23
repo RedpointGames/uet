@@ -200,7 +200,7 @@
                     new HttpRequestMessage
                     {
                         Method = HttpMethod.Delete,
-                        RequestUri = new Uri($"{_config.TrueNasUrl}/pool/dataset/id/{HttpUtility.UrlEncode(rzfsId)}"),
+                        RequestUri = new Uri($"{_config.TrueNasUrl}/pool/dataset/id/{HttpUtility.UrlEncode(rzfsId)}?force=true"),
                     },
                     cancellationToken: CancellationToken.None).ConfigureAwait(false);
                 deleteResponse.EnsureSuccessStatusCode();
