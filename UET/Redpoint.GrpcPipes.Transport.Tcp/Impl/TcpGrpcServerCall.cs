@@ -65,6 +65,12 @@
                     _incoming.LogTrace($"Wrote status ({statusCode}, '{details}') to client.");
                 }
             }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable)
+            {
+                // We can't send any content to the client, because the client has already disconnected.
+                _incoming.LogTrace($"Unable to send ({statusCode}, '{details}') to client because the client has already disconnected.");
+                return;
+            }
             catch (OperationCanceledException) when (_serverCallContext.DeadlineCancellationToken.IsCancellationRequested)
             {
                 // We can't send any content to the client, because we have exceeded our extended deadline cancellation.
