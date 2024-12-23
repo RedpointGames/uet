@@ -1,52 +1,25 @@
 ﻿namespace UET.Commands.Internal.RemoteZfsServer
 {
+    using Grpc.Core;
+    using JetBrains.Annotations;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
     using Redpoint.GrpcPipes;
     using Redpoint.ProcessExecution;
+    using Redpoint.Uet.Workspace.RemoteZfs;
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.Net.Http.Json;
+    using System.Text.Json;
     using System.Threading.Tasks;
-    using RemoteZfsServer = Redpoint.Uet.Workspace.RemoteZfs.RemoteZfsServer;
+    using System.Web;
 
     internal sealed class RemoteZfsServerCommand
     {
         public sealed class Options
         {
-            public Option<int> Port;
-            public Option<string> ZvolRoot;
-            public Option<string> ZvolSource;
-            public Option<string> WindowsShareNetworkPrefix;
-
-            public Options()
-            {
-                Port = new Option<int>(
-                    name: "--port",
-                    description: "The port for the service to listen on.")
-                {
-                    IsRequired = true,
-                };
-                ZvolRoot = new Option<string>(
-                    name: "--zvol-root",
-                    description: "The zvol which contains the source volume and which should contain our temporary created volumes.")
-                {
-                    IsRequired = true,
-                };
-                ZvolSource = new Option<string>(
-                    name: "--zvol-source",
-                    description: "The name of the source volume to snapshot.")
-                {
-                    IsRequired = true,
-                };
-                WindowsShareNetworkPrefix = new Option<string>(
-                    name: "--windows-share-network-prefix",
-                    description: "The Windows share prefix to prepend to the new volume name for clients to access the volume at.")
-                {
-                    IsRequired = true,
-                };
-            }
         }
 
         public static Command CreateRemoteZfsServerCommand()
@@ -58,56 +31,47 @@
             return command;
         }
 
-        private sealed class RemoteZfsServerCommandInstance : ICommandInstance
+        private sealed class RemoteZfsServerCommandInstance : RemoteZfs.RemoteZfsBase, ICommandInstance
         {
-            private readonly Options _options;
             private readonly ILogger<RemoteZfsServerCommandInstance> _logger;
             private readonly IGrpcPipeFactory _grpcPipeFactory;
-            private readonly IServiceProvider _serviceProvider;
+            private RemoteZfsServerConfig? _config;
 
             public RemoteZfsServerCommandInstance(
-                Options options,
                 ILogger<RemoteZfsServerCommandInstance> logger,
-                IGrpcPipeFactory grpcPipeFactory,
-                IServiceProvider serviceProvider)
+                IGrpcPipeFactory grpcPipeFactory)
             {
-                _options = options;
                 _logger = logger;
                 _grpcPipeFactory = grpcPipeFactory;
-                _serviceProvider = serviceProvider;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
-                if (!OperatingSystem.IsLinux())
+                var configJson = Environment.GetEnvironmentVariable("REMOTE_ZFS_SERVER_CONFIG");
+                var configJsonPath = Environment.GetEnvironmentVariable("REMOTE_ZFS_SERVER_CONFIG_PATH");
+                if (string.IsNullOrEmpty(configJson) && string.IsNullOrEmpty(configJsonPath))
                 {
-                    _logger.LogError("This command can only be used on Linux (with ZFS).");
+                    _logger.LogError("Expected the REMOTE_ZFS_SERVER_CONFIG or REMOTE_ZFS_SERVER_CONFIG_PATH environment variable to be set.");
                     return 1;
                 }
 
-                var port = context.ParseResult.GetValueForOption(_options.Port);
-                var zvolRoot = context.ParseResult.GetValueForOption(_options.ZvolRoot);
-                var zvolSource = context.ParseResult.GetValueForOption(_options.ZvolSource);
-                var windowsShareNetworkPrefix = context.ParseResult.GetValueForOption(_options.WindowsShareNetworkPrefix);
-
-                if (string.IsNullOrWhiteSpace(zvolRoot) ||
-                    string.IsNullOrWhiteSpace(zvolSource) ||
-                    string.IsNullOrWhiteSpace(windowsShareNetworkPrefix))
+                if (!string.IsNullOrEmpty(configJsonPath))
                 {
-                    _logger.LogError("Invalid or missing arguments.");
-                    return 1;
+                    configJson = File.ReadAllText(configJsonPath);
                 }
 
-                var remoteZfsServer = new RemoteZfsServer(
-                    _serviceProvider.GetRequiredService<IProcessExecutor>(),
-                    _serviceProvider.GetRequiredService<ILogger<RemoteZfsServer>>(),
-                    zvolRoot,
-                    zvolSource,
-                    windowsShareNetworkPrefix);
+                _config = JsonSerializer.Deserialize(configJson!, RemoteZfsSerializerContext.Default.RemoteZfsServerConfig);
+                if (_config == null)
+                {
+                    _logger.LogError("Expected the remote ZFS server config to be valid.");
+                    return 1;
+                }
 
                 try
                 {
-                    await using (_grpcPipeFactory.CreateNetworkServer(remoteZfsServer, networkPort: port).AsAsyncDisposable(out var server).ConfigureAwait(false))
+                    await using (_grpcPipeFactory.CreateNetworkServer(this, networkPort: _config.ServerPort ?? 9000)
+                        .AsAsyncDisposable(out var server)
+                        .ConfigureAwait(false))
                     {
                         await server.StartAsync().ConfigureAwait(false);
 
@@ -125,6 +89,123 @@
                 }
 
                 return 0;
+            }
+
+            public async override Task AcquireWorkspace(
+                AcquireWorkspaceRequest request,
+                IServerStreamWriter<AcquireWorkspaceResponse> responseStream,
+                ServerCallContext context)
+            {
+                if (_config == null)
+                {
+                    throw new InvalidOperationException();
+                }
+
+                _logger.LogInformation($"Obtained workspace request for template {request.TemplateId}.");
+
+                var template = _config.Templates.FirstOrDefault(x => x.TemplateId == request.TemplateId);
+                if (template == null)
+                {
+                    throw new RpcException(new Status(StatusCode.NotFound, "no such template exists."));
+                }
+
+                _logger.LogInformation($"Looking for latest ZFS snapshot for dataset '{template.ZfsSnapshotDataset}'.");
+
+                using var httpClient = new HttpClient(new HttpClientHandler
+                {
+                    // Ignore TLS errors because TrueNAS is usually running with a self-signed certificate on the local network.
+                    ClientCertificateOptions = ClientCertificateOption.Manual,
+                    ServerCertificateCustomValidationCallback = (_, _, _, _) => true,
+                });
+                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + _config.TrueNasApiKey);
+
+                var latestSnapshotResponse = await httpClient.SendAsync(
+                    new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Get,
+                        Content = new StringContent(
+                            JsonSerializer.Serialize(
+                                new TrueNasQuery
+                                {
+                                    QueryFilters = new[]
+                                    {
+                                        new[] { "dataset", "=", template.ZfsSnapshotDataset },
+                                    },
+                                    QueryOptions = new TrueNasQueryOptions
+                                    {
+                                        Extra = new Dictionary<string, string> { { "properties", "name, createtxg" } },
+                                        OrderBy = new[] { "-createtxg" },
+                                        Limit = 1,
+                                    }
+                                },
+                                RemoteZfsSerializerContext.Default.TrueNasQuery),
+                            new System.Net.Http.Headers.MediaTypeHeaderValue("application/json")),
+                        RequestUri = new Uri($"{_config.TrueNasUrl}/zfs/snapshot"),
+                    },
+                    cancellationToken: context.CancellationToken).ConfigureAwait(false);
+                latestSnapshotResponse.EnsureSuccessStatusCode();
+
+                var latestSnapshot = await latestSnapshotResponse.Content
+                    .ReadFromJsonAsync(RemoteZfsSerializerContext.Default.TrueNasSnapshotArray)
+                    .ConfigureAwait(false);
+
+                if (latestSnapshot == null || latestSnapshot.Length != 1)
+                {
+                    throw new RpcException(new Status(StatusCode.NotFound, "the target dataset has no latest snapshot."));
+                }
+
+                var rzfsTimestamp = $"RZFS_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+                var rzfsId = $"{template.LinuxParentDataset}/{rzfsTimestamp}";
+
+                _logger.LogInformation($"Cloning ZFS snapshot to dataset '{rzfsId}'.");
+
+                var cloneResponse = await httpClient.SendAsync(
+                    new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Post,
+                        Content = new StringContent(
+                            JsonSerializer.Serialize(
+                                new TrueNasSnapshotClone
+                                {
+                                    Snapshot = latestSnapshot[0].Id,
+                                    DatasetDest = rzfsId,
+                                },
+                                RemoteZfsSerializerContext.Default.TrueNasSnapshotClone),
+                            new System.Net.Http.Headers.MediaTypeHeaderValue("application/json")),
+                        RequestUri = new Uri($"{_config.TrueNasUrl}/zfs/snapshot/clone"),
+                    },
+                    cancellationToken: CancellationToken.None /* so this operation can't be interrupted after it succeeds */).ConfigureAwait(false);
+                cloneResponse.EnsureSuccessStatusCode();
+
+                try
+                {
+                    await responseStream.WriteAsync(new AcquireWorkspaceResponse
+                    {
+                        WindowsShareRemotePath = $"{template.WindowsNetworkShareParentPath}\\{rzfsTimestamp}",
+                    }, context.CancellationToken).ConfigureAwait(false);
+
+                    _logger.LogInformation($"Waiting for client to close connection...");
+                    while (!context.CancellationToken.IsCancellationRequested)
+                    {
+                        await Task.Delay(1000, context.CancellationToken);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                }
+
+                _logger.LogInformation($"Deleting ZFS dataset '{rzfsId}'...");
+
+                var deleteResponse = await httpClient.SendAsync(
+                    new HttpRequestMessage
+                    {
+                        Method = HttpMethod.Delete,
+                        RequestUri = new Uri($"{_config.TrueNasUrl}/pool/dataset/id/{HttpUtility.UrlEncode(rzfsId)}"),
+                    },
+                    cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                deleteResponse.EnsureSuccessStatusCode();
+
+                _logger.LogInformation($"ZFS request complete.");
             }
         }
     }

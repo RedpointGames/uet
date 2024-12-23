@@ -70,11 +70,14 @@
 
                 _logger.LogInformation($"Connecting...");
                 var client = _grpcPipeFactory.CreateNetworkClient(
-                    IPEndPoint.Parse(host),
+                    new IPEndPoint(IPAddress.Parse(host), port),
                     invoker => new RemoteZfs.RemoteZfsClient(invoker));
 
-                _logger.LogInformation($"Requesting share...");
-                var response = client.Acquire(cancellationToken: context.GetCancellationToken());
+                _logger.LogInformation($"Opening stream...");
+                using var response = client.AcquireWorkspace(new AcquireWorkspaceRequest
+                {
+                    TemplateId = "unreal-engine",
+                }, cancellationToken: context.GetCancellationToken());
 
                 _logger.LogInformation($"Waiting for acquisition...");
                 var acquired = await response.ResponseStream.MoveNext(context.GetCancellationToken()).ConfigureAwait(false);
@@ -84,13 +87,10 @@
                     return 1;
                 }
 
-                _logger.LogInformation($"Allocated share: {response.ResponseStream.Current.WindowsSharePath}");
+                _logger.LogInformation($"Allocated share: {response.ResponseStream.Current.WindowsShareRemotePath}");
 
                 _logger.LogInformation($"Waiting 10 seconds...");
                 await Task.Delay(10000, context.GetCancellationToken()).ConfigureAwait(false);
-
-                _logger.LogInformation($"Closing request stream...");
-                await response.RequestStream.CompleteAsync().ConfigureAwait(false);
 
                 return 0;
             }
