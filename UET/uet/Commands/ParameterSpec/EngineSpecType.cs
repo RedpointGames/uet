@@ -19,5 +19,7 @@
         SelfEngineByBuildConfig,
 
         SESNetworkShare,
+
+        RemoteZfs,
     }
 }

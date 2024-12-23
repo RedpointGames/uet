@@ -13,6 +13,7 @@
         internal string? _gitSharedWindowsCachePath { get; private set; }
         internal string? _gitSharedMacCachePath { get; private set; }
         internal string? _sesNetworkShare { get; private set; }
+        internal string? _remoteZfs { get; private set; }
         public bool IsEngineBuild { get; private set; } = false;
 
         public static BuildEngineSpecification ForVersionWithPath(string version, string localPath)
@@ -48,6 +49,14 @@
             };
         }
 
+        public static BuildEngineSpecification ForRemoteZfs(string remoteZfs)
+        {
+            return new BuildEngineSpecification
+            {
+                _remoteZfs = remoteZfs,
+            };
+        }
+
         [SuppressMessage("Design", "CA1054:URI-like parameters should not be strings", Justification = "Git URLs are not compatible with the Uri object.")]
         public static BuildEngineSpecification ForGitCommitWithZips(
             string uefsGitUrl,
@@ -80,6 +89,10 @@
             else if (!string.IsNullOrWhiteSpace(_sesNetworkShare))
             {
                 return $"ses:{_sesNetworkShare}";
+            }
+            else if (!string.IsNullOrWhiteSpace(_remoteZfs))
+            {
+                return $"rzfs:{_remoteZfs}";
             }
             else if (!string.IsNullOrWhiteSpace(_engineVersion))
             {

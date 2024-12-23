@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using Microsoft.Win32.SafeHandles;
+    using Redpoint.GrpcPipes;
     using Redpoint.IO;
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
@@ -10,12 +11,15 @@
     using Redpoint.Uet.Workspace.Instance;
     using Redpoint.Uet.Workspace.ParallelCopy;
     using Redpoint.Uet.Workspace.PhysicalGit;
+    using Redpoint.Uet.Workspace.RemoteZfs;
     using Redpoint.Uet.Workspace.Reservation;
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using static Redpoint.Uet.Workspace.RemoteZfs.RemoteZfs;
 
     internal class PhysicalWorkspaceProvider : IPhysicalWorkspaceProvider
     {
@@ -26,6 +30,7 @@
         private readonly IPhysicalGitCheckout _physicalGitCheckout;
         private readonly IWorkspaceReservationParameterGenerator _parameterGenerator;
         private readonly IProcessExecutor _processExecutor;
+        private readonly IGrpcPipeFactory _grpcPipeFactory;
 
         public PhysicalWorkspaceProvider(
             ILogger<PhysicalWorkspaceProvider> logger,
@@ -34,7 +39,8 @@
             IVirtualWorkspaceProvider virtualWorkspaceProvider,
             IPhysicalGitCheckout physicalGitCheckout,
             IWorkspaceReservationParameterGenerator parameterGenerator,
-            IProcessExecutor processExecutor)
+            IProcessExecutor processExecutor,
+            IGrpcPipeFactory grpcPipeFactory)
         {
             _logger = logger;
             _reservationManager = reservationManager;
@@ -43,6 +49,7 @@
             _physicalGitCheckout = physicalGitCheckout;
             _parameterGenerator = parameterGenerator;
             _processExecutor = processExecutor;
+            _grpcPipeFactory = grpcPipeFactory;
         }
 
         public bool ProvidesFastCopyOnWrite => false;
@@ -63,6 +70,8 @@
                     return await _virtualWorkspaceProvider.GetWorkspaceAsync(descriptor, cancellationToken).ConfigureAwait(false);
                 case SharedEngineSourceWorkspaceDescriptor descriptor:
                     return await AllocateSharedEngineSourceAsync(descriptor, cancellationToken).ConfigureAwait(false);
+                case RemoteZfsWorkspaceDescriptor descriptor:
+                    return await AllocateRemoteZfsAsync(descriptor, cancellationToken).ConfigureAwait(false);
                 default:
                     throw new NotSupportedException();
             }
@@ -209,6 +218,91 @@
             while (!cancellationToken.IsCancellationRequested);
 
             throw new OperationCanceledException(cancellationToken);
+        }
+
+        private async Task<IWorkspace> AllocateRemoteZfsAsync(RemoteZfsWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
+        {
+            if (!OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
+            {
+                throw new PlatformNotSupportedException();
+            }
+
+            if (!IPAddress.TryParse(descriptor.Hostname, out var address))
+            {
+                var addresses = await Dns.GetHostAddressesAsync(descriptor.Hostname, cancellationToken)
+                    .ConfigureAwait(false);
+                if (addresses.Length != 0)
+                {
+                    address = addresses[0];
+                }
+            }
+            if (address == null)
+            {
+                throw new InvalidOperationException($"Unable to resolve '{descriptor.Hostname}' to an IP address.");
+            }
+
+            _logger.LogInformation($"Resolved hostname '{descriptor.Hostname}' to address '{address}' for ZFS client.");
+
+            _logger.LogInformation($"Connecting to ZFS snapshot server...");
+            var client = _grpcPipeFactory.CreateNetworkClient(
+                new IPEndPoint(address!, descriptor.Port),
+                invoker => new RemoteZfsClient(invoker));
+
+            _logger.LogInformation($"Acquiring workspace from ZFS snapshot server...");
+            var response = client.AcquireWorkspace(new AcquireWorkspaceRequest
+            {
+                TemplateId = descriptor.TemplateId,
+            }, cancellationToken: cancellationToken);
+
+            var usingOuterReservation = false;
+            try
+            {
+                _logger.LogInformation($"Waiting for workspace to be acquired on ZFS snapshot server...");
+                var acquired = await response.ResponseStream.MoveNext(cancellationToken).ConfigureAwait(false);
+                if (!acquired)
+                {
+                    throw new InvalidOperationException($"Unable to acquire workspace on ZFS server!");
+                }
+
+                // Allocate a workspace to put our symbolic link in.
+                _logger.LogInformation($"Allocating physical workspace for symbolic link...");
+                var usingInnerReservation = false;
+                var reservation = await _reservationManager.ReserveAsync(
+                    "RemoteZfs",
+                    _parameterGenerator.ConstructReservationParameters(descriptor.TemplateId)).ConfigureAwait(false);
+                try
+                {
+                    if (Directory.Exists(Path.Combine(reservation.ReservedPath, "S")))
+                    {
+                        Directory.Delete(Path.Combine(reservation.ReservedPath, "S"));
+                    }
+
+                    var targetPath = string.IsNullOrWhiteSpace(descriptor.Subpath)
+                        ? response.ResponseStream.Current.WindowsShareRemotePath
+                        : Path.Combine(response.ResponseStream.Current.WindowsShareRemotePath, descriptor.Subpath);
+                    Directory.CreateSymbolicLink(
+                        Path.Combine(reservation.ReservedPath, "S"),
+                        targetPath);
+
+                    _logger.LogInformation($"Remote ZFS workspace '{targetPath}' is now available at '{Path.Combine(reservation.ReservedPath, "S")}'.");
+
+                    return new RemoteZfsWorkspace(response, reservation);
+                }
+                finally
+                {
+                    if (!usingInnerReservation)
+                    {
+                        await reservation.DisposeAsync().ConfigureAwait(false);
+                    }
+                }
+            }
+            finally
+            {
+                if (!usingOuterReservation)
+                {
+                    response.Dispose();
+                }
+            }
         }
     }
 }
