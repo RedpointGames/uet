@@ -4,6 +4,7 @@
     using Redpoint.Concurrency;
     using System;
     using System.Data.Common;
+    using System.Net.Sockets;
     using System.Threading;
 
     internal class TcpGrpcServerCall<TRequest, TResponse>
@@ -66,6 +67,12 @@
                 }
             }
             catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable)
+            {
+                // We can't send any content to the client, because the client has already disconnected.
+                _incoming.LogTrace($"Unable to send ({statusCode}, '{details}') to client because the client has already disconnected.");
+                return;
+            }
+            catch (SocketException ex) when (ex.ErrorCode == 32 /* Broken pipe */)
             {
                 // We can't send any content to the client, because the client has already disconnected.
                 _incoming.LogTrace($"Unable to send ({statusCode}, '{details}') to client because the client has already disconnected.");
