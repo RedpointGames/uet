@@ -25,6 +25,10 @@
             {
                 return Path.Combine(UetPaths.UetRootPath, version, "uet");
             }
+            else if (OperatingSystem.IsLinux())
+            {
+                return Path.Combine(UetPaths.UetRootPath, version, "uet");
+            }
             else
             {
                 throw new PlatformNotSupportedException();
@@ -68,6 +72,12 @@
             else if (OperatingSystem.IsMacOS())
             {
                 downloadUrl = $"https://github.com/RedpointGames/uet/releases/download/{version}/uet";
+                baseFolder = UetPaths.UetRootPath;
+                filename = "uet";
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                downloadUrl = $"https://github.com/RedpointGames/uet/releases/download/{version}/uet.linux";
                 baseFolder = UetPaths.UetRootPath;
                 filename = "uet";
             }

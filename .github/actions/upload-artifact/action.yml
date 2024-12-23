@@ -110,6 +110,31 @@ runs:
         path: |
           UET/uet/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet
 
+    - name: Upload Shim Linux
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'shim-linux' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: shim-linux
+        if-no-files-found: error
+        path: |
+          UET/uet.shim/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet
+    - name: Upload Pass 1 Linux
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-1-linux' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: pass-1-linux
+        if-no-files-found: error
+        path: |
+          UET/uet/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet
+    - name: Upload Pass 2 Linux
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-2-linux' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: pass-2-linux
+        if-no-files-found: error
+        path: |
+          UET/uet/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet
+
     - name: Upload Libs Win
       if: ${{ inputs.UET_ARTIFACT_NAME == 'libs-win' }}
       uses: actions/upload-artifact@v4

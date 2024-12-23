@@ -90,6 +90,28 @@ runs:
         name: pass-2-mac
         path: UET/uet/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/
         merge-multiple: true
+        
+    - name: Download Shim Linux
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'shim-linux' }}
+      uses: actions/download-artifact@v4
+      with:
+        name: shim-linux
+        path: UET/uet.shim/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/linux-x64/publish/
+        merge-multiple: true
+    - name: Download Pass 1 Linux
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-1-linux' }}
+      uses: actions/download-artifact@v4
+      with:
+        name: pass-1-linux
+        path: UET/uet/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/linux-x64/publish/
+        merge-multiple: true
+    - name: Download Pass 2 Linux
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'pass-2-linux' }}
+      uses: actions/download-artifact@v4
+      with:
+        name: pass-2-linux
+        path: UET/uet/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/linux-x64/publish/
+        merge-multiple: true
 
     - name: Download Libs Win
       if: ${{ inputs.UET_ARTIFACT_NAME == 'libs-win' }}
