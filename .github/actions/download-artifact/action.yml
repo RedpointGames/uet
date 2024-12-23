@@ -18,21 +18,6 @@ runs:
         path: ""
         merge-multiple: true
 
-    - name: Download AutoDiscovery
-      if: ${{ inputs.UET_ARTIFACT_NAME == 'autodiscovery' }}
-      uses: actions/download-artifact@v4
-      with:
-        name: autodiscovery
-        path: UET/
-        merge-multiple: true
-    - name: Download Mac Logging
-      if: ${{ inputs.UET_ARTIFACT_NAME == 'mac-logging' }}
-      uses: actions/download-artifact@v4
-      with:
-        name: mac-logging
-        path: UET/
-        merge-multiple: true
-
     - name: Download UEFS Win
       if: ${{ inputs.UET_ARTIFACT_NAME == 'uefs-win' }}
       uses: actions/download-artifact@v4

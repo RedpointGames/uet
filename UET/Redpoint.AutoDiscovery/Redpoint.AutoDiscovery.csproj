@@ -11,33 +11,8 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(RedpointSystemLibraryVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(RedpointSystemLibraryVersion)" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(UET_BUILDING_ON_BUILD_SERVER)' != 'true' and '$(UsePrebuiltLibsForAutoDiscovery)' != 'true'">
-    <ProjectReference Include="..\Redpoint.AutoDiscovery.Win32\Redpoint.AutoDiscovery.Win32.csproj">
-      <Aliases>SDWin32</Aliases>
-    </ProjectReference>
-    <ProjectReference Include="..\Redpoint.AutoDiscovery.Win64\Redpoint.AutoDiscovery.Win64.csproj">
-      <Aliases>SDWin64</Aliases>
-    </ProjectReference>
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(UET_BUILDING_ON_BUILD_SERVER)' == 'true' or '$(UsePrebuiltLibsForAutoDiscovery)' == 'true'">
-    <Reference Include="Redpoint.AutoDiscovery.Win32">
-      <HintPath>..\Redpoint.AutoDiscovery.Win32\bin\x86\$(Configuration)\$(TargetFramework)\win-x86\Redpoint.AutoDiscovery.Win32.dll</HintPath>
-      <Aliases>SDWin32</Aliases>
-    </Reference>
-    <Reference Include="Redpoint.AutoDiscovery.Win64">
-      <HintPath>..\Redpoint.AutoDiscovery.Win64\bin\x64\$(Configuration)\$(TargetFramework)\win-x64\Redpoint.AutoDiscovery.Win64.dll</HintPath>
-      <Aliases>SDWin64</Aliases>
-    </Reference>
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(UET_BUILDING_ON_BUILD_SERVER)' == 'true' or '$(UsePrebuiltLibsForAutoDiscovery)' == 'true'">
-    <None Include="..\Redpoint.AutoDiscovery.Win32\bin\x86\$(Configuration)\$(TargetFramework)\win-x86\Redpoint.AutoDiscovery.Win32.dll" Pack="True" PackagePath="lib\$(TargetFramework)">
-    </None>
-    <None Include="..\Redpoint.AutoDiscovery.Win64\bin\x64\$(Configuration)\$(TargetFramework)\win-x64\Redpoint.AutoDiscovery.Win64.dll" Pack="True" PackagePath="lib\$(TargetFramework)">
-    </None>
+    <PackageReference Include="Redpoint.AutoDiscovery.Win32" Version="2024.1358.192" Aliases="SDWin32" />
+    <PackageReference Include="Redpoint.AutoDiscovery.Win64" Version="2024.1358.192" Aliases="SDWin64" />
   </ItemGroup>
 
   <ItemGroup>

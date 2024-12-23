@@ -4,7 +4,6 @@
 
   <PropertyGroup>
     <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
-    <RestoreAdditionalProjectSources>$(MSBuildThisFileDirectory)../Redpoint.Logging.Mac/bin;$(MSBuildThisFileDirectory)../Redpoint.AutoDiscovery/bin/$(Configuration)</RestoreAdditionalProjectSources>
   </PropertyGroup>
 
   <PropertyGroup>
