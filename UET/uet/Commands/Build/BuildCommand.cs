@@ -21,6 +21,7 @@
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.CommonPaths;
     using System.CommandLine.Parsing;
+    using Redpoint.Uet.BuildPipeline.Executors.Jenkins;
 
     internal sealed class BuildCommand
     {
@@ -189,7 +190,7 @@
                     description: "The executor to use.",
                     getDefaultValue: () => "local");
                 Executor.AddAlias("-x");
-                Executor.FromAmong("local", "gitlab");
+                Executor.FromAmong("local", "gitlab", "jenkins");
                 Executor.ArgumentGroupName = cicdOptions;
 
                 ExecutorOutputFile = new Option<string>(
@@ -261,6 +262,7 @@
             private readonly IBuildSpecificationGenerator _buildSpecificationGenerator;
             private readonly LocalBuildExecutorFactory _localBuildExecutorFactory;
             private readonly GitLabBuildExecutorFactory _gitLabBuildExecutorFactory;
+            private readonly JenkinsBuildExecutorFactory _jenkinsBuildExecutorFactory;
             private readonly IStringUtilities _stringUtilities;
             private readonly IWorkspaceProvider _dynamicWorkspaceProvider;
 
@@ -270,6 +272,7 @@
                 IBuildSpecificationGenerator buildSpecificationGenerator,
                 LocalBuildExecutorFactory localBuildExecutorFactory,
                 GitLabBuildExecutorFactory gitLabBuildExecutorFactory,
+                JenkinsBuildExecutorFactory jenkinsBuildExecutorFactory,
                 IStringUtilities stringUtilities,
                 IWorkspaceProvider dynamicWorkspaceProvider)
             {
@@ -278,6 +281,7 @@
                 _buildSpecificationGenerator = buildSpecificationGenerator;
                 _localBuildExecutorFactory = localBuildExecutorFactory;
                 _gitLabBuildExecutorFactory = gitLabBuildExecutorFactory;
+                _jenkinsBuildExecutorFactory = jenkinsBuildExecutorFactory;
                 _stringUtilities = stringUtilities;
                 _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
             }
@@ -413,6 +417,7 @@
                 {
                     "local" => _localBuildExecutorFactory.CreateExecutor(),
                     "gitlab" => _gitLabBuildExecutorFactory.CreateExecutor(executorOutputFile!),
+                    "jenkins" => _jenkinsBuildExecutorFactory.CreateExecutor(executorOutputFile!),
                     _ => throw new NotSupportedException(),
                 };
 

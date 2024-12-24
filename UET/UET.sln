@@ -348,6 +348,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ThirdParty.TestLog
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ThirdParty.JUnit.Xml.TestLogger", "Lib\Redpoint.ThirdParty.JUnit.Xml.TestLogger\Redpoint.ThirdParty.JUnit.Xml.TestLogger.csproj", "{1E968B45-5B0A-488A-A0F3-8FBC41F41549}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uet.BuildPipeline.Executors.Jenkins", "Redpoint.Uet.BuildPipeline.Executors.Jenkins\Redpoint.Uet.BuildPipeline.Executors.Jenkins.csproj", "{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -942,6 +944,10 @@ Global
 		{1E968B45-5B0A-488A-A0F3-8FBC41F41549}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1E968B45-5B0A-488A-A0F3-8FBC41F41549}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1E968B45-5B0A-488A-A0F3-8FBC41F41549}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1064,6 +1070,7 @@ Global
 		{EA5480E2-6C5D-48B9-87A9-16351DF4DCC1} = {A93D92E5-865B-4681-AC53-4B1689F1B3E8}
 		{F0F97AC5-7955-4223-AE03-5DF12547B777} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
 		{1E968B45-5B0A-488A-A0F3-8FBC41F41549} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
+		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08} = {1AE4AFCD-0F49-4CEA-8439-F1AAA2CDD183}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}
