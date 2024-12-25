@@ -5,11 +5,10 @@
     using System;
     using System.Runtime.InteropServices;
 
-    internal partial class UbaLoggerForwarder : IDisposable
+    internal partial class UbaLoggerForwarder
     {
-        private readonly ILogger<UbaLoggerForwarder> _logger;
-        private readonly nint _ubaLogger;
-        private bool _hasDisposed;
+        private static ILogger<UbaLoggerForwarder>? _logger;
+        private static nint? _ubaLogger;
 
         #region Library Imports
 
@@ -36,8 +35,13 @@
 
         #endregion
 
-        public UbaLoggerForwarder(ILogger<UbaLoggerForwarder> logger)
+        public static nint GetUbaLogger(ILogger<UbaLoggerForwarder> logger)
         {
+            if (_ubaLogger.HasValue)
+            {
+                return _ubaLogger.Value;
+            }
+
             _logger = logger;
             _ubaLogger = CreateCallbackLogWriter(
                 BeginScope,
@@ -47,9 +51,9 @@
             {
                 throw new InvalidOperationException("Unable to create UBA logger!");
             }
-        }
 
-        public nint Logger => _ubaLogger;
+            return _ubaLogger.Value;
+        }
 
         private static void BeginScope()
         {
@@ -59,7 +63,7 @@
         {
         }
 
-        private void Log(byte logEntryType, nint str, uint strLen, nint prefix, uint prefixLen)
+        private static void Log(byte logEntryType, nint str, uint strLen, nint prefix, uint prefixLen)
         {
             string message;
             if (OperatingSystem.IsWindows())
@@ -74,46 +78,20 @@
             switch (logEntryType)
             {
                 case 0:
-                    _logger.LogError(message);
+                    _logger!.LogError(message);
                     break;
                 case 1:
-                    _logger.LogWarning(message);
+                    _logger!.LogWarning(message);
                     break;
                 case 2:
-                    _logger.LogInformation(message);
+                    _logger!.LogInformation(message);
                     break;
                 case 3:
                 case 4:
                 default:
-                    _logger.LogDebug(message);
+                    _logger!.LogDebug(message);
                     break;
             }
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_hasDisposed)
-            {
-                if (_ubaLogger != nint.Zero)
-                {
-                    DestroyCallbackLogWriter(_ubaLogger);
-                }
-
-                _hasDisposed = true;
-            }
-        }
-
-        ~UbaLoggerForwarder()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: false);
-        }
-
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
         }
     }
 }

@@ -13,18 +13,15 @@
         private readonly ILogger<DefaultUbaServer> _defaultUbaServerLogger;
         private readonly ILogger<UbaLoggerForwarder> _ubaLoggerForwarderLogger;
         private readonly IProcessArgumentParser _processArgumentParser;
-        private readonly IProcessExecutor _localProcessExecutor;
 
         public DefaultUbaServerFactory(
             ILogger<DefaultUbaServer> defaultUbaServerLogger,
             ILogger<UbaLoggerForwarder> ubaLoggerForwarderLogger,
-            IProcessArgumentParser processArgumentParser,
-            IProcessExecutor localProcessExecutor)
+            IProcessArgumentParser processArgumentParser)
         {
             _defaultUbaServerLogger = defaultUbaServerLogger;
             _ubaLoggerForwarderLogger = ubaLoggerForwarderLogger;
             _processArgumentParser = processArgumentParser;
-            _localProcessExecutor = localProcessExecutor;
         }
 
         public IUbaServer CreateServer(
@@ -46,9 +43,11 @@
             Directory.CreateDirectory(rootStorageDirectoryPath);
             Directory.CreateDirectory(Path.GetDirectoryName(ubaTraceFilePath)!);
 
-            var loggingForwarder = new UbaLoggerForwarder(_ubaLoggerForwarderLogger);
+            // @note: UbaLoggerForwarder must be static and hold a singleton log. Otherwise we can run into a crash if
+            // DefaultUbaServer is finalized after UbaLoggerForwarder.
+            var ubaLogger = UbaLoggerForwarder.GetUbaLogger(_ubaLoggerForwarderLogger);
             var server = UbaServerDelayedImports.CreateServer(
-                loggingForwarder.Logger,
+                ubaLogger,
                 maxWorkers,
                 sendSize,
                 receiveTimeoutSeconds,
@@ -56,8 +55,7 @@
             return new DefaultUbaServer(
                 _defaultUbaServerLogger,
                 _processArgumentParser,
-                _localProcessExecutor,
-                loggingForwarder,
+                ubaLogger,
                 server,
                 rootStorageDirectoryPath,
                 ubaTraceFilePath);

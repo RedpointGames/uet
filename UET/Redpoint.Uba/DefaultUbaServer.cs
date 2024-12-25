@@ -17,8 +17,7 @@
     {
         private readonly ILogger<DefaultUbaServer> _logger;
         private readonly IProcessArgumentParser _processArgumentParser;
-        private readonly IProcessExecutor _localProcessExecutor;
-        private readonly UbaLoggerForwarder _ubaLoggerForwarder;
+        private readonly nint _ubaLogger;
         private readonly CancellationTokenSource _localWorkerCancellationTokenSource;
         private nint _server;
         private nint _storageServer;
@@ -27,6 +26,11 @@
         private readonly ConcurrentDictionary<ulong, bool> _returnedProcesses;
         private readonly TerminableAwaitableConcurrentQueue<UbaProcessDescriptor> _processQueue;
         private readonly Task[] _localWorkerTasks;
+        private readonly SessionServer_RemoteProcessAvailableCallback _onRemoteProcessAvailableDelegate;
+        private readonly SessionServer_RemoteProcessReturnedCallback _onRemoteProcessReturnedDelegate;
+        private long _processesPendingInQueue;
+        private long _processesExecutingLocally;
+        private long _processesExecutingRemotely;
 
         #region Library Imports
 
@@ -47,7 +51,7 @@
             nint server,
             string ip,
             int port,
-            string crypto);
+            nint crypto);
 
         [LibraryImport("UbaHost", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(UbaStringMarshaller))]
         [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
@@ -115,6 +119,14 @@
 
         [LibraryImport("UbaHost", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(UbaStringMarshaller))]
         [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
+        private static partial nint SessionServer_RunProcess(
+            nint sessionServer,
+            nint processStartInfo,
+            [MarshalAs(UnmanagedType.I1)] bool async,
+            [MarshalAs(UnmanagedType.I1)] bool enableDetour);
+
+        [LibraryImport("UbaHost", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(UbaStringMarshaller))]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
         private static partial nint SessionServer_RunProcessRemote(
             nint sessionServer,
             nint processStartInfo,
@@ -168,16 +180,14 @@
         public DefaultUbaServer(
             ILogger<DefaultUbaServer> logger,
             IProcessArgumentParser processArgumentParser,
-            IProcessExecutor localProcessExecutor,
-            UbaLoggerForwarder ubaLoggerForwarder,
+            nint ubaLogger,
             nint server,
             string rootStorageDirectoryPath,
             string ubaTraceFilePath)
         {
             _logger = logger;
             _processArgumentParser = processArgumentParser;
-            _localProcessExecutor = localProcessExecutor;
-            _ubaLoggerForwarder = ubaLoggerForwarder;
+            _ubaLogger = ubaLogger;
             _localWorkerCancellationTokenSource = new CancellationTokenSource();
 
             _server = server;
@@ -187,7 +197,7 @@
                 rootStorageDirectoryPath,
                 40uL * 1000 * 1000 * 1000,
                 false,
-                _ubaLoggerForwarder.Logger,
+                ubaLogger,
                 string.Empty);
             if (_storageServer == nint.Zero)
             {
@@ -198,7 +208,7 @@
             _sessionServerCreateInfo = CreateSessionServerCreateInfo(
                 _storageServer,
                 _server,
-                _ubaLoggerForwarder.Logger,
+                ubaLogger,
                 rootStorageDirectoryPath,
                 ubaTraceFilePath,
                 disableCustomAllocator: false,
@@ -227,13 +237,224 @@
                 .Select(x => Task.Run(LocalProcessWorkerLoop))
                 .ToArray();
 
-            SessionServer_SetRemoteProcessAvailable(_sessionServer, OnRemoteProcessAvailable, nint.Zero);
-            SessionServer_SetRemoteProcessReturned(_sessionServer, OnRemoteProcessReturned, nint.Zero);
+            _onRemoteProcessAvailableDelegate = OnRemoteProcessAvailable;
+            _onRemoteProcessReturnedDelegate = OnRemoteProcessReturned;
+            SessionServer_SetRemoteProcessAvailable(_sessionServer, _onRemoteProcessAvailableDelegate, nint.Zero);
+            SessionServer_SetRemoteProcessReturned(_sessionServer, _onRemoteProcessReturnedDelegate, nint.Zero);
         }
 
-        public bool AddRemoteAgent(string ip, int port, string crypto)
+        public bool AddRemoteAgent(string ip, int port)
         {
-            return Server_AddClient(_server, ip, port, crypto);
+            return Server_AddClient(_server, ip, port, nint.Zero);
+        }
+
+        public long ProcessesPendingInQueue => Interlocked.Read(ref _processesPendingInQueue);
+        public long ProcessesExecutingLocally => Interlocked.Read(ref _processesExecutingLocally);
+        public long ProcessesExecutingRemotely => Interlocked.Read(ref _processesExecutingRemotely);
+
+        private async Task RunProcessAsync(
+            UbaProcessDescriptor descriptor,
+            Func<nint, nint> createProcessOnServer,
+            bool isRemoteExecution)
+        {
+            var isRequeued = false;
+            try
+            {
+                // Create the gate that we can wait on until the process exits.
+                var exitedGate = new Gate();
+                ExitCallback exited = (nint userdata, nint handle) =>
+                {
+                    exitedGate.Open();
+                };
+
+                // Try to set the description.
+                var description = "Unknown";
+                description = Path.GetFileName(descriptor.ProcessSpecification.Arguments.Last().LogicalValue);
+
+                // Create the process start info.
+                var arguments = _processArgumentParser.JoinArguments(descriptor.ProcessSpecification.Arguments);
+                arguments = arguments.Replace(@"-DCMAKE_CFG_INTDIR=""Release""", @"-DCMAKE_CFG_INTDIR=\""Release\""", StringComparison.Ordinal);
+                arguments = arguments.Replace(@"-DCMAKE_CFG_INTDIR=""Debug""", @"-DCMAKE_CFG_INTDIR=\""Debug\""", StringComparison.Ordinal);
+                var processStartInfo = CreateProcessStartInfo(
+                    descriptor.ProcessSpecification.FilePath,
+                    arguments,
+                    descriptor.ProcessSpecification.WorkingDirectory ?? Environment.CurrentDirectory,
+                    description,
+                    (uint)ProcessPriorityClass.Normal,
+                    int.MaxValue,
+                    true,
+                    string.Empty,
+                    exited);
+                if (processStartInfo == nint.Zero)
+                {
+                    throw new InvalidOperationException("Unable to create UBA process start info!");
+                }
+
+                // Process and log tracking that needs to be shared between try and finally blocks.
+                var process = nint.Zero;
+                uint logIndex = 0;
+                var getTargetLogLine = (uint targetLogIndex) =>
+                {
+                    var ptr = ProcessHandle_GetLogLine(process, targetLogIndex);
+                    if (ptr == nint.Zero)
+                    {
+                        return null;
+                    }
+                    if (OperatingSystem.IsWindows())
+                    {
+                        return Marshal.PtrToStringUni(ptr);
+                    }
+                    else
+                    {
+                        return Marshal.PtrToStringUTF8(ptr);
+                    }
+                };
+                var getExecutingHost = () =>
+                {
+                    var ptr = ProcessHandle_GetExecutingHost(process);
+                    if (ptr == nint.Zero)
+                    {
+                        return null;
+                    }
+                    if (OperatingSystem.IsWindows())
+                    {
+                        return Marshal.PtrToStringUni(ptr);
+                    }
+                    else
+                    {
+                        return Marshal.PtrToStringUTF8(ptr);
+                    }
+                };
+                var flushLogLines = () =>
+                {
+                    if (process != nint.Zero)
+                    {
+                        var nextLogLine = getTargetLogLine(logIndex);
+                        while (nextLogLine != null)
+                        {
+                            logIndex++;
+                            if (descriptor.CaptureSpecification.InterceptStandardOutput)
+                            {
+                                descriptor.CaptureSpecification.OnReceiveStandardOutput(nextLogLine);
+                            }
+                            else
+                            {
+                                Console.WriteLine(nextLogLine);
+                            }
+                            nextLogLine = getTargetLogLine(logIndex);
+                        }
+                    }
+                };
+
+                // try/finally to ensure we release native resources when finished.
+                var isCancelled = false;
+                var isComplete = false;
+                ulong processHash = 0;
+                var releaseProcessResources = (bool forceCancel) =>
+                {
+                    if (process != nint.Zero)
+                    {
+                        if (!isComplete && !isCancelled && (forceCancel || descriptor.CancellationToken.IsCancellationRequested))
+                        {
+                            ProcessHandle_Cancel(process, true);
+                            isCancelled = true;
+                        }
+                        DestroyProcessHandle(process);
+                        _returnedProcesses.Remove(processHash, out _);
+                        process = nint.Zero;
+                    }
+                };
+                try
+                {
+                    // Check for cancellation.
+                    descriptor.CancellationToken.ThrowIfCancellationRequested();
+
+                    // Run the process remotely.
+                    process = createProcessOnServer(processStartInfo);
+                    if (process == nint.Zero)
+                    {
+                        throw new InvalidOperationException("Unable to create UBA remote process!");
+                    }
+                    processHash = ProcessHandle_GetHash(process);
+
+                    // While we wait for the exit gate to open, poll for log lines.
+                    while (!exitedGate.Opened &&
+                        !_returnedProcesses.ContainsKey(processHash) &&
+                        !descriptor.CancellationToken.IsCancellationRequested)
+                    {
+                        // Check for cancellation.
+                        descriptor.CancellationToken.ThrowIfCancellationRequested();
+
+                        // Flush all available log lines.
+                        flushLogLines();
+
+                        // Continue waiting for the process to exit.
+                        await Task.Delay(200, descriptor.CancellationToken).ConfigureAwait(false);
+                    }
+
+                    // Get the exit code and mark as completed if the command finished running.
+                    int? exitCode = null;
+                    if (!_returnedProcesses.ContainsKey(processHash))
+                    {
+                        exitCode = (int)ProcessHandle_GetExitCode(process);
+                        isComplete = true;
+                    }
+
+                    // Check if we should requeue this process.
+                    if (isRemoteExecution && (
+                        !exitCode.HasValue /* Returned by remote agent */ ||
+                        (exitCode.HasValue && exitCode != 0) /* Allow a compile failure to be retried locally */))
+                    {
+                        // Prefer to run this command locally now.
+                        descriptor.AllowRemote = false;
+
+                        // Cancel and release remote process.
+                        releaseProcessResources(true);
+
+                        // Push this process back into the queue for local execution.
+                        _processQueue.Enqueue(descriptor);
+                        isRequeued = true;
+                        return;
+                    }
+
+                    // Otherwise, return the exit code.
+                    isComplete = true;
+                    descriptor.ExitCode = exitCode ?? 99999;
+                    return;
+                }
+                finally
+                {
+                    flushLogLines();
+                    releaseProcessResources(false);
+                    DestroyProcessStartInfo(processStartInfo);
+                }
+            }
+            catch (Exception ex)
+            {
+                if (!isRequeued)
+                {
+                    descriptor.ExceptionDispatchInfo = ExceptionDispatchInfo.Capture(ex);
+                }
+            }
+            finally
+            {
+                if (!isRequeued)
+                {
+                    descriptor.CompletionGate.Open();
+                }
+                else
+                {
+                    Interlocked.Increment(ref _processesPendingInQueue);
+                }
+                if (isRemoteExecution)
+                {
+                    Interlocked.Decrement(ref _processesExecutingRemotely);
+                }
+                else
+                {
+                    Interlocked.Decrement(ref _processesExecutingLocally);
+                }
+            }
         }
 
         private void OnRemoteProcessAvailable(nint userData)
@@ -241,193 +462,42 @@
             // Start a background task to queue a remote process (since this function can't be async).
             _ = Task.Run(async () =>
             {
-                // Grab the next process to run.
-                var descriptor = await _processQueue.DequeueAsync(_localWorkerCancellationTokenSource.Token).ConfigureAwait(false);
-
-                // Run the process remotely.
-                var isRequeued = false;
-                try
+                // Before we attempt to actually dequeue, check that there is something to dequeue, since UBA
+                // frequently calls OnRemoteProcessAvailable whileever slots are free (and not just when a slot
+                // opens up).
+                if (Interlocked.Read(ref _processesPendingInQueue) == 0)
                 {
-                    // Create the gate that we can wait on until the process exits.
-                    var exitedGate = new Gate();
-                    ExitCallback exited = (nint userdata, nint handle) =>
+                    return;
+                }
+
+                // Grab the next process to run.
+                var seenDescriptors = new HashSet<UbaProcessDescriptor>();
+            retryFetch:
+                var descriptor = await _processQueue.DequeueAsync(_localWorkerCancellationTokenSource.Token).ConfigureAwait(false);
+                if (!descriptor.AllowRemote)
+                {
+                    if (seenDescriptors.Contains(descriptor))
                     {
-                        exitedGate.Open();
-                    };
-
-                    // Create the process start info.
-                    var processStartInfo = CreateProcessStartInfo(
-                        descriptor.ProcessSpecification.FilePath,
-                        _processArgumentParser.JoinArguments(descriptor.ProcessSpecification.Arguments),
-                        descriptor.ProcessSpecification.WorkingDirectory ?? Environment.CurrentDirectory,
-                        $"Redpoint.Uba: {descriptor.ProcessSpecification.FilePath} {_processArgumentParser.JoinArguments(descriptor.ProcessSpecification.Arguments)}",
-                        (uint)ProcessPriorityClass.Normal,
-                        int.MaxValue,
-                        true,
-                        string.Empty,
-                        exited);
-                    if (processStartInfo == nint.Zero)
-                    {
-                        throw new InvalidOperationException("Unable to create UBA process start info!");
-                    }
-
-                    // Process and log tracking that needs to be shared between try and finally blocks.
-                    var process = nint.Zero;
-                    uint logIndex = 0;
-                    var getTargetLogLine = (uint targetLogIndex) =>
-                    {
-                        var ptr = ProcessHandle_GetLogLine(process, targetLogIndex);
-                        if (ptr == nint.Zero)
-                        {
-                            return null;
-                        }
-                        if (OperatingSystem.IsWindows())
-                        {
-                            return Marshal.PtrToStringUni(ptr);
-                        }
-                        else
-                        {
-                            return Marshal.PtrToStringUTF8(ptr);
-                        }
-                    };
-                    var getExecutingHost = () =>
-                    {
-                        var ptr = ProcessHandle_GetExecutingHost(process);
-                        if (ptr == nint.Zero)
-                        {
-                            return null;
-                        }
-                        if (OperatingSystem.IsWindows())
-                        {
-                            return Marshal.PtrToStringUni(ptr);
-                        }
-                        else
-                        {
-                            return Marshal.PtrToStringUTF8(ptr);
-                        }
-                    };
-                    var flushLogLines = () =>
-                    {
-                        if (process != nint.Zero)
-                        {
-                            var nextLogLine = getTargetLogLine(logIndex);
-                            while (nextLogLine != null)
-                            {
-                                logIndex++;
-                                if (descriptor.CaptureSpecification.InterceptStandardOutput)
-                                {
-                                    descriptor.CaptureSpecification.OnReceiveStandardOutput(nextLogLine);
-                                }
-                                else
-                                {
-                                    Console.WriteLine(nextLogLine);
-                                }
-                                nextLogLine = getTargetLogLine(logIndex);
-                            }
-                        }
-                    };
-
-                    // try/finally to ensure we release native resources when finished.
-                    var isCancelled = false;
-                    var isComplete = false;
-                    ulong processHash = 0;
-                    var releaseProcessResources = (bool forceCancel) =>
-                    {
-                        if (process != nint.Zero)
-                        {
-                            if (!isComplete && !isCancelled && (forceCancel || descriptor.CancellationToken.IsCancellationRequested))
-                            {
-                                ProcessHandle_Cancel(process, true);
-                                isCancelled = true;
-                            }
-                            DestroyProcessHandle(process);
-                            _returnedProcesses.Remove(processHash, out _);
-                            process = nint.Zero;
-                        }
-                    };
-                    try
-                    {
-                        // Check for cancellation.
-                        descriptor.CancellationToken.ThrowIfCancellationRequested();
-
-                        // Run the process remotely.
-                        process = SessionServer_RunProcessRemote(
-                            _sessionServer,
-                            processStartInfo,
-                            1.0f,
-                            null,
-                            0);
-                        if (process == nint.Zero)
-                        {
-                            throw new InvalidOperationException("Unable to create UBA remote process!");
-                        }
-                        processHash = ProcessHandle_GetHash(process);
-
-                        // While we wait for the exit gate to open, poll for log lines.
-                        while (!exitedGate.Opened &&
-                            !_returnedProcesses.ContainsKey(processHash) &&
-                            !descriptor.CancellationToken.IsCancellationRequested)
-                        {
-                            // Check for cancellation.
-                            descriptor.CancellationToken.ThrowIfCancellationRequested();
-
-                            // Flush all available log lines.
-                            flushLogLines();
-
-                            // Continue waiting for the process to exit.
-                            await Task.Delay(200, descriptor.CancellationToken).ConfigureAwait(false);
-                        }
-
-                        // Get the exit code and mark as completed if the command finished running.
-                        int? exitCode = null;
-                        if (!_returnedProcesses.ContainsKey(processHash))
-                        {
-                            exitCode = (int)ProcessHandle_GetExitCode(process);
-                            isComplete = true;
-                        }
-
-                        // Check if we should requeue this process.
-                        if (!exitCode.HasValue /* Returned by remote agent */ ||
-                            (exitCode.HasValue && exitCode == 9006) /* Known retry code when running cmd.exe via remote agent */)
-                        {
-                            // Prefer to run this command locally now.
-                            descriptor.PreferRemote = false;
-
-                            // Cancel and release remote process.
-                            releaseProcessResources(true);
-
-                            // Push this process back into the queue for local execution.
-                            _processQueue.Enqueue(descriptor);
-                            isRequeued = true;
-                            return;
-                        }
-
-                        // Otherwise, return the exit code.
-                        isComplete = true;
-                        descriptor.ExitCode = exitCode!.Value;
+                        // No remotable processes in queue at the moment.
                         return;
                     }
-                    finally
-                    {
-                        flushLogLines();
-                        releaseProcessResources(false);
-                        DestroyProcessStartInfo(processStartInfo);
-                    }
+                    seenDescriptors.Add(descriptor);
+                    _processQueue.Enqueue(descriptor);
+                    goto retryFetch;
                 }
-                catch (Exception ex)
-                {
-                    if (!isRequeued)
-                    {
-                        descriptor.ExceptionDispatchInfo = ExceptionDispatchInfo.Capture(ex);
-                    }
-                }
-                finally
-                {
-                    if (!isRequeued)
-                    {
-                        descriptor.CompletionGate.Open();
-                    }
-                }
+                Interlocked.Decrement(ref _processesPendingInQueue);
+                Interlocked.Increment(ref _processesExecutingRemotely);
+
+                // Run the process remotely.
+                await RunProcessAsync(
+                    descriptor,
+                    processStartInfo => SessionServer_RunProcessRemote(
+                        _sessionServer,
+                        processStartInfo,
+                        1.0f,
+                        null,
+                        0),
+                    true).ConfigureAwait(false);
             });
         }
 
@@ -443,7 +513,7 @@
                 // Grab the next process to run.
                 var descriptor = await _processQueue.DequeueAsync(_localWorkerCancellationTokenSource.Token).ConfigureAwait(false);
                 if (descriptor.PreferRemote &&
-                    (descriptor.DateQueuedUtc - DateTimeOffset.UtcNow).TotalSeconds < 30)
+                    (DateTimeOffset.UtcNow - descriptor.DateQueuedUtc).TotalSeconds < 30)
                 {
                     // If this process prefers remote execution, and it hasn't been sitting in the queue for
                     // at least 30 seconds, requeue it and try again.
@@ -451,23 +521,18 @@
                     await Task.Delay(200, _localWorkerCancellationTokenSource.Token).ConfigureAwait(false);
                     continue;
                 }
+                Interlocked.Decrement(ref _processesPendingInQueue);
+                Interlocked.Increment(ref _processesExecutingLocally);
 
                 // Run the process locally.
-                try
-                {
-                    descriptor.ExitCode = await _localProcessExecutor.ExecuteAsync(
-                        descriptor.ProcessSpecification,
-                        descriptor.CaptureSpecification,
-                        descriptor.CancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    descriptor.ExceptionDispatchInfo = ExceptionDispatchInfo.Capture(ex);
-                }
-                finally
-                {
-                    descriptor.CompletionGate.Open();
-                }
+                await RunProcessAsync(
+                    descriptor,
+                    processStartInfo => SessionServer_RunProcess(
+                        _sessionServer,
+                        processStartInfo,
+                        true,
+                        false),
+                    false).ConfigureAwait(false);
             }
             while (true);
         }
@@ -485,16 +550,19 @@
             }
 
             // Push the request into the queue.
+            var ubaProcessSpecification = processSpecification as UbaProcessSpecification;
             var descriptor = new UbaProcessDescriptor
             {
                 ProcessSpecification = processSpecification,
                 CaptureSpecification = captureSpecification,
                 CancellationToken = cancellationToken,
                 DateQueuedUtc = DateTimeOffset.UtcNow,
-                PreferRemote = processSpecification is UbaProcessSpecification ubaProcessSpecification && ubaProcessSpecification.PreferRemote,
+                PreferRemote = ubaProcessSpecification != null && ubaProcessSpecification.PreferRemote,
+                AllowRemote = ubaProcessSpecification == null || ubaProcessSpecification.AllowRemote,
                 CompletionGate = new Gate(),
             };
             _processQueue.Enqueue(descriptor);
+            Interlocked.Increment(ref _processesPendingInQueue);
 
             // Wait for the gate to be opened.
             await descriptor.CompletionGate.WaitAsync(cancellationToken).ConfigureAwait(false);

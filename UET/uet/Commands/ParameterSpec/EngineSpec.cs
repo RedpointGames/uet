@@ -37,8 +37,16 @@
                 distributionOpt);
         }
 
+        public static ParseArgument<EngineSpec> ParseEngineSpecContextless()
+        {
+            return ParseEngineSpec(
+                null,
+                string.Empty,
+                null);
+        }
+
         private static ParseArgument<EngineSpec> ParseEngineSpec(
-            Func<ArgumentResult, PathSpec?> getPathSpec,
+            Func<ArgumentResult, PathSpec?>? getPathSpec,
             string pathSpecOptionName,
             Option<DistributionSpec?>? distributionOpt)
         {
@@ -69,13 +77,16 @@
                 // can figure out the target engine from the project file.
                 PathSpec? path = null;
                 DistributionSpec? distribution = null;
-                try
+                if (getPathSpec != null)
                 {
-                    path = getPathSpec(result);
-                }
-                catch (InvalidOperationException)
-                {
-                    return null!;
+                    try
+                    {
+                        path = getPathSpec(result);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        return null!;
+                    }
                 }
                 if (distributionOpt != null)
                 {
@@ -90,7 +101,14 @@
                 }
                 if (path == null)
                 {
-                    result.ErrorMessage = $"Can't automatically detect the appropriate engine because the --{pathSpecOptionName} option was invalid.";
+                    if (getPathSpec == null)
+                    {
+                        result.ErrorMessage = $"You must explicitly set the engine version to use with --{result.Argument.Name}.";
+                    }
+                    else
+                    {
+                        result.ErrorMessage = $"Can't automatically detect the appropriate engine because the --{pathSpecOptionName} option was invalid.";
+                    }
                     return null!;
                 }
                 switch (path.Type)

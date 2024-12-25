@@ -10,7 +10,7 @@
     /// 
     /// We don't support the UBA mode whereby the server listens on a port, and remote agents (clients) initiated a connection back to the server. That's because most developer machines are behind a firewall that remote agents won't be able to initiate a connection through.
     /// 
-    /// Instead, we only support the model by which the remote agents (clients) listen on a port, and the server actively connects to them using <see cref="AddRemoteAgent(string, int, string)"/>.
+    /// Instead, we only support the model by which the remote agents (clients) listen on a port, and the server actively connects to them using <see cref="AddRemoteAgent(string, int)"/>.
     /// </summary>
     public interface IUbaServer : IProcessExecutor, IAsyncDisposable
     {
@@ -19,8 +19,22 @@
         /// </summary>
         /// <param name="ip">The IP address of the remote agent.</param>
         /// <param name="port">The port of the remote agent.</param>
-        /// <param name="crypto">If the remote agent has the '-crypto' parameter set, this should be the 32 character hexadecimal value representing the symmetric cryptographic key.</param>
         /// <returns>True if the agent was successfully added.</returns>
-        bool AddRemoteAgent(string ip, int port, string crypto = "");
+        bool AddRemoteAgent(string ip, int port);
+
+        /// <summary>
+        /// The number of processes currently in the queue to start execution.
+        /// </summary>
+        long ProcessesPendingInQueue { get; }
+
+        /// <summary>
+        /// The number of processes executing locally.
+        /// </summary>
+        long ProcessesExecutingLocally { get; }
+
+        /// <summary>
+        /// The number of processes executing on remote agents.
+        /// </summary>
+        long ProcessesExecutingRemotely { get; }
     }
 }

@@ -30,6 +30,8 @@
     using UET.Commands.Internal.TestUba;
     using UET.Commands.Internal.EngineCheckout;
     using UET.Commands.Internal.InstallPackage;
+    using UET.Commands.Internal.CMakeUbaServer;
+    using UET.Commands.Internal.CMakeUbaRun;
 
     internal sealed class InternalCommand
     {
@@ -67,6 +69,8 @@
                 RemoteZfsTestCommand.CreateRemoteZfsTestCommand(),
                 EngineCheckoutCommand.CreateEngineCheckoutCommand(),
                 InstallPackageCommand.CreateInstallPackageCommand(),
+                CMakeUbaServerCommand.CreateCMakeUbaServerCommand(),
+                CMakeUbaRunCommand.CreateCMakeUbaRunCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
