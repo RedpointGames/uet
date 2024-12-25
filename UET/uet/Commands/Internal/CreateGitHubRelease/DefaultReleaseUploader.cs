@@ -70,9 +70,10 @@
                         To download the latest version of UET, regardless of whether this release is the latest or not, you'll want to use one of these download links depending on your platform:
                         
                         - **[UET for Windows](https://github.com/RedpointGames/uet/releases/latest/download/uet.exe)**, or
-                        - **[UET for macOS](https://github.com/RedpointGames/uet/releases/latest/download/uet)**.
+                        - **[UET for macOS](https://github.com/RedpointGames/uet/releases/latest/download/uet)**, or
+                        - **[UET for Linux](https://github.com/RedpointGames/uet/releases/latest/download/uet.linux)**.
 
-                        The other files in this release are exist so they can be fetched on-demand by UET.
+                        The other files in this release exist so they can be fetched on-demand by UET.
 
                         ## Download links for CI/CD, scripting and automation
                         
@@ -81,12 +82,14 @@
                         ```bash
                         # Tiny shim executables that download and cache the latest release on-demand, suitable for 
                         # always downloading at the start of CI/CD scripts.
-                        https://github.com/RedpointGames/uet/releases/latest/download/uet.shim.exe
-                        https://github.com/RedpointGames/uet/releases/latest/download/uet.shim
+                        https://github.com/RedpointGames/uet/releases/latest/download/uet.shim.exe      # Windows
+                        https://github.com/RedpointGames/uet/releases/latest/download/uet.shim          # macOS
+                        https://github.com/RedpointGames/uet/releases/latest/download/uet.shim.linux    # Linux
 
                         # The latest full release executables, which might be much larger.
-                        https://github.com/RedpointGames/uet/releases/latest/download/uet.exe
-                        https://github.com/RedpointGames/uet/releases/latest/download/uet
+                        https://github.com/RedpointGames/uet/releases/latest/download/uet.exe           # Windows
+                        https://github.com/RedpointGames/uet/releases/latest/download/uet               # macOS
+                        https://github.com/RedpointGames/uet/releases/latest/download/uet.linux         # Linux
                         ```
 
                         ## Installing/upgrading UET and adding it to your PATH
