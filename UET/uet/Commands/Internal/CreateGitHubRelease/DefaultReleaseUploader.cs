@@ -100,7 +100,7 @@
                         # for Windows
                         .\uet.exe upgrade
 
-                        # for macOS
+                        # for macOS or Linux
                         chmod a+x ./uet
                         ./uet upgrade
                         ```
