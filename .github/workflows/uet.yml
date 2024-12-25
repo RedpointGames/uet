@@ -791,7 +791,7 @@ jobs:
           --file "uefs-daemon=UEFS Daemon for macOS=UET/Redpoint.Uefs.Daemon/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uefs-daemon" `
           --file "uet.shim=UET Shim for macOS=UET/uet.shim/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet" `
           --file "uet.linux=UET for Linux=UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet" `
-          --file "uet.linux.shim=UET Shim for Linux=UET/uet.shim/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet" `
+          --file "uet.shim.linux=UET Shim for Linux=UET/uet.shim/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet" `
           --file "package.version=Version File=package.version"
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   
