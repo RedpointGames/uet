@@ -257,16 +257,16 @@
             Func<nint, nint> createProcessOnServer,
             bool isRemoteExecution)
         {
+            // Create the gate that we can wait on until the process exits.
+            var exitedGate = new Gate();
+            ExitCallback exited = (nint userdata, nint handle) =>
+            {
+                exitedGate.Open();
+            };
+
             var isRequeued = false;
             try
             {
-                // Create the gate that we can wait on until the process exits.
-                var exitedGate = new Gate();
-                ExitCallback exited = (nint userdata, nint handle) =>
-                {
-                    exitedGate.Open();
-                };
-
                 // Try to set the description.
                 var description = "Unknown";
                 description = Path.GetFileName(descriptor.ProcessSpecification.Arguments.Last().LogicalValue);
@@ -454,6 +454,9 @@
                 {
                     Interlocked.Decrement(ref _processesExecutingLocally);
                 }
+
+                // Prevent the exited callback from being garbage collected early in trimmed UET.
+                GC.KeepAlive(exited);
             }
         }
 
