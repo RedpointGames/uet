@@ -11,6 +11,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using UET.Commands.AppleCert;
 using UET.Commands.Build;
+using UET.Commands.CMake;
 using UET.Commands.Config;
 using UET.Commands.Format;
 using UET.Commands.Generate;
@@ -46,7 +47,19 @@ rootCommand.AddCommand(StorageCommand.CreateStorageCommand(globalCommands));
 rootCommand.AddCommand(UefsCommand.CreateUefsCommand());
 rootCommand.AddCommand(TransferCommand.CreateTransferCommand());
 rootCommand.AddCommand(AppleCertCommand.CreateAppleCertCommand());
+rootCommand.AddCommand(CMakeCommand.CreateCMakeCommand());
 rootCommand.AddCommand(InternalCommand.CreateInternalCommand(globalCommands));
+
+// If we have an implicit command variable, this is an internal command where we can't specify arguments directly.
+var implicitCommand = Environment.GetEnvironmentVariable("UET_IMPLICIT_COMMAND");
+if (!string.IsNullOrWhiteSpace(implicitCommand))
+{
+    // Clear it for any downstream processes we might start.
+    Environment.SetEnvironmentVariable("UET_IMPLICIT_COMMAND", null);
+
+    // Prepend to args.
+    args = new[] { "internal", implicitCommand }.Concat(args).ToArray();
+}
 
 // Parse the command line so we can inspect it.
 var parseResult = rootCommand.Parse(args);
