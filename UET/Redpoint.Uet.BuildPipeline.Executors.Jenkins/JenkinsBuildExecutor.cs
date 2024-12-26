@@ -48,7 +48,7 @@
             return Environment.GetEnvironmentVariable("BUILD_TAG") ?? string.Empty;
         }
 
-        protected override async Task EmitBuildServerSpecificFileAsync(BuildSpecification buildSpecification, BuildServerPipeline buildServerPipeline, string buildServerOutputFilePath)
+        protected override async Task<int> EmitBuildServerSpecificFileAsync(BuildSpecification buildSpecification, BuildServerPipeline buildServerPipeline, string buildServerOutputFilePath)
         {
             ArgumentNullException.ThrowIfNull(buildServerPipeline);
 
@@ -62,8 +62,6 @@
                 {
                     var jobName = sourceJob.Key;
                     var jobData = sourceJob.Value;
-
-                    // TODO: Check if job exist. Re-use it?
 
                     // Job config data.
                     using var stringWriter = new StringWriter();
@@ -128,23 +126,45 @@
                         xmlWriter.WriteEndElement(); // project
                     }
 
-                    // Create job.
-                    var query = HttpUtility.ParseQueryString(string.Empty);
-                    query["name"] = jobName;
-                    var uriBuilder = new UriBuilder(_httpClient.BaseAddress + "createItem")
+                    // Create or update Jenkins job depending on whether it exists.
+                    var uriBuilder = new UriBuilder(_httpClient.BaseAddress + $"job/{jobName}/api/json");
+                    using var checkResponse = await _httpClient.GetAsync(uriBuilder.Uri).ConfigureAwait(false);
+                    if (checkResponse.IsSuccessStatusCode)
                     {
-                        Query = query.ToString()
-                    };
+                        // Update existing job.
+                        uriBuilder = new UriBuilder(_httpClient.BaseAddress + $"job/{jobName}/config.xml");
 
-                    using StringContent xmlContent = new(stringWriter.ToString(), Encoding.UTF8, "application/xml");
+                        using StringContent xmlContent = new(stringWriter.ToString(), Encoding.UTF8, "text/xml");
 
-                    using var createJobResponse = await _httpClient.PostAsync(uriBuilder.Uri, xmlContent).ConfigureAwait(false);
-                    if (!createJobResponse.IsSuccessStatusCode)
-                    {
-                        var errorMsg = $"Could not create Jenkins job '{jobName}'.";
-                        _logger.LogError(errorMsg);
-                        throw new InvalidOperationException(errorMsg);
+                        using var updateJobResponse = await _httpClient.PostAsync(uriBuilder.Uri, xmlContent).ConfigureAwait(false);
+                        if (!updateJobResponse.IsSuccessStatusCode)
+                        {
+                            var errorMsg = $"Could not update Jenkins job '{jobName}'.";
+                            _logger.LogError(errorMsg);
+                            return 1;
+                        }
                     }
+                    else
+                    {
+                        // Create new job.
+                        var query = HttpUtility.ParseQueryString(string.Empty);
+                        query["name"] = jobName;
+                        uriBuilder = new UriBuilder(_httpClient.BaseAddress + "createItem")
+                        {
+                            Query = query.ToString()
+                        };
+
+                        using StringContent xmlContent = new(stringWriter.ToString(), Encoding.UTF8, "application/xml");
+
+                        using var createJobResponse = await _httpClient.PostAsync(uriBuilder.Uri, xmlContent).ConfigureAwait(false);
+                        if (!createJobResponse.IsSuccessStatusCode)
+                        {
+                            var errorMsg = $"Could not create Jenkins job '{jobName}'.";
+                            _logger.LogError(errorMsg);
+                            return 1;
+                        }
+                    }
+
                     jobs.Add(jobName, new JenkinsJob());
 
                     // Submit to build queue.
@@ -154,7 +174,7 @@
                     {
                         var errorMsg = $"Could not enqueue Jenkins job '{jobName}'.";
                         _logger.LogError(errorMsg);
-                        throw new InvalidOperationException(errorMsg);
+                        return 1;
                     }
                     jobs[jobName].QueueUri = buildResponse.Headers.Location;
                     jobs[jobName].Status = JenkinsJobStatus.Queued;
@@ -168,19 +188,19 @@
                         var uriBuilder = new UriBuilder(job.Value.QueueUri + "api/json");
                         using var response = await _httpClient.GetAsync(uriBuilder.Uri).ConfigureAwait(false);
                         response.EnsureSuccessStatusCode();
-                        var queueResponse = await response.Content.ReadFromJsonAsync(JenkinsJsonSourceGenerationContext.Default.JenkinsQueueItem).ConfigureAwait(false);
-                        ArgumentNullException.ThrowIfNull(queueResponse);
+                        var queueItem = await response.Content.ReadFromJsonAsync(JenkinsJsonSourceGenerationContext.Default.JenkinsQueueItem).ConfigureAwait(false);
+                        ArgumentNullException.ThrowIfNull(queueItem);
 
-                        if (queueResponse.Cancelled ?? false)
+                        if (queueItem.Cancelled ?? false)
                         {
                             var errorMsg = $"Queued job '{job.Key}' was cancelled.";
                             _logger.LogError(errorMsg);
-                            throw new InvalidOperationException(errorMsg);
+                            return 1;
                         }
 
-                        if (queueResponse.Executable != null)
+                        if (queueItem.Executable != null)
                         {
-                            job.Value.ExecutionUri = new Uri(queueResponse.Executable.Url);
+                            job.Value.ExecutionUri = new Uri(queueItem.Executable.Url);
                             job.Value.Status = JenkinsJobStatus.Executing;
                         }
                     }
@@ -194,36 +214,50 @@
                         {
                             Query = query.ToString()
                         };
-                        using var response = await _httpClient.GetAsync(uriBuilder.Uri).ConfigureAwait(false);
-                        response.EnsureSuccessStatusCode();
+                        using var progressResponse = await _httpClient.GetAsync(uriBuilder.Uri).ConfigureAwait(false);
+                        progressResponse.EnsureSuccessStatusCode();
 
                         // Get offset for the next log query, while at the same time check if we received any new log data.
-                        int newByteOffset = int.Parse(response.Headers.GetValues("X-Text-Size").First(), CultureInfo.InvariantCulture);
+                        int newByteOffset = int.Parse(progressResponse.Headers.GetValues("X-Text-Size").First(), CultureInfo.InvariantCulture);
                         if (newByteOffset != job.Value.ExecutionLogByteOffset)
                         {
                             job.Value.ExecutionLogByteOffset = newByteOffset;
 
-                            var newLogText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                            _logger.LogInformation(newLogText); // TODO: Make this print completed lines instead of arbitrary amount of text?
+                            var newLogText = await progressResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+                            foreach (var line in newLogText.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                            {
+                                LogLevel logLevel = line.Contains("FAILURE", StringComparison.OrdinalIgnoreCase) ? LogLevel.Error : LogLevel.Information;
+                                _logger.Log(logLevel, $"[Remote: {job.Key}] " + line);
+                            }
                         }
 
                         // Check if build is still in progress, header will disappear when build is complete.
-                        bool buildStillInProgress = response.Headers.TryGetValues("X-More-Data", out var values) && bool.Parse(values.FirstOrDefault() ?? bool.FalseString);
+                        bool buildStillInProgress = progressResponse.Headers.TryGetValues("X-More-Data", out var values) && bool.Parse(values.FirstOrDefault() ?? bool.FalseString);
                         if (!buildStillInProgress)
                         {
-                            // TODO: Implement: Did build fail or complete successfully?
-                            job.Value.Status = JenkinsJobStatus.Completed;
+                            uriBuilder = new UriBuilder(job.Value.ExecutionUri + "api/json");
+                            using var resultResponse = await _httpClient.GetAsync(uriBuilder.Uri).ConfigureAwait(false);
+                            resultResponse.EnsureSuccessStatusCode();
+                            var buildInfo = await resultResponse.Content.ReadFromJsonAsync(JenkinsJsonSourceGenerationContext.Default.JenkinsBuildInfo).ConfigureAwait(false);
+                            ArgumentNullException.ThrowIfNull(buildInfo);
+
+                            job.Value.Status = buildInfo.Result.Equals("SUCCESS", StringComparison.OrdinalIgnoreCase) ? JenkinsJobStatus.Succeeded : JenkinsJobStatus.Failed;
                         }
                     }
 
-                    // Delay between polling.
-                    await Task.Delay(500).ConfigureAwait(false);
+                    // Don't poll too frequently.
+                    await Task.Delay(1000).ConfigureAwait(false);
                 }
 
-                // TODO: Stuff when jobs of this stage have finished?
+                // Don't bother starting the next stage if a prerequisite job has failed.
+                if (jobs.Any(job => job.Value.Status == JenkinsJobStatus.Failed))
+                {
+                    return 1;
+                }
             }
 
             // TODO: Stuff when all jobs have finished?
+            return 0;
         }
     }
 }
