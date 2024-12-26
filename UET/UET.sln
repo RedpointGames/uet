@@ -313,6 +313,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uba", "Redpoint.Ub
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.PackageManagement", "Redpoint.PackageManagement\Redpoint.PackageManagement.csproj", "{2136131B-7D12-45D5-9CEF-A255FCF26A44}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uet.BuildPipeline.Executors.Jenkins", "Redpoint.Uet.BuildPipeline.Executors.Jenkins\Redpoint.Uet.BuildPipeline.Executors.Jenkins.csproj", "{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -851,6 +853,10 @@ Global
 		{2136131B-7D12-45D5-9CEF-A255FCF26A44}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2136131B-7D12-45D5-9CEF-A255FCF26A44}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2136131B-7D12-45D5-9CEF-A255FCF26A44}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -959,6 +965,7 @@ Global
 		{7CDD0F44-C516-47E9-99E5-3885AD24636F} = {A10A6C63-109E-4825-AA79-81B0AE279A76}
 		{D19B5289-C0A3-4025-834D-FA8AB1C19A32} = {1AE4AFCD-0F49-4CEA-8439-F1AAA2CDD183}
 		{2AAD5971-F06A-4B7A-9E11-538BEC82F247} = {586E33AB-CC82-4ADF-92F3-3B287A5AEEAC}
+		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08} = {1AE4AFCD-0F49-4CEA-8439-F1AAA2CDD183}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}

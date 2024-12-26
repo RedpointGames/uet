@@ -30,7 +30,7 @@
             return System.Environment.GetEnvironmentVariable("CI_PIPELINE_ID") ?? string.Empty;
         }
 
-        protected override async Task EmitBuildServerSpecificFileAsync(
+        protected override async Task<int> EmitBuildServerSpecificFileAsync(
             BuildSpecification buildSpecification,
             BuildServerPipeline buildServerPipeline,
             string buildServerOutputFilePath)
@@ -138,6 +138,7 @@
                 var yaml = serializer.Serialize(file);
                 await stream.WriteLineAsync(yaml).ConfigureAwait(false);
             }
+            return 0;
         }
     }
 }

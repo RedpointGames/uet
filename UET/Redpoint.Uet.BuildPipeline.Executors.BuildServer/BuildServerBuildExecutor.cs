@@ -697,11 +697,10 @@
                 pipeline.Jobs.Add(job.Name, job);
             }
 
-            await EmitBuildServerSpecificFileAsync(
+            return await EmitBuildServerSpecificFileAsync(
                 buildSpecification,
                 pipeline,
                 _buildServerOutputFilePath).ConfigureAwait(false);
-            return 0;
         }
 
         private static Dictionary<string, BuildGraphExportNode> GetNodeMap(BuildGraphExport buildGraph)
@@ -725,7 +724,7 @@
             }
         }
 
-        protected abstract Task EmitBuildServerSpecificFileAsync(
+        protected abstract Task<int> EmitBuildServerSpecificFileAsync(
             BuildSpecification buildSpecification,
             BuildServerPipeline buildServerPipeline,
             string buildServerOutputFilePath);
