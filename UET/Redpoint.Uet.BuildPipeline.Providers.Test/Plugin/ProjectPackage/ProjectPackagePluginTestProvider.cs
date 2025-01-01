@@ -345,7 +345,7 @@
                             };
                             if (!string.IsNullOrWhiteSpace(projectPackage.settings.BootTest.DeviceId))
                             {
-                                arguments.Add($"-device={projectPackage.settings.BootTest.DeviceId}");
+                                arguments.Add($"-device={projectPackage.settings.TargetPlatform}:{projectPackage.settings.BootTest.DeviceId}");
                             }
                             if (projectPackage.settings.BootTest.GauntletArguments != null)
                             {
