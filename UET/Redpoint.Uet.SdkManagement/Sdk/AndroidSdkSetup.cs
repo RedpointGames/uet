@@ -212,6 +212,9 @@
                     { "ANDROID_HOME", Path.Combine(sdkPackagePath, "Sdk") },
                     { "NDKROOT", Path.Combine(sdkPackagePath, "Sdk", "ndk", ndkVersion) },
                     { "JAVA_HOME", Path.Combine(sdkPackagePath, "Jdk", jreVersion) },
+
+                    // Use the openscreen library to allow ADB to discover devices via mDNS without Bonjour installed.
+                    { "ADB_MDNS_OPENSCREEN", "1" },
                 }
             });
         }

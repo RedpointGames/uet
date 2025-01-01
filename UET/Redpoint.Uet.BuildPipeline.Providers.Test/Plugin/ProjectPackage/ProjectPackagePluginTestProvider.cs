@@ -617,33 +617,101 @@
                     "platform-tools",
                     "adb.exe");
 
-                var adbArguments = new List<LogicalProcessArgument>();
-                var deviceIdDescriptor = "(default)";
-                if (!string.IsNullOrWhiteSpace(deviceId))
+                if (deviceId.Contains("._tcp.", StringComparison.Ordinal))
                 {
-                    adbArguments.Add("-s");
-                    adbArguments.Add(deviceId);
-                    deviceIdDescriptor = deviceId;
+                    // Pre-connect via mDNS. This is necessary because if we're not already connected to the device when Gauntlet runs, it will append :5555 to the address, which we don't want for mDNS.
+                    _logger.LogInformation($"Checking mDNS service is running...");
+                    await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = adbFilePath,
+                            Arguments = ["mdns", "check"],
+                        },
+                        CaptureSpecification.Passthrough,
+                        cancellationToken).ConfigureAwait(false);
+
+                    _logger.LogInformation($"Reporting what mDNS services can be discovered for diagnostic purposes:");
+                    await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = adbFilePath,
+                            Arguments = ["mdns", "services"],
+                        },
+                        CaptureSpecification.Passthrough,
+                        cancellationToken).ConfigureAwait(false);
+
+                    _logger.LogInformation($"Connecting to Android device '{deviceId}' via mDNS before Gauntlet starts...");
+                    await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = adbFilePath,
+                            Arguments = ["connect", deviceId],
+                        },
+                        CaptureSpecification.Passthrough,
+                        cancellationToken).ConfigureAwait(false);
+
+                    _logger.LogInformation($"Checking that we're connected to Android device '{deviceId}' via mDNS and authorized...");
+                    var devicesStringBuilder = new StringBuilder();
+                    await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = adbFilePath,
+                            Arguments = ["devices"],
+                        },
+                        CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(devicesStringBuilder),
+                        cancellationToken).ConfigureAwait(false);
+
+                    var found = false;
+                    var devicesList = devicesStringBuilder.ToString()
+                        .Replace("\r\n", "\n", StringComparison.Ordinal)
+                        .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    foreach (var deviceEntry in devicesList)
+                    {
+                        if (deviceEntry.StartsWith(deviceId, StringComparison.Ordinal) &&
+                            deviceEntry.EndsWith("device", StringComparison.Ordinal))
+                        {
+                            found = true;
+                        }
+                    }
+                    if (!found)
+                    {
+                        _logger.LogError($"Did not detect authorized connection to '{deviceId}' with 'adb devices':");
+                        _logger.LogError(devicesStringBuilder.ToString());
+                        return 1;
+                    }
+
+                    _logger.LogInformation($"Successfully connected to Android device '{deviceId} over mDNS!");
                 }
 
-                adbArguments.AddRange([
-                    "shell",
-                    "-n",
-                    "am",
-                    "broadcast",
-                    "-a",
-                    "com.oculus.vrpowermanager.prox_close"
-                ]);
-
-                _logger.LogInformation($"Turning off Quest proximity sensor for device: {deviceIdDescriptor}. This is expected to gracefully fail if the device is not a Meta Quest device.");
-                await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
+                {
+                    var adbArguments = new List<LogicalProcessArgument>();
+                    var deviceIdDescriptor = "(default)";
+                    if (!string.IsNullOrWhiteSpace(deviceId))
                     {
-                        FilePath = adbFilePath,
-                        Arguments = adbArguments,
-                    },
-                    CaptureSpecification.Passthrough,
-                    cancellationToken).ConfigureAwait(false);
+                        adbArguments.Add("-s");
+                        adbArguments.Add(deviceId);
+                        deviceIdDescriptor = deviceId;
+                    }
+
+                    adbArguments.AddRange([
+                        "shell",
+                        "-n",
+                        "am",
+                        "broadcast",
+                        "-a",
+                        "com.oculus.vrpowermanager.prox_close"
+                    ]);
+
+                    _logger.LogInformation($"Turning off Quest proximity sensor for device: {deviceIdDescriptor}. This is expected to gracefully fail if the device is not a Meta Quest device.");
+                    await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = adbFilePath,
+                            Arguments = adbArguments,
+                        },
+                        CaptureSpecification.Passthrough,
+                        cancellationToken).ConfigureAwait(false);
+                }
             }
 
             return 0;
