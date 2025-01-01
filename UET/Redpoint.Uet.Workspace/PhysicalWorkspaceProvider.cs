@@ -272,19 +272,31 @@
                     _parameterGenerator.ConstructReservationParameters(descriptor.TemplateId)).ConfigureAwait(false);
                 try
                 {
-                    if (Directory.Exists(Path.Combine(reservation.ReservedPath, "S")))
+                    var linkFolder = Path.Combine(reservation.ReservedPath, "S");
+                    var linkInfo = new DirectoryInfo(linkFolder);
+                    if (linkInfo.Exists)
                     {
-                        Directory.Delete(Path.Combine(reservation.ReservedPath, "S"));
+                        if (linkInfo.LinkTarget != null)
+                        {
+                            // Just delete the symbolic link.
+                            linkInfo.Delete();
+                        }
+                        else
+                        {
+                            // Some process wrote to a path under the symbolic link after it was removed and turned it into a real directory. Nuke it.
+                            _logger.LogWarning($"Detected '{linkInfo.FullName}' is not a symbolic link; removing recursively!");
+                            await DirectoryAsync.DeleteAsync(linkInfo.FullName, true).ConfigureAwait(false);
+                        }
                     }
 
                     var targetPath = string.IsNullOrWhiteSpace(descriptor.Subpath)
                         ? response.ResponseStream.Current.WindowsShareRemotePath
                         : Path.Combine(response.ResponseStream.Current.WindowsShareRemotePath, descriptor.Subpath);
                     Directory.CreateSymbolicLink(
-                        Path.Combine(reservation.ReservedPath, "S"),
+                        linkFolder,
                         targetPath);
 
-                    _logger.LogInformation($"Remote ZFS workspace '{targetPath}' is now available at '{Path.Combine(reservation.ReservedPath, "S")}'.");
+                    _logger.LogInformation($"Remote ZFS workspace '{targetPath}' is now available at '{linkFolder}'.");
 
                     return new RemoteZfsWorkspace(response, reservation);
                 }
