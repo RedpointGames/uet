@@ -124,38 +124,11 @@
                     return 1;
                 }
 
-                BuildEngineSpecification engineSpec;
-                switch (engine.Type)
-                {
-                    case EngineSpecType.UEFSPackageTag:
-                        engineSpec = BuildEngineSpecification.ForUEFSPackageTag(engine.UEFSPackageTag!);
-                        break;
-                    case EngineSpecType.SESNetworkShare:
-                        engineSpec = BuildEngineSpecification.ForSESNetworkShare(engine.SESNetworkShare!);
-                        break;
-                    case EngineSpecType.RemoteZfs:
-                        engineSpec = BuildEngineSpecification.ForRemoteZfs(engine.RemoteZfs!);
-                        break;
-                    case EngineSpecType.Version:
-                        engineSpec = BuildEngineSpecification.ForVersionWithPath(engine.Version!, engine.Path!);
-                        break;
-                    case EngineSpecType.Path:
-                        engineSpec = BuildEngineSpecification.ForAbsolutePath(engine.Path!);
-                        break;
-                    case EngineSpecType.GitCommit:
-                        engineSpec = BuildEngineSpecification.ForGitCommitWithZips(
-                            engine.GitUrl!,
-                            engine.GitCommit!,
-                            engine.ZipLayers,
-                            isEngineBuild: buildJson.IsEngineBuild,
-                            windowsSharedGitCachePath: engine.WindowsSharedGitCachePath,
-                            macSharedGitCachePath: engine.MacSharedGitCachePath);
-                        break;
-                    case EngineSpecType.SelfEngineByBuildConfig:
-                        throw new InvalidOperationException("EngineSpec.TryParseEngineSpecExact should not be able to return EngineSpecType.SelfEngineByBuildConfig");
-                    default:
-                        throw new NotSupportedException($"The EngineSpecType {engine.Type} is not supported by the 'ci-build' command.");
-                }
+                var engineSpec = engine.ToBuildEngineSpecification(
+                    "ci-build",
+                    null,
+                    engine.WindowsSharedGitCachePath,
+                    engine.MacSharedGitCachePath);
 
                 IBuildNodeExecutor executor;
                 switch (executorName)

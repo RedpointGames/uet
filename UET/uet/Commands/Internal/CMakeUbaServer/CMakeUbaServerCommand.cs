@@ -85,34 +85,7 @@
             {
                 var engine = context.ParseResult.GetValueForOption(_options.Engine)!;
 
-                BuildEngineSpecification engineSpec;
-                switch (engine.Type)
-                {
-                    case EngineSpecType.UEFSPackageTag:
-                        engineSpec = BuildEngineSpecification.ForUEFSPackageTag(engine.UEFSPackageTag!);
-                        break;
-                    case EngineSpecType.SESNetworkShare:
-                        engineSpec = BuildEngineSpecification.ForSESNetworkShare(engine.SESNetworkShare!);
-                        break;
-                    case EngineSpecType.RemoteZfs:
-                        engineSpec = BuildEngineSpecification.ForRemoteZfs(engine.RemoteZfs!);
-                        break;
-                    case EngineSpecType.Version:
-                        engineSpec = BuildEngineSpecification.ForVersionWithPath(engine.Version!, engine.Path!);
-                        break;
-                    case EngineSpecType.Path:
-                        engineSpec = BuildEngineSpecification.ForAbsolutePath(engine.Path!);
-                        break;
-                    case EngineSpecType.GitCommit:
-                        engineSpec = BuildEngineSpecification.ForGitCommitWithZips(
-                            engine.GitUrl!,
-                            engine.GitCommit!,
-                            engine.ZipLayers,
-                            isEngineBuild: false);
-                        break;
-                    default:
-                        throw new NotSupportedException($"The EngineSpecType {engine.Type} is not supported by the 'cmake-uba-server' command.");
-                }
+                var engineSpec = engine.ToBuildEngineSpecification("cmake-uba-server");
 
                 await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
                     engineSpec,

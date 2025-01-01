@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.IO;
+    using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.SdkManagement.Sdk.VersionNumbers;
     using System.IO.Compression;
@@ -15,15 +16,18 @@
         private readonly ILogger<AndroidSdkSetup> _logger;
         private readonly IProcessExecutor _processExecutor;
         private readonly IVersionNumberResolver _versionNumberResolver;
+        private readonly IPathResolver _pathResolver;
 
         public AndroidSdkSetup(
             ILogger<AndroidSdkSetup> logger,
             IProcessExecutor processExecutor,
-            IVersionNumberResolver versionNumberResolver)
+            IVersionNumberResolver versionNumberResolver,
+            IPathResolver pathResolver)
         {
             _logger = logger;
             _processExecutor = processExecutor;
             _versionNumberResolver = versionNumberResolver;
+            _pathResolver = pathResolver;
         }
 
         private struct JdkInfo
@@ -200,12 +204,78 @@
             return Task.FromResult(Array.Empty<AutoSdkMapping>());
         }
 
-        public Task<EnvironmentForSdkUsage> GetRuntimeEnvironmentForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
+        public async Task<EnvironmentForSdkUsage> GetRuntimeEnvironmentForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
         {
             var ndkVersion = File.ReadAllText(Path.Combine(sdkPackagePath, "ndk-version.txt")).Trim();
             var jreVersion = File.ReadAllText(Path.Combine(sdkPackagePath, "jre-version.txt")).Trim();
 
-            return Task.FromResult(new EnvironmentForSdkUsage
+            var adbkeyPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".android",
+                "adbkey");
+            var adbkeyPubPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".android",
+                "adbkey.pub");
+
+            // @note: This is necessary on build servers where users and machines might vary over time.
+            var privateKey =
+                """
+                -----BEGIN PRIVATE KEY-----
+                MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDxzwYvn11zEXM4
+                yuWLzGp+C0XeQkUU6j3sJsK0bw7LRjSyR1vjAkoUJP1WMI5fy7OzzBPsg81YcODg
+                Y+DnYpaJLcG8R0GWTsZbMTG29VVraRcmDz7IUyLhzn7dA5Hc9+4gGZLfg5YmO0Dd
+                MViPAnJ0gdhqYbH4t9m3l1v5fDb+i3BAUKc5pSGw5jg4mRDWNj+vreWKHWx1i4bR
+                sOJbxKsTe9PXznTHwRQwtkazxPR994GPIe/lYOxYaYQqqgR0nhdH5nMJgPDPeSOD
+                bq9YeCPRw9yYUMa+n7cnSJ2ZMndMqiqHiYkDKGeuH2lCvsf8IT2QZD01+JEXbEKD
+                hK5zH/8dAgMBAAECggEABY5B4GC7OyxUtyKURRLAhJ5aL9nab/lUzGL0mMQvdRSr
+                G8h/cDcKgC18Y5lQgBt0SMaA06+QjX5kcEtjLLXLayHxwFNrypoLPSejcoZu/L2I
+                ol95zAz68XC24fmVxZutrS+hPADwN3cnjZ13YSvHeO1NzV3qwqHovurbml8T/WOn
+                1P+ISB4jtBuLeoRMfDKSZZDfljnaS+fk1ExRWFBMdbd2EqXQoII74oXjUL+6WblP
+                ZAMUduB02cLxaPwndQ8UYcxR/PGq+hPZza8k8yfJ8MXklkl/QtxOcljOe/Om7+5R
+                DKMD6dB6Jmd9QlfcJ+8U53/F4VXxYXja0YQBjJOV2QKBgQD49GZhaG+MsLKtepfD
+                leuq1hg+Rwu83yu7hyO5WKOHu82RZQjvizNSnxKx0NXv0L32cVLP0G3zDXI98lmk
+                C1/r7ExUOC2ECV95yOrXPjkJoFN3lkxKd0myxalUypfADtXqRMPtfjEnwcpGPwig
+                wsdG+lA5h7r+ajfT1RjIOkfV9QKBgQD4ptqKkBCBtF/8eMMIkNODL/3C9SCktHob
+                QCfOlZ2K4QYQyRK+2+yD2jBhpWxjK7BHhfK/WcawUcJT9f9KD3f8B4mqUADEweER
+                eWh90O3yRYd0k35V4SVBbuIAYRdwzHiS5WFVKYQyuYRUpRP1h5pXZWGarYxLqtO6
+                vhe7G/YjiQKBgDUFqIB6g7eNMqDsCUKovYanDobFDuTtCx1njN4+2KViBEhBIoQS
+                O54PLyYb+lSXOr4wKJkGJUSsynYTFbBwk79llmQhiuAiNulzN0EciX1ZXi2MHzeE
+                7HdczdG3TFalUj4Q40HDrKhxB6mqZyYGFfcx/MAj/lmNOdKuAhczAnW5AoGAQyet
+                NmcaTi2NDv7+jb2vomq/unvByToFEH8PQTgfSHbl0Hq92VZEVogDMRwgXdhaz7ZZ
+                jVyN0OkD9vEldbcfzK2sfJcG3h0O0E1d7z0SRrCImO+M21znVvi/iSKv1gMjPWk+
+                FGYWEi0QlFvRPCrXgGsdJU1h6r3EWVclyZ8PpyECgYEA87IZZCYXgvsGUz9sQSth
+                OQKEBE0OWnDHs1ZrMs0lfxKImPWrbj7CdKO5QlJADMwyH6nEL3ZVb8ETDK6T1VZa
+                Fbs6Pe7QRnoJucsM01pC79w0UtnNCHdXEEVeAbdKJmYgbGYU0Uvcsnz3M45lHsCy
+                T758Kl3IJGbsGU3C/T6WQUM=
+                -----END PRIVATE KEY-----
+                """.Replace("\r\n", "\n", StringComparison.Ordinal);
+            var publicKey =
+                """
+                QAAAAMtEwZUd/x9zroSDQmwXkfg1PWSQPSH8x75CaR+uZygDiYmHKqpMdzKZnUgnt5++xlCY3MPRI3hYr26DI3nP8IAJc+ZHF550BKoqhGlY7GDl7yGPgfd99MSzRrYwFMHHdM7X03sTq8Rb4rDRhot1bB2K5a2vPzbWEJk4OOawIaU5p1BAcIv+Nnz5W5e32bf4sWFq2IF0cgKPWDHdQDsmloPfkhkg7vfckQPdfs7hIlPIPg8mF2lrVfW2MTFbxk6WQUe8wS2JlmLn4GPg4HBYzYPsE8yzs8tfjjBW/SQUSgLjW0eyNEbLDm+0wibsPeoURULeRQt+asyL5co4cxFzXZ8vBs/xr6bxkIoKf8rjRNqozj5iXXPhLiW0euQNbFyxwMaGU2j/5phWQ3M5jyUWhsJ4iZb1+m8qyIqgjxfVnnBQlJZdH9ytkERWRx905AE2ITStDL5JUFYrl7hlNgArhdhUosBpVbl/a1DbP4EDaqeFhgfuCy77/I0SoAm5XgMnfqIv3w+tBR8kPGh1sJKxkICXqGK5Zhiyag3BIfLz3eskB1XZdrFn8JrvRsj3ZQwpxDGTtlw2lsq3FbKlVWMucyqbNTnBiuI/Vd10HqY6oaLvGKMbbwnr8eQS3x/0T0vn0b30KEibLAjPwaomuFWq6UdvIGY1RWlEqS93PUtPpIki3vqQkQEAAQA= uet-well-known-key
+                """.Replace("\r\n", "\n", StringComparison.Ordinal);
+
+            var existingPrivateKey = File.Exists(adbkeyPath) ? File.ReadAllText(adbkeyPath) : string.Empty;
+            var existingPublicKey = File.Exists(adbkeyPubPath) ? File.ReadAllText(adbkeyPubPath) : string.Empty;
+
+            if (existingPrivateKey != privateKey || existingPublicKey != publicKey)
+            {
+                _logger.LogInformation("Forcing adbkey to be a well-known key to avoid USB re-authorization prompts...");
+                File.WriteAllText(adbkeyPath, privateKey);
+                File.WriteAllText(adbkeyPubPath, publicKey);
+
+                _logger.LogInformation("Terminating any existing 'adb' processes to ensure ADB server sees new public/private keypair...");
+                await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = await _pathResolver.ResolveBinaryPath("taskkill").ConfigureAwait(false),
+                        Arguments = ["/f", "/im", "adb.exe"]
+                    },
+                    CaptureSpecification.Passthrough,
+                    CancellationToken.None).ConfigureAwait(false);
+            }
+
+            return new EnvironmentForSdkUsage
             {
                 EnvironmentVariables = new Dictionary<string, string>
                 {
@@ -216,7 +286,7 @@
                     // Use the openscreen library to allow ADB to discover devices via mDNS without Bonjour installed.
                     { "ADB_MDNS_OPENSCREEN", "1" },
                 }
-            });
+            };
         }
     }
 }

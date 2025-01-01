@@ -9,6 +9,7 @@ using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using UET.Commands.Android;
 using UET.Commands.AppleCert;
 using UET.Commands.Build;
 using UET.Commands.CMake;
@@ -47,6 +48,7 @@ rootCommand.AddCommand(StorageCommand.CreateStorageCommand(globalCommands));
 rootCommand.AddCommand(UefsCommand.CreateUefsCommand());
 rootCommand.AddCommand(TransferCommand.CreateTransferCommand());
 rootCommand.AddCommand(AppleCertCommand.CreateAppleCertCommand());
+rootCommand.AddCommand(AndroidCommand.CreateAndroidCommand());
 rootCommand.AddCommand(CMakeCommand.CreateCMakeCommand());
 rootCommand.AddCommand(InternalCommand.CreateInternalCommand(globalCommands));
 
