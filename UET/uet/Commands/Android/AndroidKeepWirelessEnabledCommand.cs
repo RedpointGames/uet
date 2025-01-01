@@ -109,7 +109,7 @@
                     var packagePath = UetPaths.UetDefaultWindowsSdkStoragePath;
                     Directory.CreateDirectory(packagePath);
                     var envVars = await _localSdkManager.SetupEnvironmentForSdkSetups(
-                        engine.Path!,
+                        engineWorkspace.Path,
                         packagePath,
                         _serviceProvider.GetServices<ISdkSetup>().Where(x => x.PlatformNames.Contains("Android")).ToHashSet(),
                         context.GetCancellationToken()).ConfigureAwait(false);
