@@ -143,27 +143,7 @@
                 _logger.LogInformation($"--prefix:                      {prefix}");
                 _logger.LogInformation($"--name:                        {name}");
 
-                BuildEngineSpecification engineSpec;
-                switch (engine.Type)
-                {
-                    case EngineSpecType.UEFSPackageTag:
-                        engineSpec = BuildEngineSpecification.ForUEFSPackageTag(engine.UEFSPackageTag!);
-                        break;
-                    case EngineSpecType.SESNetworkShare:
-                        engineSpec = BuildEngineSpecification.ForSESNetworkShare(engine.SESNetworkShare!);
-                        break;
-                    case EngineSpecType.RemoteZfs:
-                        engineSpec = BuildEngineSpecification.ForRemoteZfs(engine.RemoteZfs!);
-                        break;
-                    case EngineSpecType.Version:
-                        engineSpec = BuildEngineSpecification.ForVersionWithPath(engine.Version!, engine.Path!);
-                        break;
-                    case EngineSpecType.Path:
-                        engineSpec = BuildEngineSpecification.ForAbsolutePath(engine.Path!);
-                        break;
-                    default:
-                        throw new NotSupportedException();
-                }
+                var engineSpec = engine.ToBuildEngineSpecification("test");
 
                 // @note: We always use the local executor for this test command.
                 var executor = _localBuildExecutorFactory.CreateExecutor();

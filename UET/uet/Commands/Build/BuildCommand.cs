@@ -392,55 +392,11 @@
                 _logger.LogInformation($"--plugin-version-name:           {pluginVersionName}");
                 _logger.LogInformation($"--plugin-version-number:         {pluginVersionNumber}");
 
-                BuildEngineSpecification engineSpec;
-                switch (engine.Type)
-                {
-                    case EngineSpecType.UEFSPackageTag:
-                        engineSpec = BuildEngineSpecification.ForUEFSPackageTag(engine.UEFSPackageTag!);
-                        break;
-                    case EngineSpecType.SESNetworkShare:
-                        engineSpec = BuildEngineSpecification.ForSESNetworkShare(engine.SESNetworkShare!);
-                        break;
-                    case EngineSpecType.RemoteZfs:
-                        engineSpec = BuildEngineSpecification.ForRemoteZfs(engine.RemoteZfs!);
-                        break;
-                    case EngineSpecType.Version:
-                        engineSpec = BuildEngineSpecification.ForVersionWithPath(engine.Version!, engine.Path!);
-                        break;
-                    case EngineSpecType.Path:
-                        engineSpec = BuildEngineSpecification.ForAbsolutePath(engine.Path!);
-                        break;
-                    case EngineSpecType.GitCommit:
-                        engineSpec = BuildEngineSpecification.ForGitCommitWithZips(
-                            engine.GitUrl!,
-                            engine.GitCommit!,
-                            engine.ZipLayers,
-                            isEngineBuild: false);
-                        break;
-                    case EngineSpecType.SelfEngineByBuildConfig:
-                        var engineDistribution = distribution!.Distribution as BuildConfigEngineDistribution;
-                        var repositoryUrl = engineDistribution!.Source.Repository;
-                        if (!repositoryUrl.Contains("://", StringComparison.Ordinal))
-                        {
-                            var shortSshUrlRegex = new Regex("^(.+@)*([\\w\\d\\.]+):(.*)$");
-                            var shortSshUrlMatch = shortSshUrlRegex.Match(repositoryUrl);
-                            if (shortSshUrlMatch.Success)
-                            {
-                                repositoryUrl = $"ssh://{shortSshUrlMatch.Groups[1].Value}{shortSshUrlMatch.Groups[2].Value}/{shortSshUrlMatch.Groups[3].Value}";
-                            }
-                        }
-                        // @note: This will round trip to ci-build as EngineSpecType.GitCommit
-                        engineSpec = BuildEngineSpecification.ForGitCommitWithZips(
-                            repositoryUrl,
-                            engineDistribution.Source.Ref,
-                            engineDistribution.Source.ConsoleZips,
-                            isEngineBuild: true,
-                            windowsSharedGitCachePath: windowsSharedGitCachePath,
-                            macSharedGitCachePath: macSharedGitCachePath);
-                        break;
-                    default:
-                        throw new NotSupportedException($"The EngineSpecType {engine.Type} is not supported by the 'build' command.");
-                }
+                var engineSpec = engine.ToBuildEngineSpecification(
+                    "build",
+                    distribution,
+                    windowsSharedGitCachePath,
+                    macSharedGitCachePath);
 
                 // @note: We need the build executor to get the pipeline ID, which is also used as an input to compute the derived storage path that's specific for this build.
                 var executor = executorName switch

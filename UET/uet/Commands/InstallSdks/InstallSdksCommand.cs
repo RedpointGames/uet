@@ -85,7 +85,7 @@
 
                 if (engine.Path == null)
                 {
-                    _logger.LogError("You must specify a local engine (by version number or by path) in order ot use the 'install-sdks' command.");
+                    _logger.LogError("You must specify a local engine (by version number or by path) in order to use the 'install-sdks' command.");
                     return 1;
                 }
 

@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.EngineSpec
 {
     using Redpoint.Registry;
+    using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.Configuration.Engine;
     using Redpoint.Uet.Configuration.Project;
     using System;
@@ -539,6 +540,62 @@
             }
 
             return OriginalSpec;
+        }
+
+        public BuildEngineSpecification ToBuildEngineSpecification(
+            string commandName,
+            DistributionSpec? distributionSpec = null,
+            string? windowsSharedGitCachePath = null,
+            string? macSharedGitCachePath = null)
+        {
+            switch (Type)
+            {
+                case EngineSpecType.UEFSPackageTag:
+                    return BuildEngineSpecification.ForUEFSPackageTag(UEFSPackageTag!);
+                case EngineSpecType.SESNetworkShare:
+                    return BuildEngineSpecification.ForSESNetworkShare(SESNetworkShare!);
+                case EngineSpecType.RemoteZfs:
+                    return BuildEngineSpecification.ForRemoteZfs(RemoteZfs!);
+                case EngineSpecType.Version:
+                    return BuildEngineSpecification.ForVersionWithPath(Version!, Path!);
+                case EngineSpecType.Path:
+                    return BuildEngineSpecification.ForAbsolutePath(Path!);
+                case EngineSpecType.GitCommit:
+                    return BuildEngineSpecification.ForGitCommitWithZips(
+                        GitUrl!,
+                        GitCommit!,
+                        ZipLayers,
+                        isEngineBuild: false);
+                case EngineSpecType.SelfEngineByBuildConfig:
+                    if (distributionSpec != null)
+                    {
+                        var engineDistribution = distributionSpec!.Distribution as BuildConfigEngineDistribution;
+                        var repositoryUrl = engineDistribution!.Source.Repository;
+                        if (!repositoryUrl.Contains("://", StringComparison.Ordinal))
+                        {
+                            var shortSshUrlRegex = new Regex("^(.+@)*([\\w\\d\\.]+):(.*)$");
+                            var shortSshUrlMatch = shortSshUrlRegex.Match(repositoryUrl);
+                            if (shortSshUrlMatch.Success)
+                            {
+                                repositoryUrl = $"ssh://{shortSshUrlMatch.Groups[1].Value}{shortSshUrlMatch.Groups[2].Value}/{shortSshUrlMatch.Groups[3].Value}";
+                            }
+                        }
+                        // @note: This will round trip to ci-build as EngineSpecType.GitCommit
+                        return BuildEngineSpecification.ForGitCommitWithZips(
+                            repositoryUrl,
+                            engineDistribution.Source.Ref,
+                            engineDistribution.Source.ConsoleZips,
+                            isEngineBuild: true,
+                            windowsSharedGitCachePath: windowsSharedGitCachePath,
+                            macSharedGitCachePath: macSharedGitCachePath);
+                    }
+                    else
+                    {
+                        throw new NotSupportedException($"The EngineSpecType {Type} is not supported by the '{commandName}' command.");
+                    }
+                default:
+                    throw new NotSupportedException($"The EngineSpecType {Type} is not supported by the '{commandName}' command.");
+            }
         }
     }
 }
