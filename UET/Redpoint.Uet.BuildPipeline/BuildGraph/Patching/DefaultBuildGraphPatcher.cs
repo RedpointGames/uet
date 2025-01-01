@@ -268,6 +268,14 @@
                 return;
             }
 
+            if (!Path.Exists(Path.Combine(enginePath, "Engine", "Build", "InstalledBuild.txt")))
+            {
+                // If this is not an installed build (the engine is source code), even if we're not doing an
+                // engine build, we don't need to build UBT after patching because running UAT will cause the
+                // necessary binaries to be rebuilt if they're out-of-date.
+                return;
+            }
+
             await CopyMissingEngineBitsAsync(enginePath).ConfigureAwait(false);
 
             var epicGamesCoreProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "Shared", "EpicGames.Core", "EpicGames.Core.csproj");
