@@ -129,6 +129,7 @@
             try
             {
                 _logger.LogInformation($"Creating physical temporary workspace: {reservation.ReservedPath}");
+                usingReservation = true;
                 return new ReservationWorkspace(reservation);
             }
             finally
@@ -297,6 +298,9 @@
                         targetPath);
 
                     _logger.LogInformation($"Remote ZFS workspace '{targetPath}' is now available at '{linkFolder}'.");
+
+                    usingInnerReservation = true;
+                    usingOuterReservation = true;
 
                     return new RemoteZfsWorkspace(response, reservation);
                 }
