@@ -345,7 +345,7 @@
                             };
                             if (!string.IsNullOrWhiteSpace(projectPackage.settings.BootTest.DeviceId))
                             {
-                                arguments.Add($"-device={projectPackage.settings.TargetPlatform}:{projectPackage.settings.BootTest.DeviceId}");
+                                arguments.Add($"-devices=$(TempPath)/{assembledProjectName}/DeviceList.json");
                             }
                             if (projectPackage.settings.BootTest.GauntletArguments != null)
                             {
@@ -423,6 +423,8 @@
             var cookPlatform = runtimeSettings["CookPlatform"];
             var projectDirectory = runtimeSettings["ProjectDirectory"];
             var stagingDirectory = runtimeSettings["StagingDirectory"];
+
+            var hasDeviceId = runtimeSettings.TryGetValue("DeviceId", out var deviceId) && !string.IsNullOrWhiteSpace(deviceId);
 
             if (stage == "PrePackage" && targetPlatform == "IOS")
             {
@@ -572,6 +574,27 @@
                 return 0;
             }
 
+            if (stage == "PreGauntlet" && hasDeviceId)
+            {
+                // Write out the DeviceList.json file. Gauntlet doesn't handle platform + IP address properly on the command
+                // line (via -device), so we need to write this file and get it to load the device list from JSON instead.
+                var deviceListPath = Path.Combine(runtimeSettings["ProjectDirectory"], "DeviceList.json");
+                _logger.LogInformation($"Writing out device list file to: {deviceListPath}");
+
+                // We assume device IDs and platform names don't have quotes or other things that need JSON escaping in them.
+                File.WriteAllText(
+                    deviceListPath,
+                    $$"""
+                    [
+                        {
+                            "Name": "{{deviceId}}",
+                            "Address": "{{deviceId}}",
+                            "Platform": "{{targetPlatform}}"
+                        }
+                    ]
+                    """);
+            }
+
             if (stage == "PreGauntlet" && targetPlatform == "IOS")
             {
                 var enginePath = runtimeSettings["EnginePath"];
@@ -608,16 +631,14 @@
                 }
             }
 
-            if (stage == "PreGauntlet" && targetPlatform == "Android")
+            if (stage == "PreGauntlet" && targetPlatform == "Android" && hasDeviceId)
             {
-                var deviceId = runtimeSettings["DeviceId"];
-
                 var adbFilePath = Path.Combine(
                     Environment.GetEnvironmentVariable("ANDROID_HOME")!,
                     "platform-tools",
                     "adb.exe");
 
-                if (deviceId.Contains("._tcp.", StringComparison.Ordinal))
+                if (deviceId!.Contains("._tcp.", StringComparison.Ordinal))
                 {
                     // Pre-connect via mDNS. This is necessary because if we're not already connected to the device when Gauntlet runs, it will append :5555 to the address, which we don't want for mDNS.
                     _logger.LogInformation($"Checking mDNS service is running...");
