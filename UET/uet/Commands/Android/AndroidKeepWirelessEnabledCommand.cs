@@ -111,7 +111,7 @@
                     var envVars = await _localSdkManager.SetupEnvironmentForSdkSetups(
                         engine.Path!,
                         packagePath,
-                        _serviceProvider.GetServices<ISdkSetup>().ToHashSet(),
+                        _serviceProvider.GetServices<ISdkSetup>().Where(x => x.PlatformNames.Contains("Android")).ToHashSet(),
                         context.GetCancellationToken()).ConfigureAwait(false);
 
                     await using ((await _loopbackPortReservationManager.ReserveAsync().ConfigureAwait(false))
