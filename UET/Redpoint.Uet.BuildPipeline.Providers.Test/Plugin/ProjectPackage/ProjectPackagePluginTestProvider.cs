@@ -587,7 +587,7 @@
                     $$"""
                     [
                         {
-                            "Name": "{{deviceId}}",
+                            "Name": "{{deviceId!.Replace(":", "_", StringComparison.Ordinal)}}",
                             "Address": "{{deviceId}}",
                             "Platform": "{{targetPlatform}}"
                         }
