@@ -150,7 +150,7 @@
                         {
                             buildCommandString += $"$env:{kv.Key}=\'{kv.Value}\'\n";
                         }
-                        buildCommandString += $"$env:UET_GIT_URL=\'{_gitUri!.ToString}\'\n";
+                        buildCommandString += $"$env:UET_GIT_URL=\'{_gitUri}\'\n";
                         buildCommandString += $"$env:UET_GIT_REF=\'{_gitBranch}\'\n";
 
                         buildCommandString += jobData.Script("jenkins");
