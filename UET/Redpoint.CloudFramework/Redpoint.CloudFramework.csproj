@@ -1,0 +1,57 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>A framework for building ASP.NET Core applications on top of Google Cloud Firestore in Datastore mode. Not only does this framework provide a model-based API for interacting with Google Cloud Firestore, it contains useful implementations of things like database migrations, distributed locks, geographic indexes and sharded counters.</Description>
+    <PackageTags>cloud, datastore, asp.net, asp.net core, framework, distributed counters, sharded counters, geographic queries</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Docker.DotNet" Version="3.125.15" />
+    <PackageReference Include="Google.Cloud.BigQuery.V2" Version="3.5.0" />
+    <PackageReference Include="Google.Cloud.Datastore.V1" Version="4.6.0" />
+    <PackageReference Include="Google.Cloud.Monitoring.V3" Version="3.4.0" />
+    <PackageReference Include="Google.Cloud.PubSub.V1" Version="3.8.0" />
+    <PackageReference Include="Google.Cloud.SecretManager.V1" Version="2.1.0" />
+    <PackageReference Include="JavaScriptEngineSwitcher.Extensions.MsDependencyInjection" Version="3.21.0" />
+    <PackageReference Include="JavaScriptEngineSwitcher.V8" Version="3.23.2" />
+    <PackageReference Include="Microsoft.ClearScript.V8.Native.linux-x64" Version="7.4.4" />
+    <PackageReference Include="Microsoft.ClearScript.V8.Native.win-x64" Version="7.4.4" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="$(RedpointSystemLibraryVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="$(RedpointSystemLibraryVersion)" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="$(RedpointSystemLibraryVersion)" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="NodaTime" Version="3.1.9" />
+    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.8.0" />
+    <PackageReference Include="S2Geometry" Version="1.0.3" />
+    <PackageReference Include="Sentry.AspNetCore" Version="3.41.0" />
+    <PackageReference Include="SharpZipLib" Version="1.4.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.B2Net\Redpoint.ThirdParty.B2Net.csproj" />
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj">
+      <Aliases>RDCommandLine</Aliases>
+    </ProjectReference>
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.React.AspNet.Middleware\Redpoint.ThirdParty.React.AspNet.Middleware.csproj" />
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.React.AspNet\Redpoint.ThirdParty.React.AspNet.csproj" />
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.React.Core\Redpoint.ThirdParty.React.Core.csproj" />
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
+    <ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />
+    <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
+    <ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
+    <ProjectReference Include="..\Redpoint.StringEnum\Redpoint.StringEnum.csproj" />
+  </ItemGroup>
+
+</Project>

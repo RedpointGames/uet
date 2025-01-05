@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>Redpoint.CloudFramework.CLI</id>
+    <version>$version$</version>
+    <authors>June Rhodes</authors>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <icon>PackageIcon.png</icon>
+    <readme>README.md</readme>
+    <description>The command line tool for Redpoint.CloudFramework.</description>
+    <copyright>Redpoint Games</copyright>
+    <tags>cloud framework, cli, msbuild</tags>
+    <packageTypes>
+      <packageType name="Dependency" />
+    </packageTypes>
+  </metadata>
+  <files>
+    <file src="..\Lib\PackageIcon.png" target="PackageIcon.png" />
+    <file src="README.md" target="README.md" />
+    <file src="Redpoint.CloudFramework.CLI.targets" target="buildTransitive" />
+    <file src="Redpoint.CloudFramework.CLI.targets" target="build" />
+    <file src="bin\$configuration$\net8.0\**\*.*" target="tools\net8.0\any" exclude="bin\$configuration$\net8.0\publish\**\*.*" />
+  </files>
+</package>

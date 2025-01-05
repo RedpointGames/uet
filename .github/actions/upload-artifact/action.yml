@@ -129,12 +129,27 @@ runs:
         path: |
           **/*.nupkg
 
-    - name: Upload Test Results
-      if: ${{ inputs.UET_ARTIFACT_NAME == 'test-results' }}
+    - name: Upload Windows Test Results
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'test-results-win' }}
       uses: actions/upload-artifact@v4
       with:
-        name: test-results
+        name: test-results-win
         if-no-files-found: error
         path: |
           TestResults/*.test-result.trx
-          
+    - name: Upload Linux Test Results
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'test-results-linux' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-linux
+        if-no-files-found: error
+        path: |
+          TestResults/*.test-result.trx
+    - name: Upload Cloud Framework Test Results
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'test-results-cf' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-cf
+        if-no-files-found: error
+        path: |
+          TestResults/*.test-result.trx

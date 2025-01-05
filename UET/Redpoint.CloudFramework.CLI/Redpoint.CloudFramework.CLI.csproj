@@ -1,0 +1,58 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <PackageId>Redpoint.CloudFramework.CLI</PackageId>
+    <Description>Provides the command line tool and MSBuild targets for Redpoint.CloudFramework.</Description>
+    <PackageTags>cloud framework, cli, msbuild</PackageTags>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>rcf-cli</ToolCommandName>
+    <NuspecFile>Redpoint.CloudFramework.CLI.nuspec</NuspecFile>
+    <NuspecProperties>version=$(PackageVersion);configuration=$(Configuration)</NuspecProperties>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Description>The command line tool for Redpoint.CloudFramework.</Description>
+    <Product>Redpoint.CloudFramework CLI</Product>
+    <AssemblyTitle>Redpoint.CloudFramework CLI</AssemblyTitle>
+    <AssemblyName>rcf-cli</AssemblyName>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj">
+      <Aliases>RDCommandLine</Aliases>
+    </ProjectReference>
+    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
+    <ProjectReference Include="..\Redpoint.CloudFramework\Redpoint.CloudFramework.csproj" />
+    <ProjectReference Include="..\Redpoint.CommandLine\Redpoint.CommandLine.csproj" />
+    <ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
+    <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
+    <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <NuspecDependency Include="Redpoint.CloudFramework.CLI.nuspec" />
+  </ItemGroup>
+  <Target Name="RedpointNuspecDependency" BeforeTargets="Build" Inputs="@(NuspecDependency)" Outputs="@(NuspecDependency)">
+  </Target>
+
+  <ItemGroup>
+    <Content Include="Redpoint.CloudFramework.CLI.targets">
+      <IncludeInPackage>true</IncludeInPackage>
+      <PackagePath>buildTransitive;build</PackagePath>
+      <BuildAction>None</BuildAction>
+    </Content>
+  </ItemGroup>
+
+</Project>

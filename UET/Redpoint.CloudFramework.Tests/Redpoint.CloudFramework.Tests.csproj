@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.CloudFramework.Tests.Shared\Redpoint.CloudFramework.Tests.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

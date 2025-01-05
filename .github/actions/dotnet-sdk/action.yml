@@ -14,7 +14,7 @@ runs:
     with:
       key: dotnet-sdk-windows-${{ inputs.UET_FRAMEWORK_TARGET }}
       restore-keys: dotnet-sdk-windows-${{ inputs.UET_FRAMEWORK_TARGET }}
-      path: .dotnet-${{ inputs.UET_FRAMEWORK_TARGET }}
+      path: .dotnet
   - name: Cache .NET SDK (macOS)
     if: ${{ runner.os == 'macOS' }}
     id: cache-sdk-mac
@@ -22,64 +22,80 @@ runs:
     with:
       key: dotnet-sdk-mac-${{ inputs.UET_FRAMEWORK_TARGET }}
       restore-keys: dotnet-sdk-mac-${{ inputs.UET_FRAMEWORK_TARGET }}
-      path: .dotnet-${{ inputs.UET_FRAMEWORK_TARGET }}
+      path: .dotnet
+  - name: Cache .NET SDK (Linux)
+    if: ${{ runner.os == 'Linux' }}
+    id: cache-sdk-linux
+    uses: actions/cache@v4
+    with:
+      key: dotnet-sdk-linux-${{ inputs.UET_FRAMEWORK_TARGET }}
+      restore-keys: dotnet-sdk-linux-${{ inputs.UET_FRAMEWORK_TARGET }}
+      path: .dotnet
   - name: Download .NET SDK (Windows)
     if: ${{ runner.os == 'Windows' && steps.cache-sdk-win.outputs.cache-hit != 'true' }}
     shell: pwsh
-    env:
-      UET_FRAMEWORK_TARGET: ${{ inputs.UET_FRAMEWORK_TARGET }}
-      UET_DOTNET_WIN_DL: https://download.visualstudio.microsoft.com/download/pr/6902745c-34bd-4d66-8e84-d5b61a17dfb7/e61732b00f7e144e162d7e6914291f16/dotnet-sdk-8.0.101-win-x64.zip
     run: |
-      if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted)) {
-        if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
-          Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
+      if (!(Test-Path .dotnet\dotnet\dotnet-extracted)) {
+        if (Test-Path ".dotnet") {
+          Remove-Item -Recurse -Force ".dotnet"
         }
         Write-Host "Setting up .NET SDK..."
-        New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
-        curl.exe -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" "${env:UET_DOTNET_WIN_DL}"
+        New-Item -ItemType Directory ".dotnet" | Out-Null
+        Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -UseBasicParsing -OutFile ".dotnet\dotnet-install.ps1"
+        .\.dotnet\dotnet-install.ps1 -Channel STS -InstallDir ".dotnet\dotnet"
         if ($LastExitCode -ne 0) {
           exit $LastExitCode
         }
-        Expand-Archive -Path ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet.zip" -DestinationPath ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet" -Force | Out-Null
-        Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet\dotnet-extracted -Value "done"
+        Set-Content -Path .dotnet\dotnet\dotnet-extracted -Value "done"
       }
   - name: Download .NET SDK (macOS)
     if: ${{ runner.os == 'macOS' && steps.cache-sdk-mac.outputs.cache-hit != 'true' }}
     shell: pwsh
-    env:
-      UET_FRAMEWORK_TARGET: ${{ inputs.UET_FRAMEWORK_TARGET }}
-      UET_DOTNET_MAC_DL: https://download.visualstudio.microsoft.com/download/pr/ef083c06-7aee-4a4f-b18b-50c9a8990753/e206864e7910e81bbd9cb7e674ff1b4c/dotnet-sdk-8.0.101-osx-arm64.tar.gz
     run: |
-      if (!(Test-Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted)) {
-        if (Test-Path ".dotnet-${env:UET_FRAMEWORK_TARGET}") {
-          Remove-Item -Recurse -Force ".dotnet-${env:UET_FRAMEWORK_TARGET}"
+      if (!(Test-Path .dotnet/dotnet/dotnet-extracted)) {
+        if (Test-Path ".dotnet") {
+          Remove-Item -Recurse -Force ".dotnet"
         }
         Write-Host "Setting up .NET SDK..."
-        New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}" | Out-Null
-        curl -L -o ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet.tar.gz" "${env:UET_DOTNET_MAC_DL}"
+        New-Item -ItemType Directory ".dotnet" | Out-Null
+        Invoke-WebRequest https://dot.net/v1/dotnet-install.sh -UseBasicParsing -OutFile ".dotnet/dotnet-install.sh"
+        chmod a+x .dotnet/dotnet-install.sh
+        ./.dotnet/dotnet-install.sh --channel STS --install-dir ".dotnet/dotnet"
         if ($LastExitCode -ne 0) {
           exit $LastExitCode
         }
-        New-Item -ItemType Directory ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet" | Out-Null
-        Push-Location ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
-        try {
-          tar -xvf "../dotnet.tar.gz"
-        } finally {
-          Pop-Location
+        Set-Content -Path .dotnet/dotnet/dotnet-extracted -Value "done"
+      }
+  - name: Download .NET SDK (Linux)
+    if: ${{ runner.os == 'Linux' && steps.cache-sdk-linux.outputs.cache-hit != 'true' }}
+    shell: pwsh
+    run: |
+      if (!(Test-Path .dotnet/dotnet/dotnet-extracted)) {
+        if (Test-Path ".dotnet") {
+          Remove-Item -Recurse -Force ".dotnet"
         }
-        Set-Content -Path .dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet/dotnet-extracted -Value "done"
+        Write-Host "Setting up .NET SDK..."
+        New-Item -ItemType Directory ".dotnet" | Out-Null
+        Invoke-WebRequest https://dot.net/v1/dotnet-install.sh -UseBasicParsing -OutFile ".dotnet/dotnet-install.sh"
+        chmod a+x .dotnet/dotnet-install.sh
+        ./.dotnet/dotnet-install.sh --channel STS --install-dir ".dotnet/dotnet"
+        if ($LastExitCode -ne 0) {
+          exit $LastExitCode
+        }
+        Set-Content -Path .dotnet/dotnet/dotnet-extracted -Value "done"
       }
   - name: Add .NET SDK to PATH (Windows)
     if: ${{ runner.os == 'Windows' }}
     shell: pwsh
-    env:
-      UET_FRAMEWORK_TARGET: ${{ inputs.UET_FRAMEWORK_TARGET }}
     run: |
-      Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}\dotnet"
+      Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet\dotnet"
   - name: Add .NET SDK to PATH (macOS)
     if: ${{ runner.os == 'macOS' }}
     shell: pwsh
-    env:
-      UET_FRAMEWORK_TARGET: ${{ inputs.UET_FRAMEWORK_TARGET }}
     run: |
-      Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet-${env:UET_FRAMEWORK_TARGET}/dotnet"
+      Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet/dotnet"
+  - name: Add .NET SDK to PATH (Linux)
+    if: ${{ runner.os == 'Linux' }}
+    shell: pwsh
+    run: |
+      Add-Content -Path "${env:GITHUB_PATH}" -Value ".dotnet/dotnet"
