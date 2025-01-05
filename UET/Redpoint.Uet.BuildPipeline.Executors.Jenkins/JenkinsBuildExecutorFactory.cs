@@ -2,6 +2,9 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Uet.BuildPipeline.Executors.BuildServer;
+    using Redpoint.Uet.BuildPipeline.Executors.Engine;
+    using Redpoint.Uet.Workspace;
 
     public class JenkinsBuildExecutorFactory
     {
@@ -21,6 +24,15 @@
                 buildServerOutputFilePath,
                 gitUrl,
                 gitBranch);
+        }
+
+        public IBuildNodeExecutor CreateNodeExecutor()
+        {
+            return new JenkinsBuildNodeExecutor(
+                _serviceProvider,
+                _serviceProvider.GetRequiredService<ILogger<JenkinsBuildNodeExecutor>>(),
+                _serviceProvider.GetRequiredService<IEngineWorkspaceProvider>(),
+                _serviceProvider.GetRequiredService<IDynamicWorkspaceProvider>());
         }
     }
 }
