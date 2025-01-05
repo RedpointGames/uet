@@ -4,6 +4,7 @@
 
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(JenkinsQueueItem))]
+    [JsonSerializable(typeof(JenkinsBuildInfo))]
     internal partial class JenkinsJsonSourceGenerationContext : JsonSerializerContext
     {
     }

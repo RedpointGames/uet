@@ -18,8 +18,13 @@
         Executing,
 
         /// <summary>
-        /// The job has completed building.
+        /// The job has successfully completed building.
         /// </summary>
-        Completed,
+        Succeeded,
+
+        /// <summary>
+        /// The job has successfully completed building.
+        /// </summary>
+        Failed,
     }
 }
