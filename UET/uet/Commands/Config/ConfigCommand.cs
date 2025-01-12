@@ -48,6 +48,7 @@
                 services.AddSingleton<IBooleanConfigSetting, MaxCpuBooleanConfigSetting>();
                 services.AddSingleton<IBooleanConfigSetting, ClangBooleanConfigSetting>();
                 services.AddSingleton<IBooleanConfigSetting, UbaBooleanConfigSetting>();
+                services.AddSingleton<IBooleanConfigSetting, UbaPreferRemoteBooleanConfigSetting>();
                 services.AddSingleton(sp => sp.GetServices<IBooleanConfigSetting>().ToArray());
             });
             return command;
