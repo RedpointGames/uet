@@ -39,6 +39,7 @@ rootCommand.AddOption(UET.Commands.CommandExtensions.GetTraceOption());
 rootCommand.AddCommand(BuildCommand.CreateBuildCommand());
 rootCommand.AddCommand(TestCommand.CreateTestCommand());
 rootCommand.AddCommand(GenerateCommand.CreateGenerateCommand());
+rootCommand.AddCommand(RunCommand.CreateRunCommand());
 rootCommand.AddCommand(ConfigCommand.CreateConfigCommand());
 rootCommand.AddCommand(FormatCommand.CreateFormatCommand());
 rootCommand.AddCommand(ListCommand.CreateListCommand());

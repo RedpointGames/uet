@@ -34,6 +34,7 @@
                     "name",
                     description: "The configuration option name.");
                 Name.FromAmong(booleanConfigSettings.Select(x => x.Name).ToArray());
+                Name.HelpName = "option";
                 Name.Arity = ArgumentArity.ZeroOrOne;
             }
         }
