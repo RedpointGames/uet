@@ -31,6 +31,19 @@
 
             var isCurrentDirectory = path == Environment.CurrentDirectory;
 
+            if (result.Tokens.Count == 0 &&
+                result.Argument.Arity.MinimumNumberOfValues == 0)
+            {
+                // If the minimum count is 0, and we have no argument, we try to do the parse but return null if it would error.
+                var potentialResult = ParsePathSpecInternal(result, path, isCurrentDirectory, ignoreBuildJson);
+                if (result.ErrorMessage != null)
+                {
+                    result.ErrorMessage = null;
+                    return null!;
+                }
+                return potentialResult;
+            }
+
             return ParsePathSpecInternal(result, path, isCurrentDirectory, ignoreBuildJson);
         }
 
