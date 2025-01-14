@@ -484,7 +484,7 @@ jobs:
         foreach ($Item in (Get-ChildItem UET -Filter *.Tests)) {
           if ((Test-Path "$($Item.FullName)/$($Item.Name).csproj") -and ($Item.Name -ne "Redpoint.CloudFramework.Tests")) {
             Write-Host "============ STARTING: $($Item.Name) ============"
-            dotnet test --logger:"console" --logger:"trx;LogFileName=$($Item.Name).test-result.trx" --results-directory "$((Get-Location).Path)\TestResults" "$($Item.FullName)/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/$($Item.Name).dll"
+            dotnet test --logger:"console" --logger:"trx;LogFileName=$($Item.Name).test-result.trx" --results-directory "$((Get-Location).Path)/TestResults" "$($Item.FullName)/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/$($Item.Name).dll"
             if ($LastExitCode -ne 0) {
               Write-Host "============ FAILED:   $($Item.Name) ============"
               exit $LastExitCode
@@ -1044,7 +1044,7 @@ jobs:
             }
 
             Write-Host "============ STARTING: $($Item.Name) ============"
-            dotnet test --logger:"console" --logger:"trx;LogFileName=$($Item.Name).test-result.trx" --results-directory "$((Get-Location).Path)\TestResults" "$($Item.FullName)/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/$($Item.Name).dll"
+            dotnet test --logger:"console" --logger:"trx;LogFileName=$($Item.Name).test-result.trx" --results-directory "$((Get-Location).Path)/TestResults" "$($Item.FullName)/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/$($Item.Name).dll"
             if ($LastExitCode -ne 0) {
               Write-Host "============ FAILED:   $($Item.Name) ============"
               exit $LastExitCode
