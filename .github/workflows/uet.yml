@@ -1029,6 +1029,8 @@ jobs:
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Build and Test Cloud Framework
       shell: pwsh
+      env:
+        IS_RUNNING_UNDER_CI: "true"
       run: |
         foreach ($Item in (Get-ChildItem UET -Filter Redpoint.CloudFramework.Tests)) {
           if (Test-Path "$($Item.FullName)/$($Item.Name).csproj") {

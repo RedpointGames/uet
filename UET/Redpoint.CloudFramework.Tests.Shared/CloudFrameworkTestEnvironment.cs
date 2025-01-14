@@ -91,7 +91,7 @@
 
         public async Task InitializeAsync()
         {
-            if (Environment.GetEnvironmentVariable("GITLAB_CI") == "true")
+            if (Environment.GetEnvironmentVariable("IS_RUNNING_UNDER_CI") == "true")
             {
                 // Redis set up as part of CreateWithServices.
                 // PUBSUB_SERVER is set by CI script.
