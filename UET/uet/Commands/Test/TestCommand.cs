@@ -294,15 +294,14 @@
                                     buildConfigPlugin.Distributions[0],
                                     repositoryRoot: path.DirectoryPath,
                                     executeBuild: true,
-                                    executePackage: true,
-                                    executeZip: true,
                                     executeTests: true,
                                     executeDeployment: false,
                                     strictIncludes: false,
                                     localExecutor: true,
                                     isPluginRooted: true,
                                     commandlinePluginVersionName: null,
-                                    commandlinePluginVersionNumber: null).ConfigureAwait(false);
+                                    commandlinePluginVersionNumber: null,
+                                    skipPackaging: false).ConfigureAwait(false);
                                 break;
                             }
                         case PathSpecType.BuildConfig:
@@ -369,15 +368,14 @@
                                         syntheticBuildConfigPlugin.Distributions[0],
                                         repositoryRoot: path.DirectoryPath,
                                         executeBuild: true,
-                                        executePackage: true,
-                                        executeZip: false,
                                         executeTests: true,
                                         executeDeployment: false,
                                         strictIncludes: false,
                                         localExecutor: true,
                                         isPluginRooted: false,
                                         commandlinePluginVersionName: null,
-                                        commandlinePluginVersionNumber: null).ConfigureAwait(false);
+                                        commandlinePluginVersionNumber: null,
+                                        skipPackaging: true).ConfigureAwait(false);
                                 }
                                 else
                                 {

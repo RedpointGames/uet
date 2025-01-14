@@ -5,7 +5,7 @@
     public class BuildConfigPluginPackage
     {
         /// <summary>
-        /// Defines the package type, such as whether it is being packaged for Marketplace or Fab submission. One of 'Generic', 'Marketplace' or 'Fab'. If not set, defaults to 'Generic'.
+        /// Defines the package type, such as whether it is being packaged for Marketplace or Fab submission. One of 'None', 'Generic', 'Marketplace' or 'Fab'. If not set, defaults to 'None'.
         /// </summary>
         [JsonPropertyName("Type"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public BuildConfigPluginPackageType? Type { get; set; }

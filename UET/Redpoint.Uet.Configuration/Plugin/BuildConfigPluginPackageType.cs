@@ -6,6 +6,11 @@
     public enum BuildConfigPluginPackageType
     {
         /// <summary>
+        /// The plugin should not be packaged.
+        /// </summary>
+        None,
+
+        /// <summary>
         /// The plugin is being packaged for a generic store or self-hosted distribution. The plugin package will contain binary files.
         /// </summary>
         Generic,
@@ -18,6 +23,6 @@
         /// <summary>
         /// The plugin is being packaged for submission to Fab. The plugin will not contain binary files.
         /// </summary>
-        Fab
+        Fab,
     }
 }

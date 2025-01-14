@@ -479,15 +479,14 @@
                                         pluginDistribution,
                                         repositoryRoot: path.DirectoryPath,
                                         executeBuild: true,
-                                        executePackage: pluginPackage != "none",
-                                        executeZip: pluginPackage != "none",
                                         executeTests: pluginPackage != "none" && test,
                                         executeDeployment: pluginPackage != "none" && deploy,
                                         strictIncludes: strictIncludes,
                                         localExecutor: executorName == "local",
                                         isPluginRooted: false,
                                         commandlinePluginVersionName: pluginVersionName,
-                                        commandlinePluginVersionNumber: pluginVersionNumber).ConfigureAwait(false);
+                                        commandlinePluginVersionNumber: pluginVersionNumber,
+                                        skipPackaging: pluginPackage == "none").ConfigureAwait(false);
                                     preparePlugin = pluginDistribution.Prepare;
                                     break;
                                 case BuildConfigEngineDistribution engineDistribution:
@@ -519,10 +518,9 @@
                                 shipping,
                                 strictIncludes,
                                 platforms ?? [],
-                                package: (pluginPackage ?? "none") != "none",
                                 packageType: (pluginPackage ?? "none") switch
                                 {
-                                    "none" => BuildConfigPluginPackageType.Generic,
+                                    "none" => BuildConfigPluginPackageType.None,
                                     "generic" => BuildConfigPluginPackageType.Generic,
                                     "marketplace" => BuildConfigPluginPackageType.Marketplace,
                                     "fab" => BuildConfigPluginPackageType.Fab,

@@ -29,15 +29,14 @@
             BuildConfigPluginDistribution distribution,
             string repositoryRoot,
             bool executeBuild,
-            bool executePackage,
-            bool executeZip,
             bool executeTests,
             bool executeDeployment,
             bool strictIncludes,
             bool localExecutor,
             bool isPluginRooted,
             string? commandlinePluginVersionName,
-            long? commandlinePluginVersionNumber);
+            long? commandlinePluginVersionNumber,
+            bool skipPackaging);
 
         Task<BuildSpecification> BuildConfigEngineToBuildSpecAsync(
             BuildEngineSpecification engineSpec,
@@ -61,7 +60,6 @@
             bool shipping,
             bool strictIncludes,
             string[] extraPlatforms,
-            bool package,
             BuildConfigPluginPackageType packageType,
             string? commandlinePluginVersionName,
             long? commandlinePluginVersionNumber);
