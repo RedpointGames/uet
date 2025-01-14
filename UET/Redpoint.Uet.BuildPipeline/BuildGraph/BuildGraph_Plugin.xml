@@ -33,8 +33,6 @@
   <Option Name="ExecuteBuild" Restrict="true|false" DefaultValue="true" Description="If false, no build steps are run (currently ignored)" />
 
   <!-- Package options -->
-  <Option Name="ExecutePackage" Restrict="true|false" DefaultValue="true" Description="If false, the default Create Package and Zip Plugin steps are not run" />
-  <Option Name="ExecuteZip" Restrict="true|false" DefaultValue="true" Description="If false, the Create Package step will not generate a .zip file" />
   <Option Name="VersionNumber" Restrict="[0-9]+" DefaultValue="10000" Description="The version number to embed in the packaged .uplugin file" />
   <Option Name="VersionName" Restrict="[^ ]+" DefaultValue="Unversioned" Description="The version name to embed in the packaged .uplugin file" />
   <Option Name="PackageFolder" Restrict="[^ ]+" DefaultValue="Packaged" Description="The folder to place the packaged plugin in" />
@@ -42,7 +40,7 @@
   <Option Name="PackageExclude" DefaultValue="" Description="Additional exclude filespec to apply when packaging, separated by semicolons" />
   <Option Name="CopyrightHeader" DefaultValue="" Description="Copyright header to apply to all source code files when packaging" />
   <Option Name="CopyrightExcludes" DefaultValue="" Description="Relative paths inside the package to exclude from copyright updates, separated with semicolons" />
-  <Option Name="PackageType" Restrict="Generic|Marketplace|Fab" DefaultValue="Generic" Description="Defines the method of distribution for the produced plugin." />
+  <Option Name="PackageType" Restrict="None|Generic|Marketplace|Fab" DefaultValue="None" Description="Defines the method of distribution for the produced plugin." />
 
   <!-- Test options -->
   <Option Name="GauntletConfigPaths" Restrict="[^ ]*" DefaultValue="" Description="List of the paths to copy files out of into the Config/ folder before building the project for Gauntlet tests."/>
@@ -366,7 +364,7 @@ $(PackageExclude);
   -->
 
   <Agent Name="Compile $(EnginePrefix)Editor Mac (Mac Build Editor)" Type="Mac" If="'$(IsBuildMachine)' == 'true'">
-    <Node Name="Compile $(EnginePrefix)Editor Mac" Requires="#HostProject" Produces="#EditorBinaries_Mac" If="'$(PackageType)' == 'Generic' and '$(CanBuildEditorMac)' == 'true'">
+    <Node Name="Compile $(EnginePrefix)Editor Mac" Requires="#HostProject" Produces="#EditorBinaries_Mac" If="'$(CanBuildEditorMac)' == 'true'">
       <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
         <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Mac" TargetConfiguration="Development" HostPlatform="Mac" />
       </ForEach>
@@ -374,11 +372,11 @@ $(PackageExclude);
       <Compile Target="$(EnginePrefix)Editor" Platform="Mac" Configuration="Development" Tag="#EditorBinaries_Mac" Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; -NoPDB -NoDebugInfo $(AdditionalArguments)"/>
     </Node>
     <Property Name="EditorBinaries" Value="$(EditorBinaries)#EditorBinaries_Mac;" If="'$(PackageType)' == 'Generic' and '$(CanBuildEditorMac)' == 'true'" />
-    <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(EnginePrefix)Editor Mac;" If="'$(ExecutePackage)' == 'false' and '$(PackageType)' == 'Generic' and '$(CanBuildEditorMac)' == 'true'" />
+    <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(EnginePrefix)Editor Mac;" If="'$(CanBuildEditorMac)' == 'true'" />
   </Agent>
 
   <Agent Name="Compile $(EnginePrefix)Editor Win64 (Windows Build Editor)" Type="Win64">
-    <Node Name="Compile $(EnginePrefix)Editor Win64" Requires="#HostProject" Produces="#EditorBinaries_Win64" If="'$(PackageType)' == 'Generic' and '$(CanBuildEditorWin64)' == 'true'">
+    <Node Name="Compile $(EnginePrefix)Editor Win64" Requires="#HostProject" Produces="#EditorBinaries_Win64" If="'$(CanBuildEditorWin64)' == 'true'">
       <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
         <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Win64" TargetConfiguration="Development" HostPlatform="Win64" />
       </ForEach>
@@ -386,7 +384,7 @@ $(PackageExclude);
       <Compile Target="$(EnginePrefix)Editor" Platform="Win64" Configuration="Development" Tag="#EditorBinaries_Win64" Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(2017Flag) $(AdditionalArguments)"/>
     </Node>
     <Property Name="EditorBinaries" Value="$(EditorBinaries)#EditorBinaries_Win64;" If="'$(PackageType)' == 'Generic' and '$(CanBuildEditorWin64)' == 'true'" />
-    <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(EnginePrefix)Editor Win64;" If="'$(ExecutePackage)' == 'false' and '$(PackageType)' == 'Generic' and '$(CanBuildEditorWin64)' == 'true'" />
+    <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(EnginePrefix)Editor Win64;" If="'$(CanBuildEditorWin64)' == 'true'" />
   </Agent>
 
   <!--
@@ -422,7 +420,7 @@ $(PackageExclude);
     <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
       <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
         <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Mac Build Game)" Type="Mac" If="'$(IsBuildMachine)' == 'true'">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'">
+          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
               <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
             </ForEach>
@@ -456,7 +454,7 @@ $(PackageExclude);
             />
           </Node>
           <Property Name="GameBinaries" Value="$(GameBinaries)#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'" />
-          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="'$(ExecutePackage)' == 'false' and ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'" />
+          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
         </Agent>
       </ForEach>
     </ForEach>
@@ -471,7 +469,7 @@ $(PackageExclude);
     <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
       <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
         <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Windows Build Game)" Type="Win64">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'">
+          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
             <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
               <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
             </ForEach>
@@ -505,7 +503,7 @@ $(PackageExclude);
             />
           </Node>
           <Property Name="GameBinaries" Value="$(GameBinaries)#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'"/>
-          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="'$(ExecutePackage)' == 'false' and !ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'" />
+          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
         </Agent>
       </ForEach>
     </ForEach>
@@ -515,7 +513,7 @@ $(PackageExclude);
     <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
       <ForEach Name="TargetConfiguration" Values="$(ClientConfigurations)">
         <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Windows Build Client)" Type="Win64">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'">
+          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
             <WriteTextFile
               File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)Client.Target.cs"
               Text="using UnrealBuildTool; public class $(HostProjectName)ClientTarget : TargetRules { public $(HostProjectName)ClientTarget(TargetInfo Target) : base(Target) { Type = TargetType.Client; DefaultBuildSettings = BuildSettingsVersion.V2; ExtraModuleNames.AddRange(new string[] { &quot;$(HostProjectName)&quot; }); } }"
@@ -544,7 +542,7 @@ $(PackageExclude);
               Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(2017Flag) $(AdditionalArguments)"
             />
           </Node>
-          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'" />
+          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
         </Agent>
       </ForEach>
     </ForEach>
@@ -554,7 +552,7 @@ $(PackageExclude);
     <ForEach Name="TargetPlatform" Values="$(ServerTargetPlatforms)">
       <ForEach Name="TargetConfiguration" Values="$(ServerConfigurations)">
         <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Windows Build Server)" Type="Win64">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'">
+          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
             <WriteTextFile
               File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)Server.Target.cs"
               Text="using UnrealBuildTool; public class $(HostProjectName)ServerTarget : TargetRules { public $(HostProjectName)ServerTarget(TargetInfo Target) : base(Target) { Type = TargetType.Server; DefaultBuildSettings = BuildSettingsVersion.V2; ExtraModuleNames.AddRange(new string[] { &quot;$(HostProjectName)&quot; }); } }"
@@ -583,7 +581,7 @@ $(PackageExclude);
               Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(2017Flag) $(AdditionalArguments)"
             />
           </Node>
-          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'" />
+          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
         </Agent>
       </ForEach>
     </ForEach>
@@ -594,34 +592,31 @@ $(PackageExclude);
     includes custom scripts and Gauntlet tests, which may require game binaries to be present.
   -->
 
-  <Do If="'$(ExecutePackage)' == 'true'">
-    <Expand
-      Name="Create Package"
-      AgentStage="Create Final Package"
-      AgentType="Win64"
-      NodeName="Create Package"
-      InputProject="#HostProject"
-      InputBaseDir="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
-      InputBinaries="$(EditorBinaries);$(GameBinaries)"
-      OutputDir="$(TempPath)/$(PackageFolder)"
-      OutputTag="#PackagedPlugin"
-      If="'$(ExecutePackage)' == 'true'"
-    />
-    <Property Name="PackageTasks" Value="$(PackageTasks)#PackagedPlugin;" />
+  <Expand
+    Name="Create Package"
+    AgentStage="Create Final Package"
+    AgentType="Win64"
+    NodeName="Create Package"
+    InputProject="#HostProject"
+    InputBaseDir="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
+    InputBinaries="$(EditorBinaries);$(GameBinaries)"
+    OutputDir="$(TempPath)/$(PackageFolder)"
+    OutputTag="#PackagedPlugin"
+  />
+  <Property Name="PackageTasks" Value="$(PackageTasks)#PackagedPlugin;" If="'$(PackageType)' != 'None'" />
 
-    <Agent Name="Zip Plugin (Create Final Package)" Type="Win64" If="'$(ExecuteZip)' == 'true'">
-      <Node Name="Zip Plugin" Requires="#PackagedPlugin" Produces="#PackagedZip">
-        <Delete Files="$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip" />
-        <Zip
-          FromDir="$(TempPath)/$(PackageFolder)/"
-          Files="#PackagedPlugin"
-          ZipFile="$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip"
-          Tag="#PackagedZip"
-      />
-      </Node>
-    </Agent>
-    <Property Name="PackageTasks" Value="$(PackageTasks)#PackagedZip;" If="'$(ExecuteZip)' == 'true'" />
-  </Do>
+  <Agent Name="Zip Plugin (Create Final Package)" Type="Win64">
+    <Node Name="Zip Plugin" Requires="#PackagedPlugin" Produces="#PackagedZip">
+      <Delete Files="$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip" />
+      <Zip
+        FromDir="$(TempPath)/$(PackageFolder)/"
+        Files="#PackagedPlugin"
+        ZipFile="$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip"
+        Tag="#PackagedZip"
+    />
+    </Node>
+  </Agent>
+  <Property Name="PackageTasks" Value="$(PackageTasks)#PackagedZip;" If="'$(PackageType)' != 'None'" />
 
   <!-- 
     Run all of the tests and deployments (which are dynamically defined by UET).

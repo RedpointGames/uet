@@ -355,15 +355,14 @@
             BuildConfigPluginDistribution distribution,
             string repositoryRoot,
             bool executeBuild,
-            bool executePackage,
-            bool executeZip,
             bool executeTests,
             bool executeDeployment,
             bool strictIncludes,
             bool localExecutor,
             bool isPluginRooted,
             string? commandlinePluginVersionName,
-            long? commandlinePluginVersionNumber)
+            long? commandlinePluginVersionNumber,
+            bool skipPackaging)
         {
             // Determine build matrix.
             var editorTargetPlatforms = FilterIncompatiblePlatforms((distribution.Build.Editor?.Platforms ?? new[] { BuildConfigPluginBuildEditorPlatform.Win64 }).Select(x =>
@@ -396,8 +395,8 @@
             var strictIncludesAtPluginLevel = distribution.Build?.StrictIncludes ?? false;
 
             // Compute packaging settings.
-            var versioningType = BuildConfigPluginPackageType.Generic;
-            if (distribution.Package != null)
+            var versioningType = BuildConfigPluginPackageType.None;
+            if (!skipPackaging && distribution.Package != null)
             {
 #pragma warning disable CS0618 // Type or member is obsolete
                 if (distribution.Package.Marketplace.HasValue &&
@@ -551,8 +550,6 @@
                     { $"EnginePrefix", "Unreal" },
 
                     // Package options
-                    { $"ExecutePackage", executePackage ? "true" : "false" },
-                    { $"ExecuteZip", executeZip ? "true" : "false" },
                     { "VersionNumber", versionInfo.versionNumber },
                     { "VersionName", versionInfo.versionName },
                     { "PackageFolder", distribution.Package?.OutputFolderName ?? "Packaged" },
@@ -662,7 +659,6 @@
             bool shipping,
             bool strictIncludes,
             string[] extraPlatforms,
-            bool package,
             BuildConfigPluginPackageType packageType,
             string? commandlinePluginVersionName,
             long? commandlinePluginVersionNumber)
@@ -754,8 +750,6 @@
                     { $"EnginePrefix", "Unreal" },
 
                     // Package options
-                    { $"ExecutePackage", package ? "true" : "false" },
-                    { $"ExecuteZip", "true" },
                     { "VersionNumber", versionInfo.versionNumber },
                     { "VersionName", versionInfo.versionName },
                     { "PackageFolder", packageType.ToString() },

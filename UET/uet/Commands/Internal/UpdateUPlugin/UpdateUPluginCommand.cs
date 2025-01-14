@@ -91,7 +91,8 @@
                 node["Version"] = ulong.Parse(versionNumber, CultureInfo.InvariantCulture);
                 node["Installed"] = true;
 
-                if (packageType == BuildConfigPluginPackageType.Generic)
+                if (packageType == BuildConfigPluginPackageType.None ||
+                    packageType == BuildConfigPluginPackageType.Generic)
                 {
                     node["EnabledByDefault"] = false;
                 }
