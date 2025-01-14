@@ -1031,6 +1031,9 @@ jobs:
       shell: pwsh
       env:
         IS_RUNNING_UNDER_CI: "true"
+        REDIS_SERVER: "redis:6379"
+        PUBSUB_SERVER: "pubsub:9000"
+        DATASTORE_SERVER: "datastore:9001"
       run: |
         foreach ($Item in (Get-ChildItem UET -Filter Redpoint.CloudFramework.Tests)) {
           if (Test-Path "$($Item.FullName)/$($Item.Name).csproj") {
