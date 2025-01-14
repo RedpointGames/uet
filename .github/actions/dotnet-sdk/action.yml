@@ -34,6 +34,8 @@ runs:
   - name: Download .NET SDK (Windows)
     if: ${{ runner.os == 'Windows' && steps.cache-sdk-win.outputs.cache-hit != 'true' }}
     shell: pwsh
+    env:
+      UET_FRAMEWORK_TARGET: ${{ inputs.UET_FRAMEWORK_TARGET }}
     run: |
       if (!(Test-Path .dotnet\dotnet\dotnet-extracted)) {
         if (Test-Path ".dotnet") {
@@ -42,7 +44,7 @@ runs:
         Write-Host "Setting up .NET SDK..."
         New-Item -ItemType Directory ".dotnet" | Out-Null
         Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -UseBasicParsing -OutFile ".dotnet\dotnet-install.ps1"
-        .\.dotnet\dotnet-install.ps1 -Channel STS -InstallDir ".dotnet\dotnet"
+        .\.dotnet\dotnet-install.ps1 -Channel "$($env:UET_FRAMEWORK_TARGET.Substring(3))" -InstallDir ".dotnet\dotnet"
         if ($LastExitCode -ne 0) {
           exit $LastExitCode
         }
@@ -51,6 +53,8 @@ runs:
   - name: Download .NET SDK (macOS)
     if: ${{ runner.os == 'macOS' && steps.cache-sdk-mac.outputs.cache-hit != 'true' }}
     shell: pwsh
+    env:
+      UET_FRAMEWORK_TARGET: ${{ inputs.UET_FRAMEWORK_TARGET }}
     run: |
       if (!(Test-Path .dotnet/dotnet/dotnet-extracted)) {
         if (Test-Path ".dotnet") {
@@ -60,7 +64,7 @@ runs:
         New-Item -ItemType Directory ".dotnet" | Out-Null
         Invoke-WebRequest https://dot.net/v1/dotnet-install.sh -UseBasicParsing -OutFile ".dotnet/dotnet-install.sh"
         chmod a+x .dotnet/dotnet-install.sh
-        ./.dotnet/dotnet-install.sh --channel STS --install-dir ".dotnet/dotnet"
+        ./.dotnet/dotnet-install.sh --channel "$($env:UET_FRAMEWORK_TARGET.Substring(3))" --install-dir ".dotnet/dotnet"
         if ($LastExitCode -ne 0) {
           exit $LastExitCode
         }
@@ -69,6 +73,8 @@ runs:
   - name: Download .NET SDK (Linux)
     if: ${{ runner.os == 'Linux' && steps.cache-sdk-linux.outputs.cache-hit != 'true' }}
     shell: pwsh
+    env:
+      UET_FRAMEWORK_TARGET: ${{ inputs.UET_FRAMEWORK_TARGET }}
     run: |
       if (!(Test-Path .dotnet/dotnet/dotnet-extracted)) {
         if (Test-Path ".dotnet") {
@@ -78,7 +84,7 @@ runs:
         New-Item -ItemType Directory ".dotnet" | Out-Null
         Invoke-WebRequest https://dot.net/v1/dotnet-install.sh -UseBasicParsing -OutFile ".dotnet/dotnet-install.sh"
         chmod a+x .dotnet/dotnet-install.sh
-        ./.dotnet/dotnet-install.sh --channel STS --install-dir ".dotnet/dotnet"
+        ./.dotnet/dotnet-install.sh --channel "$($env:UET_FRAMEWORK_TARGET.Substring(3))" --install-dir ".dotnet/dotnet"
         if ($LastExitCode -ne 0) {
           exit $LastExitCode
         }
