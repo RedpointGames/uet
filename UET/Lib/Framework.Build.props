@@ -1,12 +1,12 @@
 <Project>
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
 
     <!-- This is used for libraries that we want to make available to .NET Framework. -->
-    <RedpointTargetFrameworks>net8.0;net48</RedpointTargetFrameworks>
+    <RedpointTargetFrameworks>net9.0;net48</RedpointTargetFrameworks>
 
-    <RedpointSystemLibraryVersion>8.*</RedpointSystemLibraryVersion>
+    <RedpointSystemLibraryVersion>9.*</RedpointSystemLibraryVersion>
   </PropertyGroup>
 
 </Project>
