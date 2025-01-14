@@ -175,6 +175,8 @@
                     stdoutPath,
                     stderrPath).ConfigureAwait(false);
 
+                _logger.LogWarning("The UEFS daemon sends error reports to Redpoint Games so we can improve stability and fix bugs. Refer to the privacy policy for more information: https://redpoint.games/privacy-policy/");
+
                 _logger.LogInformation("Starting UEFS daemon...");
                 await _serviceControl.StartService(daemonName).ConfigureAwait(false);
 
