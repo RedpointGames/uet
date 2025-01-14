@@ -12,24 +12,24 @@ runs:
     id: cache-sdk-win
     uses: actions/cache@v4
     with:
-      key: dotnet-sdk-windows-${{ inputs.UET_FRAMEWORK_TARGET }}
-      restore-keys: dotnet-sdk-windows-${{ inputs.UET_FRAMEWORK_TARGET }}
+      key: dotnet-sdk-windows-${{ inputs.UET_FRAMEWORK_TARGET }}-v2
+      restore-keys: dotnet-sdk-windows-${{ inputs.UET_FRAMEWORK_TARGET }}-v2
       path: .dotnet
   - name: Cache .NET SDK (macOS)
     if: ${{ runner.os == 'macOS' }}
     id: cache-sdk-mac
     uses: actions/cache@v4
     with:
-      key: dotnet-sdk-mac-${{ inputs.UET_FRAMEWORK_TARGET }}
-      restore-keys: dotnet-sdk-mac-${{ inputs.UET_FRAMEWORK_TARGET }}
+      key: dotnet-sdk-mac-${{ inputs.UET_FRAMEWORK_TARGET }}-v2
+      restore-keys: dotnet-sdk-mac-${{ inputs.UET_FRAMEWORK_TARGET }}-v2
       path: .dotnet
   - name: Cache .NET SDK (Linux)
     if: ${{ runner.os == 'Linux' }}
     id: cache-sdk-linux
     uses: actions/cache@v4
     with:
-      key: dotnet-sdk-linux-${{ inputs.UET_FRAMEWORK_TARGET }}
-      restore-keys: dotnet-sdk-linux-${{ inputs.UET_FRAMEWORK_TARGET }}
+      key: dotnet-sdk-linux-${{ inputs.UET_FRAMEWORK_TARGET }}-v2
+      restore-keys: dotnet-sdk-linux-${{ inputs.UET_FRAMEWORK_TARGET }}-v2
       path: .dotnet
   - name: Download .NET SDK (Windows)
     if: ${{ runner.os == 'Windows' && steps.cache-sdk-win.outputs.cache-hit != 'true' }}
