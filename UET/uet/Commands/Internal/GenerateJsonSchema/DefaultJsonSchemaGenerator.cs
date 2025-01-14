@@ -53,7 +53,8 @@
                 GenerateSchemaForObject(
                     writer,
                     BuildConfigSourceGenerationContext.Default.BuildConfig,
-                    BuildConfigSourceGenerationContext.Default);
+                    BuildConfigSourceGenerationContext.Default,
+                    true);
             }
             return ValueTask.CompletedTask;
         }
@@ -121,7 +122,11 @@
                 .MakeGenericType((currentType ?? type).GetGenericArguments());
         }
 
-        private void GenerateSchemaForObject(Utf8JsonWriter writer, JsonTypeInfo jsonTypeInfo, JsonSerializerContext jsonTypeInfoResolver)
+        private void GenerateSchemaForObject(
+            Utf8JsonWriter writer,
+            JsonTypeInfo jsonTypeInfo,
+            JsonSerializerContext jsonTypeInfoResolver,
+            bool isRoot = false)
         {
             var isDynamicObject = jsonTypeInfo.Type.IsConstructedGenericType &&
                 (jsonTypeInfo.Type.GetGenericTypeDefinition() == typeof(BuildConfigDynamic<,>) ||
@@ -135,6 +140,10 @@
             }
 
             writer.WriteStartObject();
+            if (isRoot)
+            {
+                writer.WriteString("$schema", "http://json-schema.org/draft-07/schema#");
+            }
             writer.WriteString("type", "object");
             {
                 var fullName = jsonTypeInfo.Type.FullName;
@@ -187,6 +196,8 @@
                         .Select(x => x.Type)
                         .ToArray();
                     writer.WritePropertyName("Type");
+                    writer.WriteStartObject();
+                    writer.WritePropertyName("enum");
                     writer.WriteStartArray();
                     foreach (var type in types)
                     {
@@ -194,6 +205,7 @@
                     }
                     writer.WriteStringValue(BuildConfigConstants.Predefined);
                     writer.WriteEndArray();
+                    writer.WriteEndObject();
                 }
             }
 
@@ -496,6 +508,21 @@
                     writer.WriteString("type", "array");
                     writer.WritePropertyName("items");
                     GenerateSchemaForType(writer, t.GetElementType()!, jsonTypeInfoResolver, writeMetadata);
+                    writer.WriteEndObject();
+                    break;
+                case var t when t == typeof(BuildConfigTargetPlatform):
+                    writer.WriteStartObject();
+                    writeMetadata?.Invoke();
+                    writer.WritePropertyName("oneOf");
+                    writer.WriteStartArray();
+                    writer.WriteStartObject();
+                    writer.WriteString("type", "string");
+                    writer.WriteEndObject();
+                    GenerateSchemaForObject(
+                        writer,
+                        jsonTypeInfoResolver.GetTypeInfo(type)!,
+                        jsonTypeInfoResolver);
+                    writer.WriteEndArray();
                     writer.WriteEndObject();
                     break;
                 case var t when t.IsConstructedGenericType && t.GetGenericTypeDefinition() == typeof(List<>):
