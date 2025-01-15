@@ -3,7 +3,7 @@
     using Redpoint.CloudFramework.Models;
     using System.Collections.Generic;
 
-    public record struct PaginatedQueryResult<T> where T : Model, new()
+    public record struct PaginatedQueryResult<T> where T : class, IModel, new()
     {
         public PaginatedQueryCursor? NextCursor { get; set; }
 

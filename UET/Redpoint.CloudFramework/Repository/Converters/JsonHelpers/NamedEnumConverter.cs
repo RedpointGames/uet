@@ -3,6 +3,7 @@
     using Newtonsoft.Json;
     using Redpoint.CloudFramework.Infrastructure;
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Reflection;
 
     internal class NamedEnumConverter : JsonConverter
@@ -58,6 +59,7 @@
             throw new JsonSerializationException("Unexpected token when parsing enum.");
         }
 
+        [SuppressMessage("Trimming", "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "This implementation only accesses enumeration members that will have already been accessed when passed into the 'value' argument.")]
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
             if (value == null)

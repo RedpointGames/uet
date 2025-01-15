@@ -3,7 +3,7 @@
     using Google.Cloud.Datastore.V1;
     using Redpoint.CloudFramework.Models;
 
-    public class ModelQuery<T> where T : Model, new()
+    public class ModelQuery<T> where T : class, IModel, new()
     {
         public ModelQuery(string @namespace, Query query)
         {

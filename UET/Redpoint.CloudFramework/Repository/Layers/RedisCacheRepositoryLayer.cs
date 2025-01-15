@@ -296,7 +296,7 @@ return queriesCleared
             string @namespace,
             Expression<Func<T, bool>> where,
             Expression<Func<T, bool>>? order,
-            int? limit) where T : Model, new()
+            int? limit) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.rediscache.get_complex_cache_hash_and_columns", $"{@namespace},{typeof(T).Name}"))
             {
@@ -543,7 +543,7 @@ redis.call('SET', KEYS[1], ARGV[1])
 return 'written'
 ";
 
-        private async Task<(RedisKey key, string lastWrite)> GetLastWriteAsync(IDatabase cache, string @namespace, Model model)
+        private async Task<(RedisKey key, string lastWrite)> GetLastWriteAsync(IDatabase cache, string @namespace, IModel model)
         {
             string queryLastWriteValue = "0";
             var queryLastWriteKey = new RedisKey($"LASTWRITE:{model.GetKind()}");
@@ -562,7 +562,7 @@ return 'written'
             return (queryLastWriteKey, queryLastWriteValue);
         }
 
-        private static async Task IncrementLastWriteAsync(IDatabase cache, Model model)
+        private static async Task IncrementLastWriteAsync(IDatabase cache, IModel model)
         {
             await cache.StringIncrementAsync($"LASTWRITE:{model.GetKind()}").ConfigureAwait(false);
         }
@@ -579,7 +579,7 @@ return 'written'
             int? limit,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new()
+            CancellationToken cancellationToken) where T : class, IModel, new()
             => BatchedQueryAsync(
                 @namespace,
                 where,
@@ -596,7 +596,7 @@ return 'written'
             int? limit,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            [EnumeratorCancellation] CancellationToken cancellationToken) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.rediscache.query", $"{@namespace},{typeof(T).Name}"))
             {
@@ -924,7 +924,7 @@ return 'written'
             Expression<Func<T, bool>>? order,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new()
+            CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.rediscache.query_paginated", $"{@namespace},{typeof(T).Name}"))
             {
@@ -949,7 +949,7 @@ return 'written'
             Key key,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new()
+            CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.rediscache.load", $"{@namespace},{typeof(T).Name}"))
             {
@@ -1077,7 +1077,7 @@ return 'written'
             IAsyncEnumerable<Key> keys,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new()
+            CancellationToken cancellationToken) where T : class, IModel, new()
             => BatchedLoadAsync<T>(
                 @namespace,
                 keys,
@@ -1090,7 +1090,7 @@ return 'written'
             IAsyncEnumerable<Key> keys,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            [EnumeratorCancellation] CancellationToken cancellationToken) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.rediscache.load", $"{@namespace},{typeof(T).Name}"))
             {
@@ -1249,7 +1249,7 @@ return 'written'
         public async IAsyncEnumerable<KeyValuePair<Key, T?>> LoadAcrossNamespacesAsync<T>(
             IAsyncEnumerable<Key> keys,
             RepositoryOperationMetrics? metrics,
-            [EnumeratorCancellation] CancellationToken cancellationToken) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.rediscache.load_across_namespaces", $"{typeof(T).Name}"))
             {
@@ -1376,7 +1376,7 @@ return 'written'
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            [EnumeratorCancellation] CancellationToken cancellationToken) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.rediscache.create", $"{@namespace},{typeof(T).Name}"))
             {
@@ -1430,7 +1430,7 @@ return 'written'
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            [EnumeratorCancellation] CancellationToken cancellationToken) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.rediscache.upsert", $"{@namespace},{typeof(T).Name}"))
             {
@@ -1485,7 +1485,7 @@ return 'written'
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            [EnumeratorCancellation] CancellationToken cancellationToken) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.rediscache.update", $"{@namespace},{typeof(T).Name}"))
             {
@@ -1512,7 +1512,7 @@ return 'written'
                                 }
                                 else
                                 {
-                                    var newValue = entity.GetType().GetProperty(kv.Key, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!.GetValue(entity);
+                                    var newValue = entity.GetPropertyInfo(kv.Key)!.GetValue(entity);
                                     if (newValue == null)
                                     {
                                         wasColumnModified = oldValue != null;
@@ -1596,7 +1596,7 @@ return 'written'
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new()
+            CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.rediscache.delete", $"{@namespace},{typeof(T).Name}"))
             {
@@ -1613,7 +1613,7 @@ return 'written'
             string @namespace,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new()
+            CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.rediscache.allocate_key", $"{@namespace},{typeof(T).Name}"))
             {
@@ -1624,7 +1624,7 @@ return 'written'
         public Task<KeyFactory> GetKeyFactoryAsync<T>(
             string @namespace,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new()
+            CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.rediscache.get_key_factory", $"{@namespace},{typeof(T).Name}"))
             {
@@ -1726,7 +1726,7 @@ return 'written'
                         }
                         else
                         {
-                            var newValue = entity.GetType().GetProperty(kv.Key, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!.GetValue(entity);
+                            var newValue = entity.GetPropertyInfo(kv.Key)!.GetValue(entity);
                             if (newValue == null)
                             {
                                 wasColumnModified = oldValue != null;

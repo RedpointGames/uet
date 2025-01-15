@@ -16,6 +16,6 @@
 
         public abstract Task UpdateAsync(IGlobalRepository globalRepository, object model);
 
-        public abstract IAsyncEnumerable<Model> QueryForOutdatedModelsAsync(IDatastoreRepositoryLayer drl, long currentSchemaVersion);
+        public abstract IAsyncEnumerable<IModel> QueryForOutdatedModelsAsync(IDatastoreRepositoryLayer drl, long currentSchemaVersion);
     }
 }

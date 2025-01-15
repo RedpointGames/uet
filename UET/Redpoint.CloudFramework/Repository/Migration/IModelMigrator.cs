@@ -3,7 +3,7 @@
     using Redpoint.CloudFramework.Models;
     using System.Threading.Tasks;
 
-    public interface IModelMigrator<T> where T : Model
+    public interface IModelMigrator<T> where T : IModel
     {
         /// <summary>
         /// Migrate the specified model to the version this migrator was registered for. Returns true if the model had

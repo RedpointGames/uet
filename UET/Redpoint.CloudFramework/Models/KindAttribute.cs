@@ -7,8 +7,7 @@
     /// Sets the kind of the entity when this model is stored in Datastore.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-    public sealed class KindAttribute<
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : Attribute, IKindAttribute
+    public sealed class KindAttribute : Attribute
     {
         public KindAttribute(string kind)
         {
@@ -16,16 +15,5 @@
         }
 
         public string Kind { get; }
-
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)]
-        public Type Type => typeof(T);
-    }
-
-    internal interface IKindAttribute
-    {
-        string Kind { get; }
-
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)]
-        Type Type { get; }
     }
 }

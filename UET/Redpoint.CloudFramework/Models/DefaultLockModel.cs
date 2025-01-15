@@ -3,38 +3,14 @@
     using NodaTime;
     using System.Collections.Generic;
 
-    public class DefaultLockModel : Model
+    [Kind("Lock")]
+    public class DefaultLockModel : Model<DefaultLockModel>
     {
         // The lock key is part of the name in the key.
+        [Type(FieldType.Timestamp), Indexed]
         public Instant? dateExpiresUtc { get; set; }
+
+        [Type(FieldType.String), Indexed]
         public string? acquisitionGuid { get; set; }
-
-        public override string GetKind()
-        {
-            return "Lock";
-        }
-
-        public override long GetSchemaVersion()
-        {
-            return 1;
-        }
-
-        public override Dictionary<string, FieldType> GetTypes()
-        {
-            return new Dictionary<string, FieldType>
-            {
-                { "dateExpiresUtc", FieldType.Timestamp },
-                { "acquisitionGuid", FieldType.String },
-            };
-        }
-
-        public override HashSet<string> GetIndexes()
-        {
-            return new HashSet<string>
-            {
-                "dateExpiresUtc",
-                "acquisitionGuid"
-            };
-        }
     }
 }

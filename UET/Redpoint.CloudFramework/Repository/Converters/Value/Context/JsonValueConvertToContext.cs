@@ -9,6 +9,6 @@
     {
         public required string ModelNamespace { get; init; }
 
-        public required Model Model { get; init; }
+        public required IModel Model { get; init; }
     }
 }

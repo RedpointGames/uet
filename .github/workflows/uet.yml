@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 env:
-  UET_FRAMEWORK_TARGET: net8.0
+  UET_FRAMEWORK_TARGET: net9.0
   UET_BUILDING_ON_BUILD_SERVER: "true"
 
 jobs:
@@ -43,11 +43,15 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+    - name: Install .NET SDK
+      uses: ./.github/actions/dotnet-sdk
+      with:
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Build and Test
       shell: pwsh
       run: |
         sudo apt-get update
-        sudo apt-get install -y clang zlib1g-dev dotnet-sdk-8.0
+        sudo apt-get install -y clang zlib1g-dev
         dotnet publish /p:TargetFramework=${{ env.UET_FRAMEWORK_TARGET }} -c Release -r linux-x64 UET/Redpoint.StringEnum.TrimTests/Redpoint.StringEnum.TrimTests.csproj
         if ($LastExitCode -ne 0) {
           Write-Host "dotnet build (Redpoint.StringEnum.TrimTests.csproj) failed with exit code $LastExitCode"

@@ -6,13 +6,8 @@ namespace Redpoint.CloudFramework.Tests
 {
     // This ensures the tests pass when using properties on base classes.
 
-    [Kind<TestModel>("cf_testModel")]
-    public class TestModel : TestBaseModel
-    {
-    }
-
-    [Kind<TestBaseModel>("cf_testBaseModel")]
-    public class TestBaseModel : AttributedModel
+    [Kind("cf_testModel")]
+    public sealed class TestModel : Model<TestModel>
     {
         [Type(FieldType.String), Indexed]
         public string? forTest { get; set; }
@@ -35,7 +30,9 @@ namespace Redpoint.CloudFramework.Tests
         public TestModel? untracked { get; set; }
 
         [Type(FieldType.String), Indexed]
+#pragma warning disable CS0628 // New protected member declared in sealed type
         protected string? protectedString1 { get; set; }
+#pragma warning restore CS0628 // New protected member declared in sealed type
 
         [Type(FieldType.String), Indexed]
         private string? privateString1 { get; set; }

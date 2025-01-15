@@ -31,7 +31,7 @@
             _valueConverterProvider = valueConverterProvider;
         }
 
-        public T? From<T>(string @namespace, string jsonCache) where T : Model, new()
+        public T? From<T>(string @namespace, string jsonCache) where T : class, IModel, new()
         {
             var model = new T();
             model._originalData = new Dictionary<string, object?>();
@@ -56,8 +56,7 @@
             var types = model.GetTypes();
             foreach (var kv in types)
             {
-                var typeInfo = model.GetType();
-                var propInfo = typeInfo.GetProperty(kv.Key, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                var propInfo = model.GetPropertyInfo(kv.Key);
                 if (propInfo == null)
                 {
                     _logger.LogWarning($"Model {typeof(T).FullName} declares property {kv.Key} but is missing C# declaration");
@@ -132,7 +131,7 @@
             return model;
         }
 
-        public string To<T>(string @namespace, T? model, bool isCreateContext, Func<T, Key>? incompleteKeyFactory) where T : Model, new()
+        public string To<T>(string @namespace, T? model, bool isCreateContext, Func<T, Key>? incompleteKeyFactory) where T : class, IModel, new()
         {
             var hashset = new JObject();
 
@@ -152,8 +151,7 @@
                 var types = model.GetTypes();
                 foreach (var kv in types)
                 {
-                    var typeInfo = model.GetType();
-                    var propInfo = typeInfo.GetProperty(kv.Key, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                    var propInfo = model.GetPropertyInfo(kv.Key);
                     if (propInfo == null)
                     {
                         _logger.LogWarning($"Model {typeof(T).FullName} declares property {kv.Key} but is missing C# declaration");

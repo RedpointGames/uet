@@ -22,8 +22,8 @@
         public static readonly StringEnumValue<TestStringEnum> C = Create("c");
     }
 
-    [Kind<TestStringModel>("testString")]
-    internal class TestStringModel : AttributedModel
+    [Kind("testString")]
+    internal sealed class TestStringModel : Model<TestStringModel>
     {
         [Type(FieldType.String), Indexed, Default("a")]
         public StringEnumValue<TestStringEnum> enumValue { get; set; } = TestStringEnum.A;

@@ -10,6 +10,6 @@
         /// </summary>
         /// <typeparam name="T">The model type.</typeparam>
         /// <param name="prefix">The prefix to use for the model.</param>
-        void RegisterPrefix<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(string prefix) where T : Model, new();
+        void RegisterPrefix<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(string prefix) where T : class, IModel, new();
     }
 }

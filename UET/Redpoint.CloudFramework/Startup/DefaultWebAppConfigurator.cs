@@ -287,9 +287,6 @@
                 {
                     services.AddScoped<IRepository, DatastoreRepository>();
                     services.AddScoped<ILockService, DefaultLockService>();
-#pragma warning disable CS0618 // Type or member is obsolete
-                    services.AddScoped<IShardedCounterService, LegacyShardedCounterService>();
-#pragma warning restore CS0618 // Type or member is obsolete
                     services.AddScoped<IShardedCounter, DefaultShardedCounter>();
                 }
                 services.AddScoped<IPrefix, DefaultPrefix>();

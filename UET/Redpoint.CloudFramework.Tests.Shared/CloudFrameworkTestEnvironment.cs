@@ -344,22 +344,22 @@
                 return Task.CompletedTask;
             }
 
-            public Task PostCreate<T>(string @namespace, T model, IModelTransaction? transaction) where T : Model, new()
+            public Task PostCreate<T>(string @namespace, T model, IModelTransaction? transaction) where T : class, IModel, new()
             {
                 return Task.CompletedTask;
             }
 
-            public Task PostDelete<T>(string @namespace, T model, IModelTransaction? transaction) where T : Model, new()
+            public Task PostDelete<T>(string @namespace, T model, IModelTransaction? transaction) where T : class, IModel, new()
             {
                 return Task.CompletedTask;
             }
 
-            public Task PostUpdate<T>(string @namespace, T model, IModelTransaction? transaction) where T : Model, new()
+            public Task PostUpdate<T>(string @namespace, T model, IModelTransaction? transaction) where T : class, IModel, new()
             {
                 return Task.CompletedTask;
             }
 
-            public Task PostUpsert<T>(string @namespace, T model, IModelTransaction? transaction) where T : Model, new()
+            public Task PostUpsert<T>(string @namespace, T model, IModelTransaction? transaction) where T : class, IModel, new()
             {
                 return Task.CompletedTask;
             }

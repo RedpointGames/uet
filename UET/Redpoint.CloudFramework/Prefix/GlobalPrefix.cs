@@ -27,7 +27,7 @@
                 _reversePrefixes = new Dictionary<string, string>();
             }
 
-            public void RegisterPrefix<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(string prefix) where T : Model, new()
+            public void RegisterPrefix<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(string prefix) where T : class, IModel, new()
             {
                 var kind = new T().GetKind();
 
@@ -114,7 +114,7 @@
         /// <param name="datastoreNamespace">The datastore namespace of the resulting key.</param>
         /// <param name="identifier">The identifier to parse.</param>
         /// <returns>A key object.</returns>
-        public Key ParseLimited<T>(string datastoreNamespace, string identifier) where T : Model, new()
+        public Key ParseLimited<T>(string datastoreNamespace, string identifier) where T : class, IModel, new()
         {
             return ParseLimited(datastoreNamespace, identifier, new T().GetKind());
         }

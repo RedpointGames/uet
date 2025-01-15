@@ -4,11 +4,13 @@
     using Newtonsoft.Json.Linq;
     using Redpoint.CloudFramework.Models;
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Reflection;
 
     internal class VersionedJsonConverter : JsonConverter
     {
+        [SuppressMessage("Trimming", "IL2070:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.", Justification = "This API does not support trimmed applications.")]
         public override bool CanConvert(Type objectType)
         {
             // Check if the type has a SchemaVersion attribute.
@@ -33,6 +35,7 @@
             }
         }
 
+        [SuppressMessage("Trimming", "IL2070:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.", Justification = "This API does not support trimmed applications.")]
         public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
             var obj = JToken.ReadFrom(reader);

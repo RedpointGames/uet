@@ -28,7 +28,7 @@
             _valueConverterProvider = valueConverterProvider;
         }
 
-        public T From<T>(string @namespace, Entity entity) where T : Model, new()
+        public T From<T>(string @namespace, Entity entity) where T : class, IModel, new()
         {
             var @ref = new T();
             @ref._originalData = new Dictionary<string, object?>();
@@ -44,8 +44,7 @@
             var types = @ref.GetTypes();
             foreach (var kv in types)
             {
-                var typeInfo = @ref.GetType();
-                var propInfo = typeInfo.GetProperty(kv.Key, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                var propInfo = @ref.GetPropertyInfo(kv.Key);
                 if (propInfo == null)
                 {
                     _logger.LogWarning($"Model {typeof(T).FullName} declares property {kv.Key} but is missing C# declaration");
@@ -120,7 +119,7 @@
             return @ref;
         }
 
-        public Entity To<T>(string @namespace, T? model, bool isCreateContext, Func<T, Key>? incompleteKeyFactory) where T : Model, new()
+        public Entity To<T>(string @namespace, T? model, bool isCreateContext, Func<T, Key>? incompleteKeyFactory) where T : class, IModel, new()
         {
             var entity = new Entity();
 
@@ -138,11 +137,10 @@
             var indexes = model.GetIndexes();
             foreach (var kv in types)
             {
-                var typeInfo = model.GetType();
-                var propInfo = typeInfo.GetProperty(kv.Key, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                var propInfo = model.GetPropertyInfo(kv.Key);
                 if (propInfo == null)
                 {
-                    throw new InvalidOperationException($"The property '{kv.Key}' could not be found on '{typeInfo.FullName}'. Ensure the datastore type declarations are correct.");
+                    throw new InvalidOperationException($"The property '{kv.Key}' could not be found on '{model.GetType().FullName}'. Ensure the datastore type declarations are correct.");
                 }
                 var value = propInfo.GetValue(model);
 

@@ -7,10 +7,10 @@
 
     public interface IGlobalRepositoryHook
     {
-        Task PostCreate<T>(string @namespace, T model, IModelTransaction? transaction) where T : Model, new();
-        Task PostUpsert<T>(string @namespace, T model, IModelTransaction? transaction) where T : Model, new();
-        Task PostUpdate<T>(string @namespace, T model, IModelTransaction? transaction) where T : Model, new();
-        Task PostDelete<T>(string @namespace, T model, IModelTransaction? transaction) where T : Model, new();
+        Task PostCreate<T>(string @namespace, T model, IModelTransaction? transaction) where T : class, IModel, new();
+        Task PostUpsert<T>(string @namespace, T model, IModelTransaction? transaction) where T : class, IModel, new();
+        Task PostUpdate<T>(string @namespace, T model, IModelTransaction? transaction) where T : class, IModel, new();
+        Task PostDelete<T>(string @namespace, T model, IModelTransaction? transaction) where T : class, IModel, new();
 
         Task MutateEntityBeforeWrite(string @namespace, Entity entity);
     }

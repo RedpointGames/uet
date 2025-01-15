@@ -106,7 +106,7 @@
                 }
 
                 // Import the signed certificate from Apple.
-                var publicCertificate = new X509Certificate2(Path.Combine(storagePath.FullName, $"{name}.cer"), (string?)null, X509KeyStorageFlags.Exportable);
+                var publicCertificate = X509CertificateLoader.LoadCertificateFromFile(Path.Combine(storagePath.FullName, $"{name}.cer"));
 
                 // Attach the private key to the public certificate.
                 publicCertificate = publicCertificate.CopyWithPrivateKey(privateKey);
@@ -126,7 +126,7 @@
                         {
                             var bytes = new byte[embeddedResourceStream.Length];
                             embeddedResourceStream.ReadExactly(bytes);
-                            intermediateCertificates.Add(new X509Certificate2(bytes, (string?)null));
+                            intermediateCertificates.Add(X509CertificateLoader.LoadCertificate(bytes));
                         }
                     }
                 }

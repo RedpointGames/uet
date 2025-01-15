@@ -118,14 +118,14 @@
         }
 
         [Obsolete("Use QueryAsync<T> instead.")]
-        public static Task<ModelQuery<T>> CreateQuery<T>(this IGlobalRepository globalRepository, string @namespace) where T : Model, new()
+        public static Task<ModelQuery<T>> CreateQuery<T>(this IGlobalRepository globalRepository, string @namespace) where T : class, IModel, new()
         {
             return Task.FromResult(new ModelQuery<T>(@namespace, new Query(new T().GetKind())));
         }
 
         [Obsolete("Use QueryAsync<T> instead.")]
         public static async Task<MappedDatastoreQueryResults<T>> RunUncachedQuery<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(this IGlobalRepository globalRepository, string @namespace, ModelQuery<T> query,
-            ReadOptions.Types.ReadConsistency readConsistency, IModelTransaction? transaction = null) where T : Model, new()
+            ReadOptions.Types.ReadConsistency readConsistency, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
             ArgumentNullException.ThrowIfNull(query);
@@ -148,7 +148,7 @@
         }
 
         [Obsolete("Use GetKeyFactoryAsync<T> instead.")]
-        public static async Task<KeyFactory> GetKeyFactory<T>(this IGlobalRepository globalRepository, string @namespace) where T : Model, new()
+        public static async Task<KeyFactory> GetKeyFactory<T>(this IGlobalRepository globalRepository, string @namespace) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -156,7 +156,7 @@
         }
 
         [Obsolete("Use LoadAsync<T> instead.")]
-        public static async Task<Dictionary<Key, T?>> LoadMany<T>(this IGlobalRepository globalRepository, string @namespace, Key[] keys, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task<Dictionary<Key, T?>> LoadMany<T>(this IGlobalRepository globalRepository, string @namespace, Key[] keys, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -164,7 +164,7 @@
         }
 
         [Obsolete("Use LoadAcrossNamespacesAsync<T> instead.")]
-        public static async Task<Dictionary<Key, T?>> LoadManyAcrossNamespaces<T>(this IGlobalRepository globalRepository, Key[] keys) where T : Model, new()
+        public static async Task<Dictionary<Key, T?>> LoadManyAcrossNamespaces<T>(this IGlobalRepository globalRepository, Key[] keys) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -172,7 +172,7 @@
         }
 
         [Obsolete("Use LoadAsync<T> instead.")]
-        public static async Task<T?> LoadOneBy<T>(this IGlobalRepository globalRepository, string @namespace, Key key, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task<T?> LoadOneBy<T>(this IGlobalRepository globalRepository, string @namespace, Key key, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -180,7 +180,7 @@
         }
 
         [Obsolete("Use QueryAsync<T> instead.")]
-        public static async Task<T?> LoadOneBy<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T, TValue>(this IGlobalRepository globalRepository, string @namespace, string field, TValue value, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task<T?> LoadOneBy<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T, TValue>(this IGlobalRepository globalRepository, string @namespace, string field, TValue value, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -206,7 +206,7 @@
         }
 
         [Obsolete("Use QueryAsync<T> instead.")]
-        public static async Task<List<T>> LoadAllBy<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T, TValue>(this IGlobalRepository globalRepository, string @namespace, string field, TValue? value, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task<List<T>> LoadAllBy<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T, TValue>(this IGlobalRepository globalRepository, string @namespace, string field, TValue? value, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -232,7 +232,7 @@
         }
 
         [Obsolete("Use QueryAsync<T> instead.")]
-        public static async Task<List<T>> LoadAll<T>(this IGlobalRepository globalRepository, string @namespace, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task<List<T>> LoadAll<T>(this IGlobalRepository globalRepository, string @namespace, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -240,7 +240,7 @@
         }
 
         [Obsolete("Use QueryAsync<T> instead.")]
-        public static async Task<List<T>> LoadAllUncached<T>(this IGlobalRepository globalRepository, string @namespace, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task<List<T>> LoadAllUncached<T>(this IGlobalRepository globalRepository, string @namespace, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -250,7 +250,7 @@
         }
 
         [Obsolete("Use QueryAsync<T> instead.")]
-        public static async IAsyncEnumerable<T> LoadAllByFiltersUncached<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(this IGlobalRepository globalRepository, string @namespace, Filter filter) where T : Model, new()
+        public static async IAsyncEnumerable<T> LoadAllByFiltersUncached<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(this IGlobalRepository globalRepository, string @namespace, Filter filter) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -265,7 +265,7 @@
         }
 
         [Obsolete("Use CreateAsync<T> instead.")]
-        public static async Task Create<T>(this IGlobalRepository globalRepository, string @namespace, T model, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task Create<T>(this IGlobalRepository globalRepository, string @namespace, T model, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -273,7 +273,7 @@
         }
 
         [Obsolete("Use CreateAsync<T> instead.")]
-        public static async Task<T[]> CreateMany<T>(this IGlobalRepository globalRepository, string @namespace, IList<T> models) where T : Model, new()
+        public static async Task<T[]> CreateMany<T>(this IGlobalRepository globalRepository, string @namespace, IList<T> models) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -281,7 +281,7 @@
         }
 
         [Obsolete("Use UpsertAsync<T> instead.")]
-        public static async Task Upsert<T>(this IGlobalRepository globalRepository, string @namespace, T model, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task Upsert<T>(this IGlobalRepository globalRepository, string @namespace, T model, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -289,7 +289,7 @@
         }
 
         [Obsolete("Use UpdateAsync<T> instead.")]
-        public static async Task Update<T>(this IGlobalRepository globalRepository, string @namespace, T model, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task Update<T>(this IGlobalRepository globalRepository, string @namespace, T model, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -297,7 +297,7 @@
         }
 
         [Obsolete("Use UpdateAsync<T> instead.")]
-        public static async Task UpdateMany<T>(this IGlobalRepository globalRepository, string @namespace, IList<T> models) where T : Model, new()
+        public static async Task UpdateMany<T>(this IGlobalRepository globalRepository, string @namespace, IList<T> models) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -305,7 +305,7 @@
         }
 
         [Obsolete("Use DeleteAsync<T> instead.")]
-        public static async Task Delete<T>(this IGlobalRepository globalRepository, string @namespace, T model, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task Delete<T>(this IGlobalRepository globalRepository, string @namespace, T model, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -313,7 +313,7 @@
         }
 
         [Obsolete("Use DeleteAsync<T> instead.")]
-        public static async Task DeleteMany<T>(this IGlobalRepository globalRepository, string @namespace, IList<T> models) where T : Model, new()
+        public static async Task DeleteMany<T>(this IGlobalRepository globalRepository, string @namespace, IList<T> models) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 
@@ -321,7 +321,7 @@
         }
 
         [Obsolete("Use GetKeyFactoryAsync<T> and create the named key manually.")]
-        public static async Task<Key> CreateNamedKey<T>(this IGlobalRepository globalRepository, string @namespace, string name) where T : Model, new()
+        public static async Task<Key> CreateNamedKey<T>(this IGlobalRepository globalRepository, string @namespace, string name) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(globalRepository);
 

@@ -5,8 +5,8 @@
     using Redpoint.CloudFramework.Models;
     using System;
 
-    [Kind<EmbeddedEntityModel>("cf_embeddedEntityModel")]
-    public class EmbeddedEntityModel : AttributedModel
+    [Kind("cf_embeddedEntityModel")]
+    public sealed class EmbeddedEntityModel : Model<EmbeddedEntityModel>
     {
         [Type(FieldType.String), Indexed]
         public string? forTest { get; set; }

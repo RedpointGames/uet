@@ -20,7 +20,7 @@
         }
 
         [Obsolete("Use QueryAsync<T> instead.")]
-        public static async Task<ModelQuery<T>> CreateQuery<T>(this IRepository repository) where T : Model, new()
+        public static async Task<ModelQuery<T>> CreateQuery<T>(this IRepository repository) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(repository);
 
@@ -29,7 +29,7 @@
 
         [Obsolete("Use QueryAsync<T> instead.")]
         public static async Task<MappedDatastoreQueryResults<T>> RunUncachedQuery<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(this IRepository repository, ModelQuery<T> query,
-            ReadOptions.Types.ReadConsistency readConsistency, IModelTransaction? transaction = null) where T : Model, new()
+            ReadOptions.Types.ReadConsistency readConsistency, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(repository);
 
@@ -37,7 +37,7 @@
         }
 
         [Obsolete("Use GetKeyFactoryAsync<T> instead.")]
-        public static async Task<KeyFactory> GetKeyFactory<T>(this IRepository repository) where T : Model, new()
+        public static async Task<KeyFactory> GetKeyFactory<T>(this IRepository repository) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(repository);
 
@@ -45,7 +45,7 @@
         }
 
         [Obsolete("Use LoadAsync<T> instead.")]
-        public static async Task<Dictionary<Key, T?>> LoadMany<T>(this IRepository repository, Key[] keys, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task<Dictionary<Key, T?>> LoadMany<T>(this IRepository repository, Key[] keys, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(repository);
 
@@ -53,7 +53,7 @@
         }
 
         [Obsolete("Use LoadAsync<T> instead.")]
-        public static async Task<T?> LoadOneBy<T>(this IRepository repository, Key key, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task<T?> LoadOneBy<T>(this IRepository repository, Key key, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(repository);
 
@@ -61,7 +61,7 @@
         }
 
         [Obsolete("Use QueryAsync<T> instead.")]
-        public static async Task<T?> LoadOneBy<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T, TValue>(this IRepository repository, string field, TValue value, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task<T?> LoadOneBy<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T, TValue>(this IRepository repository, string field, TValue value, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(repository);
 
@@ -69,7 +69,7 @@
         }
 
         [Obsolete("Use QueryAsync<T> instead.")]
-        public static async Task<List<T>> LoadAllBy<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T, TValue>(this IRepository repository, string field, TValue value, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task<List<T>> LoadAllBy<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T, TValue>(this IRepository repository, string field, TValue value, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(repository);
 
@@ -77,7 +77,7 @@
         }
 
         [Obsolete("Use QueryAsync<T> instead.")]
-        public static async Task<List<T>> LoadAll<T>(this IRepository repository, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task<List<T>> LoadAll<T>(this IRepository repository, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(repository);
 
@@ -85,7 +85,7 @@
         }
 
         [Obsolete("Use QueryAsync<T> instead.")]
-        public static async Task<List<T>> LoadAllUncached<T>(this IRepository repository, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task<List<T>> LoadAllUncached<T>(this IRepository repository, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(repository);
 
@@ -93,7 +93,7 @@
         }
 
         [Obsolete("Use QueryAsync<T> instead.")]
-        public static async IAsyncEnumerable<T> LoadAllByFiltersUncached<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(this IRepository repository, Filter filter) where T : Model, new()
+        public static async IAsyncEnumerable<T> LoadAllByFiltersUncached<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(this IRepository repository, Filter filter) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(repository);
 
@@ -104,7 +104,7 @@
         }
 
         [Obsolete("Use CreateAsync<T> instead.")]
-        public static async Task Create<T>(this IRepository repository, T model, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task Create<T>(this IRepository repository, T model, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(repository);
 
@@ -112,7 +112,7 @@
         }
 
         [Obsolete("Use CreateAsync<T> instead.")]
-        public static async Task<T[]> CreateMany<T>(this IRepository repository, IList<T> models) where T : Model, new()
+        public static async Task<T[]> CreateMany<T>(this IRepository repository, IList<T> models) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(repository);
 
@@ -120,7 +120,7 @@
         }
 
         [Obsolete("Use UpsertAsync<T> instead.")]
-        public static async Task Upsert<T>(this IRepository repository, T model, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task Upsert<T>(this IRepository repository, T model, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(repository);
 
@@ -128,7 +128,7 @@
         }
 
         [Obsolete("Use UpdateAsync<T> instead.")]
-        public static async Task Update<T>(this IRepository repository, T model, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task Update<T>(this IRepository repository, T model, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(repository);
 
@@ -136,7 +136,7 @@
         }
 
         [Obsolete("Use DeleteAsync<T> instead.")]
-        public static async Task Delete<T>(this IRepository repository, T model, IModelTransaction? transaction = null) where T : Model, new()
+        public static async Task Delete<T>(this IRepository repository, T model, IModelTransaction? transaction = null) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(repository);
 

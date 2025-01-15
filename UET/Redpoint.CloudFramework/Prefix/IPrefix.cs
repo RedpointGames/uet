@@ -11,6 +11,6 @@
         Task<Key> Parse(string identifier);
         Task<Key> ParseInternal(string identifier);
         Task<Key> ParseLimited(string identifier, string kind);
-        Task<Key> ParseLimited<T>(string identifier) where T : Model, new();
+        Task<Key> ParseLimited<T>(string identifier) where T : class, IModel, new();
     }
 }

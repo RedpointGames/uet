@@ -3,8 +3,8 @@
     using Redpoint.CloudFramework.Models;
     using System;
 
-    [Kind<DefaultShardedCounterModel>("_rcfShardedCounter")]
-    internal class DefaultShardedCounterModel : AttributedModel
+    [Kind("_rcfShardedCounter")]
+    internal sealed class DefaultShardedCounterModel : Model<DefaultShardedCounterModel>
     {
         /// <summary>
         /// The counter name shared amongst all shards of this counter.
