@@ -11,6 +11,7 @@
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Quartz;
+    using Redpoint.CloudFramework.Abstractions;
     using Redpoint.CloudFramework.DataProtection;
     using Redpoint.CloudFramework.Locking;
     using Redpoint.CloudFramework.Prefix;

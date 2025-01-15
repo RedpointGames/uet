@@ -1,4 +1,4 @@
-﻿namespace Redpoint.CloudFramework.Startup
+﻿namespace Redpoint.CloudFramework.Abstractions
 {
     using Microsoft.AspNetCore.Hosting;
     using System.Threading.Tasks;
