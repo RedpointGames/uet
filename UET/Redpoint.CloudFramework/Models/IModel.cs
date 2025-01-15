@@ -16,7 +16,6 @@
         internal Dictionary<string, object?>? _originalData { get; set; }
 
         internal string GetKind();
-        internal Dictionary<string, FieldType> GetTypes();
         internal HashSet<string> GetIndexes();
         internal Dictionary<string, object>? GetDefaultValues();
         internal PropertyInfo[] GetPropertyInfos();
@@ -24,5 +23,10 @@
 
         long GetSchemaVersion();
         string GetDatastoreNamespaceForLocalKeys();
+
+        /// <remarks>
+        /// This function will be made internal in a future release.
+        /// </remarks>
+        IReadOnlyDictionary<string, FieldType> GetTypes();
     }
 }

@@ -48,9 +48,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{39698A12-7C9
 		Lib\Common.Build.props = Lib\Common.Build.props
 		Lib\CsWin32.Build.props = Lib\CsWin32.Build.props
 		Lib\Executable.Build.props = Lib\Executable.Build.props
+		Lib\Framework.AspNetCore.Build.props = Lib\Framework.AspNetCore.Build.props
 		Lib\Framework.Build.props = Lib\Framework.Build.props
 		Lib\LibraryPackaging.Build.props = Lib\LibraryPackaging.Build.props
+		Lib\PackageIcon.png = Lib\PackageIcon.png
+		Lib\ThirdPartyCommon.Build.props = Lib\ThirdPartyCommon.Build.props
 		Lib\XunitTesting.Build.props = Lib\XunitTesting.Build.props
+		Lib\XunitTestingDependencies.Build.props = Lib\XunitTestingDependencies.Build.props
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.MSBuildResolution", "Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj", "{5227BBD5-4CE7-4CB8-A60E-897E70664886}"

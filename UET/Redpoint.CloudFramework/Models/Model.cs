@@ -68,7 +68,6 @@
         internal string GetKind() => _modelInfo._kind;
 
         [SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "This method will not be called by child classes.")]
-        Dictionary<string, FieldType> IModel.GetTypes() => _modelInfo._types;
 
         [SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "This method will not be called by child classes.")]
         HashSet<string> IModel.GetIndexes() => _modelInfo._indexes;
@@ -97,5 +96,7 @@
         }
 
         public virtual Dictionary<string, ushort> GetHashKeyLengthsForGeopointFields() => _modelInfo._geoHashKeyLengths;
+
+        public virtual IReadOnlyDictionary<string, FieldType> GetTypes() => _modelInfo._types;
     }
 }
