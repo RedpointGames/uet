@@ -1,0 +1,15 @@
+<Project>
+
+  <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  
+  <Import Project="$(MSBuildThisFileDirectory)./Framework.Build.props" />
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>annotations</Nullable>
+  </PropertyGroup>
+
+</Project>

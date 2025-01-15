@@ -34,7 +34,7 @@
         {
             using (SentrySdk.Init(o =>
             {
-                o.Dsn = "https://2be4aea5d6d14a84b5815d28fc891f53@sentry.redpoint.games/3";
+                o.Dsn = "https://d5031f96b67e4274ac845c20453eb4e1@errors.redpoint.games/8";
                 o.IsGlobalModeEnabled = false;
                 o.SendDefaultPii = false;
                 o.TracesSampleRate = 1.0;
@@ -81,7 +81,7 @@
 
                 logging.AddSentry(o =>
                 {
-                    o.Dsn = "https://2be4aea5d6d14a84b5815d28fc891f53@sentry.redpoint.games/3";
+                    o.Dsn = "https://d5031f96b67e4274ac845c20453eb4e1@errors.redpoint.games/8";
                     o.IsGlobalModeEnabled = false;
                     o.SendDefaultPii = false;
                     o.TracesSampleRate = 1.0;

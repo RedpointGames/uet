@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../ThirdPartyCommon.Build.props" />
+
+  <PropertyGroup>
+    <AssemblyName>React.AspNet.Middleware</AssemblyName>
+    <RootNamespace>React.AspNet.Middleware</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../Framework.AspNetCore.Build.props" />
+
+  <Import Project="$(MSBuildThisFileDirectory)../LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>A fork of React.NET (https://github.com/reactjs/react.net) that adds support for React v18.</Description>
+    <PackageId>Redpoint.ThirdParty.React.AspNet.Middleware</PackageId>
+    <PackageTags>react, react.net</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Authors>June Rhodes, Daniel Lo Nigro</Authors>
+    <Company></Company>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.ThirdParty.React.Core\Redpoint.ThirdParty.React.Core.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <NoWarn>7035</NoWarn>
+  </PropertyGroup>
+
+</Project>

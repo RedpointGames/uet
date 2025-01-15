@@ -1,0 +1,3 @@
+docker run --rm -d --name rcftest-datastore -p 61002:9000 gcr.io/google.com/cloudsdktool/cloud-sdk:latest gcloud beta emulators datastore start --host-port=0.0.0.0:9000 --no-store-on-disk --project=local-dev --consistency=1.0
+docker run --rm -d --name rcftest-pubsub -p 61001:9000 gcr.io/google.com/cloudsdktool/cloud-sdk:latest gcloud beta emulators pubsub start --host-port=0.0.0.0:9000
+docker run --rm -d --name rcftest-redis -p 61000:6379 redis:6.0.10

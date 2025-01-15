@@ -1,0 +1,8 @@
+<Project>
+
+  <!-- This must remain in sync with Framework.Build.props. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" Version="8.0.0" Condition="'$(TargetFramework)' == 'net8.0'" />
+  </ItemGroup>
+
+</Project>

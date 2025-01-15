@@ -19,7 +19,21 @@ jobs:
     - name: Report Test Results
       uses: dorny/test-reporter@v1
       with:
-        artifact: test-results
+        artifact: test-results-win
         name: Windows Test Results
+        path: '*.test-result.trx'
+        reporter: dotnet-trx
+    - name: Report Test Results
+      uses: dorny/test-reporter@v1
+      with:
+        artifact: test-results-linux
+        name: Linux Test Results
+        path: '*.test-result.trx'
+        reporter: dotnet-trx
+    - name: Report Test Results
+      uses: dorny/test-reporter@v1
+      with:
+        artifact: test-results-cf
+        name: Cloud Framework Test Results
         path: '*.test-result.trx'
         reporter: dotnet-trx
