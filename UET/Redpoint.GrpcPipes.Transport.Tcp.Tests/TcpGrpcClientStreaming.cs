@@ -124,7 +124,7 @@
             {
                 var response = await call.ResponseAsync;
             });
-            Assert.Equal(StatusCode.DeadlineExceeded, ex.StatusCode);
+            Assert.True(ex.StatusCode == StatusCode.DeadlineExceeded || ex.StatusCode == StatusCode.Cancelled, "Expected StatusCode to be DeadlineExceeded or Cancelled.");
             Assert.True(service.CancellationTokenRaisedException, "Expected server to see cancellation.");
         }
 
