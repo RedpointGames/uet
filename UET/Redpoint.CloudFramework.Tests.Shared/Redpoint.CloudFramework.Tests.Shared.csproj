@@ -7,4 +7,10 @@
     <ProjectReference Include="..\Redpoint.CloudFramework\Redpoint.CloudFramework.csproj" />
   </ItemGroup>
 
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>Provides common types for unit testing with Redpoint.CloudFramework.</Description>
+    <PackageTags>cloud, framework, unit, testing</PackageTags>
+  </PropertyGroup>
+
 </Project>
