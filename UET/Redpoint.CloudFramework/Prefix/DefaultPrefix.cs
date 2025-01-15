@@ -59,7 +59,7 @@
             return _globalPrefix.ParseLimited(ns, identifier, kind);
         }
 
-        public async Task<Key> ParseLimited<T>(string identifier) where T : Model, new()
+        public async Task<Key> ParseLimited<T>(string identifier) where T : class, IModel, new()
         {
             var currentTenant = await _currentProjectService.GetTenant().ConfigureAwait(false);
             if (currentTenant == null)

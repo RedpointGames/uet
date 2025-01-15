@@ -52,7 +52,7 @@
             int? limit = null,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return Layer.QueryAsync(@namespace, where, order, limit, transaction, metrics, cancellationToken);
         }
@@ -65,7 +65,7 @@
             Expression<Func<T, bool>>? order = null,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return Layer.QueryPaginatedAsync(@namespace, cursor, limit, where, order, transaction, metrics, cancellationToken);
         }
@@ -75,7 +75,7 @@
             Key key,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return Layer.LoadAsync<T>(@namespace, key, transaction, metrics, cancellationToken);
         }
@@ -85,7 +85,7 @@
             IAsyncEnumerable<Key> keys,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return Layer.LoadAsync<T>(@namespace, keys, transaction, metrics, cancellationToken);
         }
@@ -93,7 +93,7 @@
         public IAsyncEnumerable<KeyValuePair<Key, T?>> LoadAcrossNamespacesAsync<T>(
             IAsyncEnumerable<Key> keys,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return Layer.LoadAcrossNamespacesAsync<T>(keys, metrics, cancellationToken);
         }
@@ -103,7 +103,7 @@
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return await Layer.CreateAsync(@namespace, new[] { model }.ToAsyncEnumerable(), transaction, metrics, cancellationToken).FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         }
@@ -113,7 +113,7 @@
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return Layer.CreateAsync(@namespace, models, transaction, metrics, cancellationToken);
         }
@@ -123,7 +123,7 @@
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return await Layer.UpsertAsync(@namespace, new[] { model }.ToAsyncEnumerable(), transaction, metrics, cancellationToken).FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         }
@@ -133,7 +133,7 @@
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return Layer.UpsertAsync(@namespace, models, transaction, metrics, cancellationToken);
         }
@@ -143,7 +143,7 @@
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return await Layer.UpdateAsync(@namespace, new[] { model }.ToAsyncEnumerable(), transaction, metrics, cancellationToken).FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         }
@@ -153,7 +153,7 @@
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return Layer.UpdateAsync(@namespace, models, transaction, metrics, cancellationToken);
         }
@@ -163,7 +163,7 @@
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return Layer.DeleteAsync(@namespace, new[] { model }.ToAsyncEnumerable(), transaction, metrics, cancellationToken);
         }
@@ -173,7 +173,7 @@
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return Layer.DeleteAsync(@namespace, models, transaction, metrics, cancellationToken);
         }
@@ -182,7 +182,7 @@
             string @namespace,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return Layer.AllocateKeyAsync<T>(@namespace, transaction, metrics, cancellationToken);
         }
@@ -190,7 +190,7 @@
         public Task<KeyFactory> GetKeyFactoryAsync<T>(
             string @namespace,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return Layer.GetKeyFactoryAsync<T>(@namespace, metrics, cancellationToken);
         }

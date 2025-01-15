@@ -21,7 +21,7 @@
             int? limit = null,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new();
+            CancellationToken cancellationToken = default) where T : class, IModel, new();
 
         Task<PaginatedQueryResult<T>> QueryPaginatedAsync<T>(
             string @namespace,
@@ -31,93 +31,93 @@
             Expression<Func<T, bool>>? order = null,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new();
+            CancellationToken cancellationToken = default) where T : class, IModel, new();
 
         Task<T?> LoadAsync<T>(
             string @namespace,
             Key key,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new();
+            CancellationToken cancellationToken = default) where T : class, IModel, new();
 
         IBatchedAsyncEnumerable<KeyValuePair<Key, T?>> LoadAsync<T>(
             string @namespace,
             IAsyncEnumerable<Key> keys,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new();
+            CancellationToken cancellationToken = default) where T : class, IModel, new();
 
         IAsyncEnumerable<KeyValuePair<Key, T?>> LoadAcrossNamespacesAsync<T>(
             IAsyncEnumerable<Key> keys,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new();
+            CancellationToken cancellationToken = default) where T : class, IModel, new();
 
         Task<T> CreateAsync<T>(
             string @namespace,
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new();
+            CancellationToken cancellationToken = default) where T : class, IModel, new();
 
         IAsyncEnumerable<T> CreateAsync<T>(
             string @namespace,
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new();
+            CancellationToken cancellationToken = default) where T : class, IModel, new();
 
         Task<T> UpsertAsync<T>(
             string @namespace,
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new();
+            CancellationToken cancellationToken = default) where T : class, IModel, new();
 
         IAsyncEnumerable<T> UpsertAsync<T>(
             string @namespace,
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new();
+            CancellationToken cancellationToken = default) where T : class, IModel, new();
 
         Task<T> UpdateAsync<T>(
             string @namespace,
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new();
+            CancellationToken cancellationToken = default) where T : class, IModel, new();
 
         IAsyncEnumerable<T> UpdateAsync<T>(
             string @namespace,
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new();
+            CancellationToken cancellationToken = default) where T : class, IModel, new();
 
         Task DeleteAsync<T>(
             string @namespace,
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new();
+            CancellationToken cancellationToken = default) where T : class, IModel, new();
 
         Task DeleteAsync<T>(
             string @namespace,
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new();
+            CancellationToken cancellationToken = default) where T : class, IModel, new();
 
         Task<Key> AllocateKeyAsync<T>(
             string @namespace,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new();
+            CancellationToken cancellationToken = default) where T : class, IModel, new();
 
         Task<KeyFactory> GetKeyFactoryAsync<T>(
             string @namespace,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new();
+            CancellationToken cancellationToken = default) where T : class, IModel, new();
 
         Task<IModelTransaction> BeginTransactionAsync(
             string @namespace,

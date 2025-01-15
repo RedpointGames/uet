@@ -17,7 +17,7 @@
         /// <param name="queryString"></param>
         /// <param name="instance"></param>
         internal static void AddFromObjectWithQueryParameters<T>(this QueryString queryString, [NotNull] T instance)
-            where T: class
+            where T : class
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
 

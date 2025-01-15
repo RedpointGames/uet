@@ -4,8 +4,9 @@ using Redpoint.CloudFramework.Models;
 
 namespace Redpoint.CloudFramework.Tests
 {
-    [Kind<RedisTestModel>("cf_redisTest")]
-    public class RedisTestModel : AttributedModel
+    [Kind("cf_redisTest")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Cloud Framework", "CloudFrameworkModelAnalyzerSealed:Types implementing Model<T> should be sealed", Justification = "Internal testing.")]
+    public class RedisTestModel : Model<RedisTestModel>
     {
         [Type(FieldType.String), Indexed]
         public string? forTest { get; set; }

@@ -5,7 +5,7 @@
     using Google.Protobuf;
     using Redpoint.CloudFramework.Models;
 
-    public sealed class MappedDatastoreQueryResults<T> where T : Model, new()
+    public sealed class MappedDatastoreQueryResults<T> where T : class, IModel, new()
     {
         public required ByteString EndCursor { get; set; }
         public required string? EndCursorForClients { get; set; }

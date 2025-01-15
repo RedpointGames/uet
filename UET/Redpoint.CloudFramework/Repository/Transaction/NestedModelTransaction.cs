@@ -20,8 +20,8 @@
 
         public DatastoreTransaction Transaction => _transaction.Transaction;
 
-        public IReadOnlyList<Model> ModifiedModels => _transaction.ModifiedModels;
-        public List<Model> ModifiedModelsList => _transaction.ModifiedModelsList;
+        public IReadOnlyList<IModel> ModifiedModels => _transaction.ModifiedModels;
+        public List<IModel> ModifiedModelsList => _transaction.ModifiedModelsList;
 
         public IReadOnlyList<Func<Task>> QueuedPreCommitOperations => _transaction.QueuedPreCommitOperations;
         public List<Func<Task>> QueuedPreCommitOperationsList => _transaction.QueuedPreCommitOperationsList;

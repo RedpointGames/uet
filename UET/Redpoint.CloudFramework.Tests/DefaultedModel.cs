@@ -2,8 +2,8 @@
 
 namespace Redpoint.CloudFramework.Tests
 {
-    [Kind<DefaultedModel>("cf_defaultedModel")]
-    public class DefaultedModel : AttributedModel
+    [Kind("cf_defaultedModel")]
+    public sealed class DefaultedModel : Model<DefaultedModel>
     {
         // This model exists to ensure AttributedModel initializes
         // properties to their default values.

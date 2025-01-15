@@ -2,8 +2,8 @@
 
 namespace Redpoint.CloudFramework.Tests
 {
-    [Kind<DefaultedBypassModel>("cf_defaultedModel")]
-    public class DefaultedBypassModel : AttributedModel
+    [Kind("cf_defaultedModel")]
+    public sealed class DefaultedBypassModel : Model<DefaultedBypassModel>
     {
         [Type(FieldType.String), Indexed]
         public string? myString { get; set; }

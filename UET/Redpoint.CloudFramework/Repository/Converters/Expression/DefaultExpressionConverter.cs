@@ -30,7 +30,7 @@
             }
         }
 
-        private string GetFieldReferencedInExpression<T>(Expression expression, ParameterExpression modelExpression, T referenceModel) where T : Model
+        private string GetFieldReferencedInExpression<T>(Expression expression, ParameterExpression modelExpression, T referenceModel) where T : IModel
         {
             if (expression.NodeType == ExpressionType.MemberAccess)
             {
@@ -55,23 +55,23 @@
                     throw new InvalidOperationException($"Expression must be a member access operation, and the expression that the member access is being performed on must be the model parameter expression. It was a '{access.Expression.NodeType}' type expression instead.");
                 }
 
-                if (access.Member.Name == nameof(Model.Key))
+                if (access.Member.Name == nameof(IModel.Key))
                 {
                     throw new InvalidOperationException($"The 'Key' property can only have the 'HasAncestor' extension method called on it; it can not be used in a comparison.");
                 }
                 else
                 {
-                    if (access.Member.Name == nameof(Model.dateCreatedUtc) ||
-                        access.Member.Name == nameof(Model.dateModifiedUtc) ||
+                    if (access.Member.Name == nameof(IModel.dateCreatedUtc) ||
+                        access.Member.Name == nameof(IModel.dateModifiedUtc) ||
                         (referenceModel.GetIndexes().Contains(access.Member.Name) &&
                          referenceModel.GetTypes().ContainsKey(access.Member.Name)))
                     {
                         return access.Member.Name;
                     }
 
-                    if (access.Member.Name == nameof(Model.schemaVersion))
+                    if (access.Member.Name == nameof(IModel.schemaVersion))
                     {
-                        return nameof(Model.schemaVersion);
+                        return nameof(IModel.schemaVersion);
                     }
                 }
 
@@ -126,7 +126,7 @@
             }
         }
 
-        public Filter? ConvertExpressionToFilter<T>(Expression expression, ParameterExpression modelExpression, T referenceModel, ref GeoQueryParameters<T>? geoParameters, ref bool hasAncestorQuery) where T : Model
+        public Filter? ConvertExpressionToFilter<T>(Expression expression, ParameterExpression modelExpression, T referenceModel, ref GeoQueryParameters<T>? geoParameters, ref bool hasAncestorQuery) where T : IModel
         {
             if (expression.NodeType == ExpressionType.Constant && ((ConstantExpression)expression).Type == typeof(bool) && (bool)((ConstantExpression)expression).Value! == true)
             {
@@ -178,7 +178,7 @@
                 if (callExpression.Method == typeof(RepositoryExtensions).GetMethod(nameof(RepositoryExtensions.HasAncestor), BindingFlags.Static | BindingFlags.Public) &&
                     callExpression.Arguments.Count == 2)
                 {
-                    if (propertyInfo.Name != nameof(Model.Key))
+                    if (propertyInfo.Name != nameof(IModel.Key))
                     {
                         throw new InvalidOperationException($"You can only use 'HasAncestor' on the primary Key and not key properties. Attempted to use member access on property named '{propertyInfo.Name}'.");
                     }
@@ -279,7 +279,7 @@
             throw new InvalidOperationException($"Expression of type '{expression.NodeType}' is not supported in QueryAsync calls.");
         }
 
-        public IEnumerable<PropertyOrder>? ConvertExpressionToOrder<T>(Expression expression, ParameterExpression modelExpression, T referenceModel, ref GeoQueryParameters<T>? geoParameters) where T : Model
+        public IEnumerable<PropertyOrder>? ConvertExpressionToOrder<T>(Expression expression, ParameterExpression modelExpression, T referenceModel, ref GeoQueryParameters<T>? geoParameters) where T : IModel
         {
             if (expression.NodeType == ExpressionType.Or)
             {

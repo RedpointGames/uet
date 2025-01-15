@@ -5,7 +5,7 @@
     using Redpoint.CloudFramework.Models;
     using System;
 
-    internal class GeoQueryParameters<T> where T : Model
+    internal class GeoQueryParameters<T> where T : IModel
     {
         public required string GeoFieldName { get; set; }
         public required LatLng MinPoint { get; set; }

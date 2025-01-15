@@ -6,7 +6,7 @@
 
     public static class MigrationServiceExtensions
     {
-        public static IServiceCollection AddMigration<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TModel, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicConstructors)] TMigration>(this IServiceCollection services, int toSchemaVersion) where TModel : Model, new() where TMigration : IModelMigrator<TModel>
+        public static IServiceCollection AddMigration<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TModel, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicConstructors)] TMigration>(this IServiceCollection services, int toSchemaVersion) where TModel : class, IModel, new() where TMigration : IModelMigrator<TModel>
         {
             services.AddTransient<RegisteredModelMigratorBase>(sp =>
             {

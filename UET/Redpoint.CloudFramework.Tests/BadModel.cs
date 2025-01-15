@@ -2,8 +2,8 @@
 
 namespace Redpoint.CloudFramework.Tests
 {
-    [Kind<BadModel>("cf_badModel")]
-    public class BadModel : AttributedModel
+    [Kind("cf_badModel")]
+    public sealed class BadModel : Model<BadModel>
     {
         [Type(FieldType.String), Indexed]
         public object? badField { get; set; }

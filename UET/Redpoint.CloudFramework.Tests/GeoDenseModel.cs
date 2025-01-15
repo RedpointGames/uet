@@ -4,8 +4,8 @@ using Redpoint.CloudFramework.Models;
 
 namespace Redpoint.CloudFramework.Tests
 {
-    [Kind<GeoDenseModel>("cf_geoDenseModel")]
-    public class GeoDenseModel : AttributedModel
+    [Kind("cf_geoDenseModel")]
+    public sealed class GeoDenseModel : Model<GeoDenseModel>
     {
         [Type(FieldType.String), Indexed]
         public string? forTest { get; set; }

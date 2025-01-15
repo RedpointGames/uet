@@ -6,7 +6,7 @@
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
 
-    internal sealed class RegisteredModelMigrator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T> : RegisteredModelMigratorBase where T : Model, new ()
+    internal sealed class RegisteredModelMigrator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T> : RegisteredModelMigratorBase where T : class, IModel, new()
     {
         public override Type ModelType { get; } = typeof(T);
 
@@ -15,7 +15,7 @@
             await globalRepository.UpdateAsync(string.Empty, (T)model, null, null, CancellationToken.None).ConfigureAwait(false);
         }
 
-        public override IAsyncEnumerable<Model> QueryForOutdatedModelsAsync(IDatastoreRepositoryLayer drl, long currentSchemaVersion)
+        public override IAsyncEnumerable<IModel> QueryForOutdatedModelsAsync(IDatastoreRepositoryLayer drl, long currentSchemaVersion)
         {
             return drl.QueryAsync<T>(
                 string.Empty,
@@ -24,7 +24,7 @@
                 null,
                 null,
                 null,
-                CancellationToken.None).Cast<Model>();
+                CancellationToken.None).Cast<IModel>();
         }
     }
 }

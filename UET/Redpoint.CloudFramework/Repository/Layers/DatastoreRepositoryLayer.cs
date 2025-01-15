@@ -101,7 +101,7 @@
             int? limit,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            [EnumeratorCancellation] CancellationToken cancellationToken) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (var span = _managedTracer.StartSpan("db.datastore.query", $"{@namespace},{typeof(T).Name}"))
             {
@@ -268,7 +268,7 @@
             int? limit,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new() =>
+            CancellationToken cancellationToken) where T : class, IModel, new() =>
             BatchedQueryAsync(
                 @namespace,
                 where,
@@ -287,7 +287,7 @@
             GeoQueryParameters<T> geoQuery,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            [EnumeratorCancellation] CancellationToken cancellationToken) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.datastore.query_geohash_range", $"{@namespace},{typeof(T).Name}"))
             {
@@ -364,7 +364,7 @@
             Expression<Func<T, bool>>? order,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new()
+            CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.datastore.query_paginated", $"{@namespace},{typeof(T).Name}"))
             {
@@ -458,7 +458,7 @@
             Key key,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new()
+            CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.datastore.load", $"{@namespace},{typeof(T).Name}"))
             {
@@ -524,7 +524,7 @@
             IAsyncEnumerable<Key> keys,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new()
+            CancellationToken cancellationToken) where T : class, IModel, new()
             => BatchedLoadAsync<T>(
                 @namespace,
                 keys,
@@ -537,7 +537,7 @@
             IAsyncEnumerable<Key> keys,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            [EnumeratorCancellation] CancellationToken cancellationToken) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.datastore.load", $"{@namespace},{typeof(T).Name}"))
             {
@@ -701,7 +701,7 @@
         public async IAsyncEnumerable<KeyValuePair<Key, T?>> LoadAcrossNamespacesAsync<T>(
             IAsyncEnumerable<Key> keys,
             RepositoryOperationMetrics? metrics,
-            [EnumeratorCancellation] CancellationToken cancellationToken) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.datastore.load_across_namespaces", $"{typeof(T).Name}"))
             {
@@ -803,7 +803,7 @@
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            [EnumeratorCancellation] CancellationToken cancellationToken) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.datastore.create", $"{@namespace},{typeof(T).Name}"))
             {
@@ -948,7 +948,7 @@
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            [EnumeratorCancellation] CancellationToken cancellationToken) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.datastore.upsert", $"{@namespace},{typeof(T).Name}"))
             {
@@ -1101,7 +1101,7 @@
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            [EnumeratorCancellation] CancellationToken cancellationToken) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.datastore.update", $"{@namespace},{typeof(T).Name}"))
             {
@@ -1233,7 +1233,7 @@
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new()
+            CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.datastore.delete", $"{@namespace},{typeof(T).Name}"))
             {
@@ -1358,7 +1358,7 @@
             string @namespace,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new()
+            CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.datastore.allocate_key", $"{@namespace},{typeof(T).Name}"))
             {
@@ -1375,7 +1375,7 @@
         public Task<KeyFactory> GetKeyFactoryAsync<T>(
             string @namespace,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new()
+            CancellationToken cancellationToken) where T : class, IModel, new()
         {
             using (_managedTracer.StartSpan($"db.datastore.get_key_factory", $"{@namespace},{typeof(T).Name}"))
             {

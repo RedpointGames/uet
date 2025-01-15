@@ -4,6 +4,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.CloudFramework.Tests.Shared\Redpoint.CloudFramework.Tests.Shared.csproj" />
+    <ProjectReference Include="..\Redpoint.CloudFramework.Analyzer\Redpoint.CloudFramework.Analyzer.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <OutputItemType>Analyzer</OutputItemType>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>

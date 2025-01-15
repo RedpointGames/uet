@@ -116,7 +116,7 @@
                 return o;
             }
 
-            if (entity is Model m)
+            if (entity is IModel m)
             {
                 // TODO
                 return null;

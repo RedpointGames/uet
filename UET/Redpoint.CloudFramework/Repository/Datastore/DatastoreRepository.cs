@@ -41,7 +41,7 @@
             int? limit = null,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
             => BatchedQueryAsync(where, order, limit, transaction, metrics, cancellationToken).AsBatchedAsyncEnumerable();
 
         private async IAsyncEnumerable<IReadOnlyList<T>> BatchedQueryAsync<T>(
@@ -50,7 +50,7 @@
             int? limit = null,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             await foreach (var batch in _globalDatastore.QueryAsync(await GetDatastoreNamespace().ConfigureAwait(false), where, order, limit, transaction, metrics, cancellationToken).AsBatches().ConfigureAwait(false))
             {
@@ -65,7 +65,7 @@
             Expression<Func<T, bool>>? order = null,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return await _globalDatastore.QueryPaginatedAsync(await GetDatastoreNamespace().ConfigureAwait(false), cursor, limit, where, order, transaction, metrics, cancellationToken).ConfigureAwait(false);
         }
@@ -74,7 +74,7 @@
             Key key,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return await _globalDatastore.LoadAsync<T>(await GetDatastoreNamespace().ConfigureAwait(false), key, transaction, metrics, cancellationToken).ConfigureAwait(false);
         }
@@ -83,14 +83,14 @@
             IAsyncEnumerable<Key> keys,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new() =>
+            CancellationToken cancellationToken = default) where T : class, IModel, new() =>
             BatchedLoadAsync<T>(keys, transaction, metrics, cancellationToken).AsBatchedAsyncEnumerable();
 
         public async IAsyncEnumerable<IReadOnlyList<KeyValuePair<Key, T?>>> BatchedLoadAsync<T>(
             IAsyncEnumerable<Key> keys,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             await foreach (var batch in _globalDatastore.LoadAsync<T>(await GetDatastoreNamespace().ConfigureAwait(false), keys, transaction, metrics, cancellationToken).AsBatches().ConfigureAwait(false))
             {
@@ -102,7 +102,7 @@
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return await _globalDatastore.CreateAsync(await GetDatastoreNamespace().ConfigureAwait(false), new[] { model }.ToAsyncEnumerable(), transaction, metrics, cancellationToken).FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         }
@@ -111,7 +111,7 @@
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             await foreach (var value in _globalDatastore.CreateAsync(await GetDatastoreNamespace().ConfigureAwait(false), models, transaction, metrics, cancellationToken).ConfigureAwait(false))
             {
@@ -123,7 +123,7 @@
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return await _globalDatastore.UpsertAsync(await GetDatastoreNamespace().ConfigureAwait(false), new[] { model }.ToAsyncEnumerable(), transaction, metrics, cancellationToken).FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         }
@@ -132,7 +132,7 @@
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             await foreach (var value in _globalDatastore.UpsertAsync(await GetDatastoreNamespace().ConfigureAwait(false), models, transaction, metrics, cancellationToken).ConfigureAwait(false))
             {
@@ -144,7 +144,7 @@
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return await _globalDatastore.UpdateAsync(await GetDatastoreNamespace().ConfigureAwait(false), new[] { model }.ToAsyncEnumerable(), transaction, metrics, cancellationToken).FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         }
@@ -153,7 +153,7 @@
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : Model, new()
+            [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             await foreach (var value in _globalDatastore.UpdateAsync(await GetDatastoreNamespace().ConfigureAwait(false), models, transaction, metrics, cancellationToken).ConfigureAwait(false))
             {
@@ -165,7 +165,7 @@
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             await _globalDatastore.DeleteAsync(await GetDatastoreNamespace().ConfigureAwait(false), new[] { model }.ToAsyncEnumerable(), transaction, metrics, cancellationToken).ConfigureAwait(false);
         }
@@ -174,7 +174,7 @@
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             await _globalDatastore.DeleteAsync(await GetDatastoreNamespace().ConfigureAwait(false), models, transaction, metrics, cancellationToken).ConfigureAwait(false);
         }
@@ -182,14 +182,14 @@
         public async Task<Key> AllocateKeyAsync<T>(
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return await _globalDatastore.AllocateKeyAsync<T>(await GetDatastoreNamespace().ConfigureAwait(false), transaction, metrics, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task<KeyFactory> GetKeyFactoryAsync<T>(
             RepositoryOperationMetrics? metrics = null,
-            CancellationToken cancellationToken = default) where T : Model, new()
+            CancellationToken cancellationToken = default) where T : class, IModel, new()
         {
             return await _globalDatastore.GetKeyFactoryAsync<T>(await GetDatastoreNamespace().ConfigureAwait(false), metrics, cancellationToken).ConfigureAwait(false);
         }

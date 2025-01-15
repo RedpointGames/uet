@@ -4,8 +4,8 @@ using Redpoint.CloudFramework.Models;
 
 namespace Redpoint.CloudFramework.Tests
 {
-    [Kind<GeoSparseModel>("cf_geoSparseModel")]
-    public class GeoSparseModel : AttributedModel
+    [Kind("cf_geoSparseModel")]
+    public sealed class GeoSparseModel : Model<GeoSparseModel>
     {
         [Type(FieldType.String), Indexed]
         public string? forTest { get; set; }

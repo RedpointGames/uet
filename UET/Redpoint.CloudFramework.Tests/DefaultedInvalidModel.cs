@@ -2,8 +2,8 @@
 
 namespace Redpoint.CloudFramework.Tests
 {
-    [Kind<DefaultedInvalidModel>("cf_defaultedModel")]
-    public class DefaultedInvalidModel : AttributedModel
+    [Kind("cf_defaultedModel")]
+    public sealed class DefaultedInvalidModel : Model<DefaultedInvalidModel>
     {
         [Type(FieldType.String), Indexed]
         public string? myString { get; set; }

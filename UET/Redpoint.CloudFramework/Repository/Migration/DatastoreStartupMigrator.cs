@@ -41,27 +41,9 @@
         /// <summary>
         /// This isn't a real model; we just use it to construct keys for locking.
         /// </summary>
-        private class RCFMigrationLockModel : Model
+        [Kind("rcf_migrationLock")]
+        private class RCFMigrationLockModel : Model<RCFMigrationLockModel>
         {
-            public override HashSet<string> GetIndexes()
-            {
-                throw new NotImplementedException();
-            }
-
-            public override string GetKind()
-            {
-                return "rcf_migrationLock";
-            }
-
-            public override long GetSchemaVersion()
-            {
-                throw new NotImplementedException();
-            }
-
-            public override Dictionary<string, FieldType> GetTypes()
-            {
-                throw new NotImplementedException();
-            }
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -84,7 +66,7 @@
                 _logger.LogInformation($"Running database migrators for: {modelGroup.Key.FullName}");
 
 #pragma warning disable IL2072 // DynamicallyAccessedMembers is set on ModelType.
-                var referenceModel = (Model)Activator.CreateInstance(modelGroup.Key)!;
+                var referenceModel = (IModel)Activator.CreateInstance(modelGroup.Key)!;
 #pragma warning restore IL2072
                 var currentSchemaVersion = referenceModel.GetSchemaVersion();
 

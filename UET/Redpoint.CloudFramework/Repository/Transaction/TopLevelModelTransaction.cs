@@ -21,7 +21,7 @@
 
             Namespace = @namespace;
             Transaction = transaction;
-            ModifiedModelsList = new List<Model>();
+            ModifiedModelsList = new List<IModel>();
             QueuedPreCommitOperationsList = new List<Func<Task>>();
             HasCommitted = false;
             HasRolledBack = false;
@@ -31,8 +31,8 @@
 
         public DatastoreTransaction Transaction { get; }
 
-        public IReadOnlyList<Model> ModifiedModels => ModifiedModelsList;
-        public List<Model> ModifiedModelsList { get; }
+        public IReadOnlyList<IModel> ModifiedModels => ModifiedModelsList;
+        public List<IModel> ModifiedModelsList { get; }
 
         public IReadOnlyList<Func<Task>> QueuedPreCommitOperations => QueuedPreCommitOperationsList;
         public List<Func<Task>> QueuedPreCommitOperationsList { get; }

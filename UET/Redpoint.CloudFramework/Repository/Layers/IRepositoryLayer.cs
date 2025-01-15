@@ -75,7 +75,7 @@
             int? limit,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new();
+            CancellationToken cancellationToken) where T : class, IModel, new();
 
         Task<PaginatedQueryResult<T>> QueryPaginatedAsync<T>(
             string @namespace,
@@ -85,25 +85,25 @@
             Expression<Func<T, bool>>? order,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
-            CancellationToken cancellationToken) where T : Model, new();
+            CancellationToken cancellationToken) where T : class, IModel, new();
 
-        Task<T?> LoadAsync<T>(string @namespace, Key key, IModelTransaction? transaction, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : Model, new();
+        Task<T?> LoadAsync<T>(string @namespace, Key key, IModelTransaction? transaction, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : class, IModel, new();
 
-        IBatchedAsyncEnumerable<KeyValuePair<Key, T?>> LoadAsync<T>(string @namespace, IAsyncEnumerable<Key> keys, IModelTransaction? transaction, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : Model, new();
+        IBatchedAsyncEnumerable<KeyValuePair<Key, T?>> LoadAsync<T>(string @namespace, IAsyncEnumerable<Key> keys, IModelTransaction? transaction, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : class, IModel, new();
 
-        IAsyncEnumerable<KeyValuePair<Key, T?>> LoadAcrossNamespacesAsync<T>(IAsyncEnumerable<Key> keys, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : Model, new();
+        IAsyncEnumerable<KeyValuePair<Key, T?>> LoadAcrossNamespacesAsync<T>(IAsyncEnumerable<Key> keys, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : class, IModel, new();
 
-        IAsyncEnumerable<T> CreateAsync<T>(string @namespace, IAsyncEnumerable<T> models, IModelTransaction? transaction, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : Model, new();
+        IAsyncEnumerable<T> CreateAsync<T>(string @namespace, IAsyncEnumerable<T> models, IModelTransaction? transaction, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : class, IModel, new();
 
-        IAsyncEnumerable<T> UpsertAsync<T>(string @namespace, IAsyncEnumerable<T> models, IModelTransaction? transaction, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : Model, new();
+        IAsyncEnumerable<T> UpsertAsync<T>(string @namespace, IAsyncEnumerable<T> models, IModelTransaction? transaction, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : class, IModel, new();
 
-        IAsyncEnumerable<T> UpdateAsync<T>(string @namespace, IAsyncEnumerable<T> models, IModelTransaction? transaction, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : Model, new();
+        IAsyncEnumerable<T> UpdateAsync<T>(string @namespace, IAsyncEnumerable<T> models, IModelTransaction? transaction, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : class, IModel, new();
 
-        Task DeleteAsync<T>(string @namespace, IAsyncEnumerable<T> models, IModelTransaction? transaction, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : Model, new();
+        Task DeleteAsync<T>(string @namespace, IAsyncEnumerable<T> models, IModelTransaction? transaction, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : class, IModel, new();
 
-        Task<Key> AllocateKeyAsync<T>(string @namespace, IModelTransaction? transaction, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : Model, new();
+        Task<Key> AllocateKeyAsync<T>(string @namespace, IModelTransaction? transaction, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : class, IModel, new();
 
-        Task<KeyFactory> GetKeyFactoryAsync<T>(string @namespace, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : Model, new();
+        Task<KeyFactory> GetKeyFactoryAsync<T>(string @namespace, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken) where T : class, IModel, new();
 
         Task<IModelTransaction> BeginTransactionAsync(string @namespace, TransactionMode mode, RepositoryOperationMetrics? metrics, CancellationToken cancellationToken);
 

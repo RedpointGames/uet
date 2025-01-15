@@ -22,8 +22,8 @@
         /// <summary>
         /// A list of models that have been modified by this transaction.
         /// </summary>
-        IReadOnlyList<Model> ModifiedModels { get; }
-        internal List<Model> ModifiedModelsList { get; }
+        IReadOnlyList<IModel> ModifiedModels { get; }
+        internal List<IModel> ModifiedModelsList { get; }
 
         /// <summary>
         /// A list of queued operations to be performed immediately before
