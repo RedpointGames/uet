@@ -25,7 +25,10 @@
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(Model<T> model) where T : Model<T>
         {
             ArgumentNullException.ThrowIfNull(model, nameof(model));
-            if (typeof(T) != model.GetType())
+            if (typeof(T) != model.GetType() &&
+                // Technically having a derived type where the derived type has no
+                // additional properties is safe, but we only permit it in the test project.
+                !(typeof(T).Namespace ?? string.Empty).StartsWith("Redpoint.CloudFramework.Tests", StringComparison.Ordinal))
             {
                 throw new ArgumentException("The model value must have the exact same type as T.", nameof(model));
             }
