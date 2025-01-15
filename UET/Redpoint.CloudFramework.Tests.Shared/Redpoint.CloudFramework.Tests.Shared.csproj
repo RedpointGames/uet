@@ -13,4 +13,9 @@
     <PackageTags>cloud, framework, unit, testing</PackageTags>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
 </Project>
