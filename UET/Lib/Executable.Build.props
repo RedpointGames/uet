@@ -7,11 +7,10 @@
     <RuntimeIdentifiers>win-x64;osx-arm64;linux-x64</RuntimeIdentifiers>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <!-- 
-      PublishReadyToRun on macOS is impacted by bug https://github.com/dotnet/runtime/issues/88288, so
-      we turn off ReadyToRun for macOS binaries.
+      The PublishReadyToRun bug on macOS (https://github.com/dotnet/runtime/issues/88288) is 
+      reportedly fixed in .NET 9. If this bug happens again, the issue needs to be re-opened.
     -->
-    <PublishReadyToRun Condition="'$(RuntimeIdentifier)' != 'osx-arm64'">true</PublishReadyToRun>
-    <PublishReadyToRun Condition="'$(RuntimeIdentifier)' == 'osx-arm64'">false</PublishReadyToRun>
+    <PublishReadyToRun>true</PublishReadyToRun>
     <PublishTrimmed>true</PublishTrimmed>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <DebuggerSupport Condition="'$(Configuration)' == 'Release'">false</DebuggerSupport>
