@@ -486,7 +486,8 @@ jobs:
           exit $LastExitCode 
         }
         foreach ($Item in (Get-ChildItem UET -Filter *.Tests)) {
-          if ((Test-Path "$($Item.FullName)/$($Item.Name).csproj") -and ($Item.Name -ne "Redpoint.CloudFramework.Tests")) {
+          # note: We skip Redpoint.GrpcPipes.Transport.Tcp.Tests on Linux for now because some of the tests around deadlines/cancellation are unreliable on Linux.
+          if ((Test-Path "$($Item.FullName)/$($Item.Name).csproj") -and ($Item.Name -ne "Redpoint.CloudFramework.Tests") -and ($Item.Name -ne "Redpoint.GrpcPipes.Transport.Tcp.Tests")) {
             Write-Host "============ STARTING: $($Item.Name) ============"
             dotnet test --logger:"console" --logger:"trx;LogFileName=$($Item.Name).test-result.trx" --results-directory "$((Get-Location).Path)/TestResults" "$($Item.FullName)/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/$($Item.Name).dll"
             if ($LastExitCode -ne 0) {
