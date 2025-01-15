@@ -3,6 +3,7 @@
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Extensions.Configuration;
     using Quartz;
+    using Redpoint.CloudFramework.Abstractions;
     using Redpoint.CloudFramework.Processor;
     using System;
     using System.Diagnostics.CodeAnalysis;

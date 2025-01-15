@@ -34,7 +34,7 @@
       <Aliases>RDCommandLine</Aliases>
     </ProjectReference>
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
-    <ProjectReference Include="..\Redpoint.CloudFramework\Redpoint.CloudFramework.csproj" />
+    <ProjectReference Include="..\Redpoint.CloudFramework.Abstractions\Redpoint.CloudFramework.Abstractions.csproj" />
     <ProjectReference Include="..\Redpoint.CommandLine\Redpoint.CommandLine.csproj" />
     <ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
     <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />

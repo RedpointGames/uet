@@ -48,10 +48,22 @@
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.React.AspNet\Redpoint.ThirdParty.React.AspNet.csproj" />
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.React.Core\Redpoint.ThirdParty.React.Core.csproj" />
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
+    <ProjectReference Include="..\Redpoint.CloudFramework.Abstractions\Redpoint.CloudFramework.Abstractions.csproj" />
     <ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />
     <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
     <ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
     <ProjectReference Include="..\Redpoint.StringEnum\Redpoint.StringEnum.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.CloudFramework.Analyzer.Package\Redpoint.CloudFramework.Analyzer.Package.csproj">
+      <IncludeAssets>analyzers;build</IncludeAssets>
+      <PrivateAssets>none</PrivateAssets>
+    </ProjectReference>
+    <ProjectReference Include="..\Redpoint.CloudFramework.CLI\Redpoint.CloudFramework.CLI.csproj">
+      <IncludeAssets>build;buildMultiTargeting;buildTransitive</IncludeAssets>
+      <PrivateAssets>none</PrivateAssets>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>
