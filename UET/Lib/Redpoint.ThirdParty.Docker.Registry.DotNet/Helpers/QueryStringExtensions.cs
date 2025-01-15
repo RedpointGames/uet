@@ -1,6 +1,7 @@
 ﻿namespace Docker.Registry.DotNet.Helpers
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Reflection;
 
     using Docker.Registry.DotNet.QueryParameters;
@@ -16,12 +17,13 @@
         /// <typeparam name="T"></typeparam>
         /// <param name="queryString"></param>
         /// <param name="instance"></param>
-        internal static void AddFromObjectWithQueryParameters<T>(this QueryString queryString, [NotNull] T instance)
+        internal static void AddFromObjectWithQueryParameters<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(this QueryString queryString, [JetBrains.Annotations.NotNull] T instance)
             where T : class
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
+            if (instance.GetType() != typeof(T)) throw new ArgumentException("Expected instance to exactly match T type.", nameof(instance));
 
-            var propertyInfos = instance.GetType().GetProperties();
+            var propertyInfos = typeof(T).GetProperties();
 
             foreach (var p in propertyInfos)
             {
