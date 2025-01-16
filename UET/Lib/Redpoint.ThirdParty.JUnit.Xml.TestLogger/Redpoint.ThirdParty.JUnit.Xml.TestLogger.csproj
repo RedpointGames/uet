@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../ThirdPartyCommon.Build.props" />
+
+  <PropertyGroup>
+    <AssemblyName>Microsoft.VisualStudio.TestPlatform.Extension.JUnit.Xml.TestLogger</AssemblyName>
+    <RootNamespace>Microsoft.VisualStudio.TestPlatform.Extension.JUnit.Xml.TestLogger</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>A fork of JUnit.Xml.TestLogger (https://github.com/spekt/junit.testlogger) that fixes up support for xUnit theories.</Description>
+    <PackageId>Redpoint.ThirdParty.JUnit.Xml.TestLogger</PackageId>
+    <PackageTags>junit, xunit, test logging</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Authors>June Rhodes, Siphonophora, codito, faizan2304, smadala, lahma</Authors>
+    <Company></Company>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Redpoint.ThirdParty.TestLogger\Redpoint.ThirdParty.TestLogger.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.TestPlatform.ObjectModel" Version="17.12.0" />
+  </ItemGroup>
+
+</Project>

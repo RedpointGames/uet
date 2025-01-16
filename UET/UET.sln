@@ -343,6 +343,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.CloudFramework.Ana
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.CloudFramework.Abstractions", "Redpoint.CloudFramework.Abstractions\Redpoint.CloudFramework.Abstractions.csproj", "{EA5480E2-6C5D-48B9-87A9-16351DF4DCC1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ThirdParty.TestLogger", "Lib\Redpoint.ThirdParty.TestLogger\Redpoint.ThirdParty.TestLogger.csproj", "{F0F97AC5-7955-4223-AE03-5DF12547B777}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ThirdParty.JUnit.Xml.TestLogger", "Lib\Redpoint.ThirdParty.JUnit.Xml.TestLogger\Redpoint.ThirdParty.JUnit.Xml.TestLogger.csproj", "{1E968B45-5B0A-488A-A0F3-8FBC41F41549}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -929,6 +933,14 @@ Global
 		{EA5480E2-6C5D-48B9-87A9-16351DF4DCC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EA5480E2-6C5D-48B9-87A9-16351DF4DCC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EA5480E2-6C5D-48B9-87A9-16351DF4DCC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F0F97AC5-7955-4223-AE03-5DF12547B777}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F0F97AC5-7955-4223-AE03-5DF12547B777}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F0F97AC5-7955-4223-AE03-5DF12547B777}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F0F97AC5-7955-4223-AE03-5DF12547B777}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1E968B45-5B0A-488A-A0F3-8FBC41F41549}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E968B45-5B0A-488A-A0F3-8FBC41F41549}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E968B45-5B0A-488A-A0F3-8FBC41F41549}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E968B45-5B0A-488A-A0F3-8FBC41F41549}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1049,6 +1061,8 @@ Global
 		{C303BBC5-B739-45DB-A1DC-DFCA71DAA1C5} = {A93D92E5-865B-4681-AC53-4B1689F1B3E8}
 		{1078157C-2CCD-4A35-9910-2880C2E7EC03} = {A93D92E5-865B-4681-AC53-4B1689F1B3E8}
 		{EA5480E2-6C5D-48B9-87A9-16351DF4DCC1} = {A93D92E5-865B-4681-AC53-4B1689F1B3E8}
+		{F0F97AC5-7955-4223-AE03-5DF12547B777} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
+		{1E968B45-5B0A-488A-A0F3-8FBC41F41549} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}
