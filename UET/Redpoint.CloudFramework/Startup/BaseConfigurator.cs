@@ -2,6 +2,7 @@
 
 namespace Redpoint.CloudFramework.Startup
 {
+    using Google.Api;
     using Google.Cloud.Datastore.V1;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +10,7 @@ namespace Redpoint.CloudFramework.Startup
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
+    using OpenTelemetry.Metrics;
     using Quartz;
     using RDCommandLine::Microsoft.Extensions.Logging.Console;
     using Redpoint.CloudFramework.BigQuery;
@@ -169,7 +171,7 @@ namespace Redpoint.CloudFramework.Startup
             });
         }
 
-        protected virtual void PreStartupConfigureServices(IHostEnvironment hostEnvironment, IServiceCollection services)
+        protected virtual void PreStartupConfigureServices(IHostEnvironment hostEnvironment, IConfiguration configuration, IServiceCollection services)
         {
             if (!_isInteractiveCLIApp)
             {
@@ -204,6 +206,29 @@ namespace Redpoint.CloudFramework.Startup
             else
             {
                 services.AddSingleton<IFileStorage, B2NetFileStorage>();
+            }
+
+            // Add metrics and OpenTelemetry. Note that we always use the HTTP listener even for ASP.NET Core
+            // because we want to guarantee that metrics can run on a different port without additional
+            // ASP.NET Core configuration.
+            services.AddMetrics();
+            try
+            {
+                services.AddOpenTelemetry()
+                    .WithMetrics(builder => builder
+                        .AddMeter("*")
+                        .AddPrometheusHttpListener(options =>
+                        {
+                            var prometheusPrefix = configuration["CloudFramework:Prometheus:HttpPrefix"];
+                            if (!string.IsNullOrWhiteSpace(prometheusPrefix))
+                            {
+                                options.UriPrefixes = [prometheusPrefix];
+                            }
+                        }));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"error: Failed to register Prometheus endpoint for metrics collection: {ex}");
             }
         }
 
@@ -246,7 +271,6 @@ namespace Redpoint.CloudFramework.Startup
                 services.AddSecretManagerRuntime();
             }
 
-            services.AddMetrics();
             services.AddSingleton<IMetricService, DiagnosticSourceMetricService>();
 
             services.AddSingleton<IEventApi, EventApi>();
