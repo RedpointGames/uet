@@ -79,13 +79,16 @@
             {
                 throw new SkipException("The execution environment does not have application default credentials to access the Google Cloud test project.");
             }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("GOOGLE_APPLICATION_CREDENTIALS", StringComparison.Ordinal))
+            catch (InvalidOperationException ex) when (
+                ex.Message.Contains("GOOGLE_APPLICATION_CREDENTIALS", StringComparison.Ordinal) ||
+                ex.Message.Contains("Application Default Credentials", StringComparison.Ordinal))
             {
                 throw new SkipException("The execution environment does not have application default credentials to access the Google Cloud test project.");
             }
             catch (TargetInvocationException tex) when (
                 tex.InnerException != null &&
-                tex.InnerException.Message.Contains("GOOGLE_APPLICATION_CREDENTIALS", StringComparison.Ordinal))
+                (tex.InnerException.Message.Contains("GOOGLE_APPLICATION_CREDENTIALS", StringComparison.Ordinal) ||
+                 tex.InnerException.Message.Contains("Application Default Credentials", StringComparison.Ordinal)))
             {
                 throw new SkipException("The execution environment does not have application default credentials to access the Google Cloud test project.");
             }
