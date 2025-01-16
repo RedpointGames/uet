@@ -37,6 +37,7 @@
     <PackageReference Include="Sentry.AspNetCore" />
     <PackageReference Include="SharpZipLib" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" />
   </ItemGroup>
 
   <ItemGroup>
