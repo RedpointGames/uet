@@ -7,6 +7,17 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>Provides common types for xUnit-based unit testing in Redpoint code.</Description>
+    <PackageTags>unit, testing</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="UseRedpointTestFramework.cs" />
   </ItemGroup>
