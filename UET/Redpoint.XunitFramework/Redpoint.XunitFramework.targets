@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <ItemGroup Condition="'$(ExcludeDefaultRedpointXunitFiles)' != 'true'">
+    <None Include="$(MSBuildThisFileDirectory)..\content\xunit.runner.json" CopyToOutputDirectory="PreserveNewest">
+      <Link>xunit.runner.json</Link>
+    </None>
+    <Compile Include="$(MSBuildThisFileDirectory)..\content\UseRedpointTestFramework.cs">
+      <Link>UseRedpointTestFramework.cs</Link>
+    </Compile>
+  </ItemGroup>
+
+</Project>
