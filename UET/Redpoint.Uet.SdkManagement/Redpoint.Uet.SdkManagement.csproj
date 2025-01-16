@@ -11,4 +11,13 @@
     <ProjectReference Include="..\Redpoint.Uet.Core\Redpoint.Uet.Core.csproj" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <!--
+      There's some analyzer that *really* doesn't like the code in this assembly and 
+      stalls the build out by several minutes while it sits there and does nothing. 
+      We have to turn off analyzers-during-build for this assembly. 
+    -->
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+  </PropertyGroup>
+
 </Project>
