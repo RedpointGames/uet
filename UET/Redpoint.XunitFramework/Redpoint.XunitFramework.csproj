@@ -23,12 +23,29 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="UseRedpointTestFramework.cs" />
+    <Content Include="UseRedpointTestFramework.cs">
+      <IncludeInPackage>true</IncludeInPackage>
+      <PackagePath>content</PackagePath>
+      <BuildAction>None</BuildAction>
+    </Content>
+    <Content Include="xunit.runner.json">
+      <IncludeInPackage>true</IncludeInPackage>
+      <PackagePath>content</PackagePath>
+      <BuildAction>None</BuildAction>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.extensibility.execution" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Redpoint.XunitFramework.targets">
+      <IncludeInPackage>true</IncludeInPackage>
+      <PackagePath>buildTransitive;build</PackagePath>
+      <BuildAction>None</BuildAction>
+    </Content>
   </ItemGroup>
 
 </Project>
