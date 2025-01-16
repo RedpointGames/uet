@@ -17,6 +17,10 @@
   <Import Project="$(MSBuildThisFileDirectory)XunitTestingDependencies.Build.props" />
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)../Redpoint.XunitFramework/xunit.runner.json" CopyToOutputDirectory="PreserveNewest">
       <Link>xunit.runner.json</Link>
     </None>
