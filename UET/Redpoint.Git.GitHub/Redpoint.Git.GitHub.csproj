@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Octokit" Version="13.0.1" />
+    <PackageReference Include="Octokit" />
   </ItemGroup>
 
   <ItemGroup>

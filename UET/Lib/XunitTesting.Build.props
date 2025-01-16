@@ -1,6 +1,6 @@
 <Project>
 
-  <Import Project="$(MSBuildThisFileDirectory)Framework.Build.props" Condition="'$(TargetFramework)' == ''" />
+  <Import Project="$(MSBuildThisFileDirectory)Framework.Build.props" Condition="'$(RedpointIsFrameworkImported)' != 'true'" />
 
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -17,7 +17,7 @@
   <Import Project="$(MSBuildThisFileDirectory)XunitTestingDependencies.Build.props" />
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
   </ItemGroup>
 
   <ItemGroup>

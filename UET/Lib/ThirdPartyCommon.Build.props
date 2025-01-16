@@ -5,7 +5,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   
-  <Import Project="$(MSBuildThisFileDirectory)./Framework.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)./Framework.Build.props" Condition="'$(RedpointIsFrameworkImported)' != 'true'" />
 
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>

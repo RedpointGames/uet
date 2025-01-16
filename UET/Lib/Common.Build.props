@@ -1,6 +1,6 @@
 <Project>
 
-  <Import Project="$(MSBuildThisFileDirectory)./Framework.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)./Framework.Build.props" Condition="'$(RedpointIsFrameworkImported)' != 'true'" />
 
   <PropertyGroup>
     <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>

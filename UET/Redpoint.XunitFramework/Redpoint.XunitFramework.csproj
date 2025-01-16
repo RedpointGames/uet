@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/Framework.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)../Lib/Framework.Build.props" Condition="'$(RedpointIsFrameworkImported)' != 'true'" />
 
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -27,8 +27,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="xunit" Version="2.9.2" />
-    <PackageReference Include="xunit.extensibility.execution" Version="2.9.2" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.extensibility.execution" />
   </ItemGroup>
 
 </Project>
