@@ -56,7 +56,7 @@
         /// <summary>
         /// Report metrics into Google Cloud Monitoring.
         /// </summary>
-        [Obsolete("Metrics will be replaced with Prometheus in the future.")]
+        [Obsolete("Google Cloud Monitoring support has been removed. Metrics are now reported via .NET meters.", true)]
         Metrics = 64,
 
         /// <summary>

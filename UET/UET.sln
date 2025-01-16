@@ -47,6 +47,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{39698A12-7C9
 		.editorconfig = .editorconfig
 		Lib\Common.Build.props = Lib\Common.Build.props
 		Lib\CsWin32.Build.props = Lib\CsWin32.Build.props
+		Directory.Packages.props = Directory.Packages.props
 		Lib\Executable.Build.props = Lib\Executable.Build.props
 		Lib\Framework.AspNetCore.Build.props = Lib\Framework.AspNetCore.Build.props
 		Lib\Framework.Build.props = Lib\Framework.Build.props

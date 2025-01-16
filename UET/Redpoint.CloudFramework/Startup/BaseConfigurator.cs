@@ -241,20 +241,13 @@ namespace Redpoint.CloudFramework.Startup
             {
                 services.AddSingleton<IPubSub, NullPubSub>();
             }
-#pragma warning disable CS0618
-            if ((_googleCloudUsage & GoogleCloudUsageFlag.Metrics) != 0)
-#pragma warning restore CS0618
-            {
-                services.AddSingleton<IMetricService, GoogleMetricService>();
-            }
-            else
-            {
-                services.AddSingleton<IMetricService, NullMetricService>();
-            }
             if (!_isInteractiveCLIApp && (_googleCloudUsage & GoogleCloudUsageFlag.SecretManager) != 0)
             {
                 services.AddSecretManagerRuntime();
             }
+
+            services.AddMetrics();
+            services.AddSingleton<IMetricService, DiagnosticSourceMetricService>();
 
             services.AddSingleton<IEventApi, EventApi>();
 
