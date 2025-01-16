@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="$(MSBuildThisFileDirectory)../Framework.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)../Framework.Build.props" Condition="'$(RedpointIsFrameworkImported)' != 'true'" />
   <PropertyGroup>
     <IsPackable>true</IsPackable>
     <PackageId>Redpoint.ThirdParty.System.CommandLine</PackageId>

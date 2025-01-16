@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="$(MSBuildThisFileDirectory)../Framework.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)../Framework.Build.props" Condition="'$(RedpointIsFrameworkImported)' != 'true'" />
   <PropertyGroup>
     <EnableDefaultItems>true</EnableDefaultItems>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -30,11 +30,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(RedpointSystemLibraryVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(RedpointSystemLibraryVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(RedpointSystemLibraryVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="$(RedpointSystemLibraryVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="$(RedpointSystemLibraryVersion)" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Configuration" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
   </ItemGroup>
 
 </Project>

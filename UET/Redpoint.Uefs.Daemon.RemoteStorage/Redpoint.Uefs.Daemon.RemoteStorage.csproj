@@ -3,7 +3,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(RedpointSystemLibraryVersion)" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <ProjectReference Include="..\Redpoint.Uefs.ContainerRegistry\Redpoint.Uefs.ContainerRegistry.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Abstractions\Redpoint.Vfs.Abstractions.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.Windows\Redpoint.Vfs.Windows.csproj" />

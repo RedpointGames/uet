@@ -8,7 +8,7 @@
     <PackageTags>hashing, utilities</PackageTags>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.IO.Hashing" Version="7.0.0" />
+    <PackageReference Include="System.IO.Hashing" />
   </ItemGroup>
 
 </Project>

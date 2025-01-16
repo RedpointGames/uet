@@ -29,18 +29,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="KubernetesClient.Aot" Version="15.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(RedpointSystemLibraryVersion)" />
+    <PackageReference Include="KubernetesClient.Aot" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj" />
-    <PackageReference Include="Grpc.Tools" Version="2.67.0">
+    <PackageReference Include="Grpc.Tools">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Crayon" Version="2.0.69" />
+    <PackageReference Include="Crayon" />
 
     <!-- Necessary to use a newer version of YamlDotNet for KubernetesClient.Aot. -->
-    <PackageReference Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" Version="16.3.0" />
-    <PackageReference Include="YamlDotNet" Version="16.3.0" />
+    <PackageReference Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" />
+    <PackageReference Include="YamlDotNet" />
   </ItemGroup>
 
   <ItemGroup>

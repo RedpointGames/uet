@@ -9,10 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BitFaster.Caching" Version="2.5.2" />
-    <PackageReference Include="KeyedSemaphores" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(RedpointSystemLibraryVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(RedpointSystemLibraryVersion)" />
+    <PackageReference Include="BitFaster.Caching" />
+    <PackageReference Include="KeyedSemaphores" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

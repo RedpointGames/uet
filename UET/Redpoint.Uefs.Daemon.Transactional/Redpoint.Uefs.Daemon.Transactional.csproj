@@ -3,7 +3,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <ItemGroup>
-    <PackageReference Include="KeyedSemaphores" Version="5.0.0" />
+    <PackageReference Include="KeyedSemaphores" />
   </ItemGroup>
 
   <ItemGroup>
