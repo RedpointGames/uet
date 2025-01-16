@@ -28,7 +28,7 @@
     <AvailableItemName Include="Mjml" />
   </ItemGroup>
 
-  <Target Name="RedpointCloudFrameworkGenerateHtmlFromMjml" BeforeTargets="Build" Condition="'@(Mjml)' != ''" Inputs="@(Mjml)" Outputs="@(Mjml->'%(FullPath).html');@(Mjml->'%(FullPath).txt')">
+  <Target Name="RedpointCloudFrameworkGenerateHtmlFromMjml" BeforeTargets="PrepareForBuild" Condition="'@(Mjml)' != ''" Inputs="@(Mjml)" Outputs="@(Mjml->'%(FullPath).html');@(Mjml->'%(FullPath).txt')">
     <ItemGroup>
       <None Remove="%(Mjml.FullPath).html" />
       <None Remove="%(Mjml.FullPath).txt" />
