@@ -264,7 +264,10 @@
                     }, new Google.Api.Gax.Grpc.CallSettings(null, Expiration.FromTimeout(TimeSpan.FromMilliseconds(100)), null, null, null, null)).ConfigureAwait(true);
                     break;
                 }
-                catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable || ex.StatusCode == StatusCode.DeadlineExceeded)
+                catch (RpcException ex) when (
+                    ex.StatusCode == StatusCode.Unavailable ||
+                    ex.StatusCode == StatusCode.DeadlineExceeded ||
+                    ex.StatusCode == StatusCode.Cancelled)
                 {
                     if (DateTime.UtcNow > deadline)
                     {
