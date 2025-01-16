@@ -53,6 +53,7 @@
                 }
 
                 // Install Yarn.
+                _logger.LogInformation("Installing Yarn if needed...");
                 var (exitCode, yarnCorepackShimPath) = await _yarnInstallationService.InstallYarnIfNeededAsync(context.GetCancellationToken()).ConfigureAwait(true);
                 if (yarnCorepackShimPath == null)
                 {
@@ -61,11 +62,13 @@
 
                 // Create our directory where we will install the mjml tool.
                 var mjmlInstallPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "rcf-mjml");
+                _logger.LogInformation($"Installing mjml into '{mjmlInstallPath}' if needed...");
                 Directory.CreateDirectory(mjmlInstallPath);
 
                 // If Yarn isn't initialised in this directory, do it now.
                 if (!File.Exists(Path.Combine(mjmlInstallPath, "yarn.lock")))
                 {
+                    _logger.LogInformation($"(MJML) Initializing Yarn project...");
                     exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
@@ -85,6 +88,7 @@
                 // If package.json doesn't have mjml, install it.
                 if (!File.ReadAllText(Path.Combine(mjmlInstallPath, "package.json")).Contains(@"""mjml""", StringComparison.Ordinal))
                 {
+                    _logger.LogInformation($"(MJML) Adding mjml to Yarn project...");
                     exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
@@ -104,6 +108,7 @@
                 // If package.json doesn't have @html-to/text-cli, install it.
                 if (!File.ReadAllText(Path.Combine(mjmlInstallPath, "package.json")).Contains(@"""@html-to/text-cli""", StringComparison.Ordinal))
                 {
+                    _logger.LogInformation($"(MJML) Adding @html-to/text-cli to Yarn project...");
                     exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
@@ -121,6 +126,7 @@
                 }
 
                 // Execute mjml for the input and output paths.
+                _logger.LogInformation($"Transforming via MJML: '{inputPath.FullName}' -> '{inputPath.FullName}.html'");
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
@@ -136,6 +142,7 @@
                 }
 
                 // Execute html-to-text on the output HTML, so that we can have a text version as well.
+                _logger.LogInformation($"Transforming via HTML-to-Text: '{inputPath.FullName}.html' -> '{inputPath.FullName}.txt'");
                 var textStringBuilder = new StringBuilder();
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
