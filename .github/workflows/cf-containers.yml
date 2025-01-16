@@ -3,6 +3,7 @@ name: Cloud Framework Containers
 on: workflow_dispatch
 
 jobs:
+
   pubsub-container:
     name: "Build Pub/Sub Container"
     runs-on: ubuntu-latest
@@ -25,6 +26,7 @@ jobs:
       if: github.ref == 'refs/heads/main'
       run: |
         docker push ghcr.io/redpointgames/uet/pubsub-emulator:latest
+
   datastore-container:
     name: "Build Datastore Container"
     runs-on: ubuntu-latest
@@ -47,3 +49,30 @@ jobs:
       if: github.ref == 'refs/heads/main'
       run: |
         docker push ghcr.io/redpointgames/uet/datastore-emulator:latest
+
+  sdk-container:
+    name: "Build SDK Container"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        VERSION_DOTNET: ["9.0"]
+        VERSION_NODE: ["20.x", "22.x"]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Build Container
+      run: |
+        docker build . -f UET/Lib/Container/cf-sdk.Dockerfile --tag ghcr.io/redpointgames/uet/cf-sdk:${{ matrix.VERSION_DOTNET }}-${{ matrix.VERSION_NODE }} --build-arg VERSION_DOTNET=${{ matrix.VERSION_DOTNET }} --build-arg VERSION_NODE=${{ matrix.VERSION_NODE }}
+    - name: Log in to the Container registry
+      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+      if: github.ref == 'refs/heads/main'
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Push Container
+      if: github.ref == 'refs/heads/main'
+      run: |
+        docker push ghcr.io/redpointgames/uet/cf-sdk:${{ matrix.VERSION_DOTNET }}-${{ matrix.VERSION_NODE }}
