@@ -224,6 +224,10 @@ namespace Redpoint.CloudFramework.Startup
                             {
                                 options.UriPrefixes = [prometheusPrefix];
                             }
+                            else
+                            {
+                                options.UriPrefixes = ["http://*:9464/"];
+                            }
                         }));
             }
             catch (Exception ex)
