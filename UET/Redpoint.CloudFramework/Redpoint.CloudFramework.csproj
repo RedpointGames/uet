@@ -32,6 +32,13 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="NodaTime" />
+    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore">
+      <NoWarn>NU5104</NoWarn>
+    </PackageReference>
+    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.HttpListener">
+      <NoWarn>NU5104</NoWarn>
+    </PackageReference>
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="Quartz.Extensions.Hosting" />
     <PackageReference Include="S2Geometry" />
     <PackageReference Include="Sentry.AspNetCore" />

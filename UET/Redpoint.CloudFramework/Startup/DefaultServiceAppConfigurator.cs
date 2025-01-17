@@ -12,6 +12,7 @@
     using Redpoint.CloudFramework.Tracing;
     using System.Diagnostics.CodeAnalysis;
     using Quartz;
+    using OpenTelemetry.Metrics;
 
     internal class DefaultServiceAppConfigurator : BaseConfigurator<IServiceAppConfigurator>, IServiceAppConfigurator
     {
@@ -148,7 +149,7 @@
                 {
                     services.AddSingleton<IManagedTracer, NullManagedTracer>();
 
-                    this.PreStartupConfigureServices(context.HostingEnvironment, services);
+                    this.PreStartupConfigureServices(context.HostingEnvironment, context.Configuration, services);
                     this._serviceConfiguration?.Invoke(services);
                     this.PostStartupConfigureServices(services);
 

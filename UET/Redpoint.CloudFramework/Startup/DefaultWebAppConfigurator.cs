@@ -10,6 +10,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using OpenTelemetry.Metrics;
     using Quartz;
     using Redpoint.CloudFramework.Abstractions;
     using Redpoint.CloudFramework.DataProtection;
@@ -215,7 +216,7 @@
         {
             return services =>
             {
-                this.PreStartupConfigureServices(_context!.HostingEnvironment, services);
+                this.PreStartupConfigureServices(_context!.HostingEnvironment, _context!.Configuration, services);
 
                 next(services);
 
@@ -264,13 +265,13 @@
             RemoveSingleBoundService(services, "Microsoft.AspNetCore.DataProtection.XmlEncryption.ICertificateResolver");
         }
 
-        protected override void PreStartupConfigureServices(IHostEnvironment hostEnvironment, IServiceCollection services)
+        protected override void PreStartupConfigureServices(IHostEnvironment hostEnvironment, IConfiguration configuration, IServiceCollection services)
         {
             // Add the static data protector.
             services.AddSingleton<IDataProtectionProvider, StaticDataProtectionProvider>();
             services.AddSingleton<IDataProtector, StaticDataProtector>();
 
-            base.PreStartupConfigureServices(hostEnvironment, services);
+            base.PreStartupConfigureServices(hostEnvironment, configuration, services);
         }
 
         protected override void PostStartupConfigureServices(IServiceCollection services)
