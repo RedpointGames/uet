@@ -102,7 +102,14 @@ for i, hash in ipairs(hashes) do
     queriesCleared = queriesCleared + 1
 end
 if table.getn(cacheKeys) > 0 then
-    redis.call('UNLINK', unpack(cacheKeys))
+    for i = 1, table.getn(cacheKeys), 1000 do
+        local e = math.min(table.getn(cacheKeys), i + 1000 - 1)
+        local unlinkBatch = {}
+        for a = i, e do
+            table.insert(unlinkBatch, cacheKeys[a])
+        end
+        redis.call('UNLINK', unpack(unlinkBatch))
+    end
 end
 return queriesCleared
 ";
