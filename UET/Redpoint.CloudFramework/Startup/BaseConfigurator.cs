@@ -224,7 +224,8 @@ namespace Redpoint.CloudFramework.Startup
                             {
                                 options.UriPrefixes = [prometheusPrefix];
                             }
-                            else
+                            // @note: Don't attempt to listen on * in Development, since we won't have permission on Windows.
+                            else if (!hostEnvironment.IsDevelopment())
                             {
                                 options.UriPrefixes = ["http://*:9464/"];
                             }
