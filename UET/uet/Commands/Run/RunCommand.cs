@@ -202,37 +202,57 @@
                                     var cmdSuffix = target == "editor-cmd" ? "-Cmd" : string.Empty;
                                     var executableSuffix = OperatingSystem.IsWindows() ? ".exe" : string.Empty;
 
+                                    List<(string editorPath, DateTimeOffset lastModulesModificationTime)> moduleAndEngineTargets = [];
                                     var attemptedPaths = new List<string>();
-                                    string? foundPath = null;
-                                    foreach (var configuration in configurationPreferences)
+                                    void SearchForPaths()
                                     {
-                                        var candidatePath = Path.Combine(engineWorkspace.Path, "Engine", "Binaries", platformName, $"UnrealEditor-{platformName}-{configuration}{cmdSuffix}{executableSuffix}");
-                                        if (!File.Exists(candidatePath))
+                                        moduleAndEngineTargets.Clear();
+                                        attemptedPaths.Clear();
+                                        foreach (var configuration in configurationPreferences)
                                         {
-                                            attemptedPaths.Add(candidatePath);
-                                            continue;
+                                            string modulePath;
+                                            string editorPath;
+                                            if (configuration == "Development")
+                                            {
+                                                modulePath = Path.Combine(
+                                                    Path.GetDirectoryName(projectPath)!,
+                                                    "Binaries",
+                                                    platformName,
+                                                    "UnrealEditor.modules");
+                                                editorPath = Path.Combine(
+                                                    engineWorkspace.Path,
+                                                    "Engine",
+                                                    "Binaries",
+                                                    platformName,
+                                                    $"UnrealEditor{cmdSuffix}{executableSuffix}");
+                                            }
+                                            else
+                                            {
+                                                modulePath = Path.Combine(
+                                                    Path.GetDirectoryName(projectPath)!,
+                                                    "Binaries",
+                                                    platformName,
+                                                    $"UnrealEditor-{platformName}-{configuration}.modules");
+                                                editorPath = Path.Combine(
+                                                    engineWorkspace.Path,
+                                                    "Engine",
+                                                    "Binaries",
+                                                    platformName,
+                                                    $"UnrealEditor-{platformName}-{configuration}{cmdSuffix}{executableSuffix}");
+                                            }
+                                            attemptedPaths.Add(modulePath);
+                                            if (File.Exists(modulePath) && File.Exists(editorPath))
+                                            {
+                                                moduleAndEngineTargets.Add((editorPath, File.GetLastWriteTimeUtc(modulePath)));
+                                            }
                                         }
-
-                                        foundPath = candidatePath;
-                                        break;
                                     }
-                                    if (foundPath == null)
-                                    {
-                                        var candidatePath = Path.Combine(engineWorkspace.Path, "Engine", "Binaries", platformName, $"UnrealEditor{cmdSuffix}{executableSuffix}");
-                                        if (!File.Exists(candidatePath))
-                                        {
-                                            attemptedPaths.Add(candidatePath);
-                                        }
-                                        else
-                                        {
-                                            foundPath = candidatePath;
-                                        }
-                                    }
+                                    SearchForPaths();
 
-                                    if (foundPath == null)
+                                    if (moduleAndEngineTargets.Count == 0)
                                     {
                                         // The editor isn't built; try to build it.
-                                        _logger.LogWarning("The editor binary could not be found at any of the following paths:");
+                                        _logger.LogWarning("This project hasn't been built for any configurations, or the editor binaries don't exist as expected. The modules that were searched for were:");
                                         foreach (var attemptedPath in attemptedPaths)
                                         {
                                             _logger.LogWarning($"  {attemptedPath}");
@@ -269,36 +289,25 @@
                                         }
 
                                         // Try to find the editor again.
-                                        attemptedPaths.Clear();
-                                        foreach (var configuration in configurationPreferences)
-                                        {
-                                            var candidatePath = Path.Combine(engineWorkspace.Path, "Engine", "Binaries", platformName, $"UnrealEditor-{platformName}-{configuration}{cmdSuffix}{executableSuffix}");
-                                            if (!File.Exists(candidatePath))
-                                            {
-                                                attemptedPaths.Add(candidatePath);
-                                                continue;
-                                            }
-
-                                            foundPath = candidatePath;
-                                            break;
-                                        }
-                                        if (foundPath == null)
-                                        {
-                                            var candidatePath = Path.Combine(engineWorkspace.Path, "Engine", "Binaries", platformName, $"UnrealEditor{cmdSuffix}{executableSuffix}");
-                                            if (!File.Exists(candidatePath))
-                                            {
-                                                attemptedPaths.Add(candidatePath);
-                                            }
-                                            else
-                                            {
-                                                foundPath = candidatePath;
-                                            }
-                                        }
-
-                                        if (foundPath == null)
+                                        SearchForPaths();
+                                        if (moduleAndEngineTargets.Count == 0)
                                         {
                                             _logger.LogError("Still can't find the editor after successfully building it. UET probably needs to be updated to handle whatever path it got built to!");
                                             return 1;
+                                        }
+                                    }
+
+                                    var foundPath = moduleAndEngineTargets
+                                        .OrderByDescending(x => x.lastModulesModificationTime)
+                                        .Select(x => x.editorPath)
+                                        .First();
+
+                                    if (moduleAndEngineTargets.Count > 1)
+                                    {
+                                        _logger.LogInformation("Multiple built configurations of the project were found. The configuration with the newest build will be selected:");
+                                        foreach (var entry in moduleAndEngineTargets.OrderByDescending(x => x.lastModulesModificationTime))
+                                        {
+                                            _logger.LogInformation($" - {entry.lastModulesModificationTime}: {entry.editorPath}");
                                         }
                                     }
 
