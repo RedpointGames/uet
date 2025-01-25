@@ -261,6 +261,16 @@
 
                                         var scriptSuffix = OperatingSystem.IsWindows() ? ".bat" : ".sh";
                                         var ubtPath = Path.Combine(engineWorkspace.Path, "Engine", "Build", "BatchFiles", $"RunUBT{scriptSuffix}");
+                                        var buildPath = Path.Combine(engineWorkspace.Path, "Engine", "Build", "BatchFiles", $"Build{scriptSuffix}");
+                                        if (!File.Exists(ubtPath) && File.Exists(buildPath))
+                                        {
+                                            ubtPath = buildPath;
+                                        }
+                                        if (!File.Exists(ubtPath))
+                                        {
+                                            _logger.LogError($"Unable to locate the build script that was expected to exist at: {ubtPath}");
+                                            return 1;
+                                        }
 
                                         var buildArguments = new List<LogicalProcessArgument>
                                         {
@@ -276,7 +286,7 @@
                                         var buildExitCode = await _processExecutor.ExecuteAsync(
                                             new ProcessSpecification
                                             {
-                                                FilePath = scriptSuffix,
+                                                FilePath = ubtPath,
                                                 Arguments = buildArguments,
                                                 WorkingDirectory = engineWorkspace.Path,
                                             },
@@ -359,6 +369,16 @@
                                     var scriptSuffix = OperatingSystem.IsWindows() ? ".bat" : ".sh";
                                     var toolName = target == "uat" ? "RunUAT" : "RunUBT";
                                     var toolPath = Path.Combine(engineWorkspace.Path, "Engine", "Build", "BatchFiles", $"{toolName}{scriptSuffix}");
+                                    var altToolPath = Path.Combine(engineWorkspace.Path, "Engine", "Build", "BatchFiles", $"Build{scriptSuffix}");
+                                    if (toolName == "RunUBT" && !File.Exists(toolPath) && File.Exists(altToolPath))
+                                    {
+                                        toolPath = altToolPath;
+                                    }
+                                    if (!File.Exists(toolPath))
+                                    {
+                                        _logger.LogError($"Unable to locate the tool launching script that was expected to exist at: {toolPath}");
+                                        return 1;
+                                    }
 
                                     var toolArguments = new List<LogicalProcessArgument>();
                                     if (projectPath != null)
