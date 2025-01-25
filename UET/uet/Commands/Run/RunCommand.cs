@@ -169,6 +169,17 @@
                     if (path != null && path.Type == PathSpecType.UProject)
                     {
                         projectPath = path.UProjectPath;
+                        var sourceFolder = Path.Combine(path.DirectoryPath, "Source");
+                        if (Directory.Exists(sourceFolder))
+                        {
+                            foreach (var editorFile in Directory.GetFiles(sourceFolder, "*Editor.Target.cs"))
+                            {
+                                editorTargetName = Path.GetFileName(editorFile);
+                                editorTargetName = editorTargetName.Substring(0, editorTargetName.IndexOf('.', StringComparison.Ordinal));
+                                _logger.LogInformation($"Detected editor target name from files in Source directory: {editorTargetName}");
+                                break;
+                            }
+                        }
                     }
                     else if (
                         path != null && path.Type == PathSpecType.BuildConfig &&
