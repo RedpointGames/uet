@@ -431,7 +431,8 @@
             var configPath = Path.Combine(repositoryRoot, pluginInfo.PluginName, "Config");
             if (Directory.Exists(configPath) &&
                 Directory.GetFiles(configPath, "*.ini").Length > 0 &&
-                distribution?.Package?.Filter == null)
+                distribution?.Package?.Filter == null &&
+                versioningType != BuildConfigPluginPackageType.None)
             {
                 throw new BuildMisconfigurationException("This plugin contains configuration files underneath Config/, but no filter file was specified for Package.Filter in BuildConfig.json. This almost certainly means the distribution is misconfigured, as plugin configuration files will not be included in the package unless you explicitly include them with a filter file.");
             }
@@ -452,13 +453,13 @@
                 buildGraphEnvironment,
                 localExecutor,
                 pluginInfo,
-                distribution,
+                distribution!,
                 executeTests,
                 executeDeployment).ConfigureAwait(false);
 
             // Compute the Gauntlet config paths.
             var gauntletPaths = new List<string>();
-            if (distribution.Gauntlet != null)
+            if (distribution!.Gauntlet != null)
             {
                 foreach (var path in distribution.Gauntlet.ConfigFiles ?? Array.Empty<string>())
                 {
