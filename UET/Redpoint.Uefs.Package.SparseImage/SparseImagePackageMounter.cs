@@ -1,8 +1,11 @@
 ﻿namespace Redpoint.Uefs.Package.SparseImage
 {
     using System.Diagnostics;
+    using System.IO.Hashing;
     using System.Runtime.Versioning;
+    using System.Text;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Hashing;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Uefs.Protocol;
@@ -108,8 +111,13 @@
             Directory.CreateDirectory(writeStoragePath);
             _writeStoragePath = writeStoragePath;
 
+            // Get the package path, and the last modified time of the path, to make a unique hash for the shadow path. This prevents us from re-using a shadow path when either the base package changes or the file is written to.
+            var hash = Hash.XxHash64(
+                $"{File.GetLastWriteTimeUtc(packagePath).Ticks}-{packagePath}",
+                Encoding.UTF8);
+
             // Mount our package at this path.
-            var shadowPath = Path.Combine(writeStoragePath, $"uefs-{(persistenceMode == WriteScratchPersistence.Keep ? "keep" : "discard")}.shadow");
+            var shadowPath = Path.Combine(writeStoragePath, $"uefs-{hash.Hash}-{(persistenceMode == WriteScratchPersistence.Keep ? "keep" : "discard")}.shadow");
             async Task<int> AttemptMount()
             {
                 _logger.LogInformation($"Mounting package at path: {packagePath}");
