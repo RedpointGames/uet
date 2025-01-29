@@ -14,6 +14,8 @@
     using Redpoint.Windows.VolumeManagement;
     using Redpoint.Uefs.Package;
     using System.Globalization;
+    using Redpoint.Hashing;
+    using System.Text;
 
     [SupportedOSPlatform("windows6.2")]
     internal sealed class VhdPackageMounter : IPackageMounter
@@ -101,8 +103,13 @@
             Directory.CreateDirectory(writeStoragePath);
             _writeStoragePath = writeStoragePath;
 
+            // Get the package path, and the last modified time of the path, to make a unique hash for the shadow path. This prevents us from re-using a shadow path when either the base package changes or the file is written to.
+            var hash = Hash.XxHash64(
+                $"{File.GetLastWriteTimeUtc(packagePath).Ticks}-{packagePath}",
+                Encoding.UTF8);
+
             // Create a differencing disk.
-            var differencingDiskPath = Path.Combine(writeStoragePath, $"writelayer-{(persistenceMode == WriteScratchPersistence.Keep ? "keep" : "discard")}.vhd");
+            var differencingDiskPath = Path.Combine(writeStoragePath, $"writelayer-{hash.Hash}-{(persistenceMode == WriteScratchPersistence.Keep ? "keep" : "discard")}.vhd");
             if (!File.Exists(differencingDiskPath) || persistenceMode != WriteScratchPersistence.Keep)
             {
                 var differencingDisk = Disk.InitializeDifferencing(differencingDiskPath, packagePath);

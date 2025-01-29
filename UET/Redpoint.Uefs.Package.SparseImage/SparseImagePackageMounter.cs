@@ -1,8 +1,11 @@
 ﻿namespace Redpoint.Uefs.Package.SparseImage
 {
     using System.Diagnostics;
+    using System.IO.Hashing;
     using System.Runtime.Versioning;
+    using System.Text;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Hashing;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Uefs.Protocol;
@@ -108,35 +111,54 @@
             Directory.CreateDirectory(writeStoragePath);
             _writeStoragePath = writeStoragePath;
 
+            // Get the package path, and the last modified time of the path, to make a unique hash for the shadow path. This prevents us from re-using a shadow path when either the base package changes or the file is written to.
+            var hash = Hash.XxHash64(
+                $"{File.GetLastWriteTimeUtc(packagePath).Ticks}-{packagePath}",
+                Encoding.UTF8);
+
             // Mount our package at this path.
-            var hdiutilExitCode = await _processExecutor.ExecuteAsync(
-                new ProcessSpecification
-                {
-                    FilePath = "/usr/bin/hdiutil",
-                    Arguments =
-                    [
-                        "mount",
-                        packagePath,
-                        "-mountpoint",
-                        _mountPath,
-                        "-shadow",
-                        Path.Combine(writeStoragePath, $"uefs-{(persistenceMode == WriteScratchPersistence.Keep ? "keep" : "discard")}.shadow"),
-                    ]
-                },
-                CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
-                {
-                    ReceiveStdout = line =>
+            var shadowPath = Path.Combine(writeStoragePath, $"uefs-{hash.Hash}-{(persistenceMode == WriteScratchPersistence.Keep ? "keep" : "discard")}.shadow");
+            async Task<int> AttemptMount()
+            {
+                _logger.LogInformation($"Mounting package at path: {packagePath}");
+                _logger.LogInformation($"Using shadow file at path: {shadowPath}");
+                _logger.LogInformation($"Target mount path is: {_mountPath!}");
+                return await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
                     {
-                        _logger.LogInformation($"hdiutil stdout: {line}");
-                        return false;
+                        FilePath = "/usr/bin/hdiutil",
+                        Arguments =
+                        [
+                            "mount",
+                            packagePath,
+                            "-mountpoint",
+                            _mountPath!,
+                            "-shadow",
+                            shadowPath,
+                        ]
                     },
-                    ReceiveStderr = line =>
+                    CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                     {
-                        _logger.LogInformation($"hdiutil stderr: {line}");
-                        return false;
-                    },
-                }),
-                CancellationToken.None).ConfigureAwait(false);
+                        ReceiveStdout = line =>
+                        {
+                            _logger.LogInformation($"hdiutil stdout: {line}");
+                            return false;
+                        },
+                        ReceiveStderr = line =>
+                        {
+                            _logger.LogInformation($"hdiutil stderr: {line}");
+                            return false;
+                        },
+                    }),
+                    CancellationToken.None).ConfigureAwait(false);
+            }
+            var hdiutilExitCode = await AttemptMount();
+            if (hdiutilExitCode != 0 && File.Exists(shadowPath))
+            {
+                _logger.LogWarning($"Failed to mount, attempting to delete shadow path and retrying: {shadowPath}");
+                File.Delete(shadowPath);
+                hdiutilExitCode = await AttemptMount();
+            }
             if (hdiutilExitCode != 0)
             {
                 throw new PackageMounterException($"hdiutil for mounting exited with code {hdiutilExitCode}");
