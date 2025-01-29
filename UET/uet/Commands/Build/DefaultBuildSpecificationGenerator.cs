@@ -68,10 +68,6 @@
         {
             var hasErrored = false;
 
-            // @note: We know this is the path prefix based on paths the Marketplace Support Team
-            // has sent us when submission fail to due to path length.
-            var marketplaceSubmissionPrefix = @"D:\build\U5M-Marketplace\Sync\LocalBuilds\PluginTemp\HostProject\Plugins\";
-
             void RecurseDirectory(DirectoryInfo rootDirectory, DirectoryInfo scanDirectory)
             {
                 foreach (var subdirectory in scanDirectory.GetDirectories())
@@ -85,12 +81,12 @@
                     var fileRelativePath = fileFullLocalPath.Substring(rootDirectoryLocalPath.Length).TrimStart(Path.DirectorySeparatorChar);
 
                     var pathLengthOnSubmissionBuild = Path.Combine(
-                        marketplaceSubmissionPrefix,
                         pluginName,
                         "Source",
                         fileRelativePath);
 
-                    if (pathLengthOnSubmissionBuild.Length > 260)
+                    // 170 characters is the new limit imposed by Fab.
+                    if (pathLengthOnSubmissionBuild.Length > 170)
                     {
                         if (!hasErrored)
                         {
