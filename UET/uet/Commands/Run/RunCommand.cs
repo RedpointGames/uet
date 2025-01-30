@@ -36,6 +36,7 @@
             public Option<PathSpec> Path;
             public Option<DistributionSpec?> Distribution;
             public Option<bool> SupplyProject;
+            public Option<bool> ForceBuild;
             public Argument<string> Target;
             public Argument<string[]> Arguments;
 
@@ -70,6 +71,11 @@
                     "--project",
                     description: "If set, supplies the '-project' argument as the last argument to UAT. The project path is not automatically set for UAT, because it is only allowed if the sub-command for UAT wants the project file path.");
                 SupplyProject.Arity = ArgumentArity.ZeroOrOne;
+
+                ForceBuild = new Option<bool>(
+                    "--force-build",
+                    description: "If set, always builds the relevant editor target before launching, even if UET considers the target to be up-to-date enough for a launch to happen. If you're getting 'Failed to build. Please retry building through your IDE.', this option can be used to get the build logs appearing in the terminal prior to the launch attempt.");
+                ForceBuild.Arity = ArgumentArity.ZeroOrOne;
 
                 Target = new Argument<string>(
                     "target",
@@ -144,6 +150,7 @@
                     var path = context.ParseResult.GetValueForOption(_options.Path);
                     var distribution = context.ParseResult.GetValueForOption(_options.Distribution);
                     var supplyProject = context.ParseResult.GetValueForOption(_options.SupplyProject)!;
+                    var forceBuild = context.ParseResult.GetValueForOption(_options.ForceBuild)!;
                     var target = context.ParseResult.GetValueForArgument(_options.Target)!.ToLowerInvariant();
                     var arguments = context.ParseResult.GetValueForArgument(_options.Arguments)!;
 
@@ -258,16 +265,24 @@
                                             }
                                         }
                                     }
-                                    SearchForPaths();
+
+                                    if (!forceBuild)
+                                    {
+                                        SearchForPaths();
+                                    }
 
                                     if (moduleAndEngineTargets.Count == 0)
                                     {
                                         // The editor isn't built; try to build it.
-                                        _logger.LogWarning("This project hasn't been built for any configurations, or the editor binaries don't exist as expected. The modules that were searched for were:");
-                                        foreach (var attemptedPath in attemptedPaths)
+                                        if (!forceBuild)
                                         {
-                                            _logger.LogWarning($"  {attemptedPath}");
+                                            _logger.LogWarning("This project hasn't been built for any configurations, or the editor binaries don't exist as expected. The modules that were searched for were:");
+                                            foreach (var attemptedPath in attemptedPaths)
+                                            {
+                                                _logger.LogWarning($"  {attemptedPath}");
+                                            }
                                         }
+
                                         _logger.LogWarning("Attempting to build the editor on-demand...");
 
                                         var scriptSuffix = OperatingSystem.IsWindows() ? ".bat" : ".sh";
