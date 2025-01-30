@@ -96,6 +96,7 @@ await using (services.BuildServiceProvider().AsAsyncDisposable(out var sp).Confi
     }
 
     // If this is BleedingEdge, or we don't have the target version installed, install it now.
+    var delaySeconds = 1;
     do
     {
         if (targetVersion == "BleedingEdge" || !File.Exists(UpgradeCommandImplementation.GetAssemblyPathForVersion(targetVersion)))
@@ -114,10 +115,21 @@ await using (services.BuildServiceProvider().AsAsyncDisposable(out var sp).Confi
                     targetVersion = UpgradeCommandImplementation.LastInstalledVersion!;
                 }
             }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.GatewayTimeout)
+            {
+                logger.LogWarning($"Gateway timeout while attempting to contact GitHub. This operation will be retried in {delaySeconds} seconds...");
+                await Task.Delay(delaySeconds * 1000, cts.Token).ConfigureAwait(false);
+                delaySeconds *= 2;
+                if (delaySeconds > 3600 /* 1 hour */)
+                {
+                    delaySeconds = 3600;
+                }
+                continue;
+            }
             catch (IOException ex) when (ex.Message.Contains("used by another process", StringComparison.Ordinal))
             {
                 logger.LogWarning($"Another UET shim instance is downloading {targetVersion}, checking if it is ready in another 2 seconds...");
-                await Task.Delay(2000).ConfigureAwait(false);
+                await Task.Delay(2000, cts.Token).ConfigureAwait(false);
                 continue;
             }
             catch (Exception ex)
