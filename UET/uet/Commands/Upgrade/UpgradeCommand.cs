@@ -65,6 +65,7 @@
             {
                 var version = context.ParseResult.GetValueForOption(_options.Version);
                 var doNotSetAsCurrent = context.ParseResult.GetValueForOption(_options.DoNotSetAsCurrent);
+                var delaySeconds = 1;
                 do
                 {
                     try
@@ -77,10 +78,21 @@
                             doNotSetAsCurrent,
                             context.GetCancellationToken()).ConfigureAwait(false);
                     }
+                    catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.GatewayTimeout)
+                    {
+                        _logger.LogWarning($"Gateway timeout while attempting to contact GitHub. This operation will be retried in {delaySeconds} seconds...");
+                        await Task.Delay(delaySeconds * 1000, context.GetCancellationToken()).ConfigureAwait(false);
+                        delaySeconds *= 2;
+                        if (delaySeconds > 3600 /* 1 hour */)
+                        {
+                            delaySeconds = 3600;
+                        }
+                        continue;
+                    }
                     catch (IOException ex) when (ex.Message.Contains("used by another process", StringComparison.Ordinal))
                     {
                         _logger.LogWarning($"Another UET shim instance is downloading this version, checking if it is ready in another 2 seconds...");
-                        await Task.Delay(2000).ConfigureAwait(false);
+                        await Task.Delay(2000, context.GetCancellationToken()).ConfigureAwait(false);
                         continue;
                     }
                 }
