@@ -70,6 +70,10 @@ await using (services.BuildServiceProvider().AsAsyncDisposable(out var sp).Confi
     if (string.IsNullOrEmpty(targetVersion) && File.Exists(UpgradeCommandImplementation.GetAssemblyPathForVersion("Current")))
     {
         targetVersion = FileVersionInfo.GetVersionInfo(UpgradeCommandImplementation.GetAssemblyPathForVersion("Current")).ProductVersion;
+        if (targetVersion != null && targetVersion.Contains('+', StringComparison.InvariantCulture))
+        {
+            targetVersion = targetVersion.Split('+')[0];
+        }
         if (!string.IsNullOrEmpty(targetVersion))
         {
             logger.LogInformation($"UET shim selected version {targetVersion} from current installations.");
