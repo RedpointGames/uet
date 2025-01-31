@@ -193,6 +193,7 @@ AllowAllConstructorInitializersOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AlignAfterOpenBracket: AlwaysBreak
 BreakConstructorInitializers: BeforeComma
+FixNamespaceComments: false
 ---
 ");
                         }
