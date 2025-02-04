@@ -24,6 +24,7 @@
         private readonly IProcessExecutor _processExecutor;
         private readonly IDynamicWorkspaceProvider _dynamicWorkspaceProvider;
         private readonly IUATExecutor _uatExecutor;
+        private readonly IDotnetLocator _dotnetLocator;
         private readonly BuildGraphPatchSet[] _patches;
         private readonly string _patchHash;
 
@@ -35,13 +36,15 @@
             IPathResolver pathResolver,
             IProcessExecutor processExecutor,
             IDynamicWorkspaceProvider dynamicWorkspaceProvider,
-            IUATExecutor uatExecutor)
+            IUATExecutor uatExecutor,
+            IDotnetLocator dotnetLocator)
         {
             _logger = logger;
             _pathResolver = pathResolver;
             _processExecutor = processExecutor;
             _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
             _uatExecutor = uatExecutor;
+            _dotnetLocator = dotnetLocator;
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Redpoint.Uet.BuildPipeline.BuildGraph.Patching.BuildGraphPatches.json"))
             {
                 _patches = JsonSerializer.Deserialize<BuildGraphPatchSet[]>(stream!, BuildGraphSourceGenerationContext.Default.BuildGraphPatchSetArray)!;
@@ -283,75 +286,10 @@
             var unrealBuildToolProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "UnrealBuildTool", "UnrealBuildTool.csproj");
             var automationToolBuildGraphProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "BuildGraph", "BuildGraph.Automation.csproj");
             var automationToolProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "AutomationTool.csproj");
-            string? dotnetPath = null;
-            var dotnetEnginePath = Path.Combine(enginePath, "Engine", "Binaries", "ThirdParty", "DotNet");
-            if (Directory.Exists(dotnetEnginePath))
-            {
-                string? dotnetVersionFolder = null;
-                foreach (var candidateDirectory in Directory.GetDirectories(dotnetEnginePath))
-                {
-                    if (dotnetVersionFolder == null)
-                    {
-                        dotnetVersionFolder = Path.GetFileName(candidateDirectory);
-                    }
-                    else if (string.Compare(Path.GetFileName(candidateDirectory), dotnetVersionFolder, StringComparison.OrdinalIgnoreCase) > 0)
-                    {
-                        dotnetVersionFolder = Path.GetFileName(candidateDirectory);
-                    }
-                }
-                if (dotnetVersionFolder != null)
-                {
-                    if (OperatingSystem.IsWindows())
-                    {
-                        dotnetPath = Path.Combine(dotnetEnginePath, dotnetVersionFolder, "windows", "dotnet.exe");
-                        if (!File.Exists(dotnetPath))
-                        {
-                            if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
-                            {
-                                dotnetPath = Path.Combine(dotnetEnginePath, dotnetVersionFolder, "win-arm64", "dotnet.exe");
-                            }
-                            else
-                            {
-                                dotnetPath = Path.Combine(dotnetEnginePath, dotnetVersionFolder, "win-x64", "dotnet.exe");
-                            }
-                        }
-                    }
-                    else if (OperatingSystem.IsMacOS())
-                    {
-                        if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
-                        {
-                            dotnetPath = Path.Combine(dotnetEnginePath, dotnetVersionFolder, "mac-arm64", "dotnet");
-                        }
-                        else
-                        {
-                            dotnetPath = Path.Combine(dotnetEnginePath, dotnetVersionFolder, "mac-x64", "dotnet");
-                        }
-                    }
-                }
-            }
-            if (dotnetPath != null && !Path.Exists(dotnetPath))
-            {
-                dotnetPath = null;
-            }
-            if (dotnetPath == null)
-            {
-                dotnetPath = await _pathResolver.ResolveBinaryPath("dotnet").ConfigureAwait(false);
-            }
+            var dotnetPath = await _dotnetLocator.TryLocateDotNetWithinEngine(enginePath);
             if (dotnetPath == null)
             {
                 throw new InvalidOperationException("Could not find usable dotnet binary!");
-            }
-            if (!OperatingSystem.IsWindows())
-            {
-                try
-                {
-                    File.SetUnixFileMode(
-                        dotnetPath,
-                        File.GetUnixFileMode(dotnetPath) | UnixFileMode.OtherExecute | UnixFileMode.GroupExecute | UnixFileMode.UserExecute);
-                }
-                catch
-                {
-                }
             }
             _logger.LogInformation($"dotnet being used for patching: {dotnetPath}");
 

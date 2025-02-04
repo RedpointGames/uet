@@ -26,6 +26,7 @@ namespace Redpoint.Uet.BuildPipeline
             services.AddSingleton<IDynamicBuildGraphIncludeWriter, DefaultDynamicBuildGraphIncludeWriter>();
             services.AddSingleton<IPreBuild, DefaultPreBuild>();
             services.AddSingleton<IGradleWorkspace, DefaultGradleWorkspace>();
+            services.AddSingleton<IDotnetLocator, DefaultDotnetLocator>();
             if (OperatingSystem.IsMacOS())
             {
                 services.AddSingleton<IMobileProvisioning, MacMobileProvisioning>();
