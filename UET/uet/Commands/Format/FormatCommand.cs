@@ -426,6 +426,7 @@ dotnet_diagnostic.CA2007.severity = suggestion
 dotnet_diagnostic.CA2022.severity = suggestion
 dotnet_diagnostic.CA2263.severity = suggestion
 dotnet_diagnostic.RS1035.severity = none
+dotnet_diagnostic.CA1822.severity = none
 ");
                         }
                         else
@@ -521,6 +522,7 @@ dotnet_diagnostic.RS1035.severity = none
                                         "--exclude-diagnostics", "IDE0005",
                                         "--exclude-diagnostics", "IDE1006",
                                         "--exclude-diagnostics", "IDE0060",
+                                        "--exclude-diagnostics", "CA1822",
                                         "--exclude-diagnostics", "CA1866",
                                         "--exclude-diagnostics", "CA1050",
                                         "-v", "diag",
