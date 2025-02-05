@@ -8,9 +8,14 @@
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <!-- 
       The PublishReadyToRun bug on macOS (https://github.com/dotnet/runtime/issues/88288) is 
-      reportedly fixed in .NET 9. If this bug happens again, the issue needs to be re-opened.
+      reportedly fixed in .NET 9.
+
+      However, we've noticed additional access violations in .NET 9 related to async task
+      continuation, so we're turning off PublishReadyToRun again on macOS 
+      (https://github.com/dotnet/runtime/issues/112167).
     -->
-    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(RuntimeIdentifier)' != 'osx-arm64'">true</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(RuntimeIdentifier)' == 'osx-arm64'">false</PublishReadyToRun>
     <PublishTrimmed>true</PublishTrimmed>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <DebuggerSupport Condition="'$(Configuration)' == 'Release'">false</DebuggerSupport>
