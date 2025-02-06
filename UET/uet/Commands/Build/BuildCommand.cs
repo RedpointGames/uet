@@ -315,6 +315,8 @@
                 _dynamicWorkspaceProvider.UseWorkspaceVirtualisation = storageVirtualisation;
 
                 // @todo: Move this validation to the parsing APIs.
+                string? windowsTelemetryPath = null;
+                string? macTelemetryPath = null;
                 if (executorName == "local")
                 {
                     if (string.IsNullOrWhiteSpace(windowsSharedStoragePath))
@@ -339,8 +341,10 @@
                     // Inherit from environment variables if things aren't specified on the command line.
                     var windowsSharedStoragePathEnv = Environment.GetEnvironmentVariable("UET_WINDOWS_SHARED_STORAGE_PATH");
                     var windowsSdksPathEnv = Environment.GetEnvironmentVariable("UET_WINDOWS_SDKS_PATH");
+                    var windowsTelemetryPathEnv = Environment.GetEnvironmentVariable("UET_WINDOWS_TELEMETRY_PATH");
                     var macSharedStoragePathEnv = Environment.GetEnvironmentVariable("UET_MAC_SHARED_STORAGE_PATH");
                     var macSdksPathEnv = Environment.GetEnvironmentVariable("UET_MAC_SDKS_PATH");
+                    var macTelemetryPathEnv = Environment.GetEnvironmentVariable("UET_MAC_TELEMETRY_PATH");
                     if (string.IsNullOrWhiteSpace(windowsSharedStoragePath))
                     {
                         windowsSharedStoragePath = windowsSharedStoragePathEnv;
@@ -349,6 +353,10 @@
                     {
                         windowsSdksPath = windowsSdksPathEnv;
                     }
+                    if (string.IsNullOrWhiteSpace(windowsTelemetryPathEnv))
+                    {
+                        windowsTelemetryPath = windowsTelemetryPathEnv;
+                    }
                     if (string.IsNullOrWhiteSpace(macSharedStoragePath))
                     {
                         macSharedStoragePath = macSharedStoragePathEnv;
@@ -356,6 +364,10 @@
                     if (string.IsNullOrWhiteSpace(macSdksPath))
                     {
                         macSdksPath = macSdksPathEnv;
+                    }
+                    if (string.IsNullOrWhiteSpace(macTelemetryPathEnv))
+                    {
+                        macTelemetryPath = macTelemetryPathEnv;
                     }
 
                     // Ensure that at least the shared storage paths are set.
@@ -420,6 +432,12 @@
                 _logger.LogInformation($"Derived shared storage path for Windows: {windowsSharedStoragePath}");
                 _logger.LogInformation($"Derived shared storage path for macOS: {macSharedStoragePath}");
 
+                if (!string.IsNullOrWhiteSpace(windowsTelemetryPath) || !string.IsNullOrWhiteSpace(macTelemetryPath))
+                {
+                    _logger.LogInformation($"Telemetry storage path for Windows: {windowsTelemetryPath}");
+                    _logger.LogInformation($"Telemetry storage path for macOS: {macTelemetryPath}");
+                }
+
                 var buildGraphEnvironment = new Redpoint.Uet.BuildPipeline.Environment.BuildGraphEnvironment
                 {
                     PipelineId = pipelineId,
@@ -427,11 +445,13 @@
                     {
                         SharedStorageAbsolutePath = windowsSharedStoragePath,
                         SdksPath = windowsSdksPath?.TrimEnd('\\'),
+                        TelemetryPath = windowsTelemetryPath,
                     },
                     Mac = new Redpoint.Uet.BuildPipeline.Environment.BuildGraphMacEnvironment
                     {
                         SharedStorageAbsolutePath = macSharedStoragePath,
                         SdksPath = macSdksPath?.TrimEnd('/'),
+                        TelemetryPath = macTelemetryPath,
                     },
                     UseStorageVirtualisation = storageVirtualisation,
                 };

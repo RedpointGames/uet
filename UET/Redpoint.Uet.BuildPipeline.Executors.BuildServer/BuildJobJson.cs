@@ -24,6 +24,9 @@
         [JsonPropertyName("SdksPath"), JsonRequired]
         public string? SdksPath { get; set; } = null;
 
+        [JsonPropertyName("TelemetryPath"), JsonRequired]
+        public string? TelemetryPath { get; set; } = null;
+
         [JsonPropertyName("BuildGraphTarget"), JsonRequired]
         public string BuildGraphTarget { get; set; } = string.Empty;
 

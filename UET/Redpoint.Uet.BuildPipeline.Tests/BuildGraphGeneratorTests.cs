@@ -47,6 +47,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
                 BuildGraphScriptSpecification.ForProject(),
                 "End",
                 Path.Combine(projectPath, ".uet", "shared-storage"),
+                null,
                 new Dictionary<string, string>
                 {
                     { $"UETPath", $"uet" },
@@ -105,6 +106,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
                 BuildGraphScriptSpecification.ForPlugin(),
                 "End",
                 Path.Combine(pluginPath, ".uet", "shared-storage"),
+                null,
                 new Dictionary<string, string>
                 {
                     { $"UETPath", $"uet" },

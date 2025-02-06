@@ -163,11 +163,13 @@
                     {
                         SharedStorageAbsolutePath = windowsSharedStoragePath,
                         SdksPath = windowsSdksPath?.TrimEnd('\\'),
+                        TelemetryPath = null,
                     },
                     Mac = new Redpoint.Uet.BuildPipeline.Environment.BuildGraphMacEnvironment
                     {
                         SharedStorageAbsolutePath = macSharedStoragePath,
                         SdksPath = macSdksPath?.TrimEnd('/'),
+                        TelemetryPath = null,
                     },
                     UseStorageVirtualisation = false,
                 };

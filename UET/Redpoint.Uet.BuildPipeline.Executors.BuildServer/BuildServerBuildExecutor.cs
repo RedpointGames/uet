@@ -491,6 +491,9 @@
                         OperatingSystem.IsWindows()
                             ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
                             : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                        OperatingSystem.IsWindows()
+                            ? buildSpecification.BuildGraphEnvironment.Windows.TelemetryPath
+                            : buildSpecification.BuildGraphEnvironment.Mac!.TelemetryPath,
                         buildSpecification.BuildGraphSettings,
                         buildSpecification.BuildGraphSettingReplacements,
                         generationCaptureSpecification,
@@ -663,6 +666,12 @@
                     {
                         BuildServerJobPlatform.Windows => buildSpecification.BuildGraphEnvironment.Windows.SdksPath,
                         BuildServerJobPlatform.Mac => buildSpecification.BuildGraphEnvironment.Mac!.SdksPath,
+                        _ => throw new PlatformNotSupportedException(),
+                    },
+                    TelemetryPath = job.Agent.Platform switch
+                    {
+                        BuildServerJobPlatform.Windows => buildSpecification.BuildGraphEnvironment.Windows.TelemetryPath,
+                        BuildServerJobPlatform.Mac => buildSpecification.BuildGraphEnvironment.Mac!.TelemetryPath,
                         _ => throw new PlatformNotSupportedException(),
                     },
                     BuildGraphTarget = buildSpecification.BuildGraphTarget,

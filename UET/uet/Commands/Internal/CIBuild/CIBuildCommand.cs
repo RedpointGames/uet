@@ -150,6 +150,7 @@
                         {
                             SharedStorageAbsolutePath = buildJson.SharedStoragePath,
                             SdksPath = buildJson.SdksPath,
+                            TelemetryPath = buildJson.TelemetryPath,
                         },
                         Mac = null!,
                         UseStorageVirtualisation = buildJson.UseStorageVirtualisation,
@@ -165,6 +166,7 @@
                         {
                             SharedStorageAbsolutePath = buildJson.SharedStoragePath,
                             SdksPath = buildJson.SdksPath,
+                            TelemetryPath = buildJson.TelemetryPath,
                         },
                         UseStorageVirtualisation = buildJson.UseStorageVirtualisation,
                     };

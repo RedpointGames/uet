@@ -249,7 +249,12 @@
                                 buildSpecification.BuildGraphScript,
                                 buildSpecification.BuildGraphTarget,
                                 node.Node.Name,
-                                OperatingSystem.IsWindows() ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                                OperatingSystem.IsWindows()
+                                    ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
+                                    : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                                OperatingSystem.IsWindows()
+                                    ? buildSpecification.BuildGraphEnvironment.Windows.TelemetryPath
+                                    : buildSpecification.BuildGraphEnvironment.Mac!.TelemetryPath,
                                 buildSpecification.BuildGraphSettings,
                                 buildSpecification.BuildGraphSettingReplacements,
                                 globalEnvironmentVariablesWithSdk!,
@@ -350,6 +355,9 @@
                         OperatingSystem.IsWindows()
                             ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
                             : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                        OperatingSystem.IsWindows()
+                            ? buildSpecification.BuildGraphEnvironment.Windows.TelemetryPath
+                            : buildSpecification.BuildGraphEnvironment.Mac!.TelemetryPath,
                         buildSpecification.BuildGraphSettings,
                         buildSpecification.BuildGraphSettingReplacements,
                         generationCaptureSpecification,
