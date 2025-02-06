@@ -85,6 +85,7 @@
             string buildGraphTarget,
             string buildGraphNodeName,
             string buildGraphSharedStorageDir,
+            string? buildGraphTelemetryDir,
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
             Dictionary<string, string> globalEnvironmentVariables,
@@ -125,6 +126,10 @@
                         // the same time.
                         { "NUGET_PACKAGES", nugetPackages.Path },
                     };
+                    if (!string.IsNullOrWhiteSpace(buildGraphTelemetryDir))
+                    {
+                        environmentVariables["UE_TELEMETRY_DIR"] = buildGraphTelemetryDir;
+                    }
                     if (gradleInstance != null)
                     {
                         // Adjust Gradle cache path so that Android packaging works under SYSTEM.
@@ -221,6 +226,7 @@
             BuildGraphScriptSpecification buildGraphScript,
             string buildGraphTarget,
             string buildGraphSharedStorageDir,
+            string? buildGraphTelemetryDir,
             Dictionary<string, string> buildGraphArguments,
             Dictionary<string, string> buildGraphArgumentReplacements,
             ICaptureSpecification captureSpecification,
@@ -230,6 +236,16 @@
             var deleteBuildGraphOutput = true;
             try
             {
+                var environmentVariables = new Dictionary<string, string>
+                {
+                    { "IsBuildMachine", "1" },
+                    { "uebp_LOCAL_ROOT", enginePath.TrimEnd('\\') },
+                };
+                if (!string.IsNullOrWhiteSpace(buildGraphTelemetryDir))
+                {
+                    environmentVariables["UE_TELEMETRY_DIR"] = buildGraphTelemetryDir;
+                }
+
                 var exitCode = await InternalRunAsync(
                     enginePath,
                     buildGraphRepositoryRootPath,
@@ -241,11 +257,7 @@
                     new[] { $"-Export={buildGraphOutput}" },
                     buildGraphArguments,
                     buildGraphArgumentReplacements,
-                    new Dictionary<string, string>
-                    {
-                        { "IsBuildMachine", "1" },
-                        { "uebp_LOCAL_ROOT", enginePath.TrimEnd('\\') },
-                    },
+                    environmentVariables,
                     null,
                     captureSpecification,
                     cancellationToken).ConfigureAwait(false);

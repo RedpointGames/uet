@@ -16,5 +16,11 @@
         /// in this location for you.
         /// </summary>
         public required string? SdksPath { get; init; }
+
+        /// <summary>
+        /// The absolute path that Unreal build tools should output telemetry data to as OpenTracing JSON files. If this is set, 
+        /// UET will pass this directory to BuildGraph by setting the UE_TELEMETRY_DIR on Windows build agents.
+        /// </summary>
+        public required string? TelemetryPath { get; init; }
     }
 }
