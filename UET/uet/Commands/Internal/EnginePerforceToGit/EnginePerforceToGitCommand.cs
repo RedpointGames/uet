@@ -533,17 +533,22 @@
                         }
                     }
 
-                    _logger.LogInformation($"Deleting all .gitattributes and .gitmodules files...");
-                    foreach (var file in gitWorkspacePath.EnumerateFiles(".gitmodules", new EnumerationOptions { RecurseSubdirectories = true }))
+                    void DeleteAllGitModulesAndAttributes()
                     {
-                        _logger.LogInformation($"  '{file}'...");
-                        File.Delete(file.FullName);
+                        _logger.LogInformation($"Deleting all .gitattributes and .gitmodules files...");
+                        foreach (var file in gitWorkspacePath.EnumerateFiles(".gitmodules", new EnumerationOptions { RecurseSubdirectories = true, MatchType = MatchType.Simple }))
+                        {
+                            _logger.LogInformation($"  '{file}'...");
+                            File.Delete(file.FullName);
+                        }
+                        foreach (var file in gitWorkspacePath.EnumerateFiles(".gitattributes", new EnumerationOptions { RecurseSubdirectories = true, MatchType = MatchType.Simple }))
+                        {
+                            _logger.LogInformation($"  '{file}'...");
+                            File.Delete(file.FullName);
+                        }
                     }
-                    foreach (var file in gitWorkspacePath.EnumerateFiles(".gitattributes", new EnumerationOptions { RecurseSubdirectories = true }))
-                    {
-                        _logger.LogInformation($"  '{file}'...");
-                        File.Delete(file.FullName);
-                    }
+
+                    DeleteAllGitModulesAndAttributes();
 
                     if (OperatingSystem.IsWindows())
                     {
@@ -590,17 +595,7 @@
                         }
                     }
 
-                    _logger.LogInformation($"Deleting all .gitattributes and .gitmodules files...");
-                    foreach (var file in gitWorkspacePath.EnumerateFiles(".gitmodules", new EnumerationOptions { RecurseSubdirectories = true }))
-                    {
-                        _logger.LogInformation($"  '{file}'...");
-                        File.Delete(file.FullName);
-                    }
-                    foreach (var file in gitWorkspacePath.EnumerateFiles(".gitattributes", new EnumerationOptions { RecurseSubdirectories = true }))
-                    {
-                        _logger.LogInformation($"  '{file}'...");
-                        File.Delete(file.FullName);
-                    }
+                    DeleteAllGitModulesAndAttributes();
 
                     _logger.LogInformation($"Setting .gitattributes...");
                     File.WriteAllText(
