@@ -32,6 +32,7 @@
     using UET.Commands.Internal.InstallPackage;
     using UET.Commands.Internal.CMakeUbaServer;
     using UET.Commands.Internal.CMakeUbaRun;
+    using UET.Commands.Internal.EnginePerforceToGit;
 
     internal sealed class InternalCommand
     {
@@ -71,6 +72,7 @@
                 InstallPackageCommand.CreateInstallPackageCommand(),
                 CMakeUbaServerCommand.CreateCMakeUbaServerCommand(),
                 CMakeUbaRunCommand.CreateCMakeUbaRunCommand(),
+                EnginePerforceToGitCommand.CreateEnginePerforceToGitCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
