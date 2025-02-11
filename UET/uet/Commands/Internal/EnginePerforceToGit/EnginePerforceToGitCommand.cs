@@ -207,7 +207,7 @@
                 };
 
                 _logger.LogInformation("Locating p4 binary...");
-                string? p4 = Path.Combine(Environment.CurrentDirectory, "p4");
+                string? p4 = Path.Combine(Environment.CurrentDirectory, "p4.exe");
                 if (!File.Exists(p4))
                 {
                     p4 = null;
