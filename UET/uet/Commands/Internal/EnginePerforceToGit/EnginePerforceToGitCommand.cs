@@ -486,7 +486,7 @@
                             WorkingDirectory = gitWorkspacePath.FullName,
                             EnvironmentVariables = gitEnvs,
                         },
-                        CaptureSpecification.Passthrough,
+                        CaptureSpecification.Sanitized,
                         context.GetCancellationToken());
                     if (exitCode > 8)
                     {
