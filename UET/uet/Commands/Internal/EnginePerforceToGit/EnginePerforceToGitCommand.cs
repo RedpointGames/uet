@@ -514,7 +514,25 @@
                     }
                     else
                     {
-                        _logger.LogInformation($"Checkout out branch '{releaseVersion}' at 'origin/{releaseVersion}'...");
+                        _logger.LogInformation($"Git LFS fetch from 'origin/{releaseVersion}'...");
+                        RemoveIndexLock(gitWorkspacePath);
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = git,
+                                Arguments = ["lfs", "fetch", "origin", releaseVersion],
+                                WorkingDirectory = gitWorkspacePath.FullName,
+                                EnvironmentVariables = gitEnvs,
+                            },
+                            CaptureSpecification.Passthrough,
+                            context.GetCancellationToken());
+                        if (exitCode != 0)
+                        {
+                            _logger.LogError($"Failed to Git LFS fetch '{releaseVersion}'.");
+                            return exitCode;
+                        }
+
+                        _logger.LogInformation($"Checkout branch '{releaseVersion}' at 'origin/{releaseVersion}'...");
                         RemoveIndexLock(gitWorkspacePath);
                         exitCode = await _processExecutor.ExecuteAsync(
                             new ProcessSpecification
