@@ -25,11 +25,14 @@
 
     internal sealed class FormatCommand
     {
+        private static readonly string[] _types = ["cpp", "csharp", "json"];
+
         internal sealed class Options
         {
             public Option<EngineSpec> Engine;
             public Option<PathSpec> Path;
             public Option<bool> DryRun;
+            public Option<string[]> Only;
 
             public Options()
             {
@@ -52,6 +55,12 @@
                 DryRun = new Option<bool>(
                     "--dry-run",
                     description: "Show a list of files that would be processed, but don't actually make formatting changes.");
+
+                Only = new Option<string[]>(
+                    "--only",
+                    description: "If set, formatting is only done for these types of files.");
+                Only.Arity = ArgumentArity.ZeroOrMore;
+                Only.FromAmong(_types);
             }
         }
 
@@ -110,6 +119,12 @@
                 var path = context.ParseResult.GetValueForOption(_options.Path)!;
                 var engine = context.ParseResult.GetValueForOption(_options.Engine)!;
                 var dryRun = context.ParseResult.GetValueForOption(_options.DryRun)!;
+                var only = context.ParseResult.GetValueForOption(_options.Only);
+
+                if (only == null || only.Length == 0)
+                {
+                    only = _types;
+                }
 
                 if (dryRun)
                 {
@@ -178,18 +193,20 @@
                 }
                 foreach (var directory in directories)
                 {
-                    // Ensure .clang-format exists.
-                    var clangFormatFilePath = directory;
-                    while (clangFormatFilePath != null && !File.Exists(Path.Combine(clangFormatFilePath, ".clang-format")))
+                    if (only.Contains("cpp"))
                     {
-                        clangFormatFilePath = Path.GetDirectoryName(clangFormatFilePath);
-                    }
-                    if (clangFormatFilePath == null)
-                    {
-                        if (!dryRun)
+                        // Ensure .clang-format exists.
+                        var clangFormatFilePath = directory;
+                        while (clangFormatFilePath != null && !File.Exists(Path.Combine(clangFormatFilePath, ".clang-format")))
                         {
-                            _logger.LogInformation($"Creating required .clang-format file: {Path.Combine(directory, ".clang-format")}");
-                            File.WriteAllText(Path.Combine(directory, ".clang-format"), @"
+                            clangFormatFilePath = Path.GetDirectoryName(clangFormatFilePath);
+                        }
+                        if (clangFormatFilePath == null)
+                        {
+                            if (!dryRun)
+                            {
+                                _logger.LogInformation($"Creating required .clang-format file: {Path.Combine(directory, ".clang-format")}");
+                                File.WriteAllText(Path.Combine(directory, ".clang-format"), @"
 ---
 BasedOnStyle: Microsoft
 ---
@@ -206,10 +223,11 @@ BreakConstructorInitializers: BeforeComma
 FixNamespaceComments: false
 ---
 ");
-                        }
-                        else
-                        {
-                            _logger.LogInformation($"Would create required .clang-format file: {Path.Combine(directory, ".clang-format")}");
+                            }
+                            else
+                            {
+                                _logger.LogInformation($"Would create required .clang-format file: {Path.Combine(directory, ".clang-format")}");
+                            }
                         }
                     }
 
@@ -435,117 +453,124 @@ dotnet_diagnostic.CA1822.severity = none
                         }
                     }
 
-                    // Find all .cpp and .h files recursively in the target directory, and generate a file list to
-                    // execute clang-format.exe with.
-                    var cppFileList = new HashSet<string>();
-                    foreach (var file in Directory.EnumerateFiles(directory, "*.cpp", new EnumerationOptions { IgnoreInaccessible = true, RecurseSubdirectories = true }))
+                    if (only.Contains("cpp"))
                     {
-                        cppFileList.Add(file);
-                    }
-                    foreach (var file in Directory.EnumerateFiles(directory, "*.h", new EnumerationOptions { IgnoreInaccessible = true, RecurseSubdirectories = true }))
-                    {
-                        cppFileList.Add(file);
-                    }
-                    var tempFileList = Path.GetTempFileName();
-                    await File.WriteAllLinesAsync(tempFileList, cppFileList, context.GetCancellationToken()).ConfigureAwait(false);
-
-                    // Run clang-format.exe.
-                    if (cppFileList.Count > 0)
-                    {
-                        _logger.LogInformation($"Executing 'clang-format' on {cppFileList.Count} files in '{directory}'...");
-                        await _processExecutor.ExecuteAsync(
-                            new ProcessSpecification
-                            {
-                                FilePath = clangFormatPath,
-                                Arguments = dryRun ? ["-i", $"--files={tempFileList}", "--verbose", "--dry-run"] : ["-i", $"--files={tempFileList}", "--verbose"],
-                            },
-                            CaptureSpecification.Passthrough,
-                            context.GetCancellationToken()).ConfigureAwait(false);
-                    }
-
-                    // Try to format C# files.
-                    var dotnetPath = await _dotnetLocator.TryLocateDotNetWithinEngine(engine.Path!).ConfigureAwait(false);
-                    if (dotnetPath != null)
-                    {
-                        // Find all .cs files recursively in the target directory, and generate a .NET project file that references all of them.
-                        var csDocument = new XmlDocument();
-                        var project = csDocument.CreateElement("Project");
-                        project.SetAttribute("Sdk", "Microsoft.NET.Sdk");
-                        csDocument.AppendChild(project);
-                        var propertyGroup = csDocument.CreateElement("PropertyGroup");
-                        var targetFramework = csDocument.CreateElement("TargetFramework");
-                        targetFramework.InnerText = "net6.0";
-                        propertyGroup.AppendChild(targetFramework);
-                        var langVersion = csDocument.CreateElement("LangVersion");
-                        langVersion.InnerText = "10.0";
-                        propertyGroup.AppendChild(langVersion);
-                        project.AppendChild(propertyGroup);
-                        var itemGroup = csDocument.CreateElement("ItemGroup");
-                        var csFileCount = 0;
-                        foreach (var file in Directory.EnumerateFiles(directory, "*.cs", new EnumerationOptions { IgnoreInaccessible = true, RecurseSubdirectories = true }))
+                        // Find all .cpp and .h files recursively in the target directory, and generate a file list to
+                        // execute clang-format.exe with.
+                        var cppFileList = new HashSet<string>();
+                        foreach (var file in Directory.EnumerateFiles(directory, "*.cpp", new EnumerationOptions { IgnoreInaccessible = true, RecurseSubdirectories = true }))
                         {
-                            var item = csDocument.CreateElement("Compile");
-                            item.SetAttribute("Include", file);
-                            var link = csDocument.CreateElement("Link");
-                            link.InnerText = Path.GetFileName(file);
-                            item.AppendChild(link);
-                            itemGroup.AppendChild(item);
-                            csFileCount++;
+                            cppFileList.Add(file);
                         }
-                        project.AppendChild(itemGroup);
-
-                        var tempDirectory = Path.GetTempFileName();
-                        if (File.Exists(tempDirectory))
+                        foreach (var file in Directory.EnumerateFiles(directory, "*.h", new EnumerationOptions { IgnoreInaccessible = true, RecurseSubdirectories = true }))
                         {
-                            File.Delete(tempDirectory);
+                            cppFileList.Add(file);
                         }
-                        if (Directory.Exists(tempDirectory))
-                        {
-                            await DirectoryAsync.DeleteAsync(tempDirectory, true);
-                        }
-                        Directory.CreateDirectory(tempDirectory);
+                        var tempFileList = Path.GetTempFileName();
+                        await File.WriteAllLinesAsync(tempFileList, cppFileList, context.GetCancellationToken()).ConfigureAwait(false);
 
-                        var tempMsBuildProject = Path.Combine(tempDirectory, "Project.csproj");
-                        csDocument.Save(tempMsBuildProject);
-
-                        // Run dotnet format.
-                        if (csFileCount > 0)
+                        // Run clang-format.exe.
+                        if (cppFileList.Count > 0)
                         {
-                            _logger.LogInformation($"Executing 'dotnet format' on {csFileCount} files in '{directory}'...");
+                            _logger.LogInformation($"Executing 'clang-format' on {cppFileList.Count} files in '{directory}'...");
                             await _processExecutor.ExecuteAsync(
                                 new ProcessSpecification
                                 {
-                                    FilePath = dotnetPath,
-                                    Arguments = [
-                                        "format",
-                                        "--severity", "info",
-                                        "--exclude-diagnostics", "IDE0005",
-                                        "--exclude-diagnostics", "IDE1006",
-                                        "--exclude-diagnostics", "IDE0060",
-                                        "--exclude-diagnostics", "CA1822",
-                                        "--exclude-diagnostics", "CA1866",
-                                        "--exclude-diagnostics", "CA1050",
-                                        "-v", "diag",
-                                        tempMsBuildProject
-                                    ],
-                                    WorkingDirectory = tempDirectory,
+                                    FilePath = clangFormatPath,
+                                    Arguments = dryRun ? ["-i", $"--files={tempFileList}", "--verbose", "--dry-run"] : ["-i", $"--files={tempFileList}", "--verbose"],
                                 },
                                 CaptureSpecification.Passthrough,
                                 context.GetCancellationToken()).ConfigureAwait(false);
                         }
                     }
-                    else
-                    {
-                        var csFileCount = 0;
-                        foreach (var file in Directory.EnumerateFiles(directory, "*.cs", new EnumerationOptions { IgnoreInaccessible = true, RecurseSubdirectories = true }))
-                        {
-                            csFileCount++;
-                        }
 
-                        _logger.LogWarning($"Skipping 'dotnet format' for {csFileCount} files in '{directory}', because 'dotnet' could not be located in the engine or on the PATH.");
+                    if (only.Contains("csharp"))
+                    {
+                        // Try to format C# files.
+                        var dotnetPath = await _dotnetLocator.TryLocateDotNetWithinEngine(engine.Path!).ConfigureAwait(false);
+                        if (dotnetPath != null)
+                        {
+                            // Find all .cs files recursively in the target directory, and generate a .NET project file that references all of them.
+                            var csDocument = new XmlDocument();
+                            var project = csDocument.CreateElement("Project");
+                            project.SetAttribute("Sdk", "Microsoft.NET.Sdk");
+                            csDocument.AppendChild(project);
+                            var propertyGroup = csDocument.CreateElement("PropertyGroup");
+                            var targetFramework = csDocument.CreateElement("TargetFramework");
+                            targetFramework.InnerText = "net6.0";
+                            propertyGroup.AppendChild(targetFramework);
+                            var langVersion = csDocument.CreateElement("LangVersion");
+                            langVersion.InnerText = "10.0";
+                            propertyGroup.AppendChild(langVersion);
+                            project.AppendChild(propertyGroup);
+                            var itemGroup = csDocument.CreateElement("ItemGroup");
+                            var csFileCount = 0;
+                            foreach (var file in Directory.EnumerateFiles(directory, "*.cs", new EnumerationOptions { IgnoreInaccessible = true, RecurseSubdirectories = true }))
+                            {
+                                var item = csDocument.CreateElement("Compile");
+                                item.SetAttribute("Include", file);
+                                var link = csDocument.CreateElement("Link");
+                                link.InnerText = Path.GetFileName(file);
+                                item.AppendChild(link);
+                                itemGroup.AppendChild(item);
+                                csFileCount++;
+                            }
+                            project.AppendChild(itemGroup);
+
+                            var tempDirectory = Path.GetTempFileName();
+                            if (File.Exists(tempDirectory))
+                            {
+                                File.Delete(tempDirectory);
+                            }
+                            if (Directory.Exists(tempDirectory))
+                            {
+                                await DirectoryAsync.DeleteAsync(tempDirectory, true);
+                            }
+                            Directory.CreateDirectory(tempDirectory);
+
+                            var tempMsBuildProject = Path.Combine(tempDirectory, "Project.csproj");
+                            csDocument.Save(tempMsBuildProject);
+
+                            // Run dotnet format.
+                            if (csFileCount > 0)
+                            {
+                                _logger.LogInformation($"Executing 'dotnet format' on {csFileCount} files in '{directory}'...");
+                                await _processExecutor.ExecuteAsync(
+                                    new ProcessSpecification
+                                    {
+                                        FilePath = dotnetPath,
+                                        Arguments = [
+                                            "format",
+                                            "--severity", "info",
+                                            "--exclude-diagnostics", "IDE0005",
+                                            "--exclude-diagnostics", "IDE1006",
+                                            "--exclude-diagnostics", "IDE0060",
+                                            "--exclude-diagnostics", "CA1822",
+                                            "--exclude-diagnostics", "CA1866",
+                                            "--exclude-diagnostics", "CA1050",
+                                            "-v", "diag",
+                                            tempMsBuildProject
+                                        ],
+                                        WorkingDirectory = tempDirectory,
+                                    },
+                                    CaptureSpecification.Passthrough,
+                                    context.GetCancellationToken()).ConfigureAwait(false);
+                            }
+                        }
+                        else
+                        {
+                            var csFileCount = 0;
+                            foreach (var file in Directory.EnumerateFiles(directory, "*.cs", new EnumerationOptions { IgnoreInaccessible = true, RecurseSubdirectories = true }))
+                            {
+                                csFileCount++;
+                            }
+
+                            _logger.LogWarning($"Skipping 'dotnet format' for {csFileCount} files in '{directory}', because 'dotnet' could not be located in the engine or on the PATH.");
+                        }
                     }
                 }
 
+                if (only.Contains("json"))
                 {
                     // Try to format .uplugin and .uproject files.
                     var jsonFileList = new HashSet<string>();
