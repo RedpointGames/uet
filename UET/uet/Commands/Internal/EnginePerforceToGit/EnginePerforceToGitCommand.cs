@@ -208,7 +208,7 @@
                 };
 
                 _logger.LogInformation("Locating p4 binary...");
-                string? p4 = Path.Combine(Environment.CurrentDirectory, "p4.exe");
+                string? p4 = Path.Combine(Environment.CurrentDirectory, OperatingSystem.IsWindows() ? "p4.exe" : "p4");
                 if (!File.Exists(p4))
                 {
                     p4 = null;
@@ -241,19 +241,39 @@
                     return 1;
                 }
 
-                _logger.LogInformation("Locating Robocopy binary...");
                 string? robocopy = null;
-                try
+                string? rclone = null;
+                if (OperatingSystem.IsWindows())
                 {
-                    robocopy = await _pathResolver.ResolveBinaryPath("robocopy");
+                    _logger.LogInformation("Locating Robocopy binary...");
+                    try
+                    {
+                        robocopy = await _pathResolver.ResolveBinaryPath("robocopy");
+                    }
+                    catch
+                    {
+                    }
+                    if (robocopy == null)
+                    {
+                        _logger.LogError($"Unable to locate robocopy on PATH.");
+                        return 1;
+                    }
                 }
-                catch
+                else
                 {
-                }
-                if (robocopy == null)
-                {
-                    _logger.LogError($"Unable to locate robocopy on PATH.");
-                    return 1;
+                    _logger.LogInformation("Locating rclone binary...");
+                    try
+                    {
+                        rclone = await _pathResolver.ResolveBinaryPath("rclone");
+                    }
+                    catch
+                    {
+                    }
+                    if (rclone == null)
+                    {
+                        _logger.LogError($"Unable to locate rclone on PATH.");
+                        return 1;
+                    }
                 }
 
                 _logger.LogInformation("Signing out of Perforce server...");
@@ -304,7 +324,7 @@
                     new ProcessSpecification
                     {
                         FilePath = p4,
-                        Arguments = ["-I", "sync", "--parallel=24", $"{p4WorkspacePath}\\...#head"],
+                        Arguments = ["-I", "sync", "--parallel=24", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...#head"],
                         EnvironmentVariables = p4Envs,
                     },
                     CaptureSpecification.Passthrough,
@@ -331,6 +351,22 @@
                     return exitCode;
                 }
 
+                _logger.LogInformation("Making sure Git LFS is globally installed...");
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = git,
+                        Arguments = ["lfs", "install"],
+                        EnvironmentVariables = gitEnvs,
+                    },
+                    CaptureSpecification.Passthrough,
+                    context.GetCancellationToken());
+                if (exitCode != 0)
+                {
+                    _logger.LogError("Failed to set up Git LFS.");
+                    return exitCode;
+                }
+
                 _logger.LogInformation("Setting up Git workspace...");
                 RemoveIndexLock(gitWorkspacePath);
                 if (!Directory.Exists(Path.Combine(gitWorkspacePath.FullName, ".git")))
@@ -352,6 +388,38 @@
                         _logger.LogError("Failed to init Git repository.");
                         return exitCode;
                     }
+                }
+
+                _logger.LogInformation("Setting author information for commits...");
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = git,
+                        Arguments = ["config", "user.email", "uet-p4-sync@redpoint.games"],
+                        WorkingDirectory = gitWorkspacePath.FullName,
+                        EnvironmentVariables = gitEnvs,
+                    },
+                    CaptureSpecification.Passthrough,
+                    context.GetCancellationToken());
+                if (exitCode != 0)
+                {
+                    _logger.LogError("Failed to change user.email configuration setting.");
+                    return exitCode;
+                }
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = git,
+                        Arguments = ["config", "user.name", "UET Perforce to Git"],
+                        WorkingDirectory = gitWorkspacePath.FullName,
+                        EnvironmentVariables = gitEnvs,
+                    },
+                    CaptureSpecification.Passthrough,
+                    context.GetCancellationToken());
+                if (exitCode != 0)
+                {
+                    _logger.LogError("Failed to change user.name configuration setting.");
+                    return exitCode;
                 }
 
                 _logger.LogInformation("Setting remote URI...");
@@ -477,21 +545,49 @@
                         File.Delete(file.FullName);
                     }
 
-                    _logger.LogInformation($"Using robocopy to mirror everything into Git...");
-                    exitCode = await _processExecutor.ExecuteAsync(
-                        new ProcessSpecification
-                        {
-                            FilePath = robocopy,
-                            Arguments = ["/MIR", releaseFolder.FullName, gitWorkspacePath.FullName, "/XD", ".git", "/XJ", "/NJH", "/ETA", "/MT:128"],
-                            WorkingDirectory = gitWorkspacePath.FullName,
-                            EnvironmentVariables = gitEnvs,
-                        },
-                        CaptureSpecification.Sanitized,
-                        context.GetCancellationToken());
-                    if (exitCode > 8)
+                    if (OperatingSystem.IsWindows())
                     {
-                        _logger.LogError($"Failed to robocopy.");
-                        return exitCode;
+                        _logger.LogInformation($"Using robocopy to mirror everything into Git...");
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = robocopy!,
+                                Arguments = ["/MIR", releaseFolder.FullName, gitWorkspacePath.FullName, "/XD", ".git", "/XJ", "/NJH", "/ETA", "/MT:128"],
+                                WorkingDirectory = gitWorkspacePath.FullName,
+                                EnvironmentVariables = gitEnvs,
+                            },
+                            CaptureSpecification.Sanitized,
+                            context.GetCancellationToken());
+                        if (exitCode > 8)
+                        {
+                            _logger.LogError($"Failed to robocopy.");
+                            return exitCode;
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"Using rclone to mirror everything into Git...");
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = rclone!,
+                                Arguments = [
+                                    "sync",
+                                    "--exclude=/.git/**",
+                                    "--transfers=64",
+                                    releaseFolder.FullName,
+                                    gitWorkspacePath.FullName,
+                                ],
+                                WorkingDirectory = gitWorkspacePath.FullName,
+                                EnvironmentVariables = gitEnvs,
+                            },
+                            CaptureSpecification.Sanitized,
+                            context.GetCancellationToken());
+                        if (exitCode != 0)
+                        {
+                            _logger.LogError($"Failed to rsync.");
+                            return exitCode;
+                        }
                     }
 
                     _logger.LogInformation($"Deleting all .gitattributes and .gitmodules files...");
