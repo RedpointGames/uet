@@ -11,6 +11,7 @@
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.IO;
+    using System.Text;
     using System.Threading.Tasks;
 
     internal sealed class EnginePerforceToGitCommand
@@ -478,6 +479,7 @@
 
                     _logger.LogInformation($"Checking if Git branch 'origin/{releaseVersion}' exists...");
                     RemoveIndexLock(gitWorkspacePath);
+                    var revision = new StringBuilder();
                     exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
@@ -486,7 +488,7 @@
                             WorkingDirectory = gitWorkspacePath.FullName,
                             EnvironmentVariables = gitEnvs,
                         },
-                        CaptureSpecification.Passthrough,
+                        CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(revision),
                         context.GetCancellationToken());
 
                     var isNew = exitCode != 0;
@@ -520,7 +522,7 @@
                             new ProcessSpecification
                             {
                                 FilePath = git,
-                                Arguments = ["lfs", "fetch", "origin", releaseVersion],
+                                Arguments = ["lfs", "fetch", "origin", revision.ToString().Trim()],
                                 WorkingDirectory = gitWorkspacePath.FullName,
                                 EnvironmentVariables = gitEnvs,
                             },
