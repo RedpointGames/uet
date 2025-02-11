@@ -10,6 +10,7 @@
     using Redpoint.Uet.Workspace.PhysicalGit;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.IO;
     using System.Threading.Tasks;
 
     internal sealed class EnginePerforceToGitCommand
@@ -311,6 +312,22 @@
                 if (exitCode != 0)
                 {
                     _logger.LogError("Failed to sync Perforce content (phase 2).");
+                    return exitCode;
+                }
+
+                _logger.LogInformation("Turning off 'safe.directory' setting for Git...");
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = git,
+                        Arguments = ["config", "--global", "--replace-all", "safe.directory", "*"],
+                        EnvironmentVariables = gitEnvs,
+                    },
+                    CaptureSpecification.Passthrough,
+                    context.GetCancellationToken());
+                if (exitCode != 0)
+                {
+                    _logger.LogError("Failed to change safe.directory configuration setting.");
                     return exitCode;
                 }
 
