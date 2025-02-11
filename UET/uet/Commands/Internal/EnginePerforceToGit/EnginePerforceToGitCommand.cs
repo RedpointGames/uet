@@ -390,6 +390,38 @@
                     }
                 }
 
+                _logger.LogInformation("Setting author information for commits...");
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = git,
+                        Arguments = ["config", "user.email", "uet-p4-sync@redpoint.games"],
+                        WorkingDirectory = gitWorkspacePath.FullName,
+                        EnvironmentVariables = gitEnvs,
+                    },
+                    CaptureSpecification.Passthrough,
+                    context.GetCancellationToken());
+                if (exitCode != 0)
+                {
+                    _logger.LogError("Failed to change user.email configuration setting.");
+                    return exitCode;
+                }
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = git,
+                        Arguments = ["config", "user.name", "UET Perforce to Git"],
+                        WorkingDirectory = gitWorkspacePath.FullName,
+                        EnvironmentVariables = gitEnvs,
+                    },
+                    CaptureSpecification.Passthrough,
+                    context.GetCancellationToken());
+                if (exitCode != 0)
+                {
+                    _logger.LogError("Failed to change user.name configuration setting.");
+                    return exitCode;
+                }
+
                 _logger.LogInformation("Setting remote URI...");
                 RemoveIndexLock(gitWorkspacePath);
                 exitCode = await _processExecutor.ExecuteAsync(
