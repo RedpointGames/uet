@@ -534,13 +534,13 @@
                             return exitCode;
                         }
 
-                        _logger.LogInformation($"Checkout branch '{releaseVersion}' at 'origin/{releaseVersion}'...");
+                        _logger.LogInformation($"Switch HEAD to 'origin/{releaseVersion}'...");
                         RemoveIndexLock(gitWorkspacePath);
                         exitCode = await _processExecutor.ExecuteAsync(
                             new ProcessSpecification
                             {
                                 FilePath = git,
-                                Arguments = ["checkout", "-f", "-B", releaseVersion, $"origin/{releaseVersion}"],
+                                Arguments = ["symbolic-ref", "HEAD", $"refs/remotes/origin/{releaseVersion}"],
                                 WorkingDirectory = gitWorkspacePath.FullName,
                                 EnvironmentVariables = gitEnvs,
                             },
@@ -548,7 +548,32 @@
                             context.GetCancellationToken());
                         if (exitCode != 0)
                         {
-                            _logger.LogError($"Failed to checkout branch '{releaseVersion}'.");
+                            _logger.LogError($"Failed to switch HEAD to 'origin/{releaseVersion}'.");
+                            return exitCode;
+                        }
+
+                        _logger.LogInformation($"Reset/create branch '{releaseVersion}' to 'origin/{releaseVersion}'...");
+                        // Do this directly, so we avoid any random errors from 'git branch -f'.
+                        File.Copy(
+                            Path.Combine(gitWorkspacePath.FullName, ".git", "refs", "remotes", "origin", releaseVersion),
+                            Path.Combine(gitWorkspacePath.FullName, ".git", "refs", "heads", releaseVersion),
+                            true);
+
+                        _logger.LogInformation($"Switch HEAD to '{releaseVersion}'...");
+                        RemoveIndexLock(gitWorkspacePath);
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = git,
+                                Arguments = ["symbolic-ref", "HEAD", $"refs/heads/{releaseVersion}"],
+                                WorkingDirectory = gitWorkspacePath.FullName,
+                                EnvironmentVariables = gitEnvs,
+                            },
+                            CaptureSpecification.Passthrough,
+                            context.GetCancellationToken());
+                        if (exitCode != 0)
+                        {
+                            _logger.LogError($"Failed to switch HEAD to 'origin/{releaseVersion}'.");
                             return exitCode;
                         }
                     }
