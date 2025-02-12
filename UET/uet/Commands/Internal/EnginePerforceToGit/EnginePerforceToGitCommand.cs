@@ -99,7 +99,19 @@
         public static Command CreateEnginePerforceToGitCommand()
         {
             var options = new Options();
-            var command = new Command("engine-perforce-to-git");
+            var command = new Command("engine-perforce-to-git", "Synchronise snapshots from Perforce into a Git repository with large files stored in Git LFS.")
+            {
+                FullDescription =
+                """
+                If you need a reference for workspace mappings to use with this tool:
+                
+                - Open P4V, go to View -> Workspaces.
+                - In the Filter, replace "Owner" with "Name" and set "RedpointGames_Latest" as the value.
+                - You should see the "RedpointGames_Latest" workspace in the results.
+                - Right-click on it, 'View Workspace'.
+                - Copy the Options and View sections to Notepad, and use them to set up your own workspace.
+                """
+            };
             command.AddAllOptions(options);
             command.AddCommonHandler<EnginePerforceToGitCommandInstance>(options);
             return command;
@@ -701,13 +713,36 @@
                         return exitCode;
                     }
 
+                    _logger.LogInformation("Getting revision information from Perforce...");
+                    var perforceMessage = new StringBuilder();
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = p4,
+                            Arguments = ["-I", "changes", "-m1", $"//{p4Client}/UE5/{releaseFolder.Name}/...#head"],
+                            EnvironmentVariables = p4Envs,
+                        },
+                        CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(perforceMessage),
+                        context.GetCancellationToken());
+                    if (exitCode != 0)
+                    {
+                        _logger.LogError("Failed to get Perforce revision information.");
+                        return exitCode;
+                    }
+                    var commitMessage = perforceMessage.ToString().Trim();
+                    if (string.IsNullOrWhiteSpace(commitMessage))
+                    {
+                        commitMessage = $"Automatic snapshot of Perforce to Git for Unreal Engine {releaseVersion}.";
+                    }
+                    _logger.LogInformation($"Commit message for Git: {commitMessage}");
+
                     _logger.LogInformation($"Committing all changes into Git...");
                     RemoveIndexLock(gitWorkspacePath);
                     exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
                             FilePath = git,
-                            Arguments = ["commit", "-m", $"Automatic snapshot of Perforce to Git for Unreal Engine {releaseVersion}."],
+                            Arguments = ["commit", "-m", commitMessage],
                             WorkingDirectory = gitWorkspacePath.FullName,
                             EnvironmentVariables = gitEnvs,
                         },
