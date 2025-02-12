@@ -540,7 +540,7 @@
                             new ProcessSpecification
                             {
                                 FilePath = git,
-                                Arguments = ["checkout", "-B", releaseVersion, $"origin/{releaseVersion}"],
+                                Arguments = ["checkout", "-f", "-B", releaseVersion, $"origin/{releaseVersion}"],
                                 WorkingDirectory = gitWorkspacePath.FullName,
                                 EnvironmentVariables = gitEnvs,
                             },
