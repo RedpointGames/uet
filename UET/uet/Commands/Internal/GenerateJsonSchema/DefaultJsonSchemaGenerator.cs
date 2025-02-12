@@ -112,12 +112,11 @@
             {
                 if (currentType.IsConstructedGenericType && currentType.GetGenericTypeDefinition() == typeof(BuildConfigDynamic<,>))
                 {
-                    return currentType;
+                    break;
                 }
                 currentType = type.BaseType;
             }
 
-            // Fallback - this should produce an error message that can help us diagnose what type is causing the issue.
             return typeof(IDynamicProvider<,>)
                 .MakeGenericType((currentType ?? type).GetGenericArguments());
         }
