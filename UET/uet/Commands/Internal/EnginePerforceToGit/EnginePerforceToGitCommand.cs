@@ -1,13 +1,8 @@
 ﻿namespace UET.Commands.Internal.EnginePerforceToGit
 {
-    using k8s.Models;
     using Microsoft.Extensions.Logging;
-    using Redpoint.IO;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
-    using Redpoint.Uet.Workspace;
-    using Redpoint.Uet.Workspace.Descriptors;
-    using Redpoint.Uet.Workspace.PhysicalGit;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.IO;
@@ -391,35 +386,61 @@
                     }
                 }
 
-                _logger.LogInformation("Setting author information for commits...");
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = git,
-                        Arguments = ["config", "user.email", "uet-p4-sync@redpoint.games"],
-                        WorkingDirectory = gitWorkspacePath.FullName,
-                        EnvironmentVariables = gitEnvs,
-                    },
-                    CaptureSpecification.Passthrough,
-                    context.GetCancellationToken());
-                if (exitCode != 0)
+                async Task<int> ChangeConfig(string name, string value)
                 {
-                    _logger.LogError("Failed to change user.email configuration setting.");
+                    var exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = git,
+                            Arguments = ["config", name, value],
+                            WorkingDirectory = gitWorkspacePath.FullName,
+                            EnvironmentVariables = gitEnvs,
+                        },
+                        CaptureSpecification.Passthrough,
+                        context.GetCancellationToken());
+                    if (exitCode != 0)
+                    {
+                        _logger.LogError($"Failed to change {name} configuration setting.");
+                    }
                     return exitCode;
                 }
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = git,
-                        Arguments = ["config", "user.name", "UET Perforce to Git"],
-                        WorkingDirectory = gitWorkspacePath.FullName,
-                        EnvironmentVariables = gitEnvs,
-                    },
-                    CaptureSpecification.Passthrough,
-                    context.GetCancellationToken());
+
+                _logger.LogInformation("Setting author information for commits...");
+                exitCode = await ChangeConfig("user.email", "uet-p4-sync@redpoint.games");
                 if (exitCode != 0)
                 {
-                    _logger.LogError("Failed to change user.name configuration setting.");
+                    return exitCode;
+                }
+                exitCode = await ChangeConfig("user.name", "UET Perforce to Git");
+                if (exitCode != 0)
+                {
+                    return exitCode;
+                }
+
+                _logger.LogInformation("Increasing LFS timeouts and retries...");
+                exitCode = await ChangeConfig("lfs.dialtimeout", "3600");
+                if (exitCode != 0)
+                {
+                    return exitCode;
+                }
+                exitCode = await ChangeConfig("lfs.activitytimeout", "3600");
+                if (exitCode != 0)
+                {
+                    return exitCode;
+                }
+                exitCode = await ChangeConfig("lfs.tlstimeout", "3600");
+                if (exitCode != 0)
+                {
+                    return exitCode;
+                }
+                exitCode = await ChangeConfig("lfs.transfer.maxretries", "32");
+                if (exitCode != 0)
+                {
+                    return exitCode;
+                }
+                exitCode = await ChangeConfig("lfs.transfer.maxverifies", "32");
+                if (exitCode != 0)
+                {
                     return exitCode;
                 }
 
