@@ -586,11 +586,22 @@
                         }
 
                         _logger.LogInformation($"Reset/create branch '{releaseVersion}' to 'origin/{releaseVersion}'...");
-                        // Do this directly, so we avoid any random errors from 'git branch -f'.
-                        File.Copy(
-                            Path.Combine(gitWorkspacePath.FullName, ".git", "refs", "remotes", "origin", releaseVersion),
-                            Path.Combine(gitWorkspacePath.FullName, ".git", "refs", "heads", releaseVersion),
-                            true);
+                        RemoveIndexLock(gitWorkspacePath);
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = git,
+                                Arguments = ["update-ref", $"refs/heads/{releaseVersion}", $"refs/remotes/origin/{releaseVersion}"],
+                                WorkingDirectory = gitWorkspacePath.FullName,
+                                EnvironmentVariables = gitEnvs,
+                            },
+                            CaptureSpecification.Passthrough,
+                            context.GetCancellationToken());
+                        if (exitCode != 0)
+                        {
+                            _logger.LogError($"Failed to set ref of '{releaseVersion}' to 'origin/{releaseVersion}'.");
+                            return exitCode;
+                        }
 
                         _logger.LogInformation($"Switch HEAD to '{releaseVersion}'...");
                         RemoveIndexLock(gitWorkspacePath);
