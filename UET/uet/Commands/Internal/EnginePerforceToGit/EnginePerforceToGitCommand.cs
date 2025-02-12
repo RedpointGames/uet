@@ -749,6 +749,7 @@
 
                     _logger.LogInformation($"Committing all changes into Git...");
                     RemoveIndexLock(gitWorkspacePath);
+                    var commitOutput = new StringBuilder();
                     exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
@@ -757,13 +758,20 @@
                             WorkingDirectory = gitWorkspacePath.FullName,
                             EnvironmentVariables = gitEnvs,
                         },
-                        CaptureSpecification.Passthrough,
+                        CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(commitOutput),
                         context.GetCancellationToken());
+                    var commitOutputString = commitOutput.ToString();
                     if (exitCode != 0)
                     {
-                        _logger.LogError($"Failed to commit changes to Git.");
-                        return exitCode;
+                        // If we fail to commit because there's nothing to commit, that's fine.
+                        if (!commitOutputString.Contains("nothing to commit, working tree clean", StringComparison.OrdinalIgnoreCase))
+                        {
+                            Console.WriteLine(commitOutputString);
+                            _logger.LogError($"Failed to commit changes to Git.");
+                            return exitCode;
+                        }
                     }
+                    Console.WriteLine(commitOutputString);
 
                     _logger.LogInformation($"Pushing changes to origin...");
                     exitCode = await _processExecutor.ExecuteAsync(
