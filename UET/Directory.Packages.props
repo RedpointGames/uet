@@ -92,6 +92,6 @@
     <PackageVersion Include="KeyedSemaphores" Version="5.0.0" />
     <PackageVersion Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" Version="16.3.0" />
     <PackageVersion Include="YamlDotNet" Version="16.3.0" />
-    <PackageVersion Include="KubernetesClient.Aot" Version="16.0.1" />
+    <PackageVersion Include="KubernetesClient.Aot" Version="16.0.2" />
   </ItemGroup>
 </Project>
