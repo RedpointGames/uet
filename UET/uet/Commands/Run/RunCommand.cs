@@ -27,6 +27,7 @@
     using System.Runtime.InteropServices;
     using Microsoft.Extensions.Configuration;
     using System.Diagnostics;
+    using Redpoint.Uet.SdkManagement;
 
     internal sealed class RunCommand
     {
@@ -88,6 +89,7 @@
                     "ubt",
                     "uba-visualiser",
                     "uba-visualizer",
+                    "adb",
                 ]);
                 Target.Arity = ArgumentArity.ExactlyOne;
                 Target.HelpName = "target";
@@ -115,6 +117,7 @@
                 uat:            Run UnrealAutomationTool.
                 ubt:            Run UnrealBuildTool.
                 uba-visualizer: Run the Unreal Build Accelerator visualizer.
+                adb:            Run the Android Debug Bridge.
  
                 If --path points to a project file, the target will automatically receive the project file as an argument in an appropriate manner, if possible.
                 """
@@ -129,17 +132,23 @@
             private readonly Options _options;
             private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
             private readonly IProcessExecutor _processExecutor;
+            private readonly ILocalSdkManager _localSdkManager;
+            private readonly IServiceProvider _serviceProvider;
 
             public RunCommandInstance(
                 ILogger<RunCommandInstance> logger,
                 Options options,
                 IEngineWorkspaceProvider engineWorkspaceProvider,
-                IProcessExecutor processExecutor)
+                IProcessExecutor processExecutor,
+                ILocalSdkManager localSdkManager,
+                IServiceProvider serviceProvider)
             {
                 _logger = logger;
                 _options = options;
                 _engineWorkspaceProvider = engineWorkspaceProvider;
                 _processExecutor = processExecutor;
+                _localSdkManager = localSdkManager;
+                _serviceProvider = serviceProvider;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
@@ -154,7 +163,7 @@
                     var target = context.ParseResult.GetValueForArgument(_options.Target)!.ToLowerInvariant();
                     var arguments = context.ParseResult.GetValueForArgument(_options.Arguments)!;
 
-                    var engineSpec = engine.ToBuildEngineSpecification("keep-wireless-enabled");
+                    var engineSpec = engine.ToBuildEngineSpecification("run");
 
                     var configurationPreferences = new[]
                     {
@@ -461,6 +470,44 @@
                                         {
                                             FilePath = toolPath,
                                             Arguments = [],
+                                            WorkingDirectory = engineWorkspace.Path,
+                                        },
+                                        CaptureSpecification.Passthrough,
+                                        context.GetCancellationToken()).ConfigureAwait(false);
+                                    return runExitCode;
+                                }
+                            case "adb":
+                                {
+                                    var packagePath = OperatingSystem.IsWindows() ? UetPaths.UetDefaultWindowsSdkStoragePath : UetPaths.UetDefaultMacSdkStoragePath;
+                                    Directory.CreateDirectory(packagePath);
+                                    var envVars = await _localSdkManager.SetupEnvironmentForSdkSetups(
+                                        engineWorkspace.Path,
+                                        packagePath,
+                                        _serviceProvider.GetServices<ISdkSetup>()
+                                            .Where(x => x.PlatformNames.Contains("Android"))
+                                            .ToHashSet(),
+                                        context.GetCancellationToken()).ConfigureAwait(false);
+
+                                    var executableSuffix = OperatingSystem.IsWindows() ? ".exe" : string.Empty;
+                                    var toolPath = Path.Combine(
+                                        envVars["ANDROID_HOME"],
+                                        "platform-tools",
+                                        $"adb{executableSuffix}");
+                                    if (!File.Exists(toolPath))
+                                    {
+                                        _logger.LogError($"The path '{toolPath}' does not exist. UET can not run ADB.");
+                                        return 1;
+                                    }
+
+                                    var toolArguments = arguments
+                                        .Select(x => new LogicalProcessArgument(x))
+                                        .ToList();
+                                    LogExecution(toolPath, toolArguments, false);
+                                    var runExitCode = await _processExecutor.ExecuteAsync(
+                                        new ProcessSpecification
+                                        {
+                                            FilePath = toolPath,
+                                            Arguments = toolArguments,
                                             WorkingDirectory = engineWorkspace.Path,
                                         },
                                         CaptureSpecification.Passthrough,
