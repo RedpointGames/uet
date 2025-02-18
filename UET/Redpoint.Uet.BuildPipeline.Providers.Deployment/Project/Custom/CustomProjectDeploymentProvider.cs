@@ -27,13 +27,25 @@
 
             foreach (var deployment in castedSettings)
             {
+                string requiredFiles;
+                if (deployment.settings.Packages != null)
+                {
+                    // Obtain staged files for all desired packages.
+                    requiredFiles = deployment.settings.Packages.Aggregate("", (current, package) => current + $"#{package.Type}Staged_{package.Target}_{package.Platform}_{package.Configuration};") + "$(DynamicPreDeploymentNodes)";
+                }
+                else
+                {
+                    // If no packages are specified (also, for backwards compatibility), obtain all staged files.
+                    requiredFiles = "$(GameStaged);$(ClientStaged);$(ServerStaged);$(DynamicPreDeploymentNodes)";
+                }
+
                 await writer.WriteAgentNodeAsync(
                     new AgentNodeElementProperties
                     {
                         AgentStage = $"Deployment {deployment.name}",
                         AgentType = deployment.manual ? "Win64_Manual" : "Win64",
                         NodeName = $"Deployment {deployment.name}",
-                        Requires = $"$(GameStaged);$(ClientStaged);$(ServerStaged);$(DynamicPreDeploymentNodes)",
+                        Requires = requiredFiles,
                     },
                     async writer =>
                     {
