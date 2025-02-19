@@ -1,11 +1,15 @@
 ﻿namespace Redpoint.Uet.Workspace
 {
+    using Grpc.Core;
     using Microsoft.Extensions.Logging;
     using Microsoft.Win32.SafeHandles;
+    using Redpoint.CredentialDiscovery;
     using Redpoint.GrpcPipes;
     using Redpoint.IO;
     using Redpoint.ProcessExecution;
+    using Redpoint.ProgressMonitor;
     using Redpoint.Reservation;
+    using Redpoint.Uefs.Protocol;
     using Redpoint.Uet.Core;
     using Redpoint.Uet.Workspace.Descriptors;
     using Redpoint.Uet.Workspace.Instance;
@@ -17,106 +21,93 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
+    using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
+    using static Redpoint.Uefs.Protocol.Uefs;
     using static Redpoint.Uet.Workspace.RemoteZfs.RemoteZfs;
 
-    internal class PhysicalWorkspaceProvider : IPhysicalWorkspaceProvider
+    internal class DefaultWorkspaceProvider : IWorkspaceProvider
     {
-        private readonly ILogger<PhysicalWorkspaceProvider> _logger;
+        private readonly ILogger<DefaultWorkspaceProvider> _logger;
         private readonly IReservationManagerForUet _reservationManager;
-        private readonly IParallelCopy _parallelCopy;
-        private readonly IVirtualWorkspaceProvider _virtualWorkspaceProvider;
         private readonly IPhysicalGitCheckout _physicalGitCheckout;
         private readonly IWorkspaceReservationParameterGenerator _parameterGenerator;
         private readonly IProcessExecutor _processExecutor;
         private readonly IGrpcPipeFactory _grpcPipeFactory;
+        private readonly IRetryableGrpc _retryableGrpc;
+        private readonly ICredentialDiscovery _credentialDiscovery;
+        private readonly IMonitorFactory _monitorFactory;
+        private readonly UefsClient _uefsClient;
 
-        public PhysicalWorkspaceProvider(
-            ILogger<PhysicalWorkspaceProvider> logger,
+        public DefaultWorkspaceProvider(
+            ILogger<DefaultWorkspaceProvider> logger,
             IReservationManagerForUet reservationManager,
-            IParallelCopy parallelCopy,
-            IVirtualWorkspaceProvider virtualWorkspaceProvider,
             IPhysicalGitCheckout physicalGitCheckout,
             IWorkspaceReservationParameterGenerator parameterGenerator,
             IProcessExecutor processExecutor,
-            IGrpcPipeFactory grpcPipeFactory)
+            IGrpcPipeFactory grpcPipeFactory,
+            IRetryableGrpc retryableGrpc,
+            ICredentialDiscovery credentialDiscovery,
+            IMonitorFactory monitorFactory,
+            UefsClient uefsClient)
         {
             _logger = logger;
             _reservationManager = reservationManager;
-            _parallelCopy = parallelCopy;
-            _virtualWorkspaceProvider = virtualWorkspaceProvider;
             _physicalGitCheckout = physicalGitCheckout;
             _parameterGenerator = parameterGenerator;
             _processExecutor = processExecutor;
             _grpcPipeFactory = grpcPipeFactory;
+            _retryableGrpc = retryableGrpc;
+            _credentialDiscovery = credentialDiscovery;
+            _monitorFactory = monitorFactory;
+            _uefsClient = uefsClient;
         }
 
-        public bool ProvidesFastCopyOnWrite => false;
+        private static bool IsUefsUnavailableException(RpcException ex)
+        {
+            if (ex.StatusCode != StatusCode.Unavailable)
+            {
+                return false;
+            }
+            switch (ex.InnerException)
+            {
+                case HttpRequestException hre:
+                    switch (hre.InnerException)
+                    {
+                        case SocketException se:
+                            return se.SocketErrorCode == SocketError.ConnectionRefused;
+                    }
+                    return false;
+            }
+            return false;
+        }
 
         public async Task<IWorkspace> GetWorkspaceAsync(IWorkspaceDescriptor workspaceDescriptor, CancellationToken cancellationToken)
         {
-            switch (workspaceDescriptor)
-            {
-                case FolderAliasWorkspaceDescriptor descriptor:
-                    return new LocalWorkspace(descriptor.AliasedPath);
-                case FolderSnapshotWorkspaceDescriptor descriptor:
-                    return await AllocateSnapshotAsync(descriptor, cancellationToken).ConfigureAwait(false);
-                case TemporaryWorkspaceDescriptor descriptor:
-                    return await AllocateTemporaryAsync(descriptor, cancellationToken).ConfigureAwait(false);
-                case GitWorkspaceDescriptor descriptor:
-                    return await AllocateGitAsync(descriptor, cancellationToken).ConfigureAwait(false);
-                case UefsPackageWorkspaceDescriptor descriptor:
-                    return await _virtualWorkspaceProvider.GetWorkspaceAsync(descriptor, cancellationToken).ConfigureAwait(false);
-                case SharedEngineSourceWorkspaceDescriptor descriptor:
-                    return await AllocateSharedEngineSourceAsync(descriptor, cancellationToken).ConfigureAwait(false);
-                case RemoteZfsWorkspaceDescriptor descriptor:
-                    return await AllocateRemoteZfsAsync(descriptor, cancellationToken).ConfigureAwait(false);
-                default:
-                    throw new NotSupportedException();
-            }
-        }
-
-        private async Task<IWorkspace> AllocateSnapshotAsync(FolderSnapshotWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
-        {
-            var usingReservation = false;
-            var reservation = await _reservationManager.ReserveAsync(
-                "PhysicalSnapshot",
-                _parameterGenerator.ConstructReservationParameters(
-                    new[] { descriptor.SourcePath.ToLowerInvariant() }
-                    .Concat(descriptor.WorkspaceDisambiguators))).ConfigureAwait(false);
             try
             {
-                _logger.LogInformation($"Creating physical snapshot workspace: {reservation.ReservedPath} (of {descriptor.SourcePath})");
-                await _parallelCopy.CopyAsync(
-                    new CopyDescriptor
-                    {
-                        SourcePath = descriptor.SourcePath,
-                        DestinationPath = reservation.ReservedPath,
-                        DirectoriesToRemoveExtraFilesUnder = new HashSet<string>
-                        {
-                            "Source",
-                            "Content",
-                            "Resources",
-                            "Config"
-                        },
-                        ExcludePaths = new HashSet<string>
-                        {
-                            ".uet",
-                            ".git",
-                            "Engine/Saved/BuildGraph",
-                        }
-                    },
-                    cancellationToken).ConfigureAwait(false);
-                usingReservation = true;
-                return new ReservationWorkspace(reservation);
-            }
-            finally
-            {
-                if (!usingReservation)
+                switch (workspaceDescriptor)
                 {
-                    await reservation.DisposeAsync().ConfigureAwait(false);
+                    case FolderAliasWorkspaceDescriptor descriptor:
+                        return new LocalWorkspace(descriptor.AliasedPath);
+                    case TemporaryWorkspaceDescriptor descriptor:
+                        return await AllocateTemporaryAsync(descriptor, cancellationToken).ConfigureAwait(false);
+                    case GitWorkspaceDescriptor descriptor:
+                        return await AllocateGitAsync(descriptor, cancellationToken).ConfigureAwait(false);
+                    case UefsPackageWorkspaceDescriptor descriptor:
+                        return await AllocateUefsPackageAsync(descriptor, cancellationToken).ConfigureAwait(false);
+                    case SharedEngineSourceWorkspaceDescriptor descriptor:
+                        return await AllocateSharedEngineSourceAsync(descriptor, cancellationToken).ConfigureAwait(false);
+                    case RemoteZfsWorkspaceDescriptor descriptor:
+                        return await AllocateRemoteZfsAsync(descriptor, cancellationToken).ConfigureAwait(false);
+                    default:
+                        throw new NotSupportedException();
                 }
+            }
+            catch (RpcException ex) when (IsUefsUnavailableException(ex))
+            {
+                throw new UefsServiceNotRunningException();
             }
         }
 
@@ -317,6 +308,142 @@
                 if (!usingOuterReservation)
                 {
                     response.Dispose();
+                }
+            }
+        }
+
+        private async Task<Mount?> GetExistingMountAsync(string mountPath, CancellationToken cancellationToken)
+        {
+            var response = await _retryableGrpc.RetryableGrpcAsync(
+                _uefsClient.ListAsync,
+                new ListRequest(),
+                new GrpcRetryConfiguration { RequestTimeout = TimeSpan.FromMinutes(60) },
+                cancellationToken).ConfigureAwait(false);
+            return response.Mounts.FirstOrDefault(x => x.MountPath.Equals(mountPath, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private async Task<string> MountAsync<TRequest>(
+            Func<TRequest, Metadata?, DateTime?, CancellationToken, AsyncServerStreamingCall<MountResponse>> call,
+            TRequest request,
+            CancellationToken cancellationToken)
+        {
+            var operation = new ObservableMountOperation<TRequest>(
+                _retryableGrpc,
+                _monitorFactory,
+                call,
+                request,
+                TimeSpan.FromMinutes(60),
+                cancellationToken);
+            return await operation.RunAndWaitForMountIdAsync().ConfigureAwait(false);
+        }
+
+        private static int GetTrackedPid()
+        {
+            if (Environment.GetEnvironmentVariable("UET_UEFS_SKIP_UNMOUNT") == "1")
+            {
+                return 0;
+            }
+            return Environment.ProcessId;
+        }
+
+        private async Task<IWorkspace> AllocateUefsPackageAsync(UefsPackageWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
+        {
+            var parameters = new string[] { descriptor.PackageTag }.Concat(descriptor.WorkspaceDisambiguators).ToArray();
+
+            var usingMountReservation = false;
+            var mountReservation = await _reservationManager.ReserveAsync("VirtualPackageMount", _parameterGenerator.ConstructReservationParameters(parameters)).ConfigureAwait(false);
+            try
+            {
+                var usingScratchReservation = false;
+                var scratchReservation = await _reservationManager.ReserveAsync("VirtualPackageScratch", _parameterGenerator.ConstructReservationParameters(parameters)).ConfigureAwait(false);
+                try
+                {
+                    var existingMount = await GetExistingMountAsync(mountReservation.ReservedPath, cancellationToken).ConfigureAwait(false);
+                    if (existingMount != null)
+                    {
+                        bool mountIsValid = true;
+                        try
+                        {
+                            // When the mount is in a broken state, this is usually the first call that fails later on in UET.
+                            // Check that the Programs directory exists now so we can discard and remount if it's not there.
+                            Directory.EnumerateFiles(Path.Combine(mountReservation.ReservedPath, "Engine", "Source", "Programs"));
+                        }
+                        catch (DirectoryNotFoundException)
+                        {
+                            mountIsValid = false;
+                        }
+                        catch (IOException)
+                        {
+                            mountIsValid = false;
+                        }
+
+                        if (mountIsValid)
+                        {
+                            _logger.LogInformation($"Reusing existing virtual package workspace using UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
+                            usingMountReservation = true;
+                            usingScratchReservation = true;
+                            return new UefsWorkspace(
+                                _uefsClient,
+                                existingMount.Id,
+                                mountReservation.ReservedPath,
+                                new[] { mountReservation, scratchReservation },
+                                _logger,
+                                $"Releasing virtual package workspace from UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
+                        }
+                        else
+                        {
+                            _logger.LogInformation($"Existing virtual package workspace using UEFS was not valid, unmounting...");
+                            await _uefsClient.UnmountAsync(new UnmountRequest
+                            {
+                                MountId = existingMount.Id,
+                            }, deadline: DateTime.UtcNow.AddSeconds(60), cancellationToken: cancellationToken);
+                        }
+                    }
+
+                    // We can fallthrough to this case if there is no existing mount or if we unmounted it
+                    // because it wasn't in a valid state.
+                    {
+                        _logger.LogInformation($"Creating virtual package workspace using UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
+                        var mountId = await MountAsync(
+                            _uefsClient.MountPackageTag,
+                            new MountPackageTagRequest()
+                            {
+                                MountRequest = new MountRequest
+                                {
+                                    MountPath = mountReservation.ReservedPath,
+                                    WriteScratchPath = scratchReservation.ReservedPath,
+                                    WriteScratchPersistence = WriteScratchPersistence.Keep,
+                                    StartupBehaviour = StartupBehaviour.None,
+                                    TrackPid = GetTrackedPid(),
+                                },
+                                Tag = descriptor.PackageTag,
+                                Credential = _credentialDiscovery.GetRegistryCredential(descriptor.PackageTag),
+                            },
+                            cancellationToken).ConfigureAwait(false);
+                        usingMountReservation = true;
+                        usingScratchReservation = true;
+                        return new UefsWorkspace(
+                            _uefsClient,
+                            mountId,
+                            mountReservation.ReservedPath,
+                            new[] { mountReservation, scratchReservation },
+                            _logger,
+                            $"Releasing virtual package workspace from UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
+                    }
+                }
+                finally
+                {
+                    if (!usingScratchReservation)
+                    {
+                        await scratchReservation.DisposeAsync().ConfigureAwait(false);
+                    }
+                }
+            }
+            finally
+            {
+                if (!usingMountReservation)
+                {
+                    await mountReservation.DisposeAsync().ConfigureAwait(false);
                 }
             }
         }

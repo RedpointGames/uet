@@ -410,7 +410,6 @@
             var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(
                 engineSpec,
                 versioningType,
-                true,
                 CancellationToken.None).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(commandlinePluginVersionName))
             {
@@ -663,7 +662,7 @@
             var targetPlatform = OperatingSystem.IsWindows() ? "Win64" : "Mac";
             var gameConfigurations = shipping ? "Shipping" : "Development";
 
-            var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(engineSpec, packageType, true, CancellationToken.None).ConfigureAwait(false);
+            var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(engineSpec, packageType, CancellationToken.None).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(commandlinePluginVersionName))
             {
                 versionInfo.versionName = commandlinePluginVersionName;

@@ -14,9 +14,7 @@
         {
             services.AddSingleton<IPhysicalGitCheckout, DefaultPhysicalGitCheckout>();
             services.AddSingleton<IParallelCopy, DefaultParallelCopy>();
-            services.AddSingleton<IPhysicalWorkspaceProvider, PhysicalWorkspaceProvider>();
-            services.AddSingleton<IVirtualWorkspaceProvider, VirtualWorkspaceProvider>();
-            services.AddSingleton<IDynamicWorkspaceProvider, DynamicWorkspaceProvider>();
+            services.AddSingleton<IWorkspaceProvider, DefaultWorkspaceProvider>();
             services.AddSingleton<IReservationManagerForUet>(sp =>
             {
                 var factory = sp.GetRequiredService<IReservationManagerFactory>();

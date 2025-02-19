@@ -171,7 +171,6 @@
                         SdksPath = macSdksPath?.TrimEnd('/'),
                         TelemetryPath = null,
                     },
-                    UseStorageVirtualisation = false,
                 };
 
                 BuildSpecification buildSpec;

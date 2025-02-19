@@ -9,11 +9,11 @@
 
     internal class DefaultGradleWorkspace : IGradleWorkspace
     {
-        private readonly IDynamicWorkspaceProvider _dynamicWorkspaceProvider;
+        private readonly IWorkspaceProvider _dynamicWorkspaceProvider;
         private readonly ILogger<DefaultGradleWorkspace> _logger;
 
         public DefaultGradleWorkspace(
-            IDynamicWorkspaceProvider dynamicWorkspaceProvider,
+            IWorkspaceProvider dynamicWorkspaceProvider,
             ILogger<DefaultGradleWorkspace> logger)
         {
             _dynamicWorkspaceProvider = dynamicWorkspaceProvider;

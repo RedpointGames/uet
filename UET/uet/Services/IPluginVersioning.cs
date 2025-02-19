@@ -9,7 +9,6 @@
         Task<(string versionName, string versionNumber)> ComputeVersionNameAndNumberAsync(
             BuildEngineSpecification engineSpec,
             BuildConfigPluginPackageType versioningType,
-            bool useStorageVirtualization,
             CancellationToken cancellationToken);
     }
 }

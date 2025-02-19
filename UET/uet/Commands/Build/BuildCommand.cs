@@ -30,7 +30,6 @@
             public Option<bool> Test;
             public Option<bool> Deploy;
             public Option<bool> StrictIncludes;
-            public Option<bool> StorageVirtualisation;
 
             public Option<DistributionSpec?> Distribution;
 
@@ -100,12 +99,6 @@
                 StrictIncludes = new Option<bool>(
                     "--strict-includes",
                     description: "If set, disables unity and PCH builds. This forces all files to have the correct #include directives, at the cost of increased build time.");
-
-                StorageVirtualisation = new Option<bool>(
-                    "--storage-virtualisation",
-                    getDefaultValue: () => Environment.GetEnvironmentVariable("UET_USE_STORAGE_VIRTUALIZATION") == "true",
-                    description: "If set, enables storage virtualisation via UEFS.");
-                StorageVirtualisation.AddAlias("-u");
 
                 // ==== .uproject / .uplugin options
 
@@ -266,7 +259,7 @@
             private readonly LocalBuildExecutorFactory _localBuildExecutorFactory;
             private readonly GitLabBuildExecutorFactory _gitLabBuildExecutorFactory;
             private readonly IStringUtilities _stringUtilities;
-            private readonly IDynamicWorkspaceProvider _dynamicWorkspaceProvider;
+            private readonly IWorkspaceProvider _dynamicWorkspaceProvider;
 
             public BuildCommandInstance(
                 ILogger<BuildCommandInstance> logger,
@@ -275,7 +268,7 @@
                 LocalBuildExecutorFactory localBuildExecutorFactory,
                 GitLabBuildExecutorFactory gitLabBuildExecutorFactory,
                 IStringUtilities stringUtilities,
-                IDynamicWorkspaceProvider dynamicWorkspaceProvider)
+                IWorkspaceProvider dynamicWorkspaceProvider)
             {
                 _logger = logger;
                 _options = options;
@@ -303,16 +296,11 @@
                 var test = context.ParseResult.GetValueForOption(_options.Test);
                 var deploy = context.ParseResult.GetValueForOption(_options.Deploy);
                 var strictIncludes = context.ParseResult.GetValueForOption(_options.StrictIncludes);
-                var storageVirtualisation = context.ParseResult.GetValueForOption(_options.StorageVirtualisation);
                 var platforms = context.ParseResult.GetValueForOption(_options.Platform);
                 var projectStagingDirectory = context.ParseResult.GetValueForOption(_options.ProjectStagingDirectory);
                 var pluginPackage = context.ParseResult.GetValueForOption(_options.PluginPackage);
                 var pluginVersionName = context.ParseResult.GetValueForOption(_options.PluginVersionName);
                 var pluginVersionNumber = context.ParseResult.GetValueForOption(_options.PluginVersionNumber);
-
-                // Configure the dynamic workspace provider to use workspace virtualisation
-                // if appropriate.
-                _dynamicWorkspaceProvider.UseWorkspaceVirtualisation = storageVirtualisation;
 
                 // @todo: Move this validation to the parsing APIs.
                 string? windowsTelemetryPath = null;
@@ -398,7 +386,6 @@
                 _logger.LogInformation($"--test:                          {(test ? "yes" : "no")}");
                 _logger.LogInformation($"--deploy:                        {(deploy ? "yes" : "no")}");
                 _logger.LogInformation($"--strict-includes:               {(strictIncludes ? "yes" : "no")}");
-                _logger.LogInformation($"--storage-virtualisation:        {(storageVirtualisation ? "yes" : "no")}");
                 _logger.LogInformation($"--platforms:                     {string.Join(", ", platforms ?? [])}");
                 _logger.LogInformation($"--plugin-package:                {pluginPackage}");
                 _logger.LogInformation($"--plugin-version-name:           {pluginVersionName}");
@@ -453,7 +440,6 @@
                         SdksPath = macSdksPath?.TrimEnd('/'),
                         TelemetryPath = macTelemetryPath,
                     },
-                    UseStorageVirtualisation = storageVirtualisation,
                 };
 
                 BuildSpecification buildSpec;

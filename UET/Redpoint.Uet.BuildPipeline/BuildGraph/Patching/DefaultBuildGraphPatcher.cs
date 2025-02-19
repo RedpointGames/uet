@@ -22,7 +22,7 @@
         private readonly ILogger<DefaultBuildGraphPatcher> _logger;
         private readonly IPathResolver _pathResolver;
         private readonly IProcessExecutor _processExecutor;
-        private readonly IDynamicWorkspaceProvider _dynamicWorkspaceProvider;
+        private readonly IWorkspaceProvider _dynamicWorkspaceProvider;
         private readonly IUATExecutor _uatExecutor;
         private readonly IDotnetLocator _dotnetLocator;
         private readonly BuildGraphPatchSet[] _patches;
@@ -35,7 +35,7 @@
             ILogger<DefaultBuildGraphPatcher> logger,
             IPathResolver pathResolver,
             IProcessExecutor processExecutor,
-            IDynamicWorkspaceProvider dynamicWorkspaceProvider,
+            IWorkspaceProvider dynamicWorkspaceProvider,
             IUATExecutor uatExecutor,
             IDotnetLocator dotnetLocator)
         {

@@ -40,7 +40,6 @@
         public async Task<(string versionName, string versionNumber)> ComputeVersionNameAndNumberAsync(
             BuildEngineSpecification engineSpec,
             BuildConfigPluginPackageType pluginVersioningType,
-            bool useStorageVirtualisation,
             CancellationToken cancellationToken)
         {
             var ciCommitShortSha = Environment.GetEnvironmentVariable("CI_COMMIT_SHORT_SHA");
