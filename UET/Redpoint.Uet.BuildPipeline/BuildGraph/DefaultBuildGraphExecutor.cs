@@ -23,7 +23,7 @@
         private readonly IUATExecutor _uatExecutor;
         private readonly IBuildGraphArgumentGenerator _buildGraphArgumentGenerator;
         private readonly IBuildGraphPatcher _buildGraphPatcher;
-        private readonly IDynamicWorkspaceProvider _dynamicWorkspaceProvider;
+        private readonly IWorkspaceProvider _dynamicWorkspaceProvider;
         private readonly IMobileProvisioning _mobileProvisioning;
         private readonly IGradleWorkspace _gradleWorkspace;
 
@@ -32,7 +32,7 @@
             IUATExecutor uatExecutor,
             IBuildGraphArgumentGenerator buildGraphArgumentGenerator,
             IBuildGraphPatcher buildGraphPatcher,
-            IDynamicWorkspaceProvider dynamicWorkspaceProvider,
+            IWorkspaceProvider dynamicWorkspaceProvider,
             IMobileProvisioning mobileProvisioning,
             IGradleWorkspace gradleWorkspace)
         {

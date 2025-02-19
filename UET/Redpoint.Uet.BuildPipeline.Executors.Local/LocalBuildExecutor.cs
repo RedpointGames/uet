@@ -25,7 +25,7 @@
         private readonly ILogger<LocalBuildExecutor> _logger;
         private readonly IBuildGraphExecutor _buildGraphExecutor;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
-        private readonly IDynamicWorkspaceProvider _workspaceProvider;
+        private readonly IWorkspaceProvider _workspaceProvider;
         private readonly ISdkSetupForBuildExecutor _sdkSetupForBuildExecutor;
         private readonly IBuildGraphArgumentGenerator _buildGraphArgumentGenerator;
         private readonly IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>[] _pluginPrepare;
@@ -37,7 +37,7 @@
             ILogger<LocalBuildExecutor> logger,
             IBuildGraphExecutor buildGraphGenerator,
             IEngineWorkspaceProvider engineWorkspaceProvider,
-            IDynamicWorkspaceProvider workspaceProvider,
+            IWorkspaceProvider workspaceProvider,
             ISdkSetupForBuildExecutor sdkSetupForBuildExecutor,
             IBuildGraphArgumentGenerator buildGraphArgumentGenerator,
             IPreBuild preBuild)
@@ -78,25 +78,12 @@
             string buildGraphRepositoryRoot,
             string nodeName)
         {
-            if (_workspaceProvider.ProvidesFastCopyOnWrite && !string.IsNullOrWhiteSpace(buildGraphRepositoryRoot))
-            {
-                return await _workspaceProvider.GetWorkspaceAsync(
-                    new FolderSnapshotWorkspaceDescriptor
-                    {
-                        SourcePath = buildGraphRepositoryRoot,
-                        WorkspaceDisambiguators = new[] { nodeName },
-                    },
-                    CancellationToken.None).ConfigureAwait(false);
-            }
-            else
-            {
-                return await _workspaceProvider.GetWorkspaceAsync(
-                    new FolderAliasWorkspaceDescriptor
-                    {
-                        AliasedPath = buildGraphRepositoryRoot
-                    },
-                    CancellationToken.None).ConfigureAwait(false);
-            }
+            return await _workspaceProvider.GetWorkspaceAsync(
+                new FolderAliasWorkspaceDescriptor
+                {
+                    AliasedPath = buildGraphRepositoryRoot
+                },
+                CancellationToken.None).ConfigureAwait(false);
         }
 
         private async Task<BuildResultStatus> ExecuteDAGNode(

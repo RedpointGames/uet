@@ -51,7 +51,7 @@
             private readonly Options _options;
             private readonly GitLabBuildExecutorFactory _gitLabBuildExecutorFactory;
             private readonly IWorldPermissionApplier _worldPermissionApplier;
-            private readonly IDynamicWorkspaceProvider _dynamicWorkspaceProvider;
+            private readonly IWorkspaceProvider _dynamicWorkspaceProvider;
             private readonly IStorageManagement _storageManagement;
             private readonly BuildJobJsonSourceGenerationContext _buildJobJsonSourceGenerationContext;
 
@@ -61,7 +61,7 @@
                 GitLabBuildExecutorFactory gitLabBuildExecutorFactory,
                 IWorldPermissionApplier worldPermissionApplier,
                 IServiceProvider serviceProvider,
-                IDynamicWorkspaceProvider dynamicWorkspaceProvider,
+                IWorkspaceProvider dynamicWorkspaceProvider,
                 IStorageManagement storageManagement)
             {
                 _logger = logger;
@@ -110,10 +110,6 @@
                     _logger.LogInformation($"Runback information saved. You can run this job again on this machine outside CI by running: 'uet internal runback {RunbackGlobalState.RunbackId}'.");
                 }
 
-                // Configure the dynamic workspace provider to use workspace virtualisation
-                // if appropriate.
-                _dynamicWorkspaceProvider.UseWorkspaceVirtualisation = buildJson.UseStorageVirtualisation;
-
                 await _storageManagement.AutoPurgeStorageAsync(
                     context.GetCancellationToken()).ConfigureAwait(false);
 
@@ -153,7 +149,6 @@
                             TelemetryPath = buildJson.TelemetryPath,
                         },
                         Mac = null!,
-                        UseStorageVirtualisation = buildJson.UseStorageVirtualisation,
                     };
                 }
                 else if (OperatingSystem.IsMacOS())
@@ -168,7 +163,6 @@
                             SdksPath = buildJson.SdksPath,
                             TelemetryPath = buildJson.TelemetryPath,
                         },
-                        UseStorageVirtualisation = buildJson.UseStorageVirtualisation,
                     };
                 }
                 else

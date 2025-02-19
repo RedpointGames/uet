@@ -43,7 +43,7 @@
             private readonly INetworkAutoDiscovery _networkAutoDiscovery;
             private readonly IGrpcPipeFactory _grpcPipeFactory;
             private readonly IProcessExecutor _processExecutor;
-            private readonly IPhysicalWorkspaceProvider _workspaceProvider;
+            private readonly IWorkspaceProvider _workspaceProvider;
             private readonly IPathResolver _pathResolver;
             private readonly SemaphoreSlim _semaphore;
 
@@ -52,7 +52,7 @@
                 INetworkAutoDiscovery networkAutoDiscovery,
                 IGrpcPipeFactory grpcPipeFactory,
                 IProcessExecutor processExecutor,
-                IPhysicalWorkspaceProvider workspaceProvider,
+                IWorkspaceProvider workspaceProvider,
                 IPathResolver pathResolver)
             {
                 _logger = logger;

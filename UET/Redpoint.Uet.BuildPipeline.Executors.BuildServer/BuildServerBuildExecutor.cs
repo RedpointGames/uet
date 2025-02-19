@@ -33,7 +33,7 @@
         private readonly ILogger<BuildServerBuildExecutor> _logger;
         private readonly IBuildGraphExecutor _buildGraphExecutor;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
-        private readonly IDynamicWorkspaceProvider _workspaceProvider;
+        private readonly IWorkspaceProvider _workspaceProvider;
         private readonly IWorldPermissionApplier _worldPermissionApplier;
         private readonly IStorageManagement _storageManagement;
         private readonly IGlobalArgsProvider? _globalArgsProvider;
@@ -47,7 +47,7 @@
             _logger = serviceProvider.GetRequiredService<ILogger<BuildServerBuildExecutor>>();
             _buildGraphExecutor = serviceProvider.GetRequiredService<IBuildGraphExecutor>();
             _engineWorkspaceProvider = serviceProvider.GetRequiredService<IEngineWorkspaceProvider>();
-            _workspaceProvider = serviceProvider.GetRequiredService<IDynamicWorkspaceProvider>();
+            _workspaceProvider = serviceProvider.GetRequiredService<IWorkspaceProvider>();
             _worldPermissionApplier = serviceProvider.GetRequiredService<IWorldPermissionApplier>();
             _storageManagement = serviceProvider.GetRequiredService<IStorageManagement>();
             _globalArgsProvider = serviceProvider.GetService<IGlobalArgsProvider>();
@@ -683,7 +683,6 @@
                     GlobalEnvironmentVariables = buildSpecification.GlobalEnvironmentVariables ?? new Dictionary<string, string>(),
                     Settings = buildSpecification.BuildGraphSettings,
                     ProjectFolderName = buildSpecification.ProjectFolderName,
-                    UseStorageVirtualisation = buildSpecification.BuildGraphEnvironment.UseStorageVirtualisation,
                     MobileProvisions = job.Agent.Platform switch
                     {
                         BuildServerJobPlatform.Windows => preparationInfo.WindowsMobileProvisions,

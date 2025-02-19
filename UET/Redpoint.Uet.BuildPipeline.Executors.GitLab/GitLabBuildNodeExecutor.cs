@@ -22,7 +22,7 @@
         private readonly ILogger<GitLabBuildNodeExecutor> _logger;
         private readonly IBuildGraphExecutor _buildGraphExecutor;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
-        private readonly IDynamicWorkspaceProvider _workspaceProvider;
+        private readonly IWorkspaceProvider _workspaceProvider;
         private readonly ISdkSetupForBuildExecutor _sdkSetupForBuildExecutor;
         private readonly IBuildGraphArgumentGenerator _buildGraphArgumentGenerator;
         private readonly IPreBuild _preBuild;
@@ -34,7 +34,7 @@
             ILogger<GitLabBuildNodeExecutor> logger,
             IBuildGraphExecutor buildGraphExecutor,
             IEngineWorkspaceProvider engineWorkspaceProvider,
-            IDynamicWorkspaceProvider workspaceProvider,
+            IWorkspaceProvider workspaceProvider,
             ISdkSetupForBuildExecutor sdkSetupForBuildExecutor,
             IBuildGraphArgumentGenerator buildGraphArgumentGenerator,
             IPreBuild preBuild)

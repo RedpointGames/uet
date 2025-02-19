@@ -56,9 +56,6 @@
         [JsonPropertyName("ProjectFolderName"), JsonRequired]
         public string? ProjectFolderName { get; set; } = null;
 
-        [JsonPropertyName("UseStorageVirtualisation"), JsonRequired]
-        public bool UseStorageVirtualisation { get; set; } = false;
-
         [JsonPropertyName("MobileProvisions"), JsonRequired]
         [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public BuildConfigMobileProvision[] MobileProvisions { get; set; } = Array.Empty<BuildConfigMobileProvision>();

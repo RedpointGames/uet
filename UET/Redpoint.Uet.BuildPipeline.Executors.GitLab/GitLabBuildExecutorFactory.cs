@@ -36,7 +36,7 @@
                 _serviceProvider.GetRequiredService<ILogger<GitLabBuildNodeExecutor>>(),
                 _serviceProvider.GetRequiredService<IBuildGraphExecutor>(),
                 _serviceProvider.GetRequiredService<IEngineWorkspaceProvider>(),
-                _serviceProvider.GetRequiredService<IDynamicWorkspaceProvider>(),
+                _serviceProvider.GetRequiredService<IWorkspaceProvider>(),
                 _serviceProvider.GetRequiredService<ISdkSetupForBuildExecutor>(),
                 _serviceProvider.GetRequiredService<IBuildGraphArgumentGenerator>(),
                 _serviceProvider.GetRequiredService<IPreBuild>());
