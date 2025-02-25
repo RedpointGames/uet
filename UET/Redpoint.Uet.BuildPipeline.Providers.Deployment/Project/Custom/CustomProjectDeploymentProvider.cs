@@ -49,21 +49,28 @@
                     },
                     async writer =>
                     {
+                        var arguments = new List<string>
+                        {
+                            "-ExecutionPolicy",
+                            "Bypass",
+                            "-File",
+                            $@"""$(RepositoryRoot)/{deployment.settings.ScriptPath}""",
+                            "-EnginePath",
+                            $@"""$(EnginePath)""",
+                            "-StageDirectory",
+                            $@"""$(StageDirectory)""",
+                        };
+
+                        foreach (var argument in deployment.settings.ScriptArguments ?? [])
+                        {
+                            arguments.Add(argument);
+                        }
+
                         await writer.WriteSpawnAsync(
                             new SpawnElementProperties
                             {
                                 Exe = "powershell.exe",
-                                Arguments = new[]
-                                {
-                                    "-ExecutionPolicy",
-                                    "Bypass",
-                                    "-File",
-                                    $@"""$(RepositoryRoot)/{deployment.settings.ScriptPath}""",
-                                    "-EnginePath",
-                                    $@"""$(EnginePath)""",
-                                    "-StageDirectory",
-                                    $@"""$(StageDirectory)""",
-                                }
+                                Arguments = arguments
                             }).ConfigureAwait(false);
                     }).ConfigureAwait(false);
                 await writer.WriteDynamicNodeAppendAsync(
