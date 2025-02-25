@@ -624,16 +624,16 @@
 
                     void DeleteAllGitModulesAndAttributes()
                     {
-                        _logger.LogInformation($"Deleting all .gitattributes and .gitmodules files...");
-                        foreach (var file in gitWorkspacePath.EnumerateFiles(".gitmodules", new EnumerationOptions { RecurseSubdirectories = true, MatchType = MatchType.Simple }))
+                        _logger.LogInformation($"Deleting all .gitattributes, .gitmodules and .gitignore files...");
+                        foreach (var file in gitWorkspacePath.EnumerateFiles("*", SearchOption.AllDirectories))
                         {
-                            _logger.LogInformation($"  '{file}'...");
-                            File.Delete(file.FullName);
-                        }
-                        foreach (var file in gitWorkspacePath.EnumerateFiles(".gitattributes", new EnumerationOptions { RecurseSubdirectories = true, MatchType = MatchType.Simple }))
-                        {
-                            _logger.LogInformation($"  '{file}'...");
-                            File.Delete(file.FullName);
+                            if (file.Name == ".gitignore" ||
+                                file.Name == ".gitmodules" ||
+                                file.Name == ".gitattributes")
+                            {
+                                _logger.LogInformation($"  '{file.FullName}'...");
+                                File.Delete(file.FullName);
+                            }
                         }
                     }
 
