@@ -11,6 +11,7 @@
         /// The script receives the following parameters:
         ///   -EnginePath "C:\Path\To\UnrealEngine"
         ///   -StageDirectory "C:\Path\To\UProject\Saved\StagedBuilds"
+        /// Plus additional arguments defined by ScriptArguments.
         /// </summary>
         [JsonPropertyName("ScriptPath"), JsonRequired]
         public string ScriptPath { get; set; } = string.Empty;
@@ -22,5 +23,12 @@
         [JsonPropertyName("Packages")]
         [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public BuildConfigProjectDeploymentPackage[]? Packages { get; set; }
+
+        /// <summary>
+        /// Additional arguments to pass to the PowerShell script, if any.
+        /// </summary>
+        [JsonPropertyName("ScriptArguments")]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        public string[]? ScriptArguments { get; set; }
     }
 }
