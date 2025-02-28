@@ -1,6 +1,10 @@
 # Don't permit the hosting solution to override coding style in the Cloud Framework source code.
 root = true
 
+[*.xml]
+indent_size = 2
+indent_style = space
+
 [*.cs]
 
 #### Core EditorConfig Options ####

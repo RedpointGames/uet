@@ -36,6 +36,9 @@
   <!-- Stage options -->
   <Option Name="StageDirectory" Restrict=".+" DefaultValue="Saved\StagedBuilds" Description="The path under which to place all of the staged builds" />
 
+  <!-- Version options -->
+  <Option Name="ReleaseVersion" Restrict=".+" DefaultValue="1.0" Description="The version number for the release" />
+
   <!-- Dynamic include options, used by UET to dynamically generate test and deployment nodes -->
   <Option Name="ScriptNodeIncludes" DefaultValue="" Description="Additional script includes paths for nodes" />
   <Option Name="ScriptMacroIncludes" DefaultValue="" Description="Additional script includes paths for macros" />
@@ -107,9 +110,9 @@
     <Property Name="AgentSuffix" Value="(macOS Build)" If="'$(HostPlatform)' == 'Mac'" />
 
     <Agent
-      Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(AgentSuffix)"
-      Type="$(HostPlatform)"
-      If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')"
+		  Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(AgentSuffix)"
+		  Type="$(HostPlatform)"
+		  If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')"
     >
       <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)">
         <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
@@ -125,9 +128,9 @@
           for the debug symbols folder.
         -->
         <Property
-          If="'$(TargetPlatform)' == 'Android'"
-          Name="AdditionalArguments"
-          Value="$(AdditionalArguments) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" />
+				  If="'$(TargetPlatform)' == 'Android'"
+				  Name="AdditionalArguments"
+				  Value="$(AdditionalArguments) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" />
 
         <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; -SkipDeploy $(AdditionalArguments)"/>
         <Tag Files="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#$(TargetType)Receipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
@@ -137,9 +140,9 @@
     </Agent>
 
     <Property
-      Name="GeneratedVariantsList"
-      Value="$(GeneratedVariantsList)$(VariantName);"
-      If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')" />
+		  Name="GeneratedVariantsList"
+		  Value="$(GeneratedVariantsList)$(VariantName);"
+		  If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')" />
 
   </Macro>
 
@@ -155,9 +158,9 @@
     <Property Name="VariantName" Value="Cook_$(TargetType)_$(TargetPlatform)_$(CookFlavor)" />
 
     <Agent
-      Name="Cook $(TargetType) $(TargetPlatform) $(CookFlavor) (Windows Cook)"
-      Type="Win64"
-      If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')"
+		  Name="Cook $(TargetType) $(TargetPlatform) $(CookFlavor) (Windows Cook)"
+		  Type="Win64"
+		  If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')"
     >
       <Node Name="Cook $(TargetType) $(TargetPlatform) $(CookFlavor)" Requires="#EditorBinaries" Produces="#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)">
         <Property Name="CookPlatform" Value="$(TargetPlatform)" />
@@ -166,15 +169,20 @@
         <Property Name="CookPlatform" Value="$(CookPlatform)NoEditor" If="'$(IsUnrealEngine5)' == 'false'" />
         <Property Name="CookPlatform" Value="$(CookPlatform)Client" If="'$(IsUnrealEngine5)' == 'true' and '$(TargetType)' == 'Client'" />
         <Property Name="CookPlatform" Value="$(CookPlatform)Server" If="(('$(CookPlatform)' == 'Windows') or ('$(CookPlatform)' == 'Mac') or ('$(CookPlatform)' == 'Linux')) and '$(TargetType)' == 'Server'" />
-        <Cook Project="$(UProjectPath)" Platform="$(CookPlatform)" Tag="#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)" />
+        <Cook
+          Project="$(UProjectPath)"
+          Platform="$(CookPlatform)"
+          Tag="#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)"
+          Versioned="True"
+          Arguments="-CreateReleaseVersion=&quot;$(ReleaseVersion)&quot;" />
       </Node>
       <Property Name="$(TargetType)CookedContent" Value="$($(TargetType)CookedContent)#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor);"/>
     </Agent>
 
     <Property
-      Name="GeneratedVariantsList"
-      Value="$(GeneratedVariantsList)$(VariantName);"
-      If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')" />
+		  Name="GeneratedVariantsList"
+		  Value="$(GeneratedVariantsList)$(VariantName);"
+		  If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')" />
 
   </Macro>
 
@@ -198,9 +206,9 @@
 
     <!-- Specify the agent that this job will run on for this variant. -->
     <Agent
-      Name="Pak and Stage $(TargetName) $(TargetStore) $(TargetConfiguration) $(CookFlavor) $(AgentSuffix)"
-      Type="$(HostPlatform)"
-      If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')"
+		  Name="Pak and Stage $(TargetName) $(TargetStore) $(TargetConfiguration) $(CookFlavor) $(AgentSuffix)"
+		  Type="$(HostPlatform)"
+		  If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')"
     >
       <!-- Figure out the label to tag the stage outputs with, based on whether we have a cook flavor. -->
       <Property Name="StageOutputs" Value="#$(TargetType)Staged_$(TargetName)_$(TargetStore)_$(TargetConfiguration)" />
@@ -218,41 +226,53 @@
         <Property Name="StagePlatform" Value="Windows" If="'$(StagePlatform)' == 'Win64'" />
         <Do If="'$(StagePlatform)' == 'Windows' or '$(StagePlatform)' == 'Mac' or '$(StagePlatform)' == 'Linux'">
           <Property
-            Name="StagePlatform"
-            Value="$(StagePlatform)NoEditor"
-            If="'$(TargetType)' != 'Server' and '$(IsUnrealEngine5)' == 'false'" />
+					  Name="StagePlatform"
+					  Value="$(StagePlatform)NoEditor"
+					  If="'$(TargetType)' != 'Server' and '$(IsUnrealEngine5)' == 'false'" />
           <Property
-            Name="StagePlatform"
-            Value="$(StagePlatform)Server"
-            If="'$(TargetType)' == 'Server'" />
+					  Name="StagePlatform"
+					  Value="$(StagePlatform)Server"
+					  If="'$(TargetType)' == 'Server'" />
         </Do>
 
         <!-- Set up the extra BuildCookRun arguments to be empty. -->
         <Property Name="BCRArgs" Value="" />
 
+        <!-- Specify the release version. -->
+        <Property
+				  Name="BCRArgs"
+				  Value="$(BCRArgs) -CreateReleaseVersion=&quot;$(ReleaseVersion)&quot;" />
+
+        <!-- Set the release version into the configs for reading at runtime. -->
+        <ModifyConfig
+          File="$(ProjectRoot)/Config/DefaultEngine.ini"
+          Section="Redpoint.UnrealEngineTool"
+          Key="ReleaseVersion"
+          Value="$(ReleaseVersion)" />
+
         <!-- Specify the -cookflavor argument if a cook flavor is specified. -->
         <Property
-          If="'$(CookFlavor)' != 'NoCookFlavor'"
-          Name="BCRArgs"
-          Value="$(BCRArgs) -cookflavor=$(CookFlavor)" />
+				  If="'$(CookFlavor)' != 'NoCookFlavor'"
+				  Name="BCRArgs"
+				  Value="$(BCRArgs) -cookflavor=$(CookFlavor)" />
 
         <!-- Disable code signing for desktop platforms, where code signing isn't necessary. -->
         <Property
-          If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')"
-          Name="BCRArgs"
-          Value="$(BCRArgs) -NoCodeSign" />
+				  If="('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux')"
+				  Name="BCRArgs"
+				  Value="$(BCRArgs) -NoCodeSign" />
 
         <!-- Specify the -package flag if we're targeting iOS or Android. -->
         <Property
-          If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')"
-          Name="BCRArgs"
-          Value="$(BCRArgs) -package" />
+				  If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')"
+				  Name="BCRArgs"
+				  Value="$(BCRArgs) -package" />
 
         <!-- Specify the -distribution flag if we're targeting iOS or Android AND the configuration is Shipping. -->
         <Property
-          If="(('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')) and '$(TargetConfiguration)' == 'Shipping'"
-          Name="BCRArgs"
-          Value="$(BCRArgs) -distribution" />
+				  If="(('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')) and '$(TargetConfiguration)' == 'Shipping'"
+				  Name="BCRArgs"
+				  Value="$(BCRArgs) -distribution" />
 
         <!-- 
           Automatically set the StoreVersion for Android so that it increments over time. 
@@ -263,46 +283,46 @@
           has installed on their device.
         -->
         <Property
-          If="'$(TargetPlatform)' == 'Android'"
-          Name="BCRArgs"
-          Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" />
+				  If="'$(TargetPlatform)' == 'Android'"
+				  Name="BCRArgs"
+				  Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" />
         <Property
-          If="'$(TargetPlatform)' == 'Android'"
-          Name="BCRArgs"
-          Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:VersionDisplayName=$(Timestamp)" />
+				  If="'$(TargetPlatform)' == 'Android'"
+				  Name="BCRArgs"
+				  Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:VersionDisplayName=$(Timestamp)" />
 
         <!-- If we're not packaging a dedicated server, add the parameters necessary to package Game/Client targets. -->
         <Do If="'$(TargetType)' != 'Server'">
           <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) &quot;-platform=$(TargetPlatform)&quot;" />
+					  Name="BCRArgs"
+					  Value="$(BCRArgs) &quot;-platform=$(TargetPlatform)&quot;" />
           <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) &quot;-clientconfig=$(TargetConfiguration)&quot;" />
+					  Name="BCRArgs"
+					  Value="$(BCRArgs) &quot;-clientconfig=$(TargetConfiguration)&quot;" />
           <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ClientCookedTargets=$(TargetName)" />
+					  Name="BCRArgs"
+					  Value="$(BCRArgs) -ClientCookedTargets=$(TargetName)" />
           <!-- Also specify the -client flag if this is a Client target, not a Game target. -->
           <Property
-            If="'$(TargetType)' == 'Client'"
-            Name="BCRArgs"
-            Value="$(BCRArgs) -client" />
+					  If="'$(TargetType)' == 'Client'"
+					  Name="BCRArgs"
+					  Value="$(BCRArgs) -client" />
         </Do>
 
         <!-- If we're packaging a dedicated server, add the parameters necessary to package it. -->
         <Do If="'$(TargetType)' == 'Server'">
           <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -dedicatedserver -noclient -server" />
+					  Name="BCRArgs"
+					  Value="$(BCRArgs) -dedicatedserver -noclient -server" />
           <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) &quot;-serverplatform=$(TargetPlatform)&quot;" />
+					  Name="BCRArgs"
+					  Value="$(BCRArgs) &quot;-serverplatform=$(TargetPlatform)&quot;" />
           <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) &quot;-serverconfig=$(TargetConfiguration)&quot;" />
+					  Name="BCRArgs"
+					  Value="$(BCRArgs) &quot;-serverconfig=$(TargetConfiguration)&quot;" />
           <Property
-            Name="BCRArgs"
-            Value="$(BCRArgs) -ServerCookedTargets=$(TargetName)" />
+					  Name="BCRArgs"
+					  Value="$(BCRArgs) -ServerCookedTargets=$(TargetName)" />
         </Do>
 
         <!-- 
@@ -313,81 +333,81 @@
         -->
         <Do If="'$(TargetStore)' == 'MetaQuest'">
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="InstallLocation"
-            Value="InternalOnly" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="InstallLocation"
+					  Value="InternalOnly" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bPackageDataInsideApk"
-            Value="False" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bPackageDataInsideApk"
+					  Value="False" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bForceSmallOBBFiles"
-            Value="False" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bForceSmallOBBFiles"
+					  Value="False" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bAllowLargeOBBFiles"
-            Value="False" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bAllowLargeOBBFiles"
+					  Value="False" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bAllowPatchOBBFile"
-            Value="False" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bAllowPatchOBBFile"
+					  Value="False" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bAllowOverflowOBBFiles"
-            Value="False" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bAllowOverflowOBBFiles"
+					  Value="False" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bUseExternalFilesDir"
-            Value="False" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bUseExternalFilesDir"
+					  Value="False" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bEnableBundle"
-            Value="False" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bEnableBundle"
+					  Value="False" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="ExtraApplicationSettings"
-            Value="&lt;meta-data android:name&#x3D;&quot;com.oculus.supportedDevices&quot; android:value&#x3D;&quot;quest|quest2|questpro|quest3&quot; &#x2F;&gt;" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="ExtraApplicationSettings"
+					  Value="&lt;meta-data android:name&#x3D;&quot;com.oculus.supportedDevices&quot; android:value&#x3D;&quot;quest|quest2|questpro|quest3&quot; &#x2F;&gt;" />
           <ModifyConfig
-            If="'$(TargetConfiguration)' == 'Shipping'"
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bRemoveOSIG"
-            Value="True" />
+					  If="'$(TargetConfiguration)' == 'Shipping'"
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bRemoveOSIG"
+					  Value="True" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bBuildForArm64"
-            Value="True" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bBuildForArm64"
+					  Value="True" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bBuildForX8664"
-            Value="False" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bBuildForX8664"
+					  Value="False" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bEnableGooglePlaySupport"
-            Value="False" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bEnableGooglePlaySupport"
+					  Value="False" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bPackageForMetaQuest"
-            Value="True" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bPackageForMetaQuest"
+					  Value="True" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidInput.ini"
-            Section="/Script/Engine.InputSettings"
-            Key="DefaultTouchInterface"
-            Value="None" />
+					  File="$(ProjectRoot)/Config/Android/AndroidInput.ini"
+					  Section="/Script/Engine.InputSettings"
+					  Key="DefaultTouchInterface"
+					  Value="None" />
         </Do>
 
         <!-- 
@@ -398,70 +418,70 @@
         -->
         <Do If="'$(TargetStore)' == 'GooglePlay'">
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bPackageDataInsideApk"
-            Value="False" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bPackageDataInsideApk"
+					  Value="False" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bForceSmallOBBFiles"
-            Value="False" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bForceSmallOBBFiles"
+					  Value="False" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bAllowLargeOBBFiles"
-            Value="False" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bAllowLargeOBBFiles"
+					  Value="False" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bAllowPatchOBBFile"
-            Value="False" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bAllowPatchOBBFile"
+					  Value="False" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bAllowOverflowOBBFiles"
-            Value="False" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bAllowOverflowOBBFiles"
+					  Value="False" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bEnableBundle"
-            Value="True" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bEnableBundle"
+					  Value="True" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bEnableUniversalAPK"
-            Value="True" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bEnableUniversalAPK"
+					  Value="True" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bBundleABISplit"
-            Value="True" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bBundleABISplit"
+					  Value="True" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bBundleLanguageSplit"
-            Value="True" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bBundleLanguageSplit"
+					  Value="True" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bBundleDensitySplit"
-            Value="True" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bBundleDensitySplit"
+					  Value="True" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="ExtraApplicationSettings"
-            Value="" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="ExtraApplicationSettings"
+					  Value="" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bEnableGooglePlaySupport"
-            Value="True" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bEnableGooglePlaySupport"
+					  Value="True" />
           <ModifyConfig
-            File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
-            Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
-            Key="bPackageForMetaQuest"
-            Value="False" />
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bPackageForMetaQuest"
+					  Value="False" />
         </Do>
 
         <!-- Run our reparenting hook, which is necessary to fix up Android UPL paths when not building against a source engine. -->
@@ -479,13 +499,13 @@
         <!-- If the target directory is the same as the target platform, tag directly. -->
         <Do If="'$(TargetDirectoryName)' == '$(TargetPlatform)'">
           <Tag
-            BaseDir="$(StageDirectory)$(Slash)$(StagePlatform)"
-            Files="..."
-            With="$(StageOutputs)" />
+					  BaseDir="$(StageDirectory)$(Slash)$(StagePlatform)"
+					  Files="..."
+					  With="$(StageOutputs)" />
           <Tag
-            BaseDir="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetPlatform)"
-            Files="..."
-            With="$(StageOutputs)" />
+					  BaseDir="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetPlatform)"
+					  Files="..."
+					  With="$(StageOutputs)" />
         </Do>
 
         <!-- 
@@ -494,19 +514,19 @@
         -->
         <Do If="'$(TargetDirectoryName)' != '$(TargetPlatform)'">
           <Copy
-            From="$(StageDirectory)$(Slash)$(StagePlatform)$(Slash)..."
-            To="$(StageDirectory)$(Slash)$(TargetDirectoryName)" />
+					  From="$(StageDirectory)$(Slash)$(StagePlatform)$(Slash)..."
+					  To="$(StageDirectory)$(Slash)$(TargetDirectoryName)" />
           <Tag
-            BaseDir="$(StageDirectory)$(Slash)$(TargetDirectoryName)"
-            Files="..."
-            With="$(StageOutputs)" />
+					  BaseDir="$(StageDirectory)$(Slash)$(TargetDirectoryName)"
+					  Files="..."
+					  With="$(StageOutputs)" />
           <Copy
-            From="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetPlatform)$(Slash)..."
-            To="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetDirectoryName)" />
+					  From="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetPlatform)$(Slash)..."
+					  To="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetDirectoryName)" />
           <Tag
-            BaseDir="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetDirectoryName)"
-            Files="..."
-            With="$(StageOutputs)" />
+					  BaseDir="$(ProjectRoot)$(Slash)Binaries$(Slash)$(TargetDirectoryName)"
+					  Files="..."
+					  With="$(StageOutputs)" />
         </Do>
       </Node>
 
@@ -515,9 +535,9 @@
     </Agent>
 
     <Property
-      Name="GeneratedVariantsList"
-      Value="$(GeneratedVariantsList)$(VariantName);"
-      If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')" />
+		  Name="GeneratedVariantsList"
+		  Value="$(GeneratedVariantsList)$(VariantName);"
+		  If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')" />
 
   </Macro>
 
@@ -604,12 +624,12 @@
           <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetStore)' == 'GooglePlay' and '$(AndroidGameCookFlavors)' != ''" />
           <ForEach Name="CookFlavor" Values="$(CookFlavors)">
             <Expand
-              Name="PackageVariant"
-              TargetType="Game"
-              TargetName="$(TargetName)"
-              TargetStore="$(TargetStore)"
-              TargetConfiguration="$(TargetConfiguration)"
-              CookFlavor="$(CookFlavor)" />
+						  Name="PackageVariant"
+						  TargetType="Game"
+						  TargetName="$(TargetName)"
+						  TargetStore="$(TargetStore)"
+						  TargetConfiguration="$(TargetConfiguration)"
+						  CookFlavor="$(CookFlavor)" />
           </ForEach>
         </ForEach>
       </ForEach>
@@ -626,12 +646,12 @@
           <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetStore)' == 'GooglePlay' and '$(AndroidClientCookFlavors)' != ''" />
           <ForEach Name="CookFlavor" Values="$(CookFlavors)">
             <Expand
-              Name="PackageVariant"
-              TargetType="Client"
-              TargetName="$(TargetName)"
-              TargetStore="$(TargetStore)"
-              TargetConfiguration="$(TargetConfiguration)"
-              CookFlavor="$(CookFlavor)" />
+						  Name="PackageVariant"
+						  TargetType="Client"
+						  TargetName="$(TargetName)"
+						  TargetStore="$(TargetStore)"
+						  TargetConfiguration="$(TargetConfiguration)"
+						  CookFlavor="$(CookFlavor)" />
           </ForEach>
         </ForEach>
       </ForEach>
@@ -642,12 +662,12 @@
       <ForEach Name="TargetStore" Values="$(ServerTargetPlatforms)">
         <ForEach Name="TargetConfiguration" Values="$(ServerConfigurations)">
           <Expand
-            Name="PackageVariant"
-            TargetType="Server"
-            TargetName="$(TargetName)"
-            TargetStore="$(TargetStore)"
-            TargetConfiguration="$(TargetConfiguration)"
-            CookFlavor="NoCookFlavor" />
+					  Name="PackageVariant"
+					  TargetType="Server"
+					  TargetName="$(TargetName)"
+					  TargetStore="$(TargetStore)"
+					  TargetConfiguration="$(TargetConfiguration)"
+					  CookFlavor="NoCookFlavor" />
         </ForEach>
       </ForEach>
     </ForEach>

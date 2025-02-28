@@ -76,7 +76,7 @@
             services.AddUETCore(minimumLogLevel: minimumLogLevel, permitRunbackLogging: permitRunbackLogging);
             services.AddCredentialDiscovery();
             services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
-            services.AddSingleton<IPluginVersioning, DefaultPluginVersioning>();
+            services.AddSingleton<IReleaseVersioning, DefaultReleaseVersioning>();
             services.AddUba();
         }
 
