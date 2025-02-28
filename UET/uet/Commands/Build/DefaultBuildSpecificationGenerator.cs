@@ -27,7 +27,7 @@
     {
         private readonly ILogger<DefaultBuildSpecificationGenerator> _logger;
         private readonly ISelfLocation _selfLocation;
-        private readonly IPluginVersioning _versioning;
+        private readonly IReleaseVersioning _versioning;
         private readonly IDynamicBuildGraphIncludeWriter _dynamicBuildGraphIncludeWriter;
         private readonly IWorldPermissionApplier _worldPermissionApplier;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
@@ -37,7 +37,7 @@
         public DefaultBuildSpecificationGenerator(
             ILogger<DefaultBuildSpecificationGenerator> logger,
             ISelfLocation selfLocation,
-            IPluginVersioning versioning,
+            IReleaseVersioning versioning,
             IDynamicBuildGraphIncludeWriter dynamicBuildGraphIncludeWriter,
             IWorldPermissionApplier worldPermissionApplier,
             IEngineWorkspaceProvider engineWorkspaceProvider,
@@ -407,7 +407,7 @@
                     versioningType = distribution.Package.Type.Value;
                 }
             }
-            var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(
+            var versionInfo = await _versioning.ComputePluginVersionNameAndNumberAsync(
                 engineSpec,
                 versioningType,
                 CancellationToken.None).ConfigureAwait(false);
@@ -578,6 +578,9 @@
             bool localExecutor,
             string? alternateStagingDirectory)
         {
+            // Generate release version for project.
+            var releaseVersion = _versioning.ComputeProjectReleaseVersion();
+
             // Determine build matrix.
             var editorTarget = distribution.Build.Editor?.Target ?? "UnrealEditor";
             var gameConfig = ComputeTargetConfig("Game", distribution.Build.Game, localExecutor);
@@ -638,6 +641,9 @@
 
                     // Stage options
                     { $"StageDirectory", string.IsNullOrWhiteSpace(alternateStagingDirectory) ? $"__REPOSITORY_ROOT__/{distribution.FolderName}/Saved/StagedBuilds" : alternateStagingDirectory.Replace("__REPOSITORY_ROOT__", $"__REPOSITORY_ROOT__/{distribution.FolderName}", StringComparison.Ordinal) },
+
+                    // Version options
+                    { "ReleaseVersion", releaseVersion },
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = repositoryRoot,
@@ -662,7 +668,7 @@
             var targetPlatform = OperatingSystem.IsWindows() ? "Win64" : "Mac";
             var gameConfigurations = shipping ? "Shipping" : "Development";
 
-            var versionInfo = await _versioning.ComputeVersionNameAndNumberAsync(engineSpec, packageType, CancellationToken.None).ConfigureAwait(false);
+            var versionInfo = await _versioning.ComputePluginVersionNameAndNumberAsync(engineSpec, packageType, CancellationToken.None).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(commandlinePluginVersionName))
             {
                 versionInfo.versionName = commandlinePluginVersionName;
@@ -777,6 +783,9 @@
             string[] extraPlatforms,
             string? alternateStagingDirectory)
         {
+            // Generate release version for project.
+            var releaseVersion = _versioning.ComputeProjectReleaseVersion();
+
             // Use heuristics to guess the targets for this build.
             string editorTarget;
             string gameTarget;
@@ -840,6 +849,9 @@
 
                     // Stage options
                     { $"StageDirectory", string.IsNullOrWhiteSpace(alternateStagingDirectory) ? $"__REPOSITORY_ROOT__/Saved/StagedBuilds" : alternateStagingDirectory },
+
+                    // Version options
+                    { "ReleaseVersion", releaseVersion },
                 },
                 BuildGraphEnvironment = buildGraphEnvironment,
                 BuildGraphRepositoryRoot = pathSpec.DirectoryPath,

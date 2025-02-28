@@ -4,11 +4,13 @@
     using Redpoint.Uet.Configuration.Plugin;
     using System.Threading.Tasks;
 
-    internal interface IPluginVersioning
+    internal interface IReleaseVersioning
     {
-        Task<(string versionName, string versionNumber)> ComputeVersionNameAndNumberAsync(
+        Task<(string versionName, string versionNumber)> ComputePluginVersionNameAndNumberAsync(
             BuildEngineSpecification engineSpec,
             BuildConfigPluginPackageType versioningType,
             CancellationToken cancellationToken);
+
+        string ComputeProjectReleaseVersion();
     }
 }

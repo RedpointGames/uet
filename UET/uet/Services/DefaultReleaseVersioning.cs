@@ -6,18 +6,19 @@
     using Redpoint.Uet.BuildPipeline.Executors.Engine;
     using Redpoint.Uet.Configuration.Plugin;
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.Text.Json;
     using UET.Commands.Build;
     using UET.Commands.EngineSpec;
 
-    internal sealed class DefaultPluginVersioning : IPluginVersioning
+    internal sealed class DefaultReleaseVersioning : IReleaseVersioning
     {
-        private readonly ILogger<DefaultPluginVersioning> _logger;
+        private readonly ILogger<DefaultReleaseVersioning> _logger;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
 
-        public DefaultPluginVersioning(
-            ILogger<DefaultPluginVersioning> logger,
+        public DefaultReleaseVersioning(
+            ILogger<DefaultReleaseVersioning> logger,
             IEngineWorkspaceProvider engineWorkspaceProvider)
         {
             _logger = logger;
@@ -37,7 +38,7 @@
             return null;
         }
 
-        public async Task<(string versionName, string versionNumber)> ComputeVersionNameAndNumberAsync(
+        public async Task<(string versionName, string versionNumber)> ComputePluginVersionNameAndNumberAsync(
             BuildEngineSpecification engineSpec,
             BuildConfigPluginPackageType pluginVersioningType,
             CancellationToken cancellationToken)
@@ -93,6 +94,35 @@
                 _logger.LogInformation($"Building as unversioned package");
                 return ("Unversioned", "10000");
             }
+        }
+
+        [SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Not used for security.")]
+        public string ComputeProjectReleaseVersion()
+        {
+            var overrideDateVersion = Environment.GetEnvironmentVariable("OVERRIDE_DATE_VERSION");
+            var currentTime = DateTimeOffset.UtcNow;
+            var unixTimestamp = currentTime.ToUnixTimeSeconds();
+            var versionDateTime = currentTime.ToString("yyyy.MM.dd", CultureInfo.InvariantCulture);
+            if (!string.IsNullOrWhiteSpace(overrideDateVersion))
+            {
+                versionDateTime = overrideDateVersion;
+            }
+
+            string versionName;
+
+            var ciCommitShortSha = Environment.GetEnvironmentVariable("CI_COMMIT_SHORT_SHA");
+            if (!string.IsNullOrWhiteSpace(ciCommitShortSha) &&
+                ciCommitShortSha.Length >= 8)
+            {
+                versionName = $"{versionDateTime}-{ciCommitShortSha[..8]}";
+            }
+            else
+            {
+                versionName = $"{versionDateTime}-dev-{unixTimestamp}";
+            }
+
+            _logger.LogInformation($"Building as versioned project: {versionName}");
+            return versionName;
         }
     }
 }
