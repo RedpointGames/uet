@@ -12,6 +12,7 @@
 
   <!-- General options -->
   <Option Name="UProjectPath" Restrict=".*" DefaultValue="" Description="Path to the .uproject file" />
+  <Option Name="ProjectName" Restrict=".*" DefaultValue="" Description="The name of the project being built" />
   <Option Name="Distribution" Restrict=".*" DefaultValue="" Description="The distribution being built" />
   <Option Name="IsUnrealEngine5" Restrict="true|false" DefaultValue="false" Description="If true, this is an Unreal Engine 5 project" />
   <Option Name="Timestamp" Restrict="[0-9]+" DefaultValue="0" Description="The UNIX timestamp when this build was generated" />

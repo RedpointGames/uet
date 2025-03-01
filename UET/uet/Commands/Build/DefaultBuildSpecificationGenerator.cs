@@ -605,20 +605,21 @@
                 BuildGraphSettings = new Dictionary<string, string>
                 {
                     // Environment options
-                    { $"UETPath", $"__UET_PATH__" },
+                    { "UETPath", $"__UET_PATH__" },
                     { "EnginePath", "__ENGINE_PATH__" },
-                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
-                    { $"ProjectRoot", $"__REPOSITORY_ROOT__/{distribution.FolderName}" },
-                    { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
-                    { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
+                    { "TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
+                    { "ProjectRoot", $"__REPOSITORY_ROOT__/{distribution.FolderName}" },
+                    { "RepositoryRoot", $"__REPOSITORY_ROOT__" },
+                    { "ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
                     { "ScriptNodeIncludes", scriptNodeIncludes },
                     { "ScriptMacroIncludes", scriptMacroIncludes },
 
                     // General options
-                    { $"UProjectPath", $"__REPOSITORY_ROOT__/{distribution.FolderName}/{distribution.ProjectName}.uproject" },
-                    { $"Distribution", distribution.Name },
+                    { "UProjectPath", $"__REPOSITORY_ROOT__/{distribution.FolderName}/{distribution.ProjectName}.uproject" },
+                    { "ProjectName", distribution.ProjectName },
+                    { "Distribution", distribution.Name },
                     { "IsUnrealEngine5", "true" },
                     { "Timestamp", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture) },
 
