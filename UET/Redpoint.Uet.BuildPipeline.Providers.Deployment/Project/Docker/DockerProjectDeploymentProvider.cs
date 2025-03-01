@@ -3,6 +3,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
+    using Redpoint.ProcessExecution.Enumerable;
     using Redpoint.ProgressMonitor.Utils;
     using Redpoint.RuntimeJson;
     using Redpoint.Uet.BuildGraph;
@@ -79,6 +80,7 @@
                             new Dictionary<string, string>
                             {
                                 { "ProjectRoot", "$(ProjectRoot)" },
+                                { "ProjectName", "$(ProjectName)" },
                                 { "StageDirectory", "$(StageDirectory)" },
                                 { "TempPath", "$(TempPath)" },
                                 { "Timestamp", "$(Timestamp)" },
@@ -102,24 +104,35 @@
 
             var imageTag = $"{config.Image}:{runtimeSettings["ReleaseVersion"]}";
 
-            var packagePath = Path.Combine(runtimeSettings["StageDirectory"], "LinuxServer");
-            var shellFile = Directory.GetFiles(packagePath, "*.sh").FirstOrDefault();
-            if (shellFile == null)
+            var packagePath = Path.Combine(runtimeSettings["StageDirectory"], $"{config.Package.Platform}Server");
+
+            var filenamesToCheck = new[]
             {
-                _logger.LogError("Missing .sh file in staged dedicated server build.");
+                $"{config.Package.Target}-{config.Package.Platform}-{config.Package.Configuration}-Cmd",
+                $"{config.Package.Target}-Cmd",
+                $"{config.Package.Target}-{config.Package.Platform}-{config.Package.Configuration}",
+                $"{config.Package.Target}",
+            };
+            var filename = filenamesToCheck.FirstOrDefault(x => File.Exists(Path.Combine(packagePath, runtimeSettings["ProjectName"], "Binaries", config.Package.Platform, x)));
+            if (filename == null)
+            {
+                _logger.LogError("Unable to find binary in staged build.");
                 return 1;
             }
 
+            var symbolRemove = config.KeepSymbols
+                ? string.Empty
+                : $"RUN rm -f /srv/*/Binaries/{config.Package.Platform}/*.debug /srv/*/Binaries/{config.Package.Platform}/*.sym";
+
             var dockerfileContent =
                 $"""
-                FROM ubuntu:20.04
-                ADD . /app
-                RUN chown -R 1000:1000 /app
-                RUN chmod a+x /app/*.sh /app/*/Binaries/Linux/*
-                USER 1000:1000
-                ENV HOME=/app
-                WORKDIR /app
-                ENTRYPOINT [ "/app/{Path.GetFileName(shellFile)}" ]
+                FROM ubuntu AS builder
+                COPY . /srv
+                RUN chmod a+x /srv/*.sh /srv/*/Binaries/{config.Package.Platform}/*
+                {symbolRemove}
+                FROM gcr.io/distroless/cc-debian10:nonroot
+                COPY --from=builder --chown=nonroot:nonroot /srv /home/nonroot/server
+                ENTRYPOINT [ "/home/nonroot/server/{runtimeSettings["ProjectName"]}/Binaries/{config.Package.Platform}/{filename}", "{runtimeSettings["ProjectName"]}" ]
                 """;
 
             string docker;
