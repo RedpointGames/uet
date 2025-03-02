@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Docker
 {
     using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Package;
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
     public class BuildConfigProjectDeploymentDocker
@@ -28,5 +29,12 @@
         /// </summary>
         [JsonPropertyName("Package"), JsonRequired]
         public BuildConfigProjectDeploymentPackage Package { get; set; } = new BuildConfigProjectDeploymentPackage();
+
+        /// <summary>
+        /// Specifies a list of Helm deployments to run after the image has been pushed.
+        /// </summary>
+        [JsonPropertyName("Helm")]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "Used for JSON serialization.")]
+        public BuildConfigProjectDeploymentDockerHelm[]? Helm { get; set; } = null;
     }
 }
