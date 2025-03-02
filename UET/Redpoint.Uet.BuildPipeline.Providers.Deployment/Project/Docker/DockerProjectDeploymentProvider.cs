@@ -85,6 +85,7 @@
                                 { "TempPath", "$(TempPath)" },
                                 { "Timestamp", "$(Timestamp)" },
                                 { "ReleaseVersion", "$(ReleaseVersion)" },
+                                { "RepositoryRoot", "$(RepositoryRoot)" },
                             }).ConfigureAwait(false);
                         await writer.WriteDynamicNodeAppendAsync(
                             new DynamicNodeAppendElementProperties
@@ -103,6 +104,8 @@
             var config = (BuildConfigProjectDeploymentDocker)configUnknown;
 
             var imageTag = $"{config.Image}:{runtimeSettings["ReleaseVersion"]}";
+
+            var repositoryRoot = runtimeSettings["RepositoryRoot"];
 
             var packagePath = Path.Combine(runtimeSettings["StageDirectory"], $"{config.Package.Platform}Server");
 
@@ -132,7 +135,7 @@
                 {symbolRemove}
                 FROM gcr.io/distroless/cc-debian10:nonroot
                 COPY --from=builder --chown=nonroot:nonroot /srv /home/nonroot/server
-                ENTRYPOINT [ "/home/nonroot/server/{runtimeSettings["ProjectName"]}/Binaries/{config.Package.Platform}/{filename}", "{runtimeSettings["ProjectName"]}" ]
+                ENTRYPOINT [ "/home/nonroot/server/{runtimeSettings["ProjectName"]}/Binaries/{config.Package.Platform}/{filename}", "{runtimeSettings["ProjectName"]}", "-stdout", "-FullStdOutLogOutput" ]
                 """;
 
             string docker;
@@ -162,7 +165,7 @@
             File.WriteAllText(Path.Combine(packagePath, "Dockerfile"), dockerfileContent);
 
             _logger.LogInformation($"Building Docker container under {packagePath}...");
-            return await _processExecutor.ExecuteAsync(
+            var buildExitCode = await _processExecutor.ExecuteAsync(
                 new ProcessSpecification
                 {
                     FilePath = docker,
@@ -171,6 +174,86 @@
                 },
                 CaptureSpecification.Passthrough,
                 cancellationToken).ConfigureAwait(false);
+            if (buildExitCode != 0)
+            {
+                _logger.LogError("Docker build failed.");
+                return buildExitCode;
+            }
+
+            if (config.Helm != null && config.Helm.Length > 0)
+            {
+                _logger.LogInformation($"There are {config.Helm.Length} Helm deployments to run.");
+
+                string helm;
+                try
+                {
+                    helm = await _pathResolver.ResolveBinaryPath("helm");
+                }
+                catch
+                {
+                    _logger.LogError("'helm' not found on PATH.");
+                    return 1;
+                }
+
+                foreach (var helmDeploy in config.Helm)
+                {
+                    var kubeContext = helmDeploy.KubeContext;
+                    var kubeContextOverride = Environment.GetEnvironmentVariable($"UET_KUBECONTEXT_OVERRIDE_{kubeContext}");
+                    if (!string.IsNullOrWhiteSpace(kubeContextOverride))
+                    {
+                        kubeContext = kubeContextOverride;
+                    }
+
+                    var helmChartPath = helmDeploy.HelmChartPath;
+                    if (!Path.IsPathRooted(helmChartPath))
+                    {
+                        helmChartPath = Path.GetFullPath(Path.Combine(repositoryRoot, helmChartPath));
+                    }
+                    _logger.LogInformation($"Deploying Helm chart '{helmDeploy.Name}' from path: {helmChartPath}");
+
+                    var deployArgs = new List<LogicalProcessArgument>
+                    {
+                        "--kube-context",
+                        kubeContext,
+                        "upgrade",
+                        "--install",
+                        helmDeploy.Name,
+                        helmChartPath,
+                        "--namespace",
+                        helmDeploy.Namespace,
+                        "--create-namespace",
+                        "--set",
+                        $"agones.image={imageTag}",
+                        "--set",
+                        $"agones.version={runtimeSettings["ReleaseVersion"]}",
+                    };
+                    if (helmDeploy.HelmValues != null)
+                    {
+                        foreach (var kv in helmDeploy.HelmValues)
+                        {
+                            deployArgs.Add("--set");
+                            deployArgs.Add($"{kv.Key}={kv.Value}");
+                        }
+                    }
+
+                    var deployExitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = helm,
+                            Arguments = deployArgs,
+                        },
+                        CaptureSpecification.Passthrough,
+                        cancellationToken).ConfigureAwait(false);
+                    if (deployExitCode != 0)
+                    {
+                        _logger.LogError("Helm deployment failed.");
+                        return deployExitCode;
+                    }
+                }
+            }
+
+            _logger.LogInformation($"All post-Docker deployments completed.");
+            return 0;
         }
     }
 }
