@@ -511,15 +511,15 @@
                 BuildGraphSettings = new Dictionary<string, string>
                 {
                     // Environment options
-                    { $"UETPath", $"__UET_PATH__" },
+                    { "UETPath", $"__UET_PATH__" },
                     { "UETGlobalArgs", _globalArgsProvider?.GlobalArgsString ?? string.Empty },
                     { "EnginePath", "__ENGINE_PATH__" },
-                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
-                    { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
-                    { $"PluginDirectory", isPluginRooted ? $"__REPOSITORY_ROOT__" : $"__REPOSITORY_ROOT__/{pluginInfo.PluginName}" },
-                    { $"PluginName", pluginInfo.PluginName },
-                    { $"Distribution", distribution.Name },
-                    { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
+                    { "TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
+                    { "ProjectRoot", $"__REPOSITORY_ROOT__" },
+                    { "PluginDirectory", isPluginRooted ? $"__REPOSITORY_ROOT__" : $"__REPOSITORY_ROOT__/{pluginInfo.PluginName}" },
+                    { "PluginName", pluginInfo.PluginName },
+                    { "Distribution", distribution.Name },
+                    { "ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
                     { "ScriptNodeIncludes", scriptNodeIncludes },
@@ -529,21 +529,21 @@
                     { "IsUnrealEngine5", "true" },
 
                     // Clean options
-                    { $"CleanDirectories", string.Join(";", cleanDirectories) },
+                    { "CleanDirectories", string.Join(";", cleanDirectories) },
 
                     // Build options
-                    { $"ExecuteBuild", executeBuild ? "true" : "false" },
-                    { $"EditorTargetPlatforms", string.Join(";", editorTargetPlatforms) },
-                    { $"GameTargetPlatforms", gameConfig.TargetPlatforms },
-                    { $"ClientTargetPlatforms", clientConfig.TargetPlatforms },
-                    { $"ServerTargetPlatforms", serverConfig.TargetPlatforms },
-                    { $"GameConfigurations", gameConfig.Configurations },
-                    { $"ClientConfigurations", clientConfig.Configurations },
-                    { $"ServerConfigurations", serverConfig.Configurations },
-                    { $"MacPlatforms", $"IOS;Mac" },
-                    { $"StrictIncludes", strictIncludes || strictIncludesAtPluginLevel ? "true" : "false" },
-                    { $"Allow2019", "false" },
-                    { $"EnginePrefix", "Unreal" },
+                    { "ExecuteBuild", executeBuild ? "true" : "false" },
+                    { "EditorTargetPlatforms", string.Join(";", editorTargetPlatforms) },
+                    { "GameTargetPlatforms", gameConfig.TargetPlatforms },
+                    { "ClientTargetPlatforms", clientConfig.TargetPlatforms },
+                    { "ServerTargetPlatforms", serverConfig.TargetPlatforms },
+                    { "GameConfigurations", gameConfig.Configurations },
+                    { "ClientConfigurations", clientConfig.Configurations },
+                    { "ServerConfigurations", serverConfig.Configurations },
+                    { "MacPlatforms", $"IOS;Mac" },
+                    { "StrictIncludes", strictIncludes || strictIncludesAtPluginLevel ? "true" : "false" },
+                    { "EnginePrefix", "Unreal" },
+                    { "StripDebugSymbols", (distribution.Build?.StripDebugSymbols ?? false) ? "true" : "false" },
 
                     // Package options
                     { "VersionNumber", versionInfo.versionNumber },
@@ -624,24 +624,24 @@
                     { "Timestamp", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture) },
 
                     // Build options
-                    { $"ExecuteBuild", executeBuild ? "true" : "false" },
-                    { $"EditorTarget", editorTarget },
-                    { $"GameTargets", gameConfig.Targets },
-                    { $"ClientTargets", clientConfig.Targets },
-                    { $"ServerTargets", serverConfig.Targets },
-                    { $"GameTargetPlatforms", gameConfig.TargetPlatforms },
-                    { $"ClientTargetPlatforms", clientConfig.TargetPlatforms },
-                    { $"ServerTargetPlatforms", serverConfig.TargetPlatforms },
-                    { $"GameConfigurations", gameConfig.Configurations },
-                    { $"ClientConfigurations", clientConfig.Configurations },
-                    { $"ServerConfigurations", serverConfig.Configurations },
-                    { $"AndroidGameCookFlavors", gameConfig.CookFlavors },
-                    { $"AndroidClientCookFlavors", clientConfig.CookFlavors },
-                    { $"MacPlatforms", $"IOS;Mac" },
-                    { $"StrictIncludes", strictIncludes ? "true" : "false" },
+                    { "ExecuteBuild", executeBuild ? "true" : "false" },
+                    { "EditorTarget", editorTarget },
+                    { "GameTargets", gameConfig.Targets },
+                    { "ClientTargets", clientConfig.Targets },
+                    { "ServerTargets", serverConfig.Targets },
+                    { "GameTargetPlatforms", gameConfig.TargetPlatforms },
+                    { "ClientTargetPlatforms", clientConfig.TargetPlatforms },
+                    { "ServerTargetPlatforms", serverConfig.TargetPlatforms },
+                    { "GameConfigurations", gameConfig.Configurations },
+                    { "ClientConfigurations", clientConfig.Configurations },
+                    { "ServerConfigurations", serverConfig.Configurations },
+                    { "AndroidGameCookFlavors", gameConfig.CookFlavors },
+                    { "AndroidClientCookFlavors", clientConfig.CookFlavors },
+                    { "MacPlatforms", $"IOS;Mac" },
+                    { "StrictIncludes", strictIncludes ? "true" : "false" },
 
                     // Stage options
-                    { $"StageDirectory", string.IsNullOrWhiteSpace(alternateStagingDirectory) ? $"__REPOSITORY_ROOT__/{distribution.FolderName}/Saved/StagedBuilds" : alternateStagingDirectory.Replace("__REPOSITORY_ROOT__", $"__REPOSITORY_ROOT__/{distribution.FolderName}", StringComparison.Ordinal) },
+                    { "StageDirectory", string.IsNullOrWhiteSpace(alternateStagingDirectory) ? $"__REPOSITORY_ROOT__/{distribution.FolderName}/Saved/StagedBuilds" : alternateStagingDirectory.Replace("__REPOSITORY_ROOT__", $"__REPOSITORY_ROOT__/{distribution.FolderName}", StringComparison.Ordinal) },
 
                     // Version options
                     { "ReleaseVersion", releaseVersion },
@@ -722,16 +722,16 @@
                 BuildGraphSettings = new Dictionary<string, string>
                 {
                     // Environment options
-                    { $"UETPath", $"__UET_PATH__" },
+                    { "UETPath", $"__UET_PATH__" },
                     { "UETGlobalArgs", _globalArgsProvider?.GlobalArgsString ?? string.Empty },
                     { "EnginePath", "__ENGINE_PATH__" },
-                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
-                    { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
-                    { $"PluginDirectory", $"__REPOSITORY_ROOT__" },
-                    { $"PluginName", Path.GetFileNameWithoutExtension(pathSpec.UPluginPath)! },
+                    { "TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
+                    { "ProjectRoot", $"__REPOSITORY_ROOT__" },
+                    { "PluginDirectory", $"__REPOSITORY_ROOT__" },
+                    { "PluginName", Path.GetFileNameWithoutExtension(pathSpec.UPluginPath)! },
                     // @note: This is only used for naming the package ZIPs now.
-                    { $"Distribution", packageType.ToString() },
-                    { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
+                    { "Distribution", packageType.ToString() },
+                    { "ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
                     { "ScriptIncludes", string.Empty },
@@ -740,17 +740,17 @@
                     { "IsUnrealEngine5", "true" },
 
                     // Clean options
-                    { $"CleanDirectories", string.Empty },
+                    { "CleanDirectories", string.Empty },
 
                     // Build options
-                    { $"ExecuteBuild", "true" },
-                    { $"EditorTargetPlatforms", targetPlatform },
-                    { $"GameTargetPlatforms", string.Join(";", new[] { targetPlatform }.Concat(extraPlatforms)) },
-                    { $"GameConfigurations", gameConfigurations },
-                    { $"MacPlatforms", $"IOS;Mac" },
-                    { $"StrictIncludes", strictIncludes ? "true" : "false" },
-                    { $"Allow2019", "false" },
-                    { $"EnginePrefix", "Unreal" },
+                    { "ExecuteBuild", "true" },
+                    { "EditorTargetPlatforms", targetPlatform },
+                    { "GameTargetPlatforms", string.Join(";", new[] { targetPlatform }.Concat(extraPlatforms)) },
+                    { "GameConfigurations", gameConfigurations },
+                    { "MacPlatforms", $"IOS;Mac" },
+                    { "StrictIncludes", strictIncludes ? "true" : "false" },
+                    { "EnginePrefix", "Unreal" },
+                    { "StripDebugSymbols", "false" },
 
                     // Package options
                     { "VersionNumber", versionInfo.versionNumber },
@@ -815,41 +815,41 @@
                 BuildGraphSettings = new Dictionary<string, string>
                 {
                     // Environment options
-                    { $"UETPath", $"__UET_PATH__" },
+                    { "UETPath", $"__UET_PATH__" },
                     { "EnginePath", "__ENGINE_PATH__" },
-                    { $"TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
-                    { $"ProjectRoot", $"__REPOSITORY_ROOT__" },
-                    { $"RepositoryRoot", $"__REPOSITORY_ROOT__" },
-                    { $"ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
+                    { "TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
+                    { "ProjectRoot", $"__REPOSITORY_ROOT__" },
+                    { "RepositoryRoot", $"__REPOSITORY_ROOT__" },
+                    { "ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
                     { "ScriptIncludes", string.Empty },
 
                     // General options
-                    { $"UProjectPath", $"__REPOSITORY_ROOT__/{Path.GetFileName(pathSpec.UProjectPath)}" },
-                    { $"Distribution", "None" },
+                    { "UProjectPath", $"__REPOSITORY_ROOT__/{Path.GetFileName(pathSpec.UProjectPath)}" },
+                    { "Distribution", "None" },
                     { "IsUnrealEngine5", "true" },
                     { "Timestamp", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture) },
 
                     // Build options
-                    { $"ExecuteBuild", "true" },
-                    { $"EditorTarget", editorTarget },
-                    { $"GameTargets", gameTarget },
-                    { $"ClientTargets", string.Empty },
-                    { $"ServerTargets", string.Empty },
-                    { $"GameTargetPlatforms", string.Join(";", new[] { gameTargetPlatform }.Concat(extraPlatforms)) },
-                    { $"ClientTargetPlatforms", string.Empty },
-                    { $"ServerTargetPlatforms", string.Empty },
-                    { $"GameConfigurations", gameConfigurations },
-                    { $"ClientConfigurations", string.Empty },
-                    { $"ServerConfigurations", string.Empty },
-                    { $"AndroidGameCookFlavors", string.Empty },
-                    { $"AndroidClientCookFlavors", string.Empty },
-                    { $"MacPlatforms", $"IOS;Mac" },
-                    { $"StrictIncludes", strictIncludes ? "true" : "false" },
+                    { "ExecuteBuild", "true" },
+                    { "EditorTarget", editorTarget },
+                    { "GameTargets", gameTarget },
+                    { "ClientTargets", string.Empty },
+                    { "ServerTargets", string.Empty },
+                    { "GameTargetPlatforms", string.Join(";", new[] { gameTargetPlatform }.Concat(extraPlatforms)) },
+                    { "ClientTargetPlatforms", string.Empty },
+                    { "ServerTargetPlatforms", string.Empty },
+                    { "GameConfigurations", gameConfigurations },
+                    { "ClientConfigurations", string.Empty },
+                    { "ServerConfigurations", string.Empty },
+                    { "AndroidGameCookFlavors", string.Empty },
+                    { "AndroidClientCookFlavors", string.Empty },
+                    { "MacPlatforms", $"IOS;Mac" },
+                    { "StrictIncludes", strictIncludes ? "true" : "false" },
 
                     // Stage options
-                    { $"StageDirectory", string.IsNullOrWhiteSpace(alternateStagingDirectory) ? $"__REPOSITORY_ROOT__/Saved/StagedBuilds" : alternateStagingDirectory },
+                    { "StageDirectory", string.IsNullOrWhiteSpace(alternateStagingDirectory) ? $"__REPOSITORY_ROOT__/Saved/StagedBuilds" : alternateStagingDirectory },
 
                     // Version options
                     { "ReleaseVersion", releaseVersion },

@@ -29,8 +29,8 @@
   <Option Name="MacPlatforms" Restrict="[^ ]*" DefaultValue="Mac;IOS" Description="List of platforms that macOS agents should build instead of Windows, e.g. Mac;IOS" />
   <Option Name="StrictIncludes" Restrict="true|false" DefaultValue="false" Description="If enabled, builds with strict includes turned on (must pass strict include checks for Marketplace/Fab submission)" />
   <Option Name="EnginePrefix" Restrict="UE4|Unreal" DefaultValue="UE4" Description="Prefix of the engine targets (UE5 has a different prefix)" />
-  <Option Name="Allow2019" Restrict="true|false" DefaultValue="false" Description="If true, the plugin will be built with the latest version of Visual Studio, instead of Visual Studio 2017" />
   <Option Name="ExecuteBuild" Restrict="true|false" DefaultValue="true" Description="If false, no build steps are run (currently ignored)" />
+  <Option Name="StripDebugSymbols" Restrict="true|false" DefaultValue="false" Description="If true, debugging symbols are stripped and not present" />
 
   <!-- Package options -->
   <Option Name="VersionNumber" Restrict="[0-9]+" DefaultValue="10000" Description="The version number to embed in the packaged .uplugin file" />
@@ -52,8 +52,6 @@
   <Option Name="ScriptNodeIncludes" DefaultValue="" Description="Additional script includes paths for nodes" />
   <Option Name="ScriptMacroIncludes" DefaultValue="" Description="Additional script includes paths for macros" />
 
-  <Property Name="2017Flag" Value="-2017" />
-  <Property Name="2017Flag" Value="" If="'$(Allow2019)' == 'true'" />
   <Property Name="EditorBinaries" Value="" />
   <Property Name="GameBinaries" Value="" />
   <Property Name="AdditionalArguments" Value=" -DisableAdaptiveUnity" If="'$(StrictIncludes)' == 'false'" />
@@ -72,6 +70,8 @@
   <Property Name="DynamicPreDeploymentNodes" Value="" />
   <Property Name="DynamicBeforeAssembleFinalizeMacros" Value="" />
   <Property Name="DynamicBeforeCompileMacros" Value="" />
+  <Property Name="StripDebugFlags" Value="" />
+  <Property Name="StripDebugFlags" Value="-NoPDB -NoDebugInfo" If="'$(StripDebugSymbols)' == 'true'" />
 
   <!-- 
     Include all the macros dynamically defined by UET.
@@ -84,6 +84,27 @@
   -->
   <Macro Name="RemoveStalePrecompiledHeaders" Arguments="ProjectPath;TargetName;TargetPlatform;TargetConfiguration">
     <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal remove-stale-precompiled-headers --engine-path &quot;$(EnginePath)&quot; --project-path &quot;$(ProjectPath)&quot; --target-name &quot;$(TargetName)&quot; --target-platform &quot;$(TargetPlatform)&quot; --target-configuration &quot;$(TargetConfiguration)&quot;" />
+  </Macro>
+
+  <!--
+    Strip debugging symbols out of the target platform's binaries if requested.
+  -->
+  <Macro Name="StripDebugSymbolsForTarget" Arguments="PluginPath;TargetPlatform;FilesTag">
+    <Switch>
+      <Case If="'$(TargetPlatform)' == 'Win64'">
+        <Tag BaseDir="$(PluginPath)" Files="$(FilesTag)" Filter="*.pdb" With="$(FilesTag)_Debug" />
+      </Case>
+      <Case If="'$(TargetPlatform)' == 'Mac' or '$(TargetPlatform)' == 'IOS' or '$(TargetPlatform)' == 'TVOS'">
+        <Tag BaseDir="$(PluginPath)" Files="$(FilesTag)" Filter="*.a" With="$(FilesTag)_Debug" />
+      </Case>
+      <Case If="'$(TargetPlatform)' == 'Android' or '$(TargetPlatform)' == 'GooglePlay' or '$(TargetPlatform)' == 'MetaQuest'">
+        <Tag BaseDir="$(PluginPath)" Files="$(FilesTag)" Filter="*.a;*.so" With="$(FilesTag)_Debug" />
+      </Case>
+      <Case If="'$(TargetPlatform)' == 'Linux'">
+        <Tag BaseDir="$(PluginPath)" Files="$(FilesTag)" Filter="*" With="$(FilesTag)_Debug" />
+      </Case>
+    </Switch>
+    <Strip BaseDir="$(PluginPath)" OutputDir="$(PluginPath)" Platform="$(TargetPlatform)" Files="$(FilesTag)_Debug" If="'$(StripDebugSymbols)' == 'true'" />
   </Macro>
 
   <!--
@@ -369,7 +390,19 @@ $(PackageExclude);
         <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Mac" TargetConfiguration="Development" HostPlatform="Mac" />
       </ForEach>
       <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(TempPath)/$(HostProjectName)" TargetName="$(EnginePrefix)Editor" TargetPlatform="Mac" TargetConfiguration="Development" />
-      <Compile Target="$(EnginePrefix)Editor" Platform="Mac" Configuration="Development" Tag="#EditorBinaries_Mac" Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; -NoPDB -NoDebugInfo $(AdditionalArguments)"/>
+      <Compile
+        Target="$(EnginePrefix)Editor"
+        Platform="Mac"
+        Configuration="Development"
+        Tag="#EditorBinaries_Mac"
+        Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(StripDebugFlags) $(AdditionalArguments)"
+      />
+      <Expand
+        Name="StripDebugSymbolsForTarget"
+        PluginPath="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
+        TargetPlatform="Mac"
+        FilesTag="#EditorBinaries_Mac"
+      />
     </Node>
     <Property Name="EditorBinaries" Value="$(EditorBinaries)#EditorBinaries_Mac;" If="'$(PackageType)' == 'Generic' and '$(CanBuildEditorMac)' == 'true'" />
     <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(EnginePrefix)Editor Mac;" If="'$(CanBuildEditorMac)' == 'true'" />
@@ -381,7 +414,19 @@ $(PackageExclude);
         <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Win64" TargetConfiguration="Development" HostPlatform="Win64" />
       </ForEach>
       <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(TempPath)/$(HostProjectName)" TargetName="$(EnginePrefix)Editor" TargetPlatform="Win64" TargetConfiguration="Development" />
-      <Compile Target="$(EnginePrefix)Editor" Platform="Win64" Configuration="Development" Tag="#EditorBinaries_Win64" Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(2017Flag) $(AdditionalArguments)"/>
+      <Compile
+        Target="$(EnginePrefix)Editor"
+        Platform="Win64"
+        Configuration="Development"
+        Tag="#EditorBinaries_Win64"
+        Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(StripDebugFlags) $(AdditionalArguments)"
+      />
+      <Expand
+        Name="StripDebugSymbolsForTarget"
+        PluginPath="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
+        TargetPlatform="Win64"
+        FilesTag="#EditorBinaries_Win64"
+      />
     </Node>
     <Property Name="EditorBinaries" Value="$(EditorBinaries)#EditorBinaries_Win64;" If="'$(PackageType)' == 'Generic' and '$(CanBuildEditorWin64)' == 'true'" />
     <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(EnginePrefix)Editor Win64;" If="'$(CanBuildEditorWin64)' == 'true'" />
@@ -435,7 +480,13 @@ $(PackageExclude);
               Platform="$(TargetPlatform)"
               Configuration="$(TargetConfiguration)"
               Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
-              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; -NoPDB -NoDebugInfo $(AdditionalArguments)"
+              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(StripDebugFlags) $(AdditionalArguments)"
+            />
+            <Expand
+              Name="StripDebugSymbolsForTarget"
+              PluginPath="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
+              TargetPlatform="$(TargetPlatform)"
+              FilesTag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
             />
             <Property Name="BinaryExceptRule" Value="" />
             <Property Name="BinaryExceptRule" Value=".../Intermediate/.../Inc/..." If="'$(TargetConfiguration)' != 'Shipping'" />
@@ -484,7 +535,13 @@ $(PackageExclude);
               Platform="$(TargetPlatform)"
               Configuration="$(TargetConfiguration)"
               Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
-              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(2017Flag) $(AdditionalArguments)"
+              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(StripDebugFlags) $(AdditionalArguments)"
+            />
+            <Expand
+              Name="StripDebugSymbolsForTarget"
+              PluginPath="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
+              TargetPlatform="$(TargetPlatform)"
+              FilesTag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
             />
             <Property Name="BinaryExceptRule" Value="" />
             <Property Name="BinaryExceptRule" Value=".../Intermediate/.../Inc/..." If="'$(TargetConfiguration)' != 'Shipping'" />
@@ -539,7 +596,7 @@ $(PackageExclude);
               Target="$(TargetName)"
               Platform="$(TargetPlatform)"
               Configuration="$(TargetConfiguration)"
-              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(2017Flag) $(AdditionalArguments)"
+              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(StripDebugFlags) $(AdditionalArguments)"
             />
           </Node>
           <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
@@ -578,7 +635,7 @@ $(PackageExclude);
               Target="$(TargetName)"
               Platform="$(TargetPlatform)"
               Configuration="$(TargetConfiguration)"
-              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(2017Flag) $(AdditionalArguments)"
+              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(StripDebugFlags) $(AdditionalArguments)"
             />
           </Node>
           <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
