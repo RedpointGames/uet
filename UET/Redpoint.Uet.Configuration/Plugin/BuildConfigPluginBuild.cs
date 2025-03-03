@@ -33,5 +33,11 @@
         /// </summary>
         [JsonPropertyName("StrictIncludes"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? StrictIncludes { get; set; }
+
+        /// <summary>
+        /// If enabled, debug symbols and PDBs will be omitted, even for non-Shipping configurations.
+        /// </summary>
+        [JsonPropertyName("StripDebugSymbols"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? StripDebugSymbols { get; set; }
     }
 }

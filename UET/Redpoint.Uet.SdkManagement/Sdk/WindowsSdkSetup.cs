@@ -31,7 +31,7 @@
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
             var versions = await _versionNumberResolver.For<IWindowsVersionNumbers>(unrealEnginePath).GetWindowsVersionNumbersAsync(unrealEnginePath).ConfigureAwait(false);
-            return $"{versions.WindowsSdkPreferredVersion}-{versions.VisualCppMinimumVersion}-v2";
+            return $"{versions.WindowsSdkPreferredVersion}-{versions.VisualCppMinimumVersion}-v3";
         }
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)

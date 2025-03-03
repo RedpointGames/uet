@@ -72,6 +72,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
                     { $"MacPlatforms", $"IOS;Mac" },
                     { $"StrictIncludes", $"false" },
                     { $"StageDirectory", $"__REPOSITORY_ROOT__/Saved/StagedBuilds" },
+                    { "StripDebugSymbols", "false" },
                 },
                 new Dictionary<string, string>
                 {
@@ -128,7 +129,6 @@ namespace Redpoint.Uet.BuildPipeline.Tests
                     { $"ServerConfigurations", $"" },
                     { $"MacPlatforms", $"IOS;Mac" },
                     { $"StrictIncludes", $"false" },
-                    { $"Allow2019", $"false" },
                     { $"EnginePrefix", $"Unreal" },
                     { $"ExecutePackage", $"false" },
                     { $"ExecuteZip", $"false" },
@@ -140,6 +140,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
                     { $"PackageType", $"Generic" },
                     { $"CopyrightHeader", $"" },
                     { $"CopyrightExcludes", $"" },
+                    { "StripDebugSymbols", "false" },
                 },
                 new Dictionary<string, string>
                 {
