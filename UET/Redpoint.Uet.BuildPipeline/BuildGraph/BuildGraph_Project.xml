@@ -83,12 +83,13 @@
   -->
   <Macro Name="CompileEditor" Arguments="EditorTarget;TargetPlatform;TargetConfiguration">
     <Agent Name="Compile $(EditorTarget) $(TargetPlatform) (Windows Build)" Type="$(TargetPlatform)">
-      <Node Name="Compile $(EditorTarget) $(TargetPlatform)" Produces="#EditorBinaries">
+      <Node Name="Compile $(EditorTarget) $(TargetPlatform)" Produces="#EditorBinaries;#UnrealPakBinaries">
         <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
           <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EditorTarget)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="$(TargetPlatform)" />
         </ForEach>
         <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(EditorTarget)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
         <Compile Target="$(EditorTarget)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#EditorBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" />
+        <Compile Target="UnrealPak" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#UnrealPakBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" />
       </Node>
     </Agent>
   </Macro>
@@ -216,7 +217,7 @@
       <Property Name="StageOutputs" Value="$(StageOutputs)_$(CookFlavor)" If="'$(CookFlavor)' != 'NoCookFlavor'" />
 
       <!-- Specify the job to run. We do all our other property declarations under here due to BuildGraph quirks. -->
-      <Node Name="Pak and Stage $(TargetName) $(TargetStore) $(TargetConfiguration) $(CookFlavor)" Requires="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)" Produces="$(StageOutputs)">
+      <Node Name="Pak and Stage $(TargetName) $(TargetStore) $(TargetConfiguration) $(CookFlavor)" Requires="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor);#UnrealPakBinaries" Produces="$(StageOutputs)">
 
         <!-- Configure directory seperator based on host platform. -->
         <Property Name="Slash" Value="\" />
