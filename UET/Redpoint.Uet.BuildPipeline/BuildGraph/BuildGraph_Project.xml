@@ -15,6 +15,7 @@
   <Option Name="ProjectName" Restrict=".*" DefaultValue="" Description="The name of the project being built" />
   <Option Name="Distribution" Restrict=".*" DefaultValue="" Description="The distribution being built" />
   <Option Name="IsUnrealEngine5" Restrict="true|false" DefaultValue="false" Description="If true, this is an Unreal Engine 5 project" />
+  <Option Name="IsUnrealEngineInstalled" Restrict="true|false" DefaultValue="false" Description="If true, the engine has already been turned into an 'installed build' and can't be modified." />
   <Option Name="Timestamp" Restrict="[0-9]+" DefaultValue="0" Description="The UNIX timestamp when this build was generated" />
 
   <!-- Build options -->
@@ -83,12 +84,14 @@
   -->
   <Macro Name="CompileEditor" Arguments="EditorTarget;TargetPlatform;TargetConfiguration">
     <Agent Name="Compile $(EditorTarget) $(TargetPlatform) (Windows Build)" Type="$(TargetPlatform)">
-      <Node Name="Compile $(EditorTarget) $(TargetPlatform)" Produces="#EditorBinaries">
+      <Node Name="Compile $(EditorTarget) $(TargetPlatform)" Produces="#EditorBinaries;#BuildToolBinaries">
         <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
           <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EditorTarget)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="$(TargetPlatform)" />
         </ForEach>
         <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(EditorTarget)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
         <Compile Target="$(EditorTarget)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#EditorBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" />
+        <Compile Target="UnrealPak" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
+        <Compile Target="BootstrapPackagedGame" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
       </Node>
     </Agent>
   </Macro>
@@ -216,7 +219,7 @@
       <Property Name="StageOutputs" Value="$(StageOutputs)_$(CookFlavor)" If="'$(CookFlavor)' != 'NoCookFlavor'" />
 
       <!-- Specify the job to run. We do all our other property declarations under here due to BuildGraph quirks. -->
-      <Node Name="Pak and Stage $(TargetName) $(TargetStore) $(TargetConfiguration) $(CookFlavor)" Requires="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)" Produces="$(StageOutputs)">
+      <Node Name="Pak and Stage $(TargetName) $(TargetStore) $(TargetConfiguration) $(CookFlavor)" Requires="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor);#BuildToolBinaries" Produces="$(StageOutputs)">
 
         <!-- Configure directory seperator based on host platform. -->
         <Property Name="Slash" Value="\" />
