@@ -77,8 +77,8 @@
                             }
                         }
                     },
-                    true,
-                    true);
+                    [],
+                    []);
 
                 var result = Encoding.UTF8.GetString(memory.ToArray());
                 Assert.Contains("TEST_A", result);
