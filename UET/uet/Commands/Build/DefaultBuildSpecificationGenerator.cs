@@ -308,8 +308,8 @@
             bool localExecutor,
             object buildConfig,
             object distribution,
-            bool executeTests,
-            bool executeDeployment)
+            string[]? executeTests,
+            string[]? executeDeployments)
         {
             var sharedStorageAbsolutePath = OperatingSystem.IsWindows() ?
                 env.Windows.SharedStorageAbsolutePath :
@@ -327,7 +327,7 @@
                     buildConfig,
                     distribution,
                     executeTests,
-                    executeDeployment).ConfigureAwait(false);
+                    executeDeployments).ConfigureAwait(false);
             }
             await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(sharedStorageAbsolutePath, nodeFilename), CancellationToken.None).ConfigureAwait(false);
 
@@ -351,8 +351,8 @@
             BuildConfigPluginDistribution distribution,
             string repositoryRoot,
             bool executeBuild,
-            bool executeTests,
-            bool executeDeployment,
+            string[]? executeTests,
+            string[]? executeDeployments,
             bool strictIncludes,
             bool localExecutor,
             bool isPluginRooted,
@@ -450,7 +450,7 @@
                 pluginInfo,
                 distribution!,
                 executeTests,
-                executeDeployment).ConfigureAwait(false);
+                executeDeployments).ConfigureAwait(false);
 
             // Compute the Gauntlet config paths.
             var gauntletPaths = new List<string>();
@@ -572,8 +572,8 @@
             BuildConfigProjectDistribution distribution,
             string repositoryRoot,
             bool executeBuild,
-            bool executeTests,
-            bool executeDeployment,
+            string[]? executeTests,
+            string[]? executeDeployments,
             bool strictIncludes,
             bool localExecutor,
             string? alternateStagingDirectory)
@@ -594,7 +594,7 @@
                 buildConfig,
                 distribution,
                 executeTests,
-                executeDeployment).ConfigureAwait(false);
+                executeDeployments).ConfigureAwait(false);
 
             // Compute final settings for BuildGraph.
             return new BuildSpecification
