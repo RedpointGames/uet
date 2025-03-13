@@ -120,32 +120,7 @@ namespace Redpoint.CloudFramework.Startup
             if (!_isInteractiveCLIApp &&
                 (_googleCloudUsage & GoogleCloudUsageFlag.SecretManager) != 0)
             {
-                // Construct our service provider and configuration source regardless
-                // of whether we are in production to ensure that dependencies are satisifed.
-                var minimalServices = new ServiceCollection();
-                minimalServices.AddSingleton(env);
-                AddDefaultLogging(env, minimalServices);
-                minimalServices.AddSingleton<IGoogleServices, GoogleServices>();
-                minimalServices.AddSingleton<IGoogleApiRetry, GoogleApiRetry>();
-                minimalServices.AddSingleton<IManagedTracer, NullManagedTracer>();
-                minimalServices.AddSecretManagerConfiguration(_requireGoogleCloudSecretManagerLoad);
-
-                // @note: This service provider *MUST NOT* be disposed, as instances continue to use it
-                // throughout the lifetime of the application, not just during configuration setup.
-                var minimalServiceProvider = minimalServices.BuildServiceProvider();
-                var minimalLogging = minimalServiceProvider.GetRequiredService<ILogger<BaseConfigurator<TBase>>>();
-                foreach (var configurationSource in minimalServiceProvider.GetServices<IConfigurationSource>())
-                {
-                    if (env.IsProduction())
-                    {
-                        minimalLogging.LogInformation($"Adding '{configurationSource.GetType().FullName}' configuration source to configuration as this instance is running in production...");
-                        config.Add(configurationSource);
-                    }
-                    else
-                    {
-                        minimalLogging.LogInformation($"Not adding '{configurationSource.GetType().FullName}' configuration source to configuration as this instance is not running in production.");
-                    }
-                }
+                config.AddGoogleCloudSecretManager(env);
             }
 
             if (_customConfigLayers != null)

@@ -17,7 +17,7 @@
     using System.IO;
     using System.Reflection;
 
-    internal class GoogleServices : IGoogleServices
+    public class GoogleServices : IGoogleServices
     {
         private readonly IHostEnvironment _hostEnvironment;
         private readonly IOptionalHelmConfiguration? _optionalHelmConfiguration;
