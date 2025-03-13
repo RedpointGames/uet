@@ -27,8 +27,8 @@
         {
             public Option<EngineSpec> Engine;
             public Option<PathSpec> Path;
-            public Option<bool> Test;
-            public Option<bool> Deploy;
+            public Option<string[]?> Test;
+            public Option<string[]?> Deploy;
             public Option<bool> StrictIncludes;
 
             public Option<DistributionSpec?> Distribution;
@@ -88,13 +88,15 @@
                 Engine.AddAlias("-e");
                 Engine.Arity = ArgumentArity.ExactlyOne;
 
-                Test = new Option<bool>(
+                Test = new Option<string[]?>(
                     "--test",
-                    description: "If set, executes the tests after building.");
+                    description: "Executes the specified tests after building. If specifying --test without arguments, all tests are run.");
+                Test.Arity = ArgumentArity.ZeroOrMore;
 
-                Deploy = new Option<bool>(
+                Deploy = new Option<string[]?>(
                     "--deploy",
-                    description: "If set, executes the deployment after building (and testing if --test is set).");
+                    description: "Executes the specified deployments after building (and testing if --test is set). If specifying --deploy without arguments, all deployments are run.");
+                Deploy.Arity = ArgumentArity.ZeroOrMore;
 
                 StrictIncludes = new Option<bool>(
                     "--strict-includes",
@@ -383,8 +385,8 @@
                 _logger.LogInformation($"--mac-shared-storage-path:       {macSharedStoragePath}");
                 _logger.LogInformation($"--mac-shared-git-cache-path:     {macSharedGitCachePath}");
                 _logger.LogInformation($"--mac-sdks-path:                 {macSdksPath}");
-                _logger.LogInformation($"--test:                          {(test ? "yes" : "no")}");
-                _logger.LogInformation($"--deploy:                        {(deploy ? "yes" : "no")}");
+                _logger.LogInformation($"--test:                          {(test != null ? test.Length == 0 ? "all" : string.Join(", ", test) : "no")}");
+                _logger.LogInformation($"--deploy:                        {(deploy != null ? deploy.Length == 0 ? "all" : string.Join(", ", deploy) : "no")}");
                 _logger.LogInformation($"--strict-includes:               {(strictIncludes ? "yes" : "no")}");
                 _logger.LogInformation($"--platforms:                     {string.Join(", ", platforms ?? [])}");
                 _logger.LogInformation($"--plugin-package:                {pluginPackage}");
@@ -461,7 +463,7 @@
                                         repositoryRoot: path.DirectoryPath,
                                         executeBuild: true,
                                         executeTests: test,
-                                        executeDeployment: deploy,
+                                        executeDeployments: deploy,
                                         strictIncludes: strictIncludes,
                                         localExecutor: executorName == "local",
                                         alternateStagingDirectory: projectStagingDirectory).ConfigureAwait(false);
@@ -473,7 +475,7 @@
                                         _logger.LogError("The --plugin-package option can not be used when building using a BuildConfig.json file (unless it is set to 'none'), as the BuildConfig.json file controls how the plugin will be packaged instead.");
                                         return 1;
                                     }
-                                    if (pluginPackage == "none" && (test || deploy))
+                                    if (pluginPackage == "none" && (test != null || deploy != null))
                                     {
                                         _logger.LogError("The --plugin-package option can not be set to 'none' while also passing --test or --deploy (as plugin packaging is required for those steps), when building using a BuildConfig.json file. Either remove --test and --deploy or remove --plugin-package 'none' from the command line.");
                                         return 1;
@@ -485,8 +487,8 @@
                                         pluginDistribution,
                                         repositoryRoot: path.DirectoryPath,
                                         executeBuild: true,
-                                        executeTests: pluginPackage != "none" && test,
-                                        executeDeployment: pluginPackage != "none" && deploy,
+                                        executeTests: pluginPackage != "none" ? test : null,
+                                        executeDeployments: pluginPackage != "none" ? deploy : null,
                                         strictIncludes: strictIncludes,
                                         localExecutor: executorName == "local",
                                         isPluginRooted: false,

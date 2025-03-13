@@ -75,6 +75,17 @@
             }
         }
 
+        private static BuildConfigDynamic<TDistribution, TBaseClass>[] FilterDynamicSteps<TDistribution, TBaseClass>(
+            BuildConfigDynamic<TDistribution, TBaseClass>[] dynamicSettings,
+            string[] filter)
+        {
+            // Empty filter will not filter for backwards compatibility reasons.
+            // This allows UET to be invoked with "--test" / "--deploy" and run all tests & deployments, respectively.
+            if (filter.Length == 0) return dynamicSettings;
+
+            return dynamicSettings.Where(x => filter.Contains(x.Name)).ToArray();
+        }
+
         private static async Task WriteBuildGraphNodesAsync<TDistribution, TBaseClass>(
             IBuildGraphEmitContext context,
             XmlWriter writer,
@@ -130,8 +141,8 @@
             bool filterHostToCurrentPlatformOnly,
             object buildConfig,
             object buildConfigDistribution,
-            bool executeTests,
-            bool executeDeployment)
+            string[]? executeTests,
+            string[]? executeDeployments)
         {
             var emitContext = new BuildGraphEmitContext(
                 _serviceProvider,
@@ -150,51 +161,59 @@
 
                 if (buildConfigDistribution is BuildConfigPluginDistribution pluginDistribution)
                 {
-                    if (pluginDistribution.Tests != null && executeTests)
+                    if (pluginDistribution.Tests != null && executeTests != null)
                     {
+                        var filteredTests = FilterDynamicSteps(pluginDistribution.Tests, executeTests);
+
                         await WriteBuildGraphNodesAsync(
                             emitContext,
                             writer,
                             pluginDistribution,
                             _pluginTests,
-                            pluginDistribution.Tests,
+                            filteredTests,
                             buildConfig is BuildConfigPlugin buildConfigPlugin && buildConfigPlugin.Tests != null
                                 ? buildConfigPlugin.Tests
                                 : []).ConfigureAwait(false);
                     }
 
-                    if (pluginDistribution.Deployment != null && executeDeployment)
+                    if (pluginDistribution.Deployment != null && executeDeployments != null)
                     {
+                        var filteredDeployments = FilterDynamicSteps(pluginDistribution.Deployment, executeDeployments);
+
                         await WriteBuildGraphNodesAsync(
                             emitContext,
                             writer,
                             pluginDistribution,
                             _pluginDeployments,
-                            pluginDistribution.Deployment,
+                            filteredDeployments,
                             []).ConfigureAwait(false);
                     }
                 }
                 else if (buildConfigDistribution is BuildConfigProjectDistribution projectDistribution)
                 {
-                    if (projectDistribution.Tests != null && executeTests)
+                    if (projectDistribution.Tests != null && executeTests != null)
                     {
+                        var filteredTests = FilterDynamicSteps(projectDistribution.Tests, executeTests);
+
                         await WriteBuildGraphNodesAsync(
                             emitContext,
                             writer,
                             projectDistribution,
                             _projectTests,
-                            projectDistribution.Tests,
+                            filteredTests,
                             []).ConfigureAwait(false);
                     }
 
-                    if (projectDistribution.Deployment != null && executeDeployment)
+                    if (projectDistribution.Deployment != null && executeDeployments != null)
                     {
+                        var filteredDeployments = FilterDynamicSteps(projectDistribution.Deployment, executeDeployments);
+
                         await WriteBuildGraphNodesAsync(
                             emitContext,
                             writer,
                             projectDistribution,
                             _projectDeployments,
-                            projectDistribution.Deployment,
+                            filteredDeployments,
                             []).ConfigureAwait(false);
                     }
                 }

@@ -9,8 +9,8 @@
             bool filterHostToCurrentPlatformOnly,
             object buildConfig,
             object buildConfigDistribution,
-            bool executeTests,
-            bool executeDeployment);
+            string[]? executeTests,
+            string[]? executeDeployments);
 
         Task WriteBuildGraphMacroInclude(
             Stream stream,
