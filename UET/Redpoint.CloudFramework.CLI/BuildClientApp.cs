@@ -82,22 +82,55 @@
 
                 // If an openapi.json file exists in the root of the application path,
                 // automatically generate the TypeScript API for it.
-                var openapiPath = Path.Combine(appPath.FullName, "openapi.json");
-                if (File.Exists(openapiPath))
+                foreach (var jsonFile in new DirectoryInfo(appPath.FullName).EnumerateFiles("*.json"))
                 {
-                    exitCode = await _processExecutor.ExecuteAsync(
-                        new ProcessSpecification
-                        {
-                            FilePath = yarnCorepackShimPath,
-                            Arguments = _openapiGenerateArgs.Select(x => new LogicalProcessArgument(x)),
-                            WorkingDirectory = appPath.FullName,
-                        },
-                        CaptureSpecification.Passthrough,
-                        context.GetCancellationToken()).ConfigureAwait(true);
-                    if (exitCode != 0)
+                    if (string.Equals(jsonFile.Name, "openapi.json", StringComparison.OrdinalIgnoreCase))
                     {
-                        _logger.LogError("'yarn run openapi' command failed; see above for output.");
-                        return exitCode;
+                        _logger.LogInformation($"Generating TypeScript API for OpenAPI document '{jsonFile.Name}'...");
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = yarnCorepackShimPath,
+                                Arguments = _openapiGenerateArgs.Select(x => new LogicalProcessArgument(x)),
+                                WorkingDirectory = appPath.FullName,
+                            },
+                            CaptureSpecification.Passthrough,
+                            context.GetCancellationToken()).ConfigureAwait(true);
+                        if (exitCode != 0)
+                        {
+                            _logger.LogError("'yarn run openapi' command failed; see above for output.");
+                            return exitCode;
+                        }
+                    }
+                    else if (jsonFile.Name.StartsWith("openapi.", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var versionName = jsonFile.Name.Substring("openapi.".Length);
+                        versionName = versionName.Substring(0, versionName.Length - ".json".Length);
+                        _logger.LogInformation($"Generating TypeScript API for OpenAPI document '{jsonFile.Name}', version '{versionName}'...");
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = yarnCorepackShimPath,
+                                Arguments = new LogicalProcessArgument[]
+                                {
+                                    "run",
+                                    "openapi",
+                                    "--input",
+                                    jsonFile.Name,
+                                    "--output",
+                                    $"src/api/{versionName}",
+                                    "-c",
+                                    "fetch"
+                                },
+                                WorkingDirectory = appPath.FullName,
+                            },
+                            CaptureSpecification.Passthrough,
+                            context.GetCancellationToken()).ConfigureAwait(true);
+                        if (exitCode != 0)
+                        {
+                            _logger.LogError("'yarn run openapi' command failed; see above for output.");
+                            return exitCode;
+                        }
                     }
                 }
 
