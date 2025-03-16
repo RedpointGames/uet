@@ -49,7 +49,7 @@
         }
 
         public GlobalPrefix(
-            IPrefixProvider[] prefixProviders,
+            IEnumerable<IPrefixProvider> prefixProviders,
             IGoogleServices googleServices)
         {
             ArgumentNullException.ThrowIfNull(prefixProviders);

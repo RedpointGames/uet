@@ -18,30 +18,28 @@
 
     internal class DatastoreGlobalRepository : IGlobalRepository
     {
-        private readonly IRedisCacheRepositoryLayer _redisCacheRepositoryLayer;
+        private readonly IRedisCacheRepositoryLayer? _redisCacheRepositoryLayer;
         private readonly IDatastoreRepositoryLayer _datastoreRepositoryLayer;
-        private readonly IConfiguration _configuration;
 
         // NOTE: This is used by the legacy extension methods in GlobalRepositoryLegacyExtensions.
         internal readonly IInstantTimestampConverter _instantTimestampConverter;
 
         public DatastoreGlobalRepository(
-            IRedisCacheRepositoryLayer redisCacheRepositoryLayer,
             IDatastoreRepositoryLayer datastoreRepositoryLayer,
             IInstantTimestampConverter instantTimestampConverter,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IRedisCacheRepositoryLayer? redisCacheRepositoryLayer = null)
         {
             _redisCacheRepositoryLayer = redisCacheRepositoryLayer;
             _datastoreRepositoryLayer = datastoreRepositoryLayer;
             _instantTimestampConverter = instantTimestampConverter;
-            _configuration = configuration;
         }
 
         internal IRepositoryLayer Layer
         {
             get
             {
-                return _redisCacheRepositoryLayer;
+                return _redisCacheRepositoryLayer ?? (IRepositoryLayer)_datastoreRepositoryLayer;
             }
         }
 

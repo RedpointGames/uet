@@ -165,8 +165,7 @@ namespace Redpoint.CloudFramework.Startup
             if (_googleCloudUsage != GoogleCloudUsageFlag.None)
             {
                 // Add global environment configuration.
-                services.AddSingleton<IGoogleServices, GoogleServices>();
-                services.AddSingleton<IGoogleApiRetry, GoogleApiRetry>();
+                services.AddCloudFrameworkGoogleCloud();
             }
 
             // Add the cache services.
@@ -218,21 +217,9 @@ namespace Redpoint.CloudFramework.Startup
 
             if ((_googleCloudUsage & GoogleCloudUsageFlag.Datastore) != 0)
             {
-                services.AddSingleton<IGlobalRepository, DatastoreGlobalRepository>();
-                services.AddSingleton<IGlobalRepositoryHook[]>(svc => svc.GetServices<IGlobalRepositoryHook>().ToArray());
-                services.AddSingleton<IModelConverter<string>, JsonModelConverter>();
-                services.AddSingleton<IModelConverter<Entity>, EntityModelConverter>();
-                services.AddSingleton<IExpressionConverter, DefaultExpressionConverter>();
-                services.AddSingleton<IRedisCacheRepositoryLayer, RedisCacheRepositoryLayer>();
-                services.AddSingleton<IDatastoreRepositoryLayer, DatastoreRepositoryLayer>();
-                services.AddSingleton<IGlobalLockService, DatastoreBasedGlobalLockService>();
-                if (!_isInteractiveCLIApp)
-                {
-                    services.AddHostedService<DatastoreStartupMigrator>();
-                    services.AddTransient<RegisteredModelMigratorBase[]>(sp => sp.GetServices<RegisteredModelMigratorBase>().ToArray());
-                }
-                services.AddSingleton<IGlobalShardedCounter, DefaultGlobalShardedCounter>();
-                services.AddSingleton<IDatastoreContentionRetry, DefaultDatastoreContentionRetry>();
+                services.AddCloudFrameworkRepository(
+                    enableMigrations: !_isInteractiveCLIApp,
+                    enableRedis: true);
             }
             if ((_googleCloudUsage & GoogleCloudUsageFlag.BigQuery) != 0)
             {
@@ -251,50 +238,11 @@ namespace Redpoint.CloudFramework.Startup
                 services.AddSecretManagerRuntime();
             }
 
-            services.AddSingleton<IMetricService, DiagnosticSourceMetricService>();
-
-            services.AddSingleton<IEventApi, EventApi>();
-
-            services.AddSingleton<IGlobalPrefix, GlobalPrefix>();
-            services.AddSingleton<IRandomStringGenerator, RandomStringGenerator>();
-            services.AddSingleton<IInstantTimestampConverter, DefaultInstantTimestampConverter>();
-            services.AddSingleton<IInstantTimestampJsonConverter, DefaultInstantTimestampJsonConverter>();
-
-            services.AddSingleton<IValueConverter, BooleanValueConverter>();
-            services.AddSingleton<IValueConverter, DoubleValueConverter>();
-            services.AddSingleton<IValueConverter, EmbeddedEntityValueConverter>();
-            services.AddSingleton<IValueConverter, GeopointValueConverter>();
-            services.AddSingleton<IValueConverter, GlobalKeyArrayValueConverter>();
-            services.AddSingleton<IValueConverter, GlobalKeyValueConverter>();
-            services.AddSingleton<IValueConverter, IntegerValueConverter>();
-            services.AddSingleton<IValueConverter, UnsignedIntegerValueConverter>();
-            services.AddSingleton<IValueConverter, UnsignedIntegerArrayValueConverter>();
-            services.AddSingleton<IValueConverter, JsonValueConverter>();
-            services.AddSingleton<IValueConverter, KeyArrayValueConverter>();
-            services.AddSingleton<IValueConverter, KeyValueConverter>();
-            services.AddSingleton<IValueConverter, LocalKeyValueConverter>();
-            services.AddSingleton<IValueConverter, StringArrayValueConverter>();
-            services.AddSingleton<IValueConverter, StringEnumSetValueConverter>();
-            services.AddSingleton<IValueConverter, StringEnumArrayValueConverter>();
-            services.AddSingleton<IValueConverter, StringEnumValueConverter>();
-            services.AddSingleton<IValueConverter, StringValueConverter>();
-            services.AddSingleton<IValueConverter, TimestampValueConverter>();
-            services.AddSingleton<IValueConverter, UnsafeKeyValueConverter>();
-            services.AddSingleton<IValueConverterProvider, DefaultValueConverterProvider>();
+            services.AddCloudFrameworkCore();
 
             if (services.Any(x => x.ServiceType == typeof(IQuartzScheduledProcessorBinding)))
             {
-                services.TryAddEnumerable(new[]
-                {
-                    ServiceDescriptor.Singleton<IPostConfigureOptions<QuartzOptions>, QuartzCloudFrameworkPostConfigureOptions>()
-                });
-                services.AddQuartz(options =>
-                {
-                    options.UseSimpleTypeLoader();
-                    // @todo: In future we should support clustering, but for now we do not.
-                    options.UseInMemoryStore();
-                });
-                services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
+                services.AddCloudFrameworkQuartz();
             }
         }
     }

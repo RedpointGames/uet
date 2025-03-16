@@ -13,21 +13,26 @@
     internal class DefaultGlobalShardedCounter : IGlobalShardedCounter
     {
         private readonly IGlobalRepository _globalRepository;
-        private readonly IDatabase _redisDatabase;
+        private readonly IDatabase? _redisDatabase;
 
         // This can only ever be increased; not decreased.
         private const int _numShards = 10;
 
-        private const bool _enableRedis = true;
-
         public DefaultGlobalShardedCounter(
             IGlobalRepository globalRepository,
-            IConnectionMultiplexer connectionMultiplexer)
+            IConnectionMultiplexer? connectionMultiplexer = null)
         {
             ArgumentNullException.ThrowIfNull(connectionMultiplexer);
 
             _globalRepository = globalRepository;
-            _redisDatabase = connectionMultiplexer.GetDatabase();
+            if (connectionMultiplexer != null)
+            {
+                _redisDatabase = connectionMultiplexer.GetDatabase();
+            }
+            else
+            {
+                _redisDatabase = null;
+            }
         }
 
         private static string GetShardKeyName(string name, long index)
@@ -52,7 +57,7 @@
         public async Task<long> GetAsync(string @namespace, string name)
         {
             long total;
-            if (_enableRedis)
+            if (_redisDatabase != null)
             {
                 var shardCache = await _redisDatabase.StringGetAsync(GetShardRedisName(@namespace, name)).ConfigureAwait(false);
                 if (!(!shardCache.HasValue || !shardCache.IsInteger || !shardCache.TryParse(out total)))
@@ -68,7 +73,7 @@
                 .Where(x => x.Value != null)
                 .Select(x => x.Value!.value)
                 .SumAsync().ConfigureAwait(false);
-            if (_enableRedis)
+            if (_redisDatabase != null)
             {
                 await _redisDatabase.StringSetAsync(
                     GetShardRedisName(@namespace, name),
@@ -130,7 +135,7 @@
             }
             return async () =>
             {
-                if (_enableRedis)
+                if (_redisDatabase != null)
                 {
                     await _redisDatabase.StringIncrementAsync(GetShardRedisName(@namespace, name), modifier, CommandFlags.FireAndForget).ConfigureAwait(false);
                 }
