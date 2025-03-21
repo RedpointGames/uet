@@ -20,6 +20,7 @@
     using System.Text.RegularExpressions;
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.CommonPaths;
+    using System.CommandLine.Parsing;
 
     internal sealed class BuildCommand
     {
@@ -27,8 +28,8 @@
         {
             public Option<EngineSpec> Engine;
             public Option<PathSpec> Path;
-            public Option<string[]?> Test;
-            public Option<string[]?> Deploy;
+            public Option<string[]> Test;
+            public Option<string[]> Deploy;
             public Option<bool> StrictIncludes;
 
             public Option<DistributionSpec?> Distribution;
@@ -88,12 +89,12 @@
                 Engine.AddAlias("-e");
                 Engine.Arity = ArgumentArity.ExactlyOne;
 
-                Test = new Option<string[]?>(
+                Test = new Option<string[]>(
                     "--test",
                     description: "Executes the specified tests after building. If specifying --test without arguments, all tests are run.");
                 Test.Arity = ArgumentArity.ZeroOrMore;
 
-                Deploy = new Option<string[]?>(
+                Deploy = new Option<string[]>(
                     "--deploy",
                     description: "Executes the specified deployments after building (and testing if --test is set). If specifying --deploy without arguments, all deployments are run.");
                 Deploy.Arity = ArgumentArity.ZeroOrMore;
@@ -295,14 +296,22 @@
                 var macSharedStoragePath = context.ParseResult.GetValueForOption(_options.MacSharedStoragePath);
                 var macSharedGitCachePath = context.ParseResult.GetValueForOption(_options.MacSharedGitCachePath);
                 var macSdksPath = context.ParseResult.GetValueForOption(_options.MacSdksPath);
-                var test = context.ParseResult.GetValueForOption(_options.Test);
-                var deploy = context.ParseResult.GetValueForOption(_options.Deploy);
                 var strictIncludes = context.ParseResult.GetValueForOption(_options.StrictIncludes);
                 var platforms = context.ParseResult.GetValueForOption(_options.Platform);
                 var projectStagingDirectory = context.ParseResult.GetValueForOption(_options.ProjectStagingDirectory);
                 var pluginPackage = context.ParseResult.GetValueForOption(_options.PluginPackage);
                 var pluginVersionName = context.ParseResult.GetValueForOption(_options.PluginVersionName);
                 var pluginVersionNumber = context.ParseResult.GetValueForOption(_options.PluginVersionNumber);
+
+                // Despite the function signature, GetValueForOption won't return null if options are omitted,
+                // instead defaulting to an empty array (which we actually want to treat as "all"). Use HasOption
+                // to detect if the option actually exists and use that to determine whether the value should be null.
+                var test = context.ParseResult.HasOption(_options.Test)
+                    ? context.ParseResult.GetValueForOption(_options.Test)!
+                    : null;
+                var deploy = context.ParseResult.HasOption(_options.Deploy)
+                    ? context.ParseResult.GetValueForOption(_options.Deploy)!
+                    : null;
 
                 // @todo: Move this validation to the parsing APIs.
                 string? windowsTelemetryPath = null;
