@@ -33,6 +33,7 @@
 		<Copy
 			SourceFiles="$(OutputPath)..\$(PackageId).$(PackageVersion).nupkg"
 			DestinationFolder="$(MSBuildThisFileDirectory)../../LocalPackages"
+			Condition="Exists('$(OutputPath)..\$(PackageId).$(PackageVersion).nupkg')"
 		/>
 	</Target>
 
