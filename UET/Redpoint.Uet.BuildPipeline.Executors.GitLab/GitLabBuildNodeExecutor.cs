@@ -84,6 +84,9 @@
                     string engineWorkspacePath,
                     string targetWorkspacePath)
                 {
+                    _logger.LogTrace($"Engine workspace is: {engineWorkspacePath}");
+                    _logger.LogTrace($"Target workspace is: {targetWorkspacePath}");
+
                     var globalEnvironmentVariablesWithSdk = await _sdkSetupForBuildExecutor.SetupForBuildAsync(
                         buildSpecification,
                         nodeName,
@@ -227,6 +230,8 @@
                 int overallExitCode;
                 if (buildSpecification.Engine.EngineBuildType == BuildEngineSpecificationEngineBuildType.CurrentWorkspace)
                 {
+                    _logger.LogTrace($"Executing build with engine build type of 'CurrentWorkspace', obtaining single workspace and using it as the engine directory as well.");
+
                     _logger.LogTrace($"Obtaining workspace for build.");
                     await using ((await _workspaceProvider.GetWorkspaceAsync(
                         new GitWorkspaceDescriptor
@@ -260,12 +265,16 @@
                     {
                         if (buildSpecification.Engine.EngineBuildType == BuildEngineSpecificationEngineBuildType.ExternalSource)
                         {
+                            _logger.LogTrace($"Executing build with engine build type of 'ExternalSource', obtained engine workspace only and using it as the target directory as well.");
+
                             overallExitCode = await ExecuteNodesInWorkspaceAsync(
                                 engineWorkspace.Path,
                                 engineWorkspace.Path).ConfigureAwait(false);
                         }
                         else
                         {
+                            _logger.LogTrace($"Executing build with engine build type of 'None', obtained engine workspace and obtaining target workspace separately.");
+
                             _logger.LogTrace($"Obtaining workspace for build.");
                             await using ((await _workspaceProvider.GetWorkspaceAsync(
                                 new GitWorkspaceDescriptor
