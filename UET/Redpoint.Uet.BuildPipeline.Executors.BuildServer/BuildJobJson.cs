@@ -12,12 +12,6 @@
         [JsonPropertyName("Engine"), JsonRequired]
         public string Engine { get; set; } = string.Empty;
 
-        /// <summary>
-        /// If true, the engine itself is being built, rather than building a project or plugin with the engine.
-        /// </summary>
-        [JsonPropertyName("IsEngineBuild"), JsonRequired]
-        public bool IsEngineBuild { get; set; } = false;
-
         [JsonPropertyName("SharedStoragePath"), JsonRequired]
         public string SharedStoragePath { get; set; } = string.Empty;
 

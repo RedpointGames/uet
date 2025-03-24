@@ -8,7 +8,6 @@
         public required string Git { get; init; }
         public required IReadOnlyDictionary<string, string> GitEnvs { get; init; }
         public required Func<GitTemporaryEnvVarsForFetch> FetchEnvironmentVariablesFactory { get; init; }
-        public required bool EnableSubmoduleSupport { get; init; }
-        public required bool EnableLfsSupport { get; init; }
+        public required bool EnableSubmoduleSupport { get; set; }
     }
 }

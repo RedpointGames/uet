@@ -145,149 +145,170 @@
                 await buildExecutionEvents.OnNodeStarted(node.Node.Name).ConfigureAwait(false);
                 try
                 {
-                    await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
-                        buildSpecification.Engine,
-                        string.Empty,
-                        cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engineWorkspace).ConfigureAwait(false))
+                    async Task<int> ExecuteBuildInWorkspaceAsync(
+                        string engineWorkspacePath,
+                        string targetWorkspacePath)
                     {
                         var globalEnvironmentVariablesWithSdk = await _sdkSetupForBuildExecutor.SetupForBuildAsync(
                             buildSpecification,
                             node.Node.Name,
-                            engineWorkspace.Path,
+                            engineWorkspacePath,
                             globalEnvironmentVariables,
                             cancellationToken).ConfigureAwait(false);
 
-                        async Task<int> ExecuteBuildInWorkspaceAsync(string targetWorkspacePath)
-                        {
-                            var preBuildGraphArguments = _buildGraphArgumentGenerator.GeneratePreBuildGraphArguments(
-                                buildSpecification.BuildGraphSettings,
-                                buildSpecification.BuildGraphSettingReplacements,
-                                targetWorkspacePath,
-                                buildSpecification.UETPath,
-                                engineWorkspace.Path,
-                                OperatingSystem.IsWindows()
-                                    ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
-                                    : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
-                                buildSpecification.ArtifactExportPath);
+                        var preBuildGraphArguments = _buildGraphArgumentGenerator.GeneratePreBuildGraphArguments(
+                            buildSpecification.BuildGraphSettings,
+                            buildSpecification.BuildGraphSettingReplacements,
+                            targetWorkspacePath,
+                            buildSpecification.UETPath,
+                            engineWorkspacePath,
+                            OperatingSystem.IsWindows()
+                                ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
+                                : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                            buildSpecification.ArtifactExportPath);
 
+                        {
+                            var exitCode = await _preBuild.RunGeneralPreBuild(
+                                targetWorkspacePath,
+                                node.Node.Name,
+                                preBuildGraphArguments,
+                                cancellationToken).ConfigureAwait(false);
+                            if (exitCode != 0)
                             {
-                                var exitCode = await _preBuild.RunGeneralPreBuild(
+                                _logger.LogError($"General pre-build failed with exit code {exitCode}.");
+                                return exitCode;
+                            }
+                        }
+
+                        if (preparePlugin != null && preparePlugin.Length > 0)
+                        {
+                            _logger.LogTrace($"Running plugin preparation steps for pre-BuildGraph hook.");
+                            foreach (var byType in preparePlugin.GroupBy(x => x.Type))
+                            {
+                                var provider = _pluginPrepare
+                                    .Where(x => x.Type == byType.Key)
+                                    .OfType<IPluginPrepareProvider>()
+                                    .First();
+                                var exitCode = await provider.RunBeforeBuildGraphAsync(
+                                    byType,
                                     targetWorkspacePath,
-                                    node.Node.Name,
                                     preBuildGraphArguments,
                                     cancellationToken).ConfigureAwait(false);
                                 if (exitCode != 0)
                                 {
-                                    _logger.LogError($"General pre-build failed with exit code {exitCode}.");
+                                    _logger.LogError($"Plugin preparation step for pre-BuildGraph hook failed with exit code {exitCode}.");
                                     return exitCode;
                                 }
                             }
+                        }
 
-                            if (preparePlugin != null && preparePlugin.Length > 0)
+                        if (prepareProject != null && prepareProject.Length > 0)
+                        {
+                            _logger.LogTrace($"Running project preparation steps for pre-BuildGraph hook.");
+                            foreach (var byType in prepareProject.GroupBy(x => x.Type))
                             {
-                                _logger.LogTrace($"Running plugin preparation steps for pre-BuildGraph hook.");
-                                foreach (var byType in preparePlugin.GroupBy(x => x.Type))
+                                var provider = _projectPrepare
+                                    .Where(x => x.Type == byType.Key)
+                                    .OfType<IProjectPrepareProvider>()
+                                    .First();
+                                var exitCode = await provider.RunBeforeBuildGraphAsync(
+                                    byType,
+                                    targetWorkspacePath,
+                                    preBuildGraphArguments,
+                                    cancellationToken).ConfigureAwait(false);
+                                if (exitCode != 0)
                                 {
-                                    var provider = _pluginPrepare
-                                        .Where(x => x.Type == byType.Key)
-                                        .OfType<IPluginPrepareProvider>()
-                                        .First();
-                                    var exitCode = await provider.RunBeforeBuildGraphAsync(
-                                        byType,
-                                        targetWorkspacePath,
-                                        preBuildGraphArguments,
-                                        cancellationToken).ConfigureAwait(false);
-                                    if (exitCode != 0)
-                                    {
-                                        _logger.LogError($"Plugin preparation step for pre-BuildGraph hook failed with exit code {exitCode}.");
-                                        return exitCode;
-                                    }
+                                    _logger.LogError($"Project preparation step for pre-BuildGraph hook failed with exit code {exitCode}.");
+                                    return exitCode;
                                 }
                             }
+                        }
 
-                            if (prepareProject != null && prepareProject.Length > 0)
+                        _logger.LogTrace($"Starting: {node.Node.Name}");
+                        return await _buildGraphExecutor.ExecuteGraphNodeAsync(
+                            engineWorkspacePath,
+                            targetWorkspacePath,
+                            buildSpecification.UETPath,
+                            buildSpecification.ArtifactExportPath,
+                            buildSpecification.BuildGraphScript,
+                            buildSpecification.BuildGraphTarget,
+                            node.Node.Name,
+                            OperatingSystem.IsWindows()
+                                ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
+                                : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
+                            OperatingSystem.IsWindows()
+                                ? buildSpecification.BuildGraphEnvironment.Windows.TelemetryPath
+                                : buildSpecification.BuildGraphEnvironment.Mac!.TelemetryPath,
+                            buildSpecification.BuildGraphSettings,
+                            buildSpecification.BuildGraphSettingReplacements,
+                            globalEnvironmentVariablesWithSdk!,
+                            buildSpecification.MobileProvisions,
+                            CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
                             {
-                                _logger.LogTrace($"Running project preparation steps for pre-BuildGraph hook.");
-                                foreach (var byType in prepareProject.GroupBy(x => x.Type))
+                                ReceiveStdout = (line) =>
                                 {
-                                    var provider = _projectPrepare
-                                        .Where(x => x.Type == byType.Key)
-                                        .OfType<IProjectPrepareProvider>()
-                                        .First();
-                                    var exitCode = await provider.RunBeforeBuildGraphAsync(
-                                        byType,
-                                        targetWorkspacePath,
-                                        preBuildGraphArguments,
-                                        cancellationToken).ConfigureAwait(false);
-                                    if (exitCode != 0)
-                                    {
-                                        _logger.LogError($"Project preparation step for pre-BuildGraph hook failed with exit code {exitCode}.");
-                                        return exitCode;
-                                    }
+                                    buildExecutionEvents.OnNodeOutputReceived(node.Node.Name, new[] { line });
+                                    return false;
+                                },
+                                ReceiveStderr = (line) =>
+                                {
+                                    buildExecutionEvents.OnNodeOutputReceived(node.Node.Name, new[] { line });
+                                    return false;
+                                },
+                            }),
+                            cancellationToken).ConfigureAwait(false);
+                    }
+
+                    int exitCode;
+                    if (buildSpecification.Engine.EngineBuildType == BuildEngineSpecificationEngineBuildType.CurrentWorkspace)
+                    {
+                        await using ((await GetFolderWorkspaceAsync(
+                            buildSpecification.BuildGraphRepositoryRoot,
+                            node.Node.Name).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
+                        {
+                            exitCode = await ExecuteBuildInWorkspaceAsync(
+                                targetWorkspace.Path,
+                                targetWorkspace.Path).ConfigureAwait(false);
+                        }
+                    }
+                    else
+                    {
+                        await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
+                            buildSpecification.Engine,
+                            string.Empty,
+                            cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engineWorkspace).ConfigureAwait(false))
+                        {
+                            if (buildSpecification.Engine.EngineBuildType == BuildEngineSpecificationEngineBuildType.ExternalSource)
+                            {
+                                exitCode = await ExecuteBuildInWorkspaceAsync(
+                                    engineWorkspace.Path,
+                                    engineWorkspace.Path).ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                await using ((await GetFolderWorkspaceAsync(
+                                    buildSpecification.BuildGraphRepositoryRoot,
+                                    node.Node.Name).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
+                                {
+                                    exitCode = await ExecuteBuildInWorkspaceAsync(
+                                        engineWorkspace.Path,
+                                        targetWorkspace.Path).ConfigureAwait(false);
                                 }
                             }
+                        }
+                    }
 
-                            _logger.LogTrace($"Starting: {node.Node.Name}");
-                            return await _buildGraphExecutor.ExecuteGraphNodeAsync(
-                                engineWorkspace!.Path,
-                                targetWorkspacePath,
-                                buildSpecification.UETPath,
-                                buildSpecification.ArtifactExportPath,
-                                buildSpecification.BuildGraphScript,
-                                buildSpecification.BuildGraphTarget,
-                                node.Node.Name,
-                                OperatingSystem.IsWindows()
-                                    ? buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath
-                                    : buildSpecification.BuildGraphEnvironment.Mac!.SharedStorageAbsolutePath,
-                                OperatingSystem.IsWindows()
-                                    ? buildSpecification.BuildGraphEnvironment.Windows.TelemetryPath
-                                    : buildSpecification.BuildGraphEnvironment.Mac!.TelemetryPath,
-                                buildSpecification.BuildGraphSettings,
-                                buildSpecification.BuildGraphSettingReplacements,
-                                globalEnvironmentVariablesWithSdk!,
-                                buildSpecification.MobileProvisions,
-                                CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
-                                {
-                                    ReceiveStdout = (line) =>
-                                    {
-                                        buildExecutionEvents.OnNodeOutputReceived(node.Node.Name, new[] { line });
-                                        return false;
-                                    },
-                                    ReceiveStderr = (line) =>
-                                    {
-                                        buildExecutionEvents.OnNodeOutputReceived(node.Node.Name, new[] { line });
-                                        return false;
-                                    },
-                                }),
-                                cancellationToken).ConfigureAwait(false);
-                        }
-
-                        int exitCode;
-                        if (buildSpecification.Engine.IsEngineBuild)
-                        {
-                            exitCode = await ExecuteBuildInWorkspaceAsync(engineWorkspace.Path).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            await using ((await GetFolderWorkspaceAsync(
-                                buildSpecification.BuildGraphRepositoryRoot,
-                                node.Node.Name).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
-                            {
-                                exitCode = await ExecuteBuildInWorkspaceAsync(targetWorkspace.Path).ConfigureAwait(false);
-                            }
-                        }
-                        if (exitCode == 0)
-                        {
-                            _logger.LogTrace($"Finished: {node.Node.Name} = Success");
-                            await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Success).ConfigureAwait(false);
-                            return BuildResultStatus.Success;
-                        }
-                        else
-                        {
-                            _logger.LogTrace($"Finished: {node.Node.Name} = Failed");
-                            await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Failed).ConfigureAwait(false);
-                            return BuildResultStatus.Failed;
-                        }
+                    if (exitCode == 0)
+                    {
+                        _logger.LogTrace($"Finished: {node.Node.Name} = Success");
+                        await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Success).ConfigureAwait(false);
+                        return BuildResultStatus.Success;
+                    }
+                    else
+                    {
+                        _logger.LogTrace($"Finished: {node.Node.Name} = Failed");
+                        await buildExecutionEvents.OnNodeFinished(node.Node.Name, BuildResultStatus.Failed).ConfigureAwait(false);
+                        return BuildResultStatus.Failed;
                     }
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
