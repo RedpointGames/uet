@@ -3,7 +3,7 @@
     using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
-    public class BuildConfigEngineSource
+    public class BuildConfigEngineExternalSource
     {
         [JsonPropertyName("Type"), JsonRequired]
         public string Type { get; set; } = "git";

@@ -2,6 +2,15 @@
 {
     using System.Diagnostics.CodeAnalysis;
 
+    public enum BuildEngineSpecificationEngineBuildType
+    {
+        None,
+
+        ExternalSource,
+
+        CurrentWorkspace,
+    }
+
     public class BuildEngineSpecification
     {
         internal string? _engineVersion { get; private set; }
@@ -14,7 +23,8 @@
         internal string? _gitSharedMacCachePath { get; private set; }
         internal string? _sesNetworkShare { get; private set; }
         internal string? _remoteZfs { get; private set; }
-        public bool IsEngineBuild { get; private set; } = false;
+        internal bool _currentWorkspace { get; private set; }
+        public BuildEngineSpecificationEngineBuildType EngineBuildType { get; private set; } = BuildEngineSpecificationEngineBuildType.None;
 
         public static BuildEngineSpecification ForVersionWithPath(string version, string localPath)
         {
@@ -73,7 +83,18 @@
                 _gitConsoleZips = uefsGitConsoleZips ?? Array.Empty<string>(),
                 _gitSharedWindowsCachePath = windowsSharedGitCachePath,
                 _gitSharedMacCachePath = macSharedGitCachePath,
-                IsEngineBuild = isEngineBuild,
+                EngineBuildType = isEngineBuild
+                    ? BuildEngineSpecificationEngineBuildType.ExternalSource
+                    : BuildEngineSpecificationEngineBuildType.None,
+            };
+        }
+
+        public static BuildEngineSpecification ForEngineInCurrentWorkspace()
+        {
+            return new BuildEngineSpecification
+            {
+                _currentWorkspace = true,
+                EngineBuildType = BuildEngineSpecificationEngineBuildType.CurrentWorkspace,
             };
         }
 
@@ -82,7 +103,11 @@
         /// </remarks>
         public string ToReparsableString()
         {
-            if (!string.IsNullOrWhiteSpace(_uefsPackageTag))
+            if (_currentWorkspace)
+            {
+                return $"self:true";
+            }
+            else if (!string.IsNullOrWhiteSpace(_uefsPackageTag))
             {
                 return $"uefs:{_uefsPackageTag}";
             }

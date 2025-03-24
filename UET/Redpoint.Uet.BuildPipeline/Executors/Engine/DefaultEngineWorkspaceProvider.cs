@@ -68,7 +68,9 @@
                         AdditionalFolderZips = buildEngineSpecification._gitConsoleZips!,
                         WorkspaceDisambiguators = new[] { workspaceSuffix },
                         ProjectFolderName = null,
-                        BuildType = buildEngineSpecification.IsEngineBuild ? GitWorkspaceDescriptorBuildType.Engine : GitWorkspaceDescriptorBuildType.Generic,
+                        BuildType = buildEngineSpecification.EngineBuildType != BuildEngineSpecificationEngineBuildType.None
+                            ? GitWorkspaceDescriptorBuildType.Engine
+                            : GitWorkspaceDescriptorBuildType.Generic,
                         WindowsSharedGitCachePath = buildEngineSpecification._gitSharedWindowsCachePath,
                         MacSharedGitCachePath = buildEngineSpecification._gitSharedMacCachePath,
                     },

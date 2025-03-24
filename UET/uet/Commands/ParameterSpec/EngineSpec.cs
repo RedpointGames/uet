@@ -213,6 +213,7 @@
             WindowsUserRegistry = 1 << 7,
             SESNetworkShare = 1 << 8,
             RemoteZfs = 1 << 9,
+            CurrentWorkspace = 1 << 10,
 
             All = 0xFFFFFF,
         }
@@ -224,6 +225,19 @@
 
         private static EngineSpec? TryParseEngine(string engine, EngineParseFlags flags = EngineParseFlags.All)
         {
+            if ((flags & EngineParseFlags.CurrentWorkspace) != 0)
+            {
+                // Detect UEFS tags.
+                if (engine == "self:true")
+                {
+                    return new EngineSpec
+                    {
+                        Type = EngineSpecType.CurrentWorkspace,
+                        OriginalSpec = engine,
+                    };
+                }
+            }
+
             if ((flags & EngineParseFlags.UEFS) != 0)
             {
                 // Detect UEFS tags.
@@ -570,29 +584,38 @@
                     if (distributionSpec != null)
                     {
                         var engineDistribution = distributionSpec!.Distribution as BuildConfigEngineDistribution;
-                        var repositoryUrl = engineDistribution!.Source.Repository;
-                        if (!repositoryUrl.Contains("://", StringComparison.Ordinal))
+                        if (engineDistribution!.ExternalSource != null)
                         {
-                            var shortSshUrlRegex = new Regex("^(.+@)*([\\w\\d\\.]+):(.*)$");
-                            var shortSshUrlMatch = shortSshUrlRegex.Match(repositoryUrl);
-                            if (shortSshUrlMatch.Success)
+                            var repositoryUrl = engineDistribution!.ExternalSource.Repository;
+                            if (!repositoryUrl.Contains("://", StringComparison.Ordinal))
                             {
-                                repositoryUrl = $"ssh://{shortSshUrlMatch.Groups[1].Value}{shortSshUrlMatch.Groups[2].Value}/{shortSshUrlMatch.Groups[3].Value}";
+                                var shortSshUrlRegex = new Regex("^(.+@)*([\\w\\d\\.]+):(.*)$");
+                                var shortSshUrlMatch = shortSshUrlRegex.Match(repositoryUrl);
+                                if (shortSshUrlMatch.Success)
+                                {
+                                    repositoryUrl = $"ssh://{shortSshUrlMatch.Groups[1].Value}{shortSshUrlMatch.Groups[2].Value}/{shortSshUrlMatch.Groups[3].Value}";
+                                }
                             }
+                            // @note: This will round trip to ci-build as EngineSpecType.GitCommit
+                            return BuildEngineSpecification.ForGitCommitWithZips(
+                                repositoryUrl,
+                                engineDistribution.ExternalSource.Ref,
+                                engineDistribution.ExternalSource.ConsoleZips,
+                                isEngineBuild: true,
+                                windowsSharedGitCachePath: windowsSharedGitCachePath,
+                                macSharedGitCachePath: macSharedGitCachePath);
                         }
-                        // @note: This will round trip to ci-build as EngineSpecType.GitCommit
-                        return BuildEngineSpecification.ForGitCommitWithZips(
-                            repositoryUrl,
-                            engineDistribution.Source.Ref,
-                            engineDistribution.Source.ConsoleZips,
-                            isEngineBuild: true,
-                            windowsSharedGitCachePath: windowsSharedGitCachePath,
-                            macSharedGitCachePath: macSharedGitCachePath);
+                        else
+                        {
+                            return BuildEngineSpecification.ForEngineInCurrentWorkspace();
+                        }
                     }
                     else
                     {
                         throw new NotSupportedException($"The EngineSpecType {Type} is not supported by the '{commandName}' command.");
                     }
+                case EngineSpecType.CurrentWorkspace:
+                    return BuildEngineSpecification.ForEngineInCurrentWorkspace();
                 default:
                     throw new NotSupportedException($"The EngineSpecType {Type} is not supported by the '{commandName}' command.");
             }

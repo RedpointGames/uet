@@ -655,7 +655,6 @@
                 var buildJobJson = new BuildJobJson
                 {
                     Engine = buildSpecification.Engine.ToReparsableString(),
-                    IsEngineBuild = buildSpecification.Engine.IsEngineBuild,
                     SharedStoragePath = job.Agent.Platform switch
                     {
                         BuildServerJobPlatform.Windows => buildSpecification.BuildGraphEnvironment.Windows.SharedStorageAbsolutePath,
