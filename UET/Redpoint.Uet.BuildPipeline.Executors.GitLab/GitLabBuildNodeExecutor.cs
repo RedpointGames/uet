@@ -206,8 +206,8 @@
                         await buildExecutionEvents.OnNodeStarted(nodeName).ConfigureAwait(false);
                         executingNode.NodeName = nodeName;
                         var exitCode = await ExecuteNodeInWorkspaceAsync(
-                            engineWorkspacePath,
                             nodeName,
+                            engineWorkspacePath,
                             targetWorkspacePath).ConfigureAwait(false);
                         if (exitCode == 0)
                         {
