@@ -19,13 +19,13 @@
     {
         private readonly ILogger<JenkinsBuildNodeExecutor> _logger;
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
-        private readonly IDynamicWorkspaceProvider _workspaceProvider;
+        private readonly IWorkspaceProvider _workspaceProvider;
 
         public JenkinsBuildNodeExecutor(
             IServiceProvider serviceProvider,
             ILogger<JenkinsBuildNodeExecutor> logger,
             IEngineWorkspaceProvider engineWorkspaceProvider,
-            IDynamicWorkspaceProvider workspaceProvider)
+            IWorkspaceProvider workspaceProvider)
         {
             _logger = logger;
             _engineWorkspaceProvider = engineWorkspaceProvider;
@@ -64,74 +64,121 @@
             _logger.LogTrace("Starting execution of nodes...");
             try
             {
-                await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
-                    buildSpecification.Engine,
-                    string.Empty,
-                    cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engineWorkspace).ConfigureAwait(false))
+                async Task<int> ExecuteNodeInWorkspaceAsync(
+                    string nodeName,
+                    string engineWorkspacePath,
+                    string targetWorkspacePath)
                 {
-                    async Task<int> ExecuteNodeInWorkspaceAsync(string nodeName, string targetWorkspacePath)
-                    {
-                        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
-                        throw new NotImplementedException();
-                    }
-
-                    async Task<int> ExecuteNodesInWorkspaceAsync(string targetWorkspacePath)
-                    {
-                        foreach (var nodeName in nodeNames)
-                        {
-                            await buildExecutionEvents.OnNodeStarted(nodeName).ConfigureAwait(false);
-                            executingNode.NodeName = nodeName;
-                            var exitCode = await ExecuteNodeInWorkspaceAsync(nodeName, targetWorkspacePath).ConfigureAwait(false);
-                            if (exitCode == 0)
-                            {
-                                _logger.LogTrace($"Finished: {nodeName} = Success");
-                                executingNode.NodeName = null;
-                                await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Success).ConfigureAwait(false);
-                                continue;
-                            }
-                            else
-                            {
-                                _logger.LogTrace($"Finished: {nodeName} = Failed");
-                                executingNode.NodeName = null;
-                                await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Failed).ConfigureAwait(false);
-                                return 1;
-                            }
-                        }
-                        return 0;
-                    }
-
-                    int overallExitCode;
-                    if (buildSpecification.Engine.IsEngineBuild)
-                    {
-                        overallExitCode = await ExecuteNodesInWorkspaceAsync(engineWorkspace.Path).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        _logger.LogTrace($"Obtaining workspace for build.");
-                        await using ((await _workspaceProvider.GetWorkspaceAsync(
-                            new GitWorkspaceDescriptor
-                            {
-                                RepositoryUrl = repository,
-                                RepositoryCommitOrRef = commit,
-                                AdditionalFolderLayers = Array.Empty<string>(),
-                                AdditionalFolderZips = Array.Empty<string>(),
-                                WorkspaceDisambiguators = nodeNames,
-                                ProjectFolderName = buildSpecification.ProjectFolderName,
-                                BuildType = GitWorkspaceDescriptorBuildType.Generic,
-                                WindowsSharedGitCachePath = null,
-                                MacSharedGitCachePath = null,
-                            },
-                            cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
-                        {
-                            _logger.LogTrace($"Calling ExecuteNodesInWorkspaceAsync inside allocated workspace.");
-                            overallExitCode = await ExecuteNodesInWorkspaceAsync(targetWorkspace.Path).ConfigureAwait(false);
-                            _logger.LogTrace($"Finished ExecuteNodesInWorkspaceAsync with exit code '{overallExitCode}'.");
-                        }
-                        _logger.LogTrace($"Released workspace for build.");
-                    }
-                    _logger.LogTrace($"Returning overall exit code '{overallExitCode}' from ExecuteBuildNodesAsync.");
-                    return overallExitCode;
+                    await Task.Delay(1, cancellationToken).ConfigureAwait(false);
+                    throw new NotImplementedException();
                 }
+
+                async Task<int> ExecuteNodesInWorkspaceAsync(
+                    string engineWorkspacePath,
+                    string targetWorkspacePath)
+                {
+                    foreach (var nodeName in nodeNames)
+                    {
+                        await buildExecutionEvents.OnNodeStarted(nodeName).ConfigureAwait(false);
+                        executingNode.NodeName = nodeName;
+                        var exitCode = await ExecuteNodeInWorkspaceAsync(
+                            nodeName,
+                            engineWorkspacePath,
+                            targetWorkspacePath).ConfigureAwait(false);
+                        if (exitCode == 0)
+                        {
+                            _logger.LogTrace($"Finished: {nodeName} = Success");
+                            executingNode.NodeName = null;
+                            await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Success).ConfigureAwait(false);
+                            continue;
+                        }
+                        else
+                        {
+                            _logger.LogTrace($"Finished: {nodeName} = Failed");
+                            executingNode.NodeName = null;
+                            await buildExecutionEvents.OnNodeFinished(nodeName, BuildResultStatus.Failed).ConfigureAwait(false);
+                            return 1;
+                        }
+                    }
+                    return 0;
+                }
+
+                int overallExitCode;
+                if (buildSpecification.Engine.EngineBuildType == BuildEngineSpecificationEngineBuildType.CurrentWorkspace)
+                {
+                    _logger.LogTrace($"Executing build with engine build type of 'CurrentWorkspace', obtaining single workspace and using it as the engine directory as well.");
+
+                    _logger.LogTrace($"Obtaining workspace for build.");
+                    await using ((await _workspaceProvider.GetWorkspaceAsync(
+                        new GitWorkspaceDescriptor
+                        {
+                            RepositoryUrl = repository,
+                            RepositoryCommitOrRef = commit,
+                            AdditionalFolderLayers = Array.Empty<string>(),
+                            AdditionalFolderZips = Array.Empty<string>(),
+                            WorkspaceDisambiguators = nodeNames,
+                            ProjectFolderName = buildSpecification.ProjectFolderName,
+                            BuildType = GitWorkspaceDescriptorBuildType.Generic,
+                            WindowsSharedGitCachePath = null,
+                            MacSharedGitCachePath = null,
+                        },
+                        cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
+                    {
+                        _logger.LogTrace($"Calling ExecuteNodesInWorkspaceAsync inside allocated workspace.");
+                        overallExitCode = await ExecuteNodesInWorkspaceAsync(
+                            targetWorkspace.Path,
+                            targetWorkspace.Path).ConfigureAwait(false);
+                        _logger.LogTrace($"Finished ExecuteNodesInWorkspaceAsync with exit code '{overallExitCode}'.");
+                    }
+                    _logger.LogTrace($"Released workspace for build.");
+                }
+                else
+                {
+                    await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
+                        buildSpecification.Engine,
+                        string.Empty,
+                        cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engineWorkspace).ConfigureAwait(false))
+                    {
+                        if (buildSpecification.Engine.EngineBuildType == BuildEngineSpecificationEngineBuildType.ExternalSource)
+                        {
+                            _logger.LogTrace($"Executing build with engine build type of 'ExternalSource', obtained engine workspace only and using it as the target directory as well.");
+
+                            overallExitCode = await ExecuteNodesInWorkspaceAsync(
+                                engineWorkspace.Path,
+                                engineWorkspace.Path).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            _logger.LogTrace($"Executing build with engine build type of 'None', obtained engine workspace and obtaining target workspace separately.");
+
+                            _logger.LogTrace($"Obtaining workspace for build.");
+                            await using ((await _workspaceProvider.GetWorkspaceAsync(
+                                new GitWorkspaceDescriptor
+                                {
+                                    RepositoryUrl = repository,
+                                    RepositoryCommitOrRef = commit,
+                                    AdditionalFolderLayers = Array.Empty<string>(),
+                                    AdditionalFolderZips = Array.Empty<string>(),
+                                    WorkspaceDisambiguators = nodeNames,
+                                    ProjectFolderName = buildSpecification.ProjectFolderName,
+                                    BuildType = GitWorkspaceDescriptorBuildType.Generic,
+                                    WindowsSharedGitCachePath = null,
+                                    MacSharedGitCachePath = null,
+                                },
+                                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
+                            {
+                                _logger.LogTrace($"Calling ExecuteNodesInWorkspaceAsync inside allocated workspace.");
+                                overallExitCode = await ExecuteNodesInWorkspaceAsync(
+                                    engineWorkspace.Path,
+                                    targetWorkspace.Path).ConfigureAwait(false);
+                                _logger.LogTrace($"Finished ExecuteNodesInWorkspaceAsync with exit code '{overallExitCode}'.");
+                            }
+                            _logger.LogTrace($"Released workspace for build.");
+                        }
+                    }
+                }
+                _logger.LogTrace($"Returning overall exit code '{overallExitCode}' from ExecuteBuildNodesAsync.");
+                return overallExitCode;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

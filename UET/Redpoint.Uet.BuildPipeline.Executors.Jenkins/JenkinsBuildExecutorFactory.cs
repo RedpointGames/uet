@@ -32,7 +32,7 @@
                 _serviceProvider,
                 _serviceProvider.GetRequiredService<ILogger<JenkinsBuildNodeExecutor>>(),
                 _serviceProvider.GetRequiredService<IEngineWorkspaceProvider>(),
-                _serviceProvider.GetRequiredService<IDynamicWorkspaceProvider>());
+                _serviceProvider.GetRequiredService<IWorkspaceProvider>());
         }
     }
 }
