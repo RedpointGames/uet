@@ -50,7 +50,7 @@
 
         public override string DiscoverPipelineId()
         {
-            // TODO: This is not defined when executing locally, investigate consequence and implement alternative if needed.
+            // NOTE: BUILD_TAG gets defined by Jenkins.
             return Environment.GetEnvironmentVariable("BUILD_TAG") ?? string.Empty;
         }
 
@@ -109,6 +109,8 @@
                     using (var xmlWriter = XmlWriter.Create(stringWriter, new XmlWriterSettings
                     {
                         OmitXmlDeclaration = true,
+                        Indent = true,
+                        NewLineOnAttributes = true,
                         ConformanceLevel = ConformanceLevel.Fragment,
                     }))
                     {
@@ -150,6 +152,7 @@
                         {
                             buildCommandString += $"$env:{kv.Key}=\'{kv.Value}\'\n";
                         }
+                        buildCommandString += $"$env:UET_PRIMARY_BUILD_TAG=\'{DiscoverPipelineId()}\'\n";
                         buildCommandString += $"$env:UET_GIT_URL=\'{_gitUri}\'\n";
                         buildCommandString += $"$env:UET_GIT_REF=\'{_gitBranch}\'\n";
 
@@ -157,7 +160,7 @@
 
                         xmlWriter.WriteStartElement("builders");
                         xmlWriter.WriteStartElement("hudson.plugins.powershell.PowerShell");
-                        xmlWriter.WriteAttributeString("plugin", "powershell@2.2");
+                        xmlWriter.WriteAttributeString("plugin", "powershell");
                         xmlWriter.WriteStartElement("command");
                         xmlWriter.WriteString(buildCommandString);
                         xmlWriter.WriteEndElement(); // command
@@ -291,8 +294,6 @@
                     throw new BuildPipelineExecutionFailureException("A job has failed, aborting build process.");
                 }
             }
-
-            // TODO: Stuff when all jobs have finished?
         }
     }
 }
