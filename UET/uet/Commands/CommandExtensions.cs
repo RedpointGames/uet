@@ -12,6 +12,7 @@
     using Redpoint.Uefs.Protocol;
     using Redpoint.Uet.BuildPipeline;
     using Redpoint.Uet.BuildPipeline.Executors.Local;
+    using Redpoint.Uet.BuildPipeline.Executors.Jenkins;
     using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Core;
     using Redpoint.Uet.SdkManagement;
@@ -69,6 +70,7 @@
             services.AddUETBuildPipeline();
             services.AddUETBuildPipelineExecutorsLocal();
             services.AddUETBuildPipelineExecutorsGitLab();
+            services.AddUETBuildPipelineExecutorsJenkins();
             services.AddUetBuildPipelineProvidersPrepare();
             services.AddUETBuildPipelineProvidersTest();
             services.AddUETBuildPipelineProvidersDeployment();

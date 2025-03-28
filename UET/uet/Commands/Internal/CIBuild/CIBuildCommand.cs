@@ -7,6 +7,8 @@
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.BuildServer;
     using Redpoint.Uet.BuildPipeline.Executors.GitLab;
+    using Redpoint.Uet.BuildPipeline.Executors.Jenkins;
+    using Redpoint.Uet.BuildPipeline.Executors.Local;
     using Redpoint.Uet.Core;
     using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.Workspace;
@@ -32,7 +34,7 @@
                     description: "The executor to use.",
                     getDefaultValue: () => "gitlab");
                 Executor.AddAlias("-x");
-                Executor.FromAmong("gitlab");
+                Executor.FromAmong("gitlab", "jenkins");
             }
         }
 
@@ -50,6 +52,7 @@
             private readonly ILogger<CIBuildCommandInstance> _logger;
             private readonly Options _options;
             private readonly GitLabBuildExecutorFactory _gitLabBuildExecutorFactory;
+            private readonly JenkinsBuildExecutorFactory _jenkinsBuildExecutorFactory;
             private readonly IWorldPermissionApplier _worldPermissionApplier;
             private readonly IWorkspaceProvider _dynamicWorkspaceProvider;
             private readonly IStorageManagement _storageManagement;
@@ -59,6 +62,7 @@
                 ILogger<CIBuildCommandInstance> logger,
                 Options options,
                 GitLabBuildExecutorFactory gitLabBuildExecutorFactory,
+                JenkinsBuildExecutorFactory jenkinsBuildExecutorFactory,
                 IWorldPermissionApplier worldPermissionApplier,
                 IServiceProvider serviceProvider,
                 IWorkspaceProvider dynamicWorkspaceProvider,
@@ -67,6 +71,7 @@
                 _logger = logger;
                 _options = options;
                 _gitLabBuildExecutorFactory = gitLabBuildExecutorFactory;
+                _jenkinsBuildExecutorFactory = jenkinsBuildExecutorFactory;
                 _worldPermissionApplier = worldPermissionApplier;
                 _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
                 _storageManagement = storageManagement;
@@ -126,15 +131,12 @@
                     engine.WindowsSharedGitCachePath,
                     engine.MacSharedGitCachePath);
 
-                IBuildNodeExecutor executor;
-                switch (executorName)
+                var executor = executorName switch
                 {
-                    case "gitlab":
-                        executor = _gitLabBuildExecutorFactory.CreateNodeExecutor();
-                        break;
-                    default:
-                        throw new NotSupportedException();
-                }
+                    "gitlab" => _gitLabBuildExecutorFactory.CreateNodeExecutor(),
+                    "jenkins" => _jenkinsBuildExecutorFactory.CreateNodeExecutor(),
+                    _ => throw new NotSupportedException(),
+                };
 
                 BuildGraphEnvironment environment;
                 if (OperatingSystem.IsWindows())

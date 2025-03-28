@@ -65,6 +65,7 @@
     <ProjectReference Include="..\Redpoint.Uet.Automation\Redpoint.Uet.Automation.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.BuildServer\Redpoint.Uet.BuildPipeline.Executors.BuildServer.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.GitLab\Redpoint.Uet.BuildPipeline.Executors.GitLab.csproj" />
+    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.Jenkins\Redpoint.Uet.BuildPipeline.Executors.Jenkins.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.Local\Redpoint.Uet.BuildPipeline.Executors.Local.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Deployment\Redpoint.Uet.BuildPipeline.Providers.Deployment.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Prepare\Redpoint.Uet.BuildPipeline.Providers.Prepare.csproj" />
