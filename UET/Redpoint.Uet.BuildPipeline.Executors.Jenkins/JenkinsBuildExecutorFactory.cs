@@ -18,12 +18,11 @@
             _serviceProvider = serviceProvider;
         }
 
-        public IBuildExecutor CreateExecutor(string buildServerOutputFilePath, Uri? gitUrl, string gitBranch)
+        public IBuildExecutor CreateExecutor(Uri? gitUrl, string gitBranch)
         {
             return new JenkinsBuildExecutor(
                 _serviceProvider,
                 _serviceProvider.GetRequiredService<ILogger<JenkinsBuildExecutor>>(),
-                buildServerOutputFilePath,
                 gitUrl,
                 gitBranch);
         }

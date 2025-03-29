@@ -23,11 +23,8 @@
         public JenkinsBuildExecutor(
             IServiceProvider serviceProvider,
             ILogger<JenkinsBuildExecutor> logger,
-            string buildServerOutputFilePath,
             Uri? gitUri,
-            string gitBranch) : base(
-                serviceProvider,
-                buildServerOutputFilePath)
+            string gitBranch) : base(serviceProvider)
         {
             _logger = logger;
 
@@ -54,7 +51,7 @@
             return Environment.GetEnvironmentVariable("BUILD_TAG") ?? string.Empty;
         }
 
-        protected override async Task EmitBuildServerSpecificFileAsync(BuildSpecification buildSpecification, BuildServerPipeline buildServerPipeline, string buildServerOutputFilePath)
+        protected override async Task ExecuteBuildServerSpecificPipelineAsync(BuildSpecification buildSpecification, BuildServerPipeline buildServerPipeline)
         {
             ArgumentNullException.ThrowIfNull(buildServerPipeline);
 

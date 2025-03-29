@@ -14,15 +14,15 @@
     public class GitLabBuildExecutor : BuildServerBuildExecutor
     {
         private readonly ILogger<GitLabBuildExecutor> _logger;
+        private readonly string _buildServerOutputFilePath;
 
         public GitLabBuildExecutor(
             IServiceProvider serviceProvider,
             ILogger<GitLabBuildExecutor> logger,
-            string buildServerOutputFilePath) : base(
-                serviceProvider,
-                buildServerOutputFilePath)
+            string buildServerOutputFilePath) : base(serviceProvider)
         {
             _logger = logger;
+            _buildServerOutputFilePath = buildServerOutputFilePath;
         }
 
         public override string DiscoverPipelineId()
@@ -30,12 +30,16 @@
             return System.Environment.GetEnvironmentVariable("CI_PIPELINE_ID") ?? string.Empty;
         }
 
-        protected override async Task EmitBuildServerSpecificFileAsync(
+        protected override async Task ExecuteBuildServerSpecificPipelineAsync(
             BuildSpecification buildSpecification,
-            BuildServerPipeline buildServerPipeline,
-            string buildServerOutputFilePath)
+            BuildServerPipeline buildServerPipeline)
         {
             ArgumentNullException.ThrowIfNull(buildServerPipeline);
+
+            if (string.IsNullOrWhiteSpace(_buildServerOutputFilePath))
+            {
+                throw new BuildPipelineExecutionFailureException("Gitlab build executor requires BuildServerOutputFilePath to be set.");
+            }
 
             _logger.LogInformation("Generating .gitlab-ci.yml content...");
 
@@ -128,7 +132,7 @@
                 file.Add(sourceJob.Name, job);
             }
 
-            using (var stream = new StreamWriter(buildServerOutputFilePath))
+            using (var stream = new StreamWriter(_buildServerOutputFilePath))
             {
                 var aotContext = new GitLabYamlStaticContext();
                 var serializer = new StaticSerializerBuilder(aotContext)

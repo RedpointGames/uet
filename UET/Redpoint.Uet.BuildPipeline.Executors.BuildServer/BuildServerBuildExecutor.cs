@@ -37,12 +37,10 @@
         private readonly IWorldPermissionApplier _worldPermissionApplier;
         private readonly IStorageManagement _storageManagement;
         private readonly IGlobalArgsProvider? _globalArgsProvider;
-        private readonly string _buildServerOutputFilePath;
         private readonly BuildJobJsonSourceGenerationContext _buildJobJsonSourceGenerationContext;
 
         protected BuildServerBuildExecutor(
-            IServiceProvider serviceProvider,
-            string buildServerOutputFilePath)
+            IServiceProvider serviceProvider)
         {
             _logger = serviceProvider.GetRequiredService<ILogger<BuildServerBuildExecutor>>();
             _buildGraphExecutor = serviceProvider.GetRequiredService<IBuildGraphExecutor>();
@@ -51,7 +49,6 @@
             _worldPermissionApplier = serviceProvider.GetRequiredService<IWorldPermissionApplier>();
             _storageManagement = serviceProvider.GetRequiredService<IStorageManagement>();
             _globalArgsProvider = serviceProvider.GetService<IGlobalArgsProvider>();
-            _buildServerOutputFilePath = buildServerOutputFilePath;
             _buildJobJsonSourceGenerationContext = BuildJobJsonSourceGenerationContext.Create(serviceProvider);
         }
 
@@ -460,11 +457,6 @@
         {
             ArgumentNullException.ThrowIfNull(buildSpecification);
 
-            if (string.IsNullOrWhiteSpace(_buildServerOutputFilePath))
-            {
-                throw new BuildPipelineExecutionFailureException("This build executor requires BuildServerOutputFilePath to be set.");
-            }
-
             await _storageManagement.AutoPurgeStorageAsync(cancellationToken).ConfigureAwait(false);
 
             BuildGraphExport buildGraph;
@@ -732,10 +724,8 @@
                 }
             }
 
-            await EmitBuildServerSpecificFileAsync(
-                buildSpecification,
-                pipeline,
-                _buildServerOutputFilePath).ConfigureAwait(false);
+            await ExecuteBuildServerSpecificPipelineAsync(buildSpecification, pipeline).ConfigureAwait(false);
+
             return 0;
         }
 
@@ -760,10 +750,9 @@
             }
         }
 
-        protected abstract Task EmitBuildServerSpecificFileAsync(
+        protected abstract Task ExecuteBuildServerSpecificPipelineAsync(
             BuildSpecification buildSpecification,
-            BuildServerPipeline buildServerPipeline,
-            string buildServerOutputFilePath);
+            BuildServerPipeline buildServerPipeline);
 
         public abstract string DiscoverPipelineId();
     }

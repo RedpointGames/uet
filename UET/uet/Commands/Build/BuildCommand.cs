@@ -437,7 +437,7 @@
                 {
                     "local" => _localBuildExecutorFactory.CreateExecutor(),
                     "gitlab" => _gitLabBuildExecutorFactory.CreateExecutor(executorOutputFile!),
-                    "jenkins" => _jenkinsBuildExecutorFactory.CreateExecutor(executorOutputFile!, executorGitUrl, executorGitBranch!),
+                    "jenkins" => _jenkinsBuildExecutorFactory.CreateExecutor(executorGitUrl, executorGitBranch!),
                     _ => throw new NotSupportedException(),
                 };
 
