@@ -23,7 +23,7 @@
         Succeeded,
 
         /// <summary>
-        /// The job has successfully completed building.
+        /// The job has failed to build successfully.
         /// </summary>
         Failed,
     }
