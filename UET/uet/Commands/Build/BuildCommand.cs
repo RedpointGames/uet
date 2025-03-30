@@ -21,6 +21,7 @@
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.CommonPaths;
     using System.CommandLine.Parsing;
+    using Redpoint.Uet.BuildPipeline.Executors.Jenkins;
 
     internal sealed class BuildCommand
     {
@@ -45,6 +46,8 @@
 
             public Option<string> Executor;
             public Option<string> ExecutorOutputFile;
+            public Option<Uri> ExecutorGitUrl;
+            public Option<string> ExecutorGitBranch;
             public Option<string?> WindowsSharedStoragePath;
             public Option<string?> WindowsSharedGitCachePath;
             public Option<string?> WindowsSdksPath;
@@ -189,12 +192,26 @@
                     description: "The executor to use.",
                     getDefaultValue: () => "local");
                 Executor.AddAlias("-x");
-                Executor.FromAmong("local", "gitlab");
+                Executor.FromAmong("local", "gitlab", "jenkins");
                 Executor.ArgumentGroupName = cicdOptions;
 
                 ExecutorOutputFile = new Option<string>(
                     "--executor-output-file",
                     description: "If the executor runs the build externally (e.g. a build server), this is the path to the emitted file that should be passed as the job or build description into the build server.")
+                {
+                    ArgumentGroupName = cicdOptions
+                };
+
+                ExecutorGitUrl = new Option<Uri>(
+                    "--executor-git-url",
+                    description: "If the executor runs the build externally and is not implicitly integrated with git (e.g. Jenkins), the URL to the git repository to clone (e.g. 'https://user-name:access-token@git.example.com/folders/project.git').")
+                {
+                    ArgumentGroupName = cicdOptions
+                };
+
+                ExecutorGitBranch = new Option<string>(
+                    "--executor-git-branch",
+                    description: "If the executor runs the build externally and is not implicitly integrated with git (e.g. Jenkins), the branch of the git repository to checkout.")
                 {
                     ArgumentGroupName = cicdOptions
                 };
@@ -261,6 +278,7 @@
             private readonly IBuildSpecificationGenerator _buildSpecificationGenerator;
             private readonly LocalBuildExecutorFactory _localBuildExecutorFactory;
             private readonly GitLabBuildExecutorFactory _gitLabBuildExecutorFactory;
+            private readonly JenkinsBuildExecutorFactory _jenkinsBuildExecutorFactory;
             private readonly IStringUtilities _stringUtilities;
             private readonly IWorkspaceProvider _dynamicWorkspaceProvider;
 
@@ -270,6 +288,7 @@
                 IBuildSpecificationGenerator buildSpecificationGenerator,
                 LocalBuildExecutorFactory localBuildExecutorFactory,
                 GitLabBuildExecutorFactory gitLabBuildExecutorFactory,
+                JenkinsBuildExecutorFactory jenkinsBuildExecutorFactory,
                 IStringUtilities stringUtilities,
                 IWorkspaceProvider dynamicWorkspaceProvider)
             {
@@ -278,6 +297,7 @@
                 _buildSpecificationGenerator = buildSpecificationGenerator;
                 _localBuildExecutorFactory = localBuildExecutorFactory;
                 _gitLabBuildExecutorFactory = gitLabBuildExecutorFactory;
+                _jenkinsBuildExecutorFactory = jenkinsBuildExecutorFactory;
                 _stringUtilities = stringUtilities;
                 _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
             }
@@ -290,6 +310,8 @@
                 var shipping = context.ParseResult.GetValueForOption(_options.Shipping);
                 var executorName = context.ParseResult.GetValueForOption(_options.Executor);
                 var executorOutputFile = context.ParseResult.GetValueForOption(_options.ExecutorOutputFile);
+                var executorGitUrl = context.ParseResult.GetValueForOption(_options.ExecutorGitUrl);
+                var executorGitBranch = context.ParseResult.GetValueForOption(_options.ExecutorGitBranch);
                 var windowsSharedStoragePath = context.ParseResult.GetValueForOption(_options.WindowsSharedStoragePath);
                 var windowsSharedGitCachePath = context.ParseResult.GetValueForOption(_options.WindowsSharedGitCachePath);
                 var windowsSdksPath = context.ParseResult.GetValueForOption(_options.WindowsSdksPath);
@@ -388,6 +410,8 @@
                 _logger.LogInformation($"--shipping:                      {(distribution != null ? "n/a" : (shipping ? "yes" : "no"))}");
                 _logger.LogInformation($"--executor:                      {executorName}");
                 _logger.LogInformation($"--executor-output-file:          {executorOutputFile}");
+                _logger.LogInformation($"--executor-git-url:              {executorGitUrl}");
+                _logger.LogInformation($"--executor-git-branch:           {executorGitBranch}");
                 _logger.LogInformation($"--windows-shared-storage-path:   {windowsSharedStoragePath}");
                 _logger.LogInformation($"--windows-shared-git-cache-path: {windowsSharedGitCachePath}");
                 _logger.LogInformation($"--windows-sdks-path:             {windowsSdksPath}");
@@ -413,6 +437,7 @@
                 {
                     "local" => _localBuildExecutorFactory.CreateExecutor(),
                     "gitlab" => _gitLabBuildExecutorFactory.CreateExecutor(executorOutputFile!),
+                    "jenkins" => _jenkinsBuildExecutorFactory.CreateExecutor(executorGitUrl, executorGitBranch!),
                     _ => throw new NotSupportedException(),
                 };
 
