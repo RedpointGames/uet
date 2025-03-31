@@ -411,7 +411,7 @@
                 _logger.LogInformation($"--executor:                      {executorName}");
                 _logger.LogInformation($"--executor-output-file:          {executorOutputFile}");
                 _logger.LogInformation($"--executor-git-url:              {executorGitUrl}");
-                _logger.LogInformation($"--executor-git-branch:           {executorGitBranch}");
+                _logger.LogInformation($"--executor-git-branch:           {(executorGitBranch != null ? "(set, not shown to protect potential secret)" : "(not set)")}");
                 _logger.LogInformation($"--windows-shared-storage-path:   {windowsSharedStoragePath}");
                 _logger.LogInformation($"--windows-shared-git-cache-path: {windowsSharedGitCachePath}");
                 _logger.LogInformation($"--windows-sdks-path:             {windowsSdksPath}");
