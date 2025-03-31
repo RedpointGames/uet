@@ -544,6 +544,7 @@
                     { "StrictIncludes", strictIncludes || strictIncludesAtPluginLevel ? "true" : "false" },
                     { "EnginePrefix", "Unreal" },
                     { "StripDebugSymbols", (distribution.Build?.StripDebugSymbols ?? false) ? "true" : "false" },
+                    { "AppleArchitectureOnly", (distribution.Build?.AppleArchitectureOnly ?? false) ? "true" : "false" },
 
                     // Package options
                     { "VersionNumber", versionInfo.versionNumber },
@@ -751,6 +752,7 @@
                     { "StrictIncludes", strictIncludes ? "true" : "false" },
                     { "EnginePrefix", "Unreal" },
                     { "StripDebugSymbols", "false" },
+                    { "AppleArchitectureOnly", "false" },
 
                     // Package options
                     { "VersionNumber", versionInfo.versionNumber },

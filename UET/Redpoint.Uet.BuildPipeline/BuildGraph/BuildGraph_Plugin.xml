@@ -31,6 +31,7 @@
   <Option Name="EnginePrefix" Restrict="UE4|Unreal" DefaultValue="UE4" Description="Prefix of the engine targets (UE5 has a different prefix)" />
   <Option Name="ExecuteBuild" Restrict="true|false" DefaultValue="true" Description="If false, no build steps are run (currently ignored)" />
   <Option Name="StripDebugSymbols" Restrict="true|false" DefaultValue="false" Description="If true, debugging symbols are stripped and not present" />
+  <Option Name="AppleArchitectureOnly" Restrict="true|false" DefaultValue="false" Description="If true, for Mac the plugin will only be built for Apple ARM64 architectures (and not legacy Intel x64)" />
 
   <!-- Package options -->
   <Option Name="VersionNumber" Restrict="[0-9]+" DefaultValue="10000" Description="The version number to embed in the packaged .uplugin file" />
@@ -325,9 +326,19 @@ $(PackageExclude);
         File="$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject"
         Text="{ &quot;FileVersion&quot;: 3, &quot;Plugins&quot;: [ { &quot;Name&quot;: &quot;$(PluginName)&quot;, &quot;Enabled&quot;: true } ] }"
       />
+      <WriteTextFile
+        File="$(TempPath)/$(HostProjectName)/Config/Mac/MacEngine.ini"
+        Text="[/Script/MacTargetPlatform.MacTargetSettings]&#xA;TargetArchitecture=apple&#xA;DefaultArchitecture=apple&#xA;EditorTargetArchitecture=apple&#xA;EditorDefaultArchitecture=apple&#xA;bBuildAllSupportedOnBuildMachine=False"
+        If="'$(AppleArchitectureOnly)' == 'true'"
+      />
       <Tag
         Files="$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject"
         With="#HostProject"
+      />
+      <Tag
+        Files="$(TempPath)/$(HostProjectName)/Config/Mac/MacEngine.ini"
+        With="#HostProject"
+        If="'$(AppleArchitectureOnly)' == 'true'"
       />
       <Tag
         BaseDir="$(PluginDirectory)"
