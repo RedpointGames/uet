@@ -39,5 +39,13 @@
         /// </summary>
         [JsonPropertyName("StripDebugSymbols"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? StripDebugSymbols { get; set; }
+
+        /// <summary>
+        /// If enabled, the plugin will only be built for the Apple ARM64 architecture (and not legacy 
+        /// Intel x64) when building for macOS. This can significantly reduce compilation times when you 
+        /// don't need Intel support.
+        /// </summary>
+        [JsonPropertyName("AppleArchitectureOnly"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? AppleArchitectureOnly { get; set; }
     }
 }

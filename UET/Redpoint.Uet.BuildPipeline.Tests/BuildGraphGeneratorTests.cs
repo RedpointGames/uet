@@ -73,6 +73,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
                     { $"StrictIncludes", $"false" },
                     { $"StageDirectory", $"__REPOSITORY_ROOT__/Saved/StagedBuilds" },
                     { "StripDebugSymbols", "false" },
+                    { "AppleArchitectureOnly", "false" },
                 },
                 new Dictionary<string, string>
                 {
@@ -141,6 +142,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
                     { $"CopyrightHeader", $"" },
                     { $"CopyrightExcludes", $"" },
                     { "StripDebugSymbols", "false" },
+                    { "AppleArchitectureOnly", "false" },
                 },
                 new Dictionary<string, string>
                 {
