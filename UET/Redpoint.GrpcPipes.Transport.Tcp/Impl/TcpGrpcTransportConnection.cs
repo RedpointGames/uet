@@ -100,7 +100,8 @@
             catch (IOException ex) when (
                 ex.InnerException is SocketException se &&
                 (se.SocketErrorCode == SocketError.ConnectionAborted ||
-                 se.SocketErrorCode == SocketError.ConnectionReset))
+                 se.SocketErrorCode == SocketError.ConnectionReset ||
+                 se.SocketErrorCode == SocketError.OperationAborted))
             {
                 throw new RpcException(new Status(StatusCode.Unavailable, "The remote host closed the connection."));
             }
