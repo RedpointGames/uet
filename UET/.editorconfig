@@ -118,6 +118,7 @@ csharp_style_unused_value_expression_statement_preference = discard_variable:sil
 
 # 'using' directive preferences
 csharp_using_directive_placement = inside_namespace:silent
+resharper_redundant_name_qualifier_highlighting = none
 
 #### C# Formatting Rules ####
 
