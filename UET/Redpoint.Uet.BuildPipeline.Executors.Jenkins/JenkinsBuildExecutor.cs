@@ -1,9 +1,9 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Executors.Jenkins
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Concurrency;
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.BuildServer;
-    using Concurrency;
     using System;
     using System.Globalization;
     using System.Net.Http;
