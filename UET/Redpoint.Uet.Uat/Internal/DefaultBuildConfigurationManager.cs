@@ -18,7 +18,13 @@
 
         public Task<bool> PushBuildConfiguration()
         {
-            _buildConfigurationMutex.WaitOne();
+            try
+            {
+                _buildConfigurationMutex.WaitOne();
+            }
+            catch (AbandonedMutexException)
+            {
+            }
             try
             {
                 var stackCount = 0;
@@ -97,7 +103,13 @@
 
         public Task PopBuildConfiguration()
         {
-            _buildConfigurationMutex.WaitOne();
+            try
+            {
+                _buildConfigurationMutex.WaitOne();
+            }
+            catch (AbandonedMutexException)
+            {
+            }
             try
             {
                 var stackCount = 0;
