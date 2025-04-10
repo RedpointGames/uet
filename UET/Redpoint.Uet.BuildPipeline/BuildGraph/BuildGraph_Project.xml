@@ -303,6 +303,10 @@
           <Property
 					  Name="BCRArgs"
 					  Value="$(BCRArgs) -ClientCookedTargets=$(TargetName)" />
+          <!-- Ensure the prerequisites installer gets included for non-server targets. -->
+          <Property
+					  Name="BCRArgs"
+					  Value="$(BCRArgs) -prereqs" />
           <!-- Also specify the -client flag if this is a Client target, not a Game target. -->
           <Property
 					  If="'$(TargetType)' == 'Client'"
