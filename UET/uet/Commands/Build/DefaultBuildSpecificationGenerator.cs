@@ -622,6 +622,7 @@
                     { "ProjectName", distribution.ProjectName },
                     { "Distribution", distribution.Name },
                     { "IsUnrealEngine5", "true" },
+                    { "IsUnrealEngineInstalled", "__UNREAL_ENGINE_IS_INSTALLED_BUILD__" },
                     { "Timestamp", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture) },
 
                     // Build options
@@ -831,6 +832,7 @@
                     { "UProjectPath", $"__REPOSITORY_ROOT__/{Path.GetFileName(pathSpec.UProjectPath)}" },
                     { "Distribution", "None" },
                     { "IsUnrealEngine5", "true" },
+                    { "IsUnrealEngineInstalled", "__UNREAL_ENGINE_IS_INSTALLED_BUILD__" },
                     { "Timestamp", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture) },
 
                     // Build options

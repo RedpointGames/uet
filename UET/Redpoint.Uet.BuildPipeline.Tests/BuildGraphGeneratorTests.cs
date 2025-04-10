@@ -118,6 +118,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
                     { $"PluginName", $"OnlineSubsystemRedpointEOS" },
                     { $"Distribution", $"Default" },
                     { $"IsUnrealEngine5", $"true" },
+                    { $"IsUnrealEngineInstalled", $"true" },
                     { $"Timestamp", $"0" },
                     { $"CleanDirectories", $"" },
                     { $"ExecuteBuild", $"true" },
