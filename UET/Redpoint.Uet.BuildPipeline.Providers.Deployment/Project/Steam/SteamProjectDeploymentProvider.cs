@@ -207,6 +207,24 @@
                     """
                 );
             }
+            if (File.Exists(Path.Combine(packagePath, "Engine\\Extras\\Redist\\en-us\\UEPrereqSetup_x64.exe")))
+            {
+                installScriptExtras.Add(
+                    $$"""
+
+                    "Run Process"
+                    {
+                        "Unreal Engine Prerequisites"
+                        {
+                            "HasRunKey"     "HKEY_CLASSES_ROOT\\Installer\\Dependencies\\{4e242cc8-5e3c-4b08-9d55-dbc62ddd1208}"
+                            "Process 1"     "%INSTALLDIR%\\Engine\\Extras\\Redist\\en-us\\UEPrereqSetup_x64.exe"
+                            "Command 1"     "/quiet /norestart"
+                            "NoCleanUp"     "1"
+                        }
+                    }
+                    """
+                );
+            }
             if (File.Exists(Path.Combine(packagePath, "InstallEOSServices.bat")))
             {
                 installScriptExtras.Add(
