@@ -10,8 +10,9 @@ UET can perform simple builds of projects and plugins without a `BuildConfig.jso
 
 You can download the latest version of UET from the links below.
 
-- [Latest Windows (x64)](https://github.com/RedpointGames/uet/releases/download/latest/uet.exe)
-- [Latest macOS (ARM64)](https://github.com/RedpointGames/uet/releases/download/latest/uet)
+- [Latest Windows (x64)](https://github.com/RedpointGames/uet/releases/latest/download/uet.exe)
+- [Latest macOS (ARM64)](https://github.com/RedpointGames/uet/releases/latest/download/uet)
+- [Latest Linux (x64)](https://github.com/RedpointGames/uet/releases/latest/download/uet.linux)
 
 Once you have UET downloaded, you can install it into your PATH by running `uet upgrade`. You can also use this command later on to update to the latest version.
 
@@ -32,7 +33,7 @@ uet build
 The target engine will be detected from the `.uproject` file. For plugins, you also need to specify the engine:
 
 ```
-uet build -e 5.2
+uet build -e 5.5
 ```
 
 By default, only the host platform is built. You can build additional platforms by using the `--platform` option:
