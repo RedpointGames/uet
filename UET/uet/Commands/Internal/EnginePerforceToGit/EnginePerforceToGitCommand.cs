@@ -669,6 +669,7 @@
                                     "sync",
                                     "--exclude=/.git/**",
                                     "--transfers=64",
+                                    "--delete-before",
                                     releaseFolder.FullName,
                                     gitWorkspacePath.FullName,
                                 ],
