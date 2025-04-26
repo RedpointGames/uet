@@ -188,6 +188,15 @@
                     return 1;
                 }
 
+                if (!string.IsNullOrWhiteSpace(p4Tickets))
+                {
+                    p4Tickets = Path.GetFullPath(p4Tickets);
+                }
+                if (!string.IsNullOrWhiteSpace(p4Trust))
+                {
+                    p4Trust = Path.GetFullPath(p4Trust);
+                }
+
                 _logger.LogInformation($"--p4-client:               {p4Client}");
                 _logger.LogInformation($"--p4-tickets:              {p4Tickets}");
                 _logger.LogInformation($"--p4-config:               {p4Config}");
