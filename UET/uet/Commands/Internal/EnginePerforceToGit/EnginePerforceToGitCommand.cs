@@ -320,6 +320,18 @@
                     return exitCode;
                 }
 
+                var intactFile = Path.GetFullPath(".p4intact");
+                var isIntact = File.Exists(intactFile);
+                if (isIntact)
+                {
+                    _logger.LogInformation("Detected that the last sync operation completed fully. 'p4 clean' will be skipped.");
+                    File.Delete(intactFile);
+                }
+                else
+                {
+                    _logger.LogWarning($"Missing '{intactFile}' on disk; assuming that the last sync may have been interrupted and a clean will be necessary.");
+                }
+
                 _logger.LogInformation("Syncing latest Perforce content to client...");
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
@@ -352,22 +364,27 @@
                     return exitCode;
                 }
 
-                _logger.LogInformation("Reconciling Perforce workspace in case files don't exactly match...");
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = p4,
-                        Arguments = ["clean"],
-                        EnvironmentVariables = p4Envs,
-                        WorkingDirectory = p4WorkspacePath.FullName,
-                    },
-                    CaptureSpecification.Passthrough,
-                    context.GetCancellationToken());
-                if (exitCode != 0)
+                if (!isIntact)
                 {
-                    _logger.LogError("Failed to reconcile Perforce content.");
-                    return exitCode;
+                    _logger.LogInformation("Reconciling Perforce workspace in case files don't exactly match...");
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = p4,
+                            Arguments = ["clean", "-I", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}..."],
+                            EnvironmentVariables = p4Envs,
+                        },
+                        CaptureSpecification.Passthrough,
+                        context.GetCancellationToken());
+                    if (exitCode != 0)
+                    {
+                        _logger.LogError("Failed to reconcile Perforce content.");
+                        return exitCode;
+                    }
                 }
+
+                _logger.LogInformation("Marking latest sync as intact so we can skip 'p4 clean' next time...");
+                File.WriteAllText(intactFile, "ok");
 
                 _logger.LogInformation("Turning off 'safe.directory' setting for Git...");
                 exitCode = await _processExecutor.ExecuteAsync(
