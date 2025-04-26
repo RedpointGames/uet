@@ -529,22 +529,74 @@
                     _logger.LogInformation($"Preparing branch '{releaseVersion}'...");
                     if (isNew)
                     {
-                        _logger.LogInformation($"Creating new branch '{releaseVersion}'...");
-                        RemoveIndexLock(gitWorkspacePath);
-                        exitCode = await _processExecutor.ExecuteAsync(
-                            new ProcessSpecification
-                            {
-                                FilePath = git,
-                                Arguments = ["checkout", "--orphan", releaseVersion],
-                                WorkingDirectory = gitWorkspacePath.FullName,
-                                EnvironmentVariables = gitEnvs,
-                            },
-                            CaptureSpecification.Passthrough,
-                            context.GetCancellationToken());
-                        if (exitCode != 0)
+                        var baseVersionNumber = new EngineVersionNumber(releaseVersion);
+                        baseVersionNumber.Minus(1);
+
+                        // Try to find a previous branch that we can start this branch at, so that merging to a new engine version will let Git handle the merge properly.
+                        string? baseGitBranch = null;
+                        while (baseVersionNumber.Major >= 5)
                         {
-                            _logger.LogError($"Failed to create new branch '{releaseVersion}'.");
-                            return exitCode;
+                            var baseRevision = new StringBuilder();
+                            exitCode = await _processExecutor.ExecuteAsync(
+                                new ProcessSpecification
+                                {
+                                    FilePath = git,
+                                    Arguments = ["rev-parse", "--verify", $"origin/{baseVersionNumber.Major}.{baseVersionNumber.Minor}"],
+                                    WorkingDirectory = gitWorkspacePath.FullName,
+                                    EnvironmentVariables = gitEnvs,
+                                },
+                                CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(baseRevision),
+                                context.GetCancellationToken());
+                            if (exitCode == 0)
+                            {
+                                baseGitBranch = baseRevision.ToString().Trim();
+                                break;
+                            }
+                            else
+                            {
+                                baseVersionNumber.Minus(1);
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(baseGitBranch))
+                        {
+                            _logger.LogInformation($"Creating new branch '{releaseVersion}' at revision '{baseGitBranch}'...");
+                            RemoveIndexLock(gitWorkspacePath);
+                            exitCode = await _processExecutor.ExecuteAsync(
+                                new ProcessSpecification
+                                {
+                                    FilePath = git,
+                                    Arguments = ["checkout", "-B", releaseVersion, baseGitBranch],
+                                    WorkingDirectory = gitWorkspacePath.FullName,
+                                    EnvironmentVariables = gitEnvs,
+                                },
+                                CaptureSpecification.Passthrough,
+                                context.GetCancellationToken());
+                            if (exitCode != 0)
+                            {
+                                _logger.LogError($"Failed to create new branch '{releaseVersion}' at revision '{baseGitBranch}'.");
+                                return exitCode;
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogInformation($"Creating new branch '{releaseVersion}'...");
+                            RemoveIndexLock(gitWorkspacePath);
+                            exitCode = await _processExecutor.ExecuteAsync(
+                                new ProcessSpecification
+                                {
+                                    FilePath = git,
+                                    Arguments = ["checkout", "--orphan", releaseVersion],
+                                    WorkingDirectory = gitWorkspacePath.FullName,
+                                    EnvironmentVariables = gitEnvs,
+                                },
+                                CaptureSpecification.Passthrough,
+                                context.GetCancellationToken());
+                            if (exitCode != 0)
+                            {
+                                _logger.LogError($"Failed to create new branch '{releaseVersion}'.");
+                                return exitCode;
+                            }
                         }
                     }
                     else
