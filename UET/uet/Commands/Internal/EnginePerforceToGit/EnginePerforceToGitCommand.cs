@@ -343,6 +343,23 @@
                     return exitCode;
                 }
 
+                _logger.LogInformation("Reconciling Perforce workspace in case files don't exactly match...");
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = p4,
+                        Arguments = ["clean"],
+                        EnvironmentVariables = p4Envs,
+                        WorkingDirectory = p4WorkspacePath.FullName,
+                    },
+                    CaptureSpecification.Passthrough,
+                    context.GetCancellationToken());
+                if (exitCode != 0)
+                {
+                    _logger.LogError("Failed to reconcile Perforce content.");
+                    return exitCode;
+                }
+
                 _logger.LogInformation("Turning off 'safe.directory' setting for Git...");
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
