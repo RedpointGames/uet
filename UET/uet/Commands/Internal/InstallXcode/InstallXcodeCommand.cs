@@ -83,23 +83,26 @@
                 var packageWorkingPath = Path.Combine(sdksPath, $"{packageId}-xcode-{Environment.ProcessId}");
                 var packageTargetPath = Path.Combine(sdksPath, packageId);
 
-                if (Directory.Exists(packageWorkingPath))
+                if (!File.Exists(Path.Combine(packageTargetPath, "sdk-ready")))
                 {
-                    await DirectoryAsync.DeleteAsync(packageWorkingPath, true).ConfigureAwait(false);
-                }
-                Directory.CreateDirectory(packageWorkingPath);
+                    if (Directory.Exists(packageWorkingPath))
+                    {
+                        await DirectoryAsync.DeleteAsync(packageWorkingPath, true).ConfigureAwait(false);
+                    }
+                    Directory.CreateDirectory(packageWorkingPath);
 
-                await macSdkSetup.InstallXcode(
-                    version,
-                    packageWorkingPath,
-                    context.GetCancellationToken());
-                await File.WriteAllTextAsync(Path.Combine(packageWorkingPath, "sdk-ready"), "ready", context.GetCancellationToken()).ConfigureAwait(false);
+                    await macSdkSetup.InstallXcode(
+                        version,
+                        packageWorkingPath,
+                        context.GetCancellationToken());
+                    await File.WriteAllTextAsync(Path.Combine(packageWorkingPath, "sdk-ready"), "ready", context.GetCancellationToken()).ConfigureAwait(false);
 
-                if (Directory.Exists(packageTargetPath))
-                {
-                    await DirectoryAsync.DeleteAsync(packageTargetPath, true).ConfigureAwait(false);
+                    if (Directory.Exists(packageTargetPath))
+                    {
+                        await DirectoryAsync.DeleteAsync(packageTargetPath, true).ConfigureAwait(false);
+                    }
+                    await DirectoryAsync.MoveAsync(packageWorkingPath, packageTargetPath).ConfigureAwait(false);
                 }
-                await DirectoryAsync.MoveAsync(packageWorkingPath, packageTargetPath).ConfigureAwait(false);
 
                 var runtimeEnvironment = await macSdkSetup.GetRuntimeEnvironmentForSdkPackage(
                     packageTargetPath,
