@@ -7,6 +7,7 @@
     using Redpoint.ProgressMonitor;
     using System.IO;
     using Redpoint.Uet.SdkManagement.Sdk.VersionNumbers;
+    using Redpoint.PackageManagement;
 
     [SupportedOSPlatform("macos")]
     public class MacSdkSetup : ISdkSetup
@@ -16,19 +17,22 @@
         private readonly IProgressFactory _progressFactory;
         private readonly IMonitorFactory _monitorFactory;
         private readonly IVersionNumberResolver _versionNumberResolver;
+        private readonly IPackageManager _packageManager;
 
         public MacSdkSetup(
             ILogger<MacSdkSetup> logger,
             IProcessExecutor processExecutor,
             IProgressFactory progressFactory,
             IMonitorFactory monitorFactory,
-            IVersionNumberResolver versionNumberResolver)
+            IVersionNumberResolver versionNumberResolver,
+            IPackageManager packageManager)
         {
             _logger = logger;
             _processExecutor = processExecutor;
             _progressFactory = progressFactory;
             _monitorFactory = monitorFactory;
             _versionNumberResolver = versionNumberResolver;
+            _packageManager = packageManager;
         }
 
         public IReadOnlyList<string> PlatformNames => new[] { "Mac", "IOS" };
@@ -75,81 +79,11 @@
                 throw new SdkSetupMissingAuthenticationException($"This machine is not configured to allow 'sudo' without a password. Use 'sudo visudo' and add '{Environment.GetEnvironmentVariable("USERNAME")} ALL=(ALL) NOPASSWD: ALL' as the final line of that file.");
             }
 
-            // Ensure Homebrew is installed.
-            if (!File.Exists("/opt/homebrew/bin/brew"))
-            {
-                _logger.LogInformation("Installing Homebrew...");
-                var homebrewScriptPath = $"/tmp/homebrew-install-{Environment.ProcessId}.sh";
-                using (var client = new HttpClient())
-                {
-                    var homebrewScript = await client.GetStringAsync(new Uri("https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"), cancellationToken).ConfigureAwait(false);
-                    await File.WriteAllTextAsync(homebrewScriptPath, homebrewScript.Replace("\r\n", "\n", StringComparison.Ordinal), cancellationToken).ConfigureAwait(false);
-                    File.SetUnixFileMode(homebrewScriptPath,
-                        UnixFileMode.UserRead |
-                        UnixFileMode.UserWrite |
-                        UnixFileMode.UserExecute);
-                }
+            // Ensure xcodes is installed.
+            await _packageManager.InstallOrUpgradePackageToLatestAsync("xcodes", cancellationToken);
 
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = "/bin/bash",
-                        Arguments = new LogicalProcessArgument[]
-                        {
-                            homebrewScriptPath
-                        }
-                    },
-                    CaptureSpecification.Passthrough,
-                    cancellationToken).ConfigureAwait(false);
-                if (exitCode != 0)
-                {
-                    throw new SdkSetupPackageGenerationFailedException("Failed to install Homebrew.");
-                }
-            }
-
-            // Make sure xcodes is installed.
-            if (!File.Exists("/opt/homebrew/bin/xcodes"))
-            {
-                _logger.LogInformation("Installing xcodes...");
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = "/opt/homebrew/bin/brew",
-                        Arguments = new LogicalProcessArgument[]
-                        {
-                            "install",
-                            "xcodesorg/made/xcodes"
-                        }
-                    },
-                    CaptureSpecification.Passthrough,
-                    cancellationToken).ConfigureAwait(false);
-                if (exitCode != 0)
-                {
-                    throw new SdkSetupPackageGenerationFailedException("Homebrew was unable to install xcodes, which is required to automate the download and install of Xcode.");
-                }
-            }
-
-            // Make sure aria2c is installed.
-            if (!File.Exists("/opt/homebrew/bin/aria2c"))
-            {
-                _logger.LogInformation("Installing aria2c...");
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = "/opt/homebrew/bin/brew",
-                        Arguments = new LogicalProcessArgument[]
-                        {
-                            "install",
-                            "aria2"
-                        }
-                    },
-                    CaptureSpecification.Passthrough,
-                    cancellationToken).ConfigureAwait(false);
-                if (exitCode != 0)
-                {
-                    throw new SdkSetupPackageGenerationFailedException("Homebrew was unable to install aria2, which is required to automate the download and install of Xcode.");
-                }
-            }
+            // Ensure aria2c is installed.
+            await _packageManager.InstallOrUpgradePackageToLatestAsync("aria2c", cancellationToken);
 
             // We must copy the XIP to the target directory, since XIP files will
             // always be extracted next to the .xip file, regardless of the
