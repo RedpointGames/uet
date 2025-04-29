@@ -124,7 +124,7 @@
                             FilePath = homebrew,
                             Arguments = [
                                 "upgrade",
-                                "git",
+                                packageId,
                             ],
                             EnvironmentVariables = new Dictionary<string, string>
                             {
@@ -143,7 +143,7 @@
                             FilePath = homebrew,
                             Arguments = [
                                 "install",
-                                "git",
+                                packageId,
                             ],
                             EnvironmentVariables = new Dictionary<string, string>
                             {
@@ -153,7 +153,7 @@
                         CaptureSpecification.Passthrough,
                         CancellationToken.None).ConfigureAwait(false);
                 }
-            };
+            }
         }
     }
 }
