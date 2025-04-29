@@ -73,6 +73,7 @@
                 CMakeUbaServerCommand.CreateCMakeUbaServerCommand(),
                 CMakeUbaRunCommand.CreateCMakeUbaRunCommand(),
                 EnginePerforceToGitCommand.CreateEnginePerforceToGitCommand(),
+                InstallXcodeCommand.CreateInstallXcodeCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
