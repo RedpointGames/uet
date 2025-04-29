@@ -97,7 +97,7 @@
 
                 if (Directory.Exists(packageTargetPath))
                 {
-                    await DirectoryAsync.DeleteAsync(packageTargetPath).ConfigureAwait(false);
+                    await DirectoryAsync.DeleteAsync(packageTargetPath, true).ConfigureAwait(false);
                 }
                 await DirectoryAsync.MoveAsync(packageWorkingPath, packageTargetPath).ConfigureAwait(false);
 
