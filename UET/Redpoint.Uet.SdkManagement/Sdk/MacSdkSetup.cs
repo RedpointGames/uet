@@ -45,7 +45,7 @@
             return $"{versionNumber}-iOS";
         }
 
-        public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
+        public async Task InstallXcode(string xcodeVersion, string sdkPackagePath, CancellationToken cancellationToken)
         {
             // Check that the required environment variables have been set.
             var appleXcodeStoragePath = Environment.GetEnvironmentVariable("UET_APPLE_XCODE_STORAGE_PATH");
@@ -54,7 +54,6 @@
                 throw new SdkSetupMissingAuthenticationException("You must set the UET_APPLE_XCODE_STORAGE_PATH environment variable, which is the path to the mounted network share where Xcode .xip files are being stored after you have manually downloaded them from the Apple Developer portal.");
             }
 
-            var xcodeVersion = await _versionNumberResolver.For<IMacVersionNumbers>(unrealEnginePath).GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
             var xipSourcePath = Path.Combine(appleXcodeStoragePath, $"Xcode_{xcodeVersion}.xip");
             if (!File.Exists(xipSourcePath))
             {
@@ -202,6 +201,12 @@
             {
                 throw new SdkSetupPackageGenerationFailedException("Xcode was unable to install iOS platform support.");
             }
+        }
+
+        public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
+        {
+            var xcodeVersion = await _versionNumberResolver.For<IMacVersionNumbers>(unrealEnginePath).GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
+            await InstallXcode(xcodeVersion, sdkPackagePath, cancellationToken);
         }
 
         public Task<AutoSdkMapping[]> GetAutoSdkMappingsForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
