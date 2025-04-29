@@ -110,9 +110,10 @@
                 await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
-                        FilePath = await _pathResolver.ResolveBinaryPath("xcode-select"),
+                        FilePath = "/usr/bin/sudo",
                         Arguments = new LogicalProcessArgument[]
                         {
+                            await _pathResolver.ResolveBinaryPath("xcode-select"),
                             "-s",
                             Path.Combine(packageTargetPath, "Xcode.app"),
                         }
