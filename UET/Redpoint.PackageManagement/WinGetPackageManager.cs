@@ -143,7 +143,7 @@
                         $TargetVersion = $null;
                         if ($null -eq $TargetVersionFile -or
                             ((Get-Date) - $TargetVersionFile.LastWriteTime).TotalMinutes -gt 60) {
-                            $TargetVersion = (Find-WinGetPackage -Id {{packageId}}).Version;
+                            $TargetVersion = ((Find-WinGetPackage -Id {{packageId}}).Version | Select-Object -First 1);
                             try {
                                 Set-Content -Path $TargetVersionPath -Value "$TargetVersion";
                             } catch {
