@@ -79,7 +79,7 @@
             }
 
             // Ensure xcodes is installed.
-            await _packageManager.InstallOrUpgradePackageToLatestAsync("xcodes", cancellationToken);
+            await _packageManager.InstallOrUpgradePackageToLatestAsync("xcodesorg/made/xcodes", cancellationToken);
 
             // Ensure aria2 is installed.
             await _packageManager.InstallOrUpgradePackageToLatestAsync("aria2", cancellationToken);
