@@ -81,8 +81,8 @@
             // Ensure xcodes is installed.
             await _packageManager.InstallOrUpgradePackageToLatestAsync("xcodes", cancellationToken);
 
-            // Ensure aria2c is installed.
-            await _packageManager.InstallOrUpgradePackageToLatestAsync("aria2c", cancellationToken);
+            // Ensure aria2 is installed.
+            await _packageManager.InstallOrUpgradePackageToLatestAsync("aria2", cancellationToken);
 
             // We must copy the XIP to the target directory, since XIP files will
             // always be extracted next to the .xip file, regardless of the

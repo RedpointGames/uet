@@ -1,8 +1,10 @@
 ﻿namespace UET.Commands.Internal.InstallPlatformSdk
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.IO;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
+    using Redpoint.Reservation;
     using Redpoint.Uet.CommonPaths;
     using Redpoint.Uet.SdkManagement;
     using System;
@@ -75,15 +77,32 @@
                 }
 
                 var macSdkSetup = _sdkSetups.OfType<MacSdkSetup>().First();
-                var sdkPackagePath = Path.Combine(UetPaths.UetDefaultMacSdkStoragePath, $"Mac-{version}-iOS");
+                var packageId = $"Mac-{version}-iOS";
+                var sdksPath = UetPaths.UetDefaultMacSdkStoragePath;
+
+                var packageWorkingPath = Path.Combine(sdksPath, $"{packageId}-xcode-{Environment.ProcessId}");
+                var packageTargetPath = Path.Combine(sdksPath, packageId);
+
+                if (Directory.Exists(packageWorkingPath))
+                {
+                    await DirectoryAsync.DeleteAsync(packageWorkingPath, true).ConfigureAwait(false);
+                }
+                Directory.CreateDirectory(packageWorkingPath);
 
                 await macSdkSetup.InstallXcode(
                     version,
-                    sdkPackagePath,
+                    packageWorkingPath,
                     context.GetCancellationToken());
+                await File.WriteAllTextAsync(Path.Combine(packageWorkingPath, "sdk-ready"), "ready", context.GetCancellationToken()).ConfigureAwait(false);
+
+                if (Directory.Exists(packageTargetPath))
+                {
+                    await DirectoryAsync.DeleteAsync(packageTargetPath).ConfigureAwait(false);
+                }
+                await DirectoryAsync.MoveAsync(packageWorkingPath, packageTargetPath).ConfigureAwait(false);
 
                 var runtimeEnvironment = await macSdkSetup.GetRuntimeEnvironmentForSdkPackage(
-                    sdkPackagePath,
+                    packageTargetPath,
                     context.GetCancellationToken());
 
                 // Select this Xcode install as the default.
@@ -95,7 +114,7 @@
                         Arguments = new LogicalProcessArgument[]
                         {
                             "-s",
-                            Path.Combine(sdkPackagePath, "Xcode.app"),
+                            Path.Combine(packageTargetPath, "Xcode.app"),
                         }
                     },
                     CaptureSpecification.Passthrough,
