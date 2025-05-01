@@ -3,9 +3,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
   <PropertyGroup>
-    <TargetFrameworks>$(RedpointTargetFrameworks)</TargetFrameworks>
     <ImplicitUsings>disable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
