@@ -708,7 +708,7 @@ jobs:
   publish-nuget:
     name: "Publish to NuGet"
     runs-on: windows-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
     needs:
       - timestamp
       - libs-win
@@ -758,7 +758,7 @@ jobs:
   publish-github:
     name: "Publish to GitHub"
     runs-on: windows-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
     needs:
       - timestamp
       - libs-win
@@ -848,7 +848,7 @@ jobs:
   publish-uefs-container:
     name: "Publish UEFS Container"
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
     permissions:
       contents: read
       packages: write
@@ -928,7 +928,7 @@ jobs:
         UET_ARTIFACT_NAME: pass-2-linux
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Log in to the Container registry
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
       uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
       with:
         registry: ghcr.io
@@ -942,7 +942,7 @@ jobs:
         docker buildx build --platform linux/amd64 --output=type=image -f UET/Lib/Container/linux.Dockerfile -t "ghcr.io/redpointgames/uet/uet:${env:UET_PACKAGE_VERSION}" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
         docker buildx build --platform linux/amd64 --output=type=image -f UET/Lib/Container/linux.Dockerfile -t "ghcr.io/redpointgames/uet/uet:latest" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
     - name: Publish UET Container
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
       shell: pwsh
       run: |
         docker buildx create --name img-builder-linux --use --platform linux/amd64
@@ -984,7 +984,7 @@ jobs:
         UET_ARTIFACT_NAME: pass-2-linux
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Log in to the Container registry
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
       uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
       with:
         registry: ghcr.io
@@ -998,7 +998,7 @@ jobs:
         docker buildx build --platform linux/amd64 --output=type=image -f UET/Lib/Container/linux-wine.Dockerfile -t "ghcr.io/redpointgames/uet/uet:${env:UET_PACKAGE_VERSION}-wine" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
         docker buildx build --platform linux/amd64 --output=type=image -f UET/Lib/Container/linux-wine.Dockerfile -t "ghcr.io/redpointgames/uet/uet:latest-wine" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
     - name: Publish UET Container
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
       shell: pwsh
       run: |
         docker buildx create --name img-builder-linux --use --platform linux/amd64
