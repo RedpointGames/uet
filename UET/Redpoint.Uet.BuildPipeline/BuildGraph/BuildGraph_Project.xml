@@ -91,7 +91,7 @@
         <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(EditorTarget)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
         <Compile Target="$(EditorTarget)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#EditorBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" />
         <Compile Target="UnrealPak" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
-        <Compile Target="BootstrapPackagedGame" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
+        <Compile Target="BootstrapPackagedGame" Platform="$(TargetPlatform)" Configuration="Shipping" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
       </Node>
     </Agent>
   </Macro>
