@@ -151,6 +151,18 @@
                 _serviceProvider = serviceProvider;
             }
 
+            private static string ParameterisedArgument(string argumentName, string argumentValue)
+            {
+                if (OperatingSystem.IsWindows())
+                {
+                    return $"-{argumentName}=\"{argumentValue}\"";
+                }
+                else
+                {
+                    return $"-{argumentName}={argumentValue}";
+                }
+            }
+
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
                 try
@@ -315,7 +327,7 @@
                                         };
                                         if (projectPath != null)
                                         {
-                                            buildArguments.Add($"-project=\"{projectPath}\"");
+                                            buildArguments.Add(ParameterisedArgument("project", projectPath));
                                         }
 
                                         var buildExitCode = await _processExecutor.ExecuteAsync(
@@ -359,7 +371,7 @@
                                     var runArguments = new List<LogicalProcessArgument>();
                                     if (projectPath != null)
                                     {
-                                        runArguments.Add($"-project=\"{projectPath}\"");
+                                        runArguments.Add(ParameterisedArgument("project", projectPath));
                                     }
                                     if (target == "game")
                                     {
@@ -420,17 +432,17 @@
                                     {
                                         if (target == "uat")
                                         {
-                                            toolArguments.Add($"-ScriptsForProject=\"{projectPath}\"");
+                                            toolArguments.Add(ParameterisedArgument("ScriptsForProject", projectPath));
                                         }
                                         else
                                         {
-                                            toolArguments.Add($"-project=\"{projectPath}\"");
+                                            toolArguments.Add(ParameterisedArgument("project", projectPath));
                                         }
                                     }
                                     toolArguments.AddRange(arguments.Select(x => new LogicalProcessArgument(x)));
                                     if (projectPath != null && target == "uat" && supplyProject)
                                     {
-                                        toolArguments.Add($"-project=\"{projectPath}\"");
+                                        toolArguments.Add(ParameterisedArgument("project", projectPath));
                                     }
 
                                     LogExecution(toolPath, toolArguments, false);
