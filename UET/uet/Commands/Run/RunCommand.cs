@@ -232,6 +232,29 @@
                             .AsAsyncDisposable(out var engineWorkspace)
                             .ConfigureAwait(false))
                     {
+                        if (OperatingSystem.IsMacOS() && target != "adb")
+                        {
+                            // We need to grab SDK environment variables on macOS because UET always resets the DEVELOPER_DIR environment
+                            // variable, and this interferes with the editor starting up (as it requires an actual Xcode install).
+                            var packagePath = UetPaths.UetDefaultMacSdkStoragePath;
+                            Directory.CreateDirectory(packagePath);
+                            var envVars = await _localSdkManager.SetupEnvironmentForSdkSetups(
+                                engineWorkspace.Path,
+                                packagePath,
+                                _serviceProvider.GetServices<ISdkSetup>()
+                                    .Where(x => x.PlatformNames.Contains("Mac"))
+                                    .ToHashSet(),
+                                context.GetCancellationToken()).ConfigureAwait(false);
+                            if (envVars != null)
+                            {
+                                foreach (var kv in envVars)
+                                {
+                                    _logger.LogInformation($"Setting environment variable from SDK: {kv.Key}={kv.Value}");
+                                    Environment.SetEnvironmentVariable(kv.Key, kv.Value);
+                                }
+                            }
+                        }
+
                         switch (target)
                         {
                             case "editor":
