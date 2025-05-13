@@ -90,6 +90,7 @@
                     "uba-visualiser",
                     "uba-visualizer",
                     "adb",
+                    "xcode",
                 ]);
                 Target.Arity = ArgumentArity.ExactlyOne;
                 Target.HelpName = "target";
@@ -118,6 +119,7 @@
                 ubt:            Run UnrealBuildTool.
                 uba-visualizer: Run the Unreal Build Accelerator visualizer.
                 adb:            Run the Android Debug Bridge.
+                xcode:          Run the version of Xcode that this Unreal Engine version requires.
  
                 If --path points to a project file, the target will automatically receive the project file as an argument in an appropriate manner, if possible.
                 """
@@ -232,22 +234,23 @@
                             .AsAsyncDisposable(out var engineWorkspace)
                             .ConfigureAwait(false))
                     {
+                        IDictionary<string, string>? hostEnvVars = null;
                         if (OperatingSystem.IsMacOS() && target != "adb")
                         {
                             // We need to grab SDK environment variables on macOS because UET always resets the DEVELOPER_DIR environment
                             // variable, and this interferes with the editor starting up (as it requires an actual Xcode install).
                             var packagePath = UetPaths.UetDefaultMacSdkStoragePath;
                             Directory.CreateDirectory(packagePath);
-                            var envVars = await _localSdkManager.SetupEnvironmentForSdkSetups(
+                            hostEnvVars = await _localSdkManager.SetupEnvironmentForSdkSetups(
                                 engineWorkspace.Path,
                                 packagePath,
                                 _serviceProvider.GetServices<ISdkSetup>()
                                     .Where(x => x.PlatformNames.Contains("Mac"))
                                     .ToHashSet(),
                                 context.GetCancellationToken()).ConfigureAwait(false);
-                            if (envVars != null)
+                            if (hostEnvVars != null)
                             {
-                                foreach (var kv in envVars)
+                                foreach (var kv in hostEnvVars)
                                 {
                                     _logger.LogInformation($"Setting environment variable from SDK: {kv.Key}={kv.Value}");
                                     Environment.SetEnvironmentVariable(kv.Key, kv.Value);
@@ -549,7 +552,7 @@
                                 {
                                     var packagePath = OperatingSystem.IsWindows() ? UetPaths.UetDefaultWindowsSdkStoragePath : UetPaths.UetDefaultMacSdkStoragePath;
                                     Directory.CreateDirectory(packagePath);
-                                    var envVars = await _localSdkManager.SetupEnvironmentForSdkSetups(
+                                    var androidEnvVars = await _localSdkManager.SetupEnvironmentForSdkSetups(
                                         engineWorkspace.Path,
                                         packagePath,
                                         _serviceProvider.GetServices<ISdkSetup>()
@@ -559,7 +562,7 @@
 
                                     var executableSuffix = OperatingSystem.IsWindows() ? ".exe" : string.Empty;
                                     var toolPath = Path.Combine(
-                                        envVars["ANDROID_HOME"],
+                                        androidEnvVars["ANDROID_HOME"],
                                         "platform-tools",
                                         $"adb{executableSuffix}");
                                     if (!File.Exists(toolPath))
@@ -582,6 +585,25 @@
                                         CaptureSpecification.Passthrough,
                                         context.GetCancellationToken()).ConfigureAwait(false);
                                     return runExitCode;
+                                }
+                            case "xcode":
+                                {
+                                    if (!OperatingSystem.IsMacOS())
+                                    {
+                                        _logger.LogError("You can't run Xcode on anything other than macOS!");
+                                        return 1;
+                                    }
+
+                                    var developerDir = hostEnvVars!["DEVELOPER_DIR"];
+                                    var xcodeBinary = Path.Combine(developerDir, "Contents", "MacOS", "Xcode");
+
+                                    LogExecution(xcodeBinary, [], true);
+                                    var startInfo = new ProcessStartInfo
+                                    {
+                                        FileName = xcodeBinary,
+                                    };
+                                    _ = Process.Start(startInfo);
+                                    return 0;
                                 }
                             default:
                                 _logger.LogError($"The target '{target}' is not supported.");
