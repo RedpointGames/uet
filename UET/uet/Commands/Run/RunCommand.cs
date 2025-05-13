@@ -274,33 +274,67 @@
                                         {
                                             string modulePath;
                                             string editorPath;
-                                            if (configuration == "Development")
+                                            if (projectPath != null)
                                             {
-                                                modulePath = Path.Combine(
-                                                    Path.GetDirectoryName(projectPath)!,
-                                                    "Binaries",
-                                                    platformName,
-                                                    "UnrealEditor.modules");
-                                                editorPath = Path.Combine(
-                                                    engineWorkspace.Path,
-                                                    "Engine",
-                                                    "Binaries",
-                                                    platformName,
-                                                    $"UnrealEditor{cmdSuffix}{executableSuffix}");
+                                                if (configuration == "Development")
+                                                {
+                                                    modulePath = Path.Combine(
+                                                        Path.GetDirectoryName(projectPath)!,
+                                                        "Binaries",
+                                                        platformName,
+                                                        "UnrealEditor.modules");
+                                                    editorPath = Path.Combine(
+                                                        engineWorkspace.Path,
+                                                        "Engine",
+                                                        "Binaries",
+                                                        platformName,
+                                                        $"UnrealEditor{cmdSuffix}{executableSuffix}");
+                                                }
+                                                else
+                                                {
+                                                    modulePath = Path.Combine(
+                                                        Path.GetDirectoryName(projectPath)!,
+                                                        "Binaries",
+                                                        platformName,
+                                                        $"UnrealEditor-{platformName}-{configuration}.modules");
+                                                    editorPath = Path.Combine(
+                                                        engineWorkspace.Path,
+                                                        "Engine",
+                                                        "Binaries",
+                                                        platformName,
+                                                        $"UnrealEditor-{platformName}-{configuration}{cmdSuffix}{executableSuffix}");
+                                                }
                                             }
                                             else
                                             {
-                                                modulePath = Path.Combine(
-                                                    Path.GetDirectoryName(projectPath)!,
-                                                    "Binaries",
-                                                    platformName,
-                                                    $"UnrealEditor-{platformName}-{configuration}.modules");
-                                                editorPath = Path.Combine(
-                                                    engineWorkspace.Path,
-                                                    "Engine",
-                                                    "Binaries",
-                                                    platformName,
-                                                    $"UnrealEditor-{platformName}-{configuration}{cmdSuffix}{executableSuffix}");
+                                                if (configuration == "Development")
+                                                {
+                                                    modulePath = Path.Combine(
+                                                        engineWorkspace.Path,
+                                                        "Binaries",
+                                                        platformName,
+                                                        "UnrealEditor.modules");
+                                                    editorPath = Path.Combine(
+                                                        engineWorkspace.Path,
+                                                        "Engine",
+                                                        "Binaries",
+                                                        platformName,
+                                                        $"UnrealEditor{cmdSuffix}{executableSuffix}");
+                                                }
+                                                else
+                                                {
+                                                    modulePath = Path.Combine(
+                                                        engineWorkspace.Path,
+                                                        "Binaries",
+                                                        platformName,
+                                                        $"UnrealEditor-{platformName}-{configuration}.modules");
+                                                    editorPath = Path.Combine(
+                                                        engineWorkspace.Path,
+                                                        "Engine",
+                                                        "Binaries",
+                                                        platformName,
+                                                        $"UnrealEditor-{platformName}-{configuration}{cmdSuffix}{executableSuffix}");
+                                                }
                                             }
                                             attemptedPaths.Add(modulePath);
                                             if (File.Exists(modulePath) && File.Exists(editorPath))
