@@ -765,6 +765,7 @@
                                     "--exclude=/.git/**",
                                     "--transfers=64",
                                     "--delete-before",
+                                    "--metadata",
                                     releaseFolder.FullName,
                                     gitWorkspacePath.FullName,
                                 ],
