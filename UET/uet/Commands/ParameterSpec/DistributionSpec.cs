@@ -40,90 +40,113 @@
 
                 if (path.Type == PathSpecType.BuildConfig)
                 {
-                    if (result.Tokens.Count == 0)
-                    {
-                        result.ErrorMessage = $"--{result.Argument.Name} must be provided when building against a BuildConfig.json file.";
-                        return null;
-                    }
-
-                    var distribution = result.Tokens[0].Value;
-                    if (string.IsNullOrWhiteSpace(distribution))
-                    {
-                        result.ErrorMessage = $"--{result.Argument.Name} must not be an empty value.";
-                        return null!;
-                    }
-
-                    // Check that the distribution is actually defined.
+                    // Load the BuildConfig.json to determine whether "Default" exists.
                     var loadResult = BuildConfigLoader.TryLoad(
                         serviceProvider,
                         Path.Combine(path.DirectoryPath, "BuildConfig.json"));
-                    if (loadResult.Success)
-                    {
-                        switch (loadResult.BuildConfig)
-                        {
-                            case BuildConfigProject buildConfigProject:
-                                {
-                                    var selectedDistributionEntry = buildConfigProject.Distributions
-                                        .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.OrdinalIgnoreCase));
-                                    if (selectedDistributionEntry == null)
-                                    {
-                                        result.ErrorMessage = $"The distribution '{distribution}' specified by --{result.Argument.Name} was not found in the BuildConfig.json file.";
-                                        return null!;
-                                    }
-
-                                    return new DistributionSpec
-                                    {
-                                        DistributionOriginalName = distribution,
-                                        DistributionCanonicalName = selectedDistributionEntry.Name,
-                                        Distribution = selectedDistributionEntry,
-                                        BuildConfig = buildConfigProject,
-                                    };
-                                }
-                            case BuildConfigPlugin buildConfigPlugin:
-                                {
-                                    var selectedDistributionEntry = buildConfigPlugin.Distributions
-                                        .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.OrdinalIgnoreCase));
-                                    if (selectedDistributionEntry == null)
-                                    {
-                                        result.ErrorMessage = $"The distribution '{distribution}' specified by --{result.Argument.Name} was not found in the BuildConfig.json file.";
-                                        return null!;
-                                    }
-
-                                    return new DistributionSpec
-                                    {
-                                        DistributionOriginalName = distribution,
-                                        DistributionCanonicalName = selectedDistributionEntry.Name,
-                                        Distribution = selectedDistributionEntry,
-                                        BuildConfig = buildConfigPlugin,
-                                    };
-                                }
-                            case BuildConfigEngine buildConfigEngine:
-                                {
-                                    var selectedDistributionEntry = buildConfigEngine.Distributions
-                                        .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.OrdinalIgnoreCase));
-                                    if (selectedDistributionEntry == null)
-                                    {
-                                        result.ErrorMessage = $"The distribution '{distribution}' specified by --{result.Argument.Name} was not found in the BuildConfig.json file.";
-                                        return null!;
-                                    }
-
-                                    return new DistributionSpec
-                                    {
-                                        DistributionOriginalName = distribution,
-                                        DistributionCanonicalName = selectedDistributionEntry.Name,
-                                        Distribution = selectedDistributionEntry,
-                                        BuildConfig = buildConfigEngine,
-                                    };
-                                }
-                        }
-
-                        throw new InvalidOperationException("TryLoad returned unexpected BuildConfig object.");
-                    }
-                    else
+                    if (!loadResult.Success)
                     {
                         result.ErrorMessage = string.Join("\n", loadResult.ErrorList);
                         return null;
                     }
+
+                    string distribution;
+                    var distributionSpecified = false;
+                    if (result.Tokens.Count == 0)
+                    {
+                        distribution = "Default";
+                    }
+                    else if (string.IsNullOrWhiteSpace(result.Tokens[0].Value))
+                    {
+                        result.ErrorMessage = $"--{result.Argument.Name} must not be an empty value.";
+                        return null!;
+                    }
+                    else
+                    {
+                        distribution = result.Tokens[0].Value;
+                        distributionSpecified = true;
+                    }
+
+                    switch (loadResult.BuildConfig)
+                    {
+                        case BuildConfigProject buildConfigProject:
+                            {
+                                var selectedDistributionEntry = buildConfigProject.Distributions
+                                    .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.OrdinalIgnoreCase));
+                                if (selectedDistributionEntry == null)
+                                {
+                                    if (!distributionSpecified)
+                                    {
+                                        result.ErrorMessage = $"--{result.Argument.Name} must be provided when building against a BuildConfig.json file, or there must be a distribution named 'Default'.";
+                                    }
+                                    else
+                                    {
+                                        result.ErrorMessage = $"The distribution '{distribution}' specified by --{result.Argument.Name} was not found in the BuildConfig.json file.";
+                                    }
+                                    return null!;
+                                }
+
+                                return new DistributionSpec
+                                {
+                                    DistributionOriginalName = distribution,
+                                    DistributionCanonicalName = selectedDistributionEntry.Name,
+                                    Distribution = selectedDistributionEntry,
+                                    BuildConfig = buildConfigProject,
+                                };
+                            }
+                        case BuildConfigPlugin buildConfigPlugin:
+                            {
+                                var selectedDistributionEntry = buildConfigPlugin.Distributions
+                                    .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.OrdinalIgnoreCase));
+                                if (selectedDistributionEntry == null)
+                                {
+                                    if (!distributionSpecified)
+                                    {
+                                        result.ErrorMessage = $"--{result.Argument.Name} must be provided when building against a BuildConfig.json file, or there must be a distribution named 'Default'.";
+                                    }
+                                    else
+                                    {
+                                        result.ErrorMessage = $"The distribution '{distribution}' specified by --{result.Argument.Name} was not found in the BuildConfig.json file.";
+                                    }
+                                    return null!;
+                                }
+
+                                return new DistributionSpec
+                                {
+                                    DistributionOriginalName = distribution,
+                                    DistributionCanonicalName = selectedDistributionEntry.Name,
+                                    Distribution = selectedDistributionEntry,
+                                    BuildConfig = buildConfigPlugin,
+                                };
+                            }
+                        case BuildConfigEngine buildConfigEngine:
+                            {
+                                var selectedDistributionEntry = buildConfigEngine.Distributions
+                                    .FirstOrDefault(x => x.Name.Equals(distribution, StringComparison.OrdinalIgnoreCase));
+                                if (selectedDistributionEntry == null)
+                                {
+                                    if (!distributionSpecified)
+                                    {
+                                        result.ErrorMessage = $"--{result.Argument.Name} must be provided when building against a BuildConfig.json file, or there must be a distribution named 'Default'.";
+                                    }
+                                    else
+                                    {
+                                        result.ErrorMessage = $"The distribution '{distribution}' specified by --{result.Argument.Name} was not found in the BuildConfig.json file.";
+                                    }
+                                    return null!;
+                                }
+
+                                return new DistributionSpec
+                                {
+                                    DistributionOriginalName = distribution,
+                                    DistributionCanonicalName = selectedDistributionEntry.Name,
+                                    Distribution = selectedDistributionEntry,
+                                    BuildConfig = buildConfigEngine,
+                                };
+                            }
+                    }
+
+                    throw new InvalidOperationException("TryLoad returned unexpected BuildConfig object.");
                 }
                 else
                 {
