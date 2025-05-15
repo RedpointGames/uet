@@ -352,7 +352,49 @@
                                         SearchForPaths();
                                     }
 
+                                    string GetUbtPath()
+                                    {
+                                        var scriptSuffix = OperatingSystem.IsWindows() ? ".bat" : ".sh";
+                                        var ubtPath = Path.Combine(engineWorkspace.Path, "Engine", "Build", "BatchFiles", $"RunUBT{scriptSuffix}");
+                                        var buildPath = Path.Combine(engineWorkspace.Path, "Engine", "Build", "BatchFiles", $"Build{scriptSuffix}");
+                                        if (!File.Exists(ubtPath) && File.Exists(buildPath))
+                                        {
+                                            ubtPath = buildPath;
+                                        }
+                                        return ubtPath;
+                                    }
+
+                                    var targetListToBuild = new List<string>();
+
+                                    string[] engineToolsToBuild = [
+                                        "ShaderCompileWorker",
+                                        "UnrealPak",
+                                    ];
+                                    foreach (var engineTool in engineToolsToBuild)
+                                    {
+                                        if (!File.Exists(Path.Combine(
+                                            engineWorkspace.Path,
+                                            "Binaries",
+                                            platformName,
+                                            $"{engineTool}.modules")))
+                                        {
+                                            targetListToBuild.Add($"{engineTool} Development {platformName}");
+                                        }
+                                    }
+
                                     if (moduleAndEngineTargets.Count == 0)
+                                    {
+                                        if (projectPath != null)
+                                        {
+                                            targetListToBuild.Add($"{ParameterisedArgument("project", projectPath)} {editorTargetName} Development {platformName}");
+                                        }
+                                        else
+                                        {
+                                            targetListToBuild.Add($"{editorTargetName} Development {platformName}");
+                                        }
+                                    }
+
+                                    if (targetListToBuild.Count > 0)
                                     {
                                         // The editor isn't built; try to build it.
                                         if (!forceBuild)
@@ -366,29 +408,20 @@
 
                                         _logger.LogWarning("Attempting to build the editor on-demand...");
 
-                                        var scriptSuffix = OperatingSystem.IsWindows() ? ".bat" : ".sh";
-                                        var ubtPath = Path.Combine(engineWorkspace.Path, "Engine", "Build", "BatchFiles", $"RunUBT{scriptSuffix}");
-                                        var buildPath = Path.Combine(engineWorkspace.Path, "Engine", "Build", "BatchFiles", $"Build{scriptSuffix}");
-                                        if (!File.Exists(ubtPath) && File.Exists(buildPath))
-                                        {
-                                            ubtPath = buildPath;
-                                        }
+                                        var ubtPath = GetUbtPath();
                                         if (!File.Exists(ubtPath))
                                         {
                                             _logger.LogError($"Unable to locate the build script that was expected to exist at: {ubtPath}");
                                             return 1;
                                         }
 
+                                        var targetListPath = Path.GetTempFileName();
+                                        await File.WriteAllLinesAsync(targetListPath, targetListToBuild, context.GetCancellationToken());
+
                                         var buildArguments = new List<LogicalProcessArgument>
                                         {
-                                            editorTargetName,
-                                            platformName,
-                                            "Development"
+                                            ParameterisedArgument("TargetList", targetListPath),
                                         };
-                                        if (projectPath != null)
-                                        {
-                                            buildArguments.Add(ParameterisedArgument("project", projectPath));
-                                        }
 
                                         var buildExitCode = await _processExecutor.ExecuteAsync(
                                             new ProcessSpecification
