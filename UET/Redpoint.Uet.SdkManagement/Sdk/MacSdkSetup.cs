@@ -75,7 +75,12 @@
                 cancellationToken).ConfigureAwait(false);
             if (exitCode != 0)
             {
-                throw new SdkSetupMissingAuthenticationException($"This machine is not configured to allow 'sudo' without a password. Use 'sudo visudo' and add '{Environment.GetEnvironmentVariable("USERNAME")} ALL=(ALL) NOPASSWD: ALL' as the final line of that file.");
+                var username = Environment.GetEnvironmentVariable("USERNAME");
+                if (string.IsNullOrWhiteSpace(username))
+                {
+                    username = Environment.UserName;
+                }
+                throw new SdkSetupMissingAuthenticationException($"This machine is not configured to allow 'sudo' without a password. Use 'sudo visudo' and add '{username} ALL=(ALL) NOPASSWD: ALL' as the final line of that file.");
             }
 
             // Ensure xcodes is installed.
