@@ -1,0 +1,17 @@
+﻿.:53 {
+    errors
+    health
+    ready
+    kubernetes __CLUSTER_DOMAIN__ in-addr.arpa ip6.arpa {
+        endpoint __KUBERNETES_ENDPOINT__
+        tls __CERT__ __KEY__ __CA__
+        pods insecure
+        fallthrough in-addr.arpa ip6.arpa
+    }
+    prometheus :9153
+    forward . 1.1.1.1 1.0.0.1
+    cache 30
+    loop
+    reload
+    loadbalance
+}
