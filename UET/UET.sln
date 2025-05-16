@@ -350,6 +350,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ThirdParty.JUnit.X
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uet.BuildPipeline.Executors.Jenkins", "Redpoint.Uet.BuildPipeline.Executors.Jenkins\Redpoint.Uet.BuildPipeline.Executors.Jenkins.csproj", "{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.KubernetesManager", "Redpoint.KubernetesManager\Redpoint.KubernetesManager.csproj", "{0BA37089-E030-4908-A456-6C40D948ACDD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -948,6 +950,10 @@ Global
 		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0BA37089-E030-4908-A456-6C40D948ACDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BA37089-E030-4908-A456-6C40D948ACDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BA37089-E030-4908-A456-6C40D948ACDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BA37089-E030-4908-A456-6C40D948ACDD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

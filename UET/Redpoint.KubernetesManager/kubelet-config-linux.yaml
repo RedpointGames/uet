@@ -1,0 +1,21 @@
+﻿kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true
+  x509:
+    clientCAFile: "__CA_CERT_FILE__"
+authorization:
+  mode: Webhook
+clusterDomain: "__CLUSTER_DOMAIN__"
+clusterDNS:
+  - "__CLUSTER_DNS__"
+runtimeRequestTimeout: "15m"
+tlsCertFile: "__NODE_CERT_FILE__"
+tlsPrivateKeyFile: "__NODE_KEY_FILE__"
+registryNode: true
+# This option is Linux specific to deal with systemd's symlinking
+# of /etc/resolv.conf.
+resolvConf: "__RESOLV_CONF__"
