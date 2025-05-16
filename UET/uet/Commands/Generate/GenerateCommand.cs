@@ -4,6 +4,8 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.IO;
     using Redpoint.ProcessExecution;
+    using Redpoint.Uet.CommonPaths;
+    using Redpoint.Uet.SdkManagement;
     using System;
     using System.Collections.Generic;
     using System.CommandLine;
@@ -97,15 +99,21 @@
         {
             private readonly ILogger<GenerateCommandInstance> _logger;
             private readonly IProcessExecutor _processExecutor;
+            private readonly ILocalSdkManager _localSdkManager;
+            private readonly IServiceProvider _serviceProvider;
             private readonly Options _options;
 
             public GenerateCommandInstance(
                 ILogger<GenerateCommandInstance> logger,
                 IProcessExecutor processExecutor,
+                ILocalSdkManager localSdkManager,
+                IServiceProvider serviceProvider,
                 Options options)
             {
                 _logger = logger;
                 _processExecutor = processExecutor;
+                _localSdkManager = localSdkManager;
+                _serviceProvider = serviceProvider;
                 _options = options;
             }
 
@@ -164,6 +172,30 @@
                 var paths = context.ParseResult.GetValueForOption(_options.Path) ?? [];
                 var open = context.ParseResult.GetValueForOption(_options.Open);
                 var automationPaths = context.ParseResult.GetValueForOption(_options.AutomationPath) ?? [];
+
+                // We need to grab SDK environment variables on macOS because UET always resets the DEVELOPER_DIR environment
+                // variable, and this interferes with project generation (as it requires an actual Xcode install).
+                IDictionary<string, string>? hostEnvVars = null;
+                if (OperatingSystem.IsMacOS())
+                {
+                    var packagePath = UetPaths.UetDefaultMacSdkStoragePath;
+                    Directory.CreateDirectory(packagePath);
+                    hostEnvVars = await _localSdkManager.SetupEnvironmentForSdkSetups(
+                        engine.Path!,
+                        packagePath,
+                        _serviceProvider.GetServices<ISdkSetup>()
+                            .Where(x => x.PlatformNames.Contains("Mac"))
+                            .ToHashSet(),
+                        context.GetCancellationToken()).ConfigureAwait(false);
+                    if (hostEnvVars != null)
+                    {
+                        foreach (var kv in hostEnvVars)
+                        {
+                            _logger.LogInformation($"Setting environment variable from SDK: {kv.Key}={kv.Value}");
+                            Environment.SetEnvironmentVariable(kv.Key, kv.Value);
+                        }
+                    }
+                }
 
                 // Compute how to invoke project generation.
                 string workingDirectory;
