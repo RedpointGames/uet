@@ -9,7 +9,7 @@
     using System.Xml;
 
     [SupportedOSPlatform("macos")]
-    internal sealed class MacServiceControl : IServiceControl
+    public sealed class MacServiceControl : IServiceControl
     {
         [DllImport("libc")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]

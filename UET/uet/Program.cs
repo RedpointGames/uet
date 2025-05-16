@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using UET.Commands.Android;
 using UET.Commands.AppleCert;
 using UET.Commands.Build;
+using UET.Commands.Cluster;
 using UET.Commands.CMake;
 using UET.Commands.Config;
 using UET.Commands.Format;
@@ -51,6 +52,7 @@ rootCommand.AddCommand(TransferCommand.CreateTransferCommand());
 rootCommand.AddCommand(AppleCertCommand.CreateAppleCertCommand());
 rootCommand.AddCommand(AndroidCommand.CreateAndroidCommand());
 rootCommand.AddCommand(CMakeCommand.CreateCMakeCommand());
+rootCommand.AddCommand(ClusterCommand.CreateClusterCommand());
 rootCommand.AddCommand(InternalCommand.CreateInternalCommand(globalCommands));
 
 // If we have an implicit command variable, this is an internal command where we can't specify arguments directly.
@@ -245,7 +247,7 @@ if (OperatingSystem.IsMacOS())
 // We didn't re-execute into a different version of UET. Invoke the originally requested command.
 // @note: We use Environment.Exit so fire-and-forget tasks that contain stallable code won't prevent the process from exiting.
 var exitCode = await rootCommand.InvokeAsync(args).ConfigureAwait(false);
-await Console.Out.FlushAsync().ConfigureAwait(false);
-await Console.Error.FlushAsync().ConfigureAwait(false);
+    await Console.Out.FlushAsync().ConfigureAwait(false);
+    await Console.Error.FlushAsync().ConfigureAwait(false);
 Environment.Exit(exitCode);
 throw new BadImageFormatException();

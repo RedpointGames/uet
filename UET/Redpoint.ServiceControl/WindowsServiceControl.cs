@@ -6,7 +6,7 @@
     using System.Text.RegularExpressions;
 
     [SupportedOSPlatform("windows")]
-    internal sealed class WindowsServiceControl : IServiceControl
+    public sealed class WindowsServiceControl : IServiceControl
     {
         public bool HasPermissionToInstall
         {
