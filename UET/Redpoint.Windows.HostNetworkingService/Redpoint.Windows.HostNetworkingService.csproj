@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+	<PropertyGroup>
+		<Description>Provides managed access to the Host Networking Service (HNS) API in Windows via COM, in a trim and AOT compatible way.</Description>
+		<PackageTags>hns</PackageTags>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+</Project>
