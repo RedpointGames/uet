@@ -15,6 +15,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
@@ -143,20 +144,41 @@ namespace UET.Commands.Internal.Rkm
             {
                 if (File.Exists(Path.Combine(_rkmGlobalRootProvider.RkmGlobalRoot, "service-auto-upgrade")))
                 {
-                    _logger.LogInformation("RKM is checking for UET updates, and upgrading UET if necessary...");
                     try
                     {
-                        var upgradeResult = await UpgradeCommandImplementation.PerformUpgradeAsync(
-                            _progressFactory,
-                            _monitorFactory,
-                            _logger,
-                            string.Empty,
-                            true,
-                            context.GetCancellationToken()).ConfigureAwait(false);
-                        if (upgradeResult.CurrentVersionWasChanged)
+                        var lastCheck = DateTimeOffset.MinValue;
+                        var lastCheckFile = Path.Combine(_rkmGlobalRootProvider.RkmGlobalRoot, "service-auto-upgrade-last-check");
+                        try
                         {
-                            _logger.LogInformation("UET has been upgraded and the version currently executing is no longer the latest version. RKM will now exit and expects the service manager (such as systemd) to automatically start it RKM as the new version.");
-                            return 0;
+                            lastCheck = DateTimeOffset.FromUnixTimeSeconds(long.Parse(File.ReadAllText(lastCheckFile).Trim(), CultureInfo.InvariantCulture));
+                        }
+                        catch
+                        {
+                        }
+
+                        // Prevent us from running checks against GitHub too rapidly.
+                        if (DateTimeOffset.UtcNow > lastCheck.AddMinutes(10))
+                        {
+                            _logger.LogInformation("RKM is checking for UET updates, and upgrading UET if necessary...");
+                            var upgradeResult = await UpgradeCommandImplementation.PerformUpgradeAsync(
+                                _progressFactory,
+                                _monitorFactory,
+                                _logger,
+                                string.Empty,
+                                true,
+                                context.GetCancellationToken()).ConfigureAwait(false);
+                            if (upgradeResult.CurrentVersionWasChanged)
+                            {
+                                _logger.LogInformation("UET has been upgraded and the version currently executing is no longer the latest version. RKM will now exit and expects the service manager (such as systemd) to automatically start it RKM as the new version.");
+                                return 0;
+                            }
+
+                            // Only update the last check file if we didn't upgrade; this helps us get to the latest version faster if multiple upgrades are required.
+                            File.WriteAllText(lastCheckFile, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture));
+                        }
+                        else
+                        {
+                            _logger.LogInformation("RKM already checked for UET upgrades in the last 10 minutes. Skipping automatic upgrade check.");
                         }
                     }
                     catch
