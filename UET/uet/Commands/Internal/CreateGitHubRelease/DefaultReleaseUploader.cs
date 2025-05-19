@@ -100,9 +100,13 @@
                         # for Windows
                         .\uet.exe upgrade
 
-                        # for macOS or Linux
+                        # for macOS
                         chmod a+x ./uet
                         ./uet upgrade
+
+                        # for Linux (sudo is required on initial install)
+                        chmod a+x ./uet
+                        sudo ./uet upgrade
                         ```
 
                         After you run the commands above and re-open your terminal, you'll be able to just run `uet ...` without specifying the path to the downloaded executable.
