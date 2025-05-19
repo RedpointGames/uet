@@ -19,7 +19,7 @@
         private readonly IResourceManager _resourceManager;
         private readonly IPathProvider _pathProvider;
         private readonly IProcessMonitorFactory _processMonitorFactory;
-        private readonly IWindowsHcsService _hcsService;
+        private readonly IWindowsHcsService? _hcsService;
         private readonly CancellationTokenSource _containerdReadyToShutdown;
 
         public ContainerdComponent(
@@ -27,7 +27,7 @@
             IResourceManager resourceManager,
             IPathProvider pathProvider,
             IProcessMonitorFactory processMonitorFactory,
-            IWindowsHcsService hcsService)
+            IWindowsHcsService? hcsService = null)
         {
             _logger = logger;
             _resourceManager = resourceManager;
@@ -211,7 +211,7 @@
             }
             else if (OperatingSystem.IsWindows())
             {
-                foreach (var computeSystem in _hcsService.GetHcsComputeSystems())
+                foreach (var computeSystem in _hcsService!.GetHcsComputeSystems())
                 {
                     if (computeSystem.SystemType == "Container")
                     {
