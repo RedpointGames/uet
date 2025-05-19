@@ -27,7 +27,17 @@
 
         public async Task EnsureProcessesAreNotRunning(CancellationToken cancellationToken)
         {
-            await EnsureProcessesAreNotRunning(new[] { "containerd", "flanneld", "kubelet", "kube-proxy", "etcd", "kube-apiserver", "kube-controller-manager", "kube-scheduler" }, cancellationToken);
+            await EnsureProcessesAreNotRunning([
+                "containerd",
+                "containerd-shim-runhcs-v1",
+                "flanneld",
+                "kubelet",
+                "kube-proxy",
+                "etcd",
+                "kube-apiserver",
+                "kube-controller-manager",
+                "kube-scheduler",
+            ], cancellationToken);
         }
 
         private async Task EnsureProcessesAreNotRunning(string[] processNames, CancellationToken cancellationToken)
