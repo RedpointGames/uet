@@ -228,7 +228,9 @@ namespace UET.Commands.Internal.Rkm
                     }
 
                     // Wait until shutdown is requested.
+                    _logger.LogInformation("RKM is waiting for StopRequestedGate to be opened...");
                     await _hostApplicationLifetime.StopRequestedGate.WaitAsync(CancellationToken.None);
+                    _logger.LogInformation("RKM is now shutting down due to StopRequestedGate being opened.");
                 }
                 finally
                 {

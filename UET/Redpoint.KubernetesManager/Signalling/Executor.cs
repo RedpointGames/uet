@@ -177,7 +177,7 @@
 
         private void StopOnCriticalError()
         {
-            Environment.ExitCode = 1;
+            _logger.LogInformation("Encountered a critical error, requesting that RKM exit...");
             _hostApplicationLifetime.StopApplication();
         }
     }
