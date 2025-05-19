@@ -106,17 +106,23 @@
             if (OperatingSystem.IsLinux())
             {
                 // On Linux, we must make /opt/UET world-writable so it can be upgraded as users.
-                File.SetUnixFileMode(
-                    baseFolder,
-                    UnixFileMode.UserRead |
-                    UnixFileMode.UserWrite |
-                    UnixFileMode.UserExecute |
-                    UnixFileMode.GroupRead |
-                    UnixFileMode.GroupWrite |
-                    UnixFileMode.GroupExecute |
-                    UnixFileMode.OtherRead |
-                    UnixFileMode.OtherWrite |
-                    UnixFileMode.OtherExecute);
+                try
+                {
+                    File.SetUnixFileMode(
+                        baseFolder,
+                        UnixFileMode.UserRead |
+                        UnixFileMode.UserWrite |
+                        UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead |
+                        UnixFileMode.GroupWrite |
+                        UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead |
+                        UnixFileMode.OtherWrite |
+                        UnixFileMode.OtherExecute);
+                }
+                catch
+                {
+                }
             }
             Directory.CreateDirectory(Path.Combine(baseFolder, version));
 
