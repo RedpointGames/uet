@@ -311,6 +311,13 @@
                         var uetPath = Path.Combine(existingPath, "uet");
                         if (File.Exists(uetPath))
                         {
+                            if (OperatingSystem.IsLinux() &&
+                                (uetPath == "/bin/uet" || uetPath == "/usr/bin/uet"))
+                            {
+                                // Expected for /usr/bin/uet symlink.
+                                continue;
+                            }
+
                             logger.LogError($"An unmanaged version of UET was found on your PATH at '{uetPath}'. Remove the unmanaged UET from this directory, or remove the directory from your PATH. Leaving an unmanaged version of UET on the PATH may result in unintended behaviour.");
                         }
                     }
