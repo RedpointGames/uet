@@ -97,7 +97,27 @@
             // latest at startup so it can re-invoke if necessary.
             LastInstalledVersion = version;
 
+            if (OperatingSystem.IsLinux() && !Directory.Exists(baseFolder))
+            {
+                logger.LogWarning($"On Linux, creating the initial '{baseFolder}' directory requires root privileges. This operation may fail if you have not run it as 'sudo uet upgrade'.");
+            }
+
             Directory.CreateDirectory(baseFolder);
+            if (OperatingSystem.IsLinux())
+            {
+                // On Linux, we must make /opt/UET world-writable so it can be upgraded as users.
+                File.SetUnixFileMode(
+                    baseFolder,
+                    UnixFileMode.UserRead |
+                    UnixFileMode.UserWrite |
+                    UnixFileMode.UserExecute |
+                    UnixFileMode.GroupRead |
+                    UnixFileMode.GroupWrite |
+                    UnixFileMode.GroupExecute |
+                    UnixFileMode.OtherRead |
+                    UnixFileMode.OtherWrite |
+                    UnixFileMode.OtherExecute);
+            }
             Directory.CreateDirectory(Path.Combine(baseFolder, version));
 
             if (!File.Exists(Path.Combine(baseFolder, version, filename)))
@@ -274,31 +294,24 @@
                 var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                 var pathLine = $@"PATH=""{Path.Combine(baseFolder, "Current")}:$PATH""";
                 var updated = false;
+                var profileFiles = new List<string> { ".bash_profile", ".profile" };
                 if (OperatingSystem.IsMacOS())
                 {
-                    var zprofile = Path.Combine(home, ".zprofile");
-                    if (File.Exists(zprofile))
+                    profileFiles.Add(".zprofile");
+                }
+                foreach (var profileName in profileFiles)
+                {
+                    var profilePath = Path.Combine(home, profileName);
+                    if (File.Exists(profilePath))
                     {
-                        var lines = (await File.ReadAllLinesAsync(zprofile, cancellationToken).ConfigureAwait(false)).ToList();
+                        var lines = (await File.ReadAllLinesAsync(profilePath, cancellationToken).ConfigureAwait(false)).ToList();
                         if (!lines.Contains(pathLine))
                         {
-                            logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to your .zprofile...");
+                            logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to your {profileName}...");
                             lines.Add(pathLine);
-                            await File.WriteAllLinesAsync(zprofile, lines, cancellationToken).ConfigureAwait(false);
+                            await File.WriteAllLinesAsync(profilePath, lines, cancellationToken).ConfigureAwait(false);
                             updated = true;
                         }
-                    }
-                }
-                var bashprofile = Path.Combine(home, ".bash_profile");
-                if (File.Exists(bashprofile))
-                {
-                    var lines = (await File.ReadAllLinesAsync(bashprofile, cancellationToken).ConfigureAwait(false)).ToList();
-                    if (!lines.Contains(pathLine))
-                    {
-                        logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to your .bash_profile...");
-                        lines.Add(pathLine);
-                        await File.WriteAllLinesAsync(bashprofile, lines, cancellationToken).ConfigureAwait(false);
-                        updated = true;
                     }
                 }
                 if (updated)

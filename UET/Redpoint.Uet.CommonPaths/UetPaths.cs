@@ -42,7 +42,7 @@
             }
             else if (OperatingSystem.IsLinux())
             {
-                basePath = Path.Combine("/tmp");
+                basePath = Path.Combine("/opt");
             }
             else
             {
