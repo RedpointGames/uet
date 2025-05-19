@@ -9,6 +9,7 @@
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Redpoint.Windows.HostNetworkingService;
+    using Redpoint.PackageManagement;
 
     /// <summary>
     /// The kube proxy component sets up and runs the kube-proxy process.
@@ -21,6 +22,7 @@
         private readonly IProcessMonitorFactory _processMonitorFactory;
         private readonly IClusterNetworkingConfiguration _clusterNetworkingConfiguration;
         private readonly IKubeConfigManager _kubeConfigManager;
+        private readonly IPackageManager _packageManager;
         private readonly IHnsApi? _hnsService;
 
         public KubeProxyComponent(
@@ -30,6 +32,7 @@
             IProcessMonitorFactory processMonitorFactory,
             IClusterNetworkingConfiguration clusterNetworkingConfiguration,
             IKubeConfigManager kubeConfigManager,
+            IPackageManager packageManager,
             IHnsApi? hnsService = null)
         {
             _logger = logger;
@@ -38,6 +41,7 @@
             _processMonitorFactory = processMonitorFactory;
             _clusterNetworkingConfiguration = clusterNetworkingConfiguration;
             _kubeConfigManager = kubeConfigManager;
+            _packageManager = packageManager;
             _hnsService = hnsService;
         }
 
@@ -52,6 +56,12 @@
             await context.WaitForFlagAsync(WellKnownFlags.KubeConfigsReady);
             var nodeNameContext = await context.WaitForFlagAsync<NodeNameContextData>(WellKnownFlags.NodeComponentsReadyToStart);
             var nodeName = nodeNameContext.NodeName;
+
+            if (OperatingSystem.IsLinux())
+            {
+                _logger.LogInformation("Ensuring conntrack is installed...");
+                await _packageManager.InstallOrUpgradePackageToLatestAsync("conntrack", cancellationToken);
+            }
 
             _logger.LogInformation("Setting up kube-proxy configuration...");
             if (OperatingSystem.IsLinux())
