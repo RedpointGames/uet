@@ -350,6 +350,25 @@
                 {
                     logger.LogInformation($"Your shell profile has been updated to add {Path.Combine(baseFolder, "Current")} to your PATH. You may need to restart your terminal for the changes to take effect.");
                 }
+
+                if (OperatingSystem.IsLinux() && getuid() == 0)
+                {
+                    // On Linux, 'sudo uet ...' results in sudo resetting the PATH, so our modifications to .profile and /etc/profile have no effect
+                    // for sudo invocations. If we are root, add a symbolic link to /usr/bin to avoid this.
+                    var linkSource = "/usr/bin/uet";
+                    if (!File.Exists(linkSource))
+                    {
+                        logger.LogInformation($"Creating a symbolic link at {linkSource} to point at the latest version of UET...");
+                        try
+                        {
+                            File.CreateSymbolicLink(linkSource, Path.Combine(baseFolder, "Current", filename));
+                        }
+                        catch
+                        {
+                            logger.LogWarning($"Unable to create a symbolic link from {linkSource} to the current version of UET. Running 'sudo uet ...' may not work.");
+                        }
+                    }
+                }
             }
 
             var currentBuildConfigPath = Path.Combine(Environment.CurrentDirectory, "BuildConfig.json");
