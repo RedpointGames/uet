@@ -65,7 +65,7 @@ namespace UET.Commands.Internal.Rkm
             {
                 EnvironmentName = "Production";
                 ApplicationName = "RKM";
-                ContentRootPath = Path.GetDirectoryName(selfLocation.GetUetLocalLocation())!;
+                ContentRootPath = Path.GetDirectoryName(selfLocation.GetUetLocalLocation(true))!;
                 ContentRootFileProvider = null!;
             }
 

@@ -2,6 +2,6 @@
 {
     internal interface ISelfLocation
     {
-        string GetUetLocalLocation();
+        string GetUetLocalLocation(bool versionIndependent = false);
     }
 }
