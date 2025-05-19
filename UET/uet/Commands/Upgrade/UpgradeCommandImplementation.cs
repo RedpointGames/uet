@@ -11,6 +11,7 @@
     using System.Text.Json.Nodes;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
+    using static UET.Commands.Upgrade.UpgradeCommandImplementation;
 
     internal static class UpgradeCommandImplementation
     {
@@ -40,7 +41,13 @@
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         public static extern uint getuid();
 
-        internal static async Task<int> PerformUpgradeAsync(
+        internal struct UpgradeResult
+        {
+            public int ExitCode;
+            public bool CurrentVersionWasChanged;
+        }
+
+        internal static async Task<UpgradeResult> PerformUpgradeAsync(
             IProgressFactory progressFactory,
             IMonitorFactory monitorFactory,
             ILogger logger,
@@ -61,7 +68,11 @@
                 if (string.IsNullOrWhiteSpace(version))
                 {
                     logger.LogError("Could not fetch latest version.");
-                    return 1;
+                    return new UpgradeResult
+                    {
+                        ExitCode = 1,
+                        CurrentVersionWasChanged = false,
+                    };
                 }
             }
 
@@ -95,7 +106,11 @@
             if (!versionRegex.IsMatch(version))
             {
                 logger.LogError($"Version '{version}' does not match version regex.");
-                return 1;
+                return new UpgradeResult
+                {
+                    ExitCode = 1,
+                    CurrentVersionWasChanged = false,
+                };
             }
 
             // The special "BleedingEdge" mode needs to know what version was actually the
@@ -105,7 +120,11 @@
             if (OperatingSystem.IsLinux() && !Directory.Exists(baseFolder) && getuid() != 0)
             {
                 logger.LogError($"On Linux, creating the initial '{baseFolder}' directory requires root privileges. This operation may fail if you have not run it as 'sudo uet upgrade'.");
-                return 1;
+                return new UpgradeResult
+                {
+                    ExitCode = 1,
+                    CurrentVersionWasChanged = false,
+                };
             }
 
             void CreateDirectoryWorldWritable(string directory)
@@ -218,7 +237,11 @@
 
             if (doNotSetAsCurrent)
             {
-                return 0;
+                return new UpgradeResult
+                {
+                    ExitCode = 0,
+                    CurrentVersionWasChanged = false,
+                };
             }
 
             var wasAlreadyUpToDate = true;
@@ -464,7 +487,12 @@
             {
                 logger.LogInformation($"UET has been updated successfully.");
             }
-            return 0;
+
+            return new UpgradeResult
+            {
+                ExitCode = 0,
+                CurrentVersionWasChanged = !wasAlreadyUpToDate,
+            };
         }
     }
 }

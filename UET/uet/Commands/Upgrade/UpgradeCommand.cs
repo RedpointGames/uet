@@ -70,13 +70,13 @@
                 {
                     try
                     {
-                        return await UpgradeCommandImplementation.PerformUpgradeAsync(
+                        return (await UpgradeCommandImplementation.PerformUpgradeAsync(
                             _progressFactory,
                             _monitorFactory,
                             _logger,
                             version,
                             doNotSetAsCurrent,
-                            context.GetCancellationToken()).ConfigureAwait(false);
+                            context.GetCancellationToken()).ConfigureAwait(false)).ExitCode;
                     }
                     catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.GatewayTimeout)
                     {
