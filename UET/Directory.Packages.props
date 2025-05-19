@@ -5,8 +5,11 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- System libraries whose version is tied with framework version -->
+    <PackageVersion Include="Microsoft.Dism" Version="3.3.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="9.0.1" />
@@ -14,6 +17,7 @@
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="9.0.1" />
+    <PackageVersion Include="Mono.Posix.NETStandard" Version="1.0.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.10.0-beta.1" />
     <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.HttpListener" Version="1.10.0-beta.1" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.11.0" />

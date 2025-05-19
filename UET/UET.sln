@@ -350,9 +350,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ThirdParty.JUnit.X
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uet.BuildPipeline.Executors.Jenkins", "Redpoint.Uet.BuildPipeline.Executors.Jenkins\Redpoint.Uet.BuildPipeline.Executors.Jenkins.csproj", "{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.KubernetesManager", "Redpoint.KubernetesManager\Redpoint.KubernetesManager.csproj", "{0BA37089-E030-4908-A456-6C40D948ACDD}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Windows.HostNetworkingService.Tests", "Redpoint.Windows.HostNetworkingService.Tests\Redpoint.Windows.HostNetworkingService.Tests.csproj", "{91801BB9-7215-420E-B7FB-A7F58E1BB18F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Windows.HostNetworkingService", "Redpoint.Windows.HostNetworkingService\Redpoint.Windows.HostNetworkingService.csproj", "{CAA2B8FB-D8AB-3936-C9FF-99556D1C2850}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Windows.Firewall", "Redpoint.Windows.Firewall\Redpoint.Windows.Firewall.csproj", "{29BA4DF0-B40E-4B27-8C2A-4F622F0B181A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -952,6 +956,10 @@ Global
 		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0BA37089-E030-4908-A456-6C40D948ACDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BA37089-E030-4908-A456-6C40D948ACDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BA37089-E030-4908-A456-6C40D948ACDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BA37089-E030-4908-A456-6C40D948ACDD}.Release|Any CPU.Build.0 = Release|Any CPU
 		{91801BB9-7215-420E-B7FB-A7F58E1BB18F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{91801BB9-7215-420E-B7FB-A7F58E1BB18F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{91801BB9-7215-420E-B7FB-A7F58E1BB18F}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -960,6 +968,10 @@ Global
 		{CAA2B8FB-D8AB-3936-C9FF-99556D1C2850}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CAA2B8FB-D8AB-3936-C9FF-99556D1C2850}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CAA2B8FB-D8AB-3936-C9FF-99556D1C2850}.Release|Any CPU.Build.0 = Release|Any CPU
+		{29BA4DF0-B40E-4B27-8C2A-4F622F0B181A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{29BA4DF0-B40E-4B27-8C2A-4F622F0B181A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{29BA4DF0-B40E-4B27-8C2A-4F622F0B181A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{29BA4DF0-B40E-4B27-8C2A-4F622F0B181A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1085,6 +1097,7 @@ Global
 		{C63FDDD4-A4D2-4DCE-B51C-4552CB968A08} = {1AE4AFCD-0F49-4CEA-8439-F1AAA2CDD183}
 		{91801BB9-7215-420E-B7FB-A7F58E1BB18F} = {0BF83468-3C95-4B7E-AE5A-01E54464DC93}
 		{CAA2B8FB-D8AB-3936-C9FF-99556D1C2850} = {0BF83468-3C95-4B7E-AE5A-01E54464DC93}
+		{29BA4DF0-B40E-4B27-8C2A-4F622F0B181A} = {0BF83468-3C95-4B7E-AE5A-01E54464DC93}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}

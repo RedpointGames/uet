@@ -33,6 +33,7 @@
     using UET.Commands.Internal.CMakeUbaServer;
     using UET.Commands.Internal.CMakeUbaRun;
     using UET.Commands.Internal.EnginePerforceToGit;
+    using UET.Commands.Internal.Rkm;
 
     internal sealed class InternalCommand
     {
@@ -74,6 +75,7 @@
                 CMakeUbaRunCommand.CreateCMakeUbaRunCommand(),
                 EnginePerforceToGitCommand.CreateEnginePerforceToGitCommand(),
                 InstallXcodeCommand.CreateInstallXcodeCommand(),
+                RkmServiceCommand.CreateRkmServiceCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");

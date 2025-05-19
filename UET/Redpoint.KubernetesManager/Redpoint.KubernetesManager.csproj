@@ -1,0 +1,56 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+	<PropertyGroup>
+		<Description>Implements a Kubernetes manager, which can provision and set up Kubernetes on Windows, macOS and Linux machines.</Description>
+		<PackageTags>kubernetes, manager, cluster, rkm</PackageTags>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Remove="calico.yaml" />
+		<None Remove="cni.conf.template" />
+		<None Remove="containerd-config-linux.toml" />
+		<None Remove="containerd-config-windows.toml" />
+		<None Remove="coredns.yaml" />
+		<None Remove="Corefile-windows" />
+		<None Remove="kube-proxy-config-linux.yaml" />
+		<None Remove="kube-proxy-config-windows.yaml" />
+		<None Remove="kubelet-config-linux.yaml" />
+		<None Remove="kubelet-config-windows.yaml" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="calico.yaml" />
+		<EmbeddedResource Include="cni.conf.template" />
+		<EmbeddedResource Include="Corefile-windows" />
+		<EmbeddedResource Include="coredns.yaml" />
+		<EmbeddedResource Include="kube-proxy-config-windows.yaml" />
+		<EmbeddedResource Include="kube-proxy-config-linux.yaml" />
+		<EmbeddedResource Include="kubelet-config-windows.yaml" />
+		<EmbeddedResource Include="kubelet-config-linux.yaml" />
+		<EmbeddedResource Include="containerd-config-linux.toml" />
+		<EmbeddedResource Include="containerd-config-windows.toml" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="KubernetesClient.Aot" />
+		<PackageReference Include="Microsoft.Dism" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+		<PackageReference Include="Mono.Posix.NETStandard" />
+		<PackageReference Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" />
+		<PackageReference Include="YamlDotNet" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
+		<ProjectReference Include="..\Redpoint.ServiceControl\Redpoint.ServiceControl.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.Configuration\Redpoint.Uet.Configuration.csproj" />
+		<ProjectReference Include="..\Redpoint.Windows.Firewall\Redpoint.Windows.Firewall.csproj" />
+		<ProjectReference Include="..\Redpoint.Windows.HostNetworkingService\Redpoint.Windows.HostNetworkingService.csproj" />
+	</ItemGroup>
+
+</Project>

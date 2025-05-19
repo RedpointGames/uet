@@ -7,7 +7,7 @@
     using System.Threading.Tasks;
 
     [SupportedOSPlatform("linux")]
-    internal sealed class LinuxServiceControl : IServiceControl
+    public sealed class LinuxServiceControl : IServiceControl
     {
         [DllImport("libc")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]

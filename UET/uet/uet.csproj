@@ -1,131 +1,133 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
-  <Import Project="..\Redpoint.SelfVersion\Redpoint.SelfVersion.projitems" Label="Shared" />
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
+	<Import Project="..\Redpoint.SelfVersion\Redpoint.SelfVersion.projitems" Label="Shared" />
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
 
-  <PropertyGroup>
-    <RootNamespace>UET</RootNamespace>
-    <Description>The unofficial Unreal Engine Tool.</Description>
-    <Product>Unreal Engine Tool</Product>
-    <AssemblyTitle>Unreal Engine Tool</AssemblyTitle>
-  </PropertyGroup>
+	<PropertyGroup>
+		<RootNamespace>UET</RootNamespace>
+		<Description>The unofficial Unreal Engine Tool.</Description>
+		<Product>Unreal Engine Tool</Product>
+		<AssemblyTitle>Unreal Engine Tool</AssemblyTitle>
+	</PropertyGroup>
 
-  <Target Name="DisplayTargetVersion" BeforeTargets="BeforeBuild">
-    <Message Text="Using assembly version: $(AssemblyVersion)" Importance="high" />
-    <Message Text="Using informational version: $(InformationalVersion)" Importance="high" />
-  </Target>
+	<Target Name="DisplayTargetVersion" BeforeTargets="BeforeBuild">
+		<Message Text="Using assembly version: $(AssemblyVersion)" Importance="high" />
+		<Message Text="Using informational version: $(InformationalVersion)" Importance="high" />
+	</Target>
 
-  <ItemGroup>
-    <None Remove="Commands\AppleCert\AppleWWDRCA.cer" />
-    <None Remove="Commands\AppleCert\AppleWWDRCAG3.cer" />
-    <None Remove="Commands\AppleCert\AppleWWDRCAG4.cer" />
-    <None Remove="Commands\AppleCert\DeveloperIDG2CA.cer" />
-    <None Remove="Commands\Config\IwyuBooleanConfigSetting.cs~RF2d2c3a13.TMP" />
-    <None Remove="Commands\Internal\CMakeUbaServer\CMakeUba.proto" />
-    <None Remove="Commands\Internal\RunRemoteHost\RemoteHostApi.proto" />
-    <None Remove="Commands\Internal\TestGrpcPipes\TestPipes.proto" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Remove="Commands\AppleCert\AppleWWDRCA.cer" />
+		<None Remove="Commands\AppleCert\AppleWWDRCAG3.cer" />
+		<None Remove="Commands\AppleCert\AppleWWDRCAG4.cer" />
+		<None Remove="Commands\AppleCert\DeveloperIDG2CA.cer" />
+		<None Remove="Commands\Config\IwyuBooleanConfigSetting.cs~RF2d2c3a13.TMP" />
+		<None Remove="Commands\Internal\CMakeUbaServer\CMakeUba.proto" />
+		<None Remove="Commands\Internal\RunRemoteHost\RemoteHostApi.proto" />
+		<None Remove="Commands\Internal\TestGrpcPipes\TestPipes.proto" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="KubernetesClient.Aot" />
-    <PackageReference Include="Microsoft.Extensions.Logging" />
-    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj" />
-    <PackageReference Include="Grpc.Tools">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Crayon" />
+	<ItemGroup>
+		<PackageReference Include="KubernetesClient.Aot" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" />
+		<PackageReference Include="Microsoft.Extensions.Logging" />
+		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj" />
+		<PackageReference Include="Grpc.Tools">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Crayon" />
 
-    <!-- Necessary to use a newer version of YamlDotNet for KubernetesClient.Aot. -->
-    <PackageReference Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" />
-    <PackageReference Include="YamlDotNet" />
-  </ItemGroup>
+		<!-- Necessary to use a newer version of YamlDotNet for KubernetesClient.Aot. -->
+		<PackageReference Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" />
+		<PackageReference Include="YamlDotNet" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.B2Net\Redpoint.ThirdParty.B2Net.csproj" />
-    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
-    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.WinFsp\Redpoint.ThirdParty.WinFsp.csproj" />
-    <ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />
-    <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
-    <ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />
-    <ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
-    <ProjectReference Include="..\Redpoint.Pdu.Abstractions\Redpoint.Pdu.Abstractions.csproj" />
-    <ProjectReference Include="..\Redpoint.Pdu.CyberPower\Redpoint.Pdu.CyberPower.csproj" />
-    <ProjectReference Include="..\Redpoint.Pdu.Serveredge\Redpoint.Pdu.Serveredge.csproj" />
-    <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
-    <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
-    <ProjectReference Include="..\Redpoint.Tasks\Redpoint.Tasks.csproj" />
-    <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
-    <ProjectReference Include="..\Redpoint.Rfs.WinFsp\Redpoint.Rfs.WinFsp.csproj" />
-    <ProjectReference Include="..\Redpoint.ServiceControl\Redpoint.ServiceControl.csproj" />
-    <ProjectReference Include="..\Redpoint.Uba\Redpoint.Uba.csproj" />
-    <ProjectReference Include="..\Redpoint.Uefs.Commands\Redpoint.Uefs.Commands.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.Automation\Redpoint.Uet.Automation.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.BuildServer\Redpoint.Uet.BuildPipeline.Executors.BuildServer.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.GitLab\Redpoint.Uet.BuildPipeline.Executors.GitLab.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.Jenkins\Redpoint.Uet.BuildPipeline.Executors.Jenkins.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.Local\Redpoint.Uet.BuildPipeline.Executors.Local.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Deployment\Redpoint.Uet.BuildPipeline.Providers.Deployment.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Prepare\Redpoint.Uet.BuildPipeline.Providers.Prepare.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Test\Redpoint.Uet.BuildPipeline.Providers.Test.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.BuildPipeline\Redpoint.Uet.BuildPipeline.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.Configuration\Redpoint.Uet.Configuration.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.Core\Redpoint.Uet.Core.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.SdkManagement\Redpoint.Uet.SdkManagement.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.Uat\Redpoint.Uet.Uat.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.Workspace\Redpoint.Uet.Workspace.csproj" />
-    <ProjectReference Include="..\Redpoint.Unreal.Serialization\Redpoint.Unreal.Serialization.csproj" />
-    <ProjectReference Include="..\Redpoint.Unreal.TcpMessaging\Redpoint.Unreal.TcpMessaging.csproj" />
-    <ProjectReference Include="..\Redpoint.Windows.HandleManagement\Redpoint.Windows.HandleManagement.csproj" />
-    <ProjectReference Include="..\Redpoint.Windows.VolumeManagement\Redpoint.Windows.VolumeManagement.csproj" />
-    <ProjectReference Include="..\Redpoint.AutoDiscovery\Redpoint.AutoDiscovery.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.B2Net\Redpoint.ThirdParty.B2Net.csproj" />
+		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
+		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.WinFsp\Redpoint.ThirdParty.WinFsp.csproj" />
+		<ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />
+		<ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
+		<ProjectReference Include="..\Redpoint.KubernetesManager\Redpoint.KubernetesManager.csproj" />
+		<ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />
+		<ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
+		<ProjectReference Include="..\Redpoint.Pdu.Abstractions\Redpoint.Pdu.Abstractions.csproj" />
+		<ProjectReference Include="..\Redpoint.Pdu.CyberPower\Redpoint.Pdu.CyberPower.csproj" />
+		<ProjectReference Include="..\Redpoint.Pdu.Serveredge\Redpoint.Pdu.Serveredge.csproj" />
+		<ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+		<ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
+		<ProjectReference Include="..\Redpoint.Tasks\Redpoint.Tasks.csproj" />
+		<ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
+		<ProjectReference Include="..\Redpoint.Rfs.WinFsp\Redpoint.Rfs.WinFsp.csproj" />
+		<ProjectReference Include="..\Redpoint.ServiceControl\Redpoint.ServiceControl.csproj" />
+		<ProjectReference Include="..\Redpoint.Uba\Redpoint.Uba.csproj" />
+		<ProjectReference Include="..\Redpoint.Uefs.Commands\Redpoint.Uefs.Commands.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.Automation\Redpoint.Uet.Automation.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.BuildServer\Redpoint.Uet.BuildPipeline.Executors.BuildServer.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.GitLab\Redpoint.Uet.BuildPipeline.Executors.GitLab.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.Jenkins\Redpoint.Uet.BuildPipeline.Executors.Jenkins.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Executors.Local\Redpoint.Uet.BuildPipeline.Executors.Local.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Deployment\Redpoint.Uet.BuildPipeline.Providers.Deployment.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Prepare\Redpoint.Uet.BuildPipeline.Providers.Prepare.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.BuildPipeline.Providers.Test\Redpoint.Uet.BuildPipeline.Providers.Test.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.BuildPipeline\Redpoint.Uet.BuildPipeline.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.Configuration\Redpoint.Uet.Configuration.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.Core\Redpoint.Uet.Core.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.SdkManagement\Redpoint.Uet.SdkManagement.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.Uat\Redpoint.Uet.Uat.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.Workspace\Redpoint.Uet.Workspace.csproj" />
+		<ProjectReference Include="..\Redpoint.Unreal.Serialization\Redpoint.Unreal.Serialization.csproj" />
+		<ProjectReference Include="..\Redpoint.Unreal.TcpMessaging\Redpoint.Unreal.TcpMessaging.csproj" />
+		<ProjectReference Include="..\Redpoint.Windows.HandleManagement\Redpoint.Windows.HandleManagement.csproj" />
+		<ProjectReference Include="..\Redpoint.Windows.VolumeManagement\Redpoint.Windows.VolumeManagement.csproj" />
+		<ProjectReference Include="..\Redpoint.AutoDiscovery\Redpoint.AutoDiscovery.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\win-x64\publish\uet.exe" Condition="'$(RuntimeIdentifier)' != 'win-x64' and '$(EmbeddingCrossPlatform)' == 'true' and Exists('$(ProjectDir)bin\$(Configuration)\$(TargetFramework)\win-x64\publish\uet.exe')">
-      <Link>Embedded\win-x64\uet.exe</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\osx-arm64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'osx-arm64' and '$(EmbeddingCrossPlatform)' == 'true' and Exists('$(ProjectDir)bin\$(Configuration)\$(TargetFramework)\osx-arm64\publish\uet')">
-      <Link>Embedded\osx-arm64\uet</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'linux-x64' and '$(EmbeddingCrossPlatform)' == 'true' and Exists('$(ProjectDir)bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\uet')">
-      <Link>Embedded\linux-x64\uet</Link>
-    </EmbeddedResource>
-  </ItemGroup>
+	<ItemGroup>
+		<EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\win-x64\publish\uet.exe" Condition="'$(RuntimeIdentifier)' != 'win-x64' and '$(EmbeddingCrossPlatform)' == 'true' and Exists('$(ProjectDir)bin\$(Configuration)\$(TargetFramework)\win-x64\publish\uet.exe')">
+			<Link>Embedded\win-x64\uet.exe</Link>
+		</EmbeddedResource>
+		<EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\osx-arm64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'osx-arm64' and '$(EmbeddingCrossPlatform)' == 'true' and Exists('$(ProjectDir)bin\$(Configuration)\$(TargetFramework)\osx-arm64\publish\uet')">
+			<Link>Embedded\osx-arm64\uet</Link>
+		</EmbeddedResource>
+		<EmbeddedResource Include="bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\uet" Condition="'$(RuntimeIdentifier)' != 'linux-x64' and '$(EmbeddingCrossPlatform)' == 'true' and Exists('$(ProjectDir)bin\$(Configuration)\$(TargetFramework)\linux-x64\publish\uet')">
+			<Link>Embedded\linux-x64\uet</Link>
+		</EmbeddedResource>
+	</ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="..\Redpoint.Uet.Configuration\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.Configuration.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.Configuration.xml" />
-    <EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Deployment\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Deployment.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Deployment.xml" />
-    <EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Test\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Test.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Test.xml" />
-    <EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Prepare\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Prepare.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Prepare.xml" />
-    <EmbeddedResource Include="Commands\AppleCert\AppleWWDRCA.cer" />
-    <EmbeddedResource Include="Commands\AppleCert\AppleWWDRCAG3.cer" />
-    <EmbeddedResource Include="Commands\AppleCert\AppleWWDRCAG4.cer" />
-    <EmbeddedResource Include="Commands\AppleCert\DeveloperIDG2CA.cer" />
-  </ItemGroup>
+	<ItemGroup>
+		<EmbeddedResource Include="..\Redpoint.Uet.Configuration\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.Configuration.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.Configuration.xml" />
+		<EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Deployment\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Deployment.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Deployment.xml" />
+		<EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Test\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Test.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Test.xml" />
+		<EmbeddedResource Include="..\Redpoint.Uet.BuildPipeline.Providers.Prepare\bin\$(Configuration)\$(TargetFramework)\Redpoint.Uet.BuildPipeline.Providers.Prepare.xml" Link="Commands\Internal\GenerateJsonSchema\Redpoint.Uet.BuildPipeline.Providers.Prepare.xml" />
+		<EmbeddedResource Include="Commands\AppleCert\AppleWWDRCA.cer" />
+		<EmbeddedResource Include="Commands\AppleCert\AppleWWDRCAG3.cer" />
+		<EmbeddedResource Include="Commands\AppleCert\AppleWWDRCAG4.cer" />
+		<EmbeddedResource Include="Commands\AppleCert\DeveloperIDG2CA.cer" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Protobuf Include="Commands\Internal\CMakeUbaServer\CMakeUba.proto" GrpcServices="Both" />
-    <Protobuf Include="Commands\Internal\RunRemoteHost\RemoteHostApi.proto" GrpcServices="Both" />
-    <Protobuf Include="Commands\Internal\TestGrpcPipes\TestPipes.proto">
-      <GrpcServices>Both</GrpcServices>
-    </Protobuf>
-  </ItemGroup>
+	<ItemGroup>
+		<Protobuf Include="Commands\Internal\CMakeUbaServer\CMakeUba.proto" GrpcServices="Both" />
+		<Protobuf Include="Commands\Internal\RunRemoteHost\RemoteHostApi.proto" GrpcServices="Both" />
+		<Protobuf Include="Commands\Internal\TestGrpcPipes\TestPipes.proto">
+			<GrpcServices>Both</GrpcServices>
+		</Protobuf>
+	</ItemGroup>
 
-  <Target Name="PublishAllRids">
-    <ItemGroup>
-      <RuntimeIdentifierForPublish Include="$(RuntimeIdentifiers)" />
-      <ProjectToPublish Include="@(RuntimeIdentifierForPublish->'$(MSBuildProjectFullPath)')">
-        <AdditionalProperties>RuntimeIdentifier=%(RuntimeIdentifierForPublish.Identity)</AdditionalProperties>
-      </ProjectToPublish>
-      <ProjectToPublishWithEmbedding Include="@(RuntimeIdentifierForPublish->'$(MSBuildProjectFullPath)')">
-        <AdditionalProperties>RuntimeIdentifier=%(RuntimeIdentifierForPublish.Identity);EmbeddingCrossPlatform=true</AdditionalProperties>
-      </ProjectToPublishWithEmbedding>
-    </ItemGroup>
-    <MSBuild Projects="@(ProjectToPublish)" Targets="Publish" BuildInParallel="true" />
-    <MSBuild Projects="@(ProjectToPublishWithEmbedding)" Targets="Publish" BuildInParallel="true" />
-  </Target>
+	<Target Name="PublishAllRids">
+		<ItemGroup>
+			<RuntimeIdentifierForPublish Include="$(RuntimeIdentifiers)" />
+			<ProjectToPublish Include="@(RuntimeIdentifierForPublish->'$(MSBuildProjectFullPath)')">
+				<AdditionalProperties>RuntimeIdentifier=%(RuntimeIdentifierForPublish.Identity)</AdditionalProperties>
+			</ProjectToPublish>
+			<ProjectToPublishWithEmbedding Include="@(RuntimeIdentifierForPublish->'$(MSBuildProjectFullPath)')">
+				<AdditionalProperties>RuntimeIdentifier=%(RuntimeIdentifierForPublish.Identity);EmbeddingCrossPlatform=true</AdditionalProperties>
+			</ProjectToPublishWithEmbedding>
+		</ItemGroup>
+		<MSBuild Projects="@(ProjectToPublish)" Targets="Publish" BuildInParallel="true" />
+		<MSBuild Projects="@(ProjectToPublishWithEmbedding)" Targets="Publish" BuildInParallel="true" />
+	</Target>
 
 </Project>
