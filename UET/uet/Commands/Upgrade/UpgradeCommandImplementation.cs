@@ -5,6 +5,7 @@
     using Redpoint.Uet.CommonPaths;
     using System;
     using System.Linq;
+    using System.Runtime.InteropServices;
     using System.Text.Encodings.Web;
     using System.Text.Json;
     using System.Text.Json.Nodes;
@@ -34,6 +35,10 @@
                 throw new PlatformNotSupportedException();
             }
         }
+
+        [DllImport("libc")]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        public static extern uint getuid();
 
         internal static async Task<int> PerformUpgradeAsync(
             IProgressFactory progressFactory,
@@ -97,34 +102,40 @@
             // latest at startup so it can re-invoke if necessary.
             LastInstalledVersion = version;
 
-            if (OperatingSystem.IsLinux() && !Directory.Exists(baseFolder))
+            if (OperatingSystem.IsLinux() && !Directory.Exists(baseFolder) && getuid() != 0)
             {
-                logger.LogWarning($"On Linux, creating the initial '{baseFolder}' directory requires root privileges. This operation may fail if you have not run it as 'sudo uet upgrade'.");
+                logger.LogError($"On Linux, creating the initial '{baseFolder}' directory requires root privileges. This operation may fail if you have not run it as 'sudo uet upgrade'.");
+                return 1;
             }
 
-            Directory.CreateDirectory(baseFolder);
-            if (OperatingSystem.IsLinux())
+            void CreateDirectoryWorldWritable(string directory)
             {
-                // On Linux, we must make /opt/UET world-writable so it can be upgraded as users.
-                try
+                Directory.CreateDirectory(directory);
+                if (OperatingSystem.IsLinux())
                 {
-                    File.SetUnixFileMode(
-                        baseFolder,
-                        UnixFileMode.UserRead |
-                        UnixFileMode.UserWrite |
-                        UnixFileMode.UserExecute |
-                        UnixFileMode.GroupRead |
-                        UnixFileMode.GroupWrite |
-                        UnixFileMode.GroupExecute |
-                        UnixFileMode.OtherRead |
-                        UnixFileMode.OtherWrite |
-                        UnixFileMode.OtherExecute);
-                }
-                catch
-                {
+                    // On Linux, we must make /opt/UET world-writable so it can be upgraded as users.
+                    try
+                    {
+                        File.SetUnixFileMode(
+                            directory,
+                            UnixFileMode.UserRead |
+                            UnixFileMode.UserWrite |
+                            UnixFileMode.UserExecute |
+                            UnixFileMode.GroupRead |
+                            UnixFileMode.GroupWrite |
+                            UnixFileMode.GroupExecute |
+                            UnixFileMode.OtherRead |
+                            UnixFileMode.OtherWrite |
+                            UnixFileMode.OtherExecute);
+                    }
+                    catch
+                    {
+                    }
                 }
             }
-            Directory.CreateDirectory(Path.Combine(baseFolder, version));
+
+            CreateDirectoryWorldWritable(baseFolder);
+            CreateDirectoryWorldWritable(Path.Combine(baseFolder, version));
 
             if (!File.Exists(Path.Combine(baseFolder, version, filename)))
             {
@@ -188,7 +199,15 @@
                 {
                     File.SetUnixFileMode(
                         Path.Combine(baseFolder, version, filename),
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute | UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute | UnixFileMode.OtherRead);
+                        UnixFileMode.UserRead |
+                        UnixFileMode.UserWrite |
+                        UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead |
+                        UnixFileMode.GroupWrite |
+                        UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead |
+                        UnixFileMode.OtherWrite |
+                        UnixFileMode.OtherExecute);
                 }
 
                 if (doNotSetAsCurrent)
@@ -300,20 +319,27 @@
                 var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                 var pathLine = $@"PATH=""{Path.Combine(baseFolder, "Current")}:$PATH""";
                 var updated = false;
-                var profileFiles = new List<string> { ".bash_profile", ".profile" };
+                var profileFiles = new List<string>
+                {
+                    Path.Combine(home, ".bash_profile"),
+                    Path.Combine(home, ".profile"),
+                };
                 if (OperatingSystem.IsMacOS())
                 {
-                    profileFiles.Add(".zprofile");
+                    profileFiles.Add(Path.Combine(home, ".zprofile"));
                 }
-                foreach (var profileName in profileFiles)
+                if (OperatingSystem.IsLinux() && getuid() == 0)
                 {
-                    var profilePath = Path.Combine(home, profileName);
+                    profileFiles.Add("/etc/profile");
+                }
+                foreach (var profilePath in profileFiles)
+                {
                     if (File.Exists(profilePath))
                     {
                         var lines = (await File.ReadAllLinesAsync(profilePath, cancellationToken).ConfigureAwait(false)).ToList();
                         if (!lines.Contains(pathLine))
                         {
-                            logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to your {profileName}...");
+                            logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to '{profilePath}'...");
                             lines.Add(pathLine);
                             await File.WriteAllLinesAsync(profilePath, lines, cancellationToken).ConfigureAwait(false);
                             updated = true;
@@ -323,6 +349,25 @@
                 if (updated)
                 {
                     logger.LogInformation($"Your shell profile has been updated to add {Path.Combine(baseFolder, "Current")} to your PATH. You may need to restart your terminal for the changes to take effect.");
+                }
+
+                if (OperatingSystem.IsLinux() && getuid() == 0)
+                {
+                    // On Linux, 'sudo uet ...' results in sudo resetting the PATH, so our modifications to .profile and /etc/profile have no effect
+                    // for sudo invocations. If we are root, add a symbolic link to /usr/bin to avoid this.
+                    var linkSource = "/usr/bin/uet";
+                    if (!File.Exists(linkSource))
+                    {
+                        logger.LogInformation($"Creating a symbolic link at {linkSource} to point at the latest version of UET...");
+                        try
+                        {
+                            File.CreateSymbolicLink(linkSource, Path.Combine(baseFolder, "Current", filename));
+                        }
+                        catch
+                        {
+                            logger.LogWarning($"Unable to create a symbolic link from {linkSource} to the current version of UET. Running 'sudo uet ...' may not work.");
+                        }
+                    }
                 }
             }
 
