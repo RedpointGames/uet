@@ -21,6 +21,10 @@
             {
                 services.AddSingleton<IPackageManager, HomebrewPackageManager>();
             }
+            else if (OperatingSystem.IsLinux() && (File.Exists("/usr/bin/apt-get") || File.Exists("/bin/apt-get")))
+            {
+                services.AddSingleton<IPackageManager, AptPackageManager>();
+            }
             else
             {
                 services.AddSingleton<IPackageManager, NullPackageManager>();
