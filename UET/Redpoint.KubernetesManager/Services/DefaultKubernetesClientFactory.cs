@@ -23,8 +23,8 @@
             {
                 try
                 {
-                    var code = await kubernetes.Version.GetCodeAsync(cancellationToken);
-                    _logger.LogInformation($"Connected to API server, Kubernetes is running version: {code.Major}.{code.Minor}");
+                    var code = await kubernetes.CoreV1.ListNamespaceAsync(cancellationToken: cancellationToken);
+                    // _logger.LogInformation($"Connected to API server, Kubernetes is running version: {code.Major}.{code.Minor}");
                     return kubernetes;
                 }
                 catch (HttpRequestException ex)
