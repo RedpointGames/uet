@@ -47,8 +47,7 @@ namespace UET.Commands.Cluster
 
                 The file located at {activeFile} determines the current active installation. If that file does not exist, RKM will set up a new installation. You can use this file to switch between RKM installations by stopping the service, editing the contents of the file, and then starting the service again.
                 
-                You can always uninstall all Kubernetes state by stopping the service and then
-                removing everything underneath {rootDirectory}.
+                You can always uninstall all Kubernetes state by stopping the service and then removing everything underneath {rootDirectory}.
                 """;
             command.AddCommand(ClusterStartCommand.CreateClusterStartCommand());
             command.AddCommand(ClusterStopCommand.CreateClusterStopCommand());
