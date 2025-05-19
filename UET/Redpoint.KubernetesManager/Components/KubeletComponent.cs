@@ -22,6 +22,7 @@
         private readonly IClusterNetworkingConfiguration _clusterNetworkingConfiguration;
         private readonly IKubeConfigManager _kubeConfigManager;
         private readonly ILocalEthernetInfo _localEthernetInfo;
+        private readonly IRkmGlobalRootProvider _rkmGlobalRootProvider;
 
         public KubeletComponent(
             ILogger<KubeletComponent> logger,
@@ -31,7 +32,8 @@
             ICertificateManager certificateManager,
             IClusterNetworkingConfiguration clusterNetworkingConfiguration,
             IKubeConfigManager kubeConfigManager,
-            ILocalEthernetInfo localEthernetInfo)
+            ILocalEthernetInfo localEthernetInfo,
+            IRkmGlobalRootProvider rkmGlobalRootProvider)
         {
             _logger = logger;
             _resourceManager = resourceManager;
@@ -41,6 +43,7 @@
             _clusterNetworkingConfiguration = clusterNetworkingConfiguration;
             _kubeConfigManager = kubeConfigManager;
             _localEthernetInfo = localEthernetInfo;
+            _rkmGlobalRootProvider = rkmGlobalRootProvider;
         }
 
         public void RegisterSignals(IRegistrationContext context)
@@ -116,7 +119,9 @@
                     $"--kubeconfig={_kubeConfigManager.GetKubeconfigPath("nodes", $"node-{nodeName}")}",
                     $"--root-dir={Path.Combine(_pathProvider.RKMRoot, "kubernetes-node", "state")}",
                     $"--cert-dir={Path.Combine(_pathProvider.RKMRoot, "kubernetes-node", "state", "pki")}",
-                    $"--v=2"
+                    $"--v=2",
+                    "--node-labels",
+                    $"rkm.redpoint.games/auto-upgrade-enabled={(File.Exists(Path.Combine(_rkmGlobalRootProvider.RkmGlobalRoot, "service-auto-upgrade")) ? "true" : "false")}",
                 },
                 afterStart: async (cancellationToken) =>
                 {
