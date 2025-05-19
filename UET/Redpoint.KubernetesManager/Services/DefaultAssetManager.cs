@@ -62,6 +62,8 @@
                 return;
             }
 
+            var anyFailures = false;
+
             if (assetsFilename.EndsWith(".tar.gz", StringComparison.Ordinal))
             {
                 using var archive = new FileStream(assetsFilename, FileMode.Open, FileAccess.Read);
@@ -85,7 +87,15 @@
                     {
                         _logger.LogInformation($"Extracting: {entryName}");
                         await entry.ExtractToFileAsync(Path.Combine(target, entryName + ".tmp"), overwrite: true, cancellationToken);
-                        File.Move(Path.Combine(target, entryName + ".tmp"), Path.Combine(target, entryName), true);
+                        try
+                        {
+                            File.Move(Path.Combine(target, entryName + ".tmp"), Path.Combine(target, entryName), true);
+                        }
+                        catch (UnauthorizedAccessException) when (File.Exists(Path.Combine(target, entryName)))
+                        {
+                            _logger.LogWarning($"Unable to overwrite existing file: {Path.Combine(target, entryName)}");
+                            anyFailures = true;
+                        }
                     }
                 }
             }
@@ -118,7 +128,15 @@
 #pragma warning disable CA5389
                         entry.ExtractToFile(Path.Combine(target, entryName + ".tmp"), true);
 #pragma warning restore CA5389
-                        File.Move(Path.Combine(target, entryName + ".tmp"), Path.Combine(target, entryName), true);
+                        try
+                        {
+                            File.Move(Path.Combine(target, entryName + ".tmp"), Path.Combine(target, entryName), true);
+                        }
+                        catch (UnauthorizedAccessException) when (File.Exists(Path.Combine(target, entryName)))
+                        {
+                            _logger.LogWarning($"Unable to overwrite existing file: {Path.Combine(target, entryName)}");
+                            anyFailures = true;
+                        }
                         cancellationToken.ThrowIfCancellationRequested();
                     }
                 }
@@ -128,7 +146,11 @@
                 throw new NotImplementedException($"Encountered archive with unknown extension: {assetsFilename}");
             }
 
-            await File.WriteAllTextAsync(Path.Combine(target, ".rkm-flag"), _pathProvider.RKMVersion);
+            // Only set the .rkm-flag if everything extracted successfully.
+            if (!anyFailures)
+            {
+                await File.WriteAllTextAsync(Path.Combine(target, ".rkm-flag"), _pathProvider.RKMVersion);
+            }
             _logger.LogInformation($"Asset {assetsFilename} has been extracted to {target}.");
         }
     }
