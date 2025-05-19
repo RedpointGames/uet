@@ -15,7 +15,7 @@ namespace Redpoint.KubernetesManager.Services
         private const string _calicoVersion = "3.25.0";
         private const string _cniPluginsVersion = "0.8.7";
         private const string _cniSdnNetworkingVersion = "0.2.0";
-        private const string _coreDnsVersion = "1.10.1";
+        private const string _helmVersion = "3.17.3";
 
         private readonly Dictionary<string, string> _kv = new Dictionary<string, string>
         {
@@ -36,7 +36,7 @@ namespace Redpoint.KubernetesManager.Services
             { "CalicoCtl:Linux", $"https://github.com/projectcalico/calico/releases/download/v{_calicoVersion}/calicoctl-linux-amd64" },
             { "CalicoCtl:Windows", $"https://github.com/projectcalico/calico/releases/download/v{_calicoVersion}/calicoctl-windows-amd64.exe" },
             { "UbuntuWSL:Windows", $"https://wslstorestorage.blob.core.windows.net/wslblob/CanonicalGroupLimited.UbuntuonWindows_2004.2021.825.0.AppxBundle" },
-            { "CoreDNS:Windows", $"https://github.com/coredns/coredns/releases/download/v{_coreDnsVersion}/coredns_{_coreDnsVersion}_windows_amd64.tgz" },
+            { "Helm:Linux", $"https://get.helm.sh/helm-v{_helmVersion}-linux-amd64.tar.gz" },
         };
 
         public string this[string key]

@@ -54,6 +54,7 @@
                     await _assetManager.EnsureAsset("RKM:Downloads:KubernetesServer:Linux", "kubernetes-server.tar.gz", stoppingToken);
                     await _assetManager.EnsureAsset("RKM:Downloads:Etcd:Linux", "etcd.tar.gz", stoppingToken);
                     await _assetManager.EnsureAsset("RKM:Downloads:CalicoCtl:Linux", "calicoctl", stoppingToken);
+                    await _assetManager.EnsureAsset("RKM:Downloads:Helm:Linux", "helm.tar.gz", stoppingToken);
                 }
 
                 // Extract the assets.
@@ -79,7 +80,9 @@
                 {
                     await _assetManager.ExtractAsset("kubernetes-server.tar.gz", Path.Combine(_pathProvider.RKMRoot, "kubernetes-server"), stoppingToken);
                     await _assetManager.ExtractAsset("etcd.tar.gz", Path.Combine(_pathProvider.RKMRoot, "etcd"), stoppingToken, "etcd-v3.5.7-linux-amd64");
+                    await _assetManager.ExtractAsset("helm.tar.gz", Path.Combine(_pathProvider.RKMRoot, "helm"), stoppingToken, "linux-amd64");
                     chmod(Path.Combine(_pathProvider.RKMRoot, "assets", _pathProvider.RKMVersion, "calicoctl"), 0x100 | 0x80 | 0x40 | 0x20 | 0x8 | 0x4 | 0x1);
+                    chmod(Path.Combine(_pathProvider.RKMRoot, "assets", _pathProvider.RKMVersion, "helm", "helm"), 0x100 | 0x80 | 0x40 | 0x20 | 0x8 | 0x4 | 0x1);
                 }
 
                 // On the controller, set up easy kubectl and calicoctl wrappers that the user can use

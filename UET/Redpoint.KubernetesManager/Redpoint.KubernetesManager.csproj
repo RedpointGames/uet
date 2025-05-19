@@ -14,7 +14,6 @@
 		<None Remove="cni.conf.template" />
 		<None Remove="containerd-config-linux.toml" />
 		<None Remove="containerd-config-windows.toml" />
-		<None Remove="coredns.yaml" />
 		<None Remove="Corefile-windows" />
 		<None Remove="kube-proxy-config-linux.yaml" />
 		<None Remove="kube-proxy-config-windows.yaml" />
@@ -26,7 +25,6 @@
 		<EmbeddedResource Include="calico.yaml" />
 		<EmbeddedResource Include="cni.conf.template" />
 		<EmbeddedResource Include="Corefile-windows" />
-		<EmbeddedResource Include="coredns.yaml" />
 		<EmbeddedResource Include="kube-proxy-config-windows.yaml" />
 		<EmbeddedResource Include="kube-proxy-config-linux.yaml" />
 		<EmbeddedResource Include="kubelet-config-windows.yaml" />
