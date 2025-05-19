@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging.Configuration;
 using Microsoft.Extensions.Logging.EventLog;
 using Redpoint.Concurrency;
 using Redpoint.KubernetesManager;
+using Redpoint.KubernetesManager.Services;
 using Redpoint.ProgressMonitor;
 using System;
 using System.Collections.Generic;
@@ -14,6 +15,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
@@ -114,6 +116,7 @@ namespace UET.Commands.Internal.Rkm
             private readonly RkmHostApplicationLifetime _hostApplicationLifetime;
             private readonly IProgressFactory _progressFactory;
             private readonly IMonitorFactory _monitorFactory;
+            private readonly IRkmGlobalRootProvider _rkmGlobalRootProvider;
             private readonly IReadOnlyList<IHostedService> _hostedServices;
             private readonly IHostLifetime? _hostLifetime;
 
@@ -124,6 +127,7 @@ namespace UET.Commands.Internal.Rkm
                 RkmHostApplicationLifetime hostApplicationLifetime,
                 IProgressFactory progressFactory,
                 IMonitorFactory monitorFactory,
+                IRkmGlobalRootProvider rkmGlobalRootProvider,
                 IHostLifetime? hostLifetime = null)
             {
                 _logger = logger;
@@ -131,31 +135,59 @@ namespace UET.Commands.Internal.Rkm
                 _hostApplicationLifetime = hostApplicationLifetime;
                 _progressFactory = progressFactory;
                 _monitorFactory = monitorFactory;
+                _rkmGlobalRootProvider = rkmGlobalRootProvider;
                 _hostedServices = hostedServices.ToList();
                 _hostLifetime = hostLifetime;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
-                _logger.LogInformation("RKM is checking for UET updates, and upgrading UET if necessary...");
-
-                try
+                if (File.Exists(Path.Combine(_rkmGlobalRootProvider.RkmGlobalRoot, "service-auto-upgrade")))
                 {
-                    var upgradeResult = await UpgradeCommandImplementation.PerformUpgradeAsync(
-                        _progressFactory,
-                        _monitorFactory,
-                        _logger,
-                        string.Empty,
-                        true,
-                        context.GetCancellationToken()).ConfigureAwait(false);
-                    if (upgradeResult.CurrentVersionWasChanged)
+                    try
                     {
-                        _logger.LogInformation("UET has been upgraded and the version currently executing is no longer the latest version. RKM will now exit and expects the service manager (such as systemd) to automatically start it RKM as the new version.");
-                        return 0;
+                        var lastCheck = DateTimeOffset.MinValue;
+                        var lastCheckFile = Path.Combine(_rkmGlobalRootProvider.RkmGlobalRoot, "service-auto-upgrade-last-check");
+                        try
+                        {
+                            lastCheck = DateTimeOffset.FromUnixTimeSeconds(long.Parse(File.ReadAllText(lastCheckFile).Trim(), CultureInfo.InvariantCulture));
+                        }
+                        catch
+                        {
+                        }
+
+                        // Prevent us from running checks against GitHub too rapidly.
+                        if (DateTimeOffset.UtcNow > lastCheck.AddMinutes(10))
+                        {
+                            _logger.LogInformation("RKM is checking for UET updates, and upgrading UET if necessary...");
+                            var upgradeResult = await UpgradeCommandImplementation.PerformUpgradeAsync(
+                                _progressFactory,
+                                _monitorFactory,
+                                _logger,
+                                string.Empty,
+                                true,
+                                context.GetCancellationToken()).ConfigureAwait(false);
+                            if (upgradeResult.CurrentVersionWasChanged)
+                            {
+                                _logger.LogInformation("UET has been upgraded and the version currently executing is no longer the latest version. RKM will now exit and expects the service manager (such as systemd) to automatically start it RKM as the new version.");
+                                return 0;
+                            }
+
+                            // Only update the last check file if we didn't upgrade; this helps us get to the latest version faster if multiple upgrades are required.
+                            File.WriteAllText(lastCheckFile, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture));
+                        }
+                        else
+                        {
+                            _logger.LogInformation("RKM already checked for UET upgrades in the last 10 minutes. Skipping automatic upgrade check.");
+                        }
+                    }
+                    catch
+                    {
                     }
                 }
-                catch
+                else
                 {
+                    _logger.LogInformation("RKM is not automatically checking for updates. Run 'uet cluster start --auto-upgrade' to enable automatic updates.");
                 }
 
                 _logger.LogInformation("RKM is starting...");

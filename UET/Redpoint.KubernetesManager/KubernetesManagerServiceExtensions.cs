@@ -43,6 +43,7 @@ namespace Redpoint.KubernetesManager
             services.AddSingleton<ICalicoKubeConfigGenerator, DefaultCalicoKubeConfigGenerator>();
             services.AddSingleton<IWslDistro, DefaultWslDistro>();
             services.AddSingleton<IWslTranslation, DefaultWslTranslation>();
+            services.AddSingleton<IRkmGlobalRootProvider, DefaultRkmGlobalRootProvider>();
 
             // Register controller-only components.
             services.AddSingleton<IComponent, CalicoProvisioningComponent>();
