@@ -10,14 +10,14 @@
     {
         private readonly ILogger<DefaultProcessKiller> _logger;
         private readonly IPathProvider _pathProvider;
-        private readonly IWslDistro _wslDistro;
-        private readonly IWindowsHcsService _hcsService;
+        private readonly IWslDistro? _wslDistro;
+        private readonly IWindowsHcsService? _hcsService;
 
         public DefaultProcessKiller(
             ILogger<DefaultProcessKiller> logger,
             IPathProvider pathProvider,
-            IWslDistro wslDistro,
-            IWindowsHcsService hcsService)
+            IWslDistro? wslDistro = null,
+            IWindowsHcsService? hcsService = null)
         {
             _logger = logger;
             _pathProvider = pathProvider;
@@ -74,7 +74,7 @@
 
             if (OperatingSystem.IsWindows())
             {
-                if (File.Exists(_wslDistro.WslPath))
+                if (File.Exists(_wslDistro!.WslPath))
                 {
                     _logger.LogInformation("Ensuring existing RKM processes inside WSL are not running...");
 
@@ -91,7 +91,7 @@
                     cancellationToken.ThrowIfCancellationRequested();
                 }
 
-                foreach (var computeSystem in _hcsService.GetHcsComputeSystems())
+                foreach (var computeSystem in _hcsService!.GetHcsComputeSystems())
                 {
                     if (computeSystem.SystemType == "Container")
                     {
