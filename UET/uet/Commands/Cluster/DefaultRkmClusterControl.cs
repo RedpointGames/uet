@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Redpoint.ServiceControl;
+using System.CommandLine.Invocation;
 using System.Diagnostics;
 using UET.Services;
 
@@ -24,10 +25,20 @@ namespace UET.Commands.Cluster
             _logger = logger;
         }
 
-        public async Task<int> CreateOrJoin(bool create)
+        public async Task<int> CreateOrJoin(InvocationContext context, ClusterOptions options)
         {
             // Set up arguments so that the background service knows whether to run as a controller or not.
-            var args = create ? ["--controller"] : Array.Empty<string>();
+            var controller = context.ParseResult.GetValueForOption(options.Controller);
+            var node = context.ParseResult.GetValueForOption(options.Node);
+            var args = Array.Empty<string>();
+            if (controller)
+            {
+                args = ["--controller"];
+            }
+            if (!string.IsNullOrWhiteSpace(node))
+            {
+                args = ["--node", node];
+            }
 
             if (OperatingSystem.IsWindows())
             {
