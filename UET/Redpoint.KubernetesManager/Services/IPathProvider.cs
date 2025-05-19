@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.Services
 {
-    internal interface IPathProvider
+    public interface IPathProvider
     {
         public string RKMRoot { get; }
 

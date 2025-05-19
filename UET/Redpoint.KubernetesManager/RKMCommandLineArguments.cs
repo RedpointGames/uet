@@ -1,31 +1,31 @@
 ﻿namespace Redpoint.KubernetesManager
 {
+    using Redpoint.KubernetesManager.Services;
     using Redpoint.Uet.Configuration;
 
     internal class RKMCommandLineArguments
     {
-        private readonly IGlobalArgsProvider _globalArgsProvider;
         private Lazy<string[]> _args;
 
         public string[] Arguments => _args.Value;
 
         public RKMCommandLineArguments(
-            IGlobalArgsProvider globalArgsProvider)
+            IGlobalArgsProvider globalArgsProvider,
+            IRkmGlobalRootProvider rkmGlobalRootProvider)
         {
-            _globalArgsProvider = globalArgsProvider;
             _args = new Lazy<string[]>(() =>
             {
-                var serviceArgsPath = OperatingSystem.IsWindows() ? @"C:\RKM\service-args" : "/opt/rkm/service-args";
+                var serviceArgsPath = Path.Combine(rkmGlobalRootProvider.RkmGlobalRoot, "service-args");
                 if (File.Exists(serviceArgsPath))
                 {
-                    var result = File.ReadAllLines(serviceArgsPath).Concat(_globalArgsProvider.GlobalArgsArray).ToArray();
+                    var result = File.ReadAllLines(serviceArgsPath).Concat(globalArgsProvider.GlobalArgsArray).ToArray();
                     // Once we use the service arguments once, delete it.
                     File.Delete(serviceArgsPath);
                     return result;
                 }
                 else
                 {
-                    return _globalArgsProvider.GlobalArgsArray.ToArray();
+                    return globalArgsProvider.GlobalArgsArray.ToArray();
                 }
             });
         }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Redpoint.KubernetesManager.Services;
 using Redpoint.ServiceControl;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -30,6 +31,7 @@ namespace UET.Commands.Cluster
             command.AddCommonHandler<ClusterStopCommandInstance>(options, services =>
             {
                 services.AddSingleton<IRkmClusterControl, DefaultRkmClusterControl>();
+                services.AddSingleton<IRkmGlobalRootProvider, DefaultRkmGlobalRootProvider>();
             });
             return command;
         }

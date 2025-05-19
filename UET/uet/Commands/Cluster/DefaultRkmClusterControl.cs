@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Redpoint.KubernetesManager.Services;
 using Redpoint.ServiceControl;
 using System.CommandLine.Invocation;
 using System.Diagnostics;
@@ -10,26 +11,34 @@ namespace UET.Commands.Cluster
     {
         private readonly IServiceControl _serviceControl;
         private readonly ISelfLocation _selfLocation;
+        private readonly IRkmGlobalRootProvider _rkmGlobalRootProvider;
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger<DefaultRkmClusterControl> _logger;
 
         public DefaultRkmClusterControl(
             IServiceControl serviceControl,
             ISelfLocation selfLocation,
+            IRkmGlobalRootProvider rkmGlobalRootProvider,
             ILoggerFactory loggerFactory,
             ILogger<DefaultRkmClusterControl> logger)
         {
             _serviceControl = serviceControl;
             _selfLocation = selfLocation;
+            _rkmGlobalRootProvider = rkmGlobalRootProvider;
             _loggerFactory = loggerFactory;
             _logger = logger;
         }
 
         public async Task<int> CreateOrJoin(InvocationContext context, ClusterOptions options)
         {
+            // Compute the base directory of all RKM installs.
+            Directory.CreateDirectory(_rkmGlobalRootProvider.RkmGlobalRoot);
+
             // Set up arguments so that the background service knows whether to run as a controller or not.
             var controller = context.ParseResult.GetValueForOption(options.Controller);
             var node = context.ParseResult.GetValueForOption(options.Node);
+            var autoUpgrade = context.ParseResult.GetValueForOption(options.AutoUpgrade);
+            var noAutoUpgrade = context.ParseResult.GetValueForOption(options.NoAutoUpgrade);
             var args = Array.Empty<string>();
             if (controller)
             {
@@ -39,16 +48,28 @@ namespace UET.Commands.Cluster
             {
                 args = ["--node", node];
             }
+            await File.WriteAllLinesAsync(Path.Combine(_rkmGlobalRootProvider.RkmGlobalRoot, "service-args"), args);
 
-            if (OperatingSystem.IsWindows())
+            // Toggle auto-upgrade feature by creating or deleting the service-auto-upgrade file.
+            if (autoUpgrade)
             {
-                Directory.CreateDirectory(@"C:\RKM");
-                await File.WriteAllLinesAsync(@"C:\RKM\service-args", args);
+                try
+                {
+                    File.WriteAllText(Path.Combine(_rkmGlobalRootProvider.RkmGlobalRoot, "service-auto-upgrade"), "on");
+                }
+                catch
+                {
+                }
             }
-            else
+            if (noAutoUpgrade)
             {
-                Directory.CreateDirectory(@"/opt/rkm");
-                await File.WriteAllLinesAsync(@"/opt/rkm/service-args", args);
+                try
+                {
+                    File.Delete(Path.Combine(_rkmGlobalRootProvider.RkmGlobalRoot, "service-auto-upgrade"));
+                }
+                catch
+                {
+                }
             }
 
             // Make sure the service is installed, up-to-date and started.

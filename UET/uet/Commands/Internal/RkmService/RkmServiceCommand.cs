@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging.Configuration;
 using Microsoft.Extensions.Logging.EventLog;
 using Redpoint.Concurrency;
 using Redpoint.KubernetesManager;
+using Redpoint.KubernetesManager.Services;
 using Redpoint.ProgressMonitor;
 using System;
 using System.Collections.Generic;
@@ -114,6 +115,7 @@ namespace UET.Commands.Internal.Rkm
             private readonly RkmHostApplicationLifetime _hostApplicationLifetime;
             private readonly IProgressFactory _progressFactory;
             private readonly IMonitorFactory _monitorFactory;
+            private readonly IRkmGlobalRootProvider _rkmGlobalRootProvider;
             private readonly IReadOnlyList<IHostedService> _hostedServices;
             private readonly IHostLifetime? _hostLifetime;
 
@@ -124,6 +126,7 @@ namespace UET.Commands.Internal.Rkm
                 RkmHostApplicationLifetime hostApplicationLifetime,
                 IProgressFactory progressFactory,
                 IMonitorFactory monitorFactory,
+                IRkmGlobalRootProvider rkmGlobalRootProvider,
                 IHostLifetime? hostLifetime = null)
             {
                 _logger = logger;
@@ -131,31 +134,38 @@ namespace UET.Commands.Internal.Rkm
                 _hostApplicationLifetime = hostApplicationLifetime;
                 _progressFactory = progressFactory;
                 _monitorFactory = monitorFactory;
+                _rkmGlobalRootProvider = rkmGlobalRootProvider;
                 _hostedServices = hostedServices.ToList();
                 _hostLifetime = hostLifetime;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
-                _logger.LogInformation("RKM is checking for UET updates, and upgrading UET if necessary...");
-
-                try
+                if (File.Exists(Path.Combine(_rkmGlobalRootProvider.RkmGlobalRoot, "service-auto-upgrade")))
                 {
-                    var upgradeResult = await UpgradeCommandImplementation.PerformUpgradeAsync(
-                        _progressFactory,
-                        _monitorFactory,
-                        _logger,
-                        string.Empty,
-                        true,
-                        context.GetCancellationToken()).ConfigureAwait(false);
-                    if (upgradeResult.CurrentVersionWasChanged)
+                    _logger.LogInformation("RKM is checking for UET updates, and upgrading UET if necessary...");
+                    try
                     {
-                        _logger.LogInformation("UET has been upgraded and the version currently executing is no longer the latest version. RKM will now exit and expects the service manager (such as systemd) to automatically start it RKM as the new version.");
-                        return 0;
+                        var upgradeResult = await UpgradeCommandImplementation.PerformUpgradeAsync(
+                            _progressFactory,
+                            _monitorFactory,
+                            _logger,
+                            string.Empty,
+                            true,
+                            context.GetCancellationToken()).ConfigureAwait(false);
+                        if (upgradeResult.CurrentVersionWasChanged)
+                        {
+                            _logger.LogInformation("UET has been upgraded and the version currently executing is no longer the latest version. RKM will now exit and expects the service manager (such as systemd) to automatically start it RKM as the new version.");
+                            return 0;
+                        }
+                    }
+                    catch
+                    {
                     }
                 }
-                catch
+                else
                 {
+                    _logger.LogInformation("RKM is not automatically checking for updates. Run 'uet cluster start --auto-upgrade' to enable automatic updates.");
                 }
 
                 _logger.LogInformation("RKM is starting...");

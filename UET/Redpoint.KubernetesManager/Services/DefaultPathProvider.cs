@@ -8,16 +8,19 @@
     {
         private readonly ILogger<DefaultPathProvider> _logger;
         private readonly IRkmVersionProvider _rkmVersionProvider;
+        private readonly IRkmGlobalRootProvider _rkmGlobalRootProvider;
         private readonly Lazy<string> _rkmRoot;
         private string? _rkmInstallationId;
         private readonly SemaphoreSlim _semaphoreSlim;
 
         public DefaultPathProvider(
             ILogger<DefaultPathProvider> logger,
-            IRkmVersionProvider rkmVersionProvider)
+            IRkmVersionProvider rkmVersionProvider,
+            IRkmGlobalRootProvider rkmGlobalRootProvider)
         {
             _logger = logger;
             _rkmVersionProvider = rkmVersionProvider;
+            _rkmGlobalRootProvider = rkmGlobalRootProvider;
             _rkmRoot = new Lazy<string>(EnsureRKMRootInternal);
             _semaphoreSlim = new SemaphoreSlim(1);
         }
@@ -32,17 +35,8 @@
             _semaphoreSlim.Wait();
             try
             {
-                string rkmRoot, rkmActiveFile;
-                if (OperatingSystem.IsWindows())
-                {
-                    rkmRoot = @"C:\RKM";
-                    rkmActiveFile = @"C:\RKM\active";
-                }
-                else
-                {
-                    rkmRoot = "/opt/rkm";
-                    rkmActiveFile = "/opt/rkm/active";
-                }
+                var rkmRoot = _rkmGlobalRootProvider.RkmGlobalRoot;
+                var rkmActiveFile = Path.Combine(_rkmGlobalRootProvider.RkmGlobalRoot, "active");
 
                 _logger.LogInformation("Ensuring that RKM base directory exists...");
                 Directory.CreateDirectory(rkmRoot);
