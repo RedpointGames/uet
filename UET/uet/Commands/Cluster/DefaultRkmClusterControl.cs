@@ -78,12 +78,12 @@ namespace UET.Commands.Cluster
             if (OperatingSystem.IsWindows())
             {
                 serviceName = "RKM";
-                executablePathAndArguments = $"{_selfLocation.GetUetLocalLocation()} internal rkm-service";
+                executablePathAndArguments = $"{_selfLocation.GetUetLocalLocation(true)} internal rkm-service";
             }
             else if (OperatingSystem.IsLinux())
             {
                 serviceName = "rkm";
-                executablePathAndArguments = $"\"{_selfLocation.GetUetLocalLocation()}\" internal rkm-service";
+                executablePathAndArguments = $"\"{_selfLocation.GetUetLocalLocation(true)}\" internal rkm-service";
             }
             else
             {
