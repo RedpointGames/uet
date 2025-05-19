@@ -60,7 +60,14 @@
             if (OperatingSystem.IsLinux())
             {
                 _logger.LogInformation("Ensuring conntrack is installed...");
-                await _packageManager.InstallOrUpgradePackageToLatestAsync("conntrack", cancellationToken);
+                try
+                {
+                    await _packageManager.InstallOrUpgradePackageToLatestAsync("conntrack", cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Unable to install conntrack package: {ex}");
+                }
             }
 
             _logger.LogInformation("Setting up kube-proxy configuration...");
