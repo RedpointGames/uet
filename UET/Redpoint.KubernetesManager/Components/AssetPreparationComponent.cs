@@ -68,7 +68,8 @@
                     Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "runc"));
                     File.Copy(
                         Path.Combine(_pathProvider.RKMRoot, "assets", _pathProvider.RKMVersion, "runc"),
-                        Path.Combine(_pathProvider.RKMRoot, "runc", "runc"));
+                        Path.Combine(_pathProvider.RKMRoot, "runc", "runc"),
+                        true);
                     chmod(Path.Combine(_pathProvider.RKMRoot, "runc", "runc"), 0x100 | 0x80 | 0x40 | 0x20 | 0x8 | 0x4 | 0x1);
                     File.WriteAllText(Path.Combine(_pathProvider.RKMRoot, "runc", "runc.version"), _pathProvider.RKMVersion);
                 }
@@ -185,7 +186,8 @@ exit $?
                         Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "wsl", "runc"));
                         File.Copy(
                             Path.Combine(_pathProvider.RKMRoot, "assets", _pathProvider.RKMVersion, "wsl-runc"),
-                            Path.Combine(_pathProvider.RKMRoot, "wsl", "runc", "runc"));
+                            Path.Combine(_pathProvider.RKMRoot, "wsl", "runc", "runc"),
+                            true);
                         File.WriteAllText(Path.Combine(_pathProvider.RKMRoot, "wsl", "runc", "runc.version"), _pathProvider.RKMVersion);
                     }
 
