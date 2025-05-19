@@ -21,7 +21,7 @@ namespace Redpoint.KubernetesManager.Services
         {
             { "KubernetesNode:Linux", $"https://dl.k8s.io/v{_kubernetesVersion}/kubernetes-node-linux-amd64.tar.gz" },
             { "KubernetesNode:Windows", $"https://dl.k8s.io/v{_kubernetesVersion}/kubernetes-node-windows-amd64.tar.gz" },
-            { "KubernetesServer:Windows", $"https://dl.k8s.io/v{_kubernetesVersion}/kubernetes-server-linux-amd64.tar.gz" },
+            { "KubernetesServer:Linux", $"https://dl.k8s.io/v{_kubernetesVersion}/kubernetes-server-linux-amd64.tar.gz" },
             { "Containerd:Linux", $"https://github.com/containerd/containerd/releases/download/v{_containerdVersion}/containerd-{_containerdVersion}-linux-amd64.tar.gz" },
             { "Containerd:Windows", $"https://github.com/containerd/containerd/releases/download/v{_containerdVersion}/containerd-{_containerdVersion}-windows-amd64.tar.gz" },
             // A temporary patched version of containerd that works on Windows 11 until the following pull request is
