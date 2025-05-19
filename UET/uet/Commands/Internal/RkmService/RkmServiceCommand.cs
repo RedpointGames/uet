@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging.Configuration;
 using Microsoft.Extensions.Logging.EventLog;
 using Redpoint.Concurrency;
 using Redpoint.KubernetesManager;
+using Redpoint.ProgressMonitor;
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
@@ -19,6 +20,7 @@ using System.Runtime.Versioning;
 using System.Text;
 using System.Threading.Tasks;
 using UET.Commands.Internal.RkmService;
+using UET.Commands.Upgrade;
 using UET.Services;
 
 namespace UET.Commands.Internal.Rkm
@@ -44,9 +46,6 @@ namespace UET.Commands.Internal.Rkm
                         {
                             options.ServiceName = "RKM";
                         });
-
-                        // @todo: This causes trim warnings!
-                        // LoggerProviderOptions.RegisterProviderOptions<EventLogSettings, EventLogLoggerProvider>(services);
                     }
                     services.AddKubernetesManager();
                     services.AddSingleton<IRkmVersionProvider, UetRkmVersionProvider>();
@@ -113,6 +112,8 @@ namespace UET.Commands.Internal.Rkm
             private readonly ILogger<RunRkmServiceCommandInstance> _logger;
             private readonly Options _options;
             private readonly RkmHostApplicationLifetime _hostApplicationLifetime;
+            private readonly IProgressFactory _progressFactory;
+            private readonly IMonitorFactory _monitorFactory;
             private readonly IReadOnlyList<IHostedService> _hostedServices;
             private readonly IHostLifetime? _hostLifetime;
 
@@ -121,17 +122,42 @@ namespace UET.Commands.Internal.Rkm
                 Options options,
                 IEnumerable<IHostedService> hostedServices,
                 RkmHostApplicationLifetime hostApplicationLifetime,
+                IProgressFactory progressFactory,
+                IMonitorFactory monitorFactory,
                 IHostLifetime? hostLifetime = null)
             {
                 _logger = logger;
                 _options = options;
                 _hostApplicationLifetime = hostApplicationLifetime;
+                _progressFactory = progressFactory;
+                _monitorFactory = monitorFactory;
                 _hostedServices = hostedServices.ToList();
                 _hostLifetime = hostLifetime;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
+                _logger.LogInformation("RKM is checking for UET updates, and upgrading UET if necessary...");
+
+                try
+                {
+                    var upgradeResult = await UpgradeCommandImplementation.PerformUpgradeAsync(
+                        _progressFactory,
+                        _monitorFactory,
+                        _logger,
+                        string.Empty,
+                        true,
+                        context.GetCancellationToken()).ConfigureAwait(false);
+                    if (upgradeResult.CurrentVersionWasChanged)
+                    {
+                        _logger.LogInformation("UET has been upgraded and the version currently executing is no longer the latest version. RKM will now exit and expects the service manager (such as systemd) to automatically start it RKM as the new version.");
+                        return 0;
+                    }
+                }
+                catch
+                {
+                }
+
                 _logger.LogInformation("RKM is starting...");
 
                 if (OperatingSystem.IsWindows() && WindowsServiceHelpers.IsWindowsService())
