@@ -11,7 +11,7 @@ namespace Redpoint.KubernetesManager.Services
         private const string _kubernetesVersion = "1.26.1";
         private const string _containerdVersion = "1.6.18";
         private const string _runcVersion = "1.3.0";
-        private const string _etcdVersion = "3.5.7";
+        private const string _etcdVersion = "3.6.0";
         private const string _calicoVersion = "3.25.0";
         private const string _cniPluginsVersion = "0.8.7";
         private const string _cniSdnNetworkingVersion = "0.2.0";
