@@ -6,40 +6,33 @@
     using Redpoint.KubernetesManager.Signalling.Data;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
+    using Redpoint.ProcessExecution;
 
     /// <summary>
-    /// The CoreDNS provisioning component installs or upgrades CoreDNS
-    /// in the cluster. It waits for the API server to be available
-    /// so that it can then run kubectl apply.
+    /// The CoreDNS provisioning component installs or upgrades CoreDNS in the cluster. It waits for the API server to be available so that it can then run Helm.
     /// 
     /// This component only runs on the controller.
     /// </summary>
     internal class CoreDNSProvisioningComponent : IComponent
     {
         private readonly ILogger<CoreDNSProvisioningComponent> _logger;
-        private readonly IResourceManager _resourceManager;
         private readonly IPathProvider _pathProvider;
         private readonly IClusterNetworkingConfiguration _clusterNetworkingConfiguration;
-        private readonly ILocalEthernetInfo _localEthernetInfo;
-        private readonly IProcessMonitorFactory _processMonitorFactory;
         private readonly IKubeConfigManager _kubeConfigManager;
+        private readonly IProcessExecutor _processExecutor;
 
         public CoreDNSProvisioningComponent(
             ILogger<CoreDNSProvisioningComponent> logger,
-            IResourceManager resourceManager,
             IPathProvider pathProvider,
             IClusterNetworkingConfiguration clusterNetworkingConfiguration,
-            ILocalEthernetInfo localEthernetInfo,
-            IProcessMonitorFactory processMonitorFactory,
-            IKubeConfigManager kubeConfigManager)
+            IKubeConfigManager kubeConfigManager,
+            IProcessExecutor processExecutor)
         {
             _logger = logger;
-            _resourceManager = resourceManager;
             _pathProvider = pathProvider;
             _clusterNetworkingConfiguration = clusterNetworkingConfiguration;
-            _localEthernetInfo = localEthernetInfo;
-            _processMonitorFactory = processMonitorFactory;
             _kubeConfigManager = kubeConfigManager;
+            _processExecutor = processExecutor;
         }
 
         public void RegisterSignals(IRegistrationContext context)
@@ -58,32 +51,51 @@
             var kubernetesContext = await context.WaitForFlagAsync<KubernetesClientContextData>(WellKnownFlags.KubeApiServerReady);
             var kubernetes = kubernetesContext.Kubernetes;
 
-            // Provision coredns via kubectl (applying a YAML file via the API is messy).
-            await _resourceManager.ExtractResource(
-                "coredns.yaml",
-                Path.Combine(_pathProvider.RKMRoot, "coredns", "coredns.yaml"),
-                new Dictionary<string, string>
-                {
-                    { "__CLUSTER_DOMAIN__", _clusterNetworkingConfiguration.ClusterDNSDomain },
-                    { "__CLUSTER_DNS__", _clusterNetworkingConfiguration.ClusterDNSServiceIP },
-                });
-            var kubectl = _processMonitorFactory.CreateTerminatingProcess(new ProcessSpecification(
-                // Note we use kubectl from the kubernetes-node install because kubernetes-server's version will be a Linux binary on Windows.
-                filename: Path.Combine(_pathProvider.RKMRoot, "kubernetes-node", "kubernetes", "node", "bin", "kubectl"),
-                arguments: new[]
-                {
-                    $"--kubeconfig={_kubeConfigManager.GetKubeconfigPath("users", "user-admin")}",
-                    "apply",
-                    "-f",
-                    Path.Combine(_pathProvider.RKMRoot, "coredns", "coredns.yaml")
-                }));
-            if ((await kubectl.RunAsync(cancellationToken)) != 0)
+            // The path to Helm that we extracted earlier.
+            var helmPath = Path.Combine(_pathProvider.RKMRoot, "assets", _pathProvider.RKMVersion, "helm", "helm");
+
+            // Install/upgrade CoreDNS via OCI charts.
+            var arguments = new List<LogicalProcessArgument>()
             {
-                _logger.LogCritical("rkm is exiting because it could not install CoreDNS into the cluster, and CoreDNS is required for networking to work.");
+                $"--kubeconfig={_kubeConfigManager.GetKubeconfigPath("users", "user-admin")}",
+                "--namespace=kube-system",
+                "upgrade",
+                "--install",
+                "coredns",
+                "oci://ghcr.io/coredns/charts/coredns",
+                "--wait",
+                "--set",
+                $"service.clusterIP={_clusterNetworkingConfiguration.ClusterDNSServiceIP}",
+                "--set-json",
+                "nodeSelector={\"kubernetes.io/os\":\"linux\"}",
+            };
+            if (_clusterNetworkingConfiguration.ClusterDNSDomain != "cluster.local")
+            {
+                // @note: This is less safe that I would like, since it relies on the order of 'plugins' not
+                // changing in the default values array.
+                arguments.AddRange(
+                [
+                    "--set",
+                    $"servers[0].plugins[3].parameters={_clusterNetworkingConfiguration.ClusterDNSDomain} in-addr.arpa ip6.arpa",
+                ]);
+            }
+            var exitCode = await _processExecutor.ExecuteAsync(
+                new ProcessExecution.ProcessSpecification
+                {
+                    FilePath = helmPath,
+                    Arguments = arguments,
+                    WorkingDirectory = Path.GetDirectoryName(helmPath)!,
+                },
+                CaptureSpecification.Passthrough,
+                cancellationToken);
+            if (exitCode != 0)
+            {
+                _logger.LogCritical("rkm is exiting because it could not deploy CoreDNS via Helm, and CoreDNS is required for networking to work.");
                 context.StopOnCriticalError();
                 return;
             }
 
+            // CoreDNS has now been provisioned via Helm.
             context.SetFlag(WellKnownFlags.CoreDNSProvisioned);
         }
     }
