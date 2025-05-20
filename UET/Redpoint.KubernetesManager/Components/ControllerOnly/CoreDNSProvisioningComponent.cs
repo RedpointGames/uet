@@ -54,6 +54,45 @@
             // The path to Helm that we extracted earlier.
             var helmPath = Path.Combine(_pathProvider.RKMRoot, "helm", "helm");
 
+            // Generate the values.yaml file for our deployment, since we can't reliably set plugin parameters
+            // via --set on the command line.
+            Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "helm-values"));
+            var valuesPath = Path.Combine(_pathProvider.RKMRoot, "helm-values", "coredns.yaml");
+            await File.WriteAllTextAsync(
+                valuesPath,
+                $"""
+                service:
+                  clusterIP: "{_clusterNetworkingConfiguration.ClusterDNSServiceIP}"
+                nodeSelector:
+                  kubernetes.io/os: linux
+                servers:
+                - zones:
+                  - zone: .
+                  port: 53
+                  plugins:
+                  - name: errors
+                  - name: health
+                    configBlock: |-
+                      lameduck 10s
+                  - name: ready
+                  - name: kubernetes
+                    parameters: {_clusterNetworkingConfiguration.ClusterDNSDomain} in-addr.arpa ip6.arpa
+                    configBlock: |-
+                      pods insecure
+                      fallthrough in-addr.arpa ip6.arpa
+                      ttl 30
+                  - name: prometheus
+                    parameters: 0.0.0.0:9153
+                  - name: forward
+                    parameters: . 1.1.1.1 1.0.0.1
+                  - name: cache
+                    parameters: 30
+                  - name: loop
+                  - name: reload
+                  - name: loadbalance
+                """,
+                cancellationToken);
+
             // Install/upgrade CoreDNS via OCI charts.
             var arguments = new List<LogicalProcessArgument>()
             {
@@ -64,21 +103,9 @@
                 "coredns",
                 "oci://ghcr.io/coredns/charts/coredns",
                 "--wait",
-                "--set",
-                $"service.clusterIP={_clusterNetworkingConfiguration.ClusterDNSServiceIP}",
-                "--set-json",
-                "nodeSelector={\"kubernetes.io/os\":\"linux\"}",
+                "--values",
+                valuesPath
             };
-            if (_clusterNetworkingConfiguration.ClusterDNSDomain != "cluster.local")
-            {
-                // @note: This is less safe that I would like, since it relies on the order of 'plugins' not
-                // changing in the default values array.
-                arguments.AddRange(
-                [
-                    "--set",
-                    $"servers[0].plugins[3].parameters={_clusterNetworkingConfiguration.ClusterDNSDomain} in-addr.arpa ip6.arpa",
-                ]);
-            }
             var exitCode = await _processExecutor.ExecuteAsync(
                 new ProcessExecution.ProcessSpecification
                 {
