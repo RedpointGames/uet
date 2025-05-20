@@ -52,7 +52,7 @@
             var kubernetes = kubernetesContext.Kubernetes;
 
             // The path to Helm that we extracted earlier.
-            var helmPath = Path.Combine(_pathProvider.RKMRoot, "helm", "helm");
+            var helmPath = Path.Combine(_pathProvider.RKMRoot, "helm-bin", "helm");
 
             // Install/upgrade CoreDNS via OCI charts.
             var arguments = new List<LogicalProcessArgument>()
