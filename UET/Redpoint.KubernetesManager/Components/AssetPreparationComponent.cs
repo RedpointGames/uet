@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.Components
 {
+    using Redpoint.IO;
     using Redpoint.KubernetesManager.Services;
     using Redpoint.KubernetesManager.Signalling;
     using System;
@@ -80,9 +81,9 @@
                 {
                     await _assetManager.ExtractAsset("kubernetes-server.tar.gz", Path.Combine(_pathProvider.RKMRoot, "kubernetes-server"), stoppingToken);
                     await _assetManager.ExtractAsset("etcd.tar.gz", Path.Combine(_pathProvider.RKMRoot, "etcd"), stoppingToken, "etcd-v3.5.7-linux-amd64");
-                    await _assetManager.ExtractAsset("helm.tar.gz", Path.Combine(_pathProvider.RKMRoot, "helm"), stoppingToken, "linux-amd64");
+                    await _assetManager.ExtractAsset("helm.tar.gz", Path.Combine(_pathProvider.RKMRoot, "helm-bin"), stoppingToken, "linux-amd64");
                     chmod(Path.Combine(_pathProvider.RKMRoot, "assets", _pathProvider.RKMVersion, "calicoctl"), 0x100 | 0x80 | 0x40 | 0x20 | 0x8 | 0x4 | 0x1);
-                    chmod(Path.Combine(_pathProvider.RKMRoot, "helm", "helm"), 0x100 | 0x80 | 0x40 | 0x20 | 0x8 | 0x4 | 0x1);
+                    chmod(Path.Combine(_pathProvider.RKMRoot, "helm-bin", "helm"), 0x100 | 0x80 | 0x40 | 0x20 | 0x8 | 0x4 | 0x1);
                 }
 
                 // On the controller, set up easy kubectl and calicoctl wrappers that the user can use
@@ -97,6 +98,7 @@ KUBECONFIG=""$RKM_ROOT/kubeconfigs/users/user-admin.kubeconfig"" ""$RKM_ROOT/kub
 exit $?
 ".Trim().Replace("\r\n", "\n", StringComparison.Ordinal), stoppingToken);
                     chmod(Path.Combine(_pathProvider.RKMRoot, "kubectl"), 0x100 | 0x80 | 0x40 | 0x20 | 0x8 | 0x4 | 0x1);
+
                     await File.WriteAllTextAsync(Path.Combine(_pathProvider.RKMRoot, "calicoctl"), @"
 #!/bin/bash
 
@@ -105,6 +107,20 @@ KUBECONFIG=""$RKM_ROOT/kubeconfigs/users/user-admin.kubeconfig"" ""$RKM_ROOT/ass
 exit $?
 ".Trim().Replace("\r\n", "\n", StringComparison.Ordinal), stoppingToken);
                     chmod(Path.Combine(_pathProvider.RKMRoot, "calicoctl"), 0x100 | 0x80 | 0x40 | 0x20 | 0x8 | 0x4 | 0x1);
+
+                    if (Directory.Exists(Path.Combine(_pathProvider.RKMRoot, "helm")))
+                    {
+                        // Clean up old "helm" directory that is now called "helm-bin".
+                        await DirectoryAsync.DeleteAsync(Path.Combine(_pathProvider.RKMRoot, "helm"), true);
+                    }
+                    await File.WriteAllTextAsync(Path.Combine(_pathProvider.RKMRoot, "helm"), @"
+#!/bin/bash
+
+RKM_ROOT=$(dirname ""$0"")
+KUBECONFIG=""$RKM_ROOT/kubeconfigs/users/user-admin.kubeconfig"" ""$RKM_ROOT/helm-bin/helm"" $*
+exit $?
+".Trim().Replace("\r\n", "\n", StringComparison.Ordinal), stoppingToken);
+                    chmod(Path.Combine(_pathProvider.RKMRoot, "helm"), 0x100 | 0x80 | 0x40 | 0x20 | 0x8 | 0x4 | 0x1);
                 }
             }
             else if (OperatingSystem.IsWindows())

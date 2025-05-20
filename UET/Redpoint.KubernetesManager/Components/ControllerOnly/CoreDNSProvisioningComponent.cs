@@ -52,7 +52,7 @@
             var kubernetes = kubernetesContext.Kubernetes;
 
             // The path to Helm that we extracted earlier.
-            var helmPath = Path.Combine(_pathProvider.RKMRoot, "helm", "helm");
+            var helmPath = Path.Combine(_pathProvider.RKMRoot, "helm-bin", "helm");
 
             // Generate the values.yaml file for our deployment, since we can't reliably set plugin parameters
             // via --set on the command line.
