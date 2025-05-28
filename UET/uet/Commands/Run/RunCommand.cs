@@ -258,6 +258,18 @@
                             }
                         }
 
+                        string GetUbtPath()
+                        {
+                            var scriptSuffix = OperatingSystem.IsWindows() ? ".bat" : ".sh";
+                            var ubtPath = Path.Combine(engineWorkspace.Path, "Engine", "Build", "BatchFiles", $"RunUBT{scriptSuffix}");
+                            var buildPath = Path.Combine(engineWorkspace.Path, "Engine", "Build", "BatchFiles", $"Build{scriptSuffix}");
+                            if (!File.Exists(ubtPath) && File.Exists(buildPath))
+                            {
+                                ubtPath = buildPath;
+                            }
+                            return ubtPath;
+                        }
+
                         switch (target)
                         {
                             case "editor":
@@ -350,18 +362,6 @@
                                     if (!forceBuild)
                                     {
                                         SearchForPaths();
-                                    }
-
-                                    string GetUbtPath()
-                                    {
-                                        var scriptSuffix = OperatingSystem.IsWindows() ? ".bat" : ".sh";
-                                        var ubtPath = Path.Combine(engineWorkspace.Path, "Engine", "Build", "BatchFiles", $"RunUBT{scriptSuffix}");
-                                        var buildPath = Path.Combine(engineWorkspace.Path, "Engine", "Build", "BatchFiles", $"Build{scriptSuffix}");
-                                        if (!File.Exists(ubtPath) && File.Exists(buildPath))
-                                        {
-                                            ubtPath = buildPath;
-                                        }
-                                        return ubtPath;
                                     }
 
                                     var targetListToBuild = new List<string>();
@@ -555,17 +555,77 @@
                             case "uba-visualizer":
                                 {
                                     var executableSuffix = OperatingSystem.IsWindows() ? ".exe" : string.Empty;
-                                    var toolPath = Path.Combine(
+                                    var ubaRootPath = Path.Combine(
                                         engineWorkspace.Path,
                                         "Engine",
                                         "Binaries",
                                         platformName,
                                         "UnrealBuildAccelerator",
-                                        RuntimeInformation.OSArchitecture == Architecture.X64 ? "x64" : "arm64",
-                                        $"UbaVisualizer{executableSuffix}");
+                                        RuntimeInformation.OSArchitecture == Architecture.X64 ? "x64" : "arm64");
+
+                                    var targetListToBuild = new List<string>();
+
+                                    string[] engineToolsToBuild = [
+                                        "UbaAgent",
+                                        "UbaDetours",
+                                        "UbaHost",
+                                        "UbaObjTool",
+                                        "UbaVisualizer",
+                                    ];
+                                    foreach (var engineTool in engineToolsToBuild)
+                                    {
+                                        if (!File.Exists(Path.Combine(ubaRootPath, $"{engineTool}{executableSuffix}")) &&
+                                            !File.Exists(Path.Combine(ubaRootPath, $"{engineTool}.dll")) &&
+                                            !File.Exists(Path.Combine(ubaRootPath, $"{engineTool}.dylib")) &&
+                                            !File.Exists(Path.Combine(ubaRootPath, $"{engineTool}.so")))
+                                        {
+                                            targetListToBuild.Add($"{engineTool} Development {platformName}");
+                                        }
+                                    }
+
+                                    if (targetListToBuild.Count > 0)
+                                    {
+                                        _logger.LogWarning("Attempting to build UBA on-demand...");
+
+                                        var ubtPath = GetUbtPath();
+                                        if (!File.Exists(ubtPath))
+                                        {
+                                            _logger.LogError($"Unable to locate the build script that was expected to exist at: {ubtPath}");
+                                            return 1;
+                                        }
+
+                                        var targetListPath = Path.GetTempFileName();
+                                        await File.WriteAllLinesAsync(targetListPath, targetListToBuild, context.GetCancellationToken());
+
+                                        var buildArguments = new List<LogicalProcessArgument>
+                                        {
+                                            ParameterisedArgument("TargetList", targetListPath),
+                                        };
+                                        if (OperatingSystem.IsWindows())
+                                        {
+                                            buildArguments.Add(ParameterisedArgument("Compiler", "VisualStudio2022"));
+                                        }
+
+                                        var buildExitCode = await _processExecutor.ExecuteAsync(
+                                            new ProcessSpecification
+                                            {
+                                                FilePath = ubtPath,
+                                                Arguments = buildArguments,
+                                                WorkingDirectory = engineWorkspace.Path,
+                                            },
+                                            CaptureSpecification.Passthrough,
+                                            context.GetCancellationToken()).ConfigureAwait(false);
+                                        if (buildExitCode != 0)
+                                        {
+                                            _logger.LogError($"RunUBT exited with non-zero exit code {buildExitCode}.");
+                                            return buildExitCode;
+                                        }
+                                    }
+
+                                    var toolPath = Path.Combine(ubaRootPath, $"UbaVisualizer{executableSuffix}");
                                     if (!File.Exists(toolPath))
                                     {
-                                        _logger.LogError($"The path '{toolPath}' does not exist. UET can not build the UBA visualiser on-demand yet.");
+                                        _logger.LogError($"The path '{toolPath}' does not exist. UET should have built UBA on-demand if necessary.");
                                         return 1;
                                     }
 
