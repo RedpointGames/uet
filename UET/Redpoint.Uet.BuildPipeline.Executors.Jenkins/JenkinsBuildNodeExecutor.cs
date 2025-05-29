@@ -76,6 +76,8 @@
 
             var repository = System.Environment.GetEnvironmentVariable("UET_GIT_URL")!;
             var commit = System.Environment.GetEnvironmentVariable("UET_GIT_REF")!;
+            // @todo: This should be the branch name or "pull request ID".
+            var branch = commit;
             var executingNode = new NodeNameExecutionState();
 
             _logger.LogTrace("Starting execution of nodes...");
@@ -240,6 +242,7 @@
                         {
                             RepositoryUrl = repository,
                             RepositoryCommitOrRef = commit,
+                            RepositoryBranchForReservationParameters = branch,
                             AdditionalFolderLayers = Array.Empty<string>(),
                             AdditionalFolderZips = Array.Empty<string>(),
                             WorkspaceDisambiguators = nodeNames,
@@ -283,6 +286,7 @@
                                 {
                                     RepositoryUrl = repository,
                                     RepositoryCommitOrRef = commit,
+                                    RepositoryBranchForReservationParameters = branch,
                                     AdditionalFolderLayers = Array.Empty<string>(),
                                     AdditionalFolderZips = Array.Empty<string>(),
                                     WorkspaceDisambiguators = nodeNames,

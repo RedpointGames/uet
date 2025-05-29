@@ -64,6 +64,7 @@
                     {
                         RepositoryUrl = buildEngineSpecification._gitUrl!,
                         RepositoryCommitOrRef = buildEngineSpecification._gitCommit,
+                        RepositoryBranchForReservationParameters = buildEngineSpecification._gitCommit,
                         AdditionalFolderLayers = Array.Empty<string>(),
                         AdditionalFolderZips = buildEngineSpecification._gitConsoleZips!,
                         WorkspaceDisambiguators = new[] { workspaceSuffix },

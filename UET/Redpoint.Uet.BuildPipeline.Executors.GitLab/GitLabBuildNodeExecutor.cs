@@ -74,7 +74,21 @@
 
             var repository = System.Environment.GetEnvironmentVariable("CI_REPOSITORY_URL")!;
             var commit = System.Environment.GetEnvironmentVariable("CI_COMMIT_SHA")!;
+            var branch = System.Environment.GetEnvironmentVariable("CI_MERGE_REQUEST_ID");
+            if (string.IsNullOrWhiteSpace(branch))
+            {
+                branch = System.Environment.GetEnvironmentVariable("CI_COMMIT_REF_NAME");
+            }
+            if (string.IsNullOrWhiteSpace(branch))
+            {
+                branch = commit;
+            }
             var executingNode = new NodeNameExecutionState();
+
+            if (System.Environment.GetEnvironmentVariable("UET_USE_LESS_UNIQUE_RESERVATION_NAMES_FOR_GIT") == "1")
+            {
+                _logger.LogInformation($"Using commit hash '{commit}' for checkout and '{branch}' for reservation name.");
+            }
 
             _logger.LogTrace("Starting execution of nodes...");
             try
@@ -238,6 +252,7 @@
                         {
                             RepositoryUrl = repository,
                             RepositoryCommitOrRef = commit,
+                            RepositoryBranchForReservationParameters = branch,
                             AdditionalFolderLayers = Array.Empty<string>(),
                             AdditionalFolderZips = Array.Empty<string>(),
                             WorkspaceDisambiguators = nodeNames,
@@ -281,6 +296,7 @@
                                 {
                                     RepositoryUrl = repository,
                                     RepositoryCommitOrRef = commit,
+                                    RepositoryBranchForReservationParameters = branch,
                                     AdditionalFolderLayers = Array.Empty<string>(),
                                     AdditionalFolderZips = Array.Empty<string>(),
                                     WorkspaceDisambiguators = nodeNames,

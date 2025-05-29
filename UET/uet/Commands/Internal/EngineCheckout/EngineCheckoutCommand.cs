@@ -61,6 +61,7 @@
                     {
                         RepositoryUrl = context.ParseResult.GetValueForOption(_options.RepositoryUri)!,
                         RepositoryCommitOrRef = context.ParseResult.GetValueForOption(_options.Branch)!,
+                        RepositoryBranchForReservationParameters = context.ParseResult.GetValueForOption(_options.Branch)!,
                         AdditionalFolderLayers = [],
                         AdditionalFolderZips = [],
                         WorkspaceDisambiguators = [],
