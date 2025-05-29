@@ -9,6 +9,8 @@
 
         public required string RepositoryCommitOrRef { get; set; }
 
+        public required string RepositoryBranchForReservationParameters { get; set; }
+
         public required IReadOnlyList<string> AdditionalFolderLayers { get; set; }
 
         public required IReadOnlyList<string> AdditionalFolderZips { get; set; }

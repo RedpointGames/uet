@@ -68,6 +68,7 @@
                 {
                     RepositoryUrl = "https://src.redpoint.games/redpointgames/examples",
                     RepositoryCommitOrRef = "main",
+                    RepositoryBranchForReservationParameters = "main",
                     WorkspaceDisambiguators = Array.Empty<string>(),
                     AdditionalFolderLayers = Array.Empty<string>(),
                     AdditionalFolderZips = Array.Empty<string>(),
@@ -126,6 +127,7 @@
                 {
                     RepositoryUrl = "https://src.redpoint.games/redpointgames/examples",
                     RepositoryCommitOrRef = "main",
+                    RepositoryBranchForReservationParameters = "main",
                     WorkspaceDisambiguators = Array.Empty<string>(),
                     AdditionalFolderLayers = Array.Empty<string>(),
                     AdditionalFolderZips = Array.Empty<string>(),
@@ -148,6 +150,7 @@
                 {
                     RepositoryUrl = "https://src.redpoint.games/redpointgames/examples",
                     RepositoryCommitOrRef = "main",
+                    RepositoryBranchForReservationParameters = "main",
                     WorkspaceDisambiguators = Array.Empty<string>(),
                     AdditionalFolderLayers = Array.Empty<string>(),
                     AdditionalFolderZips = Array.Empty<string>(),
@@ -219,6 +222,7 @@
                 {
                     RepositoryUrl = "ssh://git@github.com/RedpointGames/uet",
                     RepositoryCommitOrRef = "main",
+                    RepositoryBranchForReservationParameters = "main",
                     WorkspaceDisambiguators = Array.Empty<string>(),
                     AdditionalFolderLayers = Array.Empty<string>(),
                     AdditionalFolderZips = Array.Empty<string>(),
@@ -274,6 +278,7 @@
                 {
                     RepositoryUrl = "https://src.redpoint.games/redpointgames/uet",
                     RepositoryCommitOrRef = "main",
+                    RepositoryBranchForReservationParameters = "main",
                     WorkspaceDisambiguators = Array.Empty<string>(),
                     AdditionalFolderLayers = Array.Empty<string>(),
                     AdditionalFolderZips = Array.Empty<string>(),

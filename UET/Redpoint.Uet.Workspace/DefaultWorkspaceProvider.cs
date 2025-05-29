@@ -134,10 +134,15 @@
 
         private async Task<IWorkspace> AllocateGitAsync(GitWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
         {
+            var reservationParameters =
+                Environment.GetEnvironmentVariable("UET_USE_LESS_UNIQUE_RESERVATION_NAMES_FOR_GIT") == "1"
+                ? _parameterGenerator.ConstructReservationParameters([descriptor.RepositoryUrl, descriptor.RepositoryBranchForReservationParameters])
+                : _parameterGenerator.ConstructReservationParameters([descriptor.RepositoryUrl, descriptor.RepositoryCommitOrRef]);
+
             var usingReservation = false;
             var reservation = await _reservationManager.ReserveAsync(
                 "PhysicalGit",
-                _parameterGenerator.ConstructReservationParameters([descriptor.RepositoryUrl, descriptor.RepositoryCommitOrRef])).ConfigureAwait(false);
+                reservationParameters).ConfigureAwait(false);
             try
             {
                 _logger.LogInformation($"Creating physical Git workspace: {reservation.ReservedPath}");
