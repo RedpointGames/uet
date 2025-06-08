@@ -466,6 +466,7 @@
                                     EnvironmentVariables = environmentVariables
                                 },
                                 CaptureSpecification.Passthrough,
+                                Array.Empty<string>(),
                                 CancellationToken.None).ConfigureAwait(false);
                             if (exitCode != 0)
                             {

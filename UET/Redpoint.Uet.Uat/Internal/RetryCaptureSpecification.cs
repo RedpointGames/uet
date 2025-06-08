@@ -7,10 +7,14 @@
     internal class RetryCaptureSpecification : ICaptureSpecification
     {
         private readonly ICaptureSpecification _baseCaptureSpecification;
+        private readonly string[] _forceRetryMessages;
 
-        public RetryCaptureSpecification(ICaptureSpecification baseCaptureSpecification)
+        public RetryCaptureSpecification(
+            ICaptureSpecification baseCaptureSpecification,
+            string[] forceRetryMessages)
         {
             _baseCaptureSpecification = baseCaptureSpecification;
+            _forceRetryMessages = forceRetryMessages;
         }
 
         public bool NeedsRetry { get; private set; } = false;
@@ -84,9 +88,15 @@
                     }
                 }
             }
-            if (data.Contains("had to patch your engine", StringComparison.Ordinal))
+            if (_forceRetryMessages.Length > 0)
             {
-                ForceRetry = true;
+                foreach (var retry in _forceRetryMessages)
+                {
+                    if (data.Contains(retry, StringComparison.Ordinal))
+                    {
+                        ForceRetry = true;
+                    }
+                }
             }
             if (data.Trim() == "Stack overflow.")
             {
