@@ -122,6 +122,7 @@
                     },
                 },
                 this,
+                Array.Empty<string>(),
                 _cancellationTokenSource.Token).ConfigureAwait(false));
 
             var didFireExit = false;

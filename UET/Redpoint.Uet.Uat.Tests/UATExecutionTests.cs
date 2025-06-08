@@ -39,6 +39,7 @@ namespace Redpoint.Uet.Uat.Tests
                         return false;
                     }
                 }),
+                Array.Empty<string>(),
                 CancellationToken.None);
 
             Assert.Equal(0, exitCode);

@@ -69,6 +69,7 @@
                 },
                 null,
                 captureSpecification,
+                Array.Empty<string>(),
                 cancellationToken).ConfigureAwait(false);
             if (exitCode != 0)
             {
@@ -192,6 +193,9 @@
                             environmentVariables,
                             mobileProvisions,
                             captureSpecification,
+                            buildGraphNodeName.Contains("Pak and Stage", StringComparison.OrdinalIgnoreCase)
+                                ? ["had to patch your engine"]
+                                : Array.Empty<string>(),
                             cancellationToken).ConfigureAwait(false);
                         if (exitCode == 0)
                         {
@@ -260,6 +264,7 @@
                     environmentVariables,
                     null,
                     captureSpecification,
+                    Array.Empty<string>(),
                     cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
@@ -308,6 +313,7 @@
             Dictionary<string, string> buildGraphEnvironmentVariables,
             IReadOnlyList<BuildConfigMobileProvision>? mobileProvisions,
             ICaptureSpecification captureSpecification,
+            string[] forceRetryMessages,
             CancellationToken cancellationToken)
         {
             string buildGraphScriptPath;
@@ -395,6 +401,7 @@
                         EnvironmentVariables = buildGraphEnvironmentVariables
                     },
                     captureSpecification,
+                    forceRetryMessages,
                     cancellationToken).ConfigureAwait(false);
             }
             finally

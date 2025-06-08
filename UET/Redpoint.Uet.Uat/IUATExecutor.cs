@@ -8,6 +8,7 @@
             string enginePath,
             UATSpecification uatSpecification,
             ICaptureSpecification captureSpecification,
+            string[] forceRetryMessages,
             CancellationToken cancellationToken);
     }
 }

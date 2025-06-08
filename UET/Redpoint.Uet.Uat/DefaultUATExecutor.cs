@@ -50,6 +50,7 @@
             string enginePath,
             UATSpecification uatSpecification,
             ICaptureSpecification captureSpecification,
+            string[] forceRetryMessages,
             CancellationToken cancellationToken)
         {
             // Check to see if any script modules are missing DLLs; we automatically delete these since at
@@ -263,7 +264,9 @@
                     }
 
                     // Create the capture specification to track whether we need to 
-                    var retryCaptureSpecification = new RetryCaptureSpecification(captureSpecification);
+                    var retryCaptureSpecification = new RetryCaptureSpecification(
+                        captureSpecification,
+                        forceRetryMessages);
 
                     // Execute UAT.
                     reportedExitCode = await _processExecutor.ExecuteAsync(
