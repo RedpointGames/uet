@@ -35,6 +35,12 @@
                 // Seems to happen sometimes when using clang-tidy?
                 NeedsRetry = true;
             }
+            if (data.Contains("error LNK1327", StringComparison.Ordinal) ||
+                data.Contains("error LNK1171", StringComparison.Ordinal))
+            {
+                // Temporary failures that can happen due to UBA.
+                NeedsRetry = true;
+            }
             if (data.Contains("LLVM ERROR: out of memory", StringComparison.Ordinal))
             {
                 NeedsRetry = true;
