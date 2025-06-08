@@ -204,7 +204,7 @@
                                 catch
                                 {
                                     _logger.LogError(await deleteResponse.Content.ReadAsStringAsync(cancellationToken));
-                                    throw;
+                                    continue;
                                 }
                             }
                         }
