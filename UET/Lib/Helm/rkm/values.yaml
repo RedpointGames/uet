@@ -1,0 +1,18 @@
+calico:
+  root: "/opt/rkm/unknown"
+  cni:
+    mtu: 1500
+    pluginsRoot: "/opt/rkm/unknown"
+
+containerd:
+  root: "/opt/rkm/unknown"
+
+cluster:
+  cidr: ""
+
+host:
+  subnet:
+    cidr: ""
+
+kubernetes:
+  nodeName: "unset"
