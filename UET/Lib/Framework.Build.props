@@ -1,9 +1,9 @@
 <Project>
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
 
-    <RedpointSystemLibraryVersion>9.*</RedpointSystemLibraryVersion>
+    <RedpointSystemLibraryVersion>10.*</RedpointSystemLibraryVersion>
 
     <RedpointIsFrameworkImported>true</RedpointIsFrameworkImported>
   </PropertyGroup>
