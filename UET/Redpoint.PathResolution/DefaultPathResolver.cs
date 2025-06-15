@@ -18,9 +18,9 @@
                     {
                         foreach (var pathExt in pathExts)
                         {
-                            if (File.Exists(Path.Combine(path, $"{binaryName}{pathExt}")))
+                            if (File.Exists(Path.Combine(path, $"{binaryName}{pathExt.ToLowerInvariant()}")))
                             {
-                                return Task.FromResult(Path.Combine(path, $"{binaryName}{pathExt}"));
+                                return Task.FromResult(Path.Combine(path, $"{binaryName}{pathExt.ToLowerInvariant()}"));
                             }
                         }
                     }
