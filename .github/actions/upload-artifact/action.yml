@@ -153,3 +153,12 @@ runs:
         if-no-files-found: error
         path: |
           TestResults/*.test-result.trx
+
+    - name: Upload Helm Chart
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'helm-chart' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: helm-chart
+        if-no-files-found: error
+        path: |
+          UET/Lib/Helm/rkm/*.tgz
