@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 env:
-  UET_FRAMEWORK_TARGET: net9.0
+  UET_FRAMEWORK_TARGET: net10.0
   UET_BUILDING_ON_BUILD_SERVER: "true"
 
 jobs:
