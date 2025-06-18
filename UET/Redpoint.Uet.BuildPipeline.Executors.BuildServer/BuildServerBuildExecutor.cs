@@ -350,10 +350,6 @@
                             var files = new (string value, Action<BuildConfigMobileProvision, string> setValue)[]
                             {
                                 (
-                                    mobileProvision.CertificateSigningRequestPath!,
-                                    (x, v) => { x.CertificateSigningRequestPath = v; }
-                                ),
-                                (
                                     mobileProvision.AppleProvidedCertificatePath!,
                                     (x, v) => { x.AppleProvidedCertificatePath = v; }
                                 ),
