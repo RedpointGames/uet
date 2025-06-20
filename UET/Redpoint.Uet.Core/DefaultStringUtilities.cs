@@ -18,14 +18,25 @@
                 dividend = BigInteger.DivRem(dividend, alphabet.Length, out BigInteger remainder);
                 builder.Insert(0, alphabet[Math.Abs((int)remainder)]);
             }
+
+            string candidateString;
             if (!length.HasValue)
             {
-                return builder.ToString().Trim('.');
+                candidateString = builder.ToString().Trim('.');
             }
             else
             {
-                return builder.ToString()[..length.Value].Trim('.');
+                candidateString = builder.ToString()[..length.Value].Trim('.');
             }
+
+            // Prevent triple dot from appearing in the result, as this interfers with UBT filespecs. It's
+            // _exceptionally_ rare for this to happen, but it can happen and we need to prevent it.
+            while (candidateString.Contains("...", StringComparison.Ordinal))
+            {
+                candidateString = candidateString.Replace("...", "._.", StringComparison.Ordinal);
+            }
+
+            return candidateString;
         }
     }
 }
