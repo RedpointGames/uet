@@ -82,7 +82,7 @@
                     bucketId = bucketId,
                     fileNamePrefix = fileNamePrefix,
                     validDurationInSeconds = validDurationInSeconds,
-                    b2ContentDisposition = b2ContentDisposition,
+                    b2ContentDisposition = string.IsNullOrWhiteSpace(b2ContentDisposition) ? null : b2ContentDisposition,
                 },
                 B2JsonSerializerContext.B2Defaults.GetDownloadAuthorizationRequest);
 
