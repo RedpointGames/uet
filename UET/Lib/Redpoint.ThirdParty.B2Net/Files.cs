@@ -452,7 +452,7 @@
         /// <param name="b2ContentDisposition"></param>
         /// <param name="cancelToken"></param>
         /// <returns></returns>
-        public async Task<B2DownloadAuthorization> GetDownloadAuthorization(string fileNamePrefix, int validDurationInSeconds, string bucketId = "", string b2ContentDisposition = "", CancellationToken cancelToken = default(CancellationToken))
+        public async Task<B2DownloadAuthorization> GetDownloadAuthorization(string fileNamePrefix, int validDurationInSeconds, string bucketId = "", string b2ContentDisposition = null, CancellationToken cancelToken = default(CancellationToken))
         {
             var operationalBucketId = Utilities.DetermineBucketId(_options, bucketId);
 
