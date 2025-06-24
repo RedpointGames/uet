@@ -35,10 +35,10 @@
                 new GetListRequest
                 {
                     bucketId = bucketId,
-                    startFileName = startFileName,
+                    startFileName = string.IsNullOrWhiteSpace(startFileName) ? null : startFileName,
                     maxFileCount = maxFileCount,
-                    prefix = prefix,
-                    delimiter = delimiter,
+                    prefix = string.IsNullOrWhiteSpace(prefix) ? null : prefix,
+                    delimiter = string.IsNullOrWhiteSpace(delimiter) ? null : delimiter,
                 },
                 B2JsonSerializerContext.B2Defaults.GetListRequest);
             return BaseRequestGenerator.PostRequest(Endpoints.List, body, options);

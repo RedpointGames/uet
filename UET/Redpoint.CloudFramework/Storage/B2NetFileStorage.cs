@@ -151,7 +151,7 @@
             var startFileName = string.Empty;
             do
             {
-                var list = await client.Files.GetListWithPrefixOrDemiliter(startFileName, prefix).ConfigureAwait(false);
+                var list = await client.Files.GetListWithPrefixOrDelimiter(startFileName, prefix).ConfigureAwait(false);
                 startFileName = list.NextFileName;
                 foreach (var file in list.Files)
                 {
