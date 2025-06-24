@@ -36,7 +36,7 @@
         /// <returns></returns>
         public async Task<B2FileList> GetList(string startFileName = "", int? maxFileCount = null, string bucketId = "", CancellationToken cancelToken = default(CancellationToken))
         {
-            return await GetListWithPrefixOrDemiliter(startFileName, "", "", maxFileCount, bucketId, cancelToken);
+            return await GetListWithPrefixOrDelimiter(startFileName, "", "", maxFileCount, bucketId, cancelToken);
         }
 
         /// <summary>
@@ -50,7 +50,7 @@
         /// <param name="bucketId"></param>
         /// <param name="cancelToken"></param>
         /// <returns></returns>
-        public async Task<B2FileList> GetListWithPrefixOrDemiliter(string startFileName = "", string prefix = "", string delimiter = "", int? maxFileCount = null, string bucketId = "", CancellationToken cancelToken = default(CancellationToken))
+        public async Task<B2FileList> GetListWithPrefixOrDelimiter(string startFileName = "", string prefix = "", string delimiter = "", int? maxFileCount = null, string bucketId = "", CancellationToken cancelToken = default(CancellationToken))
         {
             var operationalBucketId = Utilities.DetermineBucketId(_options, bucketId);
 
