@@ -65,11 +65,11 @@
                 new ListVersionsRequest
                 {
                     bucketId = bucketId,
-                    startFileName = startFileName,
-                    startFileId = startFileId,
+                    startFileName = string.IsNullOrWhiteSpace(startFileName) ? null : startFileName,
+                    startFileId = string.IsNullOrWhiteSpace(startFileId) ? null : startFileId,
                     maxFileCount = maxFileCount,
-                    prefix = prefix,
-                    delimiter = delimiter,
+                    prefix = string.IsNullOrWhiteSpace(prefix) ? null : prefix,
+                    delimiter = string.IsNullOrWhiteSpace(delimiter) ? null : delimiter,
                 },
                 B2JsonSerializerContext.B2Defaults.ListVersionsRequest);
             return BaseRequestGenerator.PostRequest(Endpoints.Versions, body, options);

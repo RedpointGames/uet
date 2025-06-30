@@ -11,9 +11,27 @@
         public string BucketName { get; set; } = string.Empty;
 
         /// <summary>
-        /// The environment variable that contains the folder prefix to use when uploading. This should be set on your build server and made available to build jobs.
+        /// The folder prefix to use when uploading. Either this or 'FolderPrefixEnvVar' must be set.
         /// </summary>
-        [JsonPropertyName("FolderPrefixEnvVar"), JsonRequired]
+        [JsonPropertyName("FolderPrefix")]
+        public string FolderPrefix { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The environment variable that contains the folder prefix to use when uploading. Either this or 'FolderPrefix' must be set. This should be set on your build server and made available to build jobs.
+        /// </summary>
+        [JsonPropertyName("FolderPrefixEnvVar")]
         public string FolderPrefixEnvVar { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The strategy to use for the upload.
+        /// </summary>
+        [JsonPropertyName("Strategy")]
+        public BuildConfigPluginDeploymentBackblazeB2Strategy Strategy { get; set; } = BuildConfigPluginDeploymentBackblazeB2Strategy.Continuous;
+
+        /// <summary>
+        /// The default channel name used for the channel upload strategy 
+        /// </summary>
+        [JsonPropertyName("DefaultChannelName")]
+        public string DefaultChannelName { get; set; } = string.Empty;
     }
 }
