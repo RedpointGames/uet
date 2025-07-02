@@ -6,6 +6,7 @@
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc.Infrastructure;
+    using Microsoft.AspNetCore.Server.Kestrel.Core;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
@@ -40,6 +41,8 @@
         private Func<IConfiguration, string, HelmConfiguration>? _helmConfig;
         private string[] _prefixes = Array.Empty<string>();
         private readonly Dictionary<string, Action<IServiceCollection>> _processors = new Dictionary<string, Action<IServiceCollection>>();
+        private bool _http2Only = false;
+        private Action<KestrelServerOptions>? _kestrelConfigure = null;
 
         public IWebAppConfigurator UseStartup<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] T>()
         {
@@ -99,6 +102,18 @@
             return this;
         }
 
+        public IWebAppConfigurator UseHttp2Only(bool http2Only)
+        {
+            _http2Only = http2Only;
+            return this;
+        }
+
+        public IWebAppConfigurator UseKestrelOptions(Action<KestrelServerOptions> configure)
+        {
+            _kestrelConfigure = configure;
+            return this;
+        }
+
         public Task<IWebHost> GetWebApp()
         {
             ValidateConfiguration();
@@ -138,7 +153,15 @@
                         Environment.SetEnvironmentVariable("REDIS_SERVER", "localhost:" + helmConfig.RedisPort);
                     }
                 })
-                .UseKestrel()
+                .UseKestrel(options =>
+                {
+                    if (_http2Only)
+                    {
+                        options.ConfigureEndpointDefaults(lo => lo.Protocols = HttpProtocols.Http2);
+                    }
+
+                    _kestrelConfigure?.Invoke(options);
+                })
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .UseSentry(options =>
                 {

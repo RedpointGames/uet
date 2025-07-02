@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.CloudFramework.Startup
 {
     using Microsoft.AspNetCore.Hosting;
+    using Microsoft.AspNetCore.Server.Kestrel.Core;
     using Microsoft.Extensions.Configuration;
     using Quartz;
     using Redpoint.CloudFramework.Abstractions;
@@ -23,6 +24,10 @@
         IWebAppConfigurator UseHelm(Func<IConfiguration, string, HelmConfiguration> helmConfig);
 
         IWebAppConfigurator FilterPathPrefixesFromSentryPerformance(string[] prefixes);
+
+        IWebAppConfigurator UseHttp2Only(bool http2Only);
+
+        IWebAppConfigurator UseKestrelOptions(Action<KestrelServerOptions> configure);
 
         Task<IWebHost> GetWebApp();
 
