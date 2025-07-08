@@ -736,7 +736,8 @@
                     { "ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
-                    { "ScriptIncludes", string.Empty },
+                    { "ScriptNodeIncludes", string.Empty },
+                    { "ScriptMacroIncludes", string.Empty },
 
                     // General options
                     { "IsUnrealEngine5", "true" },
@@ -826,7 +827,8 @@
                     { "ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
 
                     // Dynamic graph
-                    { "ScriptIncludes", string.Empty },
+                    { "ScriptNodeIncludes", string.Empty },
+                    { "ScriptMacroIncludes", string.Empty },
 
                     // General options
                     { "UProjectPath", $"__REPOSITORY_ROOT__/{Path.GetFileName(pathSpec.UProjectPath)}" },
