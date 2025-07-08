@@ -452,9 +452,12 @@
             if (versioningType != BuildConfigPluginPackageType.Generic)
             {
                 var sourceDirectory = new DirectoryInfo(Path.Combine(pluginImmediatePath, "Source"));
-                if (!VerifySourceFilesDoNotExceedSubmissionPathLimit(pluginInfo.PluginName, sourceDirectory))
+                if (sourceDirectory.Exists)
                 {
-                    throw new BuildMisconfigurationException("This plugin contains source files that would exceed the path limit upon submission to the Marketplace or Fab. See above for details on which paths are too long.");
+                    if (!VerifySourceFilesDoNotExceedSubmissionPathLimit(pluginInfo.PluginName, sourceDirectory))
+                    {
+                        throw new BuildMisconfigurationException("This plugin contains source files that would exceed the path limit upon submission to the Marketplace or Fab. See above for details on which paths are too long.");
+                    }
                 }
             }
 
@@ -722,11 +725,14 @@
                 var sourceDirectory = new DirectoryInfo(Path.Combine(
                     new FileInfo(pathSpec.UPluginPath!).DirectoryName!,
                     "Source"));
-                if (!VerifySourceFilesDoNotExceedSubmissionPathLimit(
-                    Path.GetFileNameWithoutExtension(pathSpec.UPluginPath!),
-                    sourceDirectory))
+                if (sourceDirectory.Exists)
                 {
-                    throw new BuildMisconfigurationException("This plugin contains source files that would exceed the path limit upon submission to the Marketplace/Fab. See above for details on which paths are too long.");
+                    if (!VerifySourceFilesDoNotExceedSubmissionPathLimit(
+                            Path.GetFileNameWithoutExtension(pathSpec.UPluginPath!),
+                            sourceDirectory))
+                    {
+                        throw new BuildMisconfigurationException("This plugin contains source files that would exceed the path limit upon submission to the Marketplace/Fab. See above for details on which paths are too long.");
+                    }
                 }
             }
 
