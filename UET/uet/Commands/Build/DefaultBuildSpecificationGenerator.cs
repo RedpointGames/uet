@@ -360,6 +360,21 @@
             long? commandlinePluginVersionNumber,
             bool skipPackaging)
         {
+            // Determine folder that the plugin is in.
+            string pluginImmediatePath, pluginBuildGraphPath;
+            if (isPluginRooted || File.Exists(Path.Combine(repositoryRoot, $"{pluginInfo.PluginName}.uplugin")))
+            {
+                _logger.LogTrace("Plugin is in root directory.");
+                pluginImmediatePath = repositoryRoot;
+                pluginBuildGraphPath = "__REPOSITORY_ROOT__";
+            }
+            else
+            {
+                _logger.LogTrace("Plugin is within subdirectory.");
+                pluginImmediatePath = Path.Combine(repositoryRoot, pluginInfo.PluginName);
+                pluginBuildGraphPath = $"__REPOSITORY_ROOT__/{pluginInfo.PluginName}";
+            }
+
             // Determine build matrix.
             var editorTargetPlatforms = FilterIncompatiblePlatforms((distribution.Build.Editor?.Platforms ?? new[] { BuildConfigPluginBuildEditorPlatform.Win64 }).Select(x =>
             {
@@ -423,7 +438,7 @@
             // Validate packaging settings. If the plugin has custom configuration files
             // but does not specify a filter file, then it's almost certainly misconfigured
             // as the plugin configuration files will not be included for distribution.
-            var configPath = Path.Combine(repositoryRoot, pluginInfo.PluginName, "Config");
+            var configPath = Path.Combine(pluginImmediatePath, "Config");
             if (Directory.Exists(configPath) &&
                 Directory.GetFiles(configPath, "*.ini").Length > 0 &&
                 distribution?.Package?.Filter == null &&
@@ -436,7 +451,7 @@
             // when submitting to the Marketplace/Fab.
             if (versioningType != BuildConfigPluginPackageType.Generic)
             {
-                var sourceDirectory = new DirectoryInfo(Path.Combine(repositoryRoot, pluginInfo.PluginName, "Source"));
+                var sourceDirectory = new DirectoryInfo(Path.Combine(pluginImmediatePath, "Source"));
                 if (!VerifySourceFilesDoNotExceedSubmissionPathLimit(pluginInfo.PluginName, sourceDirectory))
                 {
                     throw new BuildMisconfigurationException("This plugin contains source files that would exceed the path limit upon submission to the Marketplace or Fab. See above for details on which paths are too long.");
@@ -516,7 +531,7 @@
                     { "EnginePath", "__ENGINE_PATH__" },
                     { "TempPath", $"__REPOSITORY_ROOT__/.uet/tmp" },
                     { "ProjectRoot", $"__REPOSITORY_ROOT__" },
-                    { "PluginDirectory", isPluginRooted ? $"__REPOSITORY_ROOT__" : $"__REPOSITORY_ROOT__/{pluginInfo.PluginName}" },
+                    { "PluginDirectory", pluginBuildGraphPath },
                     { "PluginName", pluginInfo.PluginName },
                     { "Distribution", distribution.Name },
                     { "ArtifactExportPath", "__ARTIFACT_EXPORT_PATH__" },
