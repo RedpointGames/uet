@@ -20,6 +20,7 @@ using UET.Commands.Generate;
 using UET.Commands.InstallSdks;
 using UET.Commands.Internal;
 using UET.Commands.List;
+using UET.Commands.New;
 using UET.Commands.Storage;
 using UET.Commands.Test;
 using UET.Commands.Transfer;
@@ -40,6 +41,7 @@ rootCommand.AddOption(UET.Commands.CommandExtensions.GetTraceOption());
 rootCommand.AddCommand(BuildCommand.CreateBuildCommand());
 rootCommand.AddCommand(TestCommand.CreateTestCommand());
 rootCommand.AddCommand(GenerateCommand.CreateGenerateCommand());
+rootCommand.AddCommand(NewCommand.CreateNewCommand(globalCommands));
 rootCommand.AddCommand(RunCommand.CreateRunCommand());
 rootCommand.AddCommand(ConfigCommand.CreateConfigCommand());
 rootCommand.AddCommand(FormatCommand.CreateFormatCommand());
@@ -247,7 +249,7 @@ if (OperatingSystem.IsMacOS())
 // We didn't re-execute into a different version of UET. Invoke the originally requested command.
 // @note: We use Environment.Exit so fire-and-forget tasks that contain stallable code won't prevent the process from exiting.
 var exitCode = await rootCommand.InvokeAsync(args).ConfigureAwait(false);
-    await Console.Out.FlushAsync().ConfigureAwait(false);
-    await Console.Error.FlushAsync().ConfigureAwait(false);
+await Console.Out.FlushAsync().ConfigureAwait(false);
+await Console.Error.FlushAsync().ConfigureAwait(false);
 Environment.Exit(exitCode);
 throw new BadImageFormatException();
