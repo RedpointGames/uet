@@ -35,6 +35,7 @@
     using Redpoint.Concurrency;
     using Redpoint.GrpcPipes.Transport.Tcp;
     using Redpoint.PackageManagement;
+    using Redpoint.Uet.Core.BugReport;
 
     internal static class CommandExtensions
     {
@@ -43,13 +44,27 @@
             () => Environment.GetEnvironmentVariable("UET_TRACE") == "1",
             "Emit trace level logs to the output.");
 
+        internal static Option<bool> _bugReport = new Option<bool>(
+            "--bug-report",
+            () => Environment.GetEnvironmentVariable("UET_BUG_REPORT") == "1",
+            "Collect all logs and generated files into a ZIP file for submission with a bug report.");
+
         internal static Option<bool> GetTraceOption()
         {
             return _trace;
         }
 
-        private static void AddGeneralServices(IServiceCollection services, LogLevel minimumLogLevel, bool permitRunbackLogging)
+        internal static Option<bool> GetBugReportOption()
         {
+            return _bugReport;
+        }
+
+        private static void AddGeneralServices(IServiceCollection services, LogLevel minimumLogLevel, bool permitRunbackLogging, bool bugReporting)
+        {
+            if (bugReporting)
+            {
+                services.AddSingleton(BugReportCollector.Instance);
+            }
             services.AddAutoDiscovery();
             services.AddPathResolution();
             services.AddMSBuildPathResolution();
@@ -75,7 +90,10 @@
             services.AddUETBuildPipelineProvidersTest();
             services.AddUETBuildPipelineProvidersDeployment();
             services.AddUetWorkspace();
-            services.AddUETCore(minimumLogLevel: minimumLogLevel, permitRunbackLogging: permitRunbackLogging);
+            services.AddUETCore(
+                minimumLogLevel: minimumLogLevel,
+                permitRunbackLogging: permitRunbackLogging,
+                bugReportCollector: bugReporting ? BugReportCollector.Instance : null);
             services.AddCredentialDiscovery();
             services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
             services.AddSingleton<IReleaseVersioning, DefaultReleaseVersioning>();
@@ -89,7 +107,7 @@
         {
             // We need a service provider for distribution option parsing, omitting services that are post-parsing specific.
             var parsingServices = new ServiceCollection();
-            AddGeneralServices(parsingServices, LogLevel.Information, false);
+            AddGeneralServices(parsingServices, LogLevel.Information, false, false);
             parsingServices.AddTransient<TOptions, TOptions>();
             if (extraParsingServices != null)
             {
@@ -160,16 +178,19 @@
                 AddGeneralServices(
                     services,
                     minimumLogLevel: context.ParseResult.GetValueForOption(GetTraceOption()) ? LogLevel.Trace : LogLevel.Information,
-                    permitRunbackLogging: string.Equals(context.ParseResult.CommandResult?.Command?.Name, "ci-build", StringComparison.Ordinal));
+                    permitRunbackLogging: string.Equals(context.ParseResult.CommandResult?.Command?.Name, "ci-build", StringComparison.Ordinal),
+                    bugReporting: context.ParseResult.GetValueForOption(GetBugReportOption()));
                 services.AddSingleton<TCommand>();
+                var globalArgs = new List<string>();
                 if (context.ParseResult.GetValueForOption(GetTraceOption()))
                 {
-                    services.AddSingleton<IGlobalArgsProvider>(new CommandUETGlobalArgsProvider("--trace", new[] { "--trace" }));
+                    globalArgs.Add("--trace");
                 }
-                else
+                if (context.ParseResult.GetValueForOption(GetBugReportOption()))
                 {
-                    services.AddSingleton<IGlobalArgsProvider>(new CommandUETGlobalArgsProvider(string.Empty, Array.Empty<string>()));
+                    globalArgs.Add("--bug-report");
                 }
+                services.AddSingleton<IGlobalArgsProvider>(new CommandUETGlobalArgsProvider(string.Join(' ', globalArgs), globalArgs.ToArray()));
                 if (extraServices != null)
                 {
                     extraServices(services);

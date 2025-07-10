@@ -4,6 +4,7 @@ using Redpoint.Concurrency;
 using Redpoint.ProcessExecution;
 using Redpoint.Tasks;
 using Redpoint.Uet.Core;
+using Redpoint.Uet.Core.BugReport;
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Diagnostics;
@@ -38,6 +39,7 @@ if (Environment.GetEnvironmentVariable("CI") == "true")
 var rootCommand = new RootCommand("An unofficial tool for Unreal Engine.");
 var globalCommands = new HashSet<Command>();
 rootCommand.AddOption(UET.Commands.CommandExtensions.GetTraceOption());
+rootCommand.AddOption(UET.Commands.CommandExtensions.GetBugReportOption());
 rootCommand.AddCommand(BuildCommand.CreateBuildCommand());
 rootCommand.AddCommand(TestCommand.CreateTestCommand());
 rootCommand.AddCommand(GenerateCommand.CreateGenerateCommand());
@@ -249,6 +251,7 @@ if (OperatingSystem.IsMacOS())
 // We didn't re-execute into a different version of UET. Invoke the originally requested command.
 // @note: We use Environment.Exit so fire-and-forget tasks that contain stallable code won't prevent the process from exiting.
 var exitCode = await rootCommand.InvokeAsync(args).ConfigureAwait(false);
+BugReportCollector.DisposeIfInitialized();
 await Console.Out.FlushAsync().ConfigureAwait(false);
 await Console.Error.FlushAsync().ConfigureAwait(false);
 Environment.Exit(exitCode);
