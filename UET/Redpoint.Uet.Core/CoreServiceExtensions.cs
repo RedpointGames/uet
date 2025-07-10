@@ -7,6 +7,7 @@
     using Redpoint.Uet.Core.Permissions;
     using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
+    using Redpoint.Uet.Core.BugReport;
 
     public static class CoreServiceExtensions
     {
@@ -18,7 +19,8 @@
             bool omitLogPrefix = false,
             LogLevel minimumLogLevel = LogLevel.Information,
             bool skipLoggingRegistration = false,
-            bool permitRunbackLogging = false)
+            bool permitRunbackLogging = false,
+            BugReportCollector? bugReportCollector = null)
         {
             services.AddSingleton<IStringUtilities, DefaultStringUtilities>();
             services.AddSingleton<IWorldPermissionApplier, DefaultWorldPermissionApplier>();
@@ -28,19 +30,20 @@
                 services.AddLogging(builder =>
                 {
                     var enableRunbackLogging = permitRunbackLogging && Environment.GetEnvironmentVariable("UET_RUNBACKS") == "1";
+                    builder.ClearProviders();
+                    builder.SetMinimumLevel(enableRunbackLogging || bugReportCollector != null ? LogLevel.Trace : minimumLogLevel);
+                    builder.AddSingleLineConsoleFormatter(options =>
+                    {
+                        options.OmitLogPrefix = omitLogPrefix;
+                        options.TimestampFormat = minimumLogLevel == LogLevel.Trace ? "HH:mm:ss.fff " : null;
+                    });
+                    builder.AddSingleLineConsole(options =>
+                    {
+                        options.IncludeTracing = enableRunbackLogging || bugReportCollector != null ? (minimumLogLevel == LogLevel.Trace) : true;
+                    });
+
                     if (enableRunbackLogging)
                     {
-                        builder.ClearProviders();
-                        builder.SetMinimumLevel(LogLevel.Trace);
-                        builder.AddSingleLineConsoleFormatter(options =>
-                        {
-                            options.OmitLogPrefix = omitLogPrefix;
-                            options.TimestampFormat = minimumLogLevel == LogLevel.Trace ? "HH:mm:ss.fff " : null;
-                        });
-                        builder.AddSingleLineConsole(options =>
-                        {
-                            options.IncludeTracing = minimumLogLevel == LogLevel.Trace;
-                        });
                         Directory.CreateDirectory(RunbackGlobalState.RunbackDirectoryPath);
 
                         // Automatically delete runbacks older than 30 days so they don't consume space forever.
@@ -60,19 +63,10 @@
 
                         builder.AddFile(new FileStream(RunbackGlobalState.RunbackLogPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read | FileShare.Delete));
                     }
-                    else
+
+                    if (bugReportCollector != null)
                     {
-                        builder.ClearProviders();
-                        builder.SetMinimumLevel(minimumLogLevel);
-                        builder.AddSingleLineConsoleFormatter(options =>
-                        {
-                            options.OmitLogPrefix = omitLogPrefix;
-                            options.TimestampFormat = minimumLogLevel == LogLevel.Trace ? "HH:mm:ss.fff " : null;
-                        });
-                        builder.AddSingleLineConsole(options =>
-                        {
-                            options.IncludeTracing = true;
-                        });
+                        builder.AddProvider(bugReportCollector.LoggerProvider);
                     }
                 });
             }

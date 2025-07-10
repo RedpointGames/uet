@@ -12,6 +12,7 @@
     using Redpoint.Uet.Configuration.Engine;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
+    using Redpoint.Uet.Core.BugReport;
     using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.Uat;
     using System;
@@ -33,6 +34,7 @@
         private readonly IEngineWorkspaceProvider _engineWorkspaceProvider;
         private readonly IBuildGraphExecutor _buildGraphExecutor;
         private readonly IGlobalArgsProvider? _globalArgsProvider;
+        private readonly BugReportCollector? _bugReportCollector;
 
         public DefaultBuildSpecificationGenerator(
             ILogger<DefaultBuildSpecificationGenerator> logger,
@@ -42,7 +44,8 @@
             IWorldPermissionApplier worldPermissionApplier,
             IEngineWorkspaceProvider engineWorkspaceProvider,
             IBuildGraphExecutor buildGraphExecutor,
-            IGlobalArgsProvider? globalArgsProvider = null)
+            IGlobalArgsProvider? globalArgsProvider = null,
+            BugReportCollector? bugReportCollector = null)
         {
             _logger = logger;
             _selfLocation = selfLocation;
@@ -52,6 +55,7 @@
             _engineWorkspaceProvider = engineWorkspaceProvider;
             _buildGraphExecutor = buildGraphExecutor;
             _globalArgsProvider = globalArgsProvider;
+            _bugReportCollector = bugReportCollector;
         }
 
         private struct TargetConfig
@@ -340,6 +344,13 @@
                     distribution).ConfigureAwait(false);
             }
             await _worldPermissionApplier.GrantEveryonePermissionAsync(Path.Combine(sharedStorageAbsolutePath, macroFilename), CancellationToken.None).ConfigureAwait(false);
+
+            _bugReportCollector?.CollectFileForBugReport(
+                Path.Combine(sharedStorageAbsolutePath, nodeFilename),
+                nodeFilename);
+            _bugReportCollector?.CollectFileForBugReport(
+                Path.Combine(sharedStorageAbsolutePath, macroFilename),
+                macroFilename);
 
             return ($"__SHARED_STORAGE_PATH__/{nodeFilename}", $"__SHARED_STORAGE_PATH__/{macroFilename}");
         }

@@ -9,6 +9,7 @@
     using Redpoint.Uet.BuildPipeline.BuildGraph.MobileProvisioning;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Patching;
     using Redpoint.Uet.Configuration.Engine;
+    using Redpoint.Uet.Core.BugReport;
     using Redpoint.Uet.Uat;
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.Workspace.Descriptors;
@@ -26,6 +27,8 @@
         private readonly IWorkspaceProvider _dynamicWorkspaceProvider;
         private readonly IMobileProvisioning _mobileProvisioning;
         private readonly IGradleWorkspace _gradleWorkspace;
+        private readonly BugReportCollector? _bugReportCollector;
+        private static int _invocationCount = 0;
 
         public DefaultBuildGraphExecutor(
             ILogger<DefaultBuildGraphExecutor> logger,
@@ -34,7 +37,8 @@
             IBuildGraphPatcher buildGraphPatcher,
             IWorkspaceProvider dynamicWorkspaceProvider,
             IMobileProvisioning mobileProvisioning,
-            IGradleWorkspace gradleWorkspace)
+            IGradleWorkspace gradleWorkspace,
+            BugReportCollector? bugReportCollector = null)
         {
             _logger = logger;
             _uatExecutor = uatExecutor;
@@ -43,6 +47,7 @@
             _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
             _mobileProvisioning = mobileProvisioning;
             _gradleWorkspace = gradleWorkspace;
+            _bugReportCollector = bugReportCollector;
         }
 
         public async Task ListGraphAsync(
@@ -375,6 +380,14 @@
                 }
             }
 
+            var localInvocationCount = ++_invocationCount;
+            if (!string.IsNullOrWhiteSpace(buildGraphScriptPath))
+            {
+                _bugReportCollector?.CollectFileForBugReport(
+                    buildGraphScriptPath,
+                    $"BuildGraph-Invocation-{localInvocationCount}.xml");
+            }
+
             try
             {
                 return await _uatExecutor.ExecuteAsync(
@@ -409,6 +422,28 @@
                 if (deleteBuildGraphScriptPath)
                 {
                     File.Delete(buildGraphScriptPath);
+                }
+
+                var logPath = Path.Combine(
+                    System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
+                    "Unreal Engine",
+                    "AutomationTool",
+                    "Logs",
+                    enginePath
+                        .TrimEnd(Path.DirectorySeparatorChar)
+                        .Replace(Path.DirectorySeparatorChar, '+')
+                        .Replace(' ', '+')
+                        .Replace(":", "", StringComparison.Ordinal),
+                    "Log.txt");
+                if (File.Exists(logPath))
+                {
+                    _bugReportCollector?.CollectFileForBugReport(
+                        logPath,
+                        $"BuildGraph-Invocation-{localInvocationCount}.log");
+                }
+                else if (_bugReportCollector != null)
+                {
+                    _logger.LogWarning($"Unable to locate AutomationTool log for bug report collection: {logPath}");
                 }
             }
         }
