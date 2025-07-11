@@ -178,7 +178,16 @@
           Platform="$(CookPlatform)"
           Tag="#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)"
           Versioned="True"
-          Arguments="-CreateReleaseVersion=&quot;$(ReleaseVersion)&quot;" />
+          Arguments="-CreateReleaseVersion=&quot;$(ReleaseVersion)&quot;"
+          If="!Exists('$(ProjectRoot)\Binaries\Win64\$(EditorTarget)-Cmd.exe')" />
+        <Cook
+          Project="$(UProjectPath)"
+          Platform="$(CookPlatform)"
+          Tag="#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)"
+          Versioned="True"
+          EditorExe="$(ProjectRoot)\Binaries\Win64\$(EditorTarget)-Cmd.exe"
+          Arguments="-CreateReleaseVersion=&quot;$(ReleaseVersion)&quot;"
+          If="Exists('$(ProjectRoot)\Binaries\Win64\$(EditorTarget)-Cmd.exe')" />
       </Node>
       <Property Name="$(TargetType)CookedContent" Value="$($(TargetType)CookedContent)#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor);"/>
     </Agent>
