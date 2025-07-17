@@ -20,5 +20,15 @@
         {
             return values != null && values.Contains(target);
         }
+
+        public static bool IsOneOfString(this string? value, string[] target)
+        {
+            return value != null && target.Contains(value);
+        }
+
+        public static bool IsNotOneOfString(this string? value, string[] target)
+        {
+            return !(value != null && target.Contains(value));
+        }
     }
 }

@@ -86,9 +86,15 @@
                 return null;
             }
 
+            var maxAttempts = 30;
+            if (Environment.GetEnvironmentVariable("RCF_DO_NOT_WAIT_FOR_SERVICES") == "1")
+            {
+                maxAttempts = 1;
+            }
+
             ConnectionMultiplexer? connectionMultiplexer = null;
             var now = DateTime.Now;
-            for (var i = 0; i < 30; i++)
+            for (var i = 0; i < maxAttempts; i++)
             {
                 try
                 {
@@ -98,15 +104,22 @@
                 }
                 catch (RedisConnectionException)
                 {
-                    logger?.LogWarning($"Failed to connect to Redis (attempt #{i + 1}), waiting {i} seconds before trying again...");
-                    Thread.Sleep(i * 1000);
+                    if (i != maxAttempts - 1)
+                    {
+                        logger?.LogWarning($"Failed to connect to Redis (attempt #{i + 1}), waiting {i} seconds before trying again...");
+                        Thread.Sleep(i * 1000);
+                    }
+                    else
+                    {
+                        logger?.LogWarning($"Failed to connect to Redis (attempt #{i + 1}).");
+                    }
                     continue;
                 }
             }
 
             if (connectionMultiplexer == null)
             {
-                logger?.LogCritical($"Unable to connect to Redis after 30 attempts and {Math.Round((DateTime.Now - now).TotalMinutes, 0)} minutes... something is drastically wrong!");
+                logger?.LogCritical($"Unable to connect to Redis after {maxAttempts} {(maxAttempts == 1 ? "attempt" : "attempts")} and {Math.Round((DateTime.Now - now).TotalMinutes, 0)} minutes... something is drastically wrong!");
                 throw new InvalidOperationException("Unable to connect to Redis!");
             }
 

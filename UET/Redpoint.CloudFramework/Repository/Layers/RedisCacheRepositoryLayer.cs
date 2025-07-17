@@ -400,6 +400,10 @@ return queriesCleared
                     return "has-ancestor";
                 case PropertyFilter.Types.Operator.Equal:
                     return "eq";
+                case PropertyFilter.Types.Operator.In:
+                    return "in";
+                case PropertyFilter.Types.Operator.NotIn:
+                    return "not-in";
                 default:
                     throw new NotImplementedException();
             }

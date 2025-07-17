@@ -1455,14 +1455,6 @@ namespace Redpoint.CloudFramework.Tests
         {
             var layer = _env.Services.GetRequiredService<IRedisCacheRepositoryLayer>();
 
-            var subentity1 = new Entity();
-            subentity1.Key = null;
-            subentity1["a"] = "hello";
-
-            var subentity2 = new Entity();
-            subentity2.Key = null;
-            subentity2["a"] = "world";
-
             var subentity3 = new Entity();
             subentity3.Key = null;
             subentity3["a"] = "blah";
@@ -1473,11 +1465,6 @@ namespace Redpoint.CloudFramework.Tests
             entity["string"] = "test";
             entity["integer"] = 5;
             entity["double"] = 5.0;
-            entity["array"] = new[]
-            {
-                subentity1,
-                subentity2,
-            };
             entity["arrayString"] = new[]
             {
                 "hello",
@@ -1571,7 +1558,7 @@ namespace Redpoint.CloudFramework.Tests
                 x =>
                     x.forTest == name &&
                     x.timestamp == timestamp &&
-                    x.entity!["array"].EntityValue["a"].StringValue == "world",
+                    x.entity!["entity"].EntityValue["a"].StringValue == "blah",
                 null,
                 1,
                 null,

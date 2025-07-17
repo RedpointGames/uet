@@ -223,6 +223,18 @@
                     var targetValue = Expression.Lambda<Func<string>>(callExpression.Arguments[1]).Compile()();
                     return Filter.Equal(propertyInfo.Name, targetValue);
                 }
+                else if (callExpression.Method == typeof(RepositoryExtensions).GetMethod(nameof(RepositoryExtensions.IsOneOfString), BindingFlags.Static | BindingFlags.Public) &&
+                    callExpression.Arguments.Count == 2)
+                {
+                    var targetValue = Expression.Lambda<Func<string[]>>(callExpression.Arguments[1]).Compile()();
+                    return Filter.In(propertyInfo.Name, targetValue);
+                }
+                else if (callExpression.Method == typeof(RepositoryExtensions).GetMethod(nameof(RepositoryExtensions.IsNotOneOfString), BindingFlags.Static | BindingFlags.Public) &&
+                    callExpression.Arguments.Count == 2)
+                {
+                    var targetValue = Expression.Lambda<Func<string[]>>(callExpression.Arguments[1]).Compile()();
+                    return Filter.NotIn(propertyInfo.Name, targetValue);
+                }
                 else
                 {
                     throw new InvalidOperationException($"The only supported method call expressions are calling 'HasAncestor' on the primary Key and calling 'WithinKilometers' on geopoint properties. Attempted to invoke unsupported '{callExpression.Method.Name}' method.");

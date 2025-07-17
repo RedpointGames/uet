@@ -59,7 +59,7 @@
                             await shardedCounters.AdjustAsync("test-sharded-counter", adjustAmount).ConfigureAwait(true);
                             break;
                         }
-                        catch (RpcException ex) when (ex.IsContentionException())
+                        catch (RpcException ex) when (ex.IsContentionException() || ex.StatusCode == StatusCode.Aborted)
                         {
                             await Task.Delay(Random.Shared.Next(0, 5) * 200, ct).ConfigureAwait(true);
                             continue;
