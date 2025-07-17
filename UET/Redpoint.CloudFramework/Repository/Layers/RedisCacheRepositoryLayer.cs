@@ -31,6 +31,7 @@
     using static Google.Cloud.Datastore.V1.Key.Types;
     using Redpoint.Concurrency;
     using Redpoint.CloudFramework.Collections.Batching;
+    using Redpoint.Hashing;
 
     internal class RedisCacheRepositoryLayer : IRedisCacheRepositoryLayer
     {
@@ -430,7 +431,7 @@ return queriesCleared
                 case Value.ValueTypeOneofCase.GeoPointValue:
                     return $"geo:{value.GeoPointValue.Latitude}:{value.GeoPointValue.Longitude}";
                 case Value.ValueTypeOneofCase.ArrayValue:
-                    throw new NotSupportedException();
+                    return "array:" + Hash.XxHash64(string.Join(',', value.ArrayValue.Values.Select(SerializeValue)), Encoding.UTF8);
                 case Value.ValueTypeOneofCase.TimestampValue:
                     return $"ts:{_instantTimestampConverter.FromDatastoreValueToNodaTimeInstant(value.TimestampValue)!.Value.ToUnixTimeTicks()}";
                 case Value.ValueTypeOneofCase.StringValue:
