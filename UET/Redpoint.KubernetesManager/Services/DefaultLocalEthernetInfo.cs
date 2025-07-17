@@ -6,6 +6,7 @@
     using System.Net;
     using System.Net.NetworkInformation;
     using System.Runtime.InteropServices;
+    using System.Runtime.Versioning;
 
     internal class DefaultLocalEthernetInfo : ILocalEthernetInfo
     {
@@ -22,15 +23,35 @@
 
         public IPAddress IPAddress => _ipAddress.Value!;
 
+        private const string _vEthernetNatName = "vEthernet (nat)";
+
+        [SupportedOSPlatform("windows")]
+        private static HashSet<IPAddress> GetNatIpAddresses()
+        {
+            // Get the IP address of the NAT interface on Windows. This NAT interface is set up by Calico
+            // and has an internal IP address that we never want to pick as the external IP address of the
+            // machine.
+            return NetworkInterface.GetAllNetworkInterfaces()
+                .FirstOrDefault(x => string.Equals(x.Name, _vEthernetNatName, StringComparison.Ordinal))
+                ?.GetIPProperties()
+                ?.UnicastAddresses
+                ?.Select(x => x.Address)
+                ?.ToHashSet() ?? [];
+        }
+
         private IPAddress? GetExternalIPAddress()
         {
             var myIPHostEntry = Dns.GetHostEntry(Dns.GetHostName());
+
+            var disallowedIpAddress = OperatingSystem.IsWindows()
+                ? GetNatIpAddresses()
+                : [];
 
             foreach (var myIPAddress in myIPHostEntry.AddressList)
             {
                 if (myIPAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
                 {
-                    if (!IsPrivateIP(myIPAddress))
+                    if (!IsPrivateIP(myIPAddress) && !disallowedIpAddress.Contains(myIPAddress))
                     {
                         _logger.LogInformation($"Detected local IP address as: {myIPAddress.ToString()}");
                         return myIPAddress;
@@ -54,13 +75,18 @@
                         // not be a problem.
                         Thread.Sleep(15000);
 
+                        // Update disallowed list in case the NAT ethernet is now available to query.
+                        disallowedIpAddress = OperatingSystem.IsWindows()
+                            ? GetNatIpAddresses()
+                            : [];
+
                         // Try resolving again.
                         myIPHostEntry = Dns.GetHostEntry(Dns.GetHostName());
                         foreach (var myIPAddress in myIPHostEntry.AddressList)
                         {
                             if (myIPAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
                             {
-                                if (!IsPrivateIP(myIPAddress))
+                                if (!IsPrivateIP(myIPAddress) && !disallowedIpAddress.Contains(myIPAddress))
                                 {
                                     _logger.LogInformation($"Detected local IP address as: {myIPAddress.ToString()}");
                                     return myIPAddress;
@@ -115,6 +141,7 @@
             get
             {
                 var networkAdapter = NetworkInterface.GetAllNetworkInterfaces()
+                    .Where(x => !string.Equals(x.Name, _vEthernetNatName, StringComparison.Ordinal))
                     .FirstOrDefault(x => x.GetIPProperties().UnicastAddresses.Any(a => a.Address.Equals(IPAddress)));
 
                 if (networkAdapter == null && OperatingSystem.IsWindows())
@@ -132,6 +159,7 @@
 
                             // Try resolving again.
                             networkAdapter = NetworkInterface.GetAllNetworkInterfaces()
+                                .Where(x => !string.Equals(x.Name, _vEthernetNatName, StringComparison.Ordinal))
                                 .FirstOrDefault(x => x.GetIPProperties().UnicastAddresses.Any(a => a.Address.Equals(IPAddress)));
                             if (networkAdapter != null)
                             {
