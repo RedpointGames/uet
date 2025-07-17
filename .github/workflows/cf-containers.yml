@@ -50,6 +50,29 @@ jobs:
       run: |
         docker push ghcr.io/redpointgames/uet/datastore-emulator:latest
 
+  firestore-container:
+    name: "Build Firestore in Datastore Mode Container"
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Build Container
+      run: |
+        docker build . -f UET/Lib/Container/firestore-in-datastore-mode.Dockerfile --tag ghcr.io/redpointgames/uet/firestore-in-datastore-mode-emulator:latest
+    - name: Log in to the Container registry
+      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+      if: github.ref == 'refs/heads/main'
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Push Container
+      if: github.ref == 'refs/heads/main'
+      run: |
+        docker push ghcr.io/redpointgames/uet/firestore-in-datastore-mode-emulator:latest
+
   sdk-container:
     name: "Build SDK Container"
     runs-on: ubuntu-latest
