@@ -227,12 +227,20 @@
                     callExpression.Arguments.Count == 2)
                 {
                     var targetValue = Expression.Lambda<Func<string[]>>(callExpression.Arguments[1]).Compile()();
+                    if (targetValue.Length > 30)
+                    {
+                        throw new InvalidOperationException("The target array for an 'IsOneOfString' has more than 30 entries to match against. Firestore only permits up to 30 entries for an 'IN' query.");
+                    }
                     return Filter.In(propertyInfo.Name, targetValue);
                 }
                 else if (callExpression.Method == typeof(RepositoryExtensions).GetMethod(nameof(RepositoryExtensions.IsNotOneOfString), BindingFlags.Static | BindingFlags.Public) &&
                     callExpression.Arguments.Count == 2)
                 {
                     var targetValue = Expression.Lambda<Func<string[]>>(callExpression.Arguments[1]).Compile()();
+                    if (targetValue.Length > 10)
+                    {
+                        throw new InvalidOperationException("The target array for an 'IsNotOneOfString' has more than 10 entries to match against. Firestore only permits up to 10 entries for a 'NOT-IN' query.");
+                    }
                     return Filter.NotIn(propertyInfo.Name, targetValue);
                 }
                 else
