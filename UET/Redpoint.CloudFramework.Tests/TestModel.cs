@@ -39,5 +39,8 @@ namespace Redpoint.CloudFramework.Tests
 
         [Type(FieldType.String), Indexed]
         internal string? internalString1 { get; set; }
+
+        [Type(FieldType.StringArray), Indexed, Default(new string[0])]
+        public string[] stringArray { get; set; } = [];
     }
 }

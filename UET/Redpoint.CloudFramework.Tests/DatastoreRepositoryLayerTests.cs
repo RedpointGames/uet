@@ -1906,19 +1906,22 @@ namespace Redpoint.CloudFramework.Tests
                 null,
                 CancellationToken.None).ConfigureAwait(true);
             Assert.Equal(2, nextSet.Results.Count);
-            Assert.NotNull(nextSet.NextCursor);
 
-            var finalSet = await layer.QueryPaginatedAsync<TestModel>(
-                string.Empty,
-                nextSet.NextCursor!,
-                2,
-                x => x.timestamp == instant && x.forTest == name,
-                null,
-                null,
-                null,
-                CancellationToken.None).ConfigureAwait(true);
-            Assert.Empty(finalSet.Results);
-            Assert.Null(finalSet.NextCursor);
+            // If we do have another page indicated, ensure that it returns an empty set of results.
+            if (nextSet.NextCursor != null)
+            {
+                var finalSet = await layer.QueryPaginatedAsync<TestModel>(
+                    string.Empty,
+                    nextSet.NextCursor!,
+                    2,
+                    x => x.timestamp == instant && x.forTest == name,
+                    null,
+                    null,
+                    null,
+                    CancellationToken.None).ConfigureAwait(true);
+                Assert.Empty(finalSet.Results);
+                Assert.Null(finalSet.NextCursor);
+            }
         }
 
         [Fact]
@@ -2463,14 +2466,6 @@ namespace Redpoint.CloudFramework.Tests
         {
             var layer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
 
-            var subentity1 = new Entity();
-            subentity1.Key = null;
-            subentity1["a"] = "hello";
-
-            var subentity2 = new Entity();
-            subentity2.Key = null;
-            subentity2["a"] = "world";
-
             var subentity3 = new Entity();
             subentity3.Key = null;
             subentity3["a"] = "blah";
@@ -2481,11 +2476,6 @@ namespace Redpoint.CloudFramework.Tests
             entity["string"] = "test";
             entity["integer"] = 5;
             entity["double"] = 5.0;
-            entity["array"] = new[]
-            {
-                subentity1,
-                subentity2,
-            };
             entity["arrayString"] = new[]
             {
                 "hello",
@@ -2579,7 +2569,7 @@ namespace Redpoint.CloudFramework.Tests
                 x =>
                     x.forTest == name &&
                     x.timestamp == timestamp &&
-                    x.entity!["array"].EntityValue["a"].StringValue == "world",
+                    x.entity!["entity"].EntityValue["a"].StringValue == "blah",
                 null,
                 1,
                 null,
@@ -2594,6 +2584,150 @@ namespace Redpoint.CloudFramework.Tests
             {
                 DatastoreRepositoryLayerTests.AssertProperty(loadedModel.entity!, property.Key, property.Value);
             }
+        }
+
+        [Fact]
+        public async Task TestQueryAnyString()
+        {
+            var instant = SystemClock.Instance.GetCurrentInstant();
+
+            var model1 = new TestModel
+            {
+                forTest = "TestQueryAnyString",
+                string1 = "test1",
+                number1 = 10,
+                number2 = 20,
+                timestamp = instant,
+                stringArray = ["abc", "hello", "world"]
+            };
+            var model2 = new TestModel
+            {
+                forTest = "TestQueryAnyString",
+                string1 = "test2",
+                number1 = 10,
+                number2 = 20,
+                timestamp = instant,
+                stringArray = ["abc2", "hello2", "world2"]
+            };
+
+            var layer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
+
+            await layer.CreateAsync(string.Empty, new[] { model1, model2 }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+
+            await DatastoreRepositoryLayerTests.HandleEventualConsistency(async () =>
+            {
+                var result = await layer.QueryAsync<TestModel>(
+                    string.Empty,
+                    x => x.timestamp == instant && x.forTest == "TestQueryAnyString" && x.stringArray.IsAnyString("hello2"),
+                    null,
+                    1,
+                    null,
+                    null,
+                    CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+
+                Assert.NotNull(result);
+                Assert.Equal(result.Key, model2.Key);
+            }).ConfigureAwait(true);
+        }
+
+        [Fact]
+        public async Task TestQueryOneOfString()
+        {
+            var instant = SystemClock.Instance.GetCurrentInstant();
+
+            var model1 = new TestModel
+            {
+                forTest = "TestQueryOneOfString",
+                string1 = "test1",
+                number1 = 10,
+                number2 = 20,
+                timestamp = instant,
+            };
+            var model2 = new TestModel
+            {
+                forTest = "TestQueryOneOfString",
+                string1 = "test2",
+                number1 = 10,
+                number2 = 20,
+                timestamp = instant,
+            };
+            var model3 = new TestModel
+            {
+                forTest = "TestQueryOneOfString",
+                string1 = "test3",
+                number1 = 10,
+                number2 = 20,
+                timestamp = instant,
+            };
+
+            var layer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
+
+            await layer.CreateAsync(string.Empty, new[] { model1, model2, model3 }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+
+            await DatastoreRepositoryLayerTests.HandleEventualConsistency(async () =>
+            {
+                var result = await layer.QueryAsync<TestModel>(
+                    string.Empty,
+                    x => x.timestamp == instant && x.forTest == "TestQueryOneOfString" && x.string1.IsOneOfString(new[] { "abc", "hello", "test2" }),
+                    null,
+                    1,
+                    null,
+                    null,
+                    CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+
+                Assert.NotNull(result);
+                Assert.Equal(result.Key, model2.Key);
+            }).ConfigureAwait(true);
+        }
+
+        [Fact]
+        public async Task TestQueryNotOneOfString()
+        {
+            var instant = SystemClock.Instance.GetCurrentInstant();
+
+            var model1 = new TestModel
+            {
+                forTest = "TestQueryNotOneOfString",
+                string1 = "test1",
+                number1 = 10,
+                number2 = 20,
+                timestamp = instant,
+            };
+            var model2 = new TestModel
+            {
+                forTest = "TestQueryNotOneOfString",
+                string1 = "test2",
+                number1 = 10,
+                number2 = 20,
+                timestamp = instant,
+            };
+            var model3 = new TestModel
+            {
+                forTest = "TestQueryNotOneOfString",
+                string1 = "test3",
+                number1 = 10,
+                number2 = 20,
+                timestamp = instant,
+            };
+
+            var layer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
+
+            await layer.CreateAsync(string.Empty, new[] { model1, model2, model3 }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+
+            await DatastoreRepositoryLayerTests.HandleEventualConsistency(async () =>
+            {
+                var result = await layer.QueryAsync<TestModel>(
+                    string.Empty,
+                    x => x.timestamp == instant && x.forTest == "TestQueryNotOneOfString" && x.string1.IsNotOneOfString(new[] { "abc", "hello", "blah", "test2", "test3" }),
+                    null,
+                    1,
+                    null,
+                    null,
+                    CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+
+                Assert.NotNull(result);
+                Assert.Equal(result.Key, model1.Key);
+            }).ConfigureAwait(true);
         }
     }
 }

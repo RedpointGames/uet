@@ -1020,7 +1020,7 @@ jobs:
         ports:
           - 9000:9000
       datastore:
-        image: ghcr.io/redpointgames/uet/datastore-emulator:latest
+        image: ghcr.io/redpointgames/uet/firestore-in-datastore-mode-emulator:latest
         ports:
           - 9001:9001
     steps:

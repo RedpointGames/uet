@@ -101,9 +101,10 @@
             {
                 // Rancher Desktop doesn't work with the Docker C# library for some
                 // reason; just expect things to have been manually started.
-                Environment.SetEnvironmentVariable("REDIS_SERVER", "localhost:61000");
-                Environment.SetEnvironmentVariable("PUBSUB_SERVER", "localhost:61001");
-                Environment.SetEnvironmentVariable("DATASTORE_SERVER", "localhost:61002");
+                Environment.SetEnvironmentVariable("RCF_DO_NOT_WAIT_FOR_SERVICES", "1");
+                Environment.SetEnvironmentVariable("REDIS_SERVER", "127.0.0.1:61000");
+                Environment.SetEnvironmentVariable("PUBSUB_SERVER", "127.0.0.1:61001");
+                Environment.SetEnvironmentVariable("DATASTORE_SERVER", "127.0.0.1:61002");
             }
             else
             {
@@ -269,7 +270,7 @@
                     ex.StatusCode == StatusCode.DeadlineExceeded ||
                     ex.StatusCode == StatusCode.Cancelled)
                 {
-                    if (DateTime.UtcNow > deadline)
+                    if (DateTime.UtcNow > deadline || Environment.GetEnvironmentVariable("RCF_DO_NOT_WAIT_FOR_SERVICES") == "1")
                     {
                         _messageSink.OnMessage(new DiagnosticMessage($"Ran out of time waiting for Datastore to become ready."));
                         break;
