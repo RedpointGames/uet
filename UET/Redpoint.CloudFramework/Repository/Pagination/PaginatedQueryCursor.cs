@@ -13,6 +13,8 @@
     {
         private readonly string? _cursor;
 
+        public static readonly PaginatedQueryCursor Empty = new((string?)null);
+
         public PaginatedQueryCursor(ByteString bs)
         {
             if (bs == ByteString.Empty)
