@@ -133,10 +133,16 @@
             var results = new List<CloudFile>();
             foreach (var fileInfo in new DirectoryInfo(Path.Combine(_storageNameFolder, profile.Name)).GetFiles())
             {
+                var filename = File.ReadAllText(fileInfo.FullName).Trim();
+                if (!filename.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
                 results.Add(new CloudFile
                 {
                     FileId = fileInfo.Name,
-                    Filename = File.ReadAllText(fileInfo.FullName).Trim(),
+                    Filename = filename,
                 });
             }
             return Task.FromResult(results);
