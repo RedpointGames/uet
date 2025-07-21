@@ -28,5 +28,17 @@
         /// </summary>
         [JsonPropertyName("Package"), JsonRequired]
         public BuildConfigProjectDeploymentPackage Package { get; set; } = new BuildConfigProjectDeploymentPackage();
+
+        /// <summary>
+        /// The Steam username to use for the deployment. If not set here, you must set the STEAM_USERNAME environment variable.
+        /// </summary>
+        [JsonPropertyName("SteamUsername")]
+        public string? SteamUsername { get; set; }
+
+        /// <summary>
+        /// The path to the 'steamcmd.exe' executable, relative to the project root. Can be an absolute path instead. If not set here, you must set the STEAM_STEAMCMD_PATH environment variable.
+        /// </summary>
+        [JsonPropertyName("SteamCmdPath")]
+        public string? SteamCmdPath { get; set; }
     }
 }
