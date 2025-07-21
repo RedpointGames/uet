@@ -1,33 +1,36 @@
 ﻿namespace UET.Commands.Build
 {
+    using k8s.Models;
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
+    using Redpoint.Concurrency;
+    using Redpoint.PackageManagement;
+    using Redpoint.ProcessExecution;
+    using Redpoint.Reservation;
+    using Redpoint.Uet.BuildPipeline.Executors;
+    using Redpoint.Uet.BuildPipeline.Executors.Engine;
+    using Redpoint.Uet.BuildPipeline.Executors.GitLab;
+    using Redpoint.Uet.BuildPipeline.Executors.Local;
+    using Redpoint.Uet.CommonPaths;
+    using Redpoint.Uet.Configuration.Dynamic;
+    using Redpoint.Uet.Configuration.Engine;
+    using Redpoint.Uet.Configuration.Plugin;
+    using Redpoint.Uet.Configuration.Project;
+    using Redpoint.Uet.Core;
+    using Redpoint.Uet.SdkManagement;
+    using Redpoint.Uet.Workspace;
     using System;
     using System.CommandLine;
-    using System.Threading.Tasks;
-    using UET.Commands.EngineSpec;
     using System.CommandLine.Invocation;
-    using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.DependencyInjection;
-    using Redpoint.Uet.BuildPipeline.Executors;
-    using Redpoint.Uet.Configuration.Project;
-    using Redpoint.Uet.Configuration.Plugin;
-    using Redpoint.Uet.Configuration.Engine;
-    using Redpoint.Uet.BuildPipeline.Executors.Local;
-    using Redpoint.ProcessExecution;
-    using Redpoint.Uet.BuildPipeline.Executors.GitLab;
-    using Redpoint.Uet.Core;
-    using static Crayon.Output;
-    using Redpoint.Uet.Configuration.Dynamic;
-    using System.Text.RegularExpressions;
-    using Redpoint.Uet.Workspace;
-    using Redpoint.Uet.CommonPaths;
-    using Redpoint.Uet.BuildPipeline.Executors.Engine;
-    using Redpoint.Concurrency;
-    using k8s.Models;
-    using UET.BuildConfig;
-    using System.Runtime.InteropServices;
-    using Microsoft.Extensions.Configuration;
     using System.Diagnostics;
-    using Redpoint.Uet.SdkManagement;
+    using System.Runtime.InteropServices;
+    using System.Text.RegularExpressions;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using UET.BuildConfig;
+    using UET.Commands.EngineSpec;
+    using static Crayon.Output;
 
     internal sealed class RunCommand
     {
@@ -91,6 +94,7 @@
                     "uba-visualizer",
                     "adb",
                     "xcode",
+                    "fastlane",
                 ]);
                 Target.Arity = ArgumentArity.ExactlyOne;
                 Target.HelpName = "target";
@@ -120,6 +124,7 @@
                 uba-visualizer: Run the Unreal Build Accelerator visualizer.
                 adb:            Run the Android Debug Bridge.
                 xcode:          Run the version of Xcode that this Unreal Engine version requires.
+                fastlane:       Install and run Fastlane.
  
                 If --path points to a project file, the target will automatically receive the project file as an argument in an appropriate manner, if possible.
                 """
@@ -136,6 +141,8 @@
             private readonly IProcessExecutor _processExecutor;
             private readonly ILocalSdkManager _localSdkManager;
             private readonly IServiceProvider _serviceProvider;
+            private readonly IGlobalMutexReservationManager _globalMutexReservationManager;
+            private readonly IPackageManager _packageManager;
 
             public RunCommandInstance(
                 ILogger<RunCommandInstance> logger,
@@ -143,7 +150,9 @@
                 IEngineWorkspaceProvider engineWorkspaceProvider,
                 IProcessExecutor processExecutor,
                 ILocalSdkManager localSdkManager,
-                IServiceProvider serviceProvider)
+                IServiceProvider serviceProvider,
+                IReservationManagerFactory reservationManagerFactory,
+                IPackageManager packageManager)
             {
                 _logger = logger;
                 _options = options;
@@ -151,6 +160,8 @@
                 _processExecutor = processExecutor;
                 _localSdkManager = localSdkManager;
                 _serviceProvider = serviceProvider;
+                _globalMutexReservationManager = reservationManagerFactory.CreateGlobalMutexReservationManager();
+                _packageManager = packageManager;
             }
 
             private static string ParameterisedArgument(string argumentName, string argumentValue)
@@ -697,6 +708,50 @@
                                     };
                                     _ = Process.Start(startInfo);
                                     return 0;
+                                }
+                            case "fastlane":
+                                {
+                                    await using (await _globalMutexReservationManager.ReserveExactAsync("RubyInstall", context.GetCancellationToken()))
+                                    {
+                                        _logger.LogInformation("Installing Ruby...");
+                                        await _packageManager.InstallOrUpgradePackageToLatestAsync(
+                                            "RubyInstallerTeam.RubyWithDevKit.3.4",
+                                            context.GetCancellationToken());
+
+                                        if (!File.Exists(@"C:\Ruby34-x64\bin\fastlane.bat"))
+                                        {
+                                            _logger.LogInformation("Installing Fastlane...");
+                                            var gemPath = @"C:\Ruby34-x64\bin\gem.cmd";
+                                            var installExitCode = await _processExecutor.ExecuteAsync(
+                                                new ProcessSpecification
+                                                {
+                                                    FilePath = gemPath,
+                                                    Arguments = ["install", "fastlane"]
+                                                },
+                                                CaptureSpecification.Passthrough,
+                                                context.GetCancellationToken());
+                                            if (installExitCode != 0)
+                                            {
+                                                return installExitCode;
+                                            }
+                                        }
+                                    }
+
+                                    var fastlanePath = @"C:\Ruby34-x64\bin\fastlane.bat";
+                                    return await _processExecutor.ExecuteAsync(
+                                        new ProcessSpecification
+                                        {
+                                            FilePath = fastlanePath,
+                                            Arguments = arguments.Select(x => new LogicalProcessArgument(x)),
+                                            EnvironmentVariables = new Dictionary<string, string>
+                                            {
+                                                { "FASTLANE_OPT_OUT_USAGE", "YES" },
+                                                { "LC_ALL", "en_US.UTF-8" },
+                                                { "LANG", "en_US.UTF-8" },
+                                            }
+                                        },
+                                        CaptureSpecification.Passthrough,
+                                        context.GetCancellationToken());
                                 }
                             default:
                                 _logger.LogError($"The target '{target}' is not supported.");
