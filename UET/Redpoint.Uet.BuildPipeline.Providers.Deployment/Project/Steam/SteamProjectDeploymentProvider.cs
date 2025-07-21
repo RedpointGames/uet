@@ -180,7 +180,7 @@
                     {
                         "Unreal Engine Prerequisites"
                         {
-                            "HasRunKey"     "HKEY_CLASSES_ROOT\\Installer\\Dependencies\\{4e242cc8-5e3c-4b08-9d55-dbc62ddd1208}"
+                            "HasRunKey"     "HKEY_LOCAL_MACHINE\\Software\\Valve\\Steam\\Apps\\{{config.AppID}}\\UE4PrereqSetup"
                             "Process 1"     "%INSTALLDIR%\\Engine\\Extras\\Redist\\en-us\\UE4PrereqSetup_x64.exe"
                             "Command 1"     "/quiet /norestart"
                             "NoCleanUp"     "1"
@@ -198,7 +198,7 @@
                     {
                         "Unreal Engine Prerequisites"
                         {
-                            "HasRunKey"     "HKEY_CLASSES_ROOT\\Installer\\Dependencies\\{4e242cc8-5e3c-4b08-9d55-dbc62ddd1208}"
+                            "HasRunKey"     "HKEY_LOCAL_MACHINE\\Software\\Valve\\Steam\\Apps\\{{config.AppID}}\\UnrealPrereqSetup"
                             "Process 1"     "%INSTALLDIR%\\Engine\\Extras\\Redist\\en-us\\UnrealPrereqSetup_x64.exe"
                             "Command 1"     "/quiet /norestart"
                             "NoCleanUp"     "1"
@@ -216,8 +216,26 @@
                     {
                         "Unreal Engine Prerequisites"
                         {
-                            "HasRunKey"     "HKEY_CLASSES_ROOT\\Installer\\Dependencies\\{4e242cc8-5e3c-4b08-9d55-dbc62ddd1208}"
+                            "HasRunKey"     "HKEY_LOCAL_MACHINE\\Software\\Valve\\Steam\\Apps\\{{config.AppID}}\\UEPrereqSetup"
                             "Process 1"     "%INSTALLDIR%\\Engine\\Extras\\Redist\\en-us\\UEPrereqSetup_x64.exe"
+                            "Command 1"     "/quiet /norestart"
+                            "NoCleanUp"     "1"
+                        }
+                    }
+                    """
+                );
+            }
+            if (File.Exists(Path.Combine(packagePath, "Engine\\Extras\\Redist\\en-us\\vc_redist.x64.exe")))
+            {
+                installScriptExtras.Add(
+                    $$"""
+
+                    "Run Process"
+                    {
+                        "Unreal Engine Prerequisites"
+                        {
+                            "HasRunKey"     "HKEY_LOCAL_MACHINE\\Software\\Valve\\Steam\\Apps\\{{config.AppID}}\\VCRedist"
+                            "Process 1"     "%INSTALLDIR%\\Engine\\Extras\\Redist\\en-us\\vc_redist.x64.exe"
                             "Command 1"     "/quiet /norestart"
                             "NoCleanUp"     "1"
                         }
@@ -232,7 +250,7 @@
 
                     "Run Process"
                     {
-                        "EpicOnlineServices"
+                        "Epic Online Services"
                         {
                             "HasRunKey"     "HKEY_LOCAL_MACHINE\\Software\\Valve\\Steam\\Apps\\{{config.AppID}}\\EOS"
                             "Process 1"     "%INSTALLDIR%\\InstallEOSServices.bat"
@@ -240,7 +258,7 @@
                     }
                     "Run Process On Uninstall"
                     {
-                        "EpicOnlineServices"
+                        "Epic Online Services"
                         {
                             "Process 1"     "%INSTALLDIR%\\UninstallEOSServices.bat"
                         }
@@ -255,15 +273,15 @@
 
                     "Run Process"
                     {
-                        "EpicOnlineServices"
+                        "Easy Anti-Cheat"
                         {
-                            "HasRunKey"     "HKEY_LOCAL_MACHINE\\Software\\Valve\\Steam\\Apps\\{{config.AppID}}\\EOS"
+                            "HasRunKey"     "HKEY_LOCAL_MACHINE\\Software\\Valve\\Steam\\Apps\\{{config.AppID}}\\AntiCheat"
                             "Process 1"     "%INSTALLDIR%\\InstallAntiCheat.bat"
                         }
                     }
                     "Run Process On Uninstall"
                     {
-                        "EpicOnlineServices"
+                        "Easy Anti-Cheat"
                         {
                             "Process 1"     "%INSTALLDIR%\\UninstallAntiCheat.bat"
                         }
