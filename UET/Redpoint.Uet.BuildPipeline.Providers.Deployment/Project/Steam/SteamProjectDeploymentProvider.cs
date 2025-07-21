@@ -194,6 +194,7 @@
                     "FileExclusion" "InstallEOSServices.bat"
                     "FileExclusion" "UninstallEOSServices.bat"
                     "FileExclusion" "*/Saved/*"
+                    "FileExclusion" "*\\Saved\\*"
                     "InstallScript" "Engine/Extras/steam_install_prereqs.vdf"
                 }
                 """,
