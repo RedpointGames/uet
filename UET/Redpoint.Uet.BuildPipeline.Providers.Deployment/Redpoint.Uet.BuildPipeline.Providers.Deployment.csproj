@@ -13,11 +13,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Lib\Redpoint.ThirdParty.B2Net\Redpoint.ThirdParty.B2Net.csproj" />
+    <ProjectReference Include="..\Redpoint.PackageManagement\Redpoint.PackageManagement.csproj" />
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.BuildGraph\Redpoint.Uet.BuildGraph.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.Configuration\Redpoint.Uet.Configuration.csproj" />
     <ProjectReference Include="..\Redpoint.RuntimeJson.SourceGenerator\Redpoint.RuntimeJson.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\Redpoint.Uet.Workspace\Redpoint.Uet.Workspace.csproj" />
   </ItemGroup>
 
 </Project>
