@@ -10,6 +10,7 @@
     using Redpoint.Uet.Configuration.Project;
     using System;
     using System.Collections.Generic;
+    using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using System.Xml;
 
@@ -63,6 +64,7 @@
                             deployment.settings,
                             new Dictionary<string, string>
                             {
+                                { "ProjectRoot", "$(ProjectRoot)" },
                                 { "StageDirectory", "$(StageDirectory)" },
                                 { "TempPath", "$(TempPath)" },
                             }).ConfigureAwait(false);
@@ -102,20 +104,50 @@
             var steamCmdPath = Environment.GetEnvironmentVariable("STEAM_STEAMCMD_PATH");
             if (string.IsNullOrWhiteSpace(steamUsername))
             {
-                _logger.LogError("Missing STEAM_USERNAME environment variable, which is required for Steam deployments. Set this environment variable on the command line or in your build server configuration.");
-                return 1;
+                if (!string.IsNullOrWhiteSpace(config.SteamUsername))
+                {
+                    steamUsername = config.SteamUsername;
+                }
+                else
+                {
+                    _logger.LogError("Missing STEAM_USERNAME environment variable, which is required for Steam deployments. Set this environment variable on the command line or in your build server configuration.");
+                    return 1;
+                }
             }
             if (string.IsNullOrWhiteSpace(steamCmdPath))
             {
-                _logger.LogError("Missing STEAM_STEAMCMD_PATH environment variable, which is required for Steam deployments. This must point to the steamcmd.exe executable. Set this environment variable on the command line or in your build server configuration.");
-                return 1;
+                if (!string.IsNullOrWhiteSpace(config.SteamCmdPath))
+                {
+                    if (Path.IsPathRooted(config.SteamCmdPath))
+                    {
+                        steamCmdPath = config.SteamCmdPath;
+                    }
+                    else
+                    {
+                        steamCmdPath = Path.Combine(runtimeSettings["ProjectRoot"], config.SteamCmdPath);
+                    }
+                }
+                else
+                {
+                    _logger.LogError("Missing STEAM_STEAMCMD_PATH environment variable, which is required for Steam deployments. This must point to the steamcmd.exe executable. Set this environment variable on the command line or in your build server configuration.");
+                    return 1;
+                }
             }
+
+            _logger.LogInformation($"Using steamcmd.exe located at: {steamCmdPath}");
 
             var packagePath = Path.Combine(runtimeSettings["StageDirectory"], stagePlatform);
 
             var tempPath = Path.Combine(runtimeSettings["TempPath"], $"Steam{config.DepotID}");
             Directory.CreateDirectory(tempPath);
 
+            await File.WriteAllTextAsync(
+                Path.Combine(tempPath, "steam_selfupdate.txt"),
+                $"""
+                @NoPromptForPassword 1
+                quit
+                """,
+                cancellationToken).ConfigureAwait(false);
             await File.WriteAllTextAsync(
                 Path.Combine(tempPath, "steam_push.txt"),
                 $"""
@@ -157,120 +189,181 @@
                         "recursive" "1"
                     }
                     "FileExclusion" "Manifest_*.txt"
+                    "FileExclusion" "InstallAntiCheat.bat"
+                    "FileExclusion" "UninstallAntiCheat.bat"
+                    "FileExclusion" "InstallEOSServices.bat"
+                    "FileExclusion" "UninstallEOSServices.bat"
                     "FileExclusion" "*/Saved/*"
                     "InstallScript" "Engine/Extras/steam_install_prereqs.vdf"
                 }
                 """,
                 cancellationToken).ConfigureAwait(false);
+            var projectName = config.Package.Target;
             var installScriptExtras = new List<string>
             {
                 $$"""
                 "Firewall"
                 {
-                    "Game - {{config.DepotID}}"       "%INSTALLDIR%\\$PackageTarget.exe"
+                    "Game Launch - {{config.DepotID}}"    "%INSTALLDIR%\\{{projectName}}.exe"
+                    "Game Exe - {{config.DepotID}}"       "%INSTALLDIR%\\{{projectName}}\\Binaries\\Win64\\{{projectName}}.exe"
                 }
                 """
             };
+
+            // @note: It's fine for all of the HasRunKey to be the same, because the name of the section (e.g. "Unreal Engine Prerequisites" or "EOS Services") is used as the DWORD underneath that key.
+
+            var runProcessSections = new List<string>();
+            var runProcessOnUninstallSections = new List<string>();
+
             if (File.Exists(Path.Combine(packagePath, "Engine\\Extras\\Redist\\en-us\\UE4PrereqSetup_x64.exe")))
             {
-                installScriptExtras.Add(
+                runProcessSections.Add(
                     $$"""
 
-                    "Run Process"
-                    {
                         "Unreal Engine Prerequisites"
                         {
-                            "HasRunKey"     "HKEY_CLASSES_ROOT\\Installer\\Dependencies\\{4e242cc8-5e3c-4b08-9d55-dbc62ddd1208}"
+                            "HasRunKey"     "HKEY_LOCAL_MACHINE\\Software\\Valve\\Steam\\Apps\\{{config.AppID}}"
                             "Process 1"     "%INSTALLDIR%\\Engine\\Extras\\Redist\\en-us\\UE4PrereqSetup_x64.exe"
                             "Command 1"     "/quiet /norestart"
                             "NoCleanUp"     "1"
                         }
-                    }
-                    """
-                );
+                    """);
             }
             if (File.Exists(Path.Combine(packagePath, "Engine\\Extras\\Redist\\en-us\\UnrealPrereqSetup_x64.exe")))
             {
-                installScriptExtras.Add(
+                runProcessSections.Add(
                     $$"""
 
-                    "Run Process"
-                    {
                         "Unreal Engine Prerequisites"
                         {
-                            "HasRunKey"     "HKEY_CLASSES_ROOT\\Installer\\Dependencies\\{4e242cc8-5e3c-4b08-9d55-dbc62ddd1208}"
+                            "HasRunKey"     "HKEY_LOCAL_MACHINE\\Software\\Valve\\Steam\\Apps\\{{config.AppID}}"
                             "Process 1"     "%INSTALLDIR%\\Engine\\Extras\\Redist\\en-us\\UnrealPrereqSetup_x64.exe"
                             "Command 1"     "/quiet /norestart"
                             "NoCleanUp"     "1"
                         }
-                    }
                     """
-                );
+                    );
             }
             if (File.Exists(Path.Combine(packagePath, "Engine\\Extras\\Redist\\en-us\\UEPrereqSetup_x64.exe")))
             {
-                installScriptExtras.Add(
+                runProcessSections.Add(
                     $$"""
-
-                    "Run Process"
-                    {
+                    
                         "Unreal Engine Prerequisites"
                         {
-                            "HasRunKey"     "HKEY_CLASSES_ROOT\\Installer\\Dependencies\\{4e242cc8-5e3c-4b08-9d55-dbc62ddd1208}"
+                            "HasRunKey"     "HKEY_LOCAL_MACHINE\\Software\\Valve\\Steam\\Apps\\{{config.AppID}}"
                             "Process 1"     "%INSTALLDIR%\\Engine\\Extras\\Redist\\en-us\\UEPrereqSetup_x64.exe"
                             "Command 1"     "/quiet /norestart"
                             "NoCleanUp"     "1"
                         }
-                    }
-                    """
-                );
+                    """);
+            }
+            if (File.Exists(Path.Combine(packagePath, "Engine\\Extras\\Redist\\en-us\\vc_redist.x64.exe")))
+            {
+                runProcessSections.Add(
+                    $$"""
+                    
+                        "Unreal Engine Prerequisites"
+                        {
+                            "HasRunKey"     "HKEY_LOCAL_MACHINE\\Software\\Valve\\Steam\\Apps\\{{config.AppID}}"
+                            "Process 1"     "%INSTALLDIR%\\Engine\\Extras\\Redist\\en-us\\vc_redist.x64.exe"
+                            "Command 1"     "/quiet /norestart"
+                            "NoCleanUp"     "1"
+                        }
+                    """);
             }
             if (File.Exists(Path.Combine(packagePath, "InstallEOSServices.bat")))
             {
-                installScriptExtras.Add(
-                    $$"""
+                var installEosServicesRegex = new Regex("/install productId=([0-9a-f]+) ", RegexOptions.Multiline);
+                var productIdMatch = installEosServicesRegex.Match(File.ReadAllText(Path.Combine(packagePath, "InstallEOSServices.bat")));
+                if (!productIdMatch.Success)
+                {
+                    _logger.LogError("Unable to locate product ID in 'InstallEOSServices.bat' file!");
+                    return 1;
+                }
+                var productId = productIdMatch.Groups[1].Value;
+                _logger.LogInformation($"Using product ID '{productId}' for EOS service installation.");
 
-                    "Run Process"
-                    {
-                        "EpicOnlineServices"
+                runProcessSections.Add(
+                    $$"""
+                    
+                        "Epic Online Services"
                         {
-                            "HasRunKey"     "HKEY_LOCAL_MACHINE\\Software\\Valve\\Steam\\Apps\\{{config.AppID}}\\EOS"
-                            "Process 1"     "%INSTALLDIR%\\InstallEOSServices.bat"
+                            "HasRunKey"     "HKEY_LOCAL_MACHINE\\Software\\Valve\\Steam\\Apps\\{{config.AppID}}"
+                            "Process 1"     "%INSTALLDIR%\\EpicOnlineServicesInstaller.exe"
+                            "Command 1"     "/install productId={{productId}} /quiet"
                         }
-                    }
-                    "Run Process On Uninstall"
-                    {
-                        "EpicOnlineServices"
+                    """);
+                runProcessOnUninstallSections.Add(
+                    $$"""
+                    
+                        "Epic Online Services"
                         {
-                            "Process 1"     "%INSTALLDIR%\\UninstallEOSServices.bat"
+                            "Process 1"     "%INSTALLDIR%\\EpicOnlineServicesInstaller.exe"
+                            "Command 1"     "/uninstall productId={{productId}} /quiet"
                         }
-                    }
-                    """
-                );
+                    """);
             }
             if (File.Exists(Path.Combine(packagePath, "InstallAntiCheat.bat")))
+            {
+                var installEacServicesRegex = new Regex("install ([0-9a-f]+)\\n");
+                var productIdMatch = installEacServicesRegex.Match(
+                    File.ReadAllText(Path.Combine(packagePath, "InstallAntiCheat.bat"))
+                        .Replace("\r", "", StringComparison.Ordinal));
+                if (!productIdMatch.Success)
+                {
+                    _logger.LogError("Unable to locate product ID in 'InstallAntiCheat.bat' file!");
+                    return 1;
+                }
+                var productId = productIdMatch.Groups[1].Value;
+                _logger.LogInformation($"Using product ID '{productId}' for Anti-Cheat service installation.");
+
+                runProcessSections.Add(
+                    $$"""
+                    
+                        "Easy Anti-Cheat"
+                        {
+                            "HasRunKey"     "HKEY_LOCAL_MACHINE\\Software\\Valve\\Steam\\Apps\\{{config.AppID}}"
+                            "Process 1"     "%INSTALLDIR%\\EasyAntiCheat\\EasyAntiCheat_EOS_Setup.exe"
+                            "Command 1"     "install {{productId}}"
+                        }
+                    """);
+                runProcessOnUninstallSections.Add(
+                    $$"""
+                    
+                        "Easy Anti-Cheat"
+                        {
+                            "Process 1"     "%INSTALLDIR%\\EasyAntiCheat\\EasyAntiCheat_EOS_Setup.exe"
+                            "Command 1"     "uninstall {{productId}}"
+                        }
+                    """);
+            }
+
+            if (runProcessSections.Count > 0)
             {
                 installScriptExtras.Add(
                     $$"""
 
                     "Run Process"
                     {
-                        "EpicOnlineServices"
-                        {
-                            "HasRunKey"     "HKEY_LOCAL_MACHINE\\Software\\Valve\\Steam\\Apps\\{{config.AppID}}\\EOS"
-                            "Process 1"     "%INSTALLDIR%\\InstallAntiCheat.bat"
-                        }
-                    }
-                    "Run Process On Uninstall"
-                    {
-                        "EpicOnlineServices"
-                        {
-                            "Process 1"     "%INSTALLDIR%\\UninstallAntiCheat.bat"
-                        }
+                        {{string.Join(string.Empty, runProcessSections)}}
                     }
                     """
                 );
             }
+            if (runProcessOnUninstallSections.Count > 0)
+            {
+                installScriptExtras.Add(
+                    $$"""
+                    
+                    "Run Process On Uninstall"
+                    {
+                        {{string.Join(string.Empty, runProcessOnUninstallSections)}}
+                    }
+                    """
+                );
+            }
+
             Directory.CreateDirectory(Path.Combine(packagePath, "Engine\\Extras"));
             await File.WriteAllTextAsync(
                 Path.Combine(packagePath, "Engine\\Extras\\steam_install_prereqs.vdf"),
@@ -281,6 +374,28 @@
                 }
                 """,
                 cancellationToken).ConfigureAwait(false);
+
+            _logger.LogWarning($"If you see a login error below, run '{steamCmdPath}' manually and type 'login {steamUsername}' to authorize this machine.");
+
+            _logger.LogInformation($"Making sure that steamcmd.exe is fully up-to-date...");
+            {
+                var shouldRetry = new RetryHolder();
+                do
+                {
+                    shouldRetry.Retry = false;
+                    await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = steamCmdPath,
+                            Arguments = [
+                                "+runscript",
+                                Path.Combine(tempPath, "steam_selfupdate.txt")
+                            ]
+                        },
+                        new SteamCaptureSpecification(shouldRetry),
+                        cancellationToken).ConfigureAwait(false);
+                } while (shouldRetry.Retry);
+            }
 
             _logger.LogInformation($"Deploying to Steam using stage platform {stagePlatform} under {packagePath}...");
             return await _processExecutor.ExecuteAsync(
@@ -294,6 +409,46 @@
                 },
                 CaptureSpecification.Passthrough,
                 cancellationToken).ConfigureAwait(false);
+        }
+
+        private class SteamCaptureSpecification : ICaptureSpecification
+        {
+            private readonly RetryHolder _retryHolder;
+
+            public SteamCaptureSpecification(RetryHolder retryHolder)
+            {
+                _retryHolder = retryHolder;
+            }
+
+            public bool InterceptStandardInput => true;
+
+            public bool InterceptStandardOutput => true;
+
+            public bool InterceptStandardError => false;
+
+            public void OnReceiveStandardError(string data)
+            {
+            }
+
+            public void OnReceiveStandardOutput(string data)
+            {
+                // If Steamcmd updated, run it again to ensure that deployment happened.
+                if (data.Contains("Update complete, launching Steamcmd", StringComparison.Ordinal))
+                {
+                    _retryHolder.Retry = true;
+                }
+                Console.WriteLine(data);
+            }
+
+            public string? OnRequestStandardInputAtStartup()
+            {
+                return null;
+            }
+        }
+
+        private class RetryHolder
+        {
+            public bool Retry;
         }
     }
 }
