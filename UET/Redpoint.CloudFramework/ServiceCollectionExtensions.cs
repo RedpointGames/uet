@@ -24,6 +24,7 @@
     using Quartz;
     using Redpoint.CloudFramework.Processor;
     using Redpoint.CloudFramework.GoogleInfrastructure;
+    using Redpoint.CloudFramework.Repository.Validation;
 
     /// <summary>
     /// Provides additional service registration methods for <see cref="IServiceCollection"/>.
@@ -98,6 +99,7 @@
             bool enableMigrations,
             bool enableRedis)
         {
+            services.AddSingleton<IModelValidator, DefaultModelValidator>();
             services.AddSingleton<IGlobalRepository, DatastoreGlobalRepository>();
             services.AddSingleton<IGlobalRepositoryHook[]>(svc => svc.GetServices<IGlobalRepositoryHook>().ToArray());
             services.AddSingleton<IModelConverter<string>, JsonModelConverter>();

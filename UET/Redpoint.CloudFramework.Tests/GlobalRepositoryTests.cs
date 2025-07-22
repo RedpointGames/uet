@@ -4,6 +4,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.CloudFramework.Datastore;
     using Redpoint.CloudFramework.Repository;
+    using Redpoint.CloudFramework.Tests.Models;
     using System.Threading.Tasks;
     using Xunit;
 

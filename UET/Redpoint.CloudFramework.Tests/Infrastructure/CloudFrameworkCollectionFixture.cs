@@ -1,4 +1,4 @@
-﻿namespace Redpoint.CloudFramework.Tests
+﻿namespace Redpoint.CloudFramework.Tests.Infrastructure
 {
     using Xunit;
 
