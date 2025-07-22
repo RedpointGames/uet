@@ -8,6 +8,7 @@
     using Xunit;
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.CloudFramework.Repository.Layers;
+    using Redpoint.CloudFramework.Tests.Models;
 
     [Collection("CloudFramework Test")]
     public class BatchingTests

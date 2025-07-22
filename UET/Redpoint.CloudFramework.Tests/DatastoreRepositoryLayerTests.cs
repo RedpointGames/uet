@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NodaTime;
 using Redpoint.CloudFramework.Repository;
 using Redpoint.CloudFramework.Repository.Layers;
+using Redpoint.CloudFramework.Tests.Models;
 using Xunit;
 using Xunit.Sdk;
 using static Google.Cloud.Datastore.V1.Key.Types;

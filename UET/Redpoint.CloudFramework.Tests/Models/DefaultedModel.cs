@@ -1,6 +1,6 @@
 ﻿using Redpoint.CloudFramework.Models;
 
-namespace Redpoint.CloudFramework.Tests
+namespace Redpoint.CloudFramework.Tests.Models
 {
     [Kind("cf_defaultedModel")]
     public sealed class DefaultedModel : Model<DefaultedModel>

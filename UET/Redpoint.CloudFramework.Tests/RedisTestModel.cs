@@ -1,6 +1,7 @@
 ﻿using Google.Cloud.Datastore.V1;
 using NodaTime;
 using Redpoint.CloudFramework.Models;
+using Redpoint.CloudFramework.Tests.Models;
 
 namespace Redpoint.CloudFramework.Tests
 {

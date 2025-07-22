@@ -2,7 +2,7 @@
 using NodaTime;
 using Redpoint.CloudFramework.Models;
 
-namespace Redpoint.CloudFramework.Tests
+namespace Redpoint.CloudFramework.Tests.Models
 {
     [Kind("cf_geoDenseModel")]
     public sealed class GeoDenseModel : Model<GeoDenseModel>

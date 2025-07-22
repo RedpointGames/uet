@@ -1,4 +1,4 @@
-﻿namespace Redpoint.CloudFramework.Tests
+﻿namespace Redpoint.CloudFramework.Tests.Models
 {
     using Google.Cloud.Datastore.V1;
     using NodaTime;

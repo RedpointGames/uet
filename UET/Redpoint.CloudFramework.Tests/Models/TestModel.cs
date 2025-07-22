@@ -2,7 +2,7 @@
 using NodaTime;
 using Redpoint.CloudFramework.Models;
 
-namespace Redpoint.CloudFramework.Tests
+namespace Redpoint.CloudFramework.Tests.Models
 {
     // This ensures the tests pass when using properties on base classes.
 

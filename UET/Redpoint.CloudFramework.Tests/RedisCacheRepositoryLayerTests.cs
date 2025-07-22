@@ -7,6 +7,7 @@ using NodaTime;
 using Redpoint.CloudFramework.Models;
 using Redpoint.CloudFramework.Repository.Layers;
 using Redpoint.CloudFramework.Repository.Metrics;
+using Redpoint.CloudFramework.Tests.Models;
 using StackExchange.Redis;
 using System.Text;
 using Xunit;

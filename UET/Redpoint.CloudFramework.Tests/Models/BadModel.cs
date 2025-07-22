@@ -1,6 +1,6 @@
 ﻿using Redpoint.CloudFramework.Models;
 
-namespace Redpoint.CloudFramework.Tests
+namespace Redpoint.CloudFramework.Tests.Models
 {
     [Kind("cf_badModel")]
     public sealed class BadModel : Model<BadModel>
