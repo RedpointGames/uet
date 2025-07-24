@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.Workspace
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
     using Redpoint.Uet.CommonPaths;
     using Redpoint.Uet.Workspace.ParallelCopy;
@@ -23,6 +24,7 @@
             });
             services.AddSingleton<IStorageManagement, DefaultStorageManagement>();
             services.AddSingleton<IWorkspaceReservationParameterGenerator, DefaultWorkspaceReservationParameterGenerator>();
+            services.AddSingleton<IProcessExecutorHook, GitConfigProcessExecutorHook>();
         }
     }
 }
