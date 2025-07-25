@@ -27,5 +27,24 @@
         /// </summary>
         [JsonPropertyName("Filter"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Filter { get; set; }
+
+        /// <summary>
+        /// If set, overrides the default as to whether PRECOMPILED REMOVE BEGIN -> PRECOMPILED REMOVE END content should be removed from Build.cs files.
+        /// 
+        /// By default, if the package type is 'Generic', Build.cs files will have lines between PRECOMPILED REMOVE BEGIN and 
+        /// PRECOMPILED REMOVE END comments removed. For example:
+        /// 
+        /// /* PRECOMPILED REMOVE BEGIN */
+        /// var bIncludesSourceCode = true;
+        /// if (!bIncludesSourceCode)
+        /// {
+        ///     /* PRECOMPILED REMOVE END */
+        ///     bUsePrecompiled = true;
+        ///     /* PRECOMPILED REMOVE BEGIN */
+        /// }
+        /// /* PRECOMPILED REMOVE END */
+        /// </summary>
+        [JsonPropertyName("UsePrecompiled"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? UsePrecompiled { get; set; }
     }
 }

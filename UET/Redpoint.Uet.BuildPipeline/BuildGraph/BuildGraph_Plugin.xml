@@ -42,6 +42,7 @@
   <Option Name="CopyrightHeader" DefaultValue="" Description="Copyright header to apply to all source code files when packaging" />
   <Option Name="CopyrightExcludes" DefaultValue="" Description="Relative paths inside the package to exclude from copyright updates, separated with semicolons" />
   <Option Name="PackageType" Restrict="None|Generic|Marketplace|Fab" DefaultValue="None" Description="Defines the method of distribution for the produced plugin." />
+  <Option Name="DistributionUsesPrecompiled" Restrict="true|false" DefaultValue="false" Description="If true, PRECOMPILED REMOVE BEGIN through PRECOMPILED REMOVE END should be stripped out of Build.cs files." />
 
   <!-- Test options -->
   <Option Name="GauntletConfigPaths" Restrict="[^ ]*" DefaultValue="" Description="List of the paths to copy files out of into the Config/ folder before building the project for Gauntlet tests."/>
@@ -73,6 +74,8 @@
   <Property Name="DynamicBeforeCompileMacros" Value="" />
   <Property Name="StripDebugFlags" Value="" />
   <Property Name="StripDebugFlags" Value="-NoPDB -NoDebugInfo" If="'$(StripDebugSymbols)' == 'true'" />
+  <Property Name="DistributionUsesPrecompiledArgument" Value="" />
+  <Property Name="DistributionUsesPrecompiledArgument" Value=" --distribution-uses-precompiled" If="'$(DistributionUsesPrecompiled)' == 'true'" />
 
   <!-- 
     Include all the macros dynamically defined by UET.
@@ -180,7 +183,7 @@ $(PackageExclude);
           Files="#BuildCsList"
         />
         <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal update-uplugin --input-path &quot;$(InputBaseDir)/$(PluginName).uplugin&quot; --output-path &quot;$(OutputDir)/$(PluginName).uplugin&quot; --engine-version &quot;$(EngineMajorVersion).$(EngineMinorVersion).0&quot; --version-name &quot;$(VersionName)&quot; --version-number &quot;$(VersionNumber)&quot; --package-type &quot;$(PackageType)&quot;" />
-        <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal copy-and-mutate-build-cs --input-base-path &quot;$(InputBaseDir)/&quot; --input-file-list &quot;$(TempPath)/BuildCsList.txt&quot; --output-path &quot;$(OutputDir)/&quot; --package-type &quot;$(PackageType)&quot;" />
+        <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal copy-and-mutate-build-cs --input-base-path &quot;$(InputBaseDir)/&quot; --input-file-list &quot;$(TempPath)/BuildCsList.txt&quot; --output-path &quot;$(OutputDir)/&quot; $(DistributionUsesPrecompiledArgument)" />
         <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal set-filter-file --package-include &quot;$(PackageInclude)&quot; --package-exclude &quot;$(PackageExclude)&quot; --output-path &quot;$(OutputDir)/Config/FilterPlugin.ini&quot;" />
         <Copy
           From="$(InputBaseDir)"

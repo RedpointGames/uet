@@ -16,14 +16,14 @@
             public Option<string> InputBasePath;
             public Option<string> InputFileList;
             public Option<string> OutputPath;
-            public Option<BuildConfigPluginPackageType> PackageType;
+            public Option<bool> DistributionUsesPrecompiled;
 
             public Options()
             {
                 InputBasePath = new Option<string>("--input-base-path");
                 InputFileList = new Option<string>("--input-file-list");
                 OutputPath = new Option<string>("--output-path");
-                PackageType = new Option<BuildConfigPluginPackageType>("--package-type");
+                DistributionUsesPrecompiled = new Option<bool>("--distribution-uses-precompiled");
             }
         }
 
@@ -54,7 +54,7 @@
                 var inputBasePath = context.ParseResult.GetValueForOption(_options.InputBasePath)!.Replace('/', Path.DirectorySeparatorChar);
                 var inputFileList = context.ParseResult.GetValueForOption(_options.InputFileList)!;
                 var outputPath = context.ParseResult.GetValueForOption(_options.OutputPath)!.Replace('/', Path.DirectorySeparatorChar);
-                var packageType = context.ParseResult.GetValueForOption(_options.PackageType)!;
+                var distributionUsesPrecompiled = context.ParseResult.GetValueForOption(_options.DistributionUsesPrecompiled)!;
 
                 var inputFiles = await File.ReadAllLinesAsync(inputFileList).ConfigureAwait(false);
                 var fileMappings = new List<(string input, string output)>();
@@ -69,7 +69,7 @@
                     fileMappings.Add((inputFile, outputPath + Path.DirectorySeparatorChar + relativeInputFile));
                 }
 
-                if (packageType != BuildConfigPluginPackageType.Generic)
+                if (!distributionUsesPrecompiled)
                 {
                     // Leave files as-is, since the Marketplace/Fab needs to be able to build the plugin.
                     foreach (var mapping in fileMappings)
