@@ -214,5 +214,53 @@
       }
     ],
     "Output5": "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll"
+  },
+  {
+    "File": "Engine\\Source\\Programs\\AutomationTool\\AutomationTool.csproj",
+    "Patches": [
+      {
+        "HandleWindowsNewLines": true,
+        "Find": "<PackageReference Include=\"Magick.NET-Q16-HDRI-AnyCPU\" Version=\"14.0.0\" />",
+        "Replace": "<PackageReference Include=\"Magick.NET-Q16-HDRI-AnyCPU\" Version=\"14.7.0\" />"
+      },
+      {
+        "HandleWindowsNewLines": true,
+        "Find": "<PackageReference Include=\"Magick.NET-Q16-HDRI-AnyCPU\" Version=\"14.0.0\" PrivateAssets=\"all\" />",
+        "Replace": "<PackageReference Include=\"Magick.NET-Q16-HDRI-AnyCPU\" Version=\"14.7.0\" PrivateAssets=\"all\" />"
+      }
+    ],
+    "Output5": "Engine\\Binaries\\DotNET\\AutomationTool\\AutomationTool.dll"
+  },
+  {
+    "File": "Engine\\Source\\Programs\\AutomationTool\\AutomationUtils\\AutomationUtils.Automation.csproj",
+    "Patches": [
+      {
+        "HandleWindowsNewLines": true,
+        "Find": "<PackageReference Include=\"Magick.NET-Q16-HDRI-AnyCPU\" Version=\"14.0.0\" />",
+        "Replace": "<PackageReference Include=\"Magick.NET-Q16-HDRI-AnyCPU\" Version=\"14.7.0\" />"
+      },
+      {
+        "HandleWindowsNewLines": true,
+        "Find": "<PackageReference Include=\"Magick.NET-Q16-HDRI-AnyCPU\" Version=\"14.0.0\" PrivateAssets=\"all\" />",
+        "Replace": "<PackageReference Include=\"Magick.NET-Q16-HDRI-AnyCPU\" Version=\"14.7.0\" PrivateAssets=\"all\" />"
+      }
+    ],
+    "Output5": "Engine\\Binaries\\DotNET\\AutomationTool\\AutomationUtils\\AutomationUtils.Automation.dll"
+  },
+  {
+    "File": "Engine\\Source\\Programs\\AutomationTool\\Gauntlet\\Gauntlet.Automation.csproj",
+    "Patches": [
+      {
+        "HandleWindowsNewLines": true,
+        "Find": "<PackageReference Include=\"Magick.NET-Q16-HDRI-AnyCPU\" Version=\"14.0.0\" />",
+        "Replace": "<PackageReference Include=\"Magick.NET-Q16-HDRI-AnyCPU\" Version=\"14.7.0\" />"
+      },
+      {
+        "HandleWindowsNewLines": true,
+        "Find": "<PackageReference Include=\"Magick.NET-Q16-HDRI-AnyCPU\" Version=\"14.0.0\" PrivateAssets=\"all\" />",
+        "Replace": "<PackageReference Include=\"Magick.NET-Q16-HDRI-AnyCPU\" Version=\"14.7.0\" PrivateAssets=\"all\" />"
+      }
+    ],
+    "Output5": "Engine\\Binaries\\DotNET\\AutomationTool\\AutomationScripts\\Gauntlet\\Gauntlet.Automation.dll"
   }
 ]

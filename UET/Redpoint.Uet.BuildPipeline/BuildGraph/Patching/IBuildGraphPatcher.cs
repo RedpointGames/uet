@@ -2,7 +2,7 @@
 {
     using System.Threading.Tasks;
 
-    internal interface IBuildGraphPatcher
+    public interface IBuildGraphPatcher
     {
         Task PatchBuildGraphAsync(string enginePath, bool isEngineBuild);
     }
