@@ -140,6 +140,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
                     { $"PackageInclude", $"" },
                     { $"PackageExclude", $"" },
                     { $"PackageType", $"Generic" },
+                    { "DistributionUsesPrecompiled", "false" },
                     { $"CopyrightHeader", $"" },
                     { $"CopyrightExcludes", $"" },
                     { "StripDebugSymbols", "false" },

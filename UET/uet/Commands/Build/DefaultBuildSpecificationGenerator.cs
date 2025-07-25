@@ -418,6 +418,7 @@
 
             // Compute packaging settings.
             var versioningType = BuildConfigPluginPackageType.None;
+            bool? usePrecompiled = null;
             if (!skipPackaging && distribution.Package != null)
             {
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -432,6 +433,7 @@
                 {
                     versioningType = distribution.Package.Type.Value;
                 }
+                usePrecompiled = distribution.Package.UsePrecompiled;
             }
             var versionInfo = await _versioning.ComputePluginVersionNameAndNumberAsync(
                 engineSpec,
@@ -531,6 +533,11 @@
                 }
             }
 
+            // Use 'UsePrecompiled' setting if it exists, otherwise fallback to default behaviour of precompiled removal.
+            var distributionUsesPrecompiled = usePrecompiled != null
+                ? usePrecompiled.Value
+                : versioningType == BuildConfigPluginPackageType.Generic;
+
             // Compute final settings for BuildGraph.
             return new BuildSpecification
             {
@@ -582,6 +589,7 @@
                     { "PackageInclude", GetFilterInclude(repositoryRoot, distribution) },
                     { "PackageExclude", GetFilterExclude(repositoryRoot, distribution) },
                     { "PackageType", versioningType.ToString() },
+                    { "DistributionUsesPrecompiled", distributionUsesPrecompiled ? "true" : "false" },
                     { "CopyrightHeader", copyrightHeader },
                     { "CopyrightExcludes", copyrightExcludes },
                 },
@@ -747,6 +755,10 @@
                 }
             }
 
+            // Determine default "distribution uses precompiled" flag. This inherits previous behaviour. To control
+            // it independent of the package type, developers need to use a BuildConfig.json file.
+            var distributionUsesPrecompiled = packageType == BuildConfigPluginPackageType.Generic;
+
             // Compute final settings for BuildGraph.
             return new BuildSpecification
             {
@@ -795,6 +807,7 @@
                     { "PackageInclude", string.Empty },
                     { "PackageExclude", string.Empty },
                     { "PackageType", packageType.ToString() },
+                    { "DistributionUsesPrecompiled", distributionUsesPrecompiled ? "true" : "false" },
                     { "CopyrightHeader", copyrightHeader },
                     { "CopyrightExcludes", string.Empty },
                 },
