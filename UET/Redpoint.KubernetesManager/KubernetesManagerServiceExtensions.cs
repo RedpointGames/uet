@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using Redpoint.KubernetesManager.Implementations;
 using Redpoint.Windows.HostNetworkingService;
 using Redpoint.Windows.Firewall;
+using Redpoint.KubernetesManager.Services.Helm;
 
 namespace Redpoint.KubernetesManager
 {
@@ -44,14 +45,15 @@ namespace Redpoint.KubernetesManager
             services.AddSingleton<IWslDistro, DefaultWslDistro>();
             services.AddSingleton<IWslTranslation, DefaultWslTranslation>();
             services.AddSingleton<IRkmGlobalRootProvider, DefaultRkmGlobalRootProvider>();
+            services.AddSingleton<IHelmDeployment, DefaultHelmDeployment>();
 
             // Register controller-only components.
             services.AddSingleton<IComponent, CalicoKubeConfigGeneratingComponent>();
             services.AddSingleton<IComponent, CertificateGeneratingComponent>();
-            services.AddSingleton<IComponent, CoreDNSProvisioningComponent>();
+            services.AddSingleton<IComponent, HelmCoreDNSProvisioningComponent>();
             services.AddSingleton<IComponent, EncryptionConfigGeneratingComponent>();
             services.AddSingleton<IComponent, EtcdComponent>();
-            services.AddSingleton<IComponent, HelmChartUpgradeProvisioningComponent>();
+            services.AddSingleton<IComponent, HelmRKMProvisioningComponent>();
             services.AddSingleton<IComponent, KubeConfigGeneratingComponent>();
             services.AddSingleton<IComponent, KubernetesApiServerComponent>();
             services.AddSingleton<IComponent, KubernetesClientComponent>();
