@@ -733,7 +733,7 @@ jobs:
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
   
   publish-helm:
-    name: "Publish Helm Chart"
+    name: "Publish Helm Chart for RKM"
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
     needs:
@@ -741,6 +741,10 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     - name: Download Helm Chart
       uses: ./.github/actions/download-artifact
       with:
@@ -750,7 +754,7 @@ jobs:
       shell: pwsh
       run: |
         cd UET/Lib/Helm/rkm
-        helm registry login ghcr.io -u "${{ github.actor }}" -P "${{ secrets.GITHUB_TOKEN }}"
+        helm registry login ghcr.io -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}"
         if ($LastExitCode -ne 0) {
           Write-Host "helm registry login failed with exit code $LastExitCode"
           exit $LastExitCode 
