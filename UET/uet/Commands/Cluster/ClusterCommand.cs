@@ -52,6 +52,10 @@ namespace UET.Commands.Cluster
             command.AddCommand(ClusterStartCommand.CreateClusterStartCommand());
             command.AddCommand(ClusterStopCommand.CreateClusterStopCommand());
             command.AddCommand(ClusterLogsCommand.CreateClusterLogsCommand());
+            if (OperatingSystem.IsWindows())
+            {
+                command.AddCommand(ClusterGetHnsEndpointCommand.CreateClusterGetHnsEndpointCommand());
+            }
             return command;
         }
     }
