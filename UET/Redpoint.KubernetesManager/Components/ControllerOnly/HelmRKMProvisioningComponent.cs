@@ -75,6 +75,7 @@
                   subnet:
                     cidr: "{_localEthernetInfo.HostSubnetCIDR!}"
                 """,
+                waitForResourceStabilisation: false, // Only wait for hooks, in case some nodes are currently offline.
                 cancellationToken);
             if (exitCode != 0)
             {

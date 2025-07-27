@@ -77,6 +77,7 @@
                   - name: reload
                   - name: loadbalance
                 """,
+                waitForResourceStabilisation: true,
                 cancellationToken);
             if (exitCode != 0)
             {

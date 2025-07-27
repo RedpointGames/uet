@@ -14,6 +14,7 @@
             string chartName,
             string ociUrl,
             string valuesContent,
+            bool waitForResourceStabilisation,
             CancellationToken cancellationToken);
     }
 }

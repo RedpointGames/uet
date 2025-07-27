@@ -27,6 +27,7 @@
             string chartName,
             string ociUrl,
             string valuesContent,
+            bool waitForResourceStabilisation,
             CancellationToken cancellationToken)
         {
             await context.WaitForFlagAsync(WellKnownFlags.KubeConfigsReady);
@@ -55,11 +56,13 @@
                 "upgrade",
                 "--install",
                 chartName,
-                ociUrl,
-                "--wait",
                 "--values",
                 valuesPath
             };
+            if (waitForResourceStabilisation)
+            {
+                arguments.Add("--wait");
+            }
             var exitCode = await _processExecutor.ExecuteAsync(
                 new ProcessExecution.ProcessSpecification
                 {
