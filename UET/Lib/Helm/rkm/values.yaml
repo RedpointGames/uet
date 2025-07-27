@@ -13,6 +13,3 @@ cluster:
 host:
   subnet:
     cidr: ""
-
-kubernetes:
-  nodeName: "unset"
