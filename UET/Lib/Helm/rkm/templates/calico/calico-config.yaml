@@ -26,7 +26,6 @@ data:
           "log_level": "info",
           "log_file_path": "{{- .Values.calico.root -}}/var/log/calico/cni/cni.log",
           "datastore_type": "kubernetes",
-          "nodename": "{{- .Values.kubernetes.nodeName -}}",
           "nodename_file": "{{- .Values.calico.root -}}/var/lib/calico/nodename",
           "mtu": {{- .Values.calico.cni.mtu -}},
           "ipam": {
