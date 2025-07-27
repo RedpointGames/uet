@@ -4,6 +4,7 @@
     using Redpoint.KubernetesManager.Models;
     using Redpoint.KubernetesManager.Services;
     using Redpoint.KubernetesManager.Services.Helm;
+    using Redpoint.KubernetesManager.Services.Windows;
     using Redpoint.KubernetesManager.Signalling;
     using Redpoint.KubernetesManager.Signalling.Data;
     using System;
@@ -26,6 +27,7 @@
         private readonly IClusterNetworkingConfiguration _clusterNetworkingConfiguration;
         private readonly ILocalEthernetInfo _localEthernetInfo;
         private readonly IHelmDeployment _helmDeployment;
+        private readonly IWslTranslation _wslTranslation;
 
         public HelmRKMProvisioningComponent(
             IPathProvider pathProvider,
@@ -33,7 +35,8 @@
             IRkmVersionProvider rkmVersionProvider,
             IClusterNetworkingConfiguration clusterNetworkingConfiguration,
             ILocalEthernetInfo localEthernetInfo,
-            IHelmDeployment helmDeployment)
+            IHelmDeployment helmDeployment,
+            IWslTranslation wslTranslation)
         {
             _pathProvider = pathProvider;
             _logger = logger;
@@ -41,6 +44,7 @@
             _clusterNetworkingConfiguration = clusterNetworkingConfiguration;
             _localEthernetInfo = localEthernetInfo;
             _helmDeployment = helmDeployment;
+            _wslTranslation = wslTranslation;
         }
 
         public void RegisterSignals(IRegistrationContext context)
@@ -70,6 +74,10 @@
 
                 cluster:
                   cidr: "{_clusterNetworkingConfiguration.ClusterCIDR}"
+                  serviceCidr: "{_clusterNetworkingConfiguration.ServiceCIDR}"
+                  dnsServiceIp: "{_clusterNetworkingConfiguration.ClusterDNSServiceIP}"
+                  dnsDomain: "{_clusterNetworkingConfiguration.ClusterDNSDomain}"
+                  controllerIp: "{await _wslTranslation.GetTranslatedIPAddress(cancellationToken)}"
 
                 host:
                   subnet:
