@@ -46,12 +46,12 @@ namespace Redpoint.KubernetesManager
             services.AddSingleton<IRkmGlobalRootProvider, DefaultRkmGlobalRootProvider>();
 
             // Register controller-only components.
-            services.AddSingleton<IComponent, CalicoProvisioningComponent>();
             services.AddSingleton<IComponent, CalicoKubeConfigGeneratingComponent>();
             services.AddSingleton<IComponent, CertificateGeneratingComponent>();
             services.AddSingleton<IComponent, CoreDNSProvisioningComponent>();
             services.AddSingleton<IComponent, EncryptionConfigGeneratingComponent>();
             services.AddSingleton<IComponent, EtcdComponent>();
+            services.AddSingleton<IComponent, HelmChartUpgradeProvisioningComponent>();
             services.AddSingleton<IComponent, KubeConfigGeneratingComponent>();
             services.AddSingleton<IComponent, KubernetesApiServerComponent>();
             services.AddSingleton<IComponent, KubernetesClientComponent>();

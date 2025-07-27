@@ -300,13 +300,13 @@ spec:
         # Used by calico-node.
         - name: lib-modules
           hostPath:
-            path: {{- .Values.calico.root -}}/lib/modules
+            path: {{ printf "%s/lib/modules" .Values.calico.root | quote }}
         - name: var-run-calico
           hostPath:
-            path: {{- .Values.calico.root -}}/var/run/calico
+            path: {{ printf "%s/var/run/calico" .Values.calico.root | quote }}
         - name: var-lib-calico
           hostPath:
-            path: {{- .Values.calico.root -}}/var/lib/calico
+            path: {{ printf "%s/var/lib/calico" .Values.calico.root | quote }}
         # ===== RKM =====
         #
         # We can't isolate this.
@@ -326,35 +326,35 @@ spec:
         #
         #- name: sys-fs
         #  hostPath:
-        #    path: {{- .Values.calico.root -}}/sys/fs/
+        #    path: {{ .Values.calico.root }}/sys/fs/
         #    type: DirectoryOrCreate
         #- name: bpffs
         #  hostPath:
-        #    path: {{- .Values.calico.root -}}/sys/fs/bpf
+        #    path: {{ .Values.calico.root }}/sys/fs/bpf
         #    type: Directory
         # mount /proc at /nodeproc to be used by mount-bpffs initContainer to mount root cgroup2 fs.
         #- name: nodeproc
         #  hostPath:
-        #    path: {{- .Values.calico.root -}}/proc
+        #    path: {{ .Values.calico.root }}/proc
         # Used to install CNI.
         - name: cni-bin-dir
           hostPath:
-            path: {{- .Values.calico.cni.pluginsRoot | quote -}}
+            path: {{ .Values.calico.cni.pluginsRoot | quote }}
         - name: cni-net-dir
           hostPath:
-            path: {{- .Values.containerd.root -}}/cni/net.d
+            path: {{ printf "%s/cni/net.d" .Values.containerd.root | quote }}
         # Used to access CNI logs.
         - name: cni-log-dir
           hostPath:
-            path: {{- .Values.calico.root -}}/var/log/calico/cni
+            path: {{ printf "%s/var/log/calico/cni" .Values.calico.root | quote }}
         # Mount in the directory for host-local IPAM allocations. This is
         # used when upgrading from host-local to calico-ipam, and can be removed
         # if not using the upgrade-ipam init container.
         - name: host-local-net-dir
           hostPath:
-            path: {{- .Values.calico.root -}}/var/lib/cni/networks
+            path: {{ printf "%s/var/lib/cni/networks" .Values.calico.root | quote }}
         # Used to create per-pod Unix Domain Sockets
         - name: policysync
           hostPath:
             type: DirectoryOrCreate
-            path: {{- .Values.calico.root -}}/var/run/nodeagent
+            path: {{ printf "%s/var/run/nodeagent" .Values.calico.root | quote }}
