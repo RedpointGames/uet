@@ -112,3 +112,11 @@ runs:
         name: libs-mac
         path: UET/
         merge-multiple: true
+
+    - name: Download Helm Chart
+      if: ${{ inputs.UET_ARTIFACT_NAME == 'helm-chart' }}
+      uses: actions/download-artifact@v4
+      with:
+        name: helm-chart
+        path: UET/Lib/Helm/rkm/
+        merge-multiple: true
