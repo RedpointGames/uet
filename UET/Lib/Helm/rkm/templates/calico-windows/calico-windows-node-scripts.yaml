@@ -18,7 +18,7 @@ data:
     $ActiveInstall = (Get-Content -Raw -Path C:\RKM\active).Trim()
 
     $CalicoFolder = "C:\RKM\$ActiveInstall\calico-container\calico-${env:UET_CALICO_VERSION}"
-    $CniFolder = "C:\RKM\$ActiveInstall\calico-container\cni-${env:UET_CNI_PLUGINS_VERSION}"
+    $CniDownloadFolder = "C:\RKM\$ActiveInstall\calico-container\cni-${env:UET_CNI_PLUGINS_VERSION}"
     $SdnFolder = "C:\RKM\$ActiveInstall\calico-container\sdn-${env:UET_SDN_VERSION}"
 
     $KubeCaCrtUnencoded = (Get-Content -Raw -Path var\run\secrets\kubernetes.io\serviceaccount\ca.crt)
@@ -26,7 +26,7 @@ data:
     $KubeToken = (Get-Content -Raw -Path var\run\secrets\kubernetes.io\serviceaccount\token)
 
     Write-Host "Setting up environment variables..."
-    $env:CNI_BIN_DIR = "$CniFolder"
+    $env:CNI_BIN_DIR = "$CniDownloadFolder"
     $env:CNI_CONF_DIR = "C:\RKM\$ActiveInstall\containerd-state\cni\conf"
     $env:CALICO_LOG_DIR = "C:\RKM\$ActiveInstall\logs\calico"
 
@@ -39,7 +39,7 @@ data:
       @{
         Name = "cni-plugins.tar.gz";
         Url = "https://github.com/containernetworking/plugins/releases/download/v${env:UET_CNI_PLUGINS_VERSION}/cni-plugins-windows-amd64-v${env:UET_CNI_PLUGINS_VERSION}.tgz";
-        Folder = $CniFolder;
+        Folder = $CniDownloadFolder;
       },
       @{
         Name = "windows-cni.zip";
@@ -87,12 +87,31 @@ data:
       Set-Content -Path "$($Download.Folder)\done" -Value "done"
     }
 
-    Write-Host "Copying files to CNI plugins folder..."
-    Copy-Item -Force $SdnFolder\nat.exe $CniFolder\nat.exe
-    Copy-Item -Force $SdnFolder\sdnbridge.exe $CniFolder\sdnbridge.exe
-    Copy-Item -Force $SdnFolder\sdnoverlay.exe $CniFolder\sdnoverlay.exe
-    Copy-Item -Force $CalicoFolder\CalicoWindows\cni\calico.exe $CniFolder\calico.exe
-    Copy-Item -Force $CalicoFolder\CalicoWindows\cni\calico-ipam.exe $CniFolder\calico-ipam.exe
+    Write-Host "Copying files to CNI plugins folder '$CniDownloadFolder'..."
+    Copy-Item -Force $SdnFolder\nat.exe $CniDownloadFolder\nat.exe
+    Copy-Item -Force $SdnFolder\sdnbridge.exe $CniDownloadFolder\sdnbridge.exe
+    Copy-Item -Force $SdnFolder\sdnoverlay.exe $CniDownloadFolder\sdnoverlay.exe
+    Copy-Item -Force $CalicoFolder\CalicoWindows\cni\calico.exe $CniDownloadFolder\calico.exe
+    Copy-Item -Force $CalicoFolder\CalicoWindows\cni\calico-ipam.exe $CniDownloadFolder\calico-ipam.exe
+
+    Write-Host "Reconciling '$CniDownloadFolder' to 'C:\RKM\$ActiveInstall\cni-plugins'..."
+    if (Test-Path "C:\RKM\$ActiveInstall\cni-plugins") {
+      foreach ($File in (Get-ChildItem -Path "C:\RKM\$ActiveInstall\cni-plugins")) {
+        if (!(Test-Path "$($CniDownloadFolder)\$($File.Name)")) {
+          Write-Host "Removing unexpected file '$($File.FullName)'..."
+          Remove-Item -Force -Path $File.FullName
+        }
+      }
+    } else {
+      New-Item -ItemType Directory -Path "C:\RKM\$ActiveInstall\cni-plugins"
+    }
+    foreach ($File in (Get-ChildItem -Path "$($CniDownloadFolder)")) {
+      if ($File.Name -eq "done") {
+        continue
+      }
+      Write-Host "Copying '$($File.FullName)' to 'C:\RKM\$ActiveInstall\cni-plugins\$($File.Name)'..."
+      Copy-Item -Force "$($File.FullName)" "C:\RKM\$ActiveInstall\cni-plugins\$($File.Name)"
+    }
 
     Write-Host "Trying to resolve hostname..."
     while ($true) {
@@ -111,9 +130,11 @@ data:
       break
     }
 
-    Write-Host "Running 'calico-node -startup'..."
-    Set-Content -Path kubeconfig -Value `
+    Write-Host "Writing out kubeconfig file, which must persist for CNI plugin to work."
+    $env:KUBECONFIG = "C:\RKM\$ActiveInstall\calico-container\kubeconfig"
+    Set-Content -Path $env:KUBECONFIG -Value `
     @"
+    # last synchronised $(Get-Date)
     apiVersion: v1
     kind: Config
     clusters:
@@ -133,13 +154,12 @@ data:
       user:
         token: $KubeToken
     "@
-    $env:KUBECONFIG = "$((Get-Location).Path)\kubeconfig"
-    try {
-      Write-Host "Writing contents of 10-calico.conf for containerd CNI..."
-      if (!(Test-Path "C:\RKM\$ActiveInstall\containerd-state\cni\conf")) {
-        New-Item -ItemType Directory -Path "C:\RKM\$ActiveInstall\containerd-state\cni\conf"
-      }
-      Set-Content -Path "C:\RKM\$ActiveInstall\containerd-state\cni\conf\10-calico.conf" -Value `
+
+    Write-Host "Writing contents of 'C:\RKM\$ActiveInstall\containerd-state\cni\conf\10-calico.conf' for containerd CNI..."
+    if (!(Test-Path "C:\RKM\$ActiveInstall\containerd-state\cni\conf")) {
+      New-Item -ItemType Directory -Path "C:\RKM\$ActiveInstall\containerd-state\cni\conf"
+    }
+    Set-Content -Path "C:\RKM\$ActiveInstall\containerd-state\cni\conf\10-calico.conf" -Value `
     @"
     {
       "name": "Calico",
@@ -174,7 +194,7 @@ data:
       "datastore_type": "kubernetes",
 
       "kubernetes": {
-        "kubeconfig": "${env:KUBECONFIG}"
+        "kubeconfig": "$($env:KUBECONFIG.Replace("\", "\\"))"
       },
 
       "ipam": {
@@ -204,73 +224,69 @@ data:
     }
     "@
 
-      & "C:\RKM\$ActiveInstall\calico-windows\calico-node" -startup
-      return $LastExitCode
-    } finally {
-      Remove-Item kubeconfig
-    }
+    Write-Host "Running 'calico-node -startup'..."
+    & "C:\RKM\$ActiveInstall\calico-windows\calico-node" -startup
+    return $LastExitCode
   felix_script.ps1: |
     $global:ErrorActionPreference = 'Stop';
     $global:ProgressPreference = 'SilentlyContinue';
 
     $ActiveInstall = (Get-Content -Raw -Path C:\RKM\active).Trim()
 
-    $CalicoFolder = "C:\RKM\$ActiveInstall\calico-container\calico-${env:UET_CALICO_VERSION}"
-    $CniFolder = "C:\RKM\$ActiveInstall\calico-container\cni-${env:UET_CNI_PLUGINS_VERSION}"
-    $SdnFolder = "C:\RKM\$ActiveInstall\calico-container\sdn-${env:UET_SDN_VERSION}"
-
     $KubeCaCrtUnencoded = (Get-Content -Raw -Path var\run\secrets\kubernetes.io\serviceaccount\ca.crt)
     $KubeCaCrt = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($KubeCaCrtUnencoded))
     $KubeToken = (Get-Content -Raw -Path var\run\secrets\kubernetes.io\serviceaccount\token)
 
     Write-Host "Setting up environment variables..."
-    $env:CNI_BIN_DIR = "$CniFolder"
+    $env:CNI_BIN_DIR = "C:\RKM\$ActiveInstall\cni-plugins"
     $env:CNI_CONF_DIR = "C:\RKM\$ActiveInstall\containerd-state\cni\conf"
     $env:CALICO_LOG_DIR = "C:\RKM\$ActiveInstall\logs\calico"
 
-    Write-Host "Trying to resolve hostname..."
-    while ($true) {
-      $Addresses = @()
-      try {
-        $Addresses = ([System.Net.Dns]::GetHostEntry([System.Net.Dns]::GetHostName()).AddressList | ? { $_.AddressFamily -eq "InterNetwork" } | ? { $B = $_.GetAddressBytes(); !($B[0] -eq 127 -or $B[0] -eq 172 -or ($B[0] -eq 169 -and $B[1] -eq 254)) })
-      } catch {
-      }
-      if ($Addresses.Length -eq 0) {
-        Start-Sleep -Seconds 1
-        Write-Host "Unable to resolve own hostname, retrying in 1 second..."
-        continue
-      }
-      $env:IP = $Addresses[0].IPAddressToString
-      Write-Host "Detected IP address as $env:IP"
-      break
-    }
+    # The init container and sidecar container will ensure this is kept up-to-date.
+    $env:KUBECONFIG = "C:\RKM\$ActiveInstall\calico-container\kubeconfig"
 
     Write-Host "Running 'calico-node -felix'..."
-    Set-Content -Path kubeconfig -Value `
-    @"
-    apiVersion: v1
-    kind: Config
-    clusters:
-    - name: default-cluster
-      cluster:
-        certificate-authority-data: $KubeCaCrt
-        server: https://${env:UET_CONTROLLER_IP}:6443
-    contexts:
-    - name: default-context
-      context:
-        cluster: default-cluster
-        namespace: default
-        user: default-user
-    current-context: default-context
-    users:
-    - name: default-user
-      user:
-        token: $KubeToken
-    "@
-    $env:KUBECONFIG = "$((Get-Location).Path)\kubeconfig"
-    try {
-      & "C:\RKM\$ActiveInstall\calico-windows\calico-node" -felix
-      return $LastExitCode
-    } finally {
-      Remove-Item kubeconfig
+    & "C:\RKM\$ActiveInstall\calico-windows\calico-node" -felix
+    return $LastExitCode
+  sync_kubeconfig.ps1: |
+    $global:ErrorActionPreference = 'Stop';
+    $global:ProgressPreference = 'SilentlyContinue';
+
+    $ActiveInstall = (Get-Content -Raw -Path C:\RKM\active).Trim()
+
+    while ($true) {
+      Write-Host "Syncing kubeconfig for Calico on Windows..."
+
+      $KubeCaCrtUnencoded = (Get-Content -Raw -Path var\run\secrets\kubernetes.io\serviceaccount\ca.crt)
+      $KubeCaCrt = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($KubeCaCrtUnencoded))
+      $KubeToken = (Get-Content -Raw -Path var\run\secrets\kubernetes.io\serviceaccount\token)
+
+      $env:KUBECONFIG = "C:\RKM\$ActiveInstall\calico-container\kubeconfig"
+      Set-Content -Path $env:KUBECONFIG -Value `
+      @"
+      # last synchronised $(Get-Date)
+      apiVersion: v1
+      kind: Config
+      clusters:
+      - name: default-cluster
+        cluster:
+          certificate-authority-data: $KubeCaCrt
+          server: https://${env:UET_CONTROLLER_IP}:6443
+      contexts:
+      - name: default-context
+        context:
+          cluster: default-cluster
+          namespace: default
+          user: default-user
+      current-context: default-context
+      users:
+      - name: default-user
+        user:
+          token: $KubeToken
+      "@
+
+      # Tokens expire every day, so refresh every hour
+      Start-Sleep -Seconds 3600
     }
+
+    return 0

@@ -100,6 +100,33 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+        - name: sync-kubeconfig
+          image: mcr.microsoft.com/oss/kubernetes/windows-host-process-containers-base-image:v1.0.0
+          command:
+            - "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
+            - -ExecutionPolicy
+            - Bypass
+            - .\scripts\sync_kubeconfig.ps1
+          volumeMounts:
+            - mountPath: /scripts
+              name: scripts
+              readOnly: true
+          envFrom:
+          - configMapRef:
+              name: {{ printf "calico-windows-node-env-%d" .Release.Revision | quote }}
+          env:
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: CALICO_K8S_NODE_REF
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: FELIX_FELIXHOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
       volumes:
         - name: scripts
           configMap:
