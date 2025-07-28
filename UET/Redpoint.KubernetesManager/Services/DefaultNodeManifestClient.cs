@@ -7,6 +7,7 @@
     using System.Net;
     using System.Web;
     using Microsoft.Extensions.Logging;
+    using System.Net.Http.Headers;
 
     internal class DefaultNodeManifestClient : INodeManifestClient, IDisposable
     {
@@ -36,6 +37,7 @@
               .WithNamingConvention(CamelCaseNamingConvention.Instance)
               .Build();
 
+        retry:
             await _semaphore.WaitAsync(stoppingToken);
             try
             {
@@ -56,7 +58,8 @@
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Failed to download manifest: {ex.Message}");
-                throw;
+                await Task.Delay(1000, stoppingToken).ConfigureAwait(false);
+                goto retry;
             }
             finally
             {
