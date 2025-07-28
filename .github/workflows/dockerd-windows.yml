@@ -19,20 +19,20 @@ jobs:
       with:
         driver-opts: image=moby/buildkit:v0.11.0
     - name: Log in to the Container registry
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
       uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build Container
-      if: github.ref != 'refs/heads/main'
+      if: github.ref != 'refs/heads/main' || github.repository != 'RedpointGames/uet'
       shell: pwsh
       run: |
         pushd UET/Lib/Container
         docker buildx build --platform windows/amd64 --output=type=image --pull -t "ghcr.io/redpointgames/uet/dockerd-hostprocess:latest" . -f dockerd-hostprocess.Dockerfile
     - name: Publish Container
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
       shell: pwsh
       run: |
         pushd UET/Lib/Container
