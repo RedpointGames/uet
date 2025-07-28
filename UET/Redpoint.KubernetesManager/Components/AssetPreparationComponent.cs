@@ -128,9 +128,6 @@ exit $?
                 // Ensure the assets are downloaded.
                 await _assetManager.EnsureAsset("RKM:Downloads:Containerd:Windows", "containerd.tar.gz", stoppingToken);
                 await _assetManager.EnsureAsset("RKM:Downloads:KubernetesNode:Windows", "kubernetes-node.tar.gz", stoppingToken);
-                await _assetManager.EnsureAsset("RKM:Downloads:CniPlugins:Windows", "cni-plugins.tar.gz", stoppingToken);
-                await _assetManager.EnsureAsset("RKM:Downloads:CalicoWindows:Windows", "calico-windows.zip", stoppingToken);
-                await _assetManager.EnsureAsset("RKM:Downloads:CniSdnNetworking:Windows", "windows-cni.zip", stoppingToken);
                 await _assetManager.EnsureAsset("RKM:Downloads:ContainerdForWin11:Windows", "redpoint-containerd-for-win11.zip", stoppingToken);
                 if (context.Role == RoleType.Controller)
                 {
@@ -154,34 +151,7 @@ exit $?
                 await _assetManager.ExtractAsset("containerd.tar.gz", Path.Combine(_pathProvider.RKMRoot, "containerd"), stoppingToken);
                 Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "containerd-state"));
                 await _assetManager.ExtractAsset("kubernetes-node.tar.gz", Path.Combine(_pathProvider.RKMRoot, "kubernetes-node"), stoppingToken);
-                await _assetManager.ExtractAsset("cni-plugins.tar.gz", Path.Combine(_pathProvider.RKMRoot, "cni-plugins"), stoppingToken);
-                await _assetManager.ExtractAsset("calico-windows.zip", Path.Combine(_pathProvider.RKMRoot, "calico-windows"), stoppingToken, trimLeading: "CalicoWindows");
-                await _assetManager.ExtractAsset("windows-cni.zip", Path.Combine(_pathProvider.RKMRoot, "cni-plugins-windows"), stoppingToken);
                 await _assetManager.ExtractAsset("redpoint-containerd-for-win11.zip", Path.Combine(_pathProvider.RKMRoot, "containerd-redpoint"), stoppingToken);
-
-                // Copy Windows-specific CNI plugins to the CNI plugins folder.
-                File.Copy(
-                    Path.Combine(_pathProvider.RKMRoot, "cni-plugins-windows", "nat.exe"),
-                    Path.Combine(_pathProvider.RKMRoot, "cni-plugins", "nat.exe"),
-                    true);
-                File.Copy(
-                    Path.Combine(_pathProvider.RKMRoot, "cni-plugins-windows", "sdnbridge.exe"),
-                    Path.Combine(_pathProvider.RKMRoot, "cni-plugins", "sdnbridge.exe"),
-                    true);
-                File.Copy(
-                    Path.Combine(_pathProvider.RKMRoot, "cni-plugins-windows", "sdnoverlay.exe"),
-                    Path.Combine(_pathProvider.RKMRoot, "cni-plugins", "sdnoverlay.exe"),
-                    true);
-
-                // Copy Calico CNI plugins to the CNI plugins folder.
-                File.Copy(
-                    Path.Combine(_pathProvider.RKMRoot, "calico-windows", "cni", "calico.exe"),
-                    Path.Combine(_pathProvider.RKMRoot, "cni-plugins", "calico.exe"),
-                    true);
-                File.Copy(
-                    Path.Combine(_pathProvider.RKMRoot, "calico-windows", "cni", "calico-ipam.exe"),
-                    Path.Combine(_pathProvider.RKMRoot, "cni-plugins", "calico-ipam.exe"),
-                    true);
 
                 // Overwrite the shipped containerd with the Redpoint patched version so that LTSC2022 images work on Windows 11.
                 File.Copy(

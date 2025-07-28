@@ -12,9 +12,7 @@ namespace Redpoint.KubernetesManager.Services
         private const string _containerdVersion = "1.6.18";
         private const string _runcVersion = "1.3.0";
         private const string _etcdVersion = "3.6.0";
-        private const string _calicoVersion = "3.25.0";
         private const string _cniPluginsVersion = "0.8.7";
-        private const string _cniSdnNetworkingVersion = "0.2.0";
         private const string _helmVersion = "3.17.3";
 
         private readonly Dictionary<string, string> _kv = new Dictionary<string, string>
@@ -29,12 +27,7 @@ namespace Redpoint.KubernetesManager.Services
             { "ContainerdForWin11:Windows", $"https://dl-public.redpoint.games/file/dl-public-redpoint-games/redpoint-containerd-for-win11-{_containerdVersion}.zip" },
             { "Runc:Linux", $"https://github.com/opencontainers/runc/releases/download/v{_runcVersion}/runc.amd64" },
             { "Etcd:Linux", $"https://github.com/etcd-io/etcd/releases/download/v{_etcdVersion}/etcd-v{_etcdVersion}-linux-amd64.tar.gz" },
-            { "CalicoWindows:Windows", $"https://github.com/projectcalico/calico/releases/download/v{_calicoVersion}/calico-windows-v{_calicoVersion}.zip" },
             { "CniPlugins:Linux", $"https://github.com/containernetworking/plugins/releases/download/v{_cniPluginsVersion}/cni-plugins-linux-amd64-v{_cniPluginsVersion}.tgz" },
-            { "CniPlugins:Windows", $"https://github.com/containernetworking/plugins/releases/download/v{_cniPluginsVersion}/cni-plugins-windows-amd64-v{_cniPluginsVersion}.tgz" },
-            { "CniSdnNetworking:Windows", $"https://github.com/microsoft/windows-container-networking/releases/download/v{_cniSdnNetworkingVersion}/windows-container-networking-cni-amd64-v{_cniSdnNetworkingVersion}.zip" },
-            { "CalicoCtl:Linux", $"https://github.com/projectcalico/calico/releases/download/v{_calicoVersion}/calicoctl-linux-amd64" },
-            { "CalicoCtl:Windows", $"https://github.com/projectcalico/calico/releases/download/v{_calicoVersion}/calicoctl-windows-amd64.exe" },
             { "UbuntuWSL:Windows", $"https://wslstorestorage.blob.core.windows.net/wslblob/CanonicalGroupLimited.UbuntuonWindows_2004.2021.825.0.AppxBundle" },
             { "Helm:Linux", $"https://get.helm.sh/helm-v{_helmVersion}-linux-amd64.tar.gz" },
         };
