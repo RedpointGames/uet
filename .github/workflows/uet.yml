@@ -1065,6 +1065,72 @@ jobs:
         docker buildx build --platform linux/amd64 --output=type=registry -f UET/Lib/Container/linux-wine.Dockerfile -t "ghcr.io/redpointgames/uet/uet:${env:UET_PACKAGE_VERSION}-wine" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
         docker buildx build --platform linux/amd64 --output=type=registry -f UET/Lib/Container/linux-wine.Dockerfile -t "ghcr.io/redpointgames/uet/uet:latest-wine" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
 
+  publish-uet-container-hostprocess:
+    name: "Publish UET Container (for Host Process)"
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    needs:
+      - timestamp
+      - libs-win
+      - libs-mac
+      - libs-linux
+      - uefs-win
+      - uefs-mac
+      - shim-win
+      - shim-mac
+      - shim-linux
+      - pass-2-win
+      - pass-2-mac
+      - pass-2-linux
+      - cf-linux-tests
+    env:
+      UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Download Windows Pass 2
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: pass-2-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Log in to the Container registry
+      if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
+      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build UET Container
+      if: github.ref != 'refs/heads/main'
+      shell: pwsh
+      run: |
+        $RootPath = $((Get-Location).Path)
+        Push-Location UET\Lib\Container
+        .\build-hostprocess.ps1 `
+          -UetPath $RootPath\UET\uet\bin\Release\${{ env.UET_FRAMEWORK_TARGET }}\win-x64\publish\uet.exe `
+          -Tag1 "ghcr.io/redpointgames/uet/uet:${env:UET_PACKAGE_VERSION}-hostprocess" `
+          -Tag2 "ghcr.io/redpointgames/uet/uet:hostprocess" `
+          -OutputType image
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+    - name: Publish UET Container
+      if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
+      shell: pwsh
+      run: |
+        $RootPath = $((Get-Location).Path)
+        Push-Location UET\Lib\Container
+        .\build-hostprocess.ps1 `
+          -UetPath $RootPath\UET\uet\bin\Release\${{ env.UET_FRAMEWORK_TARGET }}\win-x64\publish\uet.exe `
+          -Tag1 "ghcr.io/redpointgames/uet/uet:${env:UET_PACKAGE_VERSION}-hostprocess" `
+          -Tag2 "ghcr.io/redpointgames/uet/uet:hostprocess" `
+          -OutputType registry
+        if ($LastExitCode -ne 0) { exit $LastExitCode }
+  
   cf-linux-tests:
     name: "Test Cloud Framework"
     runs-on: ubuntu-latest
