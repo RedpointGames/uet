@@ -49,6 +49,7 @@ namespace Redpoint.KubernetesManager
             // Register controller-only components.
             services.AddSingleton<IComponent, CertificateGeneratingComponent>();
             services.AddSingleton<IComponent, HelmCoreDNSProvisioningComponent>();
+            services.AddSingleton<IComponent, HelmRKMProvisioningComponent>();
             services.AddSingleton<IComponent, EncryptionConfigGeneratingComponent>();
             services.AddSingleton<IComponent, EtcdComponent>();
             services.AddSingleton<IComponent, HelmRKMProvisioningComponent>();
