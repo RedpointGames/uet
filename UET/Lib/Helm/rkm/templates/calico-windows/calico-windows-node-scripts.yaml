@@ -268,27 +268,27 @@ data:
 
       $env:KUBECONFIG = "C:\RKM\$ActiveInstall\calico-container\kubeconfig"
       Set-Content -NoNewline -Path $env:KUBECONFIG -Value `
-      @"
-      # last synchronised $(Get-Date)
-      apiVersion: v1
-      kind: Config
-      clusters:
-      - name: default-cluster
-        cluster:
-          certificate-authority-data: $KubeCaCrt
-          server: https://${env:UET_CONTROLLER_IP}:6443
-      contexts:
-      - name: default-context
-        context:
-          cluster: default-cluster
-          namespace: default
-          user: default-user
-      current-context: default-context
-      users:
-      - name: default-user
-        user:
-          token: $KubeToken
-      "@
+    @"
+    # last synchronised $(Get-Date)
+    apiVersion: v1
+    kind: Config
+    clusters:
+    - name: default-cluster
+      cluster:
+        certificate-authority-data: $KubeCaCrt
+        server: https://${env:UET_CONTROLLER_IP}:6443
+    contexts:
+    - name: default-context
+      context:
+        cluster: default-cluster
+        namespace: default
+        user: default-user
+    current-context: default-context
+    users:
+    - name: default-user
+      user:
+        token: $KubeToken
+    "@
 
       # Tokens expire every day, so refresh every hour
       Start-Sleep -Seconds 3600

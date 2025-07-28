@@ -136,3 +136,5 @@ spec:
                 path: "startup_script.ps1"
               - key: "felix_script.ps1"
                 path: "felix_script.ps1"
+              - key: "sync_kubeconfig.ps1"
+                path: "sync_kubeconfig.ps1"
