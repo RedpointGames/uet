@@ -228,13 +228,15 @@ data:
     "@
 
     Write-Host "Running 'calico-node -startup'..."
-    & "C:\RKM\$ActiveInstall\calico-windows\calico-node" -startup
+    & "$CalicoFolder\CalicoWindows\calico-node.exe" -startup
     return $LastExitCode
   felix_script.ps1: |
     $global:ErrorActionPreference = 'Stop';
     $global:ProgressPreference = 'SilentlyContinue';
 
     $ActiveInstall = (Get-Content -Raw -Path C:\RKM\active).Trim()
+
+    $CalicoFolder = "C:\RKM\$ActiveInstall\calico-container\calico-${env:UET_CALICO_VERSION}"
 
     $KubeCaCrtUnencoded = (Get-Content -Raw -Path var\run\secrets\kubernetes.io\serviceaccount\ca.crt)
     $KubeCaCrt = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($KubeCaCrtUnencoded))
@@ -249,7 +251,7 @@ data:
     $env:KUBECONFIG = "C:\RKM\$ActiveInstall\calico-container\kubeconfig"
 
     Write-Host "Running 'calico-node -felix'..."
-    & "C:\RKM\$ActiveInstall\calico-windows\calico-node" -felix
+    & "$CalicoFolder\CalicoWindows\calico-node.exe" -felix
     return $LastExitCode
   sync_kubeconfig.ps1: |
     $global:ErrorActionPreference = 'Stop';
