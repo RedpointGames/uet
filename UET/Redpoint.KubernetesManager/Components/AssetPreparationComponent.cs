@@ -54,7 +54,6 @@
                 {
                     await _assetManager.EnsureAsset("RKM:Downloads:KubernetesServer:Linux", "kubernetes-server.tar.gz", stoppingToken);
                     await _assetManager.EnsureAsset("RKM:Downloads:Etcd:Linux", "etcd.tar.gz", stoppingToken);
-                    await _assetManager.EnsureAsset("RKM:Downloads:CalicoCtl:Linux", "calicoctl", stoppingToken);
                     await _assetManager.EnsureAsset("RKM:Downloads:Helm:Linux", "helm.tar.gz", stoppingToken);
                 }
 
@@ -139,9 +138,6 @@ exit $?
                     // Get the assets needed to run the Kubernetes API server and etcd in WSL.
                     await _assetManager.EnsureAsset("RKM:Downloads:KubernetesServer:Linux", "kubernetes-server.tar.gz", stoppingToken);
                     await _assetManager.EnsureAsset("RKM:Downloads:Etcd:Linux", "etcd.tar.gz", stoppingToken);
-                    // Windows calicoctl client is broken and tries to enforce policy that only applies to Windows nodes
-                    // even when connecting to the API server that is running on Linux, so we have to WSL this.
-                    await _assetManager.EnsureAsset("RKM:Downloads:CalicoCtl:Linux", "calicoctl", stoppingToken);
                     // Windows containers can't hit the CoreDNS service over UDP when Windows is running the Linux bits
                     // inside WSL. Workaround this issue by having Windows run it's own copy of CoreDNS.
                     await _assetManager.EnsureAsset("RKM:Downloads:CoreDNS:Windows", "coredns.tar.gz", stoppingToken);
