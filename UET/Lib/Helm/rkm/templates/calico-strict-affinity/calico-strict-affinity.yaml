@@ -2,6 +2,12 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: calico-ipam-strict-affinity
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    rkm.redpoint.games/component: calico-ipam-strict-affinity
 rules:
   - apiGroups: ["crd.projectcalico.org"]
     resources:
@@ -24,6 +30,12 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: calico-ipam-strict-affinity
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    rkm.redpoint.games/component: calico-ipam-strict-affinity
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -38,6 +50,12 @@ kind: ServiceAccount
 metadata:
   name: calico-ipam-strict-affinity
   namespace: kube-system
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    rkm.redpoint.games/component: calico-ipam-strict-affinity
 ---
 apiVersion: batch/v1
 kind: Job
@@ -49,6 +67,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name | quote }}
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    rkm.redpoint.games/component: calico-ipam-strict-affinity
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "-5"
@@ -60,7 +79,9 @@ spec:
       labels:
         app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        app.kubernetes.io/version: {{ .Chart.AppVersion }}
         helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+        rkm.redpoint.games/component: calico-ipam-strict-affinity
     spec:
       restartPolicy: Never
       nodeSelector:
@@ -69,5 +90,5 @@ spec:
       serviceAccountName: calico-ipam-strict-affinity
       containers:
       - name: configure-strict-affinity
-        image: docker.io/calico/ctl:v3.25.0
+        image: {{ printf "docker.io/calico/ctl:v%s" .Values.versions.calico | quote }}
         command: ["calicoctl", "ipam", "configure", "--strictaffinity=true"]

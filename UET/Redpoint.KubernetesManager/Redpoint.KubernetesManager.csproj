@@ -14,8 +14,6 @@
 		<None Remove="containerd-config-linux.toml" />
 		<None Remove="containerd-config-windows.toml" />
 		<None Remove="Corefile-windows" />
-		<None Remove="kube-proxy-config-linux.yaml" />
-		<None Remove="kube-proxy-config-windows.yaml" />
 		<None Remove="kubelet-config-linux.yaml" />
 		<None Remove="kubelet-config-windows.yaml" />
 	</ItemGroup>
@@ -23,8 +21,6 @@
 	<ItemGroup>
 		<EmbeddedResource Include="cni.conf.template" />
 		<EmbeddedResource Include="Corefile-windows" />
-		<EmbeddedResource Include="kube-proxy-config-windows.yaml" />
-		<EmbeddedResource Include="kube-proxy-config-linux.yaml" />
 		<EmbeddedResource Include="kubelet-config-windows.yaml" />
 		<EmbeddedResource Include="kubelet-config-linux.yaml" />
 		<EmbeddedResource Include="containerd-config-linux.toml" />

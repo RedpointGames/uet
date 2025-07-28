@@ -1,3 +1,10 @@
+versions:
+  calico: "3.25.0"
+  cni: "0.8.7"
+  sdn: "0.2.0"
+  rkm: "2025.1208.826"
+  kubernetes: "1.26.1"
+
 calico:
   root: "/opt/rkm/unknown"
   cni:
@@ -9,7 +16,15 @@ containerd:
 
 cluster:
   cidr: ""
+  serviceCidr: ""
+  dnsServiceIp: ""
+  dnsDomain: ""
+  controllerIp: ""
 
 host:
   subnet:
     cidr: ""
+
+vxlan:
+  # Do not change; 4096 is the only VNI that works on Windows nodes.
+  vni: "4096"

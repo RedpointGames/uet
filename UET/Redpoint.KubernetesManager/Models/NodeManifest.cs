@@ -28,11 +28,5 @@
 
         [YamlMember(Alias = "node-kubelet-config")]
         public string NodeKubeletConfig { get; set; } = string.Empty;
-
-        [YamlMember(Alias = "kube-proxy-config")]
-        public string KubeProxyConfig { get; set; } = string.Empty;
-
-        [YamlMember(Alias = "calico-windows-config")]
-        public string CalicoWindowsConfig { get; set; } = string.Empty;
     }
 }

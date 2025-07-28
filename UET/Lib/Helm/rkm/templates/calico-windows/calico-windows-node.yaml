@@ -1,0 +1,114 @@
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: calico-windows-node
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    rkm.redpoint.games/component: calico-windows-node
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+      app.kubernetes.io/version: {{ .Chart.AppVersion }}
+      helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+      rkm.redpoint.games/component: calico-windows-node
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        app.kubernetes.io/version: {{ .Chart.AppVersion }}
+        helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+        rkm.redpoint.games/component: calico-windows-node
+    spec:
+      nodeSelector:
+        kubernetes.io/os: windows
+      securityContext:
+        windowsOptions:
+          hostProcess: true
+          runAsUserName: "NT AUTHORITY\\SYSTEM"
+      hostNetwork: true
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - effect: NoExecute
+          operator: Exists
+      serviceAccountName: calico-node
+      terminationGracePeriodSeconds: 0
+      priorityClassName: system-node-critical
+      initContainers:
+        - name: startup
+          image: mcr.microsoft.com/oss/kubernetes/windows-host-process-containers-base-image:v1.0.0
+          command:
+            - "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
+            - -ExecutionPolicy
+            - Bypass
+            - .\scripts\startup_script.ps1
+          volumeMounts:
+            - mountPath: /scripts
+              name: scripts
+              readOnly: true
+          envFrom:
+          - configMapRef:
+              name: {{ printf "calico-windows-node-env-%d" .Release.Revision | quote }}
+          env:
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: CALICO_K8S_NODE_REF
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: FELIX_FELIXHOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+      containers:
+        - name: felix
+          image: mcr.microsoft.com/oss/kubernetes/windows-host-process-containers-base-image:v1.0.0
+          command:
+            - "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
+            - -ExecutionPolicy
+            - Bypass
+            - .\scripts\felix_script.ps1
+          volumeMounts:
+            - mountPath: /scripts
+              name: scripts
+              readOnly: true
+          envFrom:
+          - configMapRef:
+              name: {{ printf "calico-windows-node-env-%d" .Release.Revision | quote }}
+          env:
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: CALICO_K8S_NODE_REF
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: FELIX_FELIXHOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ printf "calico-windows-node-scripts-%d" .Release.Revision | quote }}
+            items:
+              - key: "startup_script.ps1"
+                path: "startup_script.ps1"
+              - key: "felix_script.ps1"
+                path: "felix_script.ps1"

@@ -140,14 +140,6 @@ namespace Redpoint.KubernetesManager
                 _logger.LogInformation($"Fetching node manifest from controller or disk...");
                 var parsedAddress = IPAddress.Parse(controllerAddress!);
                 var nodeManifest = await _nodeManifestClient.ObtainNodeManifestAsync(parsedAddress, Environment.MachineName.ToLowerInvariant(), stoppingToken);
-                if (string.IsNullOrWhiteSpace(nodeManifest.CalicoWindowsConfig))
-                {
-                    _logger.LogCritical("rkm can not continue because the controller did not provide a kubeconfig for calico-windows. Update RKM on the controller first and then try again.");
-                    File.Delete(Path.Combine(_pathProvider.RKMRoot, "node-manifest.yaml"));
-                    Environment.ExitCode = 1;
-                    _hostApplicationLifetime.StopApplication();
-                    return;
-                }
 
                 // Preemptively set the flag so that the node can start up.
                 _logger.LogInformation($"Node manifest is now available for components.");
