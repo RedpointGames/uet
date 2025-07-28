@@ -33,8 +33,6 @@
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
 		<PackageReference Include="Mono.Posix.NETStandard" />
-		<PackageReference Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" />
-		<PackageReference Include="YamlDotNet" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -1,8 +1,7 @@
 ﻿namespace Redpoint.KubernetesManager.Models
 {
-    using YamlDotNet.Serialization;
+    using System.Text.Json.Serialization;
 
-    [YamlSerializable]
     internal class NodeManifest
     {
         /// <summary>
@@ -11,22 +10,22 @@
         /// under /opt/rkm/serverInstallationId to their actual installation location, so that flannel
         /// will write things into the correct location.
         /// </summary>
-        [YamlMember(Alias = "server-rkm-installation-id")]
+        [JsonPropertyName("serverRkmInstallationId")]
         public string ServerRKMInstallationId { get; set; } = string.Empty;
 
-        [YamlMember(Alias = "node-name")]
+        [JsonPropertyName("nodeName")]
         public string NodeName { get; set; } = string.Empty;
 
-        [YamlMember(Alias = "certificate-authority")]
+        [JsonPropertyName("certificateAuthority")]
         public string CertificateAuthority { get; set; } = string.Empty;
 
-        [YamlMember(Alias = "node-certificate")]
+        [JsonPropertyName("nodeCertificate")]
         public string NodeCertificate { get; set; } = string.Empty;
 
-        [YamlMember(Alias = "node-certificate-key")]
+        [JsonPropertyName("nodeCertificateKey")]
         public string NodeCertificateKey { get; set; } = string.Empty;
 
-        [YamlMember(Alias = "node-kubelet-config")]
+        [JsonPropertyName("nodeKubeletConfig")]
         public string NodeKubeletConfig { get; set; } = string.Empty;
     }
 }

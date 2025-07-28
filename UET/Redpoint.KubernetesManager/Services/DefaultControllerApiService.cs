@@ -4,11 +4,10 @@
     using System.Net;
     using System.Threading.Tasks;
     using Redpoint.KubernetesManager.Models;
-    using YamlDotNet.Serialization.NamingConventions;
-    using YamlDotNet.Serialization;
     using Redpoint.Concurrency;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Hosting;
+    using System.Text.Json;
 
     internal class DefaultControllerApiService : IControllerApiService
     {
@@ -83,12 +82,9 @@
                             context.Response.AddHeader("Content-Type", "text/yaml");
                             using (var writer = new StreamWriter(context.Response.OutputStream, leaveOpen: true))
                             {
-                                var aotContext = new KubernetesYamlStaticContext();
-                                var serializer = new StaticSerializerBuilder(aotContext)
-                                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                                    .Build();
-                                var yaml = serializer.Serialize(nodeManifest);
-                                await writer.WriteLineAsync(yaml);
+                                await writer.WriteLineAsync(JsonSerializer.Serialize(
+                                    nodeManifest,
+                                    KubernetesJsonSerializerContext.Default.NodeManifest));
                             }
                         }
                     }
