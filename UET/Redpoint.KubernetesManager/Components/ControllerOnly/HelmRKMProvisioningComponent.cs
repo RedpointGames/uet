@@ -90,9 +90,7 @@
                 cancellationToken);
             if (exitCode != 0)
             {
-                _logger.LogCritical("rkm is exiting because it could not install or upgrade the Helm charts into the cluster, and they are required for the cluster to work.");
-                context.StopOnCriticalError();
-                return;
+                _logger.LogWarning("RKM could not install or upgrade the Helm charts into the cluster, which could cause the cluster to be inoperable. RKM will continue to ensure that the API server runs to ensure manual recovery is possible.");
             }
 
             // Flag once the RKM components have been provisioned.
