@@ -136,7 +136,9 @@ data:
     $env:KUBECONFIG = "$((Get-Location).Path)\kubeconfig"
     try {
       Write-Host "Writing contents of 10-calico.conf for containerd CNI..."
-      New-Item -ItemType Directory -Path "C:\RKM\$ActiveInstall\containerd-state\cni\conf"
+      if (!(Test-Path "C:\RKM\$ActiveInstall\containerd-state\cni\conf")) {
+        New-Item -ItemType Directory -Path "C:\RKM\$ActiveInstall\containerd-state\cni\conf"
+      }
       Set-Content -Path "C:\RKM\$ActiveInstall\containerd-state\cni\conf\10-calico.conf" -Value `
     @"
     {
