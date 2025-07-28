@@ -84,7 +84,7 @@ data:
 
       Write-Host "Moving '$($Download.Folder).tmp' to '$($Download.Folder)' ..."
       Move-Item "$($Download.Folder).tmp" "$($Download.Folder)"
-      Set-Content -Path "$($Download.Folder)\done" -Value "done"
+      Set-Content -NoNewline -Path "$($Download.Folder)\done" -Value "done"
     }
 
     Write-Host "Copying files to CNI plugins folder '$CniDownloadFolder'..."
@@ -113,7 +113,7 @@ data:
       Copy-Item -Force "$($File.FullName)" "C:\RKM\$ActiveInstall\cni-plugins\$($File.Name)"
     }
 
-    Write-Host "Trying to resolve hostname..."
+    Write-Host "Trying to resolve own hostname to IP address..."
     while ($true) {
       $Addresses = @()
       try {
@@ -130,9 +130,12 @@ data:
       break
     }
 
+    Write-Host "Writing out nodename file, which is necessary for non-HostProcess containers to be scheduled."
+    Set-Content -NoNewline -Path "C:\RKM\$ActiveInstall\calico-container\nodename" -Value $env:NODENAME
+
     Write-Host "Writing out kubeconfig file, which must persist for CNI plugin to work."
     $env:KUBECONFIG = "C:\RKM\$ActiveInstall\calico-container\kubeconfig"
-    Set-Content -Path $env:KUBECONFIG -Value `
+    Set-Content -NoNewline -Path $env:KUBECONFIG -Value `
     @"
     # last synchronised $(Get-Date)
     apiVersion: v1
@@ -159,7 +162,7 @@ data:
     if (!(Test-Path "C:\RKM\$ActiveInstall\containerd-state\cni\conf")) {
       New-Item -ItemType Directory -Path "C:\RKM\$ActiveInstall\containerd-state\cni\conf"
     }
-    Set-Content -Path "C:\RKM\$ActiveInstall\containerd-state\cni\conf\10-calico.conf" -Value `
+    Set-Content -NoNewline -Path "C:\RKM\$ActiveInstall\containerd-state\cni\conf\10-calico.conf" -Value `
     @"
     {
       "name": "Calico",
@@ -189,7 +192,7 @@ data:
         ]
       },
 
-      "nodename": "${env:NODENAME}",
+      "nodename_file": "$("C:\RKM\$ActiveInstall\calico-container\nodename".Replace("\", "\\"))",
 
       "datastore_type": "kubernetes",
 
@@ -262,7 +265,7 @@ data:
       $KubeToken = (Get-Content -Raw -Path var\run\secrets\kubernetes.io\serviceaccount\token)
 
       $env:KUBECONFIG = "C:\RKM\$ActiveInstall\calico-container\kubeconfig"
-      Set-Content -Path $env:KUBECONFIG -Value `
+      Set-Content -NoNewline -Path $env:KUBECONFIG -Value `
       @"
       # last synchronised $(Get-Date)
       apiVersion: v1
