@@ -9,22 +9,44 @@ metadata:
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     rkm.redpoint.games/component: coredns-deploy
 rules:
-  - apiGroups: ["crd.projectcalico.org"]
+  - apiGroups: [""]
     resources:
-      - ipamconfigs
+      - secrets
+      - pods
+      - daemonsets
+      - configmaps
+      - services
     verbs:
       - create
       - update
       - get
       - list
       - watch
-  - apiGroups: ["crd.projectcalico.org"]
+      - delete
+      - patch
+  - apiGroups: ["apps"]
     resources:
-      - clusterinformations
+      - deployments
     verbs:
+      - create
+      - update
       - get
       - list
       - watch
+      - delete
+      - patch
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources:
+      - clusterroles
+      - clusterrolebindings
+    verbs:
+      - create
+      - update
+      - get
+      - list
+      - watch
+      - delete
+      - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -36,6 +58,26 @@ metadata:
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     rkm.redpoint.games/component: coredns-deploy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: coredns-deploy
+subjects:
+- kind: ServiceAccount
+  name: coredns-deploy
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: coredns-deploy
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    rkm.redpoint.games/component: coredns-deploy
+  namespace: kube-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
