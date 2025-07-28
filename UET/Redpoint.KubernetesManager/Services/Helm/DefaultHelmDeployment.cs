@@ -55,9 +55,10 @@
                 "--namespace=kube-system",
                 "upgrade",
                 "--install",
-                chartName,
                 "--values",
-                valuesPath
+                valuesPath,
+                chartName,
+                ociUrl,
             };
             if (waitForResourceStabilisation)
             {
