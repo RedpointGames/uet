@@ -1,0 +1,111 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ printf "kube-proxy-windows-scripts-%d" .Release.Revision | quote }}
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    rkm.redpoint.games/component: kube-proxy-windows
+data:
+  # note: We should try to get the active install via Kubernetes metadata...
+  kube_proxy.ps1: |
+    $global:ErrorActionPreference = 'Stop';
+    $global:ProgressPreference = 'SilentlyContinue';
+
+    $ActiveInstall = (Get-Content -Raw -Path C:\RKM\active).Trim()
+
+    $KubeProxyFolder = "C:\RKM\$ActiveInstall\kube-proxy-container\kube-proxy-${env:UET_KUBERNETES_VERSION}"
+    $UetFolder = "C:\RKM\$ActiveInstall\kube-proxy-container\uet-${env:UET_VERSION}"
+
+    $Downloads = @(
+      @{
+        Name = "kube-proxy.exe";
+        Url = "https://dl.k8s.io/v${env:UET_KUBERNETES_VERSION}/bin/windows/amd64/kube-proxy.exe";
+        Folder = $KubeProxyFolder;
+      },
+      @{
+        Name = "uet.exe";
+        Url = "https://github.com/RedpointGames/uet/releases/download/${env:UET_VERSION}/uet.exe";
+        Folder = $UetFolder;
+      }
+    )
+
+    Write-Host "Downloading dependencies..."
+    foreach ($Download in $Downloads) {
+      if (Test-Path "$($Download.Folder)\done") {
+        Write-Host "Already downloaded: $($Download.Folder)"
+        continue
+      }
+
+      if (Test-Path "$($Download.Folder)") {
+        Remove-Item -Force -Recurse "$($Download.Folder)"
+      }
+      if (Test-Path "$($Download.Folder).tmp") {
+        Remove-Item -Force -Recurse "$($Download.Folder).tmp"
+      }
+
+      Write-Host "Downloading '$($Download.Name)' from '$($Download.Url)' ..."
+      Invoke-WebRequest -OutFile $Download.Name $Download.Url
+
+      Write-Host "Moving '$($Download.Name)' into '$($Download.Folder).tmp' ..."
+      New-Item -ItemType Directory -Path "$($Download.Folder).tmp"
+      Move-Item $Download.Name "$($Download.Folder).tmp\$($Download.Name)"
+
+      Write-Host "Moving '$($Download.Folder).tmp' to '$($Download.Folder)' ..."
+      Move-Item "$($Download.Folder).tmp" "$($Download.Folder)"
+      Set-Content -Path "$($Download.Folder)\done" -Value "done"
+    }
+
+    $SourceVip = $(& "$UetFolder\\uet.exe" cluster get-hns-endpoint --network-name $env:NETWORK_NAME --endpoint-name $env:ENDPOINT_NAME)
+
+    Set-Content -Path config -Value `
+    @"
+    kind: KubeProxyConfiguration
+    apiVersion: kubeproxy.config.k8s.io/v1alpha1
+    clientConnection:
+      kubeconfig: "kubeconfig"
+    winkernel:
+      networkName: "$env:NETWORK_NAME"
+      sourceVip: "$SourceVip"
+      enableDSR: true
+    featureGates:
+      WinDSR: true
+      WinOverlay: true
+    mode: "kernelspace"
+    "@
+
+    $KubeCaCrtUnencoded = (Get-Content -Raw -Path var\run\secrets\kubernetes.io\serviceaccount\ca.crt)
+    $KubeCaCrt = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($KubeCaCrtUnencoded))
+    $KubeToken = (Get-Content -Raw -Path var\run\secrets\kubernetes.io\serviceaccount\token)
+    Set-Content -Path kubeconfig -Value `
+    @"
+    apiVersion: v1
+    kind: Config
+    clusters:
+    - name: default-cluster
+      cluster:
+        certificate-authority-data: $KubeCaCrt
+        server: https://${env:UET_CONTROLLER_IP}:6443
+    contexts:
+    - name: default-context
+      context:
+        cluster: default-cluster
+        namespace: default
+        user: default-user
+    current-context: default-context
+    users:
+    - name: default-user
+      user:
+        token: $KubeToken
+    "@
+    try {
+      & "$KubeProxyFolder\kube-proxy.exe" `
+        --v=4 `
+        --config=config
+      exit $LastExitCode
+    } finally {
+      Remove-Item -Path kubeconfig
+    }

@@ -122,17 +122,6 @@
                     $"--v=2",
                     "--node-labels",
                     $"rkm.redpoint.games/auto-upgrade-enabled={(File.Exists(Path.Combine(_rkmGlobalRootProvider.RkmGlobalRoot, "service-auto-upgrade")) ? "true" : "false")}",
-                },
-                afterStart: async (cancellationToken) =>
-                {
-                    if (OperatingSystem.IsWindows())
-                    {
-                        // Each time kubelet starts up (including restarts), we need to ask
-                        // calico-node to reconfigure the machine's network. This ensures that
-                        // calico refreshes the node annotations if kubelet recreates the node
-                        // resource.
-                        await context.RaiseSignalAsync(WellKnownSignals.KubeletProcessStartedOnWindows, null, cancellationToken);
-                    }
                 }));
             try
             {

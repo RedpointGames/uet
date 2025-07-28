@@ -60,12 +60,6 @@
         public const string KubeApiServerReady = "kube-apiserver-ready";
 
         /// <summary>
-        /// This flag is set once the kubeconfig for Calico on Windows has been generated
-        /// on disk.
-        /// </summary>
-        public const string CalicoWindowsKubeConfigReady = "calico-windows-kubeconfig-ready";
-
-        /// <summary>
         /// This flag is set once the controller has provisioned the Kubernetes resources
         /// required for the API server to communicate with kubelets.
         /// </summary>
@@ -88,20 +82,6 @@
         /// kubeconfigs have been extracted by <see cref="Components.NodeOnly.NodeManifestExpanderComponent"/>.
         /// </summary>
         public const string NodeComponentsReadyToStart = "node-components-ready-to-start";
-
-        /// <summary>
-        /// This flag is set on Windows nodes once the calico-node has run once (after kubelet starts).
-        /// This is before RKM has retrieved the source VIP; see <see cref="CalicoWindowsReady"/> instead
-        /// for the flag that kube-proxy has a dependency on under Windows.
-        /// </summary>
-        public const string CalicoWindowsConfiguredNetwork = "calico-windows-configured-network";
-
-        /// <summary>
-        /// This flag is set on Windows nodes once the Calico Windows components have set up 
-        /// the HNS network and the source VIP for kube-proxy can be provided. The source VIP
-        /// is in the <see cref="Data.CalicoWindowsContextData"/> attached to the flag.
-        /// </summary>
-        public const string CalicoWindowsReady = "calico-windows-ready";
 
         /// <summary>
         /// This flag is set once the kubelet process has stopped during shutdown.

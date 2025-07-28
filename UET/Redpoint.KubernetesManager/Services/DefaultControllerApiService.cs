@@ -65,8 +65,6 @@
                             var nodeName = context.Request.QueryString.Get("nodeName");
 
                             var certificateAuthority = await File.ReadAllTextAsync(_certificateManager.GetCertificatePemPath("ca", "ca"));
-                            var kubeProxyConfig = await File.ReadAllTextAsync(_kubeConfigManager.GetKubeconfigPath("components", $"component-kube-proxy"));
-                            var calicoWindowsConfig = await File.ReadAllTextAsync(_kubeConfigManager.GetKubeconfigPath("components", $"component-calico-windows"));
 
                             var nodeCertificate = await _certificateManager.EnsureGeneratedForNodeAsync(nodeName!, remoteAddress);
                             var nodeKubeletConfig = await _kubeConfigManager.EnsureGeneratedForNodeAsync(certificateAuthority, nodeName!);
@@ -79,8 +77,6 @@
                                 NodeCertificate = nodeCertificate.CertificatePem,
                                 NodeCertificateKey = nodeCertificate.PrivateKeyPem,
                                 NodeKubeletConfig = nodeKubeletConfig,
-                                KubeProxyConfig = kubeProxyConfig,
-                                CalicoWindowsConfig = calicoWindowsConfig,
                             };
 
                             context.Response.StatusCode = (int)HttpStatusCode.OK;

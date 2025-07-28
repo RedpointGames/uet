@@ -17,12 +17,5 @@
         /// state.
         /// </summary>
         public const string Stopping = "stopping";
-
-        /// <summary>
-        /// When the Kubelet process starts or restarts. This signal is used by the
-        /// <see cref="Components.CalicoWindowsComponent"/> to reconfigure the machine's
-        /// network.
-        /// </summary>
-        public const string KubeletProcessStartedOnWindows = "kubelet-process-started-on-windows";
     }
 }

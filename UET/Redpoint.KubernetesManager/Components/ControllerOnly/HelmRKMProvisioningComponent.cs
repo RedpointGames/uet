@@ -63,6 +63,9 @@
                 "rkm-components",
                 $"oci://ghcr.io/redpointgames/uet/rkm-components:{_rkmVersionProvider.Version}",
                 $"""
+                versions:
+                  rkm: "{_rkmVersionProvider.Version}"
+
                 calico:
                   root: "/opt/rkm/{_pathProvider.RKMInstallationId}/calico"
                   cni:

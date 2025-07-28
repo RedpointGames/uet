@@ -230,31 +230,8 @@
                     Path.Combine(_pathProvider.RKMRoot, "coredns", "coredns.exe"));
             }
 
-            // Write out CNI configuration. The cni.conf.template is from the Calico Windows
-            // distribution, so that file should be updated if Calico is also upgraded. This
-            // logic comes from the "Install-CNIPlugin" function inside libs\calico\calico.psm1
-            Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "containerd-state", "cni", "conf"));
-            await _resourceManager.ExtractResource(
-                "cni.conf.template",
-                Path.Combine(_pathProvider.RKMRoot, "containerd-state", "cni", "conf", "10-calico.conf"),
-                new Dictionary<string, string>
-                {
-                    { "__NODENAME_FILE__", Path.Combine(_pathProvider.RKMRoot, "calico-windows", "nodename").Replace("\\", "\\\\", StringComparison.Ordinal) },
-                    { "__KUBECONFIG__", Path.Combine(_pathProvider.RKMRoot, "kubeconfigs", "components", $"component-calico-windows-node.kubeconfig").Replace("\\", "\\\\", StringComparison.Ordinal) },
-                    { "__K8S_SERVICE_CIDR__", _clusterNetworkingConfiguration.ServiceCIDR },
-                    { "__DNS_NAME_SERVERS__", $"\"{_clusterNetworkingConfiguration.ClusterDNSServiceIP}\"" },
-                    { "__DATASTORE_TYPE__", "kubernetes" },
-                    { "__DSR_SUPPORT__", "true" },
-                    { "__ETCD_ENDPOINTS__", "" },
-                    { "__ETCD_KEY_FILE__", "" },
-                    { "__ETCD_CERT_FILE__", "" },
-                    { "__ETCD_CA_CERT_FILE__", "" },
-                    { "__IPAM_TYPE__", "calico-ipam" },
-                    { "__MODE__", "vxlan" },
-                    { "__VNI__", _clusterNetworkingConfiguration.VXLANVNI.ToString(CultureInfo.InvariantCulture) },
-                    { "__MAC_PREFIX__", "0E-2A" },
-                    { "__ROUTE_TYPE__", "SDNROUTE" },
-                });
+            // CNI configuration is no longer written out here; instead it is set up as part of
+            // 'startup_script.ps1' in the 'calico-windows-node-scripts' in the Helm chart.
 
             // Create an overlay network to trigger vSwitch creation because we need
             // a vSwitch for networking to work. We only do this once because it will

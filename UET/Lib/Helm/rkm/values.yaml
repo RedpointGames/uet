@@ -2,6 +2,8 @@ versions:
   calico: "3.25.0"
   cni: "0.8.7"
   sdn: "0.2.0"
+  rkm: "2025.1208.826"
+  kubernetes: "1.26.1"
 
 calico:
   root: "/opt/rkm/unknown"

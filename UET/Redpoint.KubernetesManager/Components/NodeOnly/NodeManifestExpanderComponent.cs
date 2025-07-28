@@ -52,18 +52,9 @@
                 nodeManifest.NodeCertificateKey,
                 cancellationToken);
             Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "kubeconfigs", "nodes"));
-            Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "kubeconfigs", "components"));
             await File.WriteAllTextAsync(
                 Path.Combine(_pathProvider.RKMRoot, "kubeconfigs", "nodes", $"node-{nodeManifest.NodeName}.kubeconfig"),
                 nodeManifest.NodeKubeletConfig.Replace("__CONTROLLER_ADDRESS__", controllerAddress.ToString(), StringComparison.Ordinal),
-                cancellationToken);
-            await File.WriteAllTextAsync(
-                Path.Combine(_pathProvider.RKMRoot, "kubeconfigs", "components", $"component-kube-proxy.kubeconfig"),
-                nodeManifest.KubeProxyConfig.Replace("__CONTROLLER_ADDRESS__", controllerAddress.ToString(), StringComparison.Ordinal),
-                cancellationToken);
-            await File.WriteAllTextAsync(
-                Path.Combine(_pathProvider.RKMRoot, "kubeconfigs", "components", $"component-calico-windows-node.kubeconfig"),
-                nodeManifest.CalicoWindowsConfig.Replace("__CONTROLLER_ADDRESS__", controllerAddress.ToString(), StringComparison.Ordinal),
                 cancellationToken);
 
             // On Linux nodes, we have to symlink the server's installation root to our own installation root, because

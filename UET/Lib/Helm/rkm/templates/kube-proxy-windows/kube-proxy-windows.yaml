@@ -1,0 +1,79 @@
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: kube-proxy-windows
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    rkm.redpoint.games/component: kube-proxy-windows
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+      app.kubernetes.io/version: {{ .Chart.AppVersion }}
+      helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+      rkm.redpoint.games/component: kube-proxy-windows
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        app.kubernetes.io/version: {{ .Chart.AppVersion }}
+        helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+        rkm.redpoint.games/component: kube-proxy-windows
+    spec:
+      nodeSelector:
+        kubernetes.io/os: windows
+      securityContext:
+        windowsOptions:
+          hostProcess: true
+          runAsUserName: "NT AUTHORITY\\SYSTEM"
+      hostNetwork: true
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - effect: NoExecute
+          operator: Exists
+      serviceAccountName: kube-proxy
+      terminationGracePeriodSeconds: 0
+      priorityClassName: system-node-critical
+      containers:
+        - name: kube-proxy
+          image: mcr.microsoft.com/oss/kubernetes/windows-host-process-containers-base-image:v1.0.0
+          command:
+            - "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
+            - -ExecutionPolicy
+            - Bypass
+            - .\scripts\kube_proxy.ps1
+          volumeMounts:
+            - mountPath: /scripts
+              name: scripts
+              readOnly: true
+          env:
+            - name: NETWORK_NAME
+              value: "Calico"
+            - name: ENDPOINT_NAME
+              value: "Calico_ep"
+            - name: UET_KUBERNETES_VERSION
+              value: {{ .Values.versions.kubernetes | quote }}
+            - name: UET_VERSION
+              value: {{ .Values.versions.rkm | quote }}
+            - name: UET_CONTROLLER_IP
+              value: {{ .Values.cluster.controllerIp | quote }}
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ printf "kube-proxy-windows-scripts-%d" .Release.Revision | quote }}
+            items:
+              - key: "kube_proxy.ps1"
+                path: "kube_proxy.ps1"

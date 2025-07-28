@@ -41,14 +41,12 @@ namespace Redpoint.KubernetesManager
             services.AddSingleton<IControllerApiService, DefaultControllerApiService>();
             services.AddSingleton<INodeManifestClient, DefaultNodeManifestClient>();
             services.AddSingleton<IClusterNetworkingConfiguration, DefaultClusterNetworkingConfiguration>();
-            services.AddSingleton<ICalicoKubeConfigGenerator, DefaultCalicoKubeConfigGenerator>();
             services.AddSingleton<IWslDistro, DefaultWslDistro>();
             services.AddSingleton<IWslTranslation, DefaultWslTranslation>();
             services.AddSingleton<IRkmGlobalRootProvider, DefaultRkmGlobalRootProvider>();
             services.AddSingleton<IHelmDeployment, DefaultHelmDeployment>();
 
             // Register controller-only components.
-            services.AddSingleton<IComponent, CalicoKubeConfigGeneratingComponent>();
             services.AddSingleton<IComponent, CertificateGeneratingComponent>();
             services.AddSingleton<IComponent, HelmCoreDNSProvisioningComponent>();
             services.AddSingleton<IComponent, EncryptionConfigGeneratingComponent>();
@@ -76,13 +74,11 @@ namespace Redpoint.KubernetesManager
             services.AddSingleton<IComponent, AssetPreparationComponent>();
             services.AddSingleton<IComponent, ContainerdComponent>();
             services.AddSingleton<IComponent, KubeletComponent>();
-            services.AddSingleton<IComponent, KubeProxyComponent>();
             services.AddSingleton<IComponent, NetworkingConfigurationComponent>();
 
             // Register platform-specific components.
             if (OperatingSystem.IsWindows())
             {
-                services.AddSingleton<IComponent, CalicoWindowsComponent>();
                 services.AddSingleton<IComponent, WindowsPreflightComponent>();
                 services.AddSingleton(_ =>
                 {
