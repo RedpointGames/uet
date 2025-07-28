@@ -60,20 +60,9 @@
         public const string KubeApiServerReady = "kube-apiserver-ready";
 
         /// <summary>
-        /// This flag is set once the controller has provisioned the Kubernetes resources
-        /// required for the API server to communicate with kubelets.
+        /// This flag is set once the RKM components Helm chart has been deployed to the cluster.
         /// </summary>
-        public const string KubernetesResourcesProvisioned = "kubernetes-resources-provisioned";
-
-        /// <summary>
-        /// This flag is set once the controller has provisioned Calico into the cluster.
-        /// </summary>
-        public const string CalicoProvisioned = "calico-provisioned";
-
-        /// <summary>
-        /// This flag is set once the controller has provisioned CoreDNS into the cluster.
-        /// </summary>
-        public const string CoreDNSProvisioned = "coredns-provisioned";
+        public const string HelmChartProvisioned = "helm-chart-provisioned";
 
         /// <summary>
         /// This flag is set once the node components are ready to start. On the controller, this
@@ -92,10 +81,5 @@
         /// This flag is set once the containerd process has stopped during shutdown.
         /// </summary>
         public const string ContainerdStopped = "containerd-stopped";
-
-        /// <summary>
-        /// The Helm command line tool has been installed on the system.
-        /// </summary>
-        public const string HelmInstalled = "helm-installed";
     }
 }

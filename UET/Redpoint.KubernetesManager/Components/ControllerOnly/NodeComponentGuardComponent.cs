@@ -24,9 +24,6 @@
         {
             // Wait for the prerequisites.
             await context.WaitForFlagAsync(WellKnownFlags.KubeApiServerReady);
-            await context.WaitForFlagAsync(WellKnownFlags.KubernetesResourcesProvisioned);
-            await context.WaitForFlagAsync(WellKnownFlags.CalicoProvisioned);
-            await context.WaitForFlagAsync(WellKnownFlags.CoreDNSProvisioned);
 
             // Now we're ready to start our node-related components. We don't get the translated name
             // here because the WSL components automatically take into account the suffixed name.

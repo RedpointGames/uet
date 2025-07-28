@@ -95,8 +95,8 @@
                 return;
             }
 
-            // Once the Helm chart is deployed, Calico has been provisioned.
-            context.SetFlag(WellKnownFlags.CalicoProvisioned);
+            // Flag once the RKM components have been provisioned.
+            context.SetFlag(WellKnownFlags.HelmChartProvisioned);
         }
     }
 }

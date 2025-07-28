@@ -1,13 +1,13 @@
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: calico-ipam-strict-affinity
+  name: coredns-deploy
   labels:
     app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
     app.kubernetes.io/instance: {{ .Release.Name | quote }}
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-    rkm.redpoint.games/component: calico-ipam-strict-affinity
+    rkm.redpoint.games/component: coredns-deploy
 rules:
   - apiGroups: ["crd.projectcalico.org"]
     resources:
@@ -29,66 +29,93 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: calico-ipam-strict-affinity
+  name: coredns-deploy
   labels:
     app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
     app.kubernetes.io/instance: {{ .Release.Name | quote }}
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-    rkm.redpoint.games/component: calico-ipam-strict-affinity
+    rkm.redpoint.games/component: coredns-deploy
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: calico-ipam-strict-affinity
+  name: coredns-deploy
 subjects:
 - kind: ServiceAccount
-  name: calico-ipam-strict-affinity
+  name: coredns-deploy
   namespace: kube-system
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: calico-ipam-strict-affinity
+  name: coredns-deploy
   namespace: kube-system
   labels:
     app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
     app.kubernetes.io/instance: {{ .Release.Name | quote }}
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-    rkm.redpoint.games/component: calico-ipam-strict-affinity
+    rkm.redpoint.games/component: coredns-deploy
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ printf "calico-ipam-strict-affinity-%d" .Release.Revision | quote }}
+  name: {{ printf "coredns-deploy-%d" .Release.Revision | quote }}
   namespace: kube-system
   labels:
     app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
     app.kubernetes.io/instance: {{ .Release.Name | quote }}
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-    rkm.redpoint.games/component: calico-ipam-strict-affinity
+    rkm.redpoint.games/component: coredns-deploy
   annotations:
     "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-weight": "-15"
     "helm.sh/hook-delete-policy": hook-succeeded
 spec:
   template:
     metadata:
-      name: "calico-ipam-strict-affinity"
+      name: "coredns-deploy"
       labels:
         app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
         app.kubernetes.io/version: {{ .Chart.AppVersion }}
         helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-        rkm.redpoint.games/component: calico-ipam-strict-affinity
+        rkm.redpoint.games/component: coredns-deploy
     spec:
       restartPolicy: Never
       nodeSelector:
         kubernetes.io/os: linux
-      hostNetwork: true
-      serviceAccountName: calico-ipam-strict-affinity
+      serviceAccountName: coredns-deploy
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - effect: NoExecute
+          operator: Exists
+      terminationGracePeriodSeconds: 0
+      priorityClassName: system-node-critical
       containers:
-      - name: configure-strict-affinity
-        image: {{ printf "docker.io/calico/ctl:v%s" .Values.versions.calico | quote }}
-        command: ["calicoctl", "ipam", "configure", "--strictaffinity=true"]
+      - name: helm
+        image: alpine/helm:3.11.1
+        command:
+          - "helm"
+          - "--namespace=kube-system"
+          - "upgrade"
+          - "--install"
+          - "--values"
+          - "/config/values.yaml"
+          - "coredns"
+          - "oci://ghcr.io/coredns/charts/coredns"
+        volumeMounts:
+          - mountPath: /config
+            name: config
+            readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: {{ printf "coredns-deploy-%d" .Release.Revision | quote }}
+            items:
+              - key: "values.yaml"
+                path: "values.yaml"
