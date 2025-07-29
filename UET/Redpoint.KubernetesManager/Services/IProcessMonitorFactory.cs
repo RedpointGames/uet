@@ -2,13 +2,13 @@
 {
     using Redpoint.KubernetesManager.Models;
 
-    internal interface IProcessMonitorFactory
+    public interface IProcessMonitor
     {
-        internal interface IProcessMonitor
-        {
-            Task<int> RunAsync(CancellationToken cancellationToken);
-        }
+        Task<int> RunAsync(CancellationToken cancellationToken);
+    }
 
+    public interface IProcessMonitorFactory
+    {
         [Obsolete("Use ProcessSpecification instead.")]
         IProcessMonitor CreatePerpetualProcess(string filename, string[] arguments, Dictionary<string, string>? environment, Func<CancellationToken, Task>? beforeStart = null, Func<CancellationToken, Task>? afterStart = null);
 

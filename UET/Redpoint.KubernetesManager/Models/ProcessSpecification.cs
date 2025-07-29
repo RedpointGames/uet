@@ -1,6 +1,8 @@
 ﻿namespace Redpoint.KubernetesManager.Models
 {
-    internal class ProcessSpecification
+    using System.Diagnostics.CodeAnalysis;
+
+    public class ProcessSpecification
     {
         public ProcessSpecification(
             string filename,
@@ -22,6 +24,7 @@
 
         public string Filename { get; }
 
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This is legacy code.")]
         public string[] Arguments { get; }
 
         public Dictionary<string, string>? Environment { get; }
