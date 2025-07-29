@@ -358,6 +358,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Windows.HostNetwor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Windows.Firewall", "Redpoint.Windows.Firewall\Redpoint.Windows.Firewall.csproj", "{29BA4DF0-B40E-4B27-8C2A-4F622F0B181A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.KubernetesManager.Tests", "Redpoint.KubernetesManager.Tests\Redpoint.KubernetesManager.Tests.csproj", "{F326BD9A-A701-4408-B32A-AA89A5FF3380}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -972,6 +974,10 @@ Global
 		{29BA4DF0-B40E-4B27-8C2A-4F622F0B181A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{29BA4DF0-B40E-4B27-8C2A-4F622F0B181A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{29BA4DF0-B40E-4B27-8C2A-4F622F0B181A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F326BD9A-A701-4408-B32A-AA89A5FF3380}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F326BD9A-A701-4408-B32A-AA89A5FF3380}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F326BD9A-A701-4408-B32A-AA89A5FF3380}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F326BD9A-A701-4408-B32A-AA89A5FF3380}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
