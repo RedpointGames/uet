@@ -9,13 +9,13 @@
     internal class DefaultProcessKiller : IProcessKiller
     {
         private readonly ILogger<DefaultProcessKiller> _logger;
-        private readonly IPathProvider _pathProvider;
+        private readonly IPathProvider? _pathProvider;
         private readonly IWslDistro? _wslDistro;
         private readonly IWindowsHcsService? _hcsService;
 
         public DefaultProcessKiller(
             ILogger<DefaultProcessKiller> logger,
-            IPathProvider pathProvider,
+            IPathProvider? pathProvider = null,
             IWslDistro? wslDistro = null,
             IWindowsHcsService? hcsService = null)
         {
@@ -70,7 +70,7 @@
                 cancellationToken.ThrowIfCancellationRequested();
             }
 
-            if (OperatingSystem.IsWindows())
+            if (OperatingSystem.IsWindows() && _pathProvider != null)
             {
                 if (File.Exists(_wslDistro!.WslPath))
                 {

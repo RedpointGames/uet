@@ -59,7 +59,7 @@
 
         public async Task InstallService(
             string name,
-            string description,
+            string displayName,
             string executableAndArguments,
             string? stdoutLogPath,
             string? stderrLogPath,
@@ -67,7 +67,7 @@
         {
             await File.WriteAllTextAsync($"/etc/systemd/system/{name}.service", @$"
 [Unit]
-Description={description}
+Description={displayName}
 
 [Service]
 ExecStart={executableAndArguments}

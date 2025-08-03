@@ -52,14 +52,12 @@ namespace UET.Commands.Cluster
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
-                var serviceName = OperatingSystem.IsWindows() ? "RKM" : "rkm";
-
-                if (await _serviceControl.IsServiceInstalled(serviceName))
+                if (await _serviceControl.IsServiceInstalled("rkm"))
                 {
-                    if (await _serviceControl.IsServiceRunning(serviceName))
+                    if (await _serviceControl.IsServiceRunning("rkm"))
                     {
                         _logger.LogInformation("Stopping RKM service...");
-                        await _serviceControl.StopService(serviceName);
+                        await _serviceControl.StopService("rkm");
                     }
                     else
                     {
@@ -67,7 +65,7 @@ namespace UET.Commands.Cluster
                     }
 
                     _logger.LogInformation("Uninstalling RKM service, so it doesn't run at startup...");
-                    await _serviceControl.UninstallService(serviceName);
+                    await _serviceControl.UninstallService("rkm");
                 }
                 else
                 {

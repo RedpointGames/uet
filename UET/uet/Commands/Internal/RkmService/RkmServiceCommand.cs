@@ -44,10 +44,10 @@ namespace UET.Commands.Internal.Rkm
                     {
                         services.AddWindowsService(options =>
                         {
-                            options.ServiceName = "RKM";
+                            options.ServiceName = "rkm";
                         });
                     }
-                    services.AddRkmServiceHelpers(true);
+                    services.AddRkmServiceHelpers(true, "rkm");
                     services.AddHostedService<RKMWorker>();
                 });
             return command;

@@ -41,10 +41,10 @@
                     {
                         services.AddWindowsService(options =>
                         {
-                            options.ServiceName = "RKM - Containerd";
+                            options.ServiceName = "rkm-containerd";
                         });
                     }
-                    services.AddRkmServiceHelpers(false);
+                    services.AddRkmServiceHelpers(false, "rkm-containerd");
                     services.AddHostedService<ContainerdHostedService>();
                 });
             command.IsHidden = true;

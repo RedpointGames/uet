@@ -7,10 +7,11 @@ namespace UET.Commands.Internal.Rkm
     internal sealed class RkmHostEnvironment : IHostEnvironment
     {
         public RkmHostEnvironment(
-            ISelfLocation selfLocation)
+            ISelfLocation selfLocation,
+            string applicationName)
         {
             EnvironmentName = "Production";
-            ApplicationName = "RKM";
+            ApplicationName = applicationName;
             ContentRootPath = Path.GetDirectoryName(selfLocation.GetUetLocalLocation(true))!;
             ContentRootFileProvider = null!;
         }

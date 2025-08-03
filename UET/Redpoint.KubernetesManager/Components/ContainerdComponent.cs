@@ -14,12 +14,14 @@
     /// <summary>
     /// The containerd component sets up and runs the containerd process.
     /// </summary>
-    internal class ContainerdComponent : IComponent
+    internal class ContainerdComponent : IComponent, IDisposable
     {
         private readonly IServiceControl _serviceControl;
         private readonly IRkmVersionProvider _rkmVersionProvider;
         private readonly IPathProvider _pathProvider;
         private readonly ILogger<ContainerdComponent> _logger;
+        private readonly CancellationTokenSource _stoppingToken;
+        private Task? _logTask;
 
         public ContainerdComponent(
             IServiceControl serviceControl,
@@ -31,6 +33,12 @@
             _rkmVersionProvider = rkmVersionProvider;
             _pathProvider = pathProvider;
             _logger = logger;
+            _stoppingToken = new CancellationTokenSource();
+        }
+
+        public void Dispose()
+        {
+            ((IDisposable)_stoppingToken).Dispose();
         }
 
         public void RegisterSignals(IRegistrationContext context)
@@ -39,18 +47,18 @@
             context.OnSignal(WellKnownSignals.Stopping, OnStoppingAsync);
         }
 
+        private const string _serviceName = "rkm-containerd";
+
         private async Task OnStartedAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)
         {
-            var serviceName = OperatingSystem.IsWindows() ? "RKM - Containerd" : "rkm-containerd";
-
             Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "cache"));
 
             var arguments = $"\"{_rkmVersionProvider.UetFilePath}\" cluster run-containerd --manifest-path \"{Path.Combine(_pathProvider.RKMRoot, "cache", "containerd-manifest.json")}\"";
 
             var installed = false;
-            if (await _serviceControl.IsServiceInstalled(serviceName))
+            if (await _serviceControl.IsServiceInstalled(_serviceName))
             {
-                var result = await _serviceControl.GetServiceExecutableAndArguments(serviceName);
+                var result = await _serviceControl.GetServiceExecutableAndArguments(_serviceName);
                 if (result == arguments)
                 {
                     _logger.LogInformation("containerd service is already installed correctly.");
@@ -58,41 +66,77 @@
                 }
                 else
                 {
-                    if (await _serviceControl.IsServiceRunning(serviceName))
+                    if (await _serviceControl.IsServiceRunning(_serviceName))
                     {
                         _logger.LogInformation("containerd service is being stopped so it can be reinstalled.");
-                        await _serviceControl.StopService(serviceName);
+                        await _serviceControl.StopService(_serviceName);
                     }
 
                     _logger.LogInformation("containerd service is being uninstalled because the command line arguments need to change.");
-                    await _serviceControl.UninstallService(serviceName);
+                    await _serviceControl.UninstallService(_serviceName);
                 }
             }
 
             if (!installed)
             {
                 await _serviceControl.InstallService(
-                    serviceName,
-                    "Runs containerd for RKM.",
+                    _serviceName,
+                    "RKM - Containerd",
                     arguments,
                     manualStart: true);
             }
 
-            if (!await _serviceControl.IsServiceRunning(serviceName))
+            if (Debugger.IsAttached)
+            {
+                _logTask = _serviceControl.StreamLogsUntilCancelledAsync(
+                    _serviceName,
+                    (level, message) =>
+                    {
+                        switch (level)
+                        {
+                            case ServiceLogLevel.Information:
+                                _logger.LogInformation($"(containerd) {message}");
+                                break;
+                            case ServiceLogLevel.Warning:
+                                _logger.LogWarning($"(containerd) {message}");
+                                break;
+                            case ServiceLogLevel.Error:
+                                _logger.LogError($"(containerd) {message}");
+                                break;
+                            default:
+                                _logger.LogInformation($"(containerd) {message}");
+                                break;
+                        }
+                    },
+                    _stoppingToken.Token);
+            }
+
+            if (!await _serviceControl.IsServiceRunning(_serviceName))
             {
                 _logger.LogInformation("containerd service is being started...");
-                await _serviceControl.StartService(serviceName);
+                await _serviceControl.StartService(_serviceName);
             }
         }
 
         private async Task OnStoppingAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)
         {
-            var serviceName = OperatingSystem.IsWindows() ? "RKM - Containerd" : "rkm-containerd";
-
-            if (await _serviceControl.IsServiceInstalled(serviceName))
+            if (await _serviceControl.IsServiceInstalled(_serviceName))
             {
                 _logger.LogInformation("containerd service is being stopped...");
-                await _serviceControl.StopService(serviceName);
+                await _serviceControl.StopService(_serviceName);
+            }
+
+            if (_logTask != null && !_stoppingToken.IsCancellationRequested)
+            {
+                _stoppingToken.Cancel();
+
+                try
+                {
+                    await _logTask;
+                }
+                catch (OperationCanceledException)
+                {
+                }
             }
         }
     }

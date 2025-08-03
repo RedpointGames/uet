@@ -83,13 +83,13 @@
 
         public async Task InstallService(
             string name,
-            string description,
+            string displayName,
             string executableAndArguments,
             string? stdoutLogPath,
             string? stderrLogPath,
             bool manualStart)
         {
-            await Process.Start(new ProcessStartInfo
+            var process = Process.Start(new ProcessStartInfo
             {
                 FileName = Path.Combine(Environment.GetEnvironmentVariable("SYSTEMROOT")!, "system32", "sc.exe"),
                 ArgumentList =
@@ -98,11 +98,17 @@
                         name,
                         $"binpath={executableAndArguments}",
                         "obj=LocalSystem",
-                        $"start={(manualStart ? "manual" : "auto")}"
+                        $"start={(manualStart ? "demand" : "auto")}",
+                        $"DisplayName={displayName}"
                     },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync().ConfigureAwait(false);
+            });
+            await process!.WaitForExitAsync().ConfigureAwait(false);
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException("Failed to create service.");
+            }
             await Process.Start(new ProcessStartInfo
             {
                 FileName = Path.Combine(Environment.GetEnvironmentVariable("SYSTEMROOT")!, "system32", "sc.exe"),
@@ -116,23 +122,11 @@
                 CreateNoWindow = true,
                 UseShellExecute = false,
             })!.WaitForExitAsync().ConfigureAwait(false);
-            await Process.Start(new ProcessStartInfo
-            {
-                FileName = Path.Combine(Environment.GetEnvironmentVariable("SYSTEMROOT")!, "system32", "sc.exe"),
-                ArgumentList =
-                    {
-                        "description",
-                        name,
-                        description,
-                    },
-                CreateNoWindow = true,
-                UseShellExecute = false,
-            })!.WaitForExitAsync().ConfigureAwait(false);
         }
 
         public async Task StartService(string name)
         {
-            await Process.Start(new ProcessStartInfo
+            var process = Process.Start(new ProcessStartInfo
             {
                 FileName = Path.Combine(Environment.GetEnvironmentVariable("SYSTEMROOT")!, "system32", "sc.exe"),
                 ArgumentList =
@@ -142,7 +136,12 @@
                 },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync().ConfigureAwait(false);
+            });
+            await process!.WaitForExitAsync().ConfigureAwait(false);
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException("Failed to start service.");
+            }
         }
 
         public async Task StopService(string name)

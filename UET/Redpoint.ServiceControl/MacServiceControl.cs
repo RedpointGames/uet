@@ -90,7 +90,7 @@
 
         public async Task InstallService(
             string name,
-            string description,
+            string displayName,
             string executableAndArguments,
             string? stdoutLogPath,
             string? stderrLogPath,
@@ -110,9 +110,9 @@
                 await writer.WriteStartElementAsync(null, "dict", null).ConfigureAwait(false);
 
                 await writer.WriteElementStringAsync(null, "key", null, "Label").ConfigureAwait(false);
-                await writer.WriteElementStringAsync(null, "string", null, name).ConfigureAwait(false);
+                await writer.WriteElementStringAsync(null, "string", null, displayName).ConfigureAwait(false);
                 await writer.WriteElementStringAsync(null, "key", null, "ServiceDescription").ConfigureAwait(false);
-                await writer.WriteElementStringAsync(null, "string", null, description).ConfigureAwait(false);
+                await writer.WriteElementStringAsync(null, "string", null, displayName).ConfigureAwait(false);
 
                 await writer.WriteElementStringAsync(null, "key", null, "IsManagedByRedpointServiceControl").ConfigureAwait(false);
                 await writer.WriteStartElementAsync(null, "true", null).ConfigureAwait(false);
