@@ -117,10 +117,6 @@ namespace Redpoint.KubernetesManager
             }
             else if (OperatingSystem.IsLinux())
             {
-                if (withPathProvider)
-                {
-                    services.AddSingleton<IComponent, SwapDisablingComponent>();
-                }
                 services.AddSingleton<INetworkingConfiguration, LinuxNetworkingConfiguration>();
             }
             else
