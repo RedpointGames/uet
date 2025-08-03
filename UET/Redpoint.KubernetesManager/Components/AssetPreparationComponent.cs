@@ -46,9 +46,7 @@
             if (OperatingSystem.IsLinux())
             {
                 // Ensure the assets are downloaded.
-                await _assetManager.EnsureAsset("RKM:Downloads:Containerd:Linux", "containerd.tar.gz", stoppingToken);
                 await _assetManager.EnsureAsset("RKM:Downloads:KubernetesNode:Linux", "kubernetes-node.tar.gz", stoppingToken);
-                await _assetManager.EnsureAsset("RKM:Downloads:Runc:Linux", "runc", stoppingToken);
                 await _assetManager.EnsureAsset("RKM:Downloads:CniPlugins:Linux", "cni-plugins.tar.gz", stoppingToken);
                 if (context.Role == RoleType.Controller)
                 {
@@ -58,22 +56,8 @@
                 }
 
                 // Extract the assets.
-                await _assetManager.ExtractAsset("containerd.tar.gz", Path.Combine(_pathProvider.RKMRoot, "containerd"), stoppingToken);
-                Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "containerd-state"));
                 await _assetManager.ExtractAsset("kubernetes-node.tar.gz", Path.Combine(_pathProvider.RKMRoot, "kubernetes-node"), stoppingToken);
                 await _assetManager.ExtractAsset("cni-plugins.tar.gz", Path.Combine(_pathProvider.RKMRoot, "cni-plugins"), stoppingToken);
-                if (!File.Exists(Path.Combine(_pathProvider.RKMRoot, "runc", "runc")) ||
-                    !File.Exists(Path.Combine(_pathProvider.RKMRoot, "runc", "runc.version")) ||
-                    File.ReadAllText(Path.Combine(_pathProvider.RKMRoot, "runc", "runc.version")) != _pathProvider.RKMVersion)
-                {
-                    Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "runc"));
-                    File.Copy(
-                        Path.Combine(_pathProvider.RKMRoot, "assets", _pathProvider.RKMVersion, "runc"),
-                        Path.Combine(_pathProvider.RKMRoot, "runc", "runc"),
-                        true);
-                    chmod(Path.Combine(_pathProvider.RKMRoot, "runc", "runc"), 0x100 | 0x80 | 0x40 | 0x20 | 0x8 | 0x4 | 0x1);
-                    File.WriteAllText(Path.Combine(_pathProvider.RKMRoot, "runc", "runc.version"), _pathProvider.RKMVersion);
-                }
 
                 // On the controller, extract the controller-specific assets.
                 if (context.Role == RoleType.Controller)
@@ -131,9 +115,7 @@ exit $?
                 if (context.Role == RoleType.Controller)
                 {
                     // Get the assets needed to run kubelet in WSL.
-                    await _assetManager.EnsureAsset("RKM:Downloads:Containerd:Linux", "wsl-containerd.tar.gz", stoppingToken);
                     await _assetManager.EnsureAsset("RKM:Downloads:KubernetesNode:Linux", "wsl-kubernetes-node.tar.gz", stoppingToken);
-                    await _assetManager.EnsureAsset("RKM:Downloads:Runc:Linux", "wsl-runc", stoppingToken);
                     await _assetManager.EnsureAsset("RKM:Downloads:CniPlugins:Linux", "wsl-cni-plugins.tar.gz", stoppingToken);
                     // Get the assets needed to run the Kubernetes API server and etcd in WSL.
                     await _assetManager.EnsureAsset("RKM:Downloads:KubernetesServer:Linux", "kubernetes-server.tar.gz", stoppingToken);
@@ -144,16 +126,7 @@ exit $?
                 }
 
                 // Extract the assets.
-                await _assetManager.ExtractAsset("containerd.tar.gz", Path.Combine(_pathProvider.RKMRoot, "containerd"), stoppingToken);
-                Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "containerd-state"));
                 await _assetManager.ExtractAsset("kubernetes-node.tar.gz", Path.Combine(_pathProvider.RKMRoot, "kubernetes-node"), stoppingToken);
-                await _assetManager.ExtractAsset("redpoint-containerd-for-win11.zip", Path.Combine(_pathProvider.RKMRoot, "containerd-redpoint"), stoppingToken);
-
-                // Overwrite the shipped containerd with the Redpoint patched version so that LTSC2022 images work on Windows 11.
-                File.Copy(
-                    Path.Combine(_pathProvider.RKMRoot, "containerd-redpoint", "containerd.exe"),
-                    Path.Combine(_pathProvider.RKMRoot, "containerd", "bin", "containerd.exe"),
-                    true);
 
                 // On the controller, extract the controller-specific assets.
                 if (context.Role == RoleType.Controller)
