@@ -73,16 +73,13 @@ namespace UET.Commands.Cluster
             }
 
             // Make sure the service is installed, up-to-date and started.
-            string serviceName;
             string executablePathAndArguments;
             if (OperatingSystem.IsWindows())
             {
-                serviceName = "RKM";
                 executablePathAndArguments = $"{_selfLocation.GetUetLocalLocation(true)} internal rkm-service";
             }
             else if (OperatingSystem.IsLinux())
             {
-                serviceName = "rkm";
                 executablePathAndArguments = $"\"{_selfLocation.GetUetLocalLocation(true)}\" internal rkm-service";
             }
             else
@@ -91,10 +88,10 @@ namespace UET.Commands.Cluster
                 return 1;
             }
 
-            var isServiceInstalled = await _serviceControl.IsServiceInstalled(serviceName);
+            var isServiceInstalled = await _serviceControl.IsServiceInstalled("rkm");
             if (isServiceInstalled)
             {
-                var currentExecutableAndArguments = await _serviceControl.GetServiceExecutableAndArguments(serviceName);
+                var currentExecutableAndArguments = await _serviceControl.GetServiceExecutableAndArguments("rkm");
                 if (currentExecutableAndArguments != executablePathAndArguments || args.Contains("--reinstall"))
                 {
                     if (!_serviceControl.HasPermissionToInstall)
@@ -103,8 +100,8 @@ namespace UET.Commands.Cluster
                     }
                     else
                     {
-                        await _serviceControl.StopService(serviceName);
-                        await _serviceControl.UninstallService(serviceName);
+                        await _serviceControl.StopService("rkm");
+                        await _serviceControl.UninstallService("rkm");
                         isServiceInstalled = false;
                     }
                 }
@@ -120,12 +117,12 @@ namespace UET.Commands.Cluster
                 {
                     _logger.LogInformation("Installing service...");
                     await _serviceControl.InstallService(
-                        serviceName,
-                        "RKM (Redpoint Kubernetes Manager) runs Kubernetes on your local machine.",
+                        "rkm",
+                        "RKM",
                         executablePathAndArguments);
                 }
             }
-            var isServiceStarted = await _serviceControl.IsServiceRunning(serviceName);
+            var isServiceStarted = await _serviceControl.IsServiceRunning("rkm");
             if (!isServiceStarted)
             {
                 if (!_serviceControl.HasPermissionToStart)
@@ -136,7 +133,7 @@ namespace UET.Commands.Cluster
                 else
                 {
                     _logger.LogInformation("Starting service...");
-                    await _serviceControl.StartService(serviceName);
+                    await _serviceControl.StartService("rkm");
                 }
             }
             else

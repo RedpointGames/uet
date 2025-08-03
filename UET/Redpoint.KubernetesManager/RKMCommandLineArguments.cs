@@ -2,11 +2,13 @@
 {
     using Redpoint.KubernetesManager.Services;
     using Redpoint.Uet.Configuration;
+    using System.Diagnostics.CodeAnalysis;
 
-    internal class RKMCommandLineArguments
+    public class RKMCommandLineArguments
     {
         private Lazy<string[]> _args;
 
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "")]
         public string[] Arguments => _args.Value;
 
         public RKMCommandLineArguments(

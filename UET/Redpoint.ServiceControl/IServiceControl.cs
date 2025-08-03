@@ -41,18 +41,20 @@
         /// <summary>
         /// Installs or updates the service with the given name.
         /// </summary>
-        /// <param name="name">The service name.</param>
-        /// <param name="description">The description of the service.</param>
+        /// <param name="name">The programmatic service name.</param>
+        /// <param name="displayName">The display name of the service.</param>
         /// <param name="executableAndArguments">The executable and arguments to launch.</param>
         /// <param name="stdoutLogPath">On macOS, sets the path to the standard output log file.</param>
         /// <param name="stderrLogPath">On macOS, sets the path to the standard error log file.</param>
+        /// <param name="manualStart">If true, the service won't be automatically started at computer startup.</param>
         /// <returns>The awaitable task.</returns>
         Task InstallService(
             string name,
-            string description,
+            string displayName,
             string executableAndArguments,
             string? stdoutLogPath = null,
-            string? stderrLogPath = null);
+            string? stderrLogPath = null,
+            bool manualStart = false);
 
         /// <summary>
         /// Uninstalls the service.
@@ -74,6 +76,17 @@
         /// <param name="name">The service name.</param>
         /// <returns>The awaitable task.</returns>
         Task StopService(string name);
-    }
 
+        /// <summary>
+        /// Streams logs for the service.
+        /// </summary>
+        /// <param name="name">The service name.</param>
+        /// <param name="receiveLog">Called when a log entry is received.</param>
+        /// <param name="cancellationToken">The cancellation token that can be used to cancel streaming.</param>
+        /// <returns>The awaitable task.</returns>
+        Task StreamLogsUntilCancelledAsync(
+            string name,
+            Action<ServiceLogLevel, string> receiveLog,
+            CancellationToken cancellationToken);
+    }
 }

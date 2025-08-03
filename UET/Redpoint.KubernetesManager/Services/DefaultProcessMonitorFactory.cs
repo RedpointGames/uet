@@ -11,15 +11,15 @@
     internal class DefaultProcessMonitorFactory : IProcessMonitorFactory
     {
         private readonly ILoggerFactory _loggerFactory;
-        private readonly IPathProvider _pathProvider;
+        private readonly IPathProvider? _pathProvider;
         private readonly IHostApplicationLifetime _hostApplicationLifetime;
-        private readonly IWslDistro _wslDistro;
+        private readonly IWslDistro? _wslDistro;
 
         public DefaultProcessMonitorFactory(
             ILoggerFactory loggerFactory,
-            IPathProvider pathProvider,
             IHostApplicationLifetime hostApplicationLifetime,
-            IWslDistro wslDistro)
+            IWslDistro? wslDistro = null,
+            IPathProvider? pathProvider = null)
         {
             _loggerFactory = loggerFactory;
             _pathProvider = pathProvider;
@@ -27,7 +27,7 @@
             _wslDistro = wslDistro;
         }
 
-        public IProcessMonitorFactory.IProcessMonitor CreatePerpetualProcess(string filename, string[] arguments, Dictionary<string, string>? environment, Func<CancellationToken, Task>? beforeStart = null, Func<CancellationToken, Task>? afterStart = null)
+        public IProcessMonitor CreatePerpetualProcess(string filename, string[] arguments, Dictionary<string, string>? environment, Func<CancellationToken, Task>? beforeStart = null, Func<CancellationToken, Task>? afterStart = null)
         {
             return CreatePerpetualProcess(new ProcessSpecification(
                 filename: filename,
@@ -37,7 +37,7 @@
                 afterStart: afterStart));
         }
 
-        public IProcessMonitorFactory.IProcessMonitor CreatePerpetualProcess(ProcessSpecification processSpecification)
+        public IProcessMonitor CreatePerpetualProcess(ProcessSpecification processSpecification)
         {
             return new SingleProcessMonitor(
                 _loggerFactory.CreateLogger(Path.GetFileName(processSpecification.Filename)),
@@ -48,7 +48,7 @@
                 perpetual: true);
         }
 
-        public IProcessMonitorFactory.IProcessMonitor CreateTerminatingProcess(string filename, string[] arguments, Dictionary<string, string>? environment = null, bool silent = false)
+        public IProcessMonitor CreateTerminatingProcess(string filename, string[] arguments, Dictionary<string, string>? environment = null, bool silent = false)
         {
             return CreatePerpetualProcess(new ProcessSpecification(
                 filename: filename,
@@ -57,7 +57,7 @@
                 silent: silent));
         }
 
-        public IProcessMonitorFactory.IProcessMonitor CreateTerminatingProcess(ProcessSpecification processSpecification)
+        public IProcessMonitor CreateTerminatingProcess(ProcessSpecification processSpecification)
         {
             return new SingleProcessMonitor(
                 _loggerFactory.CreateLogger(Path.GetFileName(processSpecification.Filename)),
@@ -68,12 +68,12 @@
                 perpetual: false);
         }
 
-        internal class SingleProcessMonitor : IProcessMonitorFactory.IProcessMonitor, IDisposable
+        internal class SingleProcessMonitor : IProcessMonitor, IDisposable
         {
             private readonly ILogger _logger;
-            private readonly IPathProvider _pathProvider;
+            private readonly IPathProvider? _pathProvider;
             private readonly IHostApplicationLifetime _hostApplicationLifetime;
-            private readonly IWslDistro _wslDistro;
+            private readonly IWslDistro? _wslDistro;
             private readonly string _filename;
             private readonly string[] _arguments;
             private readonly Dictionary<string, string>? _environment;
@@ -87,9 +87,9 @@
 
             public SingleProcessMonitor(
                 ILogger logger,
-                IPathProvider pathProvider,
+                IPathProvider? pathProvider,
                 IHostApplicationLifetime hostApplicationLifetime,
-                IWslDistro wslDistro,
+                IWslDistro? wslDistro,
                 ProcessSpecification processSpecification,
                 bool perpetual)
             {
@@ -121,7 +121,7 @@
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     ProcessStartInfo startInfo;
-                    if (_wsl && OperatingSystem.IsWindows())
+                    if (_wsl && _wslDistro != null && OperatingSystem.IsWindows())
                     {
                         var distroName = await _wslDistro.GetWslDistroName(cancellationToken);
                         startInfo = new ProcessStartInfo()
@@ -166,7 +166,7 @@
                     StreamWriter? logFile = null;
                     var lastFlush = DateTime.UtcNow;
                     var logName = $"{(_wsl ? "wsl-" : string.Empty)}{basename}.{DateTime.UtcNow.Ticks}.log";
-                    if (!_silent)
+                    if (!_silent && _pathProvider != null)
                     {
                         Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "logs"));
                         logFile = new StreamWriter(Path.Combine(_pathProvider.RKMRoot, "logs", logName));
@@ -175,7 +175,7 @@
                     {
                         if (!_silent)
                         {
-                            if (!OperatingSystem.IsWindows())
+                            if (!OperatingSystem.IsWindows() && _pathProvider != null)
                             {
                                 if (File.Exists(Path.Combine(_pathProvider.RKMRoot, "logs", $"{basename}.latest.log")))
                                 {
@@ -201,7 +201,7 @@
                             {
                                 try
                                 {
-                                    logFile!.WriteLine($"[{DateTime.UtcNow.ToString(CultureInfo.InvariantCulture)}] {e.Data.Trim()}");
+                                    logFile?.WriteLine($"[{DateTime.UtcNow.ToString(CultureInfo.InvariantCulture)}] {e.Data.Trim()}");
                                 }
                                 catch (InvalidOperationException) { }
                                 // Don't emit logs during shutdown, this prevents process output
@@ -215,7 +215,7 @@
                                 {
                                     try
                                     {
-                                        logFile!.Flush();
+                                        logFile?.Flush();
                                     }
                                     catch (InvalidOperationException) { }
                                     lastFlush = DateTime.UtcNow;
@@ -229,7 +229,7 @@
                             {
                                 try
                                 {
-                                    logFile!.WriteLine($"[{DateTime.UtcNow.ToString(CultureInfo.InvariantCulture)}] {e.Data.Trim()}");
+                                    logFile?.WriteLine($"[{DateTime.UtcNow.ToString(CultureInfo.InvariantCulture)}] {e.Data.Trim()}");
                                 }
                                 catch (InvalidOperationException) { }
                                 // Don't emit logs during shutdown, this prevents process output
@@ -243,7 +243,7 @@
                                 {
                                     try
                                     {
-                                        logFile!.Flush();
+                                        logFile?.Flush();
                                     }
                                     catch (InvalidOperationException) { }
                                     lastFlush = DateTime.UtcNow;
@@ -282,9 +282,9 @@
                         catch (OperationCanceledException)
                         {
                             // Kill the process to ensure it doesn't stick around.
-                            if (!_silent)
+                            if (!_silent && logFile != null)
                             {
-                                await logFile!.WriteLineAsync($"(rkm) Terminated because RKM is exiting.");
+                                await logFile.WriteLineAsync($"(rkm) Terminated because RKM is exiting.");
                                 await logFile.FlushAsync(cancellationToken);
                             }
 
@@ -341,8 +341,11 @@
 
                         if (!_silent)
                         {
-                            await logFile!.WriteLineAsync($"(rkm) Exited with exit code: {_currentProcess.ExitCode}");
-                            await logFile.FlushAsync(cancellationToken);
+                            if (logFile != null)
+                            {
+                                await logFile.WriteLineAsync($"(rkm) Exited with exit code: {_currentProcess.ExitCode}");
+                                await logFile.FlushAsync(cancellationToken);
+                            }
 
                             if (_currentProcess.ExitCode == 0)
                             {

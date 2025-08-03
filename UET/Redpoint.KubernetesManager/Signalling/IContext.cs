@@ -1,8 +1,9 @@
 ﻿namespace Redpoint.KubernetesManager.Signalling
 {
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading.Tasks;
 
-    internal interface IContext
+    public interface IContext
     {
         /// <summary>
         /// Sets a flag with the associated data, which other components may be waiting on.
@@ -41,6 +42,7 @@
         /// </summary>
         /// <param name="name">The signal name from <see cref="WellKnownSignals"/>.</param>
         /// <param name="data">The associated data (if any).</param>
+        [SuppressMessage("Design", "CA1030:Use events where appropriate", Justification = "")]
         Task RaiseSignalAsync(string name, IAssociatedData? data, CancellationToken cancellationToken);
 
         /// <summary>

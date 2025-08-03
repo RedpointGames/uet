@@ -1,7 +1,9 @@
 ﻿namespace Redpoint.KubernetesManager.Services
 {
-    internal interface IProcessKiller
+    public interface IProcessKiller
     {
         Task EnsureProcessesAreNotRunning(CancellationToken cancellationToken);
+
+        Task EnsureProcessesAreNotRunning(string[] processNames, CancellationToken cancellationToken);
     }
 }

@@ -8,7 +8,7 @@ using System.Net;
 
 namespace Redpoint.KubernetesManager
 {
-    internal class RKMWorker : BackgroundService
+    public class RKMWorker : BackgroundService
     {
         private readonly ILogger<RKMWorker> _logger;
         private readonly ILogger<Executor> _executorLogger;

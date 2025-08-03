@@ -233,6 +233,7 @@
             // CNI configuration is no longer written out here; instead it is set up as part of
             // 'startup_script.ps1' in the 'calico-windows-node-scripts' in the Helm chart.
 
+#if FALSE
             // Create an overlay network to trigger vSwitch creation because we need
             // a vSwitch for networking to work. We only do this once because it will
             // disrupt networking.
@@ -300,6 +301,7 @@
                     }
                 }
             }
+#endif
 
             // Only on Windows controllers do we run a kubelet inside WSL. On normal Windows nodes, we only run Windows containers.
             if (isController)

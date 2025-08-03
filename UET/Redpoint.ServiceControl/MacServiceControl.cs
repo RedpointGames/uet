@@ -88,7 +88,13 @@
             }
         }
 
-        public async Task InstallService(string name, string description, string executableAndArguments, string? stdoutLogPath, string? stderrLogPath)
+        public async Task InstallService(
+            string name,
+            string displayName,
+            string executableAndArguments,
+            string? stdoutLogPath,
+            string? stderrLogPath,
+            bool manualStart)
         {
             using (var writer = XmlWriter.Create(
                 $"/Library/LaunchDaemons/{name}.plist",
@@ -104,16 +110,23 @@
                 await writer.WriteStartElementAsync(null, "dict", null).ConfigureAwait(false);
 
                 await writer.WriteElementStringAsync(null, "key", null, "Label").ConfigureAwait(false);
-                await writer.WriteElementStringAsync(null, "string", null, name).ConfigureAwait(false);
+                await writer.WriteElementStringAsync(null, "string", null, displayName).ConfigureAwait(false);
                 await writer.WriteElementStringAsync(null, "key", null, "ServiceDescription").ConfigureAwait(false);
-                await writer.WriteElementStringAsync(null, "string", null, description).ConfigureAwait(false);
+                await writer.WriteElementStringAsync(null, "string", null, displayName).ConfigureAwait(false);
 
                 await writer.WriteElementStringAsync(null, "key", null, "IsManagedByRedpointServiceControl").ConfigureAwait(false);
                 await writer.WriteStartElementAsync(null, "true", null).ConfigureAwait(false);
                 await writer.WriteEndElementAsync().ConfigureAwait(false);
 
                 await writer.WriteElementStringAsync(null, "key", null, "RunAtLoad").ConfigureAwait(false);
-                await writer.WriteStartElementAsync(null, "true", null).ConfigureAwait(false);
+                if (manualStart)
+                {
+                    await writer.WriteStartElementAsync(null, "true", null).ConfigureAwait(false);
+                }
+                else
+                {
+                    await writer.WriteStartElementAsync(null, "false", null).ConfigureAwait(false);
+                }
                 await writer.WriteEndElementAsync().ConfigureAwait(false);
 
                 await writer.WriteElementStringAsync(null, "key", null, "KeepAlive").ConfigureAwait(false);
@@ -267,6 +280,14 @@
             })!.WaitForExitAsync().ConfigureAwait(false);
 
             File.Delete($"/Library/LaunchDaemons/{name}.plist");
+        }
+
+        public Task StreamLogsUntilCancelledAsync(
+            string name,
+            Action<ServiceLogLevel, string> receiveLog,
+            CancellationToken cancellationToken)
+        {
+            throw new PlatformNotSupportedException("StreamLogsUntilCancelledAsync is not yet supported on macOS");
         }
     }
 }

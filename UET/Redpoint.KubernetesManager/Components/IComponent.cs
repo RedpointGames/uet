@@ -2,7 +2,7 @@
 {
     using Redpoint.KubernetesManager.Signalling;
 
-    internal interface IComponent
+    public interface IComponent
     {
         void RegisterSignals(IRegistrationContext context);
     }
