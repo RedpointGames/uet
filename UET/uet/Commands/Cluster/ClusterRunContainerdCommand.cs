@@ -233,6 +233,11 @@
                                 }
                             }
                         }
+                        File.SetUnixFileMode(
+                            runcPath + ".tmp",
+                            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                            UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
+                            UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
                         File.Move(runcPath + ".tmp", runcPath, true);
                         _logger.LogInformation($"Downloaded runc from '{runcUri}' to '{runcPath}'.");
                     }
