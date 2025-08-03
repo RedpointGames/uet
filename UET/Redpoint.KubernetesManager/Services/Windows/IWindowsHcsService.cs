@@ -4,7 +4,7 @@
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("windows")]
-    internal interface IWindowsHcsService
+    public interface IWindowsHcsService
     {
         HcsComputeSystemWithId[] GetHcsComputeSystems();
 

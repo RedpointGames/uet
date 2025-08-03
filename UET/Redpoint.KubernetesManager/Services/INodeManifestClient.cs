@@ -4,7 +4,7 @@
     using System.Net;
     using System.Threading.Tasks;
 
-    internal interface INodeManifestClient
+    public interface INodeManifestClient
     {
         Task<NodeManifest> ObtainNodeManifestAsync(IPAddress controllerAddress, string nodeName, CancellationToken stoppingToken);
     }

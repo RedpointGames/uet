@@ -6,11 +6,12 @@
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class Executor
+    public class Executor
     {
         private readonly ILogger<Executor> _logger;
         private readonly IHostApplicationLifetime _hostApplicationLifetime;
@@ -116,6 +117,7 @@
             }
         }
 
+        [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "")]
         public void RegisterComponents(IComponent[] components)
         {
             foreach (var component in components)

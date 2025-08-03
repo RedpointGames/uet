@@ -1,5 +1,7 @@
 ﻿namespace Redpoint.ServiceControl
 {
+    using Redpoint.ProcessExecution;
+    using Redpoint.ProcessExecution.Enumerable;
     using System.Diagnostics;
     using System.Runtime.InteropServices;
     using System.Runtime.Versioning;
@@ -9,6 +11,14 @@
     [SupportedOSPlatform("linux")]
     public sealed class LinuxServiceControl : IServiceControl
     {
+        private readonly IProcessExecutor? _processExecutor;
+
+        public LinuxServiceControl(
+            IProcessExecutor? processExecutor = null)
+        {
+            _processExecutor = processExecutor;
+        }
+
         [DllImport("libc")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
         internal static extern uint geteuid();
@@ -47,7 +57,13 @@
             return checkProcess.ExitCode == 0;
         }
 
-        public async Task InstallService(string name, string description, string executableAndArguments, string? stdoutLogPath, string? stderrLogPath)
+        public async Task InstallService(
+            string name,
+            string description,
+            string executableAndArguments,
+            string? stdoutLogPath,
+            string? stderrLogPath,
+            bool manualStart)
         {
             await File.WriteAllTextAsync($"/etc/systemd/system/{name}.service", @$"
 [Unit]
@@ -58,9 +74,12 @@ ExecStart={executableAndArguments}
 Restart=always
 
 [Install]
-WantedBy=multi-user.target
+{(manualStart ? "" : "WantedBy=multi-user.target")}
 ").ConfigureAwait(false);
-            File.CreateSymbolicLink($"/etc/systemd/system/multi-user.target.wants/{name}.service", $"/etc/systemd/system/{name}.service");
+            if (!manualStart)
+            {
+                File.CreateSymbolicLink($"/etc/systemd/system/multi-user.target.wants/{name}.service", $"/etc/systemd/system/{name}.service");
+            }
             await Process.Start(new ProcessStartInfo
             {
                 FileName = "/usr/bin/systemctl",
@@ -119,6 +138,49 @@ WantedBy=multi-user.target
                 CreateNoWindow = true,
                 UseShellExecute = false,
             })!.WaitForExitAsync().ConfigureAwait(false);
+        }
+
+        public async Task StreamLogsUntilCancelledAsync(
+            string name,
+            Action<ServiceLogLevel, string> receiveLog,
+            CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(receiveLog);
+
+            if (_processExecutor == null)
+            {
+                throw new PlatformNotSupportedException("Missing IProcessExecutor service at runtime; StreamLogsUntilCancelledAsync can't be used on this platform without that service.");
+            }
+
+            // Just use journalctl to monitor the service logs.
+            try
+            {
+                await foreach (var message in _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = "/usr/bin/journalctl",
+                        Arguments =
+                        [
+                            "-fu",
+                            $"{name}.service"
+                        ]
+                    },
+                    cancellationToken))
+                {
+                    switch (message)
+                    {
+                        case StandardOutputResponse stdout:
+                            receiveLog(ServiceLogLevel.Information, stdout.Data.Trim());
+                            break;
+                        case StandardErrorResponse stderr:
+                            receiveLog(ServiceLogLevel.Error, stderr.Data.Trim());
+                            break;
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
     }
 

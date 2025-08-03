@@ -4,6 +4,7 @@
     using System.Runtime.Versioning;
     using System.Security.Principal;
     using System.Text.RegularExpressions;
+    using System.Threading;
 
     [SupportedOSPlatform("windows")]
     public sealed class WindowsServiceControl : IServiceControl
@@ -80,7 +81,13 @@
             return output.Contains("RUNNING", StringComparison.Ordinal);
         }
 
-        public async Task InstallService(string name, string description, string executableAndArguments, string? stdoutLogPath, string? stderrLogPath)
+        public async Task InstallService(
+            string name,
+            string description,
+            string executableAndArguments,
+            string? stdoutLogPath,
+            string? stderrLogPath,
+            bool manualStart)
         {
             await Process.Start(new ProcessStartInfo
             {
@@ -91,7 +98,7 @@
                         name,
                         $"binpath={executableAndArguments}",
                         "obj=LocalSystem",
-                        "start=auto"
+                        $"start={(manualStart ? "manual" : "auto")}"
                     },
                 CreateNoWindow = true,
                 UseShellExecute = false,
@@ -170,6 +177,54 @@
             while (await IsServiceInstalled(name).ConfigureAwait(false))
             {
                 await Task.Delay(1000).ConfigureAwait(false);
+            }
+        }
+
+        public async Task StreamLogsUntilCancelledAsync(
+            string name,
+            Action<ServiceLogLevel, string> receiveLog,
+            CancellationToken cancellationToken)
+        {
+            // Connect to the Event Log, monitor for RKM log entries, and emit.
+            var eventLog = new EventLog("Application");
+            cancellationToken.Register(() =>
+            {
+                eventLog.EnableRaisingEvents = false;
+            });
+            eventLog.EnableRaisingEvents = true;
+            eventLog.EntryWritten += (sender, args) =>
+            {
+                if (args.Entry.Source.Equals(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    var lines = args.Entry.Message.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+                    var category = lines[0].Substring("Category:".Length).Trim();
+                    var message = string.Join("\n", lines.Skip(3)).Trim();
+
+                    switch (args.Entry.EntryType)
+                    {
+                        case EventLogEntryType.Information:
+                        case EventLogEntryType.SuccessAudit:
+                            receiveLog(ServiceLogLevel.Information, message);
+                            break;
+                        case EventLogEntryType.Warning:
+                            receiveLog(ServiceLogLevel.Warning, message);
+                            break;
+                        case EventLogEntryType.Error:
+                        case EventLogEntryType.FailureAudit:
+                            receiveLog(ServiceLogLevel.Error, message);
+                            break;
+                    }
+                }
+            };
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(-1, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                }
             }
         }
     }

@@ -9,5 +9,7 @@ namespace Redpoint.KubernetesManager
     public interface IRkmVersionProvider
     {
         string Version { get; }
+
+        string UetFilePath { get; }
     }
 }

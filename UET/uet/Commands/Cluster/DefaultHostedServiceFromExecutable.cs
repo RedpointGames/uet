@@ -109,7 +109,10 @@
 
                 try
                 {
-                    await _hostLifetime!.StopAsync(cts.Token);
+                    if (_hostLifetime != null)
+                    {
+                        await _hostLifetime!.StopAsync(cts.Token);
+                    }
                 }
                 catch
                 {

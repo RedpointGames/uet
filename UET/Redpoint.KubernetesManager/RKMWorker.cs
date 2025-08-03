@@ -20,7 +20,7 @@ namespace Redpoint.KubernetesManager
         private readonly RKMCommandLineArguments _commandLine;
         private readonly IProcessKiller _processKiller;
 
-        internal RKMWorker(
+        public RKMWorker(
             ILogger<RKMWorker> logger,
             ILogger<Executor> executorLogger,
             IPathProvider pathProvider,

@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    internal class HcsComputeSystem
+    public class HcsComputeSystem
     {
         [JsonPropertyName("SystemType")]
         public string SystemType { get; set; } = string.Empty;

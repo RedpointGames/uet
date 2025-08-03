@@ -28,8 +28,6 @@
         public async Task EnsureProcessesAreNotRunning(CancellationToken cancellationToken)
         {
             await EnsureProcessesAreNotRunning([
-                "containerd",
-                "containerd-shim-runhcs-v1",
                 "flanneld",
                 "kubelet",
                 "kube-proxy",
@@ -40,7 +38,7 @@
             ], cancellationToken);
         }
 
-        private async Task EnsureProcessesAreNotRunning(string[] processNames, CancellationToken cancellationToken)
+        public async Task EnsureProcessesAreNotRunning(string[] processNames, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Ensuring existing Kubernetes processes are not running...");
             foreach (var processName in processNames)

@@ -8,6 +8,7 @@
     using Redpoint.KubernetesManager.Manifests;
     using Redpoint.KubernetesManager.Services;
     using Redpoint.KubernetesManager.Services.Manifest;
+    using Redpoint.KubernetesManager.Services.Windows;
     using Redpoint.ProcessExecution;
     using Redpoint.ServiceControl;
     using System;
@@ -78,7 +79,9 @@
             private readonly IProcessExecutor _processExecutor;
             private readonly IServiceControl _serviceControl;
             private readonly ILogger<ContainerdHostedService> _logger;
+            private readonly IProcessKiller _processKiller;
             private readonly Options _options;
+            private readonly IWindowsHcsService? _windowsHcsService;
             private readonly Gate _containerdStarted;
 
             private Task? _backgroundTask;
@@ -92,7 +95,9 @@
                 IProcessExecutor processExecutor,
                 IServiceControl serviceControl,
                 ILogger<ContainerdHostedService> logger,
-                Options options)
+                IProcessKiller processKiller,
+                Options options,
+                IWindowsHcsService? windowsHcsService = null)
             {
                 _hostApplicationLifetime = hostApplicationLifetime;
                 _genericManifestClient = genericManifestClient;
@@ -100,7 +105,9 @@
                 _processExecutor = processExecutor;
                 _serviceControl = serviceControl;
                 _logger = logger;
+                _processKiller = processKiller;
                 _options = options;
+                _windowsHcsService = windowsHcsService;
                 _containerdStarted = new Gate();
             }
 
@@ -889,6 +896,48 @@
                 terminateContainerd.Dispose();
                 _logger.LogInformation($"containerd has exited.");
 
+                // Unmount and remove any remaining containers.
+                if (OperatingSystem.IsLinux())
+                {
+                    // Unmount anything under the RKM root that appears in /etc/mtab, so that it's safe
+                    // to delete an RKM install without running into "resource busy".
+                    var mounts = await File.ReadAllLinesAsync("/etc/mtab", cancellationToken);
+                    foreach (var mount in mounts)
+                    {
+                        var mountComponents = mount.Split(' ');
+                        if (mountComponents.Length > 2 && mountComponents[1].StartsWith(manifest.ContainerdStatePath, StringComparison.Ordinal))
+                        {
+                            _logger.LogInformation($"Unmounting container folder due to shutdown: {mountComponents[1]}");
+
+                            var unmountExitCode = await _processExecutor.ExecuteAsync(
+                                new ProcessSpecification
+                                {
+                                    FilePath = "/usr/bin/umount",
+                                    Arguments = [mountComponents[1]],
+                                },
+                                CaptureSpecification.Passthrough,
+                                CancellationToken.None);
+                            if (unmountExitCode != 0)
+                            {
+                                _logger.LogWarning($"Unmount operation failed for: {mountComponents[1]}");
+                            }
+                        }
+                    }
+
+                    _logger.LogInformation($"Unmounted all container folders.");
+                }
+                else if (OperatingSystem.IsWindows() && _windowsHcsService != null)
+                {
+                    foreach (var computeSystem in _windowsHcsService.GetHcsComputeSystems())
+                    {
+                        if (computeSystem.SystemType == "Container")
+                        {
+                            _logger.LogInformation($"Killing HCS compute system {computeSystem.Id}...");
+                            _windowsHcsService.TerminateHcsSystem(computeSystem.Id);
+                        }
+                    }
+                }
+
                 // If we stopped the kubelet service, we now have to start the kubelet service again so
                 // that the running state of the service is preserved across containerd restarts.
                 if (kubeletStopped)
@@ -907,6 +956,12 @@
 
             private async Task RunAsync()
             {
+                // Terminate any existing containerd processes.
+                await _processKiller.EnsureProcessesAreNotRunning([
+                    "containerd",
+                    "containerd-shim-runhcs-v1",
+                ], CancellationToken.None);
+
                 // Start the manifest poll from the main RKM service.
                 await _genericManifestClient.RegisterAndRunWithManifestAsync(
                     new Uri("ws://127.0.0.1:8375/containerd"),

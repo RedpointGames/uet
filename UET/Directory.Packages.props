@@ -27,6 +27,7 @@
     <PackageVersion Include="Redpoint.AutoDiscovery.Win64" Version="2024.1358.192" />
     <PackageVersion Include="Redpoint.Logging.Mac.Native" Version="2024.1358.192" />
     <PackageVersion Include="Redpoint.ThirdParty.LibGit2Sharp" Version="2023.177.63629" />
+    <PackageVersion Include="System.Diagnostics.EventLog" Version="9.0.7" />
     <!-- LINQ async support for older frameworks -->
     <PackageVersion Include="System.Linq.Async" Version="6.0.1" />
     <!-- gRPC -->

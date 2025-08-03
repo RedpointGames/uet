@@ -78,6 +78,7 @@ namespace Redpoint.KubernetesManager
                 // Register shared components.
                 services.AddSingleton<IComponent, AssetPreparationComponent>();
                 services.AddSingleton<IComponent, ContainerdComponent>();
+                services.AddSingleton<IComponent, ManifestServerComponent>();
                 services.AddSingleton<IComponent, KubeletComponent>();
                 services.AddSingleton<IComponent, NetworkingConfigurationComponent>();
             }

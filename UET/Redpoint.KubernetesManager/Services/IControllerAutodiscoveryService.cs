@@ -2,7 +2,7 @@
 {
     using System.Threading.Tasks;
 
-    internal interface IControllerAutodiscoveryService
+    public interface IControllerAutodiscoveryService
     {
         Task<string?> AttemptAutodiscoveryOfController(CancellationToken stoppingToken);
 

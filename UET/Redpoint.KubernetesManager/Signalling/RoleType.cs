@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.Signalling
 {
-    internal enum RoleType
+    public enum RoleType
     {
         /// <summary>
         /// This instance will run the controller (and optionally a node).
