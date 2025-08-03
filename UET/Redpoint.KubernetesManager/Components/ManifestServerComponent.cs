@@ -62,9 +62,13 @@
                 listener.Start();
                 _logger.LogInformation($"Started rkm local manifest server on port 127.0.0.1:8375.");
 
-                while (listener.IsListening && !_hostApplicationLifetime.ApplicationStopping.IsCancellationRequested)
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(
+                    _cts!.Token,
+                    _hostApplicationLifetime.ApplicationStopping);
+
+                while (listener.IsListening && !cts.IsCancellationRequested)
                 {
-                    var context = await listener.GetContextAsync().AsCancellable(_hostApplicationLifetime.ApplicationStopping);
+                    var context = await listener.GetContextAsync().AsCancellable(cts.Token);
 
                     try
                     {
@@ -80,7 +84,7 @@
                                     Encoding.UTF8.GetBytes(JsonSerializer.Serialize(_currentManifest, ManifestJsonSerializerContext.Default.ContainerdManifest)),
                                     WebSocketMessageType.Text,
                                     true,
-                                    CancellationToken.None);
+                                    cts.Token);
                             };
                             _manifestNotifications.Add(handler);
                             try
@@ -90,12 +94,12 @@
                                     Encoding.UTF8.GetBytes(JsonSerializer.Serialize(_currentManifest, ManifestJsonSerializerContext.Default.ContainerdManifest)),
                                     WebSocketMessageType.Text,
                                     true,
-                                    CancellationToken.None);
+                                    cts.Token);
 
                                 while (webSocket.WebSocket.State == WebSocketState.Open)
                                 {
                                     var buffer = new byte[1024];
-                                    await webSocket.WebSocket.ReceiveAsync(buffer, CancellationToken.None);
+                                    await webSocket.WebSocket.ReceiveAsync(buffer, cts.Token);
                                 }
                             }
                             finally
@@ -104,7 +108,7 @@
                             }
                         }
                     }
-                    catch (OperationCanceledException) when (_hostApplicationLifetime.ApplicationStopping.IsCancellationRequested)
+                    catch (OperationCanceledException) when (cts.IsCancellationRequested)
                     {
                         // Expected.
                     }
@@ -123,7 +127,7 @@
                     }
                 }
             }
-            catch (OperationCanceledException) when (_hostApplicationLifetime.ApplicationStopping.IsCancellationRequested)
+            catch (OperationCanceledException) when (_hostApplicationLifetime.ApplicationStopping.IsCancellationRequested || (_cts?.IsCancellationRequested ?? false))
             {
                 // Expected.
             }
@@ -134,7 +138,8 @@
             finally
             {
                 if (!_hostApplicationLifetime.ApplicationStopping.IsCancellationRequested &&
-                    !_hostApplicationLifetime.ApplicationStopped.IsCancellationRequested)
+                    !_hostApplicationLifetime.ApplicationStopped.IsCancellationRequested &&
+                    !(_cts?.IsCancellationRequested ?? false))
                 {
                     Environment.ExitCode = 1;
                     _hostApplicationLifetime.StopApplication();
