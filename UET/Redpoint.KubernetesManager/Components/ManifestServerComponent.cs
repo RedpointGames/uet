@@ -134,7 +134,12 @@
             if (_currentKubeletManifest == null)
             {
                 // No manifest available for some reason.
-                return string.Empty;
+                return
+                $"""
+                apiVersion: v1
+                kind: PodList
+                items: []
+                """;
             }
 
             if (context.Role == RoleType.Controller)
@@ -285,7 +290,12 @@
             else
             {
                 // Worker nodes do not run static pods at this time.
-                return string.Empty;
+                return
+                $"""
+                apiVersion: v1
+                kind: PodList
+                items: []
+                """;
             }
         }
 
