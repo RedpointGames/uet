@@ -144,6 +144,42 @@
                 apiVersion: v1
                 kind: Pod
                 metadata:
+                  name: etcd
+                  namespace: kube-system
+                spec:
+                  hostNetwork: true
+                  containers:
+                  - name: etcd
+                    image: quay.io/coreos/etcd:v{{_currentKubeletManifest.EtcdVersion}}
+                    command:
+                      - "etcd"
+                      - "--name"
+                      - "kubernetes"
+                      - "--cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
+                      - "--key-file=/rkm/certs/cluster/cluster-kubernetes.key"
+                      - "--peer-cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
+                      - "--peer-key-file=/rkm/certs/cluster/cluster-kubernetes.key"
+                      - "--trusted-ca-file=/rkm/certs/ca/ca.pem"
+                      - "--peer-trusted-ca-file=/rkm/certs/ca/ca.pem"
+                      - "--peer-client-cert-auth"
+                      - "--client-cert-auth"
+                      - "--listen-client-urls"
+                      - "https://{{_localEthernetInfo.IPAddress}}:2379,https://127.0.0.1:2379"
+                      - "--advertise-client-urls"
+                      - "https://{{_localEthernetInfo.IPAddress}}:2379"
+                      - "--data-dir=/rkm/etcd/data"
+                    volumeMounts:
+                      - mountPath: /rkm
+                        name: rkm
+                  volumes:
+                  - name: rkm
+                    hostPath:
+                      type: DirectoryOrCreate
+                      path: "{{_pathProvider.RKMRoot}}"
+                ---
+                apiVersion: v1
+                kind: Pod
+                metadata:
                   name: kube-apiserver
                   namespace: kube-system
                 spec:
@@ -246,41 +282,7 @@
                       type: DirectoryOrCreate
                       path: "{{_pathProvider.RKMRoot}}"
                 ---
-                apiVersion: v1
-                kind: Pod
-                metadata:
-                  name: etcd
-                  namespace: kube-system
-                spec:
-                  hostNetwork: true
-                  containers:
-                  - name: etcd
-                    image: quay.io/coreos/etcd:v{{_currentKubeletManifest.EtcdVersion}}
-                    command:
-                      - "etcd"
-                      - "--name"
-                      - "kubernetes"
-                      - "--cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
-                      - "--key-file=/rkm/certs/cluster/cluster-kubernetes.key"
-                      - "--peer-cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
-                      - "--peer-key-file=/rkm/certs/cluster/cluster-kubernetes.key"
-                      - "--trusted-ca-file=/rkm/certs/ca/ca.pem"
-                      - "--peer-trusted-ca-file=/rkm/certs/ca/ca.pem"
-                      - "--peer-client-cert-auth"
-                      - "--client-cert-auth"
-                      - "--listen-client-urls"
-                      - "https://{{_localEthernetInfo.IPAddress}}:2379,https://127.0.0.1:2379"
-                      - "--advertise-client-urls"
-                      - "https://{{_localEthernetInfo.IPAddress}}:2379"
-                      - "--data-dir=/rkm/etcd/data"
-                    volumeMounts:
-                      - mountPath: /rkm
-                        name: rkm
-                  volumes:
-                  - name: rkm
-                    hostPath:
-                      type: DirectoryOrCreate
-                      path: "{{_pathProvider.RKMRoot}}"
+
                 """;
             }
             else
