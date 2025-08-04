@@ -11,6 +11,13 @@ metadata:
 rules:
   - apiGroups: [""]
     resources:
+      - endpoints
+      - namespaces
+    verbs:
+      - list
+      - watch
+  - apiGroups: [""]
+    resources:
       - secrets
       - pods
       - daemonsets
@@ -47,6 +54,12 @@ rules:
       - watch
       - delete
       - patch
+  - apiGroups: ["discovery.k8s.io"]
+    resources:
+      - endpointslices
+    verbs:
+      - list
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
