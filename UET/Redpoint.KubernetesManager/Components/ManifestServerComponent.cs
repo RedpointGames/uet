@@ -328,6 +328,7 @@
                             {
                                 using (var writer = new StreamWriter(context.Response.OutputStream, Encoding.UTF8, leaveOpen: true))
                                 {
+                                    _logger.LogInformation("Sending static pods manifest for kubelet...");
                                     await writer.WriteAsync(GetStaticPodsYaml(rkmContext));
                                 }
                                 context.Response.Close();
