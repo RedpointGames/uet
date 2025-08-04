@@ -1,135 +1,141 @@
 ﻿namespace Redpoint.KubernetesManager.Components
 {
+    using Microsoft.Extensions.Logging;
     using Redpoint.KubernetesManager.Models;
     using Redpoint.KubernetesManager.Services;
     using Redpoint.KubernetesManager.Signalling;
     using Redpoint.KubernetesManager.Signalling.Data;
+    using Redpoint.ServiceControl;
     using System;
     using System.Diagnostics;
     using System.Threading.Tasks;
-    using Microsoft.Extensions.Logging;
 
     /// <summary>
     /// The kubelet component sets up and runs the kubelet process.
     /// </summary>
-    internal class KubeletComponent : IComponent
+    internal class KubeletComponent : IComponent, IDisposable
     {
-        private readonly ILogger<KubeletComponent> _logger;
-        private readonly IResourceManager _resourceManager;
+        private readonly IServiceControl _serviceControl;
+        private readonly IRkmVersionProvider _rkmVersionProvider;
         private readonly IPathProvider _pathProvider;
-        private readonly IProcessMonitorFactory _processMonitorFactory;
-        private readonly ICertificateManager _certificateManager;
-        private readonly IClusterNetworkingConfiguration _clusterNetworkingConfiguration;
-        private readonly IKubeConfigManager _kubeConfigManager;
-        private readonly ILocalEthernetInfo _localEthernetInfo;
-        private readonly IRkmGlobalRootProvider _rkmGlobalRootProvider;
+        private readonly ILogger<ContainerdComponent> _logger;
+        private readonly CancellationTokenSource _stoppingToken;
+        private Task? _logTask;
 
         public KubeletComponent(
-            ILogger<KubeletComponent> logger,
-            IResourceManager resourceManager,
+            IServiceControl serviceControl,
+            IRkmVersionProvider rkmVersionProvider,
             IPathProvider pathProvider,
-            IProcessMonitorFactory processMonitorFactory,
-            ICertificateManager certificateManager,
-            IClusterNetworkingConfiguration clusterNetworkingConfiguration,
-            IKubeConfigManager kubeConfigManager,
-            ILocalEthernetInfo localEthernetInfo,
-            IRkmGlobalRootProvider rkmGlobalRootProvider)
+            ILogger<ContainerdComponent> logger)
         {
-            _logger = logger;
-            _resourceManager = resourceManager;
+            _serviceControl = serviceControl;
+            _rkmVersionProvider = rkmVersionProvider;
             _pathProvider = pathProvider;
-            _processMonitorFactory = processMonitorFactory;
-            _certificateManager = certificateManager;
-            _clusterNetworkingConfiguration = clusterNetworkingConfiguration;
-            _kubeConfigManager = kubeConfigManager;
-            _localEthernetInfo = localEthernetInfo;
-            _rkmGlobalRootProvider = rkmGlobalRootProvider;
+            _logger = logger;
+            _stoppingToken = new CancellationTokenSource();
+        }
+
+        public void Dispose()
+        {
+            ((IDisposable)_stoppingToken).Dispose();
         }
 
         public void RegisterSignals(IRegistrationContext context)
         {
             context.OnSignal(WellKnownSignals.Started, OnStartedAsync);
+            context.OnSignal(WellKnownSignals.Stopping, OnStoppingAsync);
         }
+
+        private const string _serviceName = "rkm-kubelet";
 
         private async Task OnStartedAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)
         {
-            await context.WaitForFlagAsync(WellKnownFlags.AssetsReady);
-            await context.WaitForFlagAsync(WellKnownFlags.CertificatesReady);
-            await context.WaitForFlagAsync(WellKnownFlags.KubeConfigsReady);
-            var nodeNameContext = await context.WaitForFlagAsync<NodeNameContextData>(WellKnownFlags.NodeComponentsReadyToStart);
-            var nodeName = nodeNameContext.NodeName;
+            Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "cache"));
 
-            _logger.LogInformation("Setting up WSL configuration...");
-            if (OperatingSystem.IsLinux())
-            {
-                await _resourceManager.ExtractResource(
-                    "kubelet-config-linux.yaml",
-                     Path.Combine(_pathProvider.RKMRoot, "kubernetes-node", "kubelet-config.yaml"),
-                    new Dictionary<string, string>
-                    {
-                        { "__CA_CERT_FILE__", _certificateManager.GetCertificatePemPath("ca", "ca") },
-                        { "__NODE_CERT_FILE__", _certificateManager.GetCertificatePemPath("nodes", $"node-{nodeName}") },
-                        { "__NODE_KEY_FILE__", _certificateManager.GetCertificateKeyPath("nodes", $"node-{nodeName}") },
-                        { "__CLUSTER_DNS__", _clusterNetworkingConfiguration.ClusterDNSServiceIP },
-                        { "__CLUSTER_DOMAIN__", _clusterNetworkingConfiguration.ClusterDNSDomain },
-                        // If systemd is running, prevent bugs by using /run/systemd/resolve/resolv.conf directly.
-                        // Otherwise use /etc/resolv.conf for systems that are not running resolved.
-                        { "__RESOLV_CONF__", Process.GetProcessesByName("systemd-resolved").Length > 0 ? "/run/systemd/resolve/resolv.conf" : "/etc/resolv.conf" },
-                    });
-            }
-            else if (OperatingSystem.IsWindows())
-            {
-                await _resourceManager.ExtractResource(
-                    "kubelet-config-windows.yaml",
-                     Path.Combine(_pathProvider.RKMRoot, "kubernetes-node", "kubelet-config.yaml"),
-                    new Dictionary<string, string>
-                    {
-                        { "__CA_CERT_FILE__", _certificateManager.GetCertificatePemPath("ca", "ca").Replace("\\", "\\\\", StringComparison.Ordinal) },
-                        { "__NODE_CERT_FILE__", _certificateManager.GetCertificatePemPath("nodes", $"node-{nodeName}").Replace("\\", "\\\\", StringComparison.Ordinal) },
-                        { "__NODE_KEY_FILE__", _certificateManager.GetCertificateKeyPath("nodes", $"node-{nodeName}").Replace("\\", "\\\\", StringComparison.Ordinal) },
-                        // When Windows is running as a controller, it runs it's own CoreDNS instance on the Windows side for containers
-                        // (as containers can't seem to send UDP traffic over the configured Hyper-V WSL+overlay switch).
-                        { "__CLUSTER_DNS__", context.Role == RoleType.Controller ? _localEthernetInfo.IPAddress.ToString() : _clusterNetworkingConfiguration.ClusterDNSServiceIP },
-                        { "__CLUSTER_DOMAIN__", _clusterNetworkingConfiguration.ClusterDNSDomain },
-                    });
-            }
-            else
-            {
-                throw new PlatformNotSupportedException();
-            }
+            var arguments = $"\"{_rkmVersionProvider.UetFilePath}\" cluster run-kubelet --manifest-path \"{Path.Combine(_pathProvider.RKMRoot, "cache", "kubelet-manifest.json")}\"";
 
-            string endpoint;
-            if (OperatingSystem.IsWindows())
+            var installed = false;
+            if (await _serviceControl.IsServiceInstalled(_serviceName))
             {
-                endpoint = "npipe://./pipe/containerd-containerd";
-            }
-            else
-            {
-                endpoint = $"unix://{Path.Combine(_pathProvider.RKMRoot, "containerd-state", "containerd.sock")}";
-            }
-
-            _logger.LogInformation("Starting kubelet and keeping it running...");
-            var kubeletMonitor = _processMonitorFactory.CreatePerpetualProcess(new ProcessSpecification(
-                filename: Path.Combine(_pathProvider.RKMRoot, "kubernetes-node", "kubernetes", "node", "bin", "kubelet"),
-                arguments: new[]
+                var result = await _serviceControl.GetServiceExecutableAndArguments(_serviceName);
+                if (result == arguments)
                 {
-                    $"--config={Path.Combine(_pathProvider.RKMRoot, "kubernetes-node", "kubelet-config.yaml")}",
-                    $"--container-runtime=remote",
-                    $"--container-runtime-endpoint={endpoint}",
-                    $"--kubeconfig={_kubeConfigManager.GetKubeconfigPath("nodes", $"node-{nodeName}")}",
-                    $"--root-dir={Path.Combine(_pathProvider.RKMRoot, "kubernetes-node", "state")}",
-                    $"--cert-dir={Path.Combine(_pathProvider.RKMRoot, "kubernetes-node", "state", "pki")}",
-                    $"--v=2",
-                    "--node-labels",
-                    $"rkm.redpoint.games/auto-upgrade-enabled={(File.Exists(Path.Combine(_rkmGlobalRootProvider.RkmGlobalRoot, "service-auto-upgrade")) ? "true" : "false")}",
-                }));
-            try
-            {
-                await kubeletMonitor.RunAsync(cancellationToken);
+                    _logger.LogInformation("kubelet service is already installed correctly.");
+                    installed = true;
+                }
+                else
+                {
+                    if (await _serviceControl.IsServiceRunning(_serviceName))
+                    {
+                        _logger.LogInformation("kubelet service is being stopped so it can be reinstalled.");
+                        await _serviceControl.StopService(_serviceName);
+                    }
+
+                    _logger.LogInformation("kubelet service is being uninstalled because the command line arguments need to change.");
+                    await _serviceControl.UninstallService(_serviceName);
+                }
             }
-            finally
+
+            if (!installed)
             {
-                context.SetFlag(WellKnownFlags.KubeletStopped);
+                await _serviceControl.InstallService(
+                    _serviceName,
+                    "RKM - Kubelet",
+                    arguments,
+                    manualStart: true);
+            }
+
+            if (Debugger.IsAttached)
+            {
+                _logTask = _serviceControl.StreamLogsUntilCancelledAsync(
+                    _serviceName,
+                    (level, message) =>
+                    {
+                        switch (level)
+                        {
+                            case ServiceLogLevel.Information:
+                                _logger.LogInformation($"(kubelet) {message}");
+                                break;
+                            case ServiceLogLevel.Warning:
+                                _logger.LogWarning($"(kubelet) {message}");
+                                break;
+                            case ServiceLogLevel.Error:
+                                _logger.LogError($"(kubelet) {message}");
+                                break;
+                            default:
+                                _logger.LogInformation($"(kubelet) {message}");
+                                break;
+                        }
+                    },
+                    _stoppingToken.Token);
+            }
+
+            if (!await _serviceControl.IsServiceRunning(_serviceName))
+            {
+                _logger.LogInformation("kubelet service is being started...");
+                await _serviceControl.StartService(_serviceName);
+            }
+        }
+
+        private async Task OnStoppingAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)
+        {
+            if (await _serviceControl.IsServiceInstalled(_serviceName))
+            {
+                _logger.LogInformation("kubelet service is being stopped...");
+                await _serviceControl.StopService(_serviceName);
+            }
+
+            if (_logTask != null && !_stoppingToken.IsCancellationRequested)
+            {
+                _stoppingToken.Cancel();
+
+                try
+                {
+                    await _logTask;
+                }
+                catch (OperationCanceledException)
+                {
+                }
             }
         }
     }

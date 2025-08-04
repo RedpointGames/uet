@@ -63,5 +63,11 @@
         /// </summary>
         [JsonPropertyName("kubeConfigData")]
         public required string KubeConfigData { get; set; }
+
+        /// <summary>
+        /// The etcd version to install.
+        /// </summary>
+        [JsonPropertyName("etcdVersion")]
+        public required string EtcdVersion { get; set; }
     }
 }
