@@ -142,147 +142,144 @@
                 return
                 $$"""
                 apiVersion: v1
-                kind: Pod
-                metadata:
-                  name: etcd
-                  namespace: kube-system
-                spec:
-                  hostNetwork: true
-                  containers:
-                  - name: etcd
-                    image: quay.io/coreos/etcd:v{{_currentKubeletManifest.EtcdVersion}}
-                    command:
-                      - "etcd"
-                      - "--name"
-                      - "kubernetes"
-                      - "--cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
-                      - "--key-file=/rkm/certs/cluster/cluster-kubernetes.key"
-                      - "--peer-cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
-                      - "--peer-key-file=/rkm/certs/cluster/cluster-kubernetes.key"
-                      - "--trusted-ca-file=/rkm/certs/ca/ca.pem"
-                      - "--peer-trusted-ca-file=/rkm/certs/ca/ca.pem"
-                      - "--peer-client-cert-auth"
-                      - "--client-cert-auth"
-                      - "--listen-client-urls"
-                      - "https://{{_localEthernetInfo.IPAddress}}:2379,https://127.0.0.1:2379"
-                      - "--advertise-client-urls"
-                      - "https://{{_localEthernetInfo.IPAddress}}:2379"
-                      - "--data-dir=/rkm/etcd/data"
-                    volumeMounts:
-                      - mountPath: /rkm
-                        name: rkm
-                  volumes:
-                  - name: rkm
-                    hostPath:
-                      type: DirectoryOrCreate
-                      path: "{{_pathProvider.RKMRoot}}"
-                ---
-                apiVersion: v1
-                kind: Pod
-                metadata:
-                  name: kube-apiserver
-                  namespace: kube-system
-                spec:
-                  hostNetwork: true
-                  containers:
-                  - name: kube-apiserver
-                    image: registry.k8s.io/kube-apiserver:v{{_currentKubeletManifest.KubernetesVersion}}
-                    command:
-                      - "kube-apiserver"
-                      - "--advertise-address={{_localEthernetInfo.IPAddress}}"
-                      - "--allow-privileged=true"
-                      - "--apiserver-count=1"
-                      - "--audit-log-maxage=30"
-                      - "--audit-log-maxbackup=3"
-                      - "--audit-log-maxsize=100"
-                      - "--audit-log-path=/rkm/logs/audit.log"
-                      - "--authorization-mode=Node,RBAC"
-                      - "--bind-address=0.0.0.0"
-                      - "--client-ca-file=/rkm/certs/ca/ca.pem"
-                      - "--enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota"
-                      - "--etcd-cafile=/rkm/certs/ca/ca.pem"
-                      - "--etcd-certfile=/rkm/certs/cluster/cluster-kubernetes.pem"
-                      - "--etcd-keyfile=/rkm/certs/cluster/cluster-kubernetes.key"
-                      - "--etcd-servers=https://{{_localEthernetInfo.IPAddress}}:2379"
-                      - "--event-ttl=1h"
-                      - "--encryption-provider-config=/rkm/secrets/encryption-config.yaml"
-                      - "--kubelet-certificate-authority=/rkm/certs/ca/ca.pem"
-                      - "--kubelet-client-certificate=/rkm/certs/cluster/cluster-kubernetes.pem"
-                      - "--kubelet-client-key=/rkm/certs/cluster/cluster-kubernetes.key"
-                      - "--runtime-config=api/all=true"
-                      - "--service-account-key-file=/rkm/certs/svc/svc-service-account.pem"
-                      - "--service-account-signing-key-file=/rkm/certs/svc/svc-service-account.key"
-                      - "--service-account-issuer=https://{{_localEthernetInfo.IPAddress}}:6443"
-                      - "--service-cluster-ip-range={{_clusterNetworkingConfiguration.ServiceCIDR}}"
-                      - "--service-node-port-range=30000-32767"
-                      - "--tls-cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
-                      - "--tls-private-key-file=/rkm/certs/cluster/cluster-kubernetes.key"
-                      - "--v=2"
-                    volumeMounts:
-                      - mountPath: /rkm
-                        name: rkm
-                  volumes:
-                  - name: rkm
-                    hostPath:
-                      type: DirectoryOrCreate
-                      path: "{{_pathProvider.RKMRoot}}"
-                ---
-                apiVersion: v1
-                kind: Pod
-                metadata:
-                  name: kube-controller-manager
-                  namespace: kube-system
-                spec:
-                  hostNetwork: true
-                  containers:
-                  - name: kube-controller-manager
-                    image: registry.k8s.io/kube-controller-manager:v{{_currentKubeletManifest.KubernetesVersion}}
-                    command:
-                      - "kube-controller-manager"
-                      - "--bind-address=0.0.0.0"
-                      - "--cluster-cidr={{_clusterNetworkingConfiguration.ClusterCIDR}}"
-                      - "--cluster-name=kubernetes"
-                      - "--cluster-signing-cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
-                      - "--cluster-signing-key-file=/rkm/certs/cluster/cluster-kubernetes.key"
-                      - "--kubeconfig=/rkm/kubeconfigs/components/component-kube-controller-manager.kubeconfig"
-                      - "--root-ca-file=/rkm/certs/ca/ca.pem"
-                      - "--service-account-private-key-file=/rkm/certs/svc/svc-service-account.key"
-                      - "--service-cluster-ip-range={{_clusterNetworkingConfiguration.ServiceCIDR}}"
-                      - "--use-service-account-credentials=true"
-                      - "--v=2"
-                    volumeMounts:
-                      - mountPath: /rkm
-                        name: rkm
-                  volumes:
-                  - name: rkm
-                    hostPath:
-                      type: DirectoryOrCreate
-                      path: "{{_pathProvider.RKMRoot}}"
-                ---
-                apiVersion: v1
-                kind: Pod
-                metadata:
-                  name: kube-scheduler
-                  namespace: kube-system
-                spec:
-                  hostNetwork: true
-                  containers:
-                  - name: kube-scheduler
-                    image: registry.k8s.io/kube-scheduler:v{{_currentKubeletManifest.KubernetesVersion}}
-                    command:
-                      - "kube-scheduler"
-                      - "--kubeconfig=/rkm/kubeconfigs/components/component-kube-scheduler.kubeconfig"
-                      - "--v=2"
-                    volumeMounts:
-                      - mountPath: /rkm
-                        name: rkm
-                  volumes:
-                  - name: rkm
-                    hostPath:
-                      type: DirectoryOrCreate
-                      path: "{{_pathProvider.RKMRoot}}"
-                ---
-
+                kind: PodList
+                items:
+                - apiVersion: v1
+                  kind: Pod
+                  metadata:
+                    name: etcd
+                    namespace: kube-system
+                  spec:
+                    hostNetwork: true
+                    containers:
+                    - name: etcd
+                      image: quay.io/coreos/etcd:v{{_currentKubeletManifest.EtcdVersion}}
+                      command:
+                        - "etcd"
+                        - "--name"
+                        - "kubernetes"
+                        - "--cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
+                        - "--key-file=/rkm/certs/cluster/cluster-kubernetes.key"
+                        - "--peer-cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
+                        - "--peer-key-file=/rkm/certs/cluster/cluster-kubernetes.key"
+                        - "--trusted-ca-file=/rkm/certs/ca/ca.pem"
+                        - "--peer-trusted-ca-file=/rkm/certs/ca/ca.pem"
+                        - "--peer-client-cert-auth"
+                        - "--client-cert-auth"
+                        - "--listen-client-urls"
+                        - "https://{{_localEthernetInfo.IPAddress}}:2379,https://127.0.0.1:2379"
+                        - "--advertise-client-urls"
+                        - "https://{{_localEthernetInfo.IPAddress}}:2379"
+                        - "--data-dir=/rkm/etcd/data"
+                      volumeMounts:
+                        - mountPath: /rkm
+                          name: rkm
+                    volumes:
+                    - name: rkm
+                      hostPath:
+                        type: DirectoryOrCreate
+                        path: "{{_pathProvider.RKMRoot}}"
+                - apiVersion: v1
+                  kind: Pod
+                  metadata:
+                    name: kube-apiserver
+                    namespace: kube-system
+                  spec:
+                    hostNetwork: true
+                    containers:
+                    - name: kube-apiserver
+                      image: registry.k8s.io/kube-apiserver:v{{_currentKubeletManifest.KubernetesVersion}}
+                      command:
+                        - "kube-apiserver"
+                        - "--advertise-address={{_localEthernetInfo.IPAddress}}"
+                        - "--allow-privileged=true"
+                        - "--audit-log-maxage=30"
+                        - "--audit-log-maxbackup=3"
+                        - "--audit-log-maxsize=100"
+                        - "--audit-log-path=/rkm/logs/audit.log"
+                        - "--authorization-mode=Node,RBAC"
+                        - "--bind-address=0.0.0.0"
+                        - "--client-ca-file=/rkm/certs/ca/ca.pem"
+                        - "--enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota"
+                        - "--etcd-cafile=/rkm/certs/ca/ca.pem"
+                        - "--etcd-certfile=/rkm/certs/cluster/cluster-kubernetes.pem"
+                        - "--etcd-keyfile=/rkm/certs/cluster/cluster-kubernetes.key"
+                        - "--etcd-servers=https://{{_localEthernetInfo.IPAddress}}:2379"
+                        - "--event-ttl=1h"
+                        - "--encryption-provider-config=/rkm/secrets/encryption-config.yaml"
+                        - "--kubelet-certificate-authority=/rkm/certs/ca/ca.pem"
+                        - "--kubelet-client-certificate=/rkm/certs/cluster/cluster-kubernetes.pem"
+                        - "--kubelet-client-key=/rkm/certs/cluster/cluster-kubernetes.key"
+                        - "--runtime-config=api/all=true"
+                        - "--service-account-key-file=/rkm/certs/svc/svc-service-account.pem"
+                        - "--service-account-signing-key-file=/rkm/certs/svc/svc-service-account.key"
+                        - "--service-account-issuer=https://{{_localEthernetInfo.IPAddress}}:6443"
+                        - "--service-cluster-ip-range={{_clusterNetworkingConfiguration.ServiceCIDR}}"
+                        - "--service-node-port-range=30000-32767"
+                        - "--tls-cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
+                        - "--tls-private-key-file=/rkm/certs/cluster/cluster-kubernetes.key"
+                        - "--v=2"
+                      volumeMounts:
+                        - mountPath: /rkm
+                          name: rkm
+                    volumes:
+                    - name: rkm
+                      hostPath:
+                        type: DirectoryOrCreate
+                        path: "{{_pathProvider.RKMRoot}}"
+                - apiVersion: v1
+                  kind: Pod
+                  metadata:
+                    name: kube-controller-manager
+                    namespace: kube-system
+                  spec:
+                    hostNetwork: true
+                    containers:
+                    - name: kube-controller-manager
+                      image: registry.k8s.io/kube-controller-manager:v{{_currentKubeletManifest.KubernetesVersion}}
+                      command:
+                        - "kube-controller-manager"
+                        - "--bind-address=0.0.0.0"
+                        - "--cluster-cidr={{_clusterNetworkingConfiguration.ClusterCIDR}}"
+                        - "--cluster-name=kubernetes"
+                        - "--cluster-signing-cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
+                        - "--cluster-signing-key-file=/rkm/certs/cluster/cluster-kubernetes.key"
+                        - "--kubeconfig=/rkm/kubeconfigs/components/component-kube-controller-manager.kubeconfig"
+                        - "--root-ca-file=/rkm/certs/ca/ca.pem"
+                        - "--service-account-private-key-file=/rkm/certs/svc/svc-service-account.key"
+                        - "--service-cluster-ip-range={{_clusterNetworkingConfiguration.ServiceCIDR}}"
+                        - "--use-service-account-credentials=true"
+                        - "--v=2"
+                      volumeMounts:
+                        - mountPath: /rkm
+                          name: rkm
+                    volumes:
+                    - name: rkm
+                      hostPath:
+                        type: DirectoryOrCreate
+                        path: "{{_pathProvider.RKMRoot}}"
+                - apiVersion: v1
+                  kind: Pod
+                  metadata:
+                    name: kube-scheduler
+                    namespace: kube-system
+                  spec:
+                    hostNetwork: true
+                    containers:
+                    - name: kube-scheduler
+                      image: registry.k8s.io/kube-scheduler:v{{_currentKubeletManifest.KubernetesVersion}}
+                      command:
+                        - "kube-scheduler"
+                        - "--kubeconfig=/rkm/kubeconfigs/components/component-kube-scheduler.kubeconfig"
+                        - "--v=2"
+                      volumeMounts:
+                        - mountPath: /rkm
+                          name: rkm
+                    volumes:
+                    - name: rkm
+                      hostPath:
+                        type: DirectoryOrCreate
+                        path: "{{_pathProvider.RKMRoot}}"
                 """;
             }
             else

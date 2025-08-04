@@ -252,7 +252,6 @@
                         arguments:
                         [
                             $"--config={Path.Combine(manifest.KubeletStatePath, "config.yaml")}",
-                            $"--container-runtime=remote",
                             $"--container-runtime-endpoint={manifest.ContainerdEndpoint}",
                             $"--kubeconfig={Path.Combine(manifest.KubeletStatePath, "kubeconfig.yaml")}",
                             $"--root-dir={Path.Combine(manifest.KubeletStatePath, "state")}",
