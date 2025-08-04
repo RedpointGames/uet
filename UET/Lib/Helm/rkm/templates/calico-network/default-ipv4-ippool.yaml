@@ -1,0 +1,20 @@
+apiVersion: crd.projectcalico.org/v1
+kind: IPPool
+metadata:
+  name: default-ipv4-ippool
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    rkm.redpoint.games/component: calico-network
+spec:
+  allowedUses:
+  - Workload
+  - Tunnel
+  blockSize: 26
+  cidr: {{ .Values.cluster.cidr | quote }}
+  ipipMode: Never
+  natOutgoing: true
+  nodeSelector: all()
+  vxlanMode: Always

@@ -1,0 +1,13 @@
+apiVersion: crd.projectcalico.org/v1
+kind: IPAMConfig
+metadata:
+  name: default
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    rkm.redpoint.games/component: calico-network
+spec:
+  autoAllocateBlocks: true
+  strictAffinity: true
