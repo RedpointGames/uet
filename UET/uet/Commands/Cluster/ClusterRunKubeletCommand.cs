@@ -80,6 +80,7 @@
             private readonly IProcessMonitorFactory _processMonitorFactory;
             private readonly ILogger<KubeletHostedService> _logger;
             private readonly IProcessKiller _processKiller;
+            private readonly IProcessExecutor _processExecutor;
             private readonly Options _options;
             private readonly Gate _kubeletStarted;
 
@@ -93,6 +94,7 @@
                 IProcessMonitorFactory processMonitorFactory,
                 ILogger<KubeletHostedService> logger,
                 IProcessKiller processKiller,
+                IProcessExecutor processExecutor,
                 Options options)
             {
                 _hostApplicationLifetime = hostApplicationLifetime;
@@ -100,6 +102,7 @@
                 _processMonitorFactory = processMonitorFactory;
                 _logger = logger;
                 _processKiller = processKiller;
+                _processExecutor = processExecutor;
                 _options = options;
                 _kubeletStarted = new Gate();
             }
@@ -261,6 +264,50 @@
                             _kubeletStarted.Open();
                             return Task.CompletedTask;
                         }));
+
+                // Fix up the system environment for kubelet. This must be done here, and not part of the Helm chart,
+                // as Kubelet will refuse to run at all without these preconditions met.
+                if (OperatingSystem.IsLinux())
+                {
+                    _logger.LogInformation("Turning off swap...");
+                    if (await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = "/usr/sbin/swapoff",
+                            Arguments = ["-a"]
+                        },
+                        CaptureSpecification.Passthrough,
+                        cancellationToken) != 0)
+                    {
+                        _logger.LogWarning("Turning off swap failed with non-zero exit code.");
+                    }
+
+                    _logger.LogInformation("Loading br_netfilter kernel module...");
+                    if (await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = "/usr/sbin/modprobe",
+                            Arguments = ["br_netfilter"]
+                        },
+                        CaptureSpecification.Passthrough,
+                        cancellationToken) != 0)
+                    {
+                        _logger.LogWarning("Loading br_netfilter kernel module failed with non-zero exit code.");
+                    }
+
+                    _logger.LogInformation("Enabling bridging for containers...");
+                    if (await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = "/usr/sbin/sysctl",
+                            Arguments = ["net.bridge.bridge-nf-call-iptables=1"]
+                        },
+                        CaptureSpecification.Passthrough,
+                        cancellationToken) != 0)
+                    {
+                        _logger.LogWarning("Enabling bridging for containers failed with non-zero exit code.");
+                    }
+                }
 
                 // Start kubelet.
                 _logger.LogInformation($"Starting kubelet process...");
