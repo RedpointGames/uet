@@ -77,29 +77,26 @@ data:
     mode: "kernelspace"
     "@
 
-    $KubeCaCrtUnencoded = (Get-Content -Raw -Path var\run\secrets\kubernetes.io\serviceaccount\ca.crt)
-    $KubeCaCrt = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($KubeCaCrtUnencoded))
-    $KubeToken = (Get-Content -Raw -Path var\run\secrets\kubernetes.io\serviceaccount\token)
     Set-Content -Path kubeconfig -Value `
     @"
     apiVersion: v1
     kind: Config
     clusters:
-    - name: default-cluster
-      cluster:
-        certificate-authority-data: $KubeCaCrt
+    - cluster:
+        certificate-authority: ".\\var\\run\\secrets\\kubernetes.io\\serviceaccount\\ca.crt"
         server: https://${env:UET_CONTROLLER_IP}:6443
+      name: default
     contexts:
-    - name: default-context
-      context:
-        cluster: default-cluster
+    - context:
+        cluster: default
         namespace: default
-        user: default-user
-    current-context: default-context
+        user: default
+      name: default
+    current-context: default
     users:
-    - name: default-user
+    - name: default
       user:
-        token: $KubeToken
+        tokenFile: ".\\var\\run\\secrets\\kubernetes.io\\serviceaccount\\token"
     "@
     try {
       & "$KubeProxyFolder\kube-proxy.exe" `
