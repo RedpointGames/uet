@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Redpoint.KubernetesManager.Components.ControllerOnly;
 using Redpoint.KubernetesManager.Components.NodeOnly;
-using Redpoint.KubernetesManager.Components.WslExtra;
 using Redpoint.KubernetesManager.Components;
 using Redpoint.KubernetesManager.Services.Windows;
 using Redpoint.KubernetesManager.Services;
@@ -64,12 +63,6 @@ namespace Redpoint.KubernetesManager
 
                 // Register node-only components.
                 services.AddSingleton<IComponent, NodeManifestExpanderComponent>();
-
-                // Register WSL "extra" components.
-                services.AddSingleton<IComponent, WslContainerdComponent>();
-                services.AddSingleton<IComponent, WslKubeletComponent>();
-                services.AddSingleton<IComponent, WslKubeProxyComponent>();
-                services.AddSingleton<IComponent, CoreDNSComponent>();
 
                 // Register shared components.
                 services.AddSingleton<IComponent, AssetPreparationComponent>();

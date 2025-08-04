@@ -57,6 +57,7 @@ namespace UET.Commands.Cluster
                 command.AddCommand(ClusterGetHnsEndpointCommand.CreateClusterGetHnsEndpointCommand());
             }
             command.AddCommand(ClusterRunContainerdCommand.CreateRunContainerdCommand());
+            command.AddCommand(ClusterRunKubeletCommand.CreateRunKubeletCommand());
             return command;
         }
     }
