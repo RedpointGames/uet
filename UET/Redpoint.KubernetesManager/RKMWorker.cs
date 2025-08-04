@@ -119,9 +119,6 @@ namespace Redpoint.KubernetesManager
                 controllerAddress = role.Split(",")[1].Trim();
             }
 
-            // Kill any existing processes before we start launching stuff.
-            await _processKiller.EnsureProcessesAreNotRunning(stoppingToken);
-
             // Create the executor and register components.
             var executor = new Executor(
                 _executorLogger,

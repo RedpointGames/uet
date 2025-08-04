@@ -25,19 +25,6 @@
             _hcsService = hcsService;
         }
 
-        public async Task EnsureProcessesAreNotRunning(CancellationToken cancellationToken)
-        {
-            await EnsureProcessesAreNotRunning([
-                "flanneld",
-                "kubelet",
-                "kube-proxy",
-                "etcd",
-                "kube-apiserver",
-                "kube-controller-manager",
-                "kube-scheduler",
-            ], cancellationToken);
-        }
-
         public async Task EnsureProcessesAreNotRunning(string[] processNames, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Ensuring existing Kubernetes processes are not running...");
