@@ -325,7 +325,7 @@
                           uid = 0
 
                         [grpc]
-                          address = "{{manifest.ContainerdStatePath}}/containerd.sock"
+                          address = "{{manifest.ContainerdEndpointPath}}"
                           gid = 0
                           max_recv_message_size = 16777216
                           max_send_message_size = 16777216
@@ -586,7 +586,7 @@
                           uid = 0
 
                         [grpc]
-                          address = "\\\\.\\pipe\\containerd-containerd"
+                          address = "{{manifest.ContainerdEndpointPath.Replace("\\", "\\\\", StringComparison.Ordinal)}}"
                           gid = 0
                           max_recv_message_size = 16777216
                           max_send_message_size = 16777216

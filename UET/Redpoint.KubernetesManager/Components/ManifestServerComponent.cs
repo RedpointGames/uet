@@ -390,16 +390,21 @@
 
             _currentContainerdManifest = new ContainerdManifest
             {
+                ManifestVersion = ContainerdManifest.ManifestCurrentVersion,
                 ContainerdInstallRootPath = Path.Combine(_pathProvider.RKMRoot, "containerd"),
                 ContainerdStatePath = Path.Combine(_pathProvider.RKMRoot, "containerd-state"),
                 ContainerdVersion = "1.6.18",
                 UseRedpointContainerd = true,
                 RuncVersion = "1.3.0",
                 CniPluginsPath = Path.Combine(_pathProvider.RKMRoot, "cni-plugins"),
+                ContainerdEndpointPath = OperatingSystem.IsWindows()
+                    ? @"\\.\pipe\containerd-containerd"
+                    : Path.Combine(_pathProvider.RKMRoot, "containerd-state", "containerd.sock"),
             };
 
             _currentKubeletManifest = new KubeletManifest
             {
+                ManifestVersion = KubeletManifest.ManifestCurrentVersion,
                 KubeletInstallRootPath = Path.Combine(_pathProvider.RKMRoot, "kubelet"),
                 KubeletStatePath = Path.Combine(_pathProvider.RKMRoot, "kubelet-state"),
                 KubernetesVersion = "1.26.1",

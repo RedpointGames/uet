@@ -10,7 +10,7 @@
     public class ContainerdManifest : IVersionedManifest
     {
         [JsonIgnore]
-        public static int ManifestCurrentVersion => 1;
+        public static int ManifestCurrentVersion => 2;
 
         [JsonPropertyName("manifestVersion")]
         public required int ManifestVersion { get; set; }
@@ -50,5 +50,11 @@
         /// </summary>
         [JsonPropertyName("cniPluginsPath")]
         public required string CniPluginsPath { get; set; }
+
+        /// <summary>
+        /// The containerd path to serve the endpoint on.
+        /// </summary>
+        [JsonPropertyName("containerdEndpointPath")]
+        public required string ContainerdEndpointPath { get; set; }
     }
 }
