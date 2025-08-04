@@ -20,14 +20,12 @@
             }
         }
 
-        private async Task OnStartedAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)
+        private Task OnStartedAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)
         {
-            // Wait for the prerequisites.
-            await context.WaitForFlagAsync(WellKnownFlags.KubeApiServerReady);
-
             // Now we're ready to start our node-related components. We don't get the translated name
             // here because the WSL components automatically take into account the suffixed name.
             context.SetFlag(WellKnownFlags.NodeComponentsReadyToStart, new NodeNameContextData(Environment.MachineName.ToLowerInvariant()));
+            return Task.CompletedTask;
         }
     }
 }
