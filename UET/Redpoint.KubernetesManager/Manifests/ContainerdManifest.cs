@@ -7,8 +7,14 @@
     using System.Text.Json.Serialization;
     using System.Threading.Tasks;
 
-    public class ContainerdManifest
+    public class ContainerdManifest : IVersionedManifest
     {
+        [JsonIgnore]
+        public static int ManifestCurrentVersion => 1;
+
+        [JsonPropertyName("manifestVersion")]
+        public required int ManifestVersion { get; set; }
+
         /// <summary>
         /// The directory under which one or more versions of containerd will be installed.
         /// </summary>

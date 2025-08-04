@@ -1,7 +1,9 @@
 ﻿namespace Redpoint.KubernetesManager.Services.Manifest
 {
+    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
+    using Redpoint.KubernetesManager.Manifests;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -14,11 +16,14 @@
     public class DefaultGenericManifestClient : IGenericManifestClient
     {
         private readonly ILogger<DefaultGenericManifestClient> _logger;
+        private readonly IHostApplicationLifetime? _hostApplicationLifetime;
 
         public DefaultGenericManifestClient(
-            ILogger<DefaultGenericManifestClient> logger)
+            ILogger<DefaultGenericManifestClient> logger,
+            IHostApplicationLifetime? hostApplicationLifetime = null)
         {
             _logger = logger;
+            _hostApplicationLifetime = hostApplicationLifetime;
         }
 
         private async Task PollManifestAsync<T>(
@@ -217,7 +222,7 @@
             string? manifestCachePath,
             JsonTypeInfo<T> jsonTypeInfo,
             Func<T, CancellationToken, Task> runWithManifest,
-            CancellationToken cancellationToken) where T : class
+            CancellationToken cancellationToken) where T : class, IVersionedManifest
         {
             var state = new ExecutionState<T>();
 
@@ -258,13 +263,30 @@
                     state.CurrentExecutingCancellationTokenSource.Dispose();
                 }
 
-                // Create a new CTS for starting our new task.
-                state.CurrentExecutingCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                // If the manifest version doesn't match the version we expect, tell the application to exit if possible.
+                if (_hostApplicationLifetime != null && newManifest.ManifestVersion != T.ManifestCurrentVersion)
+                {
+                    // Clear out the values because they are old and we will not be using them.
+                    state.CurrentExecutingCancellationTokenSource = null;
+                    state.ExecutingTask = null;
 
-                // Execute the task in the background.
-                var executingCancellationToken = state.CurrentExecutingCancellationTokenSource.Token;
-                state.PreviousHash = newHash;
-                state.ExecutingTask = Task.Run(async () => await runWithManifest(newManifest, executingCancellationToken), executingCancellationToken);
+                    // Tell the application to shutdown.
+                    _logger.LogInformation($"The received manifest version is {newManifest.ManifestVersion}, and we expect a manifest version of {T.ManifestCurrentVersion}. The application will now shutdown.");
+                    _hostApplicationLifetime.StopApplication();
+                }
+                else
+                {
+                    // Create a new CTS for starting our new task.
+                    state.CurrentExecutingCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+                    // Log the manifest version and hash.
+                    _logger.LogInformation($"Received manifest with manifest version {newManifest.ManifestVersion} and hash {newHash}.");
+
+                    // Execute the task in the background.
+                    var executingCancellationToken = state.CurrentExecutingCancellationTokenSource.Token;
+                    state.PreviousHash = newHash;
+                    state.ExecutingTask = Task.Run(async () => await runWithManifest(newManifest, executingCancellationToken), executingCancellationToken);
+                }
             };
 
             // Create our background task that will poll for manifest updates.

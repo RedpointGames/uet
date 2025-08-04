@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.Services.Manifest
 {
+    using Redpoint.KubernetesManager.Manifests;
     using System;
     using System.Text.Json.Serialization.Metadata;
     using System.Threading.Tasks;
@@ -11,6 +12,6 @@
             string? manifestCachePath,
             JsonTypeInfo<T> jsonTypeInfo,
             Func<T, CancellationToken, Task> runWithManifest,
-            CancellationToken cancellationToken) where T : class;
+            CancellationToken cancellationToken) where T : class, IVersionedManifest;
     }
 }

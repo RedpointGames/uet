@@ -2,8 +2,14 @@
 {
     using System.Text.Json.Serialization;
 
-    public class KubeletManifest
+    public class KubeletManifest : IVersionedManifest
     {
+        [JsonIgnore]
+        public static int ManifestCurrentVersion => 1;
+
+        [JsonPropertyName("manifestVersion")]
+        public required int ManifestVersion { get; set; }
+
         /// <summary>
         /// The directory under which one or more versions of kubelet will be installed.
         /// </summary>
