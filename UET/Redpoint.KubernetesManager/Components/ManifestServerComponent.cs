@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.Components
 {
+    using k8s.KubeConfigModels;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
@@ -7,6 +8,7 @@
     using Redpoint.KubernetesManager.Models;
     using Redpoint.KubernetesManager.Services;
     using Redpoint.KubernetesManager.Signalling;
+    using Redpoint.KubernetesManager.Signalling.Data;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -24,27 +26,31 @@
         private readonly ILogger<ManifestServerComponent> _logger;
         private readonly IHostApplicationLifetime _hostApplicationLifetime;
         private readonly IPathProvider _pathProvider;
+        private readonly IClusterNetworkingConfiguration _clusterNetworkingConfiguration;
+        private readonly ICertificateManager _certificateManager;
+        private readonly IKubeConfigManager _kubeConfigManager;
+        private readonly ILocalEthernetInfo _localEthernetInfo;
         private readonly List<Func<Task>> _manifestNotifications;
-        private ContainerdManifest _currentManifest;
+        private ContainerdManifest? _currentContainerdManifest;
+        private KubeletManifest? _currentKubeletManifest;
 
         public ManifestServerComponent(
             ILogger<ManifestServerComponent> logger,
             IHostApplicationLifetime hostApplicationLifetime,
-            IPathProvider pathProvider)
+            IPathProvider pathProvider,
+            IClusterNetworkingConfiguration clusterNetworkingConfiguration,
+            ICertificateManager certificateManager,
+            IKubeConfigManager kubeConfigManager,
+            ILocalEthernetInfo localEthernetInfo)
         {
             _logger = logger;
             _hostApplicationLifetime = hostApplicationLifetime;
             _pathProvider = pathProvider;
+            _clusterNetworkingConfiguration = clusterNetworkingConfiguration;
+            _certificateManager = certificateManager;
+            _kubeConfigManager = kubeConfigManager;
+            _localEthernetInfo = localEthernetInfo;
             _manifestNotifications = new List<Func<Task>>();
-            _currentManifest = new ContainerdManifest
-            {
-                ContainerdInstallRootPath = Path.Combine(_pathProvider.RKMRoot, "containerd"),
-                ContainerdStatePath = Path.Combine(_pathProvider.RKMRoot, "containerd-state"),
-                ContainerdVersion = "1.6.18",
-                UseRedpointContainerd = true,
-                RuncVersion = "1.3.0",
-                CniPluginsPath = Path.Combine(_pathProvider.RKMRoot, "cni-plugins"),
-            };
         }
 
         public void RegisterSignals(IRegistrationContext context)
@@ -53,7 +59,238 @@
             context.OnSignal(WellKnownSignals.Stopping, OnStoppingAsync);
         }
 
-        private async Task RunAsync()
+        private async Task HandleContainerdWebSocketAsync(HttpListenerContext context, CancellationToken cancellationToken)
+        {
+            var webSocket = await context.AcceptWebSocketAsync(null);
+
+            var handler = async () =>
+            {
+                _logger.LogInformation("Sending updated manifest for containerd...");
+                await webSocket.WebSocket.SendAsync(
+                    Encoding.UTF8.GetBytes(JsonSerializer.Serialize(_currentContainerdManifest, ManifestJsonSerializerContext.Default.ContainerdManifest)),
+                    WebSocketMessageType.Text,
+                    true,
+                    cancellationToken);
+            };
+            _manifestNotifications.Add(handler);
+            try
+            {
+                _logger.LogInformation("Sending initial manifest for containerd...");
+                await webSocket.WebSocket.SendAsync(
+                    Encoding.UTF8.GetBytes(JsonSerializer.Serialize(_currentContainerdManifest, ManifestJsonSerializerContext.Default.ContainerdManifest)),
+                    WebSocketMessageType.Text,
+                    true,
+                    cancellationToken);
+
+                while (webSocket.WebSocket.State == WebSocketState.Open)
+                {
+                    var buffer = new byte[1024];
+                    await webSocket.WebSocket.ReceiveAsync(buffer, cancellationToken);
+                }
+            }
+            finally
+            {
+                _manifestNotifications.Remove(handler);
+            }
+        }
+
+        private async Task HandleKubeletWebSocketAsync(HttpListenerContext context, CancellationToken cancellationToken)
+        {
+            var webSocket = await context.AcceptWebSocketAsync(null);
+
+            var handler = async () =>
+            {
+                _logger.LogInformation("Sending updated manifest for kubelet...");
+                await webSocket.WebSocket.SendAsync(
+                    Encoding.UTF8.GetBytes(JsonSerializer.Serialize(_currentKubeletManifest, ManifestJsonSerializerContext.Default.KubeletManifest)),
+                    WebSocketMessageType.Text,
+                    true,
+                    cancellationToken);
+            };
+            _manifestNotifications.Add(handler);
+            try
+            {
+                _logger.LogInformation("Sending initial manifest for kubelet...");
+                await webSocket.WebSocket.SendAsync(
+                    Encoding.UTF8.GetBytes(JsonSerializer.Serialize(_currentKubeletManifest, ManifestJsonSerializerContext.Default.KubeletManifest)),
+                    WebSocketMessageType.Text,
+                    true,
+                    cancellationToken);
+
+                while (webSocket.WebSocket.State == WebSocketState.Open)
+                {
+                    var buffer = new byte[1024];
+                    await webSocket.WebSocket.ReceiveAsync(buffer, cancellationToken);
+                }
+            }
+            finally
+            {
+                _manifestNotifications.Remove(handler);
+            }
+        }
+
+        private string GetStaticPodsYaml(IContext context)
+        {
+            if (_currentKubeletManifest == null)
+            {
+                // No manifest available for some reason.
+                return string.Empty;
+            }
+
+            if (context.Role == RoleType.Controller)
+            {
+                return
+                $$"""
+                apiVersion: v1
+                kind: Pod
+                metadata:
+                  name: kube-apiserver
+                  namespace: kube-system
+                spec:
+                  hostNetwork: true
+                  containers:
+                  - name: kube-apiserver
+                    image: registry.k8s.io/kube-apiserver:v{{_currentKubeletManifest.KubernetesVersion}}
+                    command:
+                      - "kube-apiserver"
+                      - "--advertise-address={{_localEthernetInfo.IPAddress}}"
+                      - "--allow-privileged=true"
+                      - "--apiserver-count=1"
+                      - "--audit-log-maxage=30"
+                      - "--audit-log-maxbackup=3"
+                      - "--audit-log-maxsize=100"
+                      - "--audit-log-path=/rkm/logs/audit.log"
+                      - "--authorization-mode=Node,RBAC"
+                      - "--bind-address=0.0.0.0"
+                      - "--client-ca-file=/rkm/certs/ca/ca.pem"
+                      - "--enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota"
+                      - "--etcd-cafile=/rkm/certs/ca/ca.pem"
+                      - "--etcd-certfile=/rkm/certs/cluster/cluster-kubernetes.pem"
+                      - "--etcd-keyfile=/rkm/certs/cluster/cluster-kubernetes.key"
+                      - "--etcd-servers=https://{{_localEthernetInfo.IPAddress}}:2379"
+                      - "--event-ttl=1h"
+                      - "--encryption-provider-config=/rkm/secrets/encryption-config.yaml"
+                      - "--kubelet-certificate-authority=/rkm/certs/ca/ca.pem"
+                      - "--kubelet-client-certificate=/rkm/certs/cluster/cluster-kubernetes.pem"
+                      - "--kubelet-client-key=/rkm/certs/cluster/cluster-kubernetes.key"
+                      - "--runtime-config=api/all=true"
+                      - "--service-account-key-file=/rkm/certs/svc/svc-service-account.pem"
+                      - "--service-account-signing-key-file=/rkm/certs/svc/svc-service-account.key"
+                      - "--service-account-issuer=https://{{_localEthernetInfo.IPAddress}}:6443"
+                      - "--service-cluster-ip-range={{_clusterNetworkingConfiguration.ServiceCIDR}}"
+                      - "--service-node-port-range=30000-32767"
+                      - "--tls-cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
+                      - "--tls-private-key-file=/rkm/certs/cluster/cluster-kubernetes.key"
+                      - "--v=2"
+                    volumeMounts:
+                      - mountPath: /rkm
+                        name: rkm
+                  volumes:
+                  - name: rkm
+                    hostPath:
+                      type: DirectoryOrCreate
+                      path: "{{_pathProvider.RKMRoot}}"
+                ---
+                apiVersion: v1
+                kind: Pod
+                metadata:
+                  name: kube-controller-manager
+                  namespace: kube-system
+                spec:
+                  hostNetwork: true
+                  containers:
+                  - name: kube-controller-manager
+                    image: registry.k8s.io/kube-controller-manager:v{{_currentKubeletManifest.KubernetesVersion}}
+                    command:
+                      - "kube-controller-manager"
+                      - "--bind-address=0.0.0.0"
+                      - "--cluster-cidr={{_clusterNetworkingConfiguration.ClusterCIDR}}"
+                      - "--cluster-name=kubernetes"
+                      - "--cluster-signing-cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
+                      - "--cluster-signing-key-file=/rkm/certs/cluster/cluster-kubernetes.key"
+                      - "--kubeconfig=/rkm/kubeconfigs/components/component-kube-controller-manager.kubeconfig"
+                      - "--root-ca-file=/rkm/certs/ca/ca.pem"
+                      - "--service-account-private-key-file=/rkm/certs/svc/svc-service-account.key"
+                      - "--service-cluster-ip-range={{_clusterNetworkingConfiguration.ServiceCIDR}}"
+                      - "--use-service-account-credentials=true"
+                      - "--v=2"
+                    volumeMounts:
+                      - mountPath: /rkm
+                        name: rkm
+                  volumes:
+                  - name: rkm
+                    hostPath:
+                      type: DirectoryOrCreate
+                      path: "{{_pathProvider.RKMRoot}}"
+                ---
+                apiVersion: v1
+                kind: Pod
+                metadata:
+                  name: kube-scheduler
+                  namespace: kube-system
+                spec:
+                  hostNetwork: true
+                  containers:
+                  - name: kube-scheduler
+                    image: registry.k8s.io/kube-scheduler:v{{_currentKubeletManifest.KubernetesVersion}}
+                    command:
+                      - "kube-scheduler"
+                      - "--kubeconfig=/rkm/kubeconfigs/components/component-kube-scheduler.kubeconfig"
+                      - "--v=2"
+                    volumeMounts:
+                      - mountPath: /rkm
+                        name: rkm
+                  volumes:
+                  - name: rkm
+                    hostPath:
+                      type: DirectoryOrCreate
+                      path: "{{_pathProvider.RKMRoot}}"
+                ---
+                apiVersion: v1
+                kind: Pod
+                metadata:
+                  name: etcd
+                  namespace: kube-system
+                spec:
+                  hostNetwork: true
+                  containers:
+                  - name: etcd
+                    image: quay.io/coreos/etcd:v{{_currentKubeletManifest.EtcdVersion}}
+                    command:
+                      - "etcd"
+                      - "--name"
+                      - "kubernetes"
+                      - "--cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
+                      - "--key-file=/rkm/certs/cluster/cluster-kubernetes.key"
+                      - "--peer-cert-file=/rkm/certs/cluster/cluster-kubernetes.pem"
+                      - "--peer-key-file=/rkm/certs/cluster/cluster-kubernetes.key"
+                      - "--trusted-ca-file=/rkm/certs/ca/ca.pem"
+                      - "--peer-trusted-ca-file=/rkm/certs/ca/ca.pem"
+                      - "--peer-client-cert-auth"
+                      - "--client-cert-auth"
+                      - "--listen-client-urls"
+                      - "https://{{_localEthernetInfo.IPAddress}}:2379,https://127.0.0.1:2379"
+                      - "--advertise-client-urls"
+                      - "https://{{_localEthernetInfo.IPAddress}}:2379"
+                      - "--data-dir=/rkm/etcd/data"
+                    volumeMounts:
+                      - mountPath: /rkm
+                        name: rkm
+                  volumes:
+                  - name: rkm
+                    hostPath:
+                      type: DirectoryOrCreate
+                      path: "{{_pathProvider.RKMRoot}}"
+                """;
+            }
+            else
+            {
+                // Worker nodes do not run static pods at this time.
+                return string.Empty;
+            }
+        }
+
+        private async Task RunAsync(IContext rkmContext)
         {
             try
             {
@@ -75,37 +312,20 @@
                         if (context.Request.Url?.AbsolutePath == "/containerd" &&
                             context.Request.IsWebSocketRequest)
                         {
-                            var webSocket = await context.AcceptWebSocketAsync(null);
-
-                            var handler = async () =>
+                            await HandleContainerdWebSocketAsync(context, cts.Token);
+                        }
+                        else if (context.Request.Url?.AbsolutePath == "/kubelet" &&
+                            context.Request.IsWebSocketRequest)
+                        {
+                            await HandleKubeletWebSocketAsync(context, cts.Token);
+                        }
+                        else if (context.Request.Url?.AbsolutePath == "/kubelet-static-pods")
+                        {
+                            using (var writer = new StreamWriter(context.Response.OutputStream, Encoding.UTF8, leaveOpen: true))
                             {
-                                _logger.LogInformation("Sending updated manifest for containerd...");
-                                await webSocket.WebSocket.SendAsync(
-                                    Encoding.UTF8.GetBytes(JsonSerializer.Serialize(_currentManifest, ManifestJsonSerializerContext.Default.ContainerdManifest)),
-                                    WebSocketMessageType.Text,
-                                    true,
-                                    cts.Token);
-                            };
-                            _manifestNotifications.Add(handler);
-                            try
-                            {
-                                _logger.LogInformation("Sending initial manifest for containerd...");
-                                await webSocket.WebSocket.SendAsync(
-                                    Encoding.UTF8.GetBytes(JsonSerializer.Serialize(_currentManifest, ManifestJsonSerializerContext.Default.ContainerdManifest)),
-                                    WebSocketMessageType.Text,
-                                    true,
-                                    cts.Token);
-
-                                while (webSocket.WebSocket.State == WebSocketState.Open)
-                                {
-                                    var buffer = new byte[1024];
-                                    await webSocket.WebSocket.ReceiveAsync(buffer, cts.Token);
-                                }
+                                await writer.WriteAsync(GetStaticPodsYaml(rkmContext));
                             }
-                            finally
-                            {
-                                _manifestNotifications.Remove(handler);
-                            }
+                            context.Response.Close();
                         }
                     }
                     catch (OperationCanceledException) when (cts.IsCancellationRequested)
@@ -147,17 +367,54 @@
             }
         }
 
-        private Task OnStartedAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)
+        private async Task OnStartedAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)
         {
+            await context.WaitForFlagAsync(WellKnownFlags.CertificatesReady);
+            await context.WaitForFlagAsync(WellKnownFlags.KubeConfigsReady);
+            if (context.Role == RoleType.Controller)
+            {
+                await context.WaitForFlagAsync(WellKnownFlags.OSNetworkingReady);
+                await context.WaitForFlagAsync(WellKnownFlags.AssetsReady);
+                await context.WaitForFlagAsync(WellKnownFlags.EncryptionConfigReady);
+            }
+
+            var nodeNameContext = await context.WaitForFlagAsync<NodeNameContextData>(WellKnownFlags.NodeComponentsReadyToStart);
+            var nodeName = nodeNameContext.NodeName;
+
+            _currentContainerdManifest = new ContainerdManifest
+            {
+                ContainerdInstallRootPath = Path.Combine(_pathProvider.RKMRoot, "containerd"),
+                ContainerdStatePath = Path.Combine(_pathProvider.RKMRoot, "containerd-state"),
+                ContainerdVersion = "1.6.18",
+                UseRedpointContainerd = true,
+                RuncVersion = "1.3.0",
+                CniPluginsPath = Path.Combine(_pathProvider.RKMRoot, "cni-plugins"),
+            };
+
+            _currentKubeletManifest = new KubeletManifest
+            {
+                KubeletInstallRootPath = Path.Combine(_pathProvider.RKMRoot, "kubelet"),
+                KubeletStatePath = Path.Combine(_pathProvider.RKMRoot, "kubelet-state"),
+                KubernetesVersion = "1.26.1",
+                ClusterDomain = _clusterNetworkingConfiguration.ClusterDNSDomain,
+                ClusterDns = _clusterNetworkingConfiguration.ClusterDNSServiceIP,
+                ContainerdEndpoint = OperatingSystem.IsWindows()
+                    ? "npipe://./pipe/containerd-containerd"
+                    : $"unix://{Path.Combine(_pathProvider.RKMRoot, "containerd-state", "containerd.sock")}",
+                CaCertData = File.ReadAllText(_certificateManager.GetCertificatePemPath("ca", "ca")),
+                NodeCertData = File.ReadAllText(_certificateManager.GetCertificatePemPath("nodes", $"node-{nodeName}")),
+                NodeKeyData = File.ReadAllText(_certificateManager.GetCertificateKeyPath("nodes", $"node-{nodeName}")),
+                KubeConfigData = File.ReadAllText(_kubeConfigManager.GetKubeconfigPath("nodes", $"node-{nodeName}")),
+                EtcdVersion = "3.6.4",
+            };
+
             if (_apiTask == null)
             {
                 _logger.LogInformation("Starting local manifest server...");
 
                 _cts = new CancellationTokenSource();
-                _apiTask = Task.Run(RunAsync, CancellationToken.None);
+                _apiTask = Task.Run(async () => await RunAsync(context), CancellationToken.None);
             }
-
-            return Task.CompletedTask;
         }
 
         private async Task OnStoppingAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)

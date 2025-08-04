@@ -57,12 +57,8 @@ namespace Redpoint.KubernetesManager
                 services.AddSingleton<IComponent, CertificateGeneratingComponent>();
                 services.AddSingleton<IComponent, HelmRKMProvisioningComponent>();
                 services.AddSingleton<IComponent, EncryptionConfigGeneratingComponent>();
-                services.AddSingleton<IComponent, EtcdComponent>();
                 services.AddSingleton<IComponent, KubeConfigGeneratingComponent>();
-                services.AddSingleton<IComponent, KubernetesApiServerComponent>();
                 services.AddSingleton<IComponent, KubernetesClientComponent>();
-                services.AddSingleton<IComponent, KubernetesControllerManagerComponent>();
-                services.AddSingleton<IComponent, KubernetesSchedulerComponent>();
                 services.AddSingleton<IComponent, NodeComponentGuardComponent>();
                 services.AddSingleton<IComponent, RKMApiServiceStartingComponent>();
 

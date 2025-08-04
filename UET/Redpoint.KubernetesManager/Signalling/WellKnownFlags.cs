@@ -76,10 +76,5 @@
         /// This flag is set once the kubelet process has stopped during shutdown.
         /// </summary>
         public const string KubeletStopped = "kubelet-stopped";
-
-        /// <summary>
-        /// This flag is set once the containerd process has stopped during shutdown.
-        /// </summary>
-        public const string ContainerdStopped = "containerd-stopped";
     }
 }

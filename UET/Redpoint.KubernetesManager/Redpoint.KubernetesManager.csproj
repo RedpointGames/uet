@@ -10,21 +10,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Remove="cni.conf.template" />
-		<None Remove="containerd-config-linux.toml" />
-		<None Remove="containerd-config-windows.toml" />
 		<None Remove="Corefile-windows" />
-		<None Remove="kubelet-config-linux.yaml" />
-		<None Remove="kubelet-config-windows.yaml" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<EmbeddedResource Include="cni.conf.template" />
 		<EmbeddedResource Include="Corefile-windows" />
-		<EmbeddedResource Include="kubelet-config-windows.yaml" />
-		<EmbeddedResource Include="kubelet-config-linux.yaml" />
-		<EmbeddedResource Include="containerd-config-linux.toml" />
-		<EmbeddedResource Include="containerd-config-windows.toml" />
 	</ItemGroup>
 
 	<ItemGroup>
