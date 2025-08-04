@@ -9,6 +9,7 @@
     using Redpoint.KubernetesManager.Services;
     using Redpoint.KubernetesManager.Signalling;
     using Redpoint.KubernetesManager.Signalling.Data;
+    using Redpoint.KubernetesManager.Versions;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -400,9 +401,9 @@
                 ManifestVersion = ContainerdManifest.ManifestCurrentVersion,
                 ContainerdInstallRootPath = Path.Combine(_pathProvider.RKMRoot, "containerd"),
                 ContainerdStatePath = Path.Combine(_pathProvider.RKMRoot, "containerd-state"),
-                ContainerdVersion = "1.6.18",
-                UseRedpointContainerd = true,
-                RuncVersion = "1.3.0",
+                ContainerdVersion = ComponentVersions.Containerd,
+                UseRedpointContainerd = false,
+                RuncVersion = ComponentVersions.Runc,
                 CniPluginsPath = Path.Combine(_pathProvider.RKMRoot, "cni-plugins"),
                 ContainerdEndpointPath = OperatingSystem.IsWindows()
                     ? @"\\.\pipe\containerd-containerd"
@@ -414,7 +415,7 @@
                 ManifestVersion = KubeletManifest.ManifestCurrentVersion,
                 KubeletInstallRootPath = Path.Combine(_pathProvider.RKMRoot, "kubelet"),
                 KubeletStatePath = Path.Combine(_pathProvider.RKMRoot, "kubelet-state"),
-                KubernetesVersion = "1.26.1",
+                KubernetesVersion = ComponentVersions.Kubernetes,
                 ClusterDomain = _clusterNetworkingConfiguration.ClusterDNSDomain,
                 ClusterDns = _clusterNetworkingConfiguration.ClusterDNSServiceIP,
                 ContainerdEndpoint = OperatingSystem.IsWindows()
@@ -424,7 +425,7 @@
                 NodeCertData = File.ReadAllText(_certificateManager.GetCertificatePemPath("nodes", $"node-{nodeName}")),
                 NodeKeyData = File.ReadAllText(_certificateManager.GetCertificateKeyPath("nodes", $"node-{nodeName}")),
                 KubeConfigData = File.ReadAllText(_kubeConfigManager.GetKubeconfigPath("nodes", $"node-{nodeName}")),
-                EtcdVersion = "3.6.4",
+                EtcdVersion = ComponentVersions.Etcd,
             };
 
             if (_apiTask == null)

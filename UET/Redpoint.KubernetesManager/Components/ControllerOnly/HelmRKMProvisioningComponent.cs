@@ -7,6 +7,7 @@
     using Redpoint.KubernetesManager.Services.Windows;
     using Redpoint.KubernetesManager.Signalling;
     using Redpoint.KubernetesManager.Signalling.Data;
+    using Redpoint.KubernetesManager.Versions;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -64,7 +65,11 @@
                 $"oci://ghcr.io/redpointgames/uet/rkm-components:{_rkmVersionProvider.Version}",
                 $"""
                 versions:
+                  calico: "{ComponentVersions.Calico}"
+                  cni: "{ComponentVersions.Cni}"
+                  sdn: "{ComponentVersions.Sdn}"
                   rkm: "{_rkmVersionProvider.Version}"
+                  kubernetes: "{ComponentVersions.Kubernetes}"
 
                 calico:
                   root: "/opt/rkm/{_pathProvider.RKMInstallationId}/calico"

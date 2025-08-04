@@ -428,7 +428,7 @@
                                     NoPivotRoot = false
                                     Root = ""
                                     ShimCgroup = ""
-                                    SystemdCgroup = false
+                                    SystemdCgroup = true
 
                               [plugins."io.containerd.grpc.v1.cri".containerd.untrusted_workload_runtime]
                                 base_runtime_spec = ""
