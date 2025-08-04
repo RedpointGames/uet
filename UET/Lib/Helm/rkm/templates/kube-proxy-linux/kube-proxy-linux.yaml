@@ -45,8 +45,20 @@ spec:
           image: {{ printf "registry.k8s.io/kube-proxy:v%s" .Values.versions.kubernetes }}
           command:
             - "kube-proxy"
-            - "--v=4"
-            - "--cluster-cidr"
-            - {{ .Values.cluster.cidr | quote }}
+            - "--config"
+            - "/var/lib/kube-proxy/config.yaml"
           securityContext:
             privileged: true
+          volumeMounts:
+            - mountPath: /var/lib/kube-proxy
+              name: var-lib-kube-proxy
+      volumes:
+      - name: var-lib-kube-proxy
+        configMap:
+          name: {{ printf "kube-proxy-linux-configs-%d" .Release.Revision | quote }}
+          items:
+          - key: config.yaml
+            path: config.yaml
+          - key: kubeconfig.yaml
+            path: kubeconfig.yaml
+      

@@ -43,14 +43,6 @@
         public const string AssetsReady = "assets-ready";
 
         /// <summary>
-        /// This flag is set once the kube-apiserver process has started. Note that
-        /// this doesn't mean the API server is ready to serve requests yet though;
-        /// for that you should use <see cref="KubeApiServerReady"/>. Only available
-        /// on the controller.
-        /// </summary>
-        public const string KubeApiServerStarted = "kube-apiserver-started";
-
-        /// <summary>
         /// This flag is set once the kube-apiserver process is ready to serve requests.
         /// The <see cref="Components.ControllerOnly.KubernetesClientComponent"/> sets this 
         /// flag once it's been able to connect to the API server. Only available

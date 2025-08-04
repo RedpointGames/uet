@@ -37,8 +37,6 @@
 
         public async Task OnStartedAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)
         {
-            await context.WaitForFlagAsync(WellKnownFlags.KubeApiServerStarted);
-
             // Connect to the API server when it's ready.
             _logger.LogInformation("Waiting for Kubernetes API server to be up...");
             var kubernetes = await _kubernetesClientFactory.ConnectToClusterAsync(
