@@ -307,44 +307,48 @@
                 {
                     var context = await listener.GetContextAsync().AsCancellable(cts.Token);
 
-                    try
-                    {
-                        if (context.Request.Url?.AbsolutePath == "/containerd" &&
-                            context.Request.IsWebSocketRequest)
-                        {
-                            await HandleContainerdWebSocketAsync(context, cts.Token);
-                        }
-                        else if (context.Request.Url?.AbsolutePath == "/kubelet" &&
-                            context.Request.IsWebSocketRequest)
-                        {
-                            await HandleKubeletWebSocketAsync(context, cts.Token);
-                        }
-                        else if (context.Request.Url?.AbsolutePath == "/kubelet-static-pods")
-                        {
-                            using (var writer = new StreamWriter(context.Response.OutputStream, Encoding.UTF8, leaveOpen: true))
-                            {
-                                await writer.WriteAsync(GetStaticPodsYaml(rkmContext));
-                            }
-                            context.Response.Close();
-                        }
-                    }
-                    catch (OperationCanceledException) when (cts.IsCancellationRequested)
-                    {
-                        // Expected.
-                    }
-                    catch (Exception ex)
+                    // Handle the request in the background so we can have multiple websockets open at the same time.
+                    _ = Task.Run(async () =>
                     {
                         try
                         {
-                            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                            if (context.Request.Url?.AbsolutePath == "/containerd" &&
+                                context.Request.IsWebSocketRequest)
+                            {
+                                await HandleContainerdWebSocketAsync(context, cts.Token);
+                            }
+                            else if (context.Request.Url?.AbsolutePath == "/kubelet" &&
+                                context.Request.IsWebSocketRequest)
+                            {
+                                await HandleKubeletWebSocketAsync(context, cts.Token);
+                            }
+                            else if (context.Request.Url?.AbsolutePath == "/kubelet-static-pods")
+                            {
+                                using (var writer = new StreamWriter(context.Response.OutputStream, Encoding.UTF8, leaveOpen: true))
+                                {
+                                    await writer.WriteAsync(GetStaticPodsYaml(rkmContext));
+                                }
+                                context.Response.Close();
+                            }
                         }
-                        catch { }
-                        _logger.LogError(ex, $"Failed to respond to a containerd manifest request: {ex.Message}");
-                    }
-                    finally
-                    {
-                        context.Response.OutputStream.Close();
-                    }
+                        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+                        {
+                            // Expected.
+                        }
+                        catch (Exception ex)
+                        {
+                            try
+                            {
+                                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                            }
+                            catch { }
+                            _logger.LogError(ex, $"Failed to respond to a containerd manifest request: {ex.Message}");
+                        }
+                        finally
+                        {
+                            context.Response.OutputStream.Close();
+                        }
+                    }, cts.Token);
                 }
             }
             catch (OperationCanceledException) when (_hostApplicationLifetime.ApplicationStopping.IsCancellationRequested || (_cts?.IsCancellationRequested ?? false))
