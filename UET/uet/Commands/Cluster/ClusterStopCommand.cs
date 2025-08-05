@@ -52,24 +52,27 @@ namespace UET.Commands.Cluster
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
-                if (await _serviceControl.IsServiceInstalled("rkm"))
+                foreach (var service in new[] { "rkm", "rkm-containerd", "rkm-kubelet" })
                 {
-                    if (await _serviceControl.IsServiceRunning("rkm"))
+                    if (await _serviceControl.IsServiceInstalled(service))
                     {
-                        _logger.LogInformation("Stopping RKM service...");
-                        await _serviceControl.StopService("rkm");
+                        if (await _serviceControl.IsServiceRunning(service))
+                        {
+                            _logger.LogInformation($"Stopping '{service}' service...");
+                            await _serviceControl.StopService(service);
+                        }
+                        else
+                        {
+                            _logger.LogInformation($"The service '{service}' is already stopped.");
+                        }
+
+                        _logger.LogInformation($"Uninstalling '{service}' service...");
+                        await _serviceControl.UninstallService(service);
                     }
                     else
                     {
-                        _logger.LogInformation("The service is already stopped.");
+                        _logger.LogInformation($"The service '{service}' is not currently installed.");
                     }
-
-                    _logger.LogInformation("Uninstalling RKM service, so it doesn't run at startup...");
-                    await _serviceControl.UninstallService("rkm");
-                }
-                else
-                {
-                    _logger.LogInformation("The service is not currently installed.");
                 }
 
                 return 0;
