@@ -126,6 +126,16 @@ data:
       Copy-Item -Force "$($File.FullName)" "C:\RKM\$ActiveInstall\cni-plugins\$($File.Name)"
     }
 
+    # Disable Jumbo Frames on all network adapters. This interferes with VXLAN connectivity.
+    foreach ($NetAdapter in (Get-NetAdapter)) 
+    { 
+        Write-Host "Disabling jumbo frames (1500) on network adapter '$($NetAdapter.Name)'..."
+        try {
+            Set-NetAdapterAdvancedProperty -Name $NetAdapter.Name -RegistryKeyword "*JumboPacket" -RegistryValue 1500 
+        } catch {
+        }
+    }
+
     Write-Host "Trying to resolve own hostname to IP address..."
     while ($true) {
       $Addresses = @()
