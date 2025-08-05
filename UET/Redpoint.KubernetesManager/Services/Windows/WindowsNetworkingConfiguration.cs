@@ -191,6 +191,7 @@
             // Determine if the DWORD 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\hns\State\FwPerfImprovementChange'
             // is set to 0. If it is not, we must set it and then restart the Host Network Service.
             // This is the workaround for this bug here: https://github.com/microsoft/Windows-Containers/issues/516#issuecomment-2321754737
+            _logger.LogInformation("Checking if Host Network Service requires container networking fix...");
             var registryStack = RegistryStack.OpenPath(@"HKLM:\SYSTEM\CurrentControlSet\Services\hns\State", writable: true, create: true);
             if (!registryStack.Key.GetValueNames().Contains("FwPerfImprovementChange") ||
                 registryStack.Key.GetValueKind("FwPerfImprovementChange") != Microsoft.Win32.RegistryValueKind.DWord ||

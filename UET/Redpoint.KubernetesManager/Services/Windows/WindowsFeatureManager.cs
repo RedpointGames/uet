@@ -24,13 +24,17 @@
             var didInstall = false;
             var rebootRequired = false;
 
+            _logger.LogInformation("Initializing DISM API...");
             DismApi.Initialize(DismLogLevel.LogErrorsWarningsInfo);
             try
             {
+                _logger.LogInformation("Opening DISM online session...");
                 using var session = DismApi.OpenOnlineSessionEx(new DismSessionOptions()
                 {
                     ThrowExceptionOnRebootRequired = true,
                 });
+
+                _logger.LogInformation("Requesting feature list from DISM...");
                 var features = DismApi.GetFeatures(session);
 
                 foreach (var feature in features)
@@ -95,6 +99,7 @@
             }
             finally
             {
+                _logger.LogInformation("Closing DISM session...");
                 DismApi.Shutdown();
             }
 
