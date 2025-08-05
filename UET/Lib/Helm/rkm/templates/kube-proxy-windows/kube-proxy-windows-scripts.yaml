@@ -70,9 +70,9 @@ data:
     winkernel:
       networkName: "$env:NETWORK_NAME"
       sourceVip: "$SourceVip"
-      enableDSR: true
+      enableDSR: false
     featureGates:
-      WinDSR: true
+      WinDSR: false
       WinOverlay: true
     mode: "kernelspace"
     "@
