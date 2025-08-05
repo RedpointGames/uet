@@ -13,3 +13,12 @@ spec:
   floatingIPs: Disabled
   logSeverityScreen: Info
   reportingInterval: 0s
+  allowIPIPPacketsFromWorkloads: false
+  allowVXLANPacketsFromWorkloads: true
+  ipv6Support: false
+  nftablesMode: Disabled
+  bpfEnabled: false
+  windowsManageFirewallRules: Enabled
+  vxlanEnabled: true
+  ipipEnabled: false
+  wireguardEnabled: false

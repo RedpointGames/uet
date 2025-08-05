@@ -45,6 +45,33 @@ spec:
       terminationGracePeriodSeconds: 0
       priorityClassName: system-node-critical
       initContainers:
+        - name: install-pwsh
+          image: mcr.microsoft.com/oss/kubernetes/windows-host-process-containers-base-image:v1.0.0
+          command:
+            - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+            - -ExecutionPolicy
+            - Bypass
+            - .\scripts\install_pwsh.ps1
+          volumeMounts:
+            - mountPath: /scripts
+              name: scripts
+              readOnly: true
+          envFrom:
+          - configMapRef:
+              name: {{ printf "calico-node-env-%d" .Release.Revision | quote }}
+          env:
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: CALICO_K8S_NODE_REF
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: FELIX_FELIXHOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
         - name: startup
           image: mcr.microsoft.com/oss/kubernetes/windows-host-process-containers-base-image:v1.0.0
           command:
@@ -58,7 +85,7 @@ spec:
               readOnly: true
           envFrom:
           - configMapRef:
-              name: {{ printf "calico-windows-node-env-%d" .Release.Revision | quote }}
+              name: {{ printf "calico-node-env-%d" .Release.Revision | quote }}
           env:
             - name: NODENAME
               valueFrom:
@@ -86,7 +113,7 @@ spec:
               readOnly: true
           envFrom:
           - configMapRef:
-              name: {{ printf "calico-windows-node-env-%d" .Release.Revision | quote }}
+              name: {{ printf "calico-node-env-%d" .Release.Revision | quote }}
           env:
             - name: NODENAME
               valueFrom:
@@ -113,7 +140,7 @@ spec:
               readOnly: true
           envFrom:
           - configMapRef:
-              name: {{ printf "calico-windows-node-env-%d" .Release.Revision | quote }}
+              name: {{ printf "calico-node-env-%d" .Release.Revision | quote }}
           env:
             - name: NODENAME
               valueFrom:
@@ -132,6 +159,8 @@ spec:
           configMap:
             name: {{ printf "calico-windows-node-scripts-%d" .Release.Revision | quote }}
             items:
+              - key: "install_pwsh.ps1"
+                path: "install_pwsh.ps1"
               - key: "startup_script.ps1"
                 path: "startup_script.ps1"
               - key: "felix_script.ps1"

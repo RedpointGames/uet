@@ -1,0 +1,45 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ printf "calico-node-env-%d" .Release.Revision | quote }}
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    rkm.redpoint.games/component: calico-network
+data:
+  CLUSTER_TYPE: "k8s,windows"
+  IP: "autodetect"
+  IP_AUTODETECTION_METHOD: "cidr={{- .Values.host.subnet.cidr -}}"
+  NO_DEFAULT_POOLS: "true"
+  DATASTORE_TYPE: kubernetes
+  WAIT_FOR_DATASTORE: "true"
+  CALICO_WAIT_FOR_DATASTORE: "true"
+  CALICO_NETWORKING_BACKEND: vxlan
+  CALICO_DISABLE_FILE_LOGGING: "true"
+  CALICO_MANAGE_CNI: "true"
+  FELIX_VXLANENABLED: "true"
+  FELIX_VXLANVNI: {{ .Values.vxlan.vni | quote }}
+  FELIX_VXLANMTU: "0"
+  FELIX_IPINIPENABLED: "false"
+  FELIX_IPINIPMTU: "0"
+  FELIX_WIREGUARDENABLED: "false"
+  FELIX_WIREGUARDENABLEDV6: "false"
+  FELIX_WIREGUARDMTU: "0"
+  FELIX_DEFAULTENDPOINTTOHOSTACTION: "ACCEPT"
+  FELIX_IPV6SUPPORT: "false"
+  FELIX_HEALTHENABLED: "true"
+  FELIX_METADATAADDR: "none"
+  FELIX_WINDOWSMANAGEFIREWALLRULES: "true"
+  USE_POD_CIDR: "false"
+  UET_CNI_IPAM_TYPE: "calico-ipam"
+  UET_CNI_VXLAN_MAC_PREFIX: "0E-2A"
+  UET_CNI_K8S_SERVICE_CIDR: {{ .Values.cluster.serviceCidr | quote }}
+  UET_CNI_DNS_NAME_SERVERS: {{ .Values.cluster.dnsServiceIp | quote }}
+  UET_CNI_DNS_SEARCH: {{ printf "svc.%s" .Values.cluster.dnsDomain | quote }}
+  UET_CNI_PLUGINS_VERSION: {{ .Values.versions.cni | quote }}
+  UET_CALICO_VERSION: {{ .Values.versions.calico | quote }}
+  UET_SDN_VERSION: {{ .Values.versions.sdn | quote }}
+  UET_CONTROLLER_IP: {{ .Values.cluster.controllerIp | quote }}

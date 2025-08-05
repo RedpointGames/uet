@@ -151,82 +151,21 @@ spec:
               # Allow KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT to be overridden for eBPF mode.
               name: kubernetes-services-endpoint
               optional: true
+          - configMapRef:
+              name: {{ printf "calico-node-env-%d" .Release.Revision | quote }}
           env:
-            # Use Kubernetes API as the backing datastore.
-            - name: DATASTORE_TYPE
-              value: "kubernetes"
-            # Wait for the datastore.
-            - name: WAIT_FOR_DATASTORE
-              value: "true"
-            # Set based on the k8s node name.
             - name: NODENAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            # Choose the backend to use.
-            - name: CALICO_NETWORKING_BACKEND
+            - name: CALICO_K8S_NODE_REF
               valueFrom:
-                configMapKeyRef:
-                  name: calico-config
-                  key: calico_backend
-            # Cluster type to identify the deployment type
-            - name: CLUSTER_TYPE
-              value: "k8s,bgp"
-            # Auto-detect the BGP IP address.
-            - name: IP
-              value: "autodetect"
-            # Enable IPIP
-            - name: CALICO_IPV4POOL_IPIP
-              value: "Never"
-            # Enable or Disable VXLAN on the default IP pool.
-            - name: CALICO_IPV4POOL_VXLAN
-              value: "Always"
-            # Enable or Disable VXLAN on the default IPv6 IP pool.
-            - name: CALICO_IPV6POOL_VXLAN
-              value: "Never"
-            # Set MTU for tunnel device used if ipip is enabled
-            - name: FELIX_IPINIPMTU
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: FELIX_FELIXHOSTNAME
               valueFrom:
-                configMapKeyRef:
-                  name: calico-config
-                  key: veth_mtu
-            # Set MTU for the VXLAN tunnel device.
-            - name: FELIX_VXLANMTU
-              valueFrom:
-                configMapKeyRef:
-                  name: calico-config
-                  key: veth_mtu
-            # Set MTU for the Wireguard tunnel device.
-            - name: FELIX_WIREGUARDMTU
-              valueFrom:
-                configMapKeyRef:
-                  name: calico-config
-                  key: veth_mtu
-            # The default IPv4 pool to create on startup if none exists. Pod IPs will be
-            # chosen from this range. Changing this value after installation will have
-            # no effect. This should fall within `--cluster-cidr`.
-            - name: CALICO_IPV4POOL_CIDR
-              value: "{{- .Values.cluster.cidr -}}"
-            # Disable file logging so `kubectl logs` works.
-            - name: CALICO_DISABLE_FILE_LOGGING
-              value: "true"
-            # Set Felix endpoint to host default action to ACCEPT.
-            - name: FELIX_DEFAULTENDPOINTTOHOSTACTION
-              value: "ACCEPT"
-            # Disable IPv6 on Kubernetes.
-            - name: FELIX_IPV6SUPPORT
-              value: "false"
-            - name: FELIX_HEALTHENABLED
-              value: "true"
-            # ===== RKM =====
-            #
-            # We know what IP address we'll be running things off, since RKM has already determined it.
-            # Prevent Calico from picking the wrong IP address by telling it the CIDR we want to run
-            # from.
-            #
-            # ===== RKM =====
-            - name: IP_AUTODETECTION_METHOD
-              value: "cidr={{- .Values.host.subnet.cidr -}}"
+                fieldRef:
+                  fieldPath: spec.nodeName
           securityContext:
             privileged: true
           resources:

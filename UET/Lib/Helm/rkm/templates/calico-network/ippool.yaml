@@ -1,7 +1,7 @@
 apiVersion: crd.projectcalico.org/v1
 kind: IPPool
 metadata:
-  name: default-ipv4-ippool
+  name: default
   labels:
     app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
     app.kubernetes.io/instance: {{ .Release.Name | quote }}
