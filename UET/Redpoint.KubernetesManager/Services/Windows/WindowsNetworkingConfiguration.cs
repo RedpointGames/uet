@@ -13,6 +13,8 @@
     using System.Globalization;
     using Redpoint.Windows.HostNetworkingService;
     using Redpoint.Windows.Firewall;
+    using Redpoint.Registry;
+    using Redpoint.ServiceControl;
 
     [SupportedOSPlatform("windows")]
     internal class WindowsNetworkingConfiguration : INetworkingConfiguration
@@ -27,6 +29,7 @@
         private readonly IClusterNetworkingConfiguration _clusterNetworkingConfiguration;
         private readonly IResourceManager _resourceManager;
         private readonly IWindowsFirewall _windowsFirewall;
+        private readonly IServiceControl _serviceControl;
 
         public WindowsNetworkingConfiguration(
             ILogger<WindowsNetworkingConfiguration> logger,
@@ -38,7 +41,8 @@
             IPathProvider pathProvider,
             IClusterNetworkingConfiguration clusterNetworkingConfiguration,
             IResourceManager resourceManager,
-            IWindowsFirewall windowsFirewall)
+            IWindowsFirewall windowsFirewall,
+            IServiceControl serviceControl)
         {
             _logger = logger;
             _hnsService = hnsService;
@@ -50,6 +54,7 @@
             _clusterNetworkingConfiguration = clusterNetworkingConfiguration;
             _resourceManager = resourceManager;
             _windowsFirewall = windowsFirewall;
+            _serviceControl = serviceControl;
         }
 
         private bool IsInCIDR(IPAddress address, string subnetCIDR)
@@ -183,6 +188,26 @@
 
         public async Task<bool> ConfigureForKubernetesAsync(bool isController, CancellationToken cancellationToken)
         {
+            // Determine if the DWORD 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\hns\State\FwPerfImprovementChange'
+            // is set to 0. If it is not, we must set it and then restart the Host Network Service.
+            // This is the workaround for this bug here: https://github.com/microsoft/Windows-Containers/issues/516#issuecomment-2321754737
+            var registryStack = RegistryStack.OpenPath(@"HKLM:\SYSTEM\CurrentControlSet\Services\hns\State", writable: true, create: true);
+            if (registryStack.Key.GetValueKind("FwPerfImprovementChange") != Microsoft.Win32.RegistryValueKind.DWord ||
+                (int)registryStack.Key.GetValue("FwPerfImprovementChange")! != 0)
+            {
+                if (await _serviceControl.IsServiceRunning("hns"))
+                {
+                    _logger.LogInformation("Stopping Host Network Service on Windows before applying container networking fix...");
+                    await _serviceControl.StopService("hns");
+                }
+
+                _logger.LogInformation("Setting FwPerfImprovementChange to 0 to fix container networking on Windows...");
+                registryStack.Key.SetValue("FwPerfImprovementChange", 0, Microsoft.Win32.RegistryValueKind.DWord);
+
+                _logger.LogInformation("Starting Host Network Service on Windows now that fix has been applied.");
+                await _serviceControl.StartService("hns");
+            }
+
             // Find the network adapter associated with the IP address.
             var networkAdapter = _localEthernetInfo.NetworkAdapter;
             if (networkAdapter == null)

@@ -50,6 +50,8 @@
 
         private async Task OnStartedAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)
         {
+            await context.WaitForFlagAsync(WellKnownFlags.OSNetworkingReady);
+
             Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "cache"));
 
             var arguments = $"\"{_rkmVersionProvider.UetFilePath}\" cluster run-kubelet --manifest-path \"{Path.Combine(_pathProvider.RKMRoot, "cache", "kubelet-manifest.json")}\"";
