@@ -205,7 +205,7 @@ data:
       "log_file_path": "C:/RKM/$ActiveInstall/logs/cni.log",
       "log_level": "info",
 
-      "windows_loopback_DSR": false,
+      "windows_loopback_DSR": true,
 
       "capabilities": {"dns": true},
 
