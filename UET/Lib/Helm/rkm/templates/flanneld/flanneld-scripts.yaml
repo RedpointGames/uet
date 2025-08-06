@@ -1,0 +1,194 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ printf "flanneld-scripts-%d" .Release.Revision | quote }}
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    rkm.redpoint.games/component: flanneld
+data:
+  kubeconfig.windows: |
+    apiVersion: v1
+    kind: Config
+    clusters:
+    - cluster:
+        certificate-authority: ".\\var\\run\\secrets\\kubernetes.io\\serviceaccount\\ca.crt"
+        server: https://{{ .Values.cluster.controllerIp }}:6443
+      name: default
+    contexts:
+    - context:
+        cluster: default
+        namespace: default
+        user: default
+      name: default
+    current-context: default
+    users:
+    - name: default
+      user:
+        tokenFile: ".\\var\\run\\secrets\\kubernetes.io\\serviceaccount\\token"
+  kubeconfig.linux: |
+    apiVersion: v1
+    kind: Config
+    clusters:
+    - cluster:
+        certificate-authority: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        server: https://{{ .Values.cluster.controllerIp }}:6443
+      name: default
+    contexts:
+    - context:
+        cluster: default
+        namespace: default
+        user: default
+      name: default
+    current-context: default
+    users:
+    - name: default
+      user:
+        tokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+  flanneld.ps1: |
+    $global:ErrorActionPreference = 'Stop';
+    $global:ProgressPreference = 'SilentlyContinue';
+
+    if ($global:IsLinux) {
+      $ActiveInstall = (Get-Content -Raw -Path /opt/rkm/active).Trim()
+      $NetConfPath = "/opt/rkm/$ActiveInstall/cni-plugins/net-conf.json"
+      $OldCalicoConfPath = "/opt/rkm/$ActiveInstall/containerd-state/cni/conf/10-calico.conf"
+      $FlannelConfPath = "/opt/rkm/$ActiveInstall/containerd-state/cni/conf/10-flannel.conf"
+      $KubeconfigPath = "/scripts/kubeconfig"
+      $FlanneldPath = "/opt/rkm/$ActiveInstall/cni-plugins/flanneld"
+    } else {
+      $ActiveInstall = (Get-Content -Raw -Path C:\RKM\active).Trim()
+      $NetConfPath = "C:\RKM\$ActiveInstall\cni-plugins\net-conf.json"
+      $OldCalicoConfPath = "C:\RKM\$ActiveInstall\containerd-state\cni\conf\10-calico.conf"
+      $FlannelConfPath = "C:\RKM\$ActiveInstall\containerd-state\cni\conf\10-flannel.conf"
+      $KubeconfigPath = ".\scripts\kubeconfig"
+      $FlanneldPath = "C:\RKM\$ActiveInstall\cni-plugins\flanneld.exe"
+    }
+
+    Write-Host "Updating CNI configuration..."
+    Set-Content -Path $NetConfPath -Value `
+    @"
+    {
+      "Network": "{{ .Values.cluster.cidr }}", 
+      "Backend": {
+        "Type": "vxlan",
+        "VNI": 4096,
+        "Port": 4789
+      }
+    }
+    "@
+    if (Test-Path $OldCalicoConfPath) {
+      Remove-Item -Path $OldCalicoConfPath -Force
+    }
+
+    if ($global:IsLinux) {
+      Set-Content -Path $FlannelConfPath -Value `
+    @"
+    {
+      "name": "cbr0",
+      "cniVersion": "1.0.0",
+      "plugins": [
+        {
+          "type": "flannel",
+          "delegate": {
+            "hairpinMode": true,
+            "isDefaultGateway": true
+          }
+        },
+        {
+          "type": "portmap",
+          "capabilities": {
+            "portMappings": true
+          }
+        }
+      ]
+    }
+    "@
+    } else {
+      Set-Content -Path $FlannelConfPath -Value `
+    @"
+    {
+      "name": "flannel.4096",
+      "cniVersion": "1.0.0",
+      "plugins": [
+        {
+          "type": "flannel",
+          "capabilities": {
+            "portMappings": true,
+            "dns": true
+          },
+          "delegate": {
+            "type": "win-overlay",
+            "apiVersion": 2,
+            "Policies": [
+              {
+                "Name": "EndpointPolicy",
+                "Value": {
+                  "Type": "OutBoundNAT",
+                  "Settings": {
+                    "Exceptions": ["{{ .Values.cluster.cidr }}", "{{ .Values.cluster.serviceCidr }}"]
+                  }
+                }
+              },
+              {
+                "Name": "EndpointPolicy",
+                "Value": {
+                  "Type": "SDNRoute",
+                  "Settings": {
+                    "DestinationPrefix": "{{ .Values.cluster.serviceCidr }}",
+                    "NeedEncap": true
+                  }
+                }
+              },
+              {
+                "name": "EndpointPolicy",
+                "value": {
+                  "Type": "ProviderAddress",
+                  "Settings": {
+                    "ProviderAddress": "$env:IP"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+    "@
+    }
+
+    $FlanneldArgs = @()
+    if (!$global:IsLinux) {
+      Write-Host "Trying to resolve own hostname to IP address..."
+      while ($true) {
+        $Addresses = @()
+        try {
+          $Addresses = ([System.Net.Dns]::GetHostEntry([System.Net.Dns]::GetHostName()).AddressList | ? { $_.AddressFamily -eq "InterNetwork" } | ? { $B = $_.GetAddressBytes(); !($B[0] -eq 127 -or $B[0] -eq 172 -or ($B[0] -eq 169 -and $B[1] -eq 254)) })
+        } catch {
+        }
+        if ($Addresses.Length -eq 0) {
+          Start-Sleep -Seconds 1
+          Write-Host "Unable to resolve own hostname, retrying in 1 second..."
+          continue
+        }
+        $env:IP = $Addresses[0].IPAddressToString
+        Write-Host "Detected IP address as $env:IP"
+        break
+      }
+
+      $FlanneldArgs = @(
+        "--iptables-forward-rules=false",
+        "--iface=$env:IP"
+      )
+    }
+
+    & "$FlanneldPath" `
+      --kubeconfig-file=$KubeconfigPath `
+      --ip-masq `
+      --kube-subnet-mgr `
+      $FlanneldArgs `
+      "--net-config-path=$NetConfPath"
+    exit $LastExitCode

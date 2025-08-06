@@ -1,23 +1,23 @@
 kind: DaemonSet
 apiVersion: apps/v1
 metadata:
-  name: connectivity-windows-nslookup
+  name: flanneld-windows
   namespace: kube-system
   labels:
     app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
     app.kubernetes.io/instance: {{ .Release.Name | quote }}
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-    rkm.redpoint.games/component: connectivity-windows-nslookup
+    rkm.redpoint.games/component: flanneld-windows
 spec:
   selector:
     matchLabels:
       app.kubernetes.io/instance: {{ .Release.Name | quote }}
-      rkm.redpoint.games/component: connectivity-windows-nslookup
+      rkm.redpoint.games/component: flanneld-windows
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 1
+      maxUnavailable: "100%"
   template:
     metadata:
       labels:
@@ -25,10 +25,15 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
         app.kubernetes.io/version: {{ .Chart.AppVersion }}
         helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-        rkm.redpoint.games/component: connectivity-windows-nslookup
+        rkm.redpoint.games/component: flanneld-windows
     spec:
       nodeSelector:
         kubernetes.io/os: windows
+      securityContext:
+        windowsOptions:
+          hostProcess: true
+          runAsUserName: "NT AUTHORITY\\SYSTEM"
+      hostNetwork: true
       tolerations:
         - effect: NoSchedule
           operator: Exists
@@ -36,30 +41,27 @@ spec:
           operator: Exists
         - effect: NoExecute
           operator: Exists
+      serviceAccountName: flannel
       terminationGracePeriodSeconds: 0
       priorityClassName: system-node-critical
       containers:
-        - name: iis
-          image: mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2022
-          ports:
-          - containerPort: 80
-          livenessProbe:
-            exec:
-              command:
-              - powershell.exe
-              - "-Command"
-              - "[System.Net.Dns]::GetHostAddresses(\"google.com\")"
-            initialDelaySeconds: 60
-            periodSeconds: 5
-            failureThreshold: 5
-            timeoutSeconds: 30
-          startupProbe:
-            exec:
-              command:
-              - powershell.exe
-              - "-Command"
-              - "[System.Net.Dns]::GetHostAddresses(\"google.com\")"
-            initialDelaySeconds: 60
-            periodSeconds: 5
-            failureThreshold: 5
-            timeoutSeconds: 30
+        - name: flanneld
+          image: {{ printf "ghcr.io/redpointgames/uet/uet:%s-hostprocess" .Values.versions.rkm | quote }}
+          command:
+            - .\pwsh\pwsh.exe
+            - -ExecutionPolicy
+            - Bypass
+            - .\scripts\flanneld.ps1
+          volumeMounts:
+            - mountPath: /scripts
+              name: scripts
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ printf "flanneld-scripts-%d" .Release.Revision | quote }}
+            items:
+              - key: "flanneld.ps1"
+                path: "flanneld.ps1"
+              - key: "kubeconfig.windows"
+                path: "kubeconfig"

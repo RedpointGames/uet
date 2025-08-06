@@ -10,7 +10,7 @@
     public class ContainerdManifest : IVersionedManifest
     {
         [JsonIgnore]
-        public static int ManifestCurrentVersion => 2;
+        public static int ManifestCurrentVersion => 3;
 
         [JsonPropertyName("manifestVersion")]
         public required int ManifestVersion { get; set; }
@@ -46,15 +46,37 @@
         public required string RuncVersion { get; set; }
 
         /// <summary>
-        /// The directory where CNI plugin binaries are installed.
-        /// </summary>
-        [JsonPropertyName("cniPluginsPath")]
-        public required string CniPluginsPath { get; set; }
-
-        /// <summary>
         /// The containerd path to serve the endpoint on.
         /// </summary>
         [JsonPropertyName("containerdEndpointPath")]
         public required string ContainerdEndpointPath { get; set; }
+
+        /// <summary>
+        /// The path at which to create a symlink to the CNI plugins directory, so that flanneld can be launched inside
+        /// containers.
+        /// </summary>
+        [JsonPropertyName("cniPluginsSymlinkPath")]
+        public required string CniPluginsSymlinkPath { get; set; }
+
+        /// <summary>
+        /// The version of the Flannel CNI plugins to use, from https://github.com/containernetworking/plugins. Should
+        /// be a value like "1.7.1".
+        /// </summary>
+        [JsonPropertyName("cniPluginsVersion")]
+        public required string CniPluginsVersion { get; set; }
+
+        /// <summary>
+        /// The version of Flannel to use, from https://github.com/flannel-io/flannel. Should be a value like
+        /// "0.27.2".
+        /// </summary>
+        [JsonPropertyName("flannelVersion")]
+        public required string FlannelVersion { get; set; }
+
+        /// <summary>
+        /// The flannel CNI version suffix of the Flannel download to use, from https://github.com/flannel-io/cni-plugin. Should
+        /// be a value like "-flannel2".
+        /// </summary>
+        [JsonPropertyName("flannelCniVersionSuffix")]
+        public required string FlannelCniVersionSuffix { get; set; }
     }
 }

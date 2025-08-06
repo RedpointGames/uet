@@ -404,10 +404,13 @@
                 ContainerdVersion = ComponentVersions.Containerd,
                 UseRedpointContainerd = false,
                 RuncVersion = ComponentVersions.Runc,
-                CniPluginsPath = Path.Combine(_pathProvider.RKMRoot, "cni-plugins"),
                 ContainerdEndpointPath = OperatingSystem.IsWindows()
                     ? @"\\.\pipe\containerd-containerd"
                     : Path.Combine(_pathProvider.RKMRoot, "containerd-state", "containerd.sock"),
+                CniPluginsVersion = ComponentVersions.CniPlugins,
+                FlannelCniVersionSuffix = ComponentVersions.FlannelCniSuffix,
+                FlannelVersion = ComponentVersions.Flannel,
+                CniPluginsSymlinkPath = Path.Combine(_pathProvider.RKMRoot, "cni-plugins"),
             };
 
             _currentKubeletManifest = new KubeletManifest
