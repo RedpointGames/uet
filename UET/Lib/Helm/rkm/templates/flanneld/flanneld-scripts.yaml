@@ -88,6 +88,23 @@ data:
       New-Item -ItemType Directory $FlannelConfDirectoryPath
     }
 
+    Write-Host "Trying to resolve own hostname to IP address..."
+    while ($true) {
+      $Addresses = @()
+      try {
+        $Addresses = ([System.Net.Dns]::GetHostEntry([System.Net.Dns]::GetHostName()).AddressList | ? { $_.AddressFamily -eq "InterNetwork" } | ? { $B = $_.GetAddressBytes(); !($B[0] -eq 127 -or $B[0] -eq 172 -or ($B[0] -eq 169 -and $B[1] -eq 254)) })
+      } catch {
+      }
+      if ($Addresses.Length -eq 0) {
+        Start-Sleep -Seconds 1
+        Write-Host "Unable to resolve own hostname, retrying in 1 second..."
+        continue
+      }
+      $env:IP = $Addresses[0].IPAddressToString
+      Write-Host "Detected IP address as $env:IP"
+      break
+    }
+
     Write-Host "Updating CNI configuration..."
     Set-Content -Path $NetConfPath -Value `
     @"
@@ -184,23 +201,6 @@ data:
       ]
     }
     "@
-    }
-
-    Write-Host "Trying to resolve own hostname to IP address..."
-    while ($true) {
-      $Addresses = @()
-      try {
-        $Addresses = ([System.Net.Dns]::GetHostEntry([System.Net.Dns]::GetHostName()).AddressList | ? { $_.AddressFamily -eq "InterNetwork" } | ? { $B = $_.GetAddressBytes(); !($B[0] -eq 127 -or $B[0] -eq 172 -or ($B[0] -eq 169 -and $B[1] -eq 254)) })
-      } catch {
-      }
-      if ($Addresses.Length -eq 0) {
-        Start-Sleep -Seconds 1
-        Write-Host "Unable to resolve own hostname, retrying in 1 second..."
-        continue
-      }
-      $env:IP = $Addresses[0].IPAddressToString
-      Write-Host "Detected IP address as $env:IP"
-      break
     }
 
     if ($global:IsLinux) {
