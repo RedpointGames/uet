@@ -15,7 +15,7 @@ spec:
   reportingInterval: 0s
   allowIPIPPacketsFromWorkloads: false
   allowVXLANPacketsFromWorkloads: true
-  ipv6Support: false
+  ipv6Support: true
   nftablesMode: Disabled
   bpfEnabled: false
   windowsManageFirewallRules: Enabled
