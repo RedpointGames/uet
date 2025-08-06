@@ -1034,6 +1034,12 @@ jobs:
           OUTPUT_TYPE="registry"
         fi
 
+        echo "Tag suffix: $TAG_SUFFIX"
+        echo "Platform: $PLATFORM"
+        echo "GitHub ref: $GITHUB_REF"
+        echo "GitHub repository: $GITHUB_REPOSITORY"
+        echo "Output type: $OUTPUT_TYPE"
+
         docker \
           buildx \
           build \
