@@ -255,6 +255,7 @@
                         - "--service-account-private-key-file=/rkm/certs/svc/svc-service-account.key"
                         - "--service-cluster-ip-range={{_clusterNetworkingConfiguration.ServiceCIDR}}"
                         - "--use-service-account-credentials=true"
+                        - "--allocate-node-cidrs=true"
                         - "--v=2"
                       volumeMounts:
                         - mountPath: /rkm

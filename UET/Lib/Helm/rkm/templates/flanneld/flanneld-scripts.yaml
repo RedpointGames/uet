@@ -55,15 +55,23 @@ data:
     if ($global:IsLinux) {
       $ActiveInstall = (Get-Content -Raw -Path /opt/rkm/active).Trim()
       $NetConfPath = "/opt/rkm/$ActiveInstall/cni-plugins/net-conf.json"
-      $OldCalicoConfPath = "/opt/rkm/$ActiveInstall/containerd-state/cni/conf/10-calico.conf"
-      $FlannelConfPath = "/opt/rkm/$ActiveInstall/containerd-state/cni/conf/10-flannel.conf"
+      $OldCalicoFiles = @(
+        "/opt/rkm/$ActiveInstall/containerd-state/cni/net.d/10-calico.conf",
+        "/opt/rkm/$ActiveInstall/containerd-state/cni/net.d/10-calico.conflist",
+        "/opt/rkm/$ActiveInstall/containerd-state/cni/net.d/calico-kubeconfig"
+      )
+      $FlannelConfPath = "/opt/rkm/$ActiveInstall/containerd-state/cni/net.d/10-flannel.conf"
       $KubeconfigPath = "/scripts/kubeconfig"
       $FlanneldPath = "/opt/rkm/$ActiveInstall/cni-plugins/flanneld"
     } else {
       $ActiveInstall = (Get-Content -Raw -Path C:\RKM\active).Trim()
       $NetConfPath = "C:\RKM\$ActiveInstall\cni-plugins\net-conf.json"
-      $OldCalicoConfPath = "C:\RKM\$ActiveInstall\containerd-state\cni\conf\10-calico.conf"
-      $FlannelConfPath = "C:\RKM\$ActiveInstall\containerd-state\cni\conf\10-flannel.conf"
+      $OldCalicoFiles = @(
+        "C:\RKM\$ActiveInstall\containerd-state\cni\net.d\10-calico.conf",
+        "C:\RKM\$ActiveInstall\containerd-state\cni\net.d\10-calico.conflist",
+        "C:\RKM\$ActiveInstall\containerd-state\cni\net.d\calico-kubeconfig"
+      )
+      $FlannelConfPath = "C:\RKM\$ActiveInstall\containerd-state\cni\net.d\10-flannel.conf"
       $KubeconfigPath = ".\scripts\kubeconfig"
       $FlanneldPath = "C:\RKM\$ActiveInstall\cni-plugins\flanneld.exe"
     }
@@ -80,15 +88,17 @@ data:
       }
     }
     "@
-    if (Test-Path $OldCalicoConfPath) {
-      Remove-Item -Path $OldCalicoConfPath -Force
+    foreach ($OldCalicoFile in $OldCalicoFiles) {
+      if (Test-Path $OldCalicoFile) {
+        Remove-Item -Path $OldCalicoFile -Force
+      }
     }
 
     if ($global:IsLinux) {
       Set-Content -Path $FlannelConfPath -Value `
     @"
     {
-      "name": "cbr0",
+      "name": "flannel.4096",
       "cniVersion": "1.0.0",
       "plugins": [
         {
@@ -160,28 +170,27 @@ data:
     "@
     }
 
+    Write-Host "Trying to resolve own hostname to IP address..."
+    while ($true) {
+      $Addresses = @()
+      try {
+        $Addresses = ([System.Net.Dns]::GetHostEntry([System.Net.Dns]::GetHostName()).AddressList | ? { $_.AddressFamily -eq "InterNetwork" } | ? { $B = $_.GetAddressBytes(); !($B[0] -eq 127 -or $B[0] -eq 172 -or ($B[0] -eq 169 -and $B[1] -eq 254)) })
+      } catch {
+      }
+      if ($Addresses.Length -eq 0) {
+        Start-Sleep -Seconds 1
+        Write-Host "Unable to resolve own hostname, retrying in 1 second..."
+        continue
+      }
+      $env:IP = $Addresses[0].IPAddressToString
+      Write-Host "Detected IP address as $env:IP"
+      break
+    }
+
     $FlanneldArgs = @()
     if (!$global:IsLinux) {
-      Write-Host "Trying to resolve own hostname to IP address..."
-      while ($true) {
-        $Addresses = @()
-        try {
-          $Addresses = ([System.Net.Dns]::GetHostEntry([System.Net.Dns]::GetHostName()).AddressList | ? { $_.AddressFamily -eq "InterNetwork" } | ? { $B = $_.GetAddressBytes(); !($B[0] -eq 127 -or $B[0] -eq 172 -or ($B[0] -eq 169 -and $B[1] -eq 254)) })
-        } catch {
-        }
-        if ($Addresses.Length -eq 0) {
-          Start-Sleep -Seconds 1
-          Write-Host "Unable to resolve own hostname, retrying in 1 second..."
-          continue
-        }
-        $env:IP = $Addresses[0].IPAddressToString
-        Write-Host "Detected IP address as $env:IP"
-        break
-      }
-
       $FlanneldArgs = @(
-        "--iptables-forward-rules=false",
-        "--iface=$env:IP"
+        "--iptables-forward-rules=false"
       )
     }
 
@@ -190,5 +199,6 @@ data:
       --ip-masq `
       --kube-subnet-mgr `
       $FlanneldArgs `
+      "--iface=$env:IP" `
       "--net-config-path=$NetConfPath"
     exit $LastExitCode
