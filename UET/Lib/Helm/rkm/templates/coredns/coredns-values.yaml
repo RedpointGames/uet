@@ -15,6 +15,7 @@ data:
       clusterIP: "{{ .Values.cluster.dnsServiceIp }}"
     nodeSelector:
       kubernetes.io/os: linux
+    replicaCount: 2
     servers:
     - zones:
       - zone: .
