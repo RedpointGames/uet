@@ -1,0 +1,77 @@
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: flanneld-linux
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    rkm.redpoint.games/component: flanneld-linux
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+      rkm.redpoint.games/component: flanneld-linux
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: "100%"
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        app.kubernetes.io/version: {{ .Chart.AppVersion }}
+        helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+        rkm.redpoint.games/component: flanneld-linux
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      hostNetwork: true
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - effect: NoExecute
+          operator: Exists
+      serviceAccountName: flannel
+      terminationGracePeriodSeconds: 0
+      priorityClassName: system-node-critical
+      containers:
+        - name: flanneld
+          image: {{ printf "ghcr.io/redpointgames/uet/uet:%s" .Values.versions.rkm | quote }}
+          command:
+            - pwsh
+            - -ExecutionPolicy
+            - Bypass
+            - /scripts/flanneld.ps1
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - mountPath: /scripts
+              name: scripts
+              readOnly: true
+            - mountPath: /opt/rkm
+              name: rkm
+          securityContext:
+            privileged: false
+            capabilities:
+              add: ["NET_ADMIN", "NET_RAW"]
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ printf "flanneld-scripts-%d" .Release.Revision | quote }}
+            items:
+              - key: "flanneld.ps1"
+                path: "flanneld.ps1"
+              - key: "kubeconfig.linux"
+                path: "kubeconfig"
+        - name: rkm
+          hostPath:
+            path: /opt/rkm

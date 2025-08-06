@@ -1,5 +1,6 @@
 ﻿namespace UET.Commands.Cluster
 {
+    using Docker.Registry.DotNet.Models;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
@@ -15,6 +16,7 @@
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Formats.Tar;
+    using System.IO;
     using System.IO.Compression;
     using System.Text;
     using System.Text.RegularExpressions;
@@ -154,7 +156,9 @@
                 return !anyFailures;
             }
 
-            private async Task RunWithManifestAsync(ContainerdManifest manifest, CancellationToken cancellationToken)
+            private async Task<string?> DownloadAndInstallContainerdIfNeeded(
+                ContainerdManifest manifest,
+                CancellationToken cancellationToken)
             {
                 // Log the version of containerd that we're about to run.
                 var versionWithSuffix = manifest.ContainerdVersion;
@@ -163,6 +167,9 @@
                 {
                     versionWithSuffix += "-" + manifest.RuncVersion;
                 }
+                versionWithSuffix += "-" + manifest.CniPluginsVersion;
+                versionWithSuffix += manifest.FlannelCniVersionSuffix;
+                versionWithSuffix += "-" + manifest.FlannelVersion;
                 if (manifest.UseRedpointContainerd)
                 {
                     versionWithSuffix += "-redpoint";
@@ -211,7 +218,7 @@
                                 cancellationToken))
                             {
                                 _logger.LogError("Failed to extract containerd to installation path.");
-                                return;
+                                return null;
                             }
                         }
                         _logger.LogInformation($"Downloaded and extracted primary containerd archive from '{containerdUri}' to '{containerdInstallPath}'.");
@@ -282,10 +289,111 @@
                             if (!foundContainerdOverride)
                             {
                                 _logger.LogError("Unable to find containerd.exe within Redpoint containerd archive.");
-                                return;
+                                return null;
                             }
                         }
                         _logger.LogInformation($"Downloaded and extracted Redpoint containerd archive from '{redpointUri}'.");
+                    }
+
+                    // Determine location to install CNI plugins.
+                    var cniPluginsDirectory = Path.Combine(containerdInstallPath, "cni-plugins");
+                    Directory.CreateDirectory(cniPluginsDirectory);
+
+                    // Download and extract the CNI plugins.
+                    {
+                        var platformName = OperatingSystem.IsWindows() ? "windows" : "linux";
+                        var cniPluginsUri = new Uri($"https://github.com/containernetworking/plugins/releases/download/v{manifest.CniPluginsVersion}/cni-plugins-{platformName}-amd64-v{manifest.CniPluginsVersion}.tgz");
+                        _logger.LogInformation($"Downloading and extracting CNI plugins archive from '{cniPluginsUri}'...");
+                        using (var archiveMemory = new MemoryStream())
+                        {
+                            // Download the archive.
+                            using (var httpClient = new HttpClient())
+                            {
+                                using (var stream = await httpClient.GetStreamAsync(cniPluginsUri, cancellationToken))
+                                {
+                                    await stream.CopyToAsync(archiveMemory, cancellationToken);
+                                }
+                            }
+
+                            // Rewind to the beginning.
+                            archiveMemory.Seek(0, SeekOrigin.Begin);
+
+                            // Extract CNI plugins to the target directory.
+                            if (!await ExtractTarGz(
+                                archiveMemory,
+                                cniPluginsDirectory,
+                                cancellationToken))
+                            {
+                                _logger.LogError("Failed to extract CNI plugins to installation path.");
+                                return null;
+                            }
+                        }
+                        _logger.LogInformation($"Downloaded and extracted CNI plugins archive from '{cniPluginsUri}' to '{cniPluginsDirectory}'.");
+                    }
+
+                    // Download and extract the flannel CNI plugin.
+                    {
+                        var platformName = OperatingSystem.IsWindows() ? "windows" : "linux";
+                        var flannelPluginUri = new Uri($"https://github.com/flannel-io/cni-plugin/releases/download/v{manifest.CniPluginsVersion}{manifest.FlannelCniVersionSuffix}/cni-plugin-flannel-{platformName}-amd64-v{manifest.CniPluginsVersion}{manifest.FlannelCniVersionSuffix}.tgz");
+                        _logger.LogInformation($"Downloading and extracting flannel CNI plugin archive from '{flannelPluginUri}'...");
+                        using (var archiveMemory = new MemoryStream())
+                        {
+                            // Download the archive.
+                            using (var httpClient = new HttpClient())
+                            {
+                                using (var stream = await httpClient.GetStreamAsync(flannelPluginUri, cancellationToken))
+                                {
+                                    await stream.CopyToAsync(archiveMemory, cancellationToken);
+                                }
+                            }
+
+                            // Rewind to the beginning.
+                            archiveMemory.Seek(0, SeekOrigin.Begin);
+
+                            // Extract CNI plugins to the target directory.
+                            if (!await ExtractTarGz(
+                                archiveMemory,
+                                cniPluginsDirectory,
+                                cancellationToken))
+                            {
+                                _logger.LogError("Failed to extract flannel CNI plugin to installation path.");
+                                return null;
+                            }
+                        }
+                        _logger.LogInformation($"Downloaded and extracted flannel CNI plugin archive from '{flannelPluginUri}' to '{cniPluginsDirectory}'.");
+                    }
+
+                    // Download and extract the flannel daemon. We just put it in the CNI plugins directory
+                    // like RKE2 does.
+                    {
+                        var platformName = OperatingSystem.IsWindows() ? "windows" : "linux";
+                        var flannelPluginUri = new Uri($"https://github.com/flannel-io/flannel/releases/download/v{manifest.FlannelVersion}/flannel-v{manifest.FlannelVersion}-{platformName}-amd64.tar.gz");
+                        _logger.LogInformation($"Downloading and extracting flannel daemon archive from '{flannelPluginUri}'...");
+                        using (var archiveMemory = new MemoryStream())
+                        {
+                            // Download the archive.
+                            using (var httpClient = new HttpClient())
+                            {
+                                using (var stream = await httpClient.GetStreamAsync(flannelPluginUri, cancellationToken))
+                                {
+                                    await stream.CopyToAsync(archiveMemory, cancellationToken);
+                                }
+                            }
+
+                            // Rewind to the beginning.
+                            archiveMemory.Seek(0, SeekOrigin.Begin);
+
+                            // Extract CNI plugins to the target directory.
+                            if (!await ExtractTarGz(
+                                archiveMemory,
+                                cniPluginsDirectory,
+                                cancellationToken))
+                            {
+                                _logger.LogError("Failed to extract flannel daemon to installation path.");
+                                return null;
+                            }
+                        }
+                        _logger.LogInformation($"Downloaded and extracted flannel daemon archive from '{flannelPluginUri}' to '{cniPluginsDirectory}'.");
                     }
 
                     // Mark this install as having been completed.
@@ -296,6 +404,19 @@
 
                 // Log that containerd is now ready on disk.
                 _logger.LogInformation($"Containerd '{versionWithSuffix}' is now ready on disk.");
+                return containerdInstallPath;
+            }
+
+            private async Task RunWithManifestAsync(ContainerdManifest manifest, CancellationToken cancellationToken)
+            {
+                // Download and install containerd.
+                var containerdInstallPath = await DownloadAndInstallContainerdIfNeeded(
+                    manifest,
+                    cancellationToken);
+                if (containerdInstallPath == null)
+                {
+                    return;
+                }
 
                 // Write out the containerd configuration file.
                 Directory.CreateDirectory(manifest.ContainerdStatePath);
@@ -375,7 +496,7 @@
                             unset_seccomp_profile = ""
 
                             [plugins."io.containerd.grpc.v1.cri".cni]
-                              bin_dir = "{{manifest.CniPluginsPath}}"
+                              bin_dir = "{{containerdInstallPath}}/cni-plugins"
                               conf_dir = "{{manifest.ContainerdStatePath}}/cni/net.d"
                               conf_template = ""
                               ip_pref = ""
@@ -560,7 +681,8 @@
                 else
                 {
                     var containerdStatePath = manifest.ContainerdStatePath.Replace("\\", "\\\\", StringComparison.Ordinal);
-                    var cniPluginsPath = manifest.CniPluginsPath.Replace("\\", "\\\\", StringComparison.Ordinal);
+                    var cniPluginsPath = Path.Combine(containerdInstallPath, "cni-plugins")
+                        .Replace("\\", "\\\\", StringComparison.Ordinal);
 
                     await File.WriteAllTextAsync(
                         Path.Combine(manifest.ContainerdStatePath, "config.yaml"),
@@ -771,6 +893,48 @@
                           uid = 0
                         """,
                         cancellationToken);
+                }
+
+                // Create a symlink so that flanneld can be launched inside containers.
+                if (!string.IsNullOrWhiteSpace(manifest.CniPluginsSymlinkPath))
+                {
+                    var isValidLink = false;
+                    var symbolicLinkTarget = Path.GetRelativePath(
+                        Path.GetDirectoryName(manifest.CniPluginsSymlinkPath)!,
+                        Path.Combine(containerdInstallPath, "cni-plugins"));
+                    {
+                        FileInfo pathInfo = new FileInfo(manifest.CniPluginsSymlinkPath);
+                        if (pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                        {
+                            if (pathInfo.LinkTarget == symbolicLinkTarget)
+                            {
+                                _logger.LogInformation($"Existing symbolic link is already valid at '{manifest.CniPluginsSymlinkPath}'.");
+                                isValidLink = true;
+                            }
+                            else
+                            {
+                                _logger.LogInformation($"Deleting existing symbolic link at '{manifest.CniPluginsSymlinkPath}'...");
+                                File.Delete(manifest.CniPluginsSymlinkPath);
+                            }
+                        }
+                    }
+                    if (!isValidLink)
+                    {
+                        if (File.Exists(manifest.CniPluginsSymlinkPath))
+                        {
+                            _logger.LogInformation($"Deleting existing file at '{manifest.CniPluginsSymlinkPath}'...");
+                            File.Delete(manifest.CniPluginsSymlinkPath);
+                        }
+                        if (Directory.Exists(manifest.CniPluginsSymlinkPath))
+                        {
+                            _logger.LogInformation($"Deleting existing directory at '{manifest.CniPluginsSymlinkPath}'...");
+                            await DirectoryAsync.DeleteAsync(manifest.CniPluginsSymlinkPath, true);
+                        }
+                        _logger.LogInformation($"Creating symbolic link at '{manifest.CniPluginsSymlinkPath}' with target '{symbolicLinkTarget}'...");
+                        Directory.CreateSymbolicLink(
+                            manifest.CniPluginsSymlinkPath,
+                            symbolicLinkTarget);
+                    }
                 }
 
                 // Create the containerd process specification.

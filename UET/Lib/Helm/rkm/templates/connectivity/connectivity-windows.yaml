@@ -1,19 +1,20 @@
 kind: DaemonSet
 apiVersion: apps/v1
 metadata:
-  name: connectivity-windows-curl
+  name: connectivity-windows
   namespace: kube-system
   labels:
     app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
     app.kubernetes.io/instance: {{ .Release.Name | quote }}
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-    rkm.redpoint.games/component: connectivity-windows-curl
+    rkm.redpoint.games/component: connectivity-windows
+    rkm.redpoint.games/connectivity-test: "true"
 spec:
   selector:
     matchLabels:
       app.kubernetes.io/instance: {{ .Release.Name | quote }}
-      rkm.redpoint.games/component: connectivity-windows-curl
+      rkm.redpoint.games/component: connectivity-windows
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:
@@ -25,7 +26,8 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
         app.kubernetes.io/version: {{ .Chart.AppVersion }}
         helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-        rkm.redpoint.games/component: connectivity-windows-curl
+        rkm.redpoint.games/component: connectivity-windows
+        rkm.redpoint.games/connectivity-test: "true"
     spec:
       nodeSelector:
         kubernetes.io/os: windows
@@ -39,25 +41,8 @@ spec:
       terminationGracePeriodSeconds: 0
       priorityClassName: system-node-critical
       containers:
-        - name: iis
-          image: mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2022
-          ports:
-          - containerPort: 80
-          livenessProbe:
-            exec:
-              command:
-              - curl.exe
-              - "-v"
-              - "http://127.0.0.1:80"
-            initialDelaySeconds: 60
-            periodSeconds: 5
-            failureThreshold: 5
-          startupProbe:
-            exec:
-              command:
-              - curl.exe
-              - "-v"
-              - "http://127.0.0.1:80"
-            initialDelaySeconds: 60
-            periodSeconds: 5
-            failureThreshold: 5
+        - name: uet
+          image: {{ printf "ghcr.io/redpointgames/uet/uet:2025.1218.595-ltsc2022" | quote }}
+          args:
+          - "cluster"
+          - "check-connectivity"

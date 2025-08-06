@@ -65,17 +65,8 @@
                 $"oci://ghcr.io/redpointgames/uet/rkm-components:{_rkmVersionProvider.Version}",
                 $"""
                 versions:
-                  calico: "{ComponentVersions.Calico}"
-                  cni: "{ComponentVersions.Cni}"
-                  sdn: "{ComponentVersions.Sdn}"
                   rkm: "{_rkmVersionProvider.Version}"
                   kubernetes: "{ComponentVersions.Kubernetes}"
-
-                calico:
-                  root: "/opt/rkm/{_pathProvider.RKMInstallationId}/calico"
-                  cni:
-                    mtu: 1500
-                    pluginsRoot: "/opt/rkm/{_pathProvider.RKMInstallationId}/cni-plugins"
 
                 containerd:
                   root: "/opt/rkm/{_pathProvider.RKMInstallationId}/containerd-state"
