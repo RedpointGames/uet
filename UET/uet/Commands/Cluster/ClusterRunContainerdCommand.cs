@@ -360,6 +360,12 @@
                                 return null;
                             }
                         }
+                        var archFile = Path.Combine(cniPluginsDirectory, "flannel-amd64" + (OperatingSystem.IsWindows() ? ".exe" : string.Empty));
+                        var nonArchFile = Path.Combine(cniPluginsDirectory, "flannel" + (OperatingSystem.IsWindows() ? ".exe" : string.Empty));
+                        if (File.Exists(archFile))
+                        {
+                            File.Move(archFile, nonArchFile, true);
+                        }
                         _logger.LogInformation($"Downloaded and extracted flannel CNI plugin archive from '{flannelPluginUri}' to '{cniPluginsDirectory}'.");
                     }
 

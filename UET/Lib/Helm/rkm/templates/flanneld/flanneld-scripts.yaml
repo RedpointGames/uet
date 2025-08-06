@@ -60,9 +60,11 @@ data:
         "/opt/rkm/$ActiveInstall/containerd-state/cni/net.d/10-calico.conflist",
         "/opt/rkm/$ActiveInstall/containerd-state/cni/net.d/calico-kubeconfig"
       )
-      $FlannelConfPath = "/opt/rkm/$ActiveInstall/containerd-state/cni/net.d/10-flannel.conf"
+      $FlannelConfPath = "/opt/rkm/$ActiveInstall/containerd-state/cni/net.d/10-flannel.conflist"
       $KubeconfigPath = "/scripts/kubeconfig"
       $FlanneldPath = "/opt/rkm/$ActiveInstall/cni-plugins/flanneld"
+      $SubnetFilePath = "/opt/rkm/$ActiveInstall/containerd-state/flannel-subnet.env"
+      $FlannelDataDir = "/opt/rkm/$ActiveInstall/containerd-state/flannel-data"
     } else {
       $ActiveInstall = (Get-Content -Raw -Path C:\RKM\active).Trim()
       $NetConfPath = "C:\RKM\$ActiveInstall\cni-plugins\net-conf.json"
@@ -71,9 +73,14 @@ data:
         "C:\RKM\$ActiveInstall\containerd-state\cni\net.d\10-calico.conflist",
         "C:\RKM\$ActiveInstall\containerd-state\cni\net.d\calico-kubeconfig"
       )
-      $FlannelConfPath = "C:\RKM\$ActiveInstall\containerd-state\cni\net.d\10-flannel.conf"
+      $FlannelConfPath = "C:\RKM\$ActiveInstall\containerd-state\cni\net.d\10-flannel.conflist"
       $KubeconfigPath = ".\scripts\kubeconfig"
       $FlanneldPath = "C:\RKM\$ActiveInstall\cni-plugins\flanneld.exe"
+      $SubnetFilePath = "C:\RKM\$ActiveInstall\containerd-state\flannel-subnet.env"
+      $FlannelDataDir = "C:\RKM\$ActiveInstall\containerd-state\flannel-data"
+    }
+    if (!(Test-Path $FlannelDataDir)) {
+      New-Item -ItemType Directory $FlannelDataDir
     }
 
     Write-Host "Updating CNI configuration..."
@@ -103,6 +110,8 @@ data:
       "plugins": [
         {
           "type": "flannel",
+          "subnetFile": "$SubnetFilePath",
+          "dataDir": "$FlannelDataDir",
           "delegate": {
             "hairpinMode": true,
             "isDefaultGateway": true
@@ -126,6 +135,8 @@ data:
       "plugins": [
         {
           "type": "flannel",
+          "subnetFile": "$($SubnetFilePath.Replace("\", "\\"))",
+          "dataDir": "$($FlannelDataDir.Replace("\", "\\"))",
           "capabilities": {
             "portMappings": true,
             "dns": true
@@ -187,6 +198,20 @@ data:
       break
     }
 
+    if ($global:IsLinux) {
+      Write-Host "Installing iptables if needed..."
+      if ($null -eq (Get-Command -ErrorAction SilentlyContinue iptables)) {
+        apt-get update
+        if ($LastExitCode -ne 0) {
+          exit $LastExitCode
+        }
+        apt-get install iptables -y
+        if ($LastExitCode -ne 0) {
+          exit $LastExitCode
+        }
+      }
+    }
+
     $FlanneldArgs = @()
     if (!$global:IsLinux) {
       $FlanneldArgs = @(
@@ -200,5 +225,6 @@ data:
       --kube-subnet-mgr `
       $FlanneldArgs `
       "--iface=$env:IP" `
-      "--net-config-path=$NetConfPath"
+      "--net-config-path=$NetConfPath" `
+      "--subnet-file=$SubnetFilePath"
     exit $LastExitCode

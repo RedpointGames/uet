@@ -10,7 +10,7 @@
     public class ContainerdManifest : IVersionedManifest
     {
         [JsonIgnore]
-        public static int ManifestCurrentVersion => 3;
+        public static int ManifestCurrentVersion => 4;
 
         [JsonPropertyName("manifestVersion")]
         public required int ManifestVersion { get; set; }
