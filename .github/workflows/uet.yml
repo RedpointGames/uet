@@ -738,6 +738,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
     needs:
       - package-helm
+      - publish-uet-containers
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
@@ -833,6 +834,7 @@ jobs:
       - pass-2-mac
       - pass-2-linux
       - cf-linux-tests
+      - publish-helm
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
