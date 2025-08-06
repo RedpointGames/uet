@@ -738,6 +738,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
     needs:
       - package-helm
+      - publish-uet-containers
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
@@ -833,6 +834,7 @@ jobs:
       - pass-2-mac
       - pass-2-linux
       - cf-linux-tests
+      - publish-helm
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
@@ -953,8 +955,8 @@ jobs:
         docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/redpointgames/uet/uefs:${env:UET_PACKAGE_VERSION}" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
         docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/redpointgames/uet/uefs:latest" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
 
-  publish-uet-container:
-    name: "Publish UET Container"
+  publish-uet-containers:
+    name: "Publish UET Containers"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -975,104 +977,12 @@ jobs:
       - pass-2-mac
       - pass-2-linux
       - cf-linux-tests
+    strategy:
+      matrix:
+        variant: [linux, linux-wine, windows-ltsc2022, windows-ltsc2025, windows-hostprocess]
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Download Linux Pass 2
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-2-linux
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Log in to the Container registry
-      if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
-      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Build UET Container
-      if: github.ref != 'refs/heads/main'
-      shell: pwsh
-      run: |
-        docker buildx create --name img-builder-linux --use --platform linux/amd64
-        docker buildx build --platform linux/amd64 --output=type=image -f UET/Lib/Container/linux.Dockerfile -t "ghcr.io/redpointgames/uet/uet:${env:UET_PACKAGE_VERSION}" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
-        docker buildx build --platform linux/amd64 --output=type=image -f UET/Lib/Container/linux.Dockerfile -t "ghcr.io/redpointgames/uet/uet:latest" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
-    - name: Publish UET Container
-      if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
-      shell: pwsh
-      run: |
-        docker buildx create --name img-builder-linux --use --platform linux/amd64
-        docker buildx build --platform linux/amd64 --output=type=registry -f UET/Lib/Container/linux.Dockerfile -t "ghcr.io/redpointgames/uet/uet:${env:UET_PACKAGE_VERSION}" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
-        docker buildx build --platform linux/amd64 --output=type=registry -f UET/Lib/Container/linux.Dockerfile -t "ghcr.io/redpointgames/uet/uet:latest" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
-
-  publish-uet-container-wine:
-    name: "Publish UET Container (with Wine)"
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      attestations: write
-      id-token: write
-    needs:
-      - timestamp
-      - libs-win
-      - libs-mac
-      - libs-linux
-      - uefs-win
-      - uefs-mac
-      - shim-win
-      - shim-mac
-      - shim-linux
-      - pass-2-win
-      - pass-2-mac
-      - pass-2-linux
-      - cf-linux-tests
-    env:
-      UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Download Linux Pass 2
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-2-linux
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Log in to the Container registry
-      if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
-      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Build UET Container
-      if: github.ref != 'refs/heads/main'
-      shell: pwsh
-      run: |
-        docker buildx create --name img-builder-linux --use --platform linux/amd64
-        docker buildx build --platform linux/amd64 --output=type=image -f UET/Lib/Container/linux-wine.Dockerfile -t "ghcr.io/redpointgames/uet/uet:${env:UET_PACKAGE_VERSION}-wine" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
-        docker buildx build --platform linux/amd64 --output=type=image -f UET/Lib/Container/linux-wine.Dockerfile -t "ghcr.io/redpointgames/uet/uet:latest-wine" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
-    - name: Publish UET Container
-      if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
-      shell: pwsh
-      run: |
-        docker buildx create --name img-builder-linux --use --platform linux/amd64
-        docker buildx build --platform linux/amd64 --output=type=registry -f UET/Lib/Container/linux-wine.Dockerfile -t "ghcr.io/redpointgames/uet/uet:${env:UET_PACKAGE_VERSION}-wine" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
-        docker buildx build --platform linux/amd64 --output=type=registry -f UET/Lib/Container/linux-wine.Dockerfile -t "ghcr.io/redpointgames/uet/uet:latest-wine" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
-
-  publish-uet-container-hostprocess:
-    name: "Publish UET Container (for Host Process)"
-    runs-on: ubuntu-latest
-    needs:
-      - timestamp
-      - pass-2-win
-    env:
-      UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
+      UET_CONTAINER_VARIANT: ${{ matrix.variant }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -1082,6 +992,16 @@ jobs:
       uses: docker/setup-buildx-action@v3
       with:
         driver-opts: image=moby/buildkit:v0.11.0
+    - name: Download Linux Pass 2
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: pass-2-linux
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+    - name: Download Windows Pass 2
+      uses: ./.github/actions/download-artifact
+      with:
+        UET_ARTIFACT_NAME: pass-2-win
+        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
     - name: Log in to the Container registry
       if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
       uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
@@ -1089,22 +1009,51 @@ jobs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Build Container
-      if: github.ref != 'refs/heads/main' || github.repository != 'RedpointGames/uet'
-      shell: pwsh
+    - name: Build/Publish UET Container
       run: |
-        pushd UET/Lib/Container
-        cp "../../../UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe" ./uet.exe
-        docker buildx build --platform windows/amd64 --output=type=image --pull -t "ghcr.io/redpointgames/uet/uet:${env:UET_PACKAGE_VERSION}-hostprocess" . -f dockerd-hostprocess.Dockerfile
-        docker buildx build --platform windows/amd64 --output=type=image --pull -t "ghcr.io/redpointgames/uet/uet:latest-hostprocess" . -f dockerd-hostprocess.Dockerfile
-    - name: Publish Container
-      if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
-      shell: pwsh
-      run: |
-        pushd UET/Lib/Container
-        cp "../../../UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe" ./uet.exe
-        docker buildx build --platform windows/amd64 --output=type=registry --pull -t "ghcr.io/redpointgames/uet/uet:${env:UET_PACKAGE_VERSION}-hostprocess" . -f dockerd-hostprocess.Dockerfile
-        docker buildx build --platform windows/amd64 --output=type=registry --pull -t "ghcr.io/redpointgames/uet/uet:latest-hostprocess" . -f dockerd-hostprocess.Dockerfile
+        TAG_SUFFIX=""
+        PLATFORM="linux/amd64"
+        if [ "$UET_CONTAINER_VARIANT" == "linux-wine" ]; then
+          TAG_SUFFIX="-wine"
+        fi
+        if [ "$UET_CONTAINER_VARIANT" == "windows-ltsc2022" ]; then
+          TAG_SUFFIX="-ltsc2022"
+          PLATFORM="windows/amd64"
+        fi
+        if [ "$UET_CONTAINER_VARIANT" == "windows-ltsc2025" ]; then
+          TAG_SUFFIX="-ltsc2025"
+          PLATFORM="windows/amd64"
+        fi
+        if [ "$UET_CONTAINER_VARIANT" == "windows-hostprocess" ]; then
+          TAG_SUFFIX="-hostprocess"
+          PLATFORM="windows/amd64"
+        fi
+
+        OUTPUT_TYPE="image"
+        if [ "$GITHUB_REF" == "refs/heads/main" ] && [ "$GITHUB_REPOSITORY" == "RedpointGames/uet" ]; then
+          OUTPUT_TYPE="registry"
+        fi
+
+        docker \
+          buildx \
+          build \
+          --platform $PLATFORM \
+          --output=type=image \
+          --pull \
+          -t "ghcr.io/redpointgames/uet/uet:$UET_PACKAGE_VERSION$TAG_SUFFIX" \
+          --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} \
+          -f UET/Lib/Container/$UET_CONTAINER_VARIANT.Dockerfile \
+          .
+        docker \
+          buildx \
+          build \
+          --platform $PLATFORM \
+          --output=type=image \
+          --pull \
+          -t "ghcr.io/redpointgames/uet/uet:latest$TAG_SUFFIX" \
+          --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} \
+          -f UET/Lib/Container/$UET_CONTAINER_VARIANT.Dockerfile \
+          .
   
   cf-linux-tests:
     name: "Test Cloud Framework"
