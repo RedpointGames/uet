@@ -58,6 +58,7 @@ namespace UET.Commands.Cluster
             }
             command.AddCommand(ClusterRunContainerdCommand.CreateRunContainerdCommand());
             command.AddCommand(ClusterRunKubeletCommand.CreateRunKubeletCommand());
+            command.AddCommand(ClusterCheckConnectivityCommand.CreateClusterCheckConnectivityCommand());
             return command;
         }
     }
