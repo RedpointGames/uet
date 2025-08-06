@@ -12,7 +12,14 @@ ARG UET_TARGET_FRAMEWORK
 COPY UET/uet/bin/Release/${UET_TARGET_FRAMEWORK}/win-x64/publish/uet.exe uet.exe
 
 FROM mcr.microsoft.com/windows/servercore:ltsc2022
-ENTRYPOINT [".\\pwsh\\pwsh.exe", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';", "-ExecutionPolicy", "Bypass"]
+
+ENV PATH="C:\Windows\system32;C:\Windows;C:\pwsh;C:\ProgramData\UET\Current;"
+ENTRYPOINT ["C:\\ProgramData\\UET\\Current\\uet.exe"]
+
+ARG UET_VERSION
+
 COPY --from=build pwsh pwsh/
-COPY --from=build uet.exe .
+COPY --from=build uet.exe uet.exe
+COPY --from=build uet.exe ProgramData/UET/Current/uet.exe
+COPY --from=build uet.exe ProgramData/UET/${UET_VERSION}/uet.exe
 

@@ -1048,6 +1048,7 @@ jobs:
           --pull \
           -t "ghcr.io/redpointgames/uet/uet:$UET_PACKAGE_VERSION$TAG_SUFFIX" \
           --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} \
+          --build-arg UET_VERSION=$UET_PACKAGE_VERSION \
           -f UET/Lib/Container/$UET_CONTAINER_VARIANT.Dockerfile \
           .
         docker \
@@ -1058,6 +1059,7 @@ jobs:
           --pull \
           -t "ghcr.io/redpointgames/uet/uet:latest$TAG_SUFFIX" \
           --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} \
+          --build-arg UET_VERSION=$UET_PACKAGE_VERSION \
           -f UET/Lib/Container/$UET_CONTAINER_VARIANT.Dockerfile \
           .
   

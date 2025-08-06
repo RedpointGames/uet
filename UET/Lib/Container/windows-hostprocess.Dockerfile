@@ -12,7 +12,10 @@ ARG UET_TARGET_FRAMEWORK
 COPY UET/uet/bin/Release/${UET_TARGET_FRAMEWORK}/win-x64/publish/uet.exe uet.exe
 
 FROM mcr.microsoft.com/oss/kubernetes/windows-host-process-containers-base-image:v1.0.0
-ENTRYPOINT [".\\pwsh\\pwsh.exe", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';", "-ExecutionPolicy", "Bypass"]
-COPY --from=build pwsh pwsh/
-COPY --from=build uet.exe .
 
+ENTRYPOINT [".\\uet.exe"]
+
+ARG UET_VERSION
+
+COPY --from=build pwsh pwsh/
+COPY --from=build uet.exe uet.exe
