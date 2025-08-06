@@ -46,14 +46,10 @@
             if (OperatingSystem.IsLinux())
             {
                 // Ensure the assets are downloaded.
-                await _assetManager.EnsureAsset("RKM:Downloads:CniPlugins:Linux", "cni-plugins.tar.gz", stoppingToken);
                 if (context.Role == RoleType.Controller)
                 {
                     await _assetManager.EnsureAsset("RKM:Downloads:Helm:Linux", "helm.tar.gz", stoppingToken);
                 }
-
-                // Extract the assets.
-                await _assetManager.ExtractAsset("cni-plugins.tar.gz", Path.Combine(_pathProvider.RKMRoot, "cni-plugins"), stoppingToken);
 
                 // On the controller, extract the controller-specific assets.
                 if (context.Role == RoleType.Controller)
