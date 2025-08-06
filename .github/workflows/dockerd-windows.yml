@@ -1,0 +1,39 @@
+name: Dockerd Host Process Container
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  dockerd-container:
+    name: "Build Dockerd Container"
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        driver-opts: image=moby/buildkit:v0.11.0
+    - name: Log in to the Container registry
+      if: github.ref == 'refs/heads/main'
+      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build Container
+      if: github.ref != 'refs/heads/main'
+      shell: pwsh
+      run: |
+        pushd UET/Lib/Container
+        docker buildx build --platform windows/amd64 --output=type=image --pull -t "ghcr.io/redpointgames/uet/dockerd-hostprocess:latest" . -f dockerd-hostprocess.Dockerfile
+    - name: Publish Container
+      if: github.ref == 'refs/heads/main'
+      shell: pwsh
+      run: |
+        pushd UET/Lib/Container
+        docker buildx build --platform windows/amd64 --output=type=registry --pull -t "ghcr.io/redpointgames/uet/dockerd-hostprocess:latest" . -f dockerd-hostprocess.Dockerfile
