@@ -41,17 +41,8 @@ spec:
       terminationGracePeriodSeconds: 0
       priorityClassName: system-node-critical
       containers:
-        - name: nginx
-          image: nginx:1.29
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 3
-            periodSeconds: 3
-          startupProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 3
-            periodSeconds: 3
+        - name: uet
+          image: {{ printf "ghcr.io/redpointgames/uet/uet:%s" .Values.versions.rkm | quote }}
+          args:
+          - "cluster"
+          - "check-connectivity"

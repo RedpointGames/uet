@@ -15,7 +15,7 @@ data:
     kind: Config
     clusters:
     - cluster:
-        certificate-authority: ".\\var\\run\\secrets\\kubernetes.io\\serviceaccount\\ca.crt"
+        certificate-authority: "C:\\var\\run\\secrets\\kubernetes.io\\serviceaccount\\ca.crt"
         server: https://{{ .Values.cluster.controllerIp }}:6443
       name: default
     contexts:
@@ -28,7 +28,7 @@ data:
     users:
     - name: default
       user:
-        tokenFile: ".\\var\\run\\secrets\\kubernetes.io\\serviceaccount\\token"
+        tokenFile: "C:\\var\\run\\secrets\\kubernetes.io\\serviceaccount\\token"
   kubeconfig.linux: |
     apiVersion: v1
     kind: Config
@@ -60,6 +60,7 @@ data:
         "/opt/rkm/$ActiveInstall/containerd-state/cni/net.d/10-calico.conflist",
         "/opt/rkm/$ActiveInstall/containerd-state/cni/net.d/calico-kubeconfig"
       )
+      $FlannelConfDirectoryPath = "/opt/rkm/$ActiveInstall/containerd-state/cni/net.d"
       $FlannelConfPath = "/opt/rkm/$ActiveInstall/containerd-state/cni/net.d/10-flannel.conflist"
       $KubeconfigPath = "/scripts/kubeconfig"
       $FlanneldPath = "/opt/rkm/$ActiveInstall/cni-plugins/flanneld"
@@ -73,14 +74,18 @@ data:
         "C:\RKM\$ActiveInstall\containerd-state\cni\net.d\10-calico.conflist",
         "C:\RKM\$ActiveInstall\containerd-state\cni\net.d\calico-kubeconfig"
       )
+      $FlannelConfDirectoryPath = "C:\RKM\$ActiveInstall\containerd-state\cni\net.d"
       $FlannelConfPath = "C:\RKM\$ActiveInstall\containerd-state\cni\net.d\10-flannel.conflist"
-      $KubeconfigPath = ".\scripts\kubeconfig"
+      $KubeconfigPath = "C:\scripts\kubeconfig"
       $FlanneldPath = "C:\RKM\$ActiveInstall\cni-plugins\flanneld.exe"
       $SubnetFilePath = "C:\RKM\$ActiveInstall\containerd-state\flannel-subnet.env"
       $FlannelDataDir = "C:\RKM\$ActiveInstall\containerd-state\flannel-data"
     }
     if (!(Test-Path $FlannelDataDir)) {
       New-Item -ItemType Directory $FlannelDataDir
+    }
+    if (!(Test-Path $FlannelConfDirectoryPath)) {
+      New-Item -ItemType Directory $FlannelConfDirectoryPath
     }
 
     Write-Host "Updating CNI configuration..."

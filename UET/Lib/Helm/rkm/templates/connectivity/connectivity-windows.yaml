@@ -42,7 +42,7 @@ spec:
       priorityClassName: system-node-critical
       containers:
         - name: uet
-          image: {{ printf "ghcr.io/redpointgames/uet/uet:2025.1218.595-ltsc2022" | quote }}
+          image: {{ printf "ghcr.io/redpointgames/uet/uet:%s-ltsc2022" .Values.versions.rkm | quote }}
           args:
           - "cluster"
           - "check-connectivity"
