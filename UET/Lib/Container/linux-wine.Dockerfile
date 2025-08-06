@@ -1,5 +1,11 @@
 FROM ghcr.io/redpointgames/uet/wine:9.0.0
 
+RUN apt-get update && apt-get install -y curl && \
+    curl -Lo pwsh.deb https://github.com/PowerShell/PowerShell/releases/download/v7.5.2/powershell_7.5.2-1.deb_amd64.deb && \
+    dpkg -i pwsh.deb && \
+    apt-get install -y -f && \
+    rm pwsh.deb
+
 ARG UET_TARGET_FRAMEWORK
 
 USER root
