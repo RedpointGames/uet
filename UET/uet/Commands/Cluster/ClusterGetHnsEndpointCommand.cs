@@ -1,5 +1,4 @@
-﻿using Fsp;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Redpoint.KubernetesManager.Services;
 using Redpoint.ServiceControl;
