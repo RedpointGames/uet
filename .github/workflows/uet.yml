@@ -1096,7 +1096,7 @@ jobs:
         pushd UET/Lib/Container
         cp "../../../UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe" ./uet.exe
         docker buildx build --platform windows/amd64 --output=type=image --pull -t "ghcr.io/redpointgames/uet/uet:${env:UET_PACKAGE_VERSION}-hostprocess" . -f dockerd-hostprocess.Dockerfile
-        docker buildx build --platform windows/amd64 --output=type=image --pull -t "ghcr.io/redpointgames/uet/uet:hostprocess" . -f dockerd-hostprocess.Dockerfile
+        docker buildx build --platform windows/amd64 --output=type=image --pull -t "ghcr.io/redpointgames/uet/uet:latest-hostprocess" . -f dockerd-hostprocess.Dockerfile
     - name: Publish Container
       if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
       shell: pwsh
@@ -1104,7 +1104,7 @@ jobs:
         pushd UET/Lib/Container
         cp "../../../UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe" ./uet.exe
         docker buildx build --platform windows/amd64 --output=type=registry --pull -t "ghcr.io/redpointgames/uet/uet:${env:UET_PACKAGE_VERSION}-hostprocess" . -f dockerd-hostprocess.Dockerfile
-        docker buildx build --platform windows/amd64 --output=type=registry --pull -t "ghcr.io/redpointgames/uet/uet:hostprocess" . -f dockerd-hostprocess.Dockerfile
+        docker buildx build --platform windows/amd64 --output=type=registry --pull -t "ghcr.io/redpointgames/uet/uet:latest-hostprocess" . -f dockerd-hostprocess.Dockerfile
   
   cf-linux-tests:
     name: "Test Cloud Framework"
