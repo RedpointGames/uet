@@ -72,6 +72,8 @@ Description={displayName}
 [Service]
 ExecStart={executableAndArguments}
 Restart=always
+RestartSec=60
+StartLimitIntervalSec=0
 
 [Install]
 {(manualStart ? "" : "WantedBy=multi-user.target")}
