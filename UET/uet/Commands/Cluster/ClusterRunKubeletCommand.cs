@@ -355,6 +355,23 @@
 
             public async Task StartAsync(CancellationToken cancellationToken)
             {
+                // Wait until containerd process is running.
+                _logger.LogInformation("Waiting to see the containerd process running...");
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    var processes = Process.GetProcessesByName("containerd");
+                    if (processes.Length > 0)
+                    {
+                        // We're good to go.
+                        break;
+                    }
+
+                    // We are still waiting on containerd to start.
+                    await Task.Delay(2000, cancellationToken);
+                    _logger.LogInformation("Waiting to see the containerd process running...");
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+
                 // Start in the background.
                 _backgroundTask = Task.Run(
                     async () =>
