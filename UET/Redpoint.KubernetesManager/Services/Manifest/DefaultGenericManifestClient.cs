@@ -31,7 +31,7 @@
             string? manifestCachePath,
             JsonTypeInfo<T> jsonTypeInfo,
             Func<T, long, CancellationToken, Task> manifestReceived,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken) where T : class, IVersionedManifest
         {
             var buffer = new byte[16 * 1024];
             var gotInitialManifest = false;
@@ -48,7 +48,8 @@
                     {
                         _logger.LogWarning("Manifest in cache file was deserialized to a null value and ignored.");
                     }
-                    else
+                    // @note: Only use the cached manifest if the manifest version is compatible.
+                    else if (manifest.ManifestVersion == T.ManifestCurrentVersion)
                     {
                         await manifestReceived(
                             manifest,
