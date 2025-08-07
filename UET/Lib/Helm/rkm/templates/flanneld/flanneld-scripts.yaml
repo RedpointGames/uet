@@ -1,7 +1,7 @@
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: {{ printf "flanneld-scripts-%d" .Release.Revision | quote }}
+  name: flanneld-scripts
   namespace: kube-system
   labels:
     app.kubernetes.io/managed-by: {{ .Release.Service | quote }}

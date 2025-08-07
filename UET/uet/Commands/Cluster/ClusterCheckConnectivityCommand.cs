@@ -245,11 +245,13 @@ namespace UET.Commands.Cluster
                                 var subaddresses = new List<string>();
                                 if (pair.host == "*" || pair.host == "+")
                                 {
+                                    var isWindows = OperatingSystem.IsWindows();
                                     foreach (var subaddress in NetworkInterface.GetAllNetworkInterfaces()
                                         .Where(x => x.OperationalStatus == OperationalStatus.Up)
                                         .SelectMany(adapter =>
                                             adapter?.GetIPProperties()
                                                 ?.UnicastAddresses
+                                                ?.Where(x => isWindows || x.Address.AddressFamily == AddressFamily.InterNetwork)
                                                 ?.Select(x =>
                                                     x.Address.AddressFamily == AddressFamily.InterNetworkV6
                                                         ? $"[{x.Address}]"

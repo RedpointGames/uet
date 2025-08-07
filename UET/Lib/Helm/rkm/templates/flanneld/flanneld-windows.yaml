@@ -74,7 +74,7 @@ spec:
       volumes:
         - name: scripts
           configMap:
-            name: {{ printf "flanneld-scripts-%d" .Release.Revision | quote }}
+            name: flanneld-scripts
             items:
               - key: "flanneld.ps1"
                 path: "flanneld.ps1"

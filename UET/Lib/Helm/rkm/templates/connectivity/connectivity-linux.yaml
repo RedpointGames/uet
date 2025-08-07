@@ -18,7 +18,7 @@ spec:
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 1
+      maxUnavailable: "100%"
   template:
     metadata:
       labels:
@@ -46,3 +46,13 @@ spec:
           args:
           - "cluster"
           - "check-connectivity"
+          - "--health-check-path"
+          - "/var/run/connectivity-status"
+          readinessProbe:
+            exec:
+              command:
+              - /usr/bin/test
+              - -f
+              - /var/run/connectivity-status
+            initialDelaySeconds: 5
+            periodSeconds: 5

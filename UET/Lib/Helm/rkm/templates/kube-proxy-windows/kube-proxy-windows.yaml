@@ -76,7 +76,7 @@ spec:
       volumes:
         - name: scripts
           configMap:
-            name: {{ printf "kube-proxy-windows-scripts-%d" .Release.Revision | quote }}
+            name: kube-proxy-windows-scripts
             items:
               - key: "allocate_source_vip.ps1"
                 path: "allocate_source_vip.ps1"
