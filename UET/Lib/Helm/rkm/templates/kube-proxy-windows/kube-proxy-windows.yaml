@@ -44,11 +44,25 @@ spec:
       serviceAccountName: kube-proxy
       terminationGracePeriodSeconds: 0
       priorityClassName: system-node-critical
+      initContainers:
+        - name: allocate-source-vip
+          image: {{ printf "ghcr.io/redpointgames/uet/uet:%s-hostprocess" .Values.versions.rkm | quote }}
+          command:
+            - .\pwsh\pwsh.exe
+            - -ExecutionPolicy
+            - Bypass
+            - .\scripts\allocate_source_vip.ps1
+          volumeMounts:
+            - mountPath: /scripts
+              name: scripts
+              readOnly: true
+            - mountPath: /RKM
+              name: rkm
       containers:
         - name: kube-proxy
-          image: mcr.microsoft.com/oss/kubernetes/windows-host-process-containers-base-image:v1.0.0
+          image: {{ printf "ghcr.io/redpointgames/uet/uet:%s-hostprocess" .Values.versions.rkm | quote }}
           command:
-            - "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
+            - .\pwsh\pwsh.exe
             - -ExecutionPolicy
             - Bypass
             - .\scripts\kube_proxy.ps1
@@ -57,20 +71,19 @@ spec:
               name: scripts
               readOnly: true
           env:
-            - name: NETWORK_NAME
-              value: "Calico"
-            - name: ENDPOINT_NAME
-              value: "Calico_ep"
             - name: UET_KUBERNETES_VERSION
               value: {{ .Values.versions.kubernetes | quote }}
-            - name: UET_VERSION
-              value: {{ .Values.versions.rkm | quote }}
-            - name: UET_CONTROLLER_IP
-              value: {{ .Values.cluster.controllerIp | quote }}
       volumes:
         - name: scripts
           configMap:
             name: {{ printf "kube-proxy-windows-scripts-%d" .Release.Revision | quote }}
             items:
+              - key: "allocate_source_vip.ps1"
+                path: "allocate_source_vip.ps1"
               - key: "kube_proxy.ps1"
                 path: "kube_proxy.ps1"
+              - key: "kubeconfig"
+                path: "kubeconfig"
+        - name: rkm
+          hostPath:
+            path: "C:\\RKM"

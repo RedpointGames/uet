@@ -2,9 +2,6 @@ versions:
   rkm: "2025.1218.554"
   kubernetes: "1.33.3"
 
-containerd:
-  root: "/opt/rkm/unknown"
-
 cluster:
   cidr: ""
   serviceCidr: ""

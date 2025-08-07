@@ -68,9 +68,6 @@
                   rkm: "{_rkmVersionProvider.Version}"
                   kubernetes: "{ComponentVersions.Kubernetes}"
 
-                containerd:
-                  root: "/opt/rkm/{_pathProvider.RKMInstallationId}/containerd-state"
-
                 cluster:
                   cidr: "{_clusterNetworkingConfiguration.ClusterCIDR}"
                   serviceCidr: "{_clusterNetworkingConfiguration.ServiceCIDR}"

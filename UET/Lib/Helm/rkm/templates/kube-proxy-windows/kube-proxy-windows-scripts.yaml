@@ -10,7 +10,22 @@ metadata:
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     rkm.redpoint.games/component: kube-proxy-windows
 data:
-  # note: We should try to get the active install via Kubernetes metadata...
+  allocate_source_vip.ps1: |
+    $global:ErrorActionPreference = 'Stop';
+    $global:ProgressPreference = 'SilentlyContinue';
+
+    $ActiveInstall = (Get-Content -Raw -Path C:\RKM\active).Trim()
+
+    .\uet.exe `
+      cluster `
+      allocate-source-vip `
+      --cni-bin-path `
+      C:\RKM\$ActiveInstall\cni-plugins `
+      --source-vip-file-path `
+      C:\RKM\$ActiveInstall\containerd-state\kube-proxy.source-vip `
+      --host-local-data-dir `
+      C:\RKM\$ActiveInstall\containerd-state\host-local
+    exit $LastExitCode
   kube_proxy.ps1: |
     $global:ErrorActionPreference = 'Stop';
     $global:ProgressPreference = 'SilentlyContinue';
@@ -18,18 +33,12 @@ data:
     $ActiveInstall = (Get-Content -Raw -Path C:\RKM\active).Trim()
 
     $KubeProxyFolder = "C:\RKM\$ActiveInstall\kube-proxy-container\kube-proxy-${env:UET_KUBERNETES_VERSION}"
-    $UetFolder = "C:\RKM\$ActiveInstall\kube-proxy-container\uet-${env:UET_VERSION}"
 
     $Downloads = @(
       @{
         Name = "kube-proxy.exe";
         Url = "https://dl.k8s.io/v${env:UET_KUBERNETES_VERSION}/bin/windows/amd64/kube-proxy.exe";
         Folder = $KubeProxyFolder;
-      },
-      @{
-        Name = "uet.exe";
-        Url = "https://github.com/RedpointGames/uet/releases/download/${env:UET_VERSION}/uet.exe";
-        Folder = $UetFolder;
       }
     )
 
@@ -59,16 +68,36 @@ data:
       Set-Content -Path "$($Download.Folder)\done" -Value "done"
     }
 
-    $SourceVip = $(& "$UetFolder\\uet.exe" cluster get-hns-endpoint --network-name $env:NETWORK_NAME --endpoint-name $env:ENDPOINT_NAME)
+    Write-Host "Reading source VIP..."
+    $SourceVip = (Get-Content -Raw -Path C:\RKM\$ActiveInstall\containerd-state\kube-proxy.source-vip).Trim()
+    Write-Host "Detected source VIP as: $SourceVip"
+
+    Write-Host "Trying to resolve own hostname to IP address..."
+    while ($true) {
+      $Addresses = @()
+      try {
+        $Addresses = ([System.Net.Dns]::GetHostEntry([System.Net.Dns]::GetHostName()).AddressList | ? { $_.AddressFamily -eq "InterNetwork" } | ? { $B = $_.GetAddressBytes(); !($B[0] -eq 127 -or $B[0] -eq 172 -or ($B[0] -eq 169 -and $B[1] -eq 254)) })
+      } catch {
+      }
+      if ($Addresses.Length -eq 0) {
+        Start-Sleep -Seconds 1
+        Write-Host "Unable to resolve own hostname, retrying in 1 second..."
+        continue
+      }
+      $env:IP = $Addresses[0].IPAddressToString
+      Write-Host "Detected IP address as $env:IP"
+      break
+    }
 
     Set-Content -Path config -Value `
     @"
     kind: KubeProxyConfiguration
     apiVersion: kubeproxy.config.k8s.io/v1alpha1
     clientConnection:
-      kubeconfig: "kubeconfig"
+      kubeconfig: "C:\\scripts\\kubeconfig"
+    bindAddress: "$env:IP"
     winkernel:
-      networkName: "$env:NETWORK_NAME"
+      networkName: "flannel.4096"
       sourceVip: "$SourceVip"
       enableDSR: true
     featureGates:
@@ -77,14 +106,17 @@ data:
     mode: "kernelspace"
     "@
 
-    Set-Content -Path kubeconfig -Value `
-    @"
+    & "$KubeProxyFolder\kube-proxy.exe" `
+      --v=4 `
+      --config=config
+    exit $LastExitCode
+  kubeconfig: |
     apiVersion: v1
     kind: Config
     clusters:
     - cluster:
-        certificate-authority: ".\\var\\run\\secrets\\kubernetes.io\\serviceaccount\\ca.crt"
-        server: https://${env:UET_CONTROLLER_IP}:6443
+        certificate-authority: "C:\\var\\run\\secrets\\kubernetes.io\\serviceaccount\\ca.crt"
+        server: https://{{ .Values.cluster.controllerIp }}:6443
       name: default
     contexts:
     - context:
@@ -96,13 +128,4 @@ data:
     users:
     - name: default
       user:
-        tokenFile: ".\\var\\run\\secrets\\kubernetes.io\\serviceaccount\\token"
-    "@
-    try {
-      & "$KubeProxyFolder\kube-proxy.exe" `
-        --v=4 `
-        --config=config
-      exit $LastExitCode
-    } finally {
-      Remove-Item -Path kubeconfig
-    }
+        tokenFile: "C:\\var\\run\\secrets\\kubernetes.io\\serviceaccount\\token"
