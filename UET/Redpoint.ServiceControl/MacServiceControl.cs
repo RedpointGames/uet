@@ -197,7 +197,7 @@
             })!.WaitForExitAsync().ConfigureAwait(false);
         }
 
-        public async Task<bool> IsServiceRunning(string name)
+        public async Task<bool> IsServiceRunning(string name, CancellationToken cancellationToken)
         {
             var process = Process.Start(new ProcessStartInfo
             {
@@ -211,8 +211,10 @@
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
             })!;
-            var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-            await process.WaitForExitAsync().ConfigureAwait(false);
+            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
             if (output.Contains("pid = ", StringComparison.Ordinal))
             {
                 return true;
@@ -220,7 +222,7 @@
             return false;
         }
 
-        public async Task StartService(string name)
+        public async Task StartService(string name, CancellationToken cancellationToken)
         {
             var process = Process.Start(new ProcessStartInfo
             {
@@ -233,10 +235,10 @@
                 CreateNoWindow = true,
                 UseShellExecute = false,
             })!;
-            await process.WaitForExitAsync().ConfigureAwait(false);
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task StopService(string name)
+        public async Task StopService(string name, CancellationToken cancellationToken)
         {
             var process = Process.Start(new ProcessStartInfo
             {
@@ -249,7 +251,7 @@
                 CreateNoWindow = true,
                 UseShellExecute = false,
             })!;
-            await process.WaitForExitAsync().ConfigureAwait(false);
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
         }
 
         public async Task UninstallService(string name)

@@ -36,7 +36,7 @@
         /// </summary>
         /// <param name="name">The service name.</param>
         /// <returns>Whether or not the service is running.</returns>
-        Task<bool> IsServiceRunning(string name);
+        Task<bool> IsServiceRunning(string name, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Installs or updates the service with the given name.
@@ -68,14 +68,14 @@
         /// </summary>
         /// <param name="name">The service name.</param>
         /// <returns>The awaitable task.</returns>
-        Task StartService(string name);
+        Task StartService(string name, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Stop the service.
         /// </summary>
         /// <param name="name">The service name.</param>
         /// <returns>The awaitable task.</returns>
-        Task StopService(string name);
+        Task StopService(string name, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Streams logs for the service.

@@ -62,7 +62,15 @@
             return binPath.Trim();
         }
 
-        public async Task<bool> IsServiceRunning(string name)
+        private enum State
+        {
+            Stopped,
+            StartPending,
+            StopPending,
+            Running,
+        }
+
+        private static async Task<State> GetServiceState(string name, CancellationToken cancellationToken)
         {
             var process = Process.Start(new ProcessStartInfo
             {
@@ -76,9 +84,32 @@
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
             })!;
-            var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-            await process.WaitForExitAsync().ConfigureAwait(false);
-            return output.Contains("RUNNING", StringComparison.Ordinal);
+            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (output.Contains("STOPPED", StringComparison.Ordinal))
+            {
+                return State.Stopped;
+            }
+            else if (output.Contains("START_PENDING", StringComparison.Ordinal))
+            {
+                return State.StartPending;
+            }
+            else if (output.Contains("STOP_PENDING", StringComparison.Ordinal))
+            {
+                return State.StopPending;
+            }
+            else if (output.Contains("RUNNING", StringComparison.Ordinal))
+            {
+                return State.Running;
+            }
+            return State.Stopped;
+        }
+
+        public async Task<bool> IsServiceRunning(string name, CancellationToken cancellationToken)
+        {
+            return await GetServiceState(name, cancellationToken) != State.Stopped;
         }
 
         public async Task InstallService(
@@ -124,8 +155,30 @@
             })!.WaitForExitAsync().ConfigureAwait(false);
         }
 
-        public async Task StartService(string name)
+        public async Task StartService(string name, CancellationToken cancellationToken)
         {
+            // Check if the service is installed.
+            if (!await IsServiceInstalled(name))
+            {
+                throw new ArgumentException("No such service exists.", name);
+            }
+
+            // Wait until the state stabilises.
+            var state = await GetServiceState(name, cancellationToken);
+            while (state == State.StartPending || state == State.StopPending)
+            {
+                await Task.Delay(500, cancellationToken);
+                state = await GetServiceState(name, cancellationToken);
+            }
+
+            // If the service is now running, we're done.
+            if (state == State.Running)
+            {
+                return;
+            }
+
+        startService:
+            // Start the service.
             var process = Process.Start(new ProcessStartInfo
             {
                 FileName = Path.Combine(Environment.GetEnvironmentVariable("SYSTEMROOT")!, "system32", "sc.exe"),
@@ -137,16 +190,52 @@
                 CreateNoWindow = true,
                 UseShellExecute = false,
             });
-            await process!.WaitForExitAsync().ConfigureAwait(false);
+            await process!.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
             if (process.ExitCode != 0)
             {
                 throw new InvalidOperationException("Failed to start service.");
             }
+
+            // Wait for the start to finish.
+            state = await GetServiceState(name, cancellationToken);
+            while (state == State.StartPending || state == State.StopPending)
+            {
+                await Task.Delay(500, cancellationToken);
+                state = await GetServiceState(name, cancellationToken);
+            }
+
+            // If the service is now stopped, try to start it again.
+            if (state == State.Stopped)
+            {
+                goto startService;
+            }
         }
 
-        public async Task StopService(string name)
+        public async Task StopService(string name, CancellationToken cancellationToken)
         {
-            await Process.Start(new ProcessStartInfo
+            // Check if the service is installed.
+            if (!await IsServiceInstalled(name))
+            {
+                throw new ArgumentException("No such service exists.", name);
+            }
+
+            // Wait until the state stabilises.
+            var state = await GetServiceState(name, cancellationToken);
+            while (state == State.StartPending || state == State.StopPending)
+            {
+                await Task.Delay(500, cancellationToken);
+                state = await GetServiceState(name, cancellationToken);
+            }
+
+            // If the service is now stopped, we're done.
+            if (state == State.Stopped)
+            {
+                return;
+            }
+
+        stopService:
+            // Stop the service.
+            var process = Process.Start(new ProcessStartInfo
             {
                 FileName = Path.Combine(Environment.GetEnvironmentVariable("SYSTEMROOT")!, "system32", "sc.exe"),
                 ArgumentList =
@@ -156,7 +245,27 @@
                 },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync().ConfigureAwait(false);
+            });
+            await process!.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException("Failed to stop service.");
+            }
+
+            // Wait for the stop to finish.
+            state = await GetServiceState(name, cancellationToken);
+            while (state == State.StartPending || state == State.StopPending)
+            {
+                await Task.Delay(500, cancellationToken);
+                state = await GetServiceState(name, cancellationToken);
+            }
+
+            // If the service is now started, try to stop it again.
+            if (state == State.Running)
+            {
+                goto stopService;
+            }
         }
 
         public async Task UninstallService(string name)
