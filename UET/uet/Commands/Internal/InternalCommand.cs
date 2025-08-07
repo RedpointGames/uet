@@ -35,6 +35,7 @@
     using UET.Commands.Internal.EnginePerforceToGit;
     using UET.Commands.Internal.Rkm;
     using UET.Commands.Internal.Patch;
+    using UET.Commands.Internal.Service;
 
     internal sealed class InternalCommand
     {
@@ -78,6 +79,7 @@
                 InstallXcodeCommand.CreateInstallXcodeCommand(),
                 RkmServiceCommand.CreateRkmServiceCommand(),
                 PatchCommand.CreatePatchCommand(),
+                ServiceCommand.CreateServiceCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");

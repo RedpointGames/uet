@@ -973,11 +973,11 @@
                                 // This is the first time we are launching containerd. Start a background task
                                 // that restarts kubelet if it was running when this happened, since kubelet will
                                 // need to restart if containers were previously deleted.
-                                if (await _serviceControl.IsServiceRunning("rkm-kubelet"))
+                                if (await _serviceControl.IsServiceRunning("rkm-kubelet", cancellationToken))
                                 {
                                     _logger.LogInformation("Restarting kubelet because it was running when containerd was first started, and it must refresh it's state from the new containerd process...");
-                                    await _serviceControl.StopService("rkm-kubelet");
-                                    await _serviceControl.StartService("rkm-kubelet");
+                                    await _serviceControl.StopService("rkm-kubelet", cancellationToken);
+                                    await _serviceControl.StartService("rkm-kubelet", cancellationToken);
                                 }
                             }
 
@@ -1004,7 +1004,6 @@
 
                 // We've been asked to stop containerd. If the host is fully shutting down,
                 // clean up the containers before that happens.
-                var kubeletServiceName = OperatingSystem.IsWindows() ? "RKM - Kubelet" : "rkm-kubelet";
                 var kubeletStopped = false;
                 if (_hostApplicationLifetime.ApplicationStopping.IsCancellationRequested)
                 {
@@ -1012,10 +1011,10 @@
                     // scheduling containers while we're cleaning up.
                     try
                     {
-                        if (await _serviceControl.IsServiceRunning(kubeletServiceName))
+                        if (await _serviceControl.IsServiceRunning("rkm-kubelet", cancellationToken))
                         {
                             _logger.LogInformation($"Stopping the kubelet service...");
-                            await _serviceControl.StopService(kubeletServiceName);
+                            await _serviceControl.StopService("rkm-kubelet", cancellationToken);
                             kubeletStopped = true;
                         }
                     }
@@ -1146,7 +1145,7 @@
                     try
                     {
                         _logger.LogInformation($"Starting the kubelet service to restore it's state...");
-                        await _serviceControl.StartService(kubeletServiceName);
+                        await _serviceControl.StartService("rkm-kubelet", cancellationToken);
                     }
                     catch (Exception ex)
                     {

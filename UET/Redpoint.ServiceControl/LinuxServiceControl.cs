@@ -39,7 +39,7 @@
             return execStart.Trim();
         }
 
-        public async Task<bool> IsServiceRunning(string name)
+        public async Task<bool> IsServiceRunning(string name, CancellationToken cancellationToken)
         {
             var checkProcess = Process.Start(new ProcessStartInfo
             {
@@ -53,7 +53,8 @@
                 CreateNoWindow = true,
                 UseShellExecute = false,
             })!;
-            await checkProcess.WaitForExitAsync().ConfigureAwait(false);
+            await checkProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
             return checkProcess.ExitCode == 0;
         }
 
@@ -94,7 +95,7 @@ StartLimitIntervalSec=0
             })!.WaitForExitAsync().ConfigureAwait(false);
         }
 
-        public async Task StartService(string name)
+        public async Task StartService(string name, CancellationToken cancellationToken)
         {
             await Process.Start(new ProcessStartInfo
             {
@@ -106,10 +107,10 @@ StartLimitIntervalSec=0
                 },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync().ConfigureAwait(false);
+            })!.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task StopService(string name)
+        public async Task StopService(string name, CancellationToken cancellationToken)
         {
             await Process.Start(new ProcessStartInfo
             {
@@ -121,7 +122,7 @@ StartLimitIntervalSec=0
                 },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            })!.WaitForExitAsync().ConfigureAwait(false);
+            })!.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
         }
 
         public async Task UninstallService(string name)

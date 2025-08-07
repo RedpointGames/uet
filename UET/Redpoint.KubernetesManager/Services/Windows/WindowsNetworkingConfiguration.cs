@@ -197,17 +197,17 @@
                 registryStack.Key.GetValueKind("FwPerfImprovementChange") != Microsoft.Win32.RegistryValueKind.DWord ||
                 (int)registryStack.Key.GetValue("FwPerfImprovementChange")! != 0)
             {
-                if (await _serviceControl.IsServiceRunning("hns"))
+                if (await _serviceControl.IsServiceRunning("hns", cancellationToken))
                 {
                     _logger.LogInformation("Stopping Host Network Service on Windows before applying container networking fix...");
-                    await _serviceControl.StopService("hns");
+                    await _serviceControl.StopService("hns", cancellationToken);
                 }
 
                 _logger.LogInformation("Setting FwPerfImprovementChange to 0 to fix container networking on Windows...");
                 registryStack.Key.SetValue("FwPerfImprovementChange", 0, Microsoft.Win32.RegistryValueKind.DWord);
 
                 _logger.LogInformation("Starting Host Network Service on Windows now that fix has been applied.");
-                await _serviceControl.StartService("hns");
+                await _serviceControl.StartService("hns", cancellationToken);
             }
 
             // Find the network adapter associated with the IP address.

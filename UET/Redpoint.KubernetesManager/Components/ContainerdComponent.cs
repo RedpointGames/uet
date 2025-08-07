@@ -68,10 +68,10 @@
                 }
                 else
                 {
-                    if (await _serviceControl.IsServiceRunning(_serviceName))
+                    if (await _serviceControl.IsServiceRunning(_serviceName, cancellationToken))
                     {
                         _logger.LogInformation("containerd service is being stopped so it can be reinstalled.");
-                        await _serviceControl.StopService(_serviceName);
+                        await _serviceControl.StopService(_serviceName, cancellationToken);
                     }
 
                     _logger.LogInformation("containerd service is being uninstalled because the command line arguments need to change.");
@@ -113,10 +113,10 @@
                     _stoppingToken.Token);
             }
 
-            if (!await _serviceControl.IsServiceRunning(_serviceName))
+            if (!await _serviceControl.IsServiceRunning(_serviceName, cancellationToken))
             {
                 _logger.LogInformation("containerd service is being started...");
-                await _serviceControl.StartService(_serviceName);
+                await _serviceControl.StartService(_serviceName, cancellationToken);
             }
         }
 
@@ -125,7 +125,7 @@
             if (await _serviceControl.IsServiceInstalled(_serviceName))
             {
                 _logger.LogInformation("containerd service is being stopped...");
-                await _serviceControl.StopService(_serviceName);
+                await _serviceControl.StopService(_serviceName, cancellationToken);
             }
 
             if (_logTask != null && !_stoppingToken.IsCancellationRequested)
