@@ -55,6 +55,7 @@ namespace UET.Commands.Cluster
             if (OperatingSystem.IsWindows())
             {
                 command.AddCommand(ClusterGetHnsEndpointCommand.CreateClusterGetHnsEndpointCommand());
+                command.AddCommand(ClusterAllocateSourceVipCommand.CreateClusterAllocateSourceVipCommand());
             }
             command.AddCommand(ClusterRunContainerdCommand.CreateRunContainerdCommand());
             command.AddCommand(ClusterRunKubeletCommand.CreateRunKubeletCommand());
