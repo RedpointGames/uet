@@ -69,12 +69,12 @@
             await File.WriteAllTextAsync($"/etc/systemd/system/{name}.service", @$"
 [Unit]
 Description={displayName}
+StartLimitIntervalSec=0
 
 [Service]
 ExecStart={executableAndArguments}
 Restart=always
 RestartSec=60
-StartLimitIntervalSec=0
 
 [Install]
 {(manualStart ? "" : "WantedBy=multi-user.target")}
