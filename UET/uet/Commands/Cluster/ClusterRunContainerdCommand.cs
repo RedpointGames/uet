@@ -966,10 +966,22 @@
                             "--config",
                             Path.Combine(manifest.ContainerdStatePath, "config.yaml")
                         ],
-                        afterStart: _ =>
+                        afterStart: async _ =>
                         {
+                            if (!_containerdStarted.Opened)
+                            {
+                                // This is the first time we are launching containerd. Start a background task
+                                // that restarts kubelet if it was running when this happened, since kubelet will
+                                // need to restart if containers were previously deleted.
+                                if (await _serviceControl.IsServiceRunning("rkm-kubelet"))
+                                {
+                                    _logger.LogInformation("Restarting kubelet because it was running when containerd was first started, and it must refresh it's state from the new containerd process...");
+                                    await _serviceControl.StopService("rkm-kubelet");
+                                    await _serviceControl.StartService("rkm-kubelet");
+                                }
+                            }
+
                             _containerdStarted.Open();
-                            return Task.CompletedTask;
                         }));
 
                 // Create a cancellation token that we can use to stop containerd.
