@@ -49,12 +49,19 @@ namespace UET.Commands.Cluster
             }
 
             private static readonly (string host, int port)[] _httpListenAddresses =
-            [
-                ("127.0.0.1", 55001),
-                ("[::1]", 55002),
-                ("*", 55003),
-                ("+", 55004),
-            ];
+                OperatingSystem.IsWindows()
+                ? [
+                    ("127.0.0.1", 55001),
+                    ("[::1]", 55002),
+                    ("*", 55003),
+                    ("+", 55004),
+                  ]
+                : [
+                    ("127.0.0.1", 55001),
+                    // Linux does not like '[::1]' as a hostname specifically for HTTP listener.
+                    ("*", 55003),
+                    ("+", 55004),
+                  ];
             private static readonly IPEndPoint[] _tcpListenAddresses =
             [
                 new (IPAddress.Loopback, 55005),
@@ -73,7 +80,6 @@ namespace UET.Commands.Cluster
             [
                 "one.one.one.one",
                 "google.com",
-                Environment.MachineName,
                 "localhost"
             ];
 
