@@ -36,8 +36,9 @@
 
             if (OperatingSystem.IsWindows() && WindowsServiceHelpers.IsWindowsService())
             {
-                _logger.LogInformation("Waiting for service start...");
+                _logger.LogInformation("Waiting for host lifetime to start...");
                 await _hostLifetime!.WaitForStartAsync(cancellationTokenSource.Token);
+                _logger.LogInformation("Host lifetime has started.");
             }
 
             try
@@ -107,17 +108,26 @@
                     }
                 }
 
+                if (!_hostApplicationLifetime.CtsStopped.IsCancellationRequested)
+                {
+                    _hostApplicationLifetime.CtsStopped.Cancel();
+                }
+
                 try
                 {
                     if (_hostLifetime != null)
                     {
+                        _logger.LogInformation($"Notifying host lifetime of stop...");
+                        // @note: This call blocks on _hostApplicationLifetime.ApplicationStopped firing, so it
+                        // must occur after we cancel the 'stopped' token for us to signal Windows Services.
                         await _hostLifetime!.StopAsync(cts.Token);
+                        _logger.LogInformation($"Notifying host lifetime of stop has completed.");
                     }
                 }
                 catch
                 {
                 }
-                _hostApplicationLifetime.CtsStopped.Cancel();
+
                 _logger.LogInformation("Service has been stopped.");
             }
         }
