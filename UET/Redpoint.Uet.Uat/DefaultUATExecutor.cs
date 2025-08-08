@@ -126,7 +126,16 @@
                 }
                 if (!string.IsNullOrWhiteSpace(singleNodeName) && !string.IsNullOrWhiteSpace(sharedStorageDir))
                 {
+                    _logger.LogInformation($"Detected this is a run of BuildGraph for single node '{singleNodeName}' and shared storage directory '{sharedStorageDir}'.");
                     cleanupTargetDirectoryBeforeExecution = true;
+                }
+                else if (!finalArgs.Any(x => x.LogicalValue == "-ListOnly" || x.LogicalValue.StartsWith("-Export=", StringComparison.Ordinal)))
+                {
+                    _logger.LogWarning("This is a run of BuildGraph but we were not able to detect the single node or shared storage directory name. Logical arguments were:");
+                    foreach (var arg in finalArgs)
+                    {
+                        _logger.LogWarning($"  {arg.LogicalValue}");
+                    }
                 }
                 if (OperatingSystem.IsWindows())
                 {
