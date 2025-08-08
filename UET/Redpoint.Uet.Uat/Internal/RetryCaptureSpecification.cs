@@ -107,6 +107,11 @@
                 // a line by itself, we'll need to restart the command.
                 NeedsRetry = true;
             }
+            if (data.Contains("fatal error C1356: unable to find mspdbcore.dll", StringComparison.Ordinal))
+            {
+                // Caused by UBA detours intermittently.
+                NeedsRetry = true;
+            }
         }
 
         public void OnReceiveStandardError(string data)
