@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+    <ProjectReference Include="..\Redpoint.ServiceControl\Redpoint.ServiceControl.csproj" />
   </ItemGroup>
 
 </Project>
