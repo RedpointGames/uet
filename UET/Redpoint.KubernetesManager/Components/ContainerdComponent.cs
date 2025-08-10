@@ -55,7 +55,7 @@
 
             Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "cache"));
 
-            var arguments = $"\"{_rkmVersionProvider.UetFilePath}\" cluster run-containerd --manifest-path \"{Path.Combine(_pathProvider.RKMRoot, "cache", "containerd-manifest.json")}\"";
+            var arguments = $"\"{_rkmVersionProvider.UetGenericFilePath}\" cluster run-containerd --manifest-path \"{Path.Combine(_pathProvider.RKMRoot, "cache", "containerd-manifest.json")}\"";
 
             var installed = false;
             if (await _serviceControl.IsServiceInstalled(_serviceName))

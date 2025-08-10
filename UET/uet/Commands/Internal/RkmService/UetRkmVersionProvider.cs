@@ -22,6 +22,8 @@ namespace UET.Commands.Internal.RkmService
 
         public string Version => _version.Value;
 
-        public string UetFilePath => _selfLocation.GetUetLocalLocation(true);
+        public string UetGenericFilePath => _selfLocation.GetUetLocalLocation(true);
+
+        public string UetVersionedFilePath => _selfLocation.GetUetLocalLocation(true);
     }
 }

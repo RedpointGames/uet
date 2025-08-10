@@ -122,19 +122,22 @@
 
                     var requestedMode = isFilter ? "filtering" : "forwarding";
 
-                    if (exitCode == 0)
+                    if (exitCode == 10)
                     {
                         _logger.LogInformation($"VFP extension is already in '{requestedMode}' mode.");
                     }
-                    else if (exitCode == 1)
+                    else if (exitCode == 11)
                     {
                         _logger.LogWarning($"VFP extension is NOT in '{requestedMode}' mode.");
                     }
-                    else if (exitCode == 2)
+                    else if (exitCode == 12)
                     {
                         _logger.LogInformation($"Applying changes to registry to change VFP extension to '{requestedMode}' mode...");
                         _logger.LogInformation("Changes have been applied to the registry. The computer must now be restarted.");
-                        return 0;
+                    }
+                    else
+                    {
+                        _logger.LogError($"Got unexpected exit code from VFP extension mode call: {exitCode}");
                     }
 
                     return exitCode;
@@ -204,7 +207,7 @@
                 if (isInTargetMode)
                 {
                     _logger.LogInformation("VFP extension is already in the requested mode.");
-                    return 0;
+                    return 10;
                 }
 
                 _logger.LogInformation("VFP extension is NOT in the requested mode.");
@@ -212,7 +215,7 @@
                 if (verify)
                 {
                     // We aren't in the correct mode and we're only verifying, so exit with exit code 1.
-                    return 1;
+                    return 11;
                 }
 
                 _logger.LogInformation("Applying changes to registry to change VFP extension mode...");
@@ -239,7 +242,7 @@
                 }
 
                 _logger.LogInformation("Changes have been applied to the registry. The computer must now be restarted.");
-                return 2;
+                return 12;
             }
 
             private class RegistryBinaryValue(uint type, byte[] bytes)
