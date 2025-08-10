@@ -28,7 +28,7 @@
         /// </summary>
         /// <param name="path">A registry path like <code>HKCU:\SOFTWARE\Microsoft\VisualStudio\SxS\VS7</code>.</param>
         /// <param name="writable">If true, the target registry key is opened in writable mode.</param>
-        /// <param name="create">If true, registry keys will be created as neede to open this registry path.</param>
+        /// <param name="create">If true, registry keys will be created as needed to open this registry path.</param>
         /// <returns>A new <see cref="RegistryStack"/> object which represents the registry path.</returns>
         /// <exception cref="RegistryPathNotWellFormedException">Thrown if the registry path does not start with "HKCU:" or "HKLM:".</exception>
         public static RegistryStack OpenPath(string path, bool writable = false, bool create = false)

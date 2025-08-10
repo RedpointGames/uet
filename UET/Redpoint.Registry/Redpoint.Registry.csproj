@@ -1,11 +1,17 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
-  <PropertyGroup>
-    <Description>Provides an easy way to access nested registry keys without having to individually open each component on the registry path.</Description>
-    <PackageTags>registry, windows</PackageTags>
-  </PropertyGroup>
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+	<PropertyGroup>
+		<Description>Provides an easy way to access nested registry keys without having to individually open each component on the registry path.</Description>
+		<PackageTags>registry, windows</PackageTags>
+	</PropertyGroup>
+
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/CsWin32.Build.props" />
+
+	<ItemGroup>
+		<AdditionalFiles Include="NativeMethods.txt" />
+	</ItemGroup>
 
 </Project>
