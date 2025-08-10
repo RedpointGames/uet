@@ -1,13 +1,14 @@
 ﻿namespace Redpoint.Logging.SingleLine
 {
+    using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Logging.Abstractions;
     using Microsoft.Extensions.Logging.Console;
-    using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
     using System;
     using System.Diagnostics.CodeAnalysis;
-    using static Crayon.Output;
     using System.Globalization;
+    using System.IO;
+    using static Crayon.Output;
 
     /// <summary>
     /// Based on https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Logging.Console/src/SimpleConsoleFormatter.cs because
@@ -168,16 +169,36 @@
 
         private static Func<string, string> GetLogLevelConsoleColors(LogLevel logLevel)
         {
-            return logLevel switch
+            if (OperatingSystem.IsWindows() &&
+                Environment.GetEnvironmentVariable("CI") != "true" &&
+                string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WT_SESSION")))
             {
-                LogLevel.Trace => x => Dim(White(x)),
-                LogLevel.Debug => x => Dim(White(x)),
-                LogLevel.Information => Bright.Green,
-                LogLevel.Warning => Bright.Yellow,
-                LogLevel.Error => x => Background.Red(Black(x)),
-                LogLevel.Critical => x => Background.Red(White(x)),
-                _ => x => x,
-            };
+                // Use legacy console colors on Windows where we might be running under an older conhost.
+                const string suffix = "\u001b[39m\u001b[22m\u001b[49m\u001b[0m";
+                return logLevel switch
+                {
+                    LogLevel.Trace => x => $"\u001b[37m{x}{suffix}",
+                    LogLevel.Debug => x => $"\u001b[37m{x}{suffix}",
+                    LogLevel.Information => x => $"\u001b[1m\u001b[32m{x}{suffix}",
+                    LogLevel.Warning => x => $"\u001b[1m\u001b[33m{x}{suffix}",
+                    LogLevel.Error => x => $"\u001b[41m\u001b[30m{x}{suffix}",
+                    LogLevel.Critical => x => $"\u001b[41m\u001b[30m{x}{suffix}",
+                    _ => x => x,
+                };
+            }
+            else
+            {
+                return logLevel switch
+                {
+                    LogLevel.Trace => x => Dim(White(x)),
+                    LogLevel.Debug => x => Dim(White(x)),
+                    LogLevel.Information => Bright.Green,
+                    LogLevel.Warning => Bright.Yellow,
+                    LogLevel.Error => x => Background.Red(Black(x)),
+                    LogLevel.Critical => x => Background.Red(White(x)),
+                    _ => x => x,
+                };
+            }
         }
 
         private void WriteScopeInformation(TextWriter textWriter, IExternalScopeProvider? scopeProvider, bool singleLine)
