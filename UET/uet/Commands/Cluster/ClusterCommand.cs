@@ -52,10 +52,11 @@ namespace UET.Commands.Cluster
             command.AddCommand(ClusterStartCommand.CreateClusterStartCommand());
             command.AddCommand(ClusterStopCommand.CreateClusterStopCommand());
             command.AddCommand(ClusterLogsCommand.CreateClusterLogsCommand());
-            if (OperatingSystem.IsWindows())
+            if (OperatingSystem.IsWindowsVersionAtLeast(5, 0))
             {
                 command.AddCommand(ClusterGetHnsEndpointCommand.CreateClusterGetHnsEndpointCommand());
                 command.AddCommand(ClusterAllocateSourceVipCommand.CreateClusterAllocateSourceVipCommand());
+                command.AddCommand(ClusterSwitchVfpModeCommand.CreateClusterSwitchVfpModeCommand());
             }
             command.AddCommand(ClusterRunContainerdCommand.CreateRunContainerdCommand());
             command.AddCommand(ClusterRunKubeletCommand.CreateRunKubeletCommand());
