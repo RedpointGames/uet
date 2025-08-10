@@ -15,6 +15,7 @@
     using Redpoint.Windows.Firewall;
     using Redpoint.Registry;
     using Redpoint.ServiceControl;
+    using Redpoint.ProcessExecution;
 
     [SupportedOSPlatform("windows")]
     internal class WindowsNetworkingConfiguration : INetworkingConfiguration
@@ -30,6 +31,8 @@
         private readonly IResourceManager _resourceManager;
         private readonly IWindowsFirewall _windowsFirewall;
         private readonly IServiceControl _serviceControl;
+        private readonly IRkmVersionProvider _rkmVersionProvider;
+        private readonly IProcessExecutor _processExecutor;
 
         public WindowsNetworkingConfiguration(
             ILogger<WindowsNetworkingConfiguration> logger,
@@ -42,7 +45,9 @@
             IClusterNetworkingConfiguration clusterNetworkingConfiguration,
             IResourceManager resourceManager,
             IWindowsFirewall windowsFirewall,
-            IServiceControl serviceControl)
+            IServiceControl serviceControl,
+            IRkmVersionProvider rkmVersionProvider,
+            IProcessExecutor processExecutor)
         {
             _logger = logger;
             _hnsService = hnsService;
@@ -55,6 +60,8 @@
             _resourceManager = resourceManager;
             _windowsFirewall = windowsFirewall;
             _serviceControl = serviceControl;
+            _rkmVersionProvider = rkmVersionProvider;
+            _processExecutor = processExecutor;
         }
 
         private bool IsInCIDR(IPAddress address, string subnetCIDR)
@@ -210,6 +217,47 @@
                 await _serviceControl.StartService("hns", cancellationToken);
             }
 
+            // Check if we need to switch the VFP extension mode.
+            _logger.LogInformation($"Checking if the VFP network extension is in the correct mode...");
+            await _serviceControl.StartService(
+                "TrustedInstaller",
+                CancellationToken.None);
+            var exitCode = await _processExecutor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = _rkmVersionProvider.UetVersionedFilePath,
+                    Arguments =
+                    [
+                        "cluster",
+                        "switch-vfp-mode",
+                        "--forward"
+                    ],
+                    RunAsTrustedInstaller = true,
+                    EnvironmentVariables = new Dictionary<string, string>
+                    {
+                        { "UET_SWITCH_VFP_MODE_RUNNING_UNDER_TRUSTEDINSTALLER", "1" }
+                    }
+                },
+                CaptureSpecification.Passthrough,
+                cancellationToken);
+            if (exitCode == 12)
+            {
+                _logger.LogWarning($"VFP network extension has been switched to forwarding mode, but the computer requires a reboot. Rebooting in 60 seconds...");
+                Process.Start("shutdown", "/r /t 60");
+                await Task.Delay(120 * 1000, cancellationToken); // Long enough that the shutdown will happen first.
+                _hostApplicationLifetime.StopApplication();
+                return false;
+            }
+            else if (exitCode == 10)
+            {
+                _logger.LogInformation($"The VFP network extension is already in forwarding mode.");
+            }
+            else
+            {
+                _logger.LogError($"Got unexpected exit code from VFP extension mode call: {exitCode}");
+                return false;
+            }
+
             // Find the network adapter associated with the IP address.
             var networkAdapter = _localEthernetInfo.NetworkAdapter;
             if (networkAdapter == null)
@@ -259,76 +307,6 @@
 
             // CNI configuration is no longer written out here; instead it is set up as part of
             // 'startup_script.ps1' in the 'calico-windows-node-scripts' in the Helm chart.
-
-#if FALSE
-            // Create an overlay network to trigger vSwitch creation because we need
-            // a vSwitch for networking to work. We only do this once because it will
-            // disrupt networking.
-            if (!_hnsService.GetHnsNetworks().Any(x => x.Name == "KubernetesDummy"))
-            {
-                // Check that the network adapter isn't *already* a virtual switch. This
-                // is the case if the machine has been used with Hyper-V and a Virtual Switch
-                // has already been created on this interface. We need the existing Virtual Switch
-                // removed because it won't be the same type as Overlay (which is what we need
-                // for Calico). Detect this scenario and provide a useful error message.
-                if (networkAdapter.Description.Contains("Hyper-V Virtual Ethernet Adapter", StringComparison.Ordinal))
-                {
-                    _logger.LogCritical($"The network address {_localEthernetInfo.IPAddress} already belongs to a virtual switch managed by Hyper-V, but Kubernetes needs to be able to create it's own virtual switch of a different type in order for networking to work. Remove the virtual switch from Hyper-V (via the Hyper-V Manager) and then run RKM again.");
-                    Environment.ExitCode = 1;
-                    _hostApplicationLifetime.StopApplication();
-                    return false;
-                }
-
-                _logger.LogInformation("Adding dummy HNS network to force a virtual switch to be created... (this will disrupt network connectivity for a moment)");
-                _hnsService.NewHnsNetwork(new HnsNetwork
-                {
-                    Type = "Overlay",
-                    Name = "KubernetesDummy",
-                    NetworkAdapterName = networkAdapter.Name,
-                    Subnets = new[]
-                    {
-                        new HnsSubnet
-                        {
-                            // @note: These don't line up with anything, it's just to
-                            // get a virtual switch on the external adapter of the
-                            // correct type. As far as I can tell, the KubernetesDummy
-                            // network isn't used at all; the real one that gets used
-                            // is called vxlan0 (in the networkName variable).
-                            AddressPrefix = "192.168.255.0/30",
-                            GatewayAddress = "192.168.255.1",
-                            Policies = new[]
-                            {
-                                new HnsSubnetPolicy
-                                {
-                                    Type = "VSID",
-                                    VSID = 9999,
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // The Calico node wrapper deletes all HNS networks on startup; we can do slightly better and just cleanup
-            // all non-dummy networks to avoid the network interruption.
-            _logger.LogInformation("Deleting all non-dummy networks on startup to ensure consistent state...");
-            foreach (var network in _hnsService.GetHnsNetworks())
-            {
-                if (network.Name != "KubernetesDummy")
-                {
-                    try
-                    {
-                        // Technically we will delete the WSL network here if one exists, but it doesn't matter
-                        // because we're going to reconfigure WSL to use our KubernetesDummy switch anyway.
-                        _hnsService.DeleteHnsNetwork(network.Id);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, $"Unable to clean up '{network.Name}' due to an exception: {ex.Message}");
-                    }
-                }
-            }
-#endif
 
             // Only on Windows controllers do we run a kubelet inside WSL. On normal Windows nodes, we only run Windows containers.
             if (isController)

@@ -10,6 +10,8 @@ namespace Redpoint.KubernetesManager
     {
         string Version { get; }
 
-        string UetFilePath { get; }
+        string UetGenericFilePath { get; }
+
+        string UetVersionedFilePath { get; }
     }
 }

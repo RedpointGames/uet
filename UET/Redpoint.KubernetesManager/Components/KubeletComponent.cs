@@ -54,7 +54,7 @@
 
             Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "cache"));
 
-            var arguments = $"\"{_rkmVersionProvider.UetFilePath}\" cluster run-kubelet --manifest-path \"{Path.Combine(_pathProvider.RKMRoot, "cache", "kubelet-manifest.json")}\"";
+            var arguments = $"\"{_rkmVersionProvider.UetGenericFilePath}\" cluster run-kubelet --manifest-path \"{Path.Combine(_pathProvider.RKMRoot, "cache", "kubelet-manifest.json")}\"";
 
             var installed = false;
             if (await _serviceControl.IsServiceInstalled(_serviceName))
