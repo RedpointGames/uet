@@ -17,5 +17,11 @@
         /// </summary>
         [SupportedOSPlatform("windows")]
         public IReadOnlyDictionary<char, string>? PerProcessDriveMappings { get; set; }
+
+        /// <summary>
+        /// If set to true, the process will be run underneath with TrustedInstaller privileges. The "Windows Module Installer" service must have been started prior to using this option.
+        /// </summary>
+        [SupportedOSPlatform("windows")]
+        public bool RunAsTrustedInstaller { get; set; }
     }
 }

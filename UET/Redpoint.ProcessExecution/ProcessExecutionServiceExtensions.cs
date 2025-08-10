@@ -13,7 +13,7 @@
         /// </summary>
         public static void AddProcessExecution(this IServiceCollection services)
         {
-            if (OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
+            if (OperatingSystem.IsWindowsVersionAtLeast(6, 0, 6000))
             {
                 services.AddSingleton<DefaultProcessExecutor, DefaultProcessExecutor>();
                 services.AddSingleton<IProcessExecutor, WindowsProcessExecutor>();

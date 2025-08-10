@@ -1,31 +1,35 @@
 ﻿namespace Redpoint.ProcessExecution.Windows
 {
+    using global::Windows.Win32.Foundation;
+    using global::Windows.Win32.Security;
+    using global::Windows.Win32.System.Console;
+    using global::Windows.Win32.System.Services;
+    using global::Windows.Win32.System.Threading;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
+    using Microsoft.Win32.SafeHandles;
     using Redpoint.ProcessExecution.Enumerable;
+    using Redpoint.ProcessExecution.Windows.Ntdll;
     using Redpoint.ProcessExecution.Windows.SystemCopy;
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
+    using System.Diagnostics;
     using System.Linq;
+    using System.Reflection.Metadata;
+    using System.Runtime.InteropServices;
     using System.Runtime.Versioning;
+    using System.ServiceProcess;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using global::Windows.Win32.System.Threading;
-    using global::Windows.Win32.Security;
-    using global::Windows.Win32.Foundation;
-    using global::Windows.Win32.System.Console;
-    using Microsoft.Win32.SafeHandles;
-    using System.ComponentModel;
-    using System.Runtime.InteropServices;
-    using System.Diagnostics;
-    using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.DependencyInjection;
+    using static Redpoint.ProcessExecution.Windows.WindowsTrustedInstaller;
     using PInvoke = global::Windows.Win32.PInvoke;
-    using System.Reflection.Metadata;
 
     /// <remarks>
     /// This implementation is mostly from https://github.com/dotnet/runtime/blob/55c896f28b418893e202b4d20e95f5ed62402b91/src/libraries/System.Diagnostics.Process/src/System/Diagnostics/Process.Windows.cs, but with added support for suspending and chroot'ing Windows processes.
     /// </remarks>
-    [SupportedOSPlatform("windows5.1.2600")]
+    [SupportedOSPlatform("windows6.0.6000")]
     internal class WindowsProcessExecutor : IProcessExecutor
     {
         private static readonly object _createProcessLock = new object();
@@ -51,7 +55,8 @@
             ICaptureSpecification captureSpecification,
             CancellationToken cancellationToken)
         {
-            if (processSpecification.PerProcessDriveMappings != null)
+            if (processSpecification.PerProcessDriveMappings != null ||
+                processSpecification.RunAsTrustedInstaller)
             {
                 return ExecuteInternalAsync(
                     processSpecification,
@@ -65,6 +70,366 @@
                     captureSpecification,
                     cancellationToken);
             }
+        }
+
+        private class AttributeList : IDisposable
+        {
+            private readonly LPPROC_THREAD_ATTRIBUTE_LIST _attributeList;
+            private bool _disposedValue;
+
+            public AttributeList(LPPROC_THREAD_ATTRIBUTE_LIST attributeList)
+            {
+                _attributeList = attributeList;
+            }
+
+            public LPPROC_THREAD_ATTRIBUTE_LIST Value => _attributeList;
+
+            protected virtual void Dispose(bool disposing)
+            {
+                if (!_disposedValue)
+                {
+                    if (disposing)
+                    {
+                    }
+
+                    PInvoke.DeleteProcThreadAttributeList(_attributeList);
+                    _disposedValue = true;
+                }
+            }
+
+            ~AttributeList()
+            {
+                // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+                Dispose(disposing: false);
+            }
+
+            public void Dispose()
+            {
+                // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+                Dispose(disposing: true);
+                GC.SuppressFinalize(this);
+            }
+        }
+
+        private static unsafe AttributeList CreateAttributeList(Dictionary<uint, (nint ptr, int size)> attributes)
+        {
+            nuint startupInfoAttributeListSize = 0;
+            PInvoke.InitializeProcThreadAttributeList(
+                (LPPROC_THREAD_ATTRIBUTE_LIST)(void*)null,
+                (uint)attributes.Count,
+                0,
+                &startupInfoAttributeListSize);
+
+            var buffer = Marshal.AllocHGlobal((int)startupInfoAttributeListSize);
+            if (!PInvoke.InitializeProcThreadAttributeList(
+                (LPPROC_THREAD_ATTRIBUTE_LIST)(void*)buffer,
+                (uint)attributes.Count,
+                0,
+                &startupInfoAttributeListSize))
+            {
+                throw new InvalidOperationException("Unable to allocate attribute list!");
+            }
+
+            var attributeList = new AttributeList((LPPROC_THREAD_ATTRIBUTE_LIST)(void*)buffer);
+            try
+            {
+                foreach (var kv in attributes)
+                {
+                    if (!PInvoke.UpdateProcThreadAttribute(
+                        attributeList.Value,
+                        0,
+                        kv.Key,
+                        (void*)kv.Value.ptr,
+                        (nuint)kv.Value.size,
+                        null,
+                        (nuint*)null))
+                    {
+                        throw new InvalidOperationException("Unable to update attribute list!");
+                    }
+                }
+            }
+            catch
+            {
+                attributeList.Dispose();
+                throw;
+            }
+
+            return attributeList;
+        }
+
+        private SafeProcessHandle CreateProcess(
+            ProcessSpecification processSpecification,
+            bool redirectStandardInput,
+            bool redirectStandardOutput,
+            bool redirectStandardError,
+            StringBuilder commandLine,
+            ref WindowsChrootState? chrootState,
+            out StreamWriter? standardInput,
+            out StreamReader? standardOutput,
+            out StreamReader? standardError)
+        {
+            standardInput = null;
+            standardOutput = null;
+            standardError = null;
+
+            // Define the structures for starting the process.
+            STARTUPINFOEXW startupInfo = default;
+            PROCESS_INFORMATION processInfo = default;
+            SECURITY_ATTRIBUTES unusedSecurityAttrs = default;
+            SafeProcessHandle procSH = new SafeProcessHandle();
+
+            // Handles used in the parent process.
+            SafeFileHandle? parentInputPipeHandle = null;
+            SafeFileHandle? childInputPipeHandle = null;
+            SafeFileHandle? parentOutputPipeHandle = null;
+            SafeFileHandle? childOutputPipeHandle = null;
+            SafeFileHandle? parentErrorPipeHandle = null;
+            SafeFileHandle? childErrorPipeHandle = null;
+
+            // Holds the parent process handle pointer when running underneath the TrustedInstaller.
+            NtProcessSafeHandle? parentProcessHandle = null;
+
+            // Take a global lock to prevent concurrent CreateProcess
+            // calls, which would cause handles to be inherited
+            // incorrectly.
+            //
+            // @todo: Do we need to steal the lock object from inside
+            // the System.Diagnostics.Process class?
+            //
+            lock (_createProcessLock)
+            {
+                unsafe
+                {
+                    nint* parentProcessHandleValue = null;
+                    AttributeList? parentProcessAttributeList = null;
+
+                    try
+                    {
+                        if (processSpecification.RunAsTrustedInstaller)
+                        {
+                            parentProcessHandle = GetTrustedInstallerParentProcess();
+                            if (parentProcessHandle.IsInvalid)
+                            {
+                                throw new RunAsTrustedInstallerFailedException("RunAsTrustedInstaller requested, but we could not access the 'TrustedInstaller' service.");
+                            }
+                            parentProcessHandleValue = (nint*)Marshal.AllocHGlobal(sizeof(nint));
+                            *parentProcessHandleValue = parentProcessHandle.DangerousGetHandle();
+                            parentProcessAttributeList = CreateAttributeList(new Dictionary<uint, (nint ptr, int size)>
+                            {
+                                {
+                                    PInvoke.PROC_THREAD_ATTRIBUTE_PARENT_PROCESS | PInvoke.PROC_THREAD_ATTRIBUTE_INPUT,
+                                    (ptr: (nint)parentProcessHandleValue, size: sizeof(nint))
+                                }
+                            });
+                        }
+                        else
+                        {
+                            parentProcessAttributeList = CreateAttributeList(new Dictionary<uint, (nint ptr, int size)>());
+                        }
+
+                        startupInfo.StartupInfo.cb = (uint)sizeof(STARTUPINFOEXW);
+                        startupInfo.lpAttributeList = parentProcessAttributeList.Value;
+
+                        // Set up the streams.
+                        if (redirectStandardInput || redirectStandardOutput || redirectStandardError)
+                        {
+                            if (redirectStandardInput)
+                            {
+                                CreatePipe(out parentInputPipeHandle, out childInputPipeHandle, true);
+                            }
+                            else
+                            {
+                                childInputPipeHandle = new SafeFileHandle(PInvoke.GetStdHandle(STD_HANDLE.STD_INPUT_HANDLE), false);
+                            }
+
+                            if (redirectStandardOutput)
+                            {
+                                CreatePipe(out parentOutputPipeHandle, out childOutputPipeHandle, false);
+                            }
+                            else
+                            {
+                                childOutputPipeHandle = new SafeFileHandle(PInvoke.GetStdHandle(STD_HANDLE.STD_OUTPUT_HANDLE), false);
+                            }
+
+                            if (redirectStandardError)
+                            {
+                                CreatePipe(out parentErrorPipeHandle, out childErrorPipeHandle, false);
+                            }
+                            else
+                            {
+                                childErrorPipeHandle = new SafeFileHandle(PInvoke.GetStdHandle(STD_HANDLE.STD_ERROR_HANDLE), false);
+                            }
+
+                            startupInfo.StartupInfo.hStdInput = new HANDLE(childInputPipeHandle.DangerousGetHandle());
+                            startupInfo.StartupInfo.hStdOutput = new HANDLE(childOutputPipeHandle.DangerousGetHandle());
+                            startupInfo.StartupInfo.hStdError = new HANDLE(childErrorPipeHandle.DangerousGetHandle());
+
+                            startupInfo.StartupInfo.dwFlags = STARTUPINFOW_FLAGS.STARTF_USESTDHANDLES;
+                        }
+
+                        // Set up the creation flags parameter.
+                        PROCESS_CREATION_FLAGS creationFlags = 0;
+                        creationFlags |= PROCESS_CREATION_FLAGS.EXTENDED_STARTUPINFO_PRESENT;
+                        if (processSpecification.RunAsTrustedInstaller)
+                        {
+                            // This is required, otherwise the process will fail with STATUS_DLL_INIT_FAILED.
+                            creationFlags |= PROCESS_CREATION_FLAGS.CREATE_NEW_CONSOLE;
+                        }
+
+                        // Set up the environment block parameter.
+                        string? environmentBlock = null;
+                        if (processSpecification.EnvironmentVariables != null)
+                        {
+                            creationFlags |= PROCESS_CREATION_FLAGS.CREATE_UNICODE_ENVIRONMENT;
+                            environmentBlock = GetEnvironmentVariablesBlock(processSpecification.EnvironmentVariables);
+                        }
+
+                        // Set up the working directory.
+                        string? workingDirectory = processSpecification.WorkingDirectory;
+                        if (workingDirectory != null &&
+                            workingDirectory.Length == 0)
+                        {
+                            workingDirectory = null;
+                        }
+
+                        // If we have per-process drive mappings, we need to create the process
+                        // in a suspended state and set up our chroot state now (so the handles
+                        // can be inherited).
+                        if (processSpecification.PerProcessDriveMappings != null)
+                        {
+                            creationFlags |= PROCESS_CREATION_FLAGS.CREATE_SUSPENDED;
+                            chrootState = WindowsChroot.SetupChrootState(processSpecification.PerProcessDriveMappings!);
+                        }
+
+                    retryCreation:
+
+                        // Create the process.
+                        bool retVal;
+                        int errorCode = 0;
+                        fixed (char* environmentBlockPtr = environmentBlock)
+                        fixed (char* commandLinePtrRaw = commandLine.ToString())
+                        fixed (char* workingDirectoryPtr = workingDirectory)
+                        {
+                            var commandLinePtr = new PWSTR(commandLinePtrRaw);
+                            var currentDirectoryPtr = new PCWSTR(workingDirectoryPtr);
+                            retVal = PInvoke.CreateProcess(
+                                new PCWSTR(null),           // we don't need this since all the info is in commandLine
+                                commandLinePtr,             // pointer to the command line string
+                                &unusedSecurityAttrs,       // address to process security attributes, we don't need to inherit the handle
+                                &unusedSecurityAttrs,       // address to thread security attributes.
+                                new BOOL(true),             // handle inheritance flag
+                                creationFlags,              // creation flags
+                                (void*)environmentBlockPtr, // pointer to new environment block
+                                                            // pointer to current directory name
+                                                            // @note: If we're using per-process drive mappings, we inherit the current
+                                                            // directory and change it after we've applied the device mappings to the new
+                                                            // process, since our current process doesn't have the device mappings and thus
+                                                            // it's view of what the working directory should be isn't the same.
+                                processSpecification.PerProcessDriveMappings != null ? null : currentDirectoryPtr,
+                                &startupInfo.StartupInfo,               // pointer to STARTUPINFO
+                                &processInfo                // pointer to PROCESS_INFORMATION
+                            );
+                            if (!retVal)
+                            {
+                                errorCode = Marshal.GetLastWin32Error();
+                            }
+                        }
+
+                        if (processInfo.hProcess != IntPtr.Zero && processInfo.hProcess != new IntPtr(-1))
+                        {
+                            Marshal.InitHandle(procSH, processInfo.hProcess);
+                        }
+                        try
+                        {
+                            if (!retVal)
+                            {
+                                throw new Win32Exception(errorCode, $"Result of CreateProcess was {retVal} with last Win32 error {errorCode}, hProcess handle was {processInfo.hProcess.Value}.");
+                            }
+
+                            // If we have per-process drive mappings, go and apply them to the
+                            // process and resume it.
+                            if (retVal && chrootState != null)
+                            {
+                                try
+                                {
+                                    _logger.LogTrace("WindowsProcessExecutor: Applying chroot state to process.");
+                                    WindowsChroot.UseChrootState(chrootState, ref processInfo);
+                                    if (workingDirectory != null)
+                                    {
+                                        _logger.LogTrace("WindowsProcessExecutor: Applying working directory to process.");
+                                        WindowsWorkingDirectory.SetWorkingDirectoryOfAnotherProcess(processInfo.hProcess, workingDirectory);
+                                    }
+                                    _logger.LogTrace("WindowsProcessExecutor: Resuming thread.");
+                                    WindowsChroot.ResumeThread(ref processInfo);
+                                }
+                                catch (InvalidOperationException ex) when (ex.Message.Contains("Got NTSTATUS C0000008 when setting information process ProcessDeviceMap", StringComparison.Ordinal))
+                                {
+                                    // This randomly seems to happen. Just retry creating the process.
+                                    PInvoke.TerminateProcess(processInfo.hProcess, unchecked((uint)-1));
+                                    goto retryCreation;
+                                }
+                                catch
+                                {
+                                    // The process will be in a suspended state and never resume.
+                                    // Terminate it rather than leaving it running.
+                                    PInvoke.TerminateProcess(processInfo.hProcess, unchecked((uint)-1));
+                                    throw;
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (processInfo.hThread != IntPtr.Zero && processInfo.hThread != new IntPtr(-1))
+                            {
+                                PInvoke.CloseHandle(processInfo.hThread);
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        parentInputPipeHandle?.Dispose();
+                        parentOutputPipeHandle?.Dispose();
+                        parentErrorPipeHandle?.Dispose();
+                        procSH.Dispose();
+                        throw;
+                    }
+                    finally
+                    {
+                        childInputPipeHandle?.Dispose();
+                        childOutputPipeHandle?.Dispose();
+                        childErrorPipeHandle?.Dispose();
+                        parentProcessHandle?.Dispose();
+                        if (parentProcessAttributeList != null)
+                        {
+                            parentProcessAttributeList.Dispose();
+                        }
+                        if (parentProcessHandleValue != null)
+                        {
+                            Marshal.FreeHGlobal((nint)parentProcessHandleValue);
+                            parentProcessHandleValue = null;
+                        }
+                    }
+                }
+            }
+
+            if (redirectStandardInput)
+            {
+                Encoding enc = GetEncoding((int)PInvoke.GetConsoleCP());
+                standardInput = new StreamWriter(new FileStream(parentInputPipeHandle!, FileAccess.Write, 4096, false), enc, 4096);
+                standardInput.AutoFlush = true;
+            }
+            if (redirectStandardOutput)
+            {
+                Encoding enc = GetEncoding((int)PInvoke.GetConsoleOutputCP());
+                standardOutput = new StreamReader(new FileStream(parentOutputPipeHandle!, FileAccess.Read, 4096, false), enc, true, 4096);
+            }
+            if (redirectStandardError)
+            {
+                Encoding enc = GetEncoding((int)PInvoke.GetConsoleOutputCP());
+                standardError = new StreamReader(new FileStream(parentErrorPipeHandle!, FileAccess.Read, 4096, false), enc, true, 4096);
+            }
+
+            return procSH;
         }
 
         private async Task<int> ExecuteInternalAsync(
@@ -107,20 +472,6 @@
                 }
                 _logger.LogTrace($"WindowsProcessExecutor is executing with command line: {commandLine}");
 
-                // Define the structures for starting the process.
-                STARTUPINFOW startupInfo = default;
-                PROCESS_INFORMATION processInfo = default;
-                SECURITY_ATTRIBUTES unusedSecurityAttrs = default;
-                SafeProcessHandle procSH = new SafeProcessHandle();
-
-                // Handles used in the parent process.
-                SafeFileHandle? parentInputPipeHandle = null;
-                SafeFileHandle? childInputPipeHandle = null;
-                SafeFileHandle? parentOutputPipeHandle = null;
-                SafeFileHandle? childOutputPipeHandle = null;
-                SafeFileHandle? parentErrorPipeHandle = null;
-                SafeFileHandle? childErrorPipeHandle = null;
-
                 // Compute whether we're redirecting anything.
                 var redirectStandardInput =
                     captureSpecification.InterceptStandardInput ||
@@ -130,209 +481,17 @@
                 var redirectStandardError =
                     captureSpecification.InterceptStandardError;
 
-                // Take a global lock to prevent concurrent CreateProcess
-                // calls, which would cause handles to be inherited
-                // incorrectly.
-                //
-                // @todo: Do we need to steal the lock object from inside
-                // the System.Diagnostics.Process class?
-                //
-                lock (_createProcessLock)
-                {
-                    unsafe
-                    {
-                        try
-                        {
-                            startupInfo.cb = (uint)sizeof(STARTUPINFOW);
-
-                            // Set up the streams.
-                            if (redirectStandardInput || redirectStandardOutput || redirectStandardError)
-                            {
-                                if (redirectStandardInput)
-                                {
-                                    CreatePipe(out parentInputPipeHandle, out childInputPipeHandle, true);
-                                }
-                                else
-                                {
-                                    childInputPipeHandle = new SafeFileHandle(PInvoke.GetStdHandle(STD_HANDLE.STD_INPUT_HANDLE), false);
-                                }
-
-                                if (redirectStandardOutput)
-                                {
-                                    CreatePipe(out parentOutputPipeHandle, out childOutputPipeHandle, false);
-                                }
-                                else
-                                {
-                                    childOutputPipeHandle = new SafeFileHandle(PInvoke.GetStdHandle(STD_HANDLE.STD_OUTPUT_HANDLE), false);
-                                }
-
-                                if (redirectStandardError)
-                                {
-                                    CreatePipe(out parentErrorPipeHandle, out childErrorPipeHandle, false);
-                                }
-                                else
-                                {
-                                    childErrorPipeHandle = new SafeFileHandle(PInvoke.GetStdHandle(STD_HANDLE.STD_ERROR_HANDLE), false);
-                                }
-
-                                startupInfo.hStdInput = new HANDLE(childInputPipeHandle.DangerousGetHandle());
-                                startupInfo.hStdOutput = new HANDLE(childOutputPipeHandle.DangerousGetHandle());
-                                startupInfo.hStdError = new HANDLE(childErrorPipeHandle.DangerousGetHandle());
-
-                                startupInfo.dwFlags = STARTUPINFOW_FLAGS.STARTF_USESTDHANDLES;
-                            }
-
-                            // Set up the creation flags parameter.
-                            PROCESS_CREATION_FLAGS creationFlags = 0;
-
-                            // Set up the environment block parameter.
-                            string? environmentBlock = null;
-                            if (processSpecification.EnvironmentVariables != null)
-                            {
-                                creationFlags |= PROCESS_CREATION_FLAGS.CREATE_UNICODE_ENVIRONMENT;
-                                environmentBlock = GetEnvironmentVariablesBlock(processSpecification.EnvironmentVariables);
-                            }
-
-                            // Set up the working directory.
-                            string? workingDirectory = processSpecification.WorkingDirectory;
-                            if (workingDirectory != null &&
-                                workingDirectory.Length == 0)
-                            {
-                                workingDirectory = null;
-                            }
-
-                            // If we have per-process drive mappings, we need to create the process
-                            // in a suspended state and set up our chroot state now (so the handles
-                            // can be inherited).
-                            if (processSpecification.PerProcessDriveMappings != null)
-                            {
-                                creationFlags |= PROCESS_CREATION_FLAGS.CREATE_SUSPENDED;
-                                chrootState = WindowsChroot.SetupChrootState(processSpecification.PerProcessDriveMappings!);
-                            }
-
-                        retryCreation:
-
-                            // Create the process.
-                            bool retVal;
-                            int errorCode = 0;
-                            fixed (char* environmentBlockPtr = environmentBlock)
-                            fixed (char* commandLinePtrRaw = commandLine.ToString())
-                            fixed (char* workingDirectoryPtr = workingDirectory)
-                            {
-                                var commandLinePtr = new PWSTR(commandLinePtrRaw);
-                                var currentDirectoryPtr = new PCWSTR(workingDirectoryPtr);
-#pragma warning disable CS9123 // The '&' operator should not be used on parameters or local variables in async methods.
-                                retVal = PInvoke.CreateProcess(
-                                    new PCWSTR(null),           // we don't need this since all the info is in commandLine
-                                    commandLinePtr,             // pointer to the command line string
-                                    &unusedSecurityAttrs,       // address to process security attributes, we don't need to inherit the handle
-                                    &unusedSecurityAttrs,       // address to thread security attributes.
-                                    new BOOL(true),             // handle inheritance flag
-                                    creationFlags,              // creation flags
-                                    (void*)environmentBlockPtr, // pointer to new environment block
-                                                                // pointer to current directory name
-                                                                // @note: If we're using per-process drive mappings, we inherit the current
-                                                                // directory and change it after we've applied the device mappings to the new
-                                                                // process, since our current process doesn't have the device mappings and thus
-                                                                // it's view of what the working directory should be isn't the same.
-                                    processSpecification.PerProcessDriveMappings != null ? null : currentDirectoryPtr,
-                                    &startupInfo,               // pointer to STARTUPINFO
-                                    &processInfo                // pointer to PROCESS_INFORMATION
-                                );
-#pragma warning restore CS9123 // The '&' operator should not be used on parameters or local variables in async methods.
-                                if (!retVal)
-                                {
-                                    errorCode = Marshal.GetLastWin32Error();
-                                }
-                            }
-
-                            if (processInfo.hProcess != IntPtr.Zero && processInfo.hProcess != new IntPtr(-1))
-                            {
-                                Marshal.InitHandle(procSH, processInfo.hProcess);
-                            }
-                            try
-                            {
-                                if (!retVal)
-                                {
-                                    throw new Win32Exception(errorCode, $"Result of CreateProcess was {retVal} with last Win32 error {errorCode}, hProcess handle was {processInfo.hProcess.Value}.");
-                                }
-
-                                // If we have per-process drive mappings, go and apply them to the
-                                // process and resume it.
-                                if (retVal && chrootState != null)
-                                {
-                                    try
-                                    {
-                                        _logger.LogTrace("WindowsProcessExecutor: Applying chroot state to process.");
-                                        WindowsChroot.UseChrootState(chrootState, ref processInfo);
-                                        if (workingDirectory != null)
-                                        {
-                                            _logger.LogTrace("WindowsProcessExecutor: Applying working directory to process.");
-                                            WindowsWorkingDirectory.SetWorkingDirectoryOfAnotherProcess(processInfo.hProcess, workingDirectory);
-                                        }
-                                        _logger.LogTrace("WindowsProcessExecutor: Resuming thread.");
-                                        WindowsChroot.ResumeThread(ref processInfo);
-                                    }
-                                    catch (InvalidOperationException ex) when (ex.Message.Contains("Got NTSTATUS C0000008 when setting information process ProcessDeviceMap", StringComparison.Ordinal))
-                                    {
-                                        // This randomly seems to happen. Just retry creating the process.
-                                        PInvoke.TerminateProcess(processInfo.hProcess, unchecked((uint)-1));
-                                        goto retryCreation;
-                                    }
-                                    catch
-                                    {
-                                        // The process will be in a suspended state and never resume.
-                                        // Terminate it rather than leaving it running.
-                                        PInvoke.TerminateProcess(processInfo.hProcess, unchecked((uint)-1));
-                                        throw;
-                                    }
-                                }
-                            }
-                            finally
-                            {
-                                if (processInfo.hThread != IntPtr.Zero && processInfo.hThread != new IntPtr(-1))
-                                {
-                                    PInvoke.CloseHandle(processInfo.hThread);
-                                }
-                            }
-                        }
-                        catch
-                        {
-                            parentInputPipeHandle?.Dispose();
-                            parentOutputPipeHandle?.Dispose();
-                            parentErrorPipeHandle?.Dispose();
-                            procSH.Dispose();
-                            throw;
-                        }
-                        finally
-                        {
-                            childInputPipeHandle?.Dispose();
-                            childOutputPipeHandle?.Dispose();
-                            childErrorPipeHandle?.Dispose();
-                        }
-                    }
-                }
-
-                StreamWriter? standardInput = null;
-                StreamReader? standardOutput = null;
-                StreamReader? standardError = null;
-
-                if (redirectStandardInput)
-                {
-                    Encoding enc = GetEncoding((int)PInvoke.GetConsoleCP());
-                    standardInput = new StreamWriter(new FileStream(parentInputPipeHandle!, FileAccess.Write, 4096, false), enc, 4096);
-                    standardInput.AutoFlush = true;
-                }
-                if (redirectStandardOutput)
-                {
-                    Encoding enc = GetEncoding((int)PInvoke.GetConsoleOutputCP());
-                    standardOutput = new StreamReader(new FileStream(parentOutputPipeHandle!, FileAccess.Read, 4096, false), enc, true, 4096);
-                }
-                if (redirectStandardError)
-                {
-                    Encoding enc = GetEncoding((int)PInvoke.GetConsoleOutputCP());
-                    standardError = new StreamReader(new FileStream(parentErrorPipeHandle!, FileAccess.Read, 4096, false), enc, true, 4096);
-                }
+                // Create the process handle.
+                SafeProcessHandle procSH = CreateProcess(
+                    processSpecification,
+                    redirectStandardInput,
+                    redirectStandardOutput,
+                    redirectStandardError,
+                    commandLine,
+                    ref chrootState,
+                    out var standardInput,
+                    out var standardOutput,
+                    out var standardError);
 
                 _logger.LogTrace($"Starting process: {_processArgumentParser.CreateArgumentFromLogicalValue(processSpecification.FilePath).ToString()} {string.Join(" ", argumentsEvaluated.Select(x => x.ToString()))}");
 
@@ -485,6 +644,13 @@
                     catch { }
                 }
                 cancellationToken.ThrowIfCancellationRequested();
+
+                if (exitCode > int.MaxValue)
+                {
+                    var win32Error = NtdllPInvoke.RtlNtStatusToDosError(unchecked((int)exitCode)) | unchecked((int)0x80070000);
+                    throw new Win32Exception(win32Error);
+                }
+
                 return unchecked((int)exitCode);
             }
             finally
