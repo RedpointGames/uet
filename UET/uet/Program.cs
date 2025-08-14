@@ -8,6 +8,7 @@ using Redpoint.Uet.Core.BugReport;
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using UET.Commands.Android;
@@ -27,6 +28,8 @@ using UET.Commands.Test;
 using UET.Commands.Transfer;
 using UET.Commands.Uefs;
 using UET.Commands.Upgrade;
+
+[assembly: InternalsVisibleTo("Redpoint.Uet.Tests")]
 
 if (Environment.GetEnvironmentVariable("CI") == "true")
 {

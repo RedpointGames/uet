@@ -134,18 +134,32 @@
 
         private async Task<IWorkspace> AllocateGitAsync(GitWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
         {
-            var reservationParameters =
-                Environment.GetEnvironmentVariable("UET_USE_LESS_UNIQUE_RESERVATION_NAMES_FOR_GIT") == "1"
-                ? _parameterGenerator.ConstructReservationParameters([descriptor.RepositoryUrl, descriptor.RepositoryBranchForReservationParameters])
-                : _parameterGenerator.ConstructReservationParameters([descriptor.RepositoryUrl, descriptor.RepositoryCommitOrRef]);
-
             var usingReservation = false;
-            var reservation = await _reservationManager.ReserveAsync(
-                "PhysicalGit",
-                reservationParameters).ConfigureAwait(false);
+            IReservation? reservation;
+            if (descriptor.QueryString?["concurrent"] == "false")
+            {
+                _logger.LogInformation("Reserving exact workspace as this Git workspace descriptor has concurrent=false...");
+
+                reservation = await _reservationManager.ReserveExactAsync(
+                    StabilityHash.GetStabilityHash($"PhysicalGit:{string.Join("-", [descriptor.RepositoryUrl, descriptor.RepositoryBranchForReservationParameters])}", 14),
+                    cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                var reservationParameters =
+                    Environment.GetEnvironmentVariable("UET_USE_LESS_UNIQUE_RESERVATION_NAMES_FOR_GIT") == "1"
+                    ? _parameterGenerator.ConstructReservationParameters(
+                        [descriptor.RepositoryUrl, descriptor.RepositoryBranchForReservationParameters])
+                    : _parameterGenerator.ConstructReservationParameters(
+                        [descriptor.RepositoryUrl, descriptor.RepositoryCommitOrRef]);
+
+                reservation = await _reservationManager.ReserveAsync(
+                    "PhysicalGit",
+                    reservationParameters).ConfigureAwait(false);
+            }
             try
             {
-                _logger.LogInformation($"Creating physical Git workspace: {reservation.ReservedPath}");
+                _logger.LogInformation($"Creating or updating physical Git workspace: {reservation.ReservedPath}");
                 await _physicalGitCheckout.PrepareGitWorkspaceAsync(reservation.ReservedPath, descriptor, cancellationToken).ConfigureAwait(false);
                 usingReservation = true;
                 return new ReservationWorkspace(reservation);

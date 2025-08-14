@@ -5,10 +5,12 @@
     using Redpoint.Uet.Configuration.Engine;
     using Redpoint.Uet.Configuration.Project;
     using System;
+    using System.Collections.Specialized;
     using System.CommandLine;
     using System.CommandLine.Parsing;
     using System.Text.Json;
     using System.Text.RegularExpressions;
+    using System.Web;
 
     internal sealed class EngineSpec
     {
@@ -289,12 +291,35 @@
                     var firstAt = value.IndexOf('@', StringComparison.Ordinal);
                     var commit = value[..firstAt];
                     value = value[(firstAt + 1)..];
-                    var firstComma = value.IndexOf(',', StringComparison.Ordinal);
-                    var url = firstComma == -1 ? value : value[..firstComma];
-                    (string type, string value)[] layers;
-                    if (firstComma != -1)
+
+                    var firstQuestionMark = value.IndexOf('?', StringComparison.Ordinal);
+                    string url;
+                    string? configString = null;
+                    NameValueCollection qs;
+                    if (firstQuestionMark != -1)
                     {
-                        layers = value[(firstComma + 1)..].Split(',').Select(x =>
+                        url = value[..firstQuestionMark];
+                        qs = HttpUtility.ParseQueryString(value[(firstQuestionMark + 1)..]);
+                        if (qs["config"] != null)
+                        {
+                            configString = qs["config"];
+                        }
+                    }
+                    else
+                    {
+                        var firstComma = value.IndexOf(',', StringComparison.Ordinal);
+                        url = firstComma == -1 ? value : value[..firstComma];
+                        if (firstComma != -1)
+                        {
+                            configString = value[(firstComma + 1)..];
+                        }
+                        qs = new NameValueCollection();
+                    }
+
+                    (string type, string value)[] layers;
+                    if (configString != null)
+                    {
+                        layers = configString.Split(',').Select(x =>
                         {
                             var s = x.Split(':', 2);
                             return (s[0], s[1]);
@@ -304,6 +329,7 @@
                     {
                         layers = Array.Empty<(string type, string value)>();
                     }
+
                     // @note: Folders aren't used yet.
                     var folders = layers.Where(x => x.type == "f").Select(x => x.value).ToArray();
                     var zips = layers.Where(x => x.type == "z").Select(x => x.value).ToArray();
@@ -320,6 +346,7 @@
                         ZipLayers = zips,
                         WindowsSharedGitCachePath = windowsSharedGitCachePath,
                         MacSharedGitCachePath = macSharedGitCachePath,
+                        GitQueryString = qs,
                     };
                 }
             }
@@ -538,6 +565,8 @@
 
         public string? GitCommit { get; private init; }
 
+        public NameValueCollection? GitQueryString { get; private init; }
+
         public string[]? FolderLayers { get; private init; }
 
         public string[]? ZipLayers { get; private init; }
@@ -579,7 +608,8 @@
                         GitUrl!,
                         GitCommit!,
                         ZipLayers,
-                        isEngineBuild: false);
+                        isEngineBuild: false,
+                        queryString: GitQueryString);
                 case EngineSpecType.SelfEngineByBuildConfig:
                     if (distributionSpec != null)
                     {
