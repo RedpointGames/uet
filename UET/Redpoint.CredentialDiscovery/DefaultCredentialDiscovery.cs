@@ -31,6 +31,9 @@
             var envVarSshPrivateKey = $"REDPOINT_CREDENTIAL_DISCOVERY_SSH_PRIVATE_KEY_{hostForEnvVar}";
             var envVarSshPublicKey = $"REDPOINT_CREDENTIAL_DISCOVERY_SSH_PUBLIC_KEY_{hostForEnvVar}";
 
+            var envVarCiJobToken = "CI_JOB_TOKEN";
+            var envVarCiServerHost = "CI_SERVER_HOST";
+
             if (repositoryUri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) ||
                 repositoryUri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase))
             {
@@ -49,6 +52,20 @@
                         {
                             Username = envUsername,
                             Password = envPassword,
+                        };
+                    }
+
+                    // GitLab specific code - we need to read the environment variable every time because it may no
+                    // longer be valid between the generate step and the actual build jobs.
+                    var envCiJobToken = Environment.GetEnvironmentVariable(envVarCiJobToken);
+                    var envCiServerHost = Environment.GetEnvironmentVariable(envVarCiServerHost);
+                    if (!string.IsNullOrWhiteSpace(envCiJobToken) &&
+                        string.Equals(envCiServerHost, repositoryUri.Host, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return new GitCredential
+                        {
+                            Username = "gitlab-ci-token",
+                            Password = envCiJobToken,
                         };
                     }
 
