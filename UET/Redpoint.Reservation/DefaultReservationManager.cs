@@ -5,10 +5,7 @@
     using System;
     using System.Collections.Concurrent;
     using System.Globalization;
-    using System.Numerics;
     using System.Reflection.Metadata;
-    using System.Security.Cryptography;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -19,47 +16,6 @@
         private readonly ILogger<DefaultReservationManager> _logger;
         private readonly string _metaPath;
         private static ConcurrentDictionary<string, bool> _localReservations = new ConcurrentDictionary<string, bool>();
-
-        private static string GetStabilityHash(string inputString, int? length)
-        {
-            var inputBytes = SHA256.HashData(Encoding.ASCII.GetBytes(inputString));
-            const string alphabet = "0123456789abcdefghijklmnopqrstuvwxyz.-_";
-            var dividend = new BigInteger(inputBytes);
-            var builder = new StringBuilder();
-            while (dividend != 0)
-            {
-                dividend = BigInteger.DivRem(dividend, alphabet.Length, out BigInteger remainder);
-                builder.Insert(0, alphabet[Math.Abs((int)remainder)]);
-            }
-            string target;
-            if (!length.HasValue)
-            {
-                target = builder.ToString();
-            }
-            else
-            {
-                target = builder.ToString()[..length.Value];
-            }
-            var targetChars = target.ToCharArray();
-            // @note: We must replace . at the end of the string with _
-            // because Windows does not support trailing dots. However,
-            // we don't want to alter the length of the resulting string
-            // for path length stability reasons, so we replace
-            // dots with underscores instead of trimming.
-            for (int d = targetChars.Length - 1; d >= 0; d--)
-            {
-                if (targetChars[d] == '.')
-                {
-                    targetChars[d] = '_';
-                }
-                else
-                {
-                    break;
-                }
-            }
-            return new string(targetChars);
-        }
-
 
         private static void CreateDirectory(string path)
         {
@@ -121,7 +77,7 @@
 
         public Task<IReservation> ReserveAsync(string @namespace, params string[] parameters)
         {
-            var id = GetStabilityHash($"{@namespace}:{string.Join("-", parameters)}", 14);
+            var id = StabilityHash.GetStabilityHash($"{@namespace}:{string.Join("-", parameters)}", 14);
             // @note: The upper bound here can not be changed without changing the
             // target length of 'targetName' below.
             for (int i = 0; i < 1000; i++)

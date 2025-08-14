@@ -276,7 +276,13 @@
                 }
             }
 
-            if (workspaceDescriptor.LfsStoragePath != null)
+            var lfsStoragePath = workspaceDescriptor.LfsStoragePath;
+            if (lfsStoragePath == null)
+            {
+                lfsStoragePath = workspaceDescriptor.QueryString?["lfsStoragePath"];
+            }
+
+            if (lfsStoragePath != null)
             {
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
@@ -289,7 +295,7 @@
                             "config",
                             "set",
                             "lfs.storage",
-                            workspaceDescriptor.LfsStoragePath
+                            lfsStoragePath
                         ],
                         WorkingDirectory = repositoryPath,
                         EnvironmentVariables = gitContext.GitEnvs,
@@ -428,7 +434,8 @@
                 // We have our own .gitcheckout file which we write after we finish all submodule work. That way, we know the previous checkout completed successfully even if it failed during submodule work.
                 if (File.Exists(Path.Combine(repositoryPath, ".gitcheckout")))
                 {
-                    if (gitContext.EnableSubmoduleSupport || File.Exists(Path.Combine(repositoryPath, ".gitmodules")))
+                    if ((gitContext.EnableSubmoduleSupport || File.Exists(Path.Combine(repositoryPath, ".gitmodules"))) &&
+                        gitContext.AllowSubmoduleSupport)
                     {
                         // Just really quickly check to make sure the .git file exists in each submodule we care about. If it doesn't,
                         // then the .gitcheckout file is stale and needs to be removed.
@@ -592,7 +599,7 @@
                                         repositoryPath,
                                         "fetch",
                                         "-f",
-                                        "--filter=tree:0",
+                                        gitContext.AssumeLfs ? string.Empty : "--filter=tree:0",
                                         "--recurse-submodules=no",
                                         "--progress",
                                         uri.ToString(),
@@ -662,7 +669,7 @@
                                         repositoryPath,
                                         "fetch",
                                         "-f",
-                                        "--filter=tree:0",
+                                        gitContext.AssumeLfs ? string.Empty : "--filter=tree:0",
                                         "--recurse-submodules=no",
                                         "--progress",
                                         uri.ToString(),
@@ -714,6 +721,7 @@
         /// replace it in newer repositories).
         /// </summary>
         private async Task<GitLfsMode> DetectGitLfsAndReconfigureIfNecessaryAsync(
+            GitWorkspaceDescriptor workspaceDescriptor,
             string repositoryPath,
             Uri repositoryUri,
             GitResolvedReference resolvedReference,
@@ -722,17 +730,166 @@
         {
             int exitCode;
 
-            // Check to see if the target commit has a ".gitattributes" file with LFS filters in it.
-            _logger.LogInformation("Checking for .gitattributes with LFS filters in it...");
-            var gitAttributesContent = new StringBuilder();
-            using (var fetchEnvVars = gitContext.FetchEnvironmentVariablesFactory())
+            // We only need to do this step if we're not assuming LFS is enabled.
+            if (!gitContext.AssumeLfs)
             {
-                var backoff = 1000;
-                var attempts = 0;
-                do
+                // Check to see if the target commit has a ".gitattributes" file with LFS filters in it.
+                _logger.LogInformation("Checking for .gitattributes with LFS filters in it...");
+                var gitAttributesContent = new StringBuilder();
+                using (var fetchEnvVars = gitContext.FetchEnvironmentVariablesFactory())
                 {
-                    gitAttributesContent.Clear();
-                    var gitAttributesError = new StringBuilder();
+                    var backoff = 1000;
+                    var attempts = 0;
+                    do
+                    {
+                        gitAttributesContent.Clear();
+                        var gitAttributesError = new StringBuilder();
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = gitContext.Git,
+                                Arguments =
+                                [
+                                    "-C",
+                                    repositoryPath,
+                                    "show",
+                                    $"{resolvedReference.TargetCommit}:.gitattributes",
+                                ],
+                                WorkingDirectory = repositoryPath,
+                                EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
+                            },
+                            CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
+                            {
+                                ReceiveStdout = (line) =>
+                                {
+                                    gitAttributesContent.AppendLine(line);
+                                    return false;
+                                },
+                                ReceiveStderr = (line) =>
+                                {
+                                    gitAttributesError.AppendLine(line);
+                                    return false;
+                                },
+                            }),
+                            cancellationToken).ConfigureAwait(false);
+                        if (exitCode == 128 &&
+                            gitAttributesError.ToString().Contains($"path '.gitattributes' does not exist", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Git LFS can't be enabled, because there's no .gitattributes file.
+                            return GitLfsMode.NotDetected;
+                        }
+                        if (exitCode == 128 && attempts < 10)
+                        {
+                            // 'git fetch' returns exit code 128 when the remote host
+                            // unexpectedly disconnects. We want to handle unreliable
+                            // network connections by simply retrying the 'git fetch'
+                            // operation.
+                            _logger.LogWarning($"'git show' encountered a network error while fetching commits. Retrying the fetch operation in {backoff}ms...");
+                            await Task.Delay(backoff, cancellationToken).ConfigureAwait(false);
+                            backoff *= 2;
+                            if (backoff > 30000)
+                            {
+                                backoff = 30000;
+                            }
+                            attempts++;
+                            continue;
+                        }
+                        else if (exitCode == 128)
+                        {
+                            // We attempted too many times and can't continue.
+                            _logger.LogError("Fault tolerant Git operation ran into exit code 128 over 10 attempts, permanently failing...");
+                        }
+
+                        // Break if we returned success, throw otherwise.
+                        if (exitCode != 0)
+                        {
+                            throw new InvalidOperationException($"'git show' exited with non-zero exit code {exitCode}");
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    } while (true);
+                }
+
+                // Check to see if .gitattributes contains LFS.
+                if (!gitAttributesContent.ToString().Contains("filter=lfs", StringComparison.OrdinalIgnoreCase))
+                {
+                    // No LFS filters enabled.
+                    return GitLfsMode.NotDetected;
+                }
+
+                // LFS is enabled. Turn off any previous '--filter=tree:0' by removing the remote from the config.
+                _logger.LogInformation("LFS is enabled. Turning off '--filter=tree:0'...");
+                _ = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = gitContext.Git,
+                        Arguments =
+                        [
+                            "-C",
+                            repositoryPath,
+                            "remote",
+                            "remove",
+                            repositoryUri.ToString(),
+                        ],
+                        WorkingDirectory = repositoryPath,
+                        EnvironmentVariables = gitContext.GitEnvs,
+                    },
+                    CaptureSpecification.Sanitized,
+                    cancellationToken).ConfigureAwait(false);
+
+                // Fetch the target commit again, this time without --filter=tree:0, using --refetch to force download.
+                _logger.LogInformation("LFS is enabled. Fetching full repository history without partial clone...");
+                using (var fetchEnvVars = gitContext.FetchEnvironmentVariablesFactory())
+                {
+                    exitCode = await FaultTolerantGitAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = gitContext.Git,
+                            Arguments =
+                            [
+                                "-C",
+                                repositoryPath,
+                                "fetch",
+                                "-f",
+                                "--recurse-submodules=no",
+                                "--progress",
+                                "--refetch",
+                                repositoryUri.ToString(),
+                                resolvedReference.TargetCommit,
+                            ],
+                            WorkingDirectory = repositoryPath,
+                            EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
+                        },
+                        CaptureSpecification.Sanitized,
+                        cancellationToken).ConfigureAwait(false);
+                    if (exitCode != 0)
+                    {
+                        throw new InvalidOperationException($"'git -C ... fetch -f --recurse-submodules=no --progress ...' exited with non-zero exit code {exitCode}");
+                    }
+                }
+            }
+
+            // If we have an LFS storage path set, then multiple builds may share the same directory
+            // and we need to lock around it.
+            IGlobalMutexReservation? lfsFetchReservation = null;
+            var lfsStoragePath = workspaceDescriptor.LfsStoragePath;
+            if (lfsStoragePath == null)
+            {
+                lfsStoragePath = workspaceDescriptor.QueryString?["lfsStoragePath"];
+            }
+            if (lfsStoragePath != null)
+            {
+                _logger.LogInformation($"This checkout is using a shared LFS storage path of '{lfsStoragePath}', waiting until it's available for use...");
+                lfsFetchReservation = await _globalMutexReservationManager.ReserveExactAsync($"lfsfetch:{lfsStoragePath}", cancellationToken);
+            }
+            try
+            {
+                // Fetch the LFS objects.
+                _logger.LogInformation("Fetching LFS files from remote server...");
+                using (var fetchEnvVars = gitContext.FetchEnvironmentVariablesFactory())
+                {
                     exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
@@ -741,154 +898,32 @@
                             [
                                 "-C",
                                 repositoryPath,
-                                "show",
-                                $"{resolvedReference.TargetCommit}:.gitattributes",
+                                "lfs",
+                                "fetch",
+                                repositoryUri.ToString(),
+                                resolvedReference.TargetCommit,
                             ],
                             WorkingDirectory = repositoryPath,
                             EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
-                        CaptureSpecification.CreateFromDelegates(new CaptureSpecificationDelegates
-                        {
-                            ReceiveStdout = (line) =>
-                            {
-                                gitAttributesContent.AppendLine(line);
-                                return false;
-                            },
-                            ReceiveStderr = (line) =>
-                            {
-                                gitAttributesError.AppendLine(line);
-                                return false;
-                            },
-                        }),
+                        CaptureSpecification.Sanitized,
                         cancellationToken).ConfigureAwait(false);
-                    if (exitCode == 128 &&
-                        gitAttributesError.ToString().Contains($"path '.gitattributes' does not exist", StringComparison.OrdinalIgnoreCase))
-                    {
-                        // Git LFS can't be enabled, because there's no .gitattributes file.
-                        return GitLfsMode.NotDetected;
-                    }
-                    if (exitCode == 128 && attempts < 10)
-                    {
-                        // 'git fetch' returns exit code 128 when the remote host
-                        // unexpectedly disconnects. We want to handle unreliable
-                        // network connections by simply retrying the 'git fetch'
-                        // operation.
-                        _logger.LogWarning($"'git show' encountered a network error while fetching commits. Retrying the fetch operation in {backoff}ms...");
-                        await Task.Delay(backoff, cancellationToken).ConfigureAwait(false);
-                        backoff *= 2;
-                        if (backoff > 30000)
-                        {
-                            backoff = 30000;
-                        }
-                        attempts++;
-                        continue;
-                    }
-                    else if (exitCode == 128)
-                    {
-                        // We attempted too many times and can't continue.
-                        _logger.LogError("Fault tolerant Git operation ran into exit code 128 over 10 attempts, permanently failing...");
-                    }
-
-                    // Break if we returned success, throw otherwise.
                     if (exitCode != 0)
                     {
-                        throw new InvalidOperationException($"'git show' exited with non-zero exit code {exitCode}");
+                        throw new InvalidOperationException($"'git -C ... lfs fetch ...' exited with non-zero exit code {exitCode}");
                     }
-                    else
-                    {
-                        break;
-                    }
-                } while (true);
-            }
-
-            // Check to see if .gitattributes contains LFS.
-            if (!gitAttributesContent.ToString().Contains("filter=lfs", StringComparison.OrdinalIgnoreCase))
-            {
-                // No LFS filters enabled.
-                return GitLfsMode.NotDetected;
-            }
-
-            // LFS is enabled. Turn off any previous '--filter=tree:0' by removing the remote from the config.
-            _logger.LogInformation("LFS is enabled. Turning off '--filter=tree:0'...");
-            _ = await _processExecutor.ExecuteAsync(
-                new ProcessSpecification
-                {
-                    FilePath = gitContext.Git,
-                    Arguments =
-                    [
-                        "-C",
-                        repositoryPath,
-                        "remote",
-                        "remove",
-                        repositoryUri.ToString(),
-                    ],
-                    WorkingDirectory = repositoryPath,
-                    EnvironmentVariables = gitContext.GitEnvs,
-                },
-                CaptureSpecification.Sanitized,
-                cancellationToken).ConfigureAwait(false);
-
-            // Fetch the target commit again, this time without --filter=tree:0, using --refetch to force download.
-            _logger.LogInformation("LFS is enabled. Fetching full repository history without partial clone...");
-            using (var fetchEnvVars = gitContext.FetchEnvironmentVariablesFactory())
-            {
-                exitCode = await FaultTolerantGitAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = gitContext.Git,
-                        Arguments =
-                        [
-                            "-C",
-                            repositoryPath,
-                            "fetch",
-                            "-f",
-                            "--recurse-submodules=no",
-                            "--progress",
-                            "--refetch",
-                            repositoryUri.ToString(),
-                            resolvedReference.TargetCommit,
-                        ],
-                        WorkingDirectory = repositoryPath,
-                        EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
-                    },
-                    CaptureSpecification.Sanitized,
-                    cancellationToken).ConfigureAwait(false);
-                if (exitCode != 0)
-                {
-                    throw new InvalidOperationException($"'git -C ... fetch -f --recurse-submodules=no --progress ...' exited with non-zero exit code {exitCode}");
                 }
             }
-
-            // Fetch the LFS objects.
-            _logger.LogInformation("Fetching LFS files from remote server...");
-            using (var fetchEnvVars = gitContext.FetchEnvironmentVariablesFactory())
+            finally
             {
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = gitContext.Git,
-                        Arguments =
-                        [
-                            "-C",
-                            repositoryPath,
-                            "lfs",
-                            "fetch",
-                            repositoryUri.ToString(),
-                            resolvedReference.TargetCommit,
-                        ],
-                        WorkingDirectory = repositoryPath,
-                        EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
-                    },
-                    CaptureSpecification.Sanitized,
-                    cancellationToken).ConfigureAwait(false);
-                if (exitCode != 0)
+                if (lfsFetchReservation != null)
                 {
-                    throw new InvalidOperationException($"'git -C ... lfs fetch ...' exited with non-zero exit code {exitCode}");
+                    await lfsFetchReservation.DisposeAsync();
                 }
             }
 
             // Git LFS was detected, ensure submodules are enabled for later.
-            if (!gitContext.EnableSubmoduleSupport)
+            if (!gitContext.EnableSubmoduleSupport && gitContext.AllowSubmoduleSupport)
             {
                 _logger.LogInformation("Enabling submodule support because Git LFS was detected.");
                 gitContext.EnableSubmoduleSupport = true;
@@ -902,6 +937,7 @@
         /// This will automatically retry 'git lfs fetch' if the first checkout operation fails.
         /// </summary>
         private async Task CheckoutTargetCommitAsync(
+            GitWorkspaceDescriptor workspaceDescriptor,
             string repositoryPath,
             Uri repositoryUri,
             GitResolvedReference resolvedReference,
@@ -935,6 +971,7 @@
             {
                 // Attempt to re-fetch LFS files, in case that was the error.
                 if (await DetectGitLfsAndReconfigureIfNecessaryAsync(
+                        workspaceDescriptor,
                         repositoryPath,
                         repositoryUri,
                         resolvedReference,
@@ -976,11 +1013,17 @@
         /// and cleans nukes all other folders, with the expectation that BuildGraph will populate them.
         /// </summary>
         private async Task CleanBuildSensitiveDirectoriesForProjectsAndPluginsAsync(
+            GitWorkspaceDescriptor descriptor,
             string repositoryPath,
             GitExecutionContext gitContext,
             CancellationToken cancellationToken)
         {
             int exitCode;
+
+            if (descriptor.QueryString?["clean"] == "false")
+            {
+                return;
+            }
 
             _logger.LogInformation($"Cleaning build sensitive directories...");
             var sensitiveDirectories = new string[] { "Source", "Config", "Resources", "Content" };
@@ -1735,7 +1778,11 @@
                 Git = git,
                 GitEnvs = gitEnvs,
                 FetchEnvironmentVariablesFactory = fetchEnvironmentVariablesFactory,
-                EnableSubmoduleSupport = descriptor.BuildType == GitWorkspaceDescriptorBuildType.Generic,
+                EnableSubmoduleSupport =
+                    descriptor.BuildType == GitWorkspaceDescriptorBuildType.Generic &&
+                    descriptor.QueryString?["submodules"] != "false",
+                AllowSubmoduleSupport = descriptor.QueryString?["submodules"] != "false",
+                AssumeLfs = descriptor.QueryString?["lfs"] == "true",
             };
 
             // Initialize the Git repository if needed.
@@ -1774,6 +1821,7 @@
             if (resolvedReference.DidFetch)
             {
                 await DetectGitLfsAndReconfigureIfNecessaryAsync(
+                    descriptor,
                     repositoryPath,
                     repositoryUri,
                     resolvedReference,
@@ -1783,6 +1831,7 @@
 
             // Checkout the target commit.
             await CheckoutTargetCommitAsync(
+                descriptor,
                 repositoryPath,
                 repositoryUri,
                 resolvedReference,
@@ -1793,13 +1842,14 @@
             if (descriptor.BuildType == GitWorkspaceDescriptorBuildType.Generic)
             {
                 await CleanBuildSensitiveDirectoriesForProjectsAndPluginsAsync(
+                    descriptor,
                     repositoryPath,
                     gitContext,
                     cancellationToken).ConfigureAwait(false);
             }
 
             // Process the submodules, only checking out submodules that sit underneath the target directory for compilation.
-            if (gitContext.EnableSubmoduleSupport)
+            if (gitContext.EnableSubmoduleSupport && gitContext.AllowSubmoduleSupport)
             {
                 _logger.LogInformation("Updating submodules...");
                 await foreach (var iter in IterateContentBasedSubmodulesAsync(repositoryPath, descriptor))

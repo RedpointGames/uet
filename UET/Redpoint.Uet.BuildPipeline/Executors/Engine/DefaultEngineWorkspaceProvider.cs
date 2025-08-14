@@ -74,6 +74,7 @@
                             : GitWorkspaceDescriptorBuildType.Generic,
                         WindowsSharedGitCachePath = buildEngineSpecification._gitSharedWindowsCachePath,
                         MacSharedGitCachePath = buildEngineSpecification._gitSharedMacCachePath,
+                        QueryString = buildEngineSpecification._queryString,
                     },
                     cancellationToken).ConfigureAwait(false);
             }

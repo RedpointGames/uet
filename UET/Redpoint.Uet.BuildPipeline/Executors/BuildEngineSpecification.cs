@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Executors
 {
+    using System.Collections.Specialized;
     using System.Diagnostics.CodeAnalysis;
 
     public enum BuildEngineSpecificationEngineBuildType
@@ -24,6 +25,7 @@
         internal string? _sesNetworkShare { get; private set; }
         internal string? _remoteZfs { get; private set; }
         internal bool _currentWorkspace { get; private set; }
+        internal NameValueCollection? _queryString { get; private set; }
         public BuildEngineSpecificationEngineBuildType EngineBuildType { get; private set; } = BuildEngineSpecificationEngineBuildType.None;
 
         public static BuildEngineSpecification ForVersionWithPath(string version, string localPath)
@@ -74,7 +76,8 @@
             string[]? uefsGitConsoleZips = null,
             bool isEngineBuild = false,
             string? windowsSharedGitCachePath = null,
-            string? macSharedGitCachePath = null)
+            string? macSharedGitCachePath = null,
+            NameValueCollection? queryString = null)
         {
             return new BuildEngineSpecification
             {
@@ -83,6 +86,7 @@
                 _gitConsoleZips = uefsGitConsoleZips ?? Array.Empty<string>(),
                 _gitSharedWindowsCachePath = windowsSharedGitCachePath,
                 _gitSharedMacCachePath = macSharedGitCachePath,
+                _queryString = queryString,
                 EngineBuildType = isEngineBuild
                     ? BuildEngineSpecificationEngineBuildType.ExternalSource
                     : BuildEngineSpecificationEngineBuildType.None,

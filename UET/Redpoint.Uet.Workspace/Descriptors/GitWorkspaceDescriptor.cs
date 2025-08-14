@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uet.Workspace.Descriptors
 {
+    using System.Collections.Specialized;
     using System.Diagnostics.CodeAnalysis;
 
     public record class GitWorkspaceDescriptor : IWorkspaceDescriptor
@@ -29,5 +30,10 @@
         public GitWorkspaceDescriptorBuildType BuildType { get; set; }
 
         public string? LfsStoragePath { get; set; }
+
+        /// <summary>
+        /// Additional options for checkout process.
+        /// </summary>
+        public NameValueCollection? QueryString { get; set; }
     }
 }
