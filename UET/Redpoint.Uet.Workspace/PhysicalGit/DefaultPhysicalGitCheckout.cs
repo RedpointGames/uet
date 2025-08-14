@@ -947,7 +947,7 @@
             int exitCode;
 
             _logger.LogInformation($"Checking out target commit {resolvedReference.TargetCommit}...");
-            exitCode = await _processExecutor.ExecuteAsync(
+            exitCode = await FaultTolerantGitAsync(
                 new ProcessSpecification
                 {
                     FilePath = gitContext.Git,
@@ -980,7 +980,7 @@
                 {
                     // Re-attempt checkout...
                     _logger.LogInformation($"Re-attempting check out of target commit {resolvedReference.TargetCommit}...");
-                    exitCode = await _processExecutor.ExecuteAsync(
+                    exitCode = await FaultTolerantGitAsync(
                         new ProcessSpecification
                         {
                             FilePath = gitContext.Git,
@@ -1482,7 +1482,7 @@
 
             // Checkout the target commit.
             _logger.LogInformation($"Checking out submodule {submodule.Path} target commit {submoduleCommit}...");
-            exitCode = await _processExecutor.ExecuteAsync(
+            exitCode = await FaultTolerantGitAsync(
                 new ProcessSpecification
                 {
                     FilePath = git,
