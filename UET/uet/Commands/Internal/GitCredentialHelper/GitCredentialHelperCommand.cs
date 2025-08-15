@@ -68,15 +68,23 @@
                     }
                 } while (!string.IsNullOrWhiteSpace(line));
 
+                input.TryGetValue("path", out var path);
+                if (!input.TryGetValue("protocol", out var protocol) ||
+                    !input.TryGetValue("host", out var host))
+                {
+                    // Not a credential request we can handle.
+                    return Task.FromResult(0);
+                }
+
                 // Attempt to perform credential discovery.
                 try
                 {
-                    var credential = _credentialDiscovery.GetGitCredential($"{input["protocol"]}://{input["host"]}/{input["path"]}");
+                    var credential = _credentialDiscovery.GetGitCredential($"{protocol}://{host}/{path}");
                     if (!string.IsNullOrWhiteSpace(credential.Username) &&
                         !string.IsNullOrWhiteSpace(credential.Password))
                     {
-                        Console.WriteLine($"protocol={input["protocol"]}");
-                        Console.WriteLine($"host={input["host"]}");
+                        Console.WriteLine($"protocol={protocol}");
+                        Console.WriteLine($"host={host}");
                         Console.WriteLine($"username={credential.Username}");
                         Console.WriteLine($"password={credential.Password}");
 
