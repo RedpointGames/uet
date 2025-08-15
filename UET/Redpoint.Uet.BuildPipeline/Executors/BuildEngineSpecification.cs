@@ -2,6 +2,7 @@
 {
     using System.Collections.Specialized;
     using System.Diagnostics.CodeAnalysis;
+    using System.Web;
 
     public enum BuildEngineSpecificationEngineBuildType
     {
@@ -146,7 +147,25 @@
                 {
                     options.Add($",mc:{_gitSharedMacCachePath}");
                 }
-                return $"git:{_gitCommit}@{_gitUrl}{string.Join("", options)}";
+                if (options.Count > 0)
+                {
+                    if (_queryString == null)
+                    {
+                        _queryString = [];
+                    }
+                    if (_queryString["config"] == null)
+                    {
+                        // Only set 'config' if it's not already set, since the options
+                        // will have originally come from the 'config' key if it exists.
+                        _queryString["config"] = string.Join("", options).TrimStart(',');
+                    }
+                }
+
+                var queryString = (_queryString == null || _queryString.Count == 0)
+                    ? string.Empty
+                    : ("?" + string.Join("&",
+                        _queryString.AllKeys.Select(a => HttpUtility.UrlEncode(a) + "=" + HttpUtility.UrlEncode(_queryString[a]))));
+                return $"git:{_gitCommit}@{_gitUrl}{queryString}";
             }
             else
             {

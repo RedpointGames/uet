@@ -609,6 +609,10 @@
                         GitCommit!,
                         ZipLayers,
                         isEngineBuild: false,
+                        windowsSharedGitCachePath:
+                            windowsSharedGitCachePath ?? WindowsSharedGitCachePath,
+                        macSharedGitCachePath:
+                            macSharedGitCachePath ?? MacSharedGitCachePath,
                         queryString: GitQueryString);
                 case EngineSpecType.SelfEngineByBuildConfig:
                     if (distributionSpec != null)
