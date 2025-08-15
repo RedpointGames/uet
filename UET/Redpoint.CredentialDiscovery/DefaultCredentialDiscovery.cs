@@ -74,6 +74,15 @@
             }
             else if (repositoryUri.Scheme.Equals("ssh", StringComparison.OrdinalIgnoreCase))
             {
+                var envCiJobToken = Environment.GetEnvironmentVariable(envVarCiJobToken);
+                var envCiServerHost = Environment.GetEnvironmentVariable(envVarCiServerHost);
+                if (!string.IsNullOrWhiteSpace(envCiJobToken) &&
+                    !string.IsNullOrWhiteSpace(envCiServerHost))
+                {
+                    // SSH connection environment is managed by GitLab.
+                    return new GitCredential();
+                }
+
                 var envPrivateKeyPath = Environment.GetEnvironmentVariable(envVarSshPrivateKeyPath);
                 var envPublicKeyPath = Environment.GetEnvironmentVariable(envVarSshPublicKeyPath);
                 var envPrivateKey = Environment.GetEnvironmentVariable(envVarSshPrivateKey);
