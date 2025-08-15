@@ -17,6 +17,12 @@
             };
         }
 
+        public GitTemporaryEnvVarsForFetch(Dictionary<string, string> envVars)
+        {
+            _path = null;
+            _envVars = envVars;
+        }
+
         public GitTemporaryEnvVarsForFetch(string privateKey)
         {
             _path = Path.GetTempFileName();

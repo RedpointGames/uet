@@ -36,6 +36,7 @@
     using UET.Commands.Internal.Rkm;
     using UET.Commands.Internal.Patch;
     using UET.Commands.Internal.Service;
+    using UET.Commands.Internal.GitCredentialHelper;
 
     internal sealed class InternalCommand
     {
@@ -80,6 +81,7 @@
                 RkmServiceCommand.CreateRkmServiceCommand(),
                 PatchCommand.CreatePatchCommand(),
                 ServiceCommand.CreateServiceCommand(),
+                GitCredentialHelperCommand.CreateGitCredentialHelperCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");

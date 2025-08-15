@@ -35,6 +35,7 @@
         private readonly IPackageManager _packageManager;
         private readonly ConcurrentDictionary<string, IReservationManager> _sharedReservationManagers;
         private readonly IGlobalMutexReservationManager _globalMutexReservationManager;
+        private readonly IGitCredentialHelperProvider? _gitCredentialHelperProvider;
 
         public DefaultPhysicalGitCheckout(
             ILogger<DefaultPhysicalGitCheckout> logger,
@@ -44,7 +45,8 @@
             ICredentialDiscovery credentialDiscovery,
             IReservationManagerFactory reservationManagerFactory,
             IWorldPermissionApplier worldPermissionApplier,
-            IPackageManager packageManager)
+            IPackageManager packageManager,
+            IGitCredentialHelperProvider? gitCredentialHelperProvider = null)
         {
             _logger = logger;
             _pathResolver = pathResolver;
@@ -56,6 +58,7 @@
             _packageManager = packageManager;
             _sharedReservationManagers = new ConcurrentDictionary<string, IReservationManager>();
             _globalMutexReservationManager = _reservationManagerFactory.CreateGlobalMutexReservationManager();
+            _gitCredentialHelperProvider = gitCredentialHelperProvider;
         }
 
         /// <summary>
@@ -947,59 +950,62 @@
             int exitCode;
 
             _logger.LogInformation($"Checking out target commit {resolvedReference.TargetCommit}...");
-            exitCode = await FaultTolerantGitAsync(
-                new ProcessSpecification
-                {
-                    FilePath = gitContext.Git,
-                    Arguments =
-                    [
-                        "-C",
-                        repositoryPath,
-                        "-c",
-                        "advice.detachedHead=false",
-                        "checkout",
-                        "--progress",
-                        "-f",
-                        resolvedReference.TargetCommit,
-                    ],
-                    WorkingDirectory = repositoryPath,
-                    EnvironmentVariables = gitContext.GitEnvs,
-                },
-                CaptureSpecification.Sanitized,
-                cancellationToken).ConfigureAwait(false);
-            if (exitCode != 0)
+            using (var fetchEnvVars = gitContext.FetchEnvironmentVariablesFactory())
             {
-                // Attempt to re-fetch LFS files, in case that was the error.
-                if (await DetectGitLfsAndReconfigureIfNecessaryAsync(
-                        workspaceDescriptor,
-                        repositoryPath,
-                        repositoryUri,
-                        resolvedReference,
-                        gitContext,
-                        cancellationToken).ConfigureAwait(false) == GitLfsMode.Detected)
+                exitCode = await FaultTolerantGitAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = gitContext.Git,
+                        Arguments =
+                        [
+                            "-C",
+                            repositoryPath,
+                            "-c",
+                            "advice.detachedHead=false",
+                            "checkout",
+                            "--progress",
+                            "-f",
+                            resolvedReference.TargetCommit,
+                        ],
+                        WorkingDirectory = repositoryPath,
+                        EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
+                    },
+                    CaptureSpecification.Sanitized,
+                    cancellationToken).ConfigureAwait(false);
+                if (exitCode != 0)
                 {
-                    // Re-attempt checkout...
-                    _logger.LogInformation($"Re-attempting check out of target commit {resolvedReference.TargetCommit}...");
-                    exitCode = await FaultTolerantGitAsync(
-                        new ProcessSpecification
-                        {
-                            FilePath = gitContext.Git,
-                            Arguments =
-                            [
-                                "-C",
-                                repositoryPath,
-                                "-c",
-                                "advice.detachedHead=false",
-                                "checkout",
-                                "--progress",
-                                "-f",
-                                resolvedReference.TargetCommit,
-                            ],
-                            WorkingDirectory = repositoryPath,
-                            EnvironmentVariables = gitContext.GitEnvs,
-                        },
-                        CaptureSpecification.Sanitized,
-                        cancellationToken).ConfigureAwait(false);
+                    // Attempt to re-fetch LFS files, in case that was the error.
+                    if (await DetectGitLfsAndReconfigureIfNecessaryAsync(
+                            workspaceDescriptor,
+                            repositoryPath,
+                            repositoryUri,
+                            resolvedReference,
+                            gitContext,
+                            cancellationToken).ConfigureAwait(false) == GitLfsMode.Detected)
+                    {
+                        // Re-attempt checkout...
+                        _logger.LogInformation($"Re-attempting check out of target commit {resolvedReference.TargetCommit}...");
+                        exitCode = await FaultTolerantGitAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = gitContext.Git,
+                                Arguments =
+                                [
+                                    "-C",
+                                    repositoryPath,
+                                    "-c",
+                                    "advice.detachedHead=false",
+                                    "checkout",
+                                    "--progress",
+                                    "-f",
+                                    resolvedReference.TargetCommit,
+                                ],
+                                WorkingDirectory = repositoryPath,
+                                EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
+                            },
+                            CaptureSpecification.Sanitized,
+                            cancellationToken).ConfigureAwait(false);
+                    }
                 }
             }
             if (exitCode != 0)
@@ -1428,6 +1434,9 @@
             _logger.LogInformation($"Submodule directory: {submoduleContentPath}");
             _logger.LogInformation($"Submodule exclude on macOS: {(submodule.ExcludeOnMac ? "yes" : "no")}");
 
+            // Get the submodule URI and environment variables factory.
+            var (uri, fetchEnvironmentVariablesFactory) = ComputeRepositoryUriAndCredentials(submoduleUrl);
+
             // Check if we already have the target commit in history. If we do, skip fetch.
             var gitTypeStringBuilder = new StringBuilder();
             _ = await _processExecutor.ExecuteAsync(
@@ -1450,7 +1459,6 @@
             {
                 // Fetch the commit that we need.
                 _logger.LogInformation($"Fetching submodule {submodule.Path} from remote server...");
-                var (uri, fetchEnvironmentVariablesFactory) = ComputeRepositoryUriAndCredentials(submoduleUrl);
                 using (var fetchEnvVars = fetchEnvironmentVariablesFactory())
                 {
                     exitCode = await FaultTolerantGitAsync(
@@ -1482,24 +1490,27 @@
 
             // Checkout the target commit.
             _logger.LogInformation($"Checking out submodule {submodule.Path} target commit {submoduleCommit}...");
-            exitCode = await FaultTolerantGitAsync(
-                new ProcessSpecification
-                {
-                    FilePath = git,
-                    Arguments =
-                    [
-                        "-c",
-                        "advice.detachedHead=false",
-                        "checkout",
-                        "--progress",
-                        "-f",
-                        submoduleCommit,
-                    ],
-                    WorkingDirectory = submoduleContentPath,
-                    EnvironmentVariables = gitEnvs,
-                },
-                CaptureSpecification.Sanitized,
-                cancellationToken).ConfigureAwait(false);
+            using (var fetchEnvVars = fetchEnvironmentVariablesFactory())
+            {
+                exitCode = await FaultTolerantGitAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = git,
+                        Arguments =
+                        [
+                            "-c",
+                            "advice.detachedHead=false",
+                            "checkout",
+                            "--progress",
+                            "-f",
+                            submoduleCommit,
+                        ],
+                        WorkingDirectory = submoduleContentPath,
+                        EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
+                    },
+                    CaptureSpecification.Sanitized,
+                    cancellationToken).ConfigureAwait(false);
+            }
             if (exitCode != 0)
             {
                 throw new InvalidOperationException($"'git checkout' for {submodule.Path} exited with non-zero exit code {exitCode}");
@@ -1716,6 +1727,39 @@
         {
             // Parse the repository URL.
             var uri = new Uri(repositoryUrl);
+
+            // If this is a HTTPS URL, and we have a credential helper provider, use that
+            // to provide credentials.
+            if (_gitCredentialHelperProvider != null &&
+                (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp))
+            {
+                var envVars = new Dictionary<string, string>
+                {
+                    { "GIT_ASK_YESNO", "false" },
+                    { "GIT_CONFIG_COUNT", "1" },
+                    { "GIT_CONFIG_KEY_0", "credential.helper" },
+                    { "GIT_CONFIG_VALUE_0", $"{_gitCredentialHelperProvider.FilePath} {_gitCredentialHelperProvider.Arguments.Select(x => x.LogicalValue)}" },
+                };
+                var uriComponents = uri.UserInfo.Split(':', 2);
+                var uriHost = uri.Host.Replace(".", "_", StringComparison.Ordinal);
+                if (uriComponents.Length == 1)
+                {
+                    envVars[$"REDPOINT_CREDENTIAL_DISCOVERY_USERNAME_{uriHost}"] = uriComponents[0];
+                }
+                else if (uriComponents.Length == 2)
+                {
+                    envVars[$"REDPOINT_CREDENTIAL_DISCOVERY_USERNAME_{uriHost}"] = uriComponents[0];
+                    envVars[$"REDPOINT_CREDENTIAL_DISCOVERY_PASSWORD_{uriHost}"] = uriComponents[1];
+                }
+
+                var builder = new UriBuilder(uri);
+                builder.UserName = null;
+                builder.Password = null;
+                uri = builder.Uri;
+                return (uri, () => new GitTemporaryEnvVarsForFetch(envVars));
+            }
+
+            // Fallback to direct credential lookup.
             try
             {
                 var uriCredential = _credentialDiscovery.GetGitCredential(repositoryUrl);
