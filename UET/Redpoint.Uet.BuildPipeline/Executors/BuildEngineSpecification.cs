@@ -172,5 +172,32 @@
                 throw new NotSupportedException();
             }
         }
+
+        public bool IsNonConcurrent
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(_engineVersion))
+                {
+                    return true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(_enginePath))
+                {
+                    return true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(_gitUrl))
+                {
+                    if (_queryString != null &&
+                        _queryString["concurrent"] == "false")
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
     }
 }
