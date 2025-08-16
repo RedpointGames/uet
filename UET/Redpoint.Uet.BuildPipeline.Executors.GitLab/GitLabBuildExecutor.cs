@@ -34,6 +34,7 @@
             BuildSpecification buildSpecification,
             BuildServerPipeline buildServerPipeline)
         {
+            ArgumentNullException.ThrowIfNull(buildSpecification);
             ArgumentNullException.ThrowIfNull(buildServerPipeline);
 
             if (string.IsNullOrWhiteSpace(_buildServerOutputFilePath))
@@ -67,11 +68,27 @@
 
                 if (sourceJob.Agent.Platform == BuildServerJobPlatform.Windows)
                 {
-                    job.Tags = new List<string> { "buildgraph-windows" };
+                    if (buildSpecification.Engine.IsNonConcurrent &&
+                        System.Environment.GetEnvironmentVariable("UET_USE_EXCLUSIVE_NODES_FOR_NONCONCURRENT_ENGINE") == "1")
+                    {
+                        job.Tags = new List<string> { "buildgraph-exclusive-windows" };
+                    }
+                    else
+                    {
+                        job.Tags = new List<string> { "buildgraph-windows" };
+                    }
                 }
                 else if (sourceJob.Agent.Platform == BuildServerJobPlatform.Mac)
                 {
-                    job.Tags = new List<string> { "buildgraph-mac" };
+                    if (buildSpecification.Engine.IsNonConcurrent &&
+                        System.Environment.GetEnvironmentVariable("UET_USE_EXCLUSIVE_NODES_FOR_NONCONCURRENT_ENGINE") == "1")
+                    {
+                        job.Tags = new List<string> { "buildgraph-exclusive-mac" };
+                    }
+                    else
+                    {
+                        job.Tags = new List<string> { "buildgraph-mac" };
+                    }
                 }
                 else if (sourceJob.Agent.Platform == BuildServerJobPlatform.Meta)
                 {

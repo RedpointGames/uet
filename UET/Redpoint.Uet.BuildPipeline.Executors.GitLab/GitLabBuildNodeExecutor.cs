@@ -16,6 +16,7 @@
     using System.Threading.Tasks;
     using Redpoint.Concurrency;
     using Redpoint.Uet.BuildPipeline.BuildGraph.PreBuild;
+    using System.Collections.Specialized;
 
     public class GitLabBuildNodeExecutor : IBuildNodeExecutor
     {
@@ -58,6 +59,42 @@
         private class NodeNameExecutionState
         {
             public string? NodeName;
+        }
+
+        private async Task<IWorkspace> GetGitWorkspaceAsync(
+            string repository,
+            string commit,
+            string branch,
+            IReadOnlyList<string> nodeNames,
+            BuildSpecification buildSpecification,
+            CancellationToken cancellationToken)
+        {
+            NameValueCollection? queryString = null;
+            if (buildSpecification.Engine.IsNonConcurrent)
+            {
+                _logger.LogInformation("Requesting non-concurrent Git workspace, because the engine is non-concurrent.");
+                queryString = new NameValueCollection
+                {
+                    { "concurrent", "false" }
+                };
+            }
+
+            return await _workspaceProvider.GetWorkspaceAsync(
+                new GitWorkspaceDescriptor
+                {
+                    RepositoryUrl = repository,
+                    RepositoryCommitOrRef = commit,
+                    RepositoryBranchForReservationParameters = branch,
+                    AdditionalFolderLayers = Array.Empty<string>(),
+                    AdditionalFolderZips = Array.Empty<string>(),
+                    WorkspaceDisambiguators = nodeNames,
+                    ProjectFolderName = buildSpecification.ProjectFolderName,
+                    BuildType = GitWorkspaceDescriptorBuildType.Generic,
+                    WindowsSharedGitCachePath = null,
+                    MacSharedGitCachePath = null,
+                    QueryString = queryString,
+                },
+                cancellationToken).ConfigureAwait(false);
         }
 
         public async Task<int> ExecuteBuildNodesAsync(
@@ -247,20 +284,12 @@
                     _logger.LogTrace($"Executing build with engine build type of 'CurrentWorkspace', obtaining single workspace and using it as the engine directory as well.");
 
                     _logger.LogTrace($"Obtaining workspace for build.");
-                    await using ((await _workspaceProvider.GetWorkspaceAsync(
-                        new GitWorkspaceDescriptor
-                        {
-                            RepositoryUrl = repository,
-                            RepositoryCommitOrRef = commit,
-                            RepositoryBranchForReservationParameters = branch,
-                            AdditionalFolderLayers = Array.Empty<string>(),
-                            AdditionalFolderZips = Array.Empty<string>(),
-                            WorkspaceDisambiguators = nodeNames,
-                            ProjectFolderName = buildSpecification.ProjectFolderName,
-                            BuildType = GitWorkspaceDescriptorBuildType.Generic,
-                            WindowsSharedGitCachePath = null,
-                            MacSharedGitCachePath = null,
-                        },
+                    await using ((await GetGitWorkspaceAsync(
+                        repository,
+                        commit,
+                        branch,
+                        nodeNames,
+                        buildSpecification,
                         cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
                     {
                         _logger.LogTrace($"Calling ExecuteNodesInWorkspaceAsync inside allocated workspace.");
@@ -291,20 +320,12 @@
                             _logger.LogTrace($"Executing build with engine build type of 'None', obtained engine workspace and obtaining target workspace separately.");
 
                             _logger.LogTrace($"Obtaining workspace for build.");
-                            await using ((await _workspaceProvider.GetWorkspaceAsync(
-                                new GitWorkspaceDescriptor
-                                {
-                                    RepositoryUrl = repository,
-                                    RepositoryCommitOrRef = commit,
-                                    RepositoryBranchForReservationParameters = branch,
-                                    AdditionalFolderLayers = Array.Empty<string>(),
-                                    AdditionalFolderZips = Array.Empty<string>(),
-                                    WorkspaceDisambiguators = nodeNames,
-                                    ProjectFolderName = buildSpecification.ProjectFolderName,
-                                    BuildType = GitWorkspaceDescriptorBuildType.Generic,
-                                    WindowsSharedGitCachePath = null,
-                                    MacSharedGitCachePath = null,
-                                },
+                            await using ((await GetGitWorkspaceAsync(
+                                repository,
+                                commit,
+                                branch,
+                                nodeNames,
+                                buildSpecification,
                                 cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
                             {
                                 _logger.LogTrace($"Calling ExecuteNodesInWorkspaceAsync inside allocated workspace.");
