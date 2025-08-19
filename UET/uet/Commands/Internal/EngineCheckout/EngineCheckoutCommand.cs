@@ -64,7 +64,6 @@
                         RepositoryBranchForReservationParameters = context.ParseResult.GetValueForOption(_options.Branch)!,
                         AdditionalFolderLayers = [],
                         AdditionalFolderZips = [],
-                        WorkspaceDisambiguators = [],
                         WindowsSharedGitCachePath = null,
                         MacSharedGitCachePath = null,
                         ProjectFolderName = null,

@@ -67,7 +67,6 @@
                         RepositoryBranchForReservationParameters = buildEngineSpecification._gitCommit,
                         AdditionalFolderLayers = Array.Empty<string>(),
                         AdditionalFolderZips = buildEngineSpecification._gitConsoleZips!,
-                        WorkspaceDisambiguators = new[] { workspaceSuffix },
                         ProjectFolderName = null,
                         BuildType = buildEngineSpecification.EngineBuildType != BuildEngineSpecificationEngineBuildType.None
                             ? GitWorkspaceDescriptorBuildType.Engine
