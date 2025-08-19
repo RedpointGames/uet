@@ -83,8 +83,8 @@
         }
 
         public async Task<int> ExecuteGraphNodeAsync(
-            string enginePath,
-            string buildGraphRepositoryRootPath,
+            string engineWorkspacePath,
+            string targetWorkspacePath,
             string uetPath,
             string artifactExportPath,
             BuildGraphScriptSpecification buildGraphScript,
@@ -119,7 +119,7 @@
                     var environmentVariables = new Dictionary<string, string>
                     {
                         { "IsBuildMachine", "1" },
-                        { "uebp_LOCAL_ROOT", enginePath.TrimEnd('\\') },
+                        { "uebp_LOCAL_ROOT", engineWorkspacePath.TrimEnd('\\') },
                         // BuildGraph in Unreal Engine 5.0 causes input files to be unnecessarily modified. Just allow mutation since I'm not sure what the bug is.
                         { "BUILD_GRAPH_ALLOW_MUTATION", "true" },
                         // Make sure UET knows it's running under BuildGraph for subcommands
@@ -141,13 +141,57 @@
                         // Adjust Gradle cache path so that Android packaging works under SYSTEM.
                         environmentVariables["GRADLE_USER_HOME"] = gradleInstance.GradleHomePath;
                     }
-                    if (!string.IsNullOrWhiteSpace(buildGraphRepositoryRootPath))
+
+                    // If the engine is a source engine, place the target into the engine via a symbolic link, and use the engine
+                    // as the BuildGraph project root. This ensures that editor binaries are included in uploads to shared storage, such
+                    // that builds on other nodes can download the required editor binaries. If we didn't do this, then cook steps will
+                    // fail as only the editor modules for the game will be staged, but not UnrealEditor.exe.
+                    if (System.Environment.GetEnvironmentVariable("UET_USE_SYMBOLIC_TARGET_WORKSPACE_FOR_SOURCE_ENGINE") == "1" &&
+                        File.Exists(Path.Combine(engineWorkspacePath, "Engine", "Build", "SourceDistribution.txt")) &&
+                        !string.IsNullOrWhiteSpace(targetWorkspacePath))
                     {
-                        environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = buildGraphRepositoryRootPath;
+                        var symbolicLink = Path.Combine(engineWorkspacePath, "P");
+                        _logger.LogInformation($"Setting up a symbolic link from '{symbolicLink}' to '{targetWorkspacePath}' to build project in the engine workspace...");
+                        var existingDirectory = new DirectoryInfo(symbolicLink);
+                        if (existingDirectory.Exists)
+                        {
+                            if (existingDirectory.LinkTarget != null)
+                            {
+                                _logger.LogInformation($"Deleting existing symbolic link at '{symbolicLink}'...");
+                                existingDirectory.Delete();
+                            }
+                            else
+                            {
+                                _logger.LogError($"Directory exists at '{symbolicLink}', but it's not a symbolic link so we're not deleting it to be safe. Please fix up the engine workspace and remove this directory for builds to succeed.");
+                                return 1;
+                            }
+                        }
+                        _logger.LogInformation($"Creating new symbolic link at '{symbolicLink}'...");
+                        Directory.CreateSymbolicLink(
+                            symbolicLink,
+                            targetWorkspacePath);
+
+                        var projectDirsFile = Path.Combine(engineWorkspacePath, "UET.uprojectdirs");
+                        _logger.LogInformation($"Creating project directory file at '{projectDirsFile}'...");
+                        await File.WriteAllTextAsync(
+                            projectDirsFile,
+                            """
+                            ; Search in symbolic link directory set up by UET.
+                            P
+                            """,
+                            cancellationToken);
+
+                        _logger.LogInformation($"Changing target workspace path to '{symbolicLink}' for consistency...");
+                        environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = engineWorkspacePath.TrimEnd('\\');
+                    }
+                    // Otherwise, set the BUILD_GRAPH_PROJECT_ROOT based on whether we're building an engine or not.
+                    else if (!string.IsNullOrWhiteSpace(targetWorkspacePath))
+                    {
+                        environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = targetWorkspacePath;
                     }
                     else
                     {
-                        environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = enginePath.TrimEnd('\\');
+                        environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = engineWorkspacePath.TrimEnd('\\');
                     }
                     if (string.IsNullOrWhiteSpace(environmentVariables["BUILD_GRAPH_PROJECT_ROOT"]))
                     {
@@ -180,8 +224,8 @@
                     try
                     {
                         var exitCode = await InternalRunAsync(
-                            enginePath,
-                            buildGraphRepositoryRootPath,
+                            engineWorkspacePath,
+                            targetWorkspacePath,
                             uetPath,
                             artifactExportPath,
                             buildGraphScript,
@@ -228,8 +272,8 @@
         }
 
         public async Task<BuildGraphExport> GenerateGraphAsync(
-            string enginePath,
-            string buildGraphRepositoryRootPath,
+            string engineWorkspacePath,
+            string targetWorkspacePath,
             string uetPath,
             string artifactExportPath,
             BuildGraphScriptSpecification buildGraphScript,
@@ -248,7 +292,7 @@
                 var environmentVariables = new Dictionary<string, string>
                 {
                     { "IsBuildMachine", "1" },
-                    { "uebp_LOCAL_ROOT", enginePath.TrimEnd('\\') },
+                    { "uebp_LOCAL_ROOT", engineWorkspacePath.TrimEnd('\\') },
                 };
                 if (!string.IsNullOrWhiteSpace(buildGraphTelemetryDir))
                 {
@@ -256,8 +300,8 @@
                 }
 
                 var exitCode = await InternalRunAsync(
-                    enginePath,
-                    buildGraphRepositoryRootPath,
+                    engineWorkspacePath,
+                    targetWorkspacePath,
                     uetPath,
                     artifactExportPath,
                     buildGraphScript,
@@ -305,8 +349,8 @@
         }
 
         private async Task<int> InternalRunAsync(
-            string enginePath,
-            string buildGraphRepositoryRootPath,
+            string engineWorkspacePath,
+            string targetWorkspacePath,
             string uetPath,
             string artifactExportPath,
             BuildGraphScriptSpecification buildGraphScript,
@@ -326,7 +370,7 @@
             if (buildGraphScript._forEngine)
             {
                 buildGraphScriptPath = Path.Combine(
-                    enginePath,
+                    engineWorkspacePath,
                     "Engine",
                     "Build",
                     "InstalledEngineBuild.xml");
@@ -360,11 +404,11 @@
                 throw new NotSupportedException();
             }
 
-            await _buildGraphPatcher.PatchBuildGraphAsync(enginePath, buildGraphScript._forEngine).ConfigureAwait(false);
+            await _buildGraphPatcher.PatchBuildGraphAsync(engineWorkspacePath, buildGraphScript._forEngine).ConfigureAwait(false);
 
             if (mobileProvisions != null)
             {
-                await _mobileProvisioning.InstallMobileProvisions(enginePath, buildGraphScript._forEngine, mobileProvisions, cancellationToken).ConfigureAwait(false);
+                await _mobileProvisioning.InstallMobileProvisions(engineWorkspacePath, buildGraphScript._forEngine, mobileProvisions, cancellationToken).ConfigureAwait(false);
             }
 
             if (buildGraphEnvironmentVariables.Count == 0)
@@ -391,7 +435,7 @@
             try
             {
                 return await _uatExecutor.ExecuteAsync(
-                    enginePath,
+                    engineWorkspacePath,
                     new UATSpecification
                     {
                         Command = "BuildGraph",
@@ -406,9 +450,9 @@
                             .Concat(_buildGraphArgumentGenerator.GenerateBuildGraphArguments(
                                 buildGraphArguments,
                                 buildGraphArgumentReplacements,
-                                buildGraphRepositoryRootPath,
+                                targetWorkspacePath,
                                 uetPath,
-                                enginePath,
+                                engineWorkspacePath,
                                 buildGraphSharedStorageDir,
                                 artifactExportPath).Select(x => new LogicalProcessArgument(x))),
                         EnvironmentVariables = buildGraphEnvironmentVariables
@@ -429,7 +473,7 @@
                     "Unreal Engine",
                     "AutomationTool",
                     "Logs",
-                    enginePath
+                    engineWorkspacePath
                         .TrimEnd(Path.DirectorySeparatorChar)
                         .Replace(Path.DirectorySeparatorChar, '+')
                         .Replace(' ', '+')

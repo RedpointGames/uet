@@ -15,8 +15,8 @@
             CancellationToken cancellationToken);
 
         Task<int> ExecuteGraphNodeAsync(
-            string enginePath,
-            string buildGraphRepositoryRootPath,
+            string engineWorkspacePath,
+            string targetWorkspacePath,
             string uetPath,
             string artifactExportPath,
             BuildGraphScriptSpecification buildGraphScript,
@@ -32,8 +32,8 @@
             CancellationToken cancellationToken);
 
         Task<BuildGraphExport> GenerateGraphAsync(
-            string enginePath,
-            string buildGraphRepositoryRootPath,
+            string engineWorkspacePath,
+            string targetWorkspacePath,
             string uetPath,
             string artifactExportPath,
             BuildGraphScriptSpecification buildGraphScript,
