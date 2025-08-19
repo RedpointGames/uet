@@ -87,7 +87,6 @@
                     RepositoryBranchForReservationParameters = branch,
                     AdditionalFolderLayers = Array.Empty<string>(),
                     AdditionalFolderZips = Array.Empty<string>(),
-                    WorkspaceDisambiguators = nodeNames,
                     ProjectFolderName = buildSpecification.ProjectFolderName,
                     BuildType = GitWorkspaceDescriptorBuildType.Generic,
                     WindowsSharedGitCachePath = null,

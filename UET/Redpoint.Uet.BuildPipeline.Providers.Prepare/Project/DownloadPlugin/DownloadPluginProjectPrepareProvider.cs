@@ -112,7 +112,6 @@
                         RepositoryUrl = sensitiveSelectedSourceGitUrl!,
                         RepositoryCommitOrRef = selectedSource.GitRef!,
                         RepositoryBranchForReservationParameters = selectedSource.GitRef!,
-                        WorkspaceDisambiguators = Array.Empty<string>(),
                         AdditionalFolderLayers = Array.Empty<string>(),
                         AdditionalFolderZips = Array.Empty<string>(),
                         WindowsSharedGitCachePath = null,

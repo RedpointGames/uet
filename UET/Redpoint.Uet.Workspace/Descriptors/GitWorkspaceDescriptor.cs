@@ -16,8 +16,6 @@
 
         public required IReadOnlyList<string> AdditionalFolderZips { get; set; }
 
-        public required IReadOnlyList<string> WorkspaceDisambiguators { get; set; }
-
         public required string? WindowsSharedGitCachePath { get; set; }
 
         public required string? MacSharedGitCachePath { get; set; }
