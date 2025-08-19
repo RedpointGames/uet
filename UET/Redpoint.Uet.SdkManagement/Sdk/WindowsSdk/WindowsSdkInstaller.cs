@@ -209,9 +209,6 @@
             {
                 RecursivelyAddComponent(component, "Unreal Engine");
             }
-            // We want to the LLVM/Clang component, which will provide clang-format for
-            // 'uet format' to work.
-            RecursivelyAddComponent("Microsoft.VisualStudio.Component.VC.Llvm.Clang", "Unreal Engine");
 
             // Install all of the components.
             var componentsToInstallArray = componentsToInstall.ToArray();
@@ -242,6 +239,97 @@
                             }
                         }
                         break;
+                }
+            }
+
+            // Download "Clang for Unreal Engine" and install it into the LLVM directory for AutoSDK.
+            {
+                using (var client = new HttpClient())
+                {
+                    _logger.LogInformation($"Retrieving metadata for Clang for Unreal Engine...");
+                    var info = await client.GetStringAsync(
+                        new Uri("https://github.com/RedpointGames/llvm-project/releases/latest/download/info"),
+                        cancellationToken);
+                    var name = info
+                        .Replace("\r\n", "\n", StringComparison.Ordinal)
+                        .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Select(x =>
+                        {
+                            var components = x.Split('=', 2);
+                            if (components.Length != 2)
+                            {
+                                return (platform: string.Empty, name: string.Empty);
+                            }
+                            return (platform: components[0], name: components[1]);
+                        })
+                        .FirstOrDefault(x => x.platform == "win64")
+                        .name;
+                    if (!string.IsNullOrWhiteSpace(name))
+                    {
+                        _logger.LogInformation($"Downloading and extracting Clang for Unreal Engine: {name}");
+                        var cache = Path.Combine(sdkPackagePath, "Cache");
+                        Directory.CreateDirectory(cache);
+                        var llvm = Path.Combine(sdkPackagePath, "LLVM");
+                        Directory.CreateDirectory(llvm);
+                        using (var fileStream = new FileStream(Path.Combine(cache, name), FileMode.Create, FileAccess.ReadWrite))
+                        {
+                            // Download to a file so that the data is seekable for ZipArchive. This is necessary for
+                            // large downloads where ZipArchive would otherwise try to copy the entire stream into
+                            // memory with a MemoryStream and then fail due to the data being too big for MemoryStream.
+                            await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
+                                client,
+                                new Uri($"https://github.com/RedpointGames/llvm-project/releases/latest/download/{name}"),
+                                stream => stream.CopyToAsync(fileStream, cancellationToken),
+                                cancellationToken).ConfigureAwait(false);
+                            await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                            fileStream.Seek(0, SeekOrigin.Begin);
+                            using (var archive = new ZipArchive(fileStream, ZipArchiveMode.Read))
+                            {
+                                foreach (var entry in archive.Entries)
+                                {
+                                    if (entry.FullName.EndsWith('\\') || entry.FullName.EndsWith('/'))
+                                    {
+                                        continue;
+                                    }
+
+                                    var baseName = Path.GetFileNameWithoutExtension(name);
+                                    var relativeName = HttpUtility.UrlDecode(entry.FullName.Replace("+", "%2B", StringComparison.Ordinal));
+                                    if (relativeName.StartsWith(baseName, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        relativeName = relativeName[(baseName.Length + 1)..];
+                                    }
+                                    else
+                                    {
+                                        continue;
+                                    }
+
+                                    if (relativeName.Contains('\\', StringComparison.Ordinal) || relativeName.Contains('/', StringComparison.Ordinal))
+                                    {
+                                        var directoryName = Path.GetDirectoryName(relativeName);
+                                        Directory.CreateDirectory(Path.Combine(llvm, directoryName!));
+                                    }
+
+                                    entry.ExtractToFile(Path.Combine(llvm, relativeName), true);
+                                }
+                            }
+                        }
+
+                        _logger.LogInformation($"Creating symbolic link for Clang for Unreal Engine LLVM as VS2022 LLVM...");
+                        var llvmVs = Path.Combine(sdkPackagePath, "VS2022", "VC", "Tools", "Llvm");
+                        await DirectoryAsync.DeleteAsync(llvmVs, true);
+                        Directory.CreateSymbolicLink(
+                            llvmVs,
+                            @"..\..\..\LLVM");
+                        Directory.CreateDirectory(Path.Combine(llvmVs, "x64"));
+                        await DirectoryAsync.CopyAsync(
+                            Path.Combine(llvmVs, "bin"),
+                            Path.Combine(llvmVs, "x64", "bin"),
+                            true);
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"Missing 'info' asset on GitHub download for Clang for Unreal Engine; can't download and install.");
+                    }
                 }
             }
 
@@ -401,7 +489,6 @@
                             }
                         }
                     }
-
                 }
             }
         }
