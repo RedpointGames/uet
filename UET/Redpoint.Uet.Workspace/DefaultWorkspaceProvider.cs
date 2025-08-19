@@ -134,6 +134,20 @@
 
         private async Task<IWorkspace> AllocateGitAsync(GitWorkspaceDescriptor descriptor, CancellationToken cancellationToken)
         {
+            // Parse the repository URL and get just the components that make it unique.
+            string repositoryUniqueUrl;
+            try
+            {
+                var repositoryUri = new Uri(descriptor.RepositoryUrl);
+                repositoryUniqueUrl = $"{repositoryUri.Host}{repositoryUri.AbsolutePath}";
+                _logger.LogInformation($"Using '{repositoryUniqueUrl}' as unique repository identifier for workspace.");
+            }
+            catch
+            {
+                _logger.LogWarning("Unable to parse Git repository URL to reduce uniqueness. More workspaces may be created than necessary to support this build.");
+                repositoryUniqueUrl = descriptor.RepositoryUrl;
+            }
+
             var usingReservation = false;
             IReservation? reservation;
             if (descriptor.QueryString?["concurrent"] == "false")
@@ -141,7 +155,7 @@
                 _logger.LogInformation("Reserving exact workspace as this Git workspace descriptor has concurrent=false...");
 
                 reservation = await _reservationManager.ReserveExactAsync(
-                    StabilityHash.GetStabilityHash($"PhysicalGit:{string.Join("-", [descriptor.RepositoryUrl, descriptor.RepositoryBranchForReservationParameters])}", 14),
+                    StabilityHash.GetStabilityHash($"PhysicalGit:{string.Join("-", [repositoryUniqueUrl, descriptor.RepositoryBranchForReservationParameters])}", 14),
                     cancellationToken).ConfigureAwait(false);
             }
             else
@@ -149,9 +163,9 @@
                 var reservationParameters =
                     Environment.GetEnvironmentVariable("UET_USE_LESS_UNIQUE_RESERVATION_NAMES_FOR_GIT") == "1"
                     ? _parameterGenerator.ConstructReservationParameters(
-                        [descriptor.RepositoryUrl, descriptor.RepositoryBranchForReservationParameters])
+                        [repositoryUniqueUrl, descriptor.RepositoryBranchForReservationParameters])
                     : _parameterGenerator.ConstructReservationParameters(
-                        [descriptor.RepositoryUrl, descriptor.RepositoryCommitOrRef]);
+                        [repositoryUniqueUrl, descriptor.RepositoryCommitOrRef]);
 
                 reservation = await _reservationManager.ReserveAsync(
                     "PhysicalGit",
