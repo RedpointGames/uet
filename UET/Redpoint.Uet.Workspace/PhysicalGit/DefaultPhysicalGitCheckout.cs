@@ -22,6 +22,8 @@
     using System.Security.Principal;
     using System.Buffers.Text;
     using Redpoint.PackageManagement;
+    using System.Runtime.Versioning;
+    using Redpoint.Windows.HandleManagement;
 
     internal class DefaultPhysicalGitCheckout : IPhysicalGitCheckout
     {
@@ -612,6 +614,7 @@
                                     EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                                 },
                                 CaptureSpecification.Sanitized,
+                                Path.Combine(repositoryPath, ".git", "index.lock"),
                                 cancellationToken).ConfigureAwait(false);
                         }
                         // Now that we've fetched the potential tag, check if it really is a tag. If it is, resolve it to the commit hash instead.
@@ -682,6 +685,7 @@
                                     EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                                 },
                                 CaptureSpecification.Sanitized,
+                                Path.Combine(repositoryPath, ".git", "index.lock"),
                                 cancellationToken).ConfigureAwait(false);
                         }
                     }
@@ -866,6 +870,7 @@
                             EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
                         CaptureSpecification.Sanitized,
+                        Path.Combine(repositoryPath, ".git", "index.lock"),
                         cancellationToken).ConfigureAwait(false);
                     if (exitCode != 0)
                     {
@@ -971,6 +976,7 @@
                         EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                     },
                     CaptureSpecification.Sanitized,
+                    Path.Combine(repositoryPath, ".git", "index.lock"),
                     cancellationToken).ConfigureAwait(false);
                 if (exitCode != 0)
                 {
@@ -1004,6 +1010,7 @@
                                 EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                             },
                             CaptureSpecification.Sanitized,
+                            Path.Combine(repositoryPath, ".git", "index.lock"),
                             cancellationToken).ConfigureAwait(false);
                     }
                 }
@@ -1478,6 +1485,7 @@
                             EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                         },
                         CaptureSpecification.Sanitized,
+                        null,
                         cancellationToken).ConfigureAwait(false);
                 }
                 if (exitCode != 0)
@@ -1509,6 +1517,7 @@
                         EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
                     },
                     CaptureSpecification.Sanitized,
+                    null,
                     cancellationToken).ConfigureAwait(false);
             }
             if (exitCode != 0)
@@ -1524,15 +1533,78 @@
 
         #region Fault-Tolerant Git Network Operations
 
+        [SupportedOSPlatform("windows")]
+        private static bool IsAdministrator
+        {
+            get
+            {
+                using (var identity = WindowsIdentity.GetCurrent())
+                {
+                    var principal = new WindowsPrincipal(identity);
+                    return principal.IsInRole(WindowsBuiltInRole.Administrator);
+                }
+            }
+        }
+
         private async Task<int> FaultTolerantGitAsync(
             ProcessSpecification processSpecification,
             ICaptureSpecification captureSpecification,
+            string? gitIndexLockPath,
             CancellationToken cancellationToken)
         {
             var backoff = 1000;
             var attempts = 0;
             do
             {
+                if (gitIndexLockPath != null && File.Exists(gitIndexLockPath))
+                {
+                    if (OperatingSystem.IsWindowsVersionAtLeast(6, 2))
+                    {
+                        if (IsAdministrator)
+                        {
+                            // Check to see if another process has the index.lock file open; if it
+                            // does, then there's still a Git process running.
+#pragma warning disable CA1416
+                            var openHandle = await NativeHandles
+                                .GetAllFileHandlesAsync(cancellationToken)
+                                .FirstOrDefaultAsync(x => x.FilePath == gitIndexLockPath, cancellationToken: cancellationToken);
+#pragma warning restore CA1416
+                            if (openHandle == null)
+                            {
+                                // File is not used.
+                                _logger.LogInformation("Deleting stale Git index.lock file...");
+                                File.Delete(gitIndexLockPath);
+                            }
+                            else
+                            {
+                                // Process is still running.
+                                var process = Process.GetProcessById(openHandle.ProcessId);
+                                _logger.LogWarning($"Git index.lock file is currently open by process ID {process.Id} ({process.ProcessName}). There is probably a stale git.exe process still running in this directory that is unsafe to terminate. Retrying the fetch operation in {backoff}ms...");
+                                await Task.Delay(backoff, cancellationToken).ConfigureAwait(false);
+                                backoff *= 2;
+                                if (backoff > 30000)
+                                {
+                                    backoff = 30000;
+                                }
+                                attempts++;
+                                continue;
+                            }
+                        }
+                        else
+                        {
+                            // Just try to remove the index.lock file.
+                            _logger.LogWarning("Deleting existing Git index.lock file...");
+                            File.Delete(gitIndexLockPath);
+                        }
+                    }
+                    else
+                    {
+                        // Just try to remove the index.lock file.
+                        _logger.LogWarning("Deleting existing Git index.lock file...");
+                        File.Delete(gitIndexLockPath);
+                    }
+                }
+
                 var exitCode = await _processExecutor.ExecuteAsync(
                     processSpecification,
                     captureSpecification,

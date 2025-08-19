@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.GrpcPipes\Redpoint.GrpcPipes.csproj" />
+    <ProjectReference Include="..\Redpoint.Windows.HandleManagement\Redpoint.Windows.HandleManagement.csproj" />
   </ItemGroup>
 
   <ItemGroup>
