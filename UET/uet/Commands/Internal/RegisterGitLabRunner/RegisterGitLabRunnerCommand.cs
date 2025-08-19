@@ -60,7 +60,7 @@
                     _logger.LogError("Environment variable 'UET_GITLAB_BASE_URL' was invalid.");
                     return 1;
                 }
-                if (string.IsNullOrWhiteSpace(baseUrl))
+                if (string.IsNullOrWhiteSpace(personalAccessToken))
                 {
                     _logger.LogError("Environment variable 'UET_GITLAB_PERSONAL_ACCESS_TOKEN' was invalid.");
                     return 1;
