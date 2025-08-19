@@ -13,10 +13,8 @@
     {
         private readonly IProcessExecutor _processExecutor;
         private readonly ILogger<DefaultUATExecutor> _logger;
-        private readonly IBuildConfigurationManager _buildConfigurationManager;
         private readonly ILocalHandleCloser _localHandleCloser;
         private readonly IRemoteHandleCloser _remoteHandleCloser;
-        private readonly IPathResolver _pathResolver;
         private readonly IWorldPermissionApplier _worldPermissionApplier;
 
         internal class ScriptModuleJson
@@ -31,18 +29,14 @@
         public DefaultUATExecutor(
             IProcessExecutor processExecutor,
             ILogger<DefaultUATExecutor> logger,
-            IBuildConfigurationManager buildConfigurationManager,
             ILocalHandleCloser localHandleCloser,
             IRemoteHandleCloser remoteHandleCloser,
-            IPathResolver pathResolver,
             IWorldPermissionApplier worldPermissionApplier)
         {
             _processExecutor = processExecutor;
             _logger = logger;
-            _buildConfigurationManager = buildConfigurationManager;
             _localHandleCloser = localHandleCloser;
             _remoteHandleCloser = remoteHandleCloser;
-            _pathResolver = pathResolver;
             _worldPermissionApplier = worldPermissionApplier;
         }
 
@@ -161,162 +155,164 @@
                 }
             }
 
-            // Execute UAT, automatically handling retries as needed.
-            var didMutateBuildConfiguration = await _buildConfigurationManager.PushBuildConfiguration().ConfigureAwait(false);
-            try
+            // Generate the final environment variable values.
+            var uatEnvironmentVariables = new Dictionary<string, string>();
+            if (uatSpecification.EnvironmentVariables != null)
             {
-                int reportedExitCode = -1;
-                while (true)
+                foreach (var kv in uatSpecification.EnvironmentVariables)
                 {
-                    // Clean up the target directory before we run UAT if this is a run of BuildGraph.
-                    if (cleanupTargetDirectoryBeforeExecution)
+                    uatEnvironmentVariables.Add(kv.Key, kv.Value);
+                }
+            }
+            uatEnvironmentVariables["UnrealBuildTool_ParallelExecutor__ProcessorCountMultiplier"] = OperatingSystem.IsMacOS() ? "1" : "2";
+            uatEnvironmentVariables["UnrealBuildTool_ParallelExecutor__MemoryPerActionBytes"] = "0";
+            uatEnvironmentVariables["UnrealBuildTool_ParallelExecutor__bShowCompilationTimes"] = "true";
+
+            // Execute UAT, automatically handling retries as needed.
+            int reportedExitCode = -1;
+            while (true)
+            {
+                // Clean up the target directory before we run UAT if this is a run of BuildGraph.
+                if (cleanupTargetDirectoryBeforeExecution)
+                {
+                    var targetPath = Path.Combine(sharedStorageDir, singleNodeName);
+                    do
                     {
-                        var targetPath = Path.Combine(sharedStorageDir, singleNodeName);
-                        do
+                        try
                         {
-                            try
+                            if (buildGraphProjectRoot != null)
                             {
-                                if (buildGraphProjectRoot != null)
+                                var localOutputPath = Path.Combine(buildGraphProjectRoot, "Engine", "Saved", "BuildGraph", singleNodeName);
+                                if (Directory.Exists(localOutputPath) &&
+                                    Directory.GetFileSystemEntries(localOutputPath).Length != 0)
                                 {
-                                    var localOutputPath = Path.Combine(buildGraphProjectRoot, "Engine", "Saved", "BuildGraph", singleNodeName);
-                                    if (Directory.Exists(localOutputPath) &&
-                                        Directory.GetFileSystemEntries(localOutputPath).Length != 0)
-                                    {
-                                        _logger.LogWarning($"Detected existing local output directory at '{localOutputPath}'. Deleting contents...");
-                                        try
-                                        {
-                                            await DirectoryAsync.DeleteAsync(localOutputPath, true).ConfigureAwait(false);
-                                        }
-                                        catch
-                                        {
-                                            _logger.LogWarning($"Failed to delete '{localOutputPath}'. Forcibly closing handles...");
-                                            await _localHandleCloser.CloseLocalHandles(localOutputPath).ConfigureAwait(false);
-
-                                            _logger.LogWarning($"Handles closed for '{localOutputPath}'. Trying to delete again...");
-                                            await DirectoryAsync.DeleteAsync(localOutputPath, true).ConfigureAwait(false);
-                                        }
-                                    }
-                                }
-
-                                if (Directory.Exists(targetPath) &&
-                                    Directory.GetFileSystemEntries(targetPath).Length != 0)
-                                {
-                                    _logger.LogWarning($"Detected existing output directory at '{targetPath}'. Deleting contents...");
+                                    _logger.LogWarning($"Detected existing local output directory at '{localOutputPath}'. Deleting contents...");
                                     try
                                     {
-                                        await DirectoryAsync.DeleteAsync(targetPath, true).ConfigureAwait(false);
+                                        await DirectoryAsync.DeleteAsync(localOutputPath, true).ConfigureAwait(false);
                                     }
                                     catch
                                     {
-                                        _logger.LogWarning($"Failed to delete '{targetPath}'. Forcibly closing handles...");
-                                        await _remoteHandleCloser.CloseRemoteHandles(targetPath).ConfigureAwait(false);
-                                        await _localHandleCloser.CloseLocalHandles(targetPath).ConfigureAwait(false);
+                                        _logger.LogWarning($"Failed to delete '{localOutputPath}'. Forcibly closing handles...");
+                                        await _localHandleCloser.CloseLocalHandles(localOutputPath).ConfigureAwait(false);
 
-                                        _logger.LogWarning($"Handles closed for '{targetPath}'. Trying to delete again...");
-                                        await DirectoryAsync.DeleteAsync(targetPath, true).ConfigureAwait(false);
+                                        _logger.LogWarning($"Handles closed for '{localOutputPath}'. Trying to delete again...");
+                                        await DirectoryAsync.DeleteAsync(localOutputPath, true).ConfigureAwait(false);
                                     }
-                                    Directory.CreateDirectory(targetPath);
-                                    await _worldPermissionApplier.GrantEveryonePermissionAsync(targetPath, CancellationToken.None).ConfigureAwait(false);
-                                }
-                                break;
-                            }
-                            catch (Exception ex)
-                            {
-                                if (ex.Message.Contains("used by another process", StringComparison.Ordinal) || ex.Message.Contains("is denied", StringComparison.Ordinal))
-                                {
-                                    _logger.LogWarning("File lock still present for one or more files...");
-                                    await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
-                                    continue;
-                                }
-                                else
-                                {
-                                    throw;
                                 }
                             }
+
+                            if (Directory.Exists(targetPath) &&
+                                Directory.GetFileSystemEntries(targetPath).Length != 0)
+                            {
+                                _logger.LogWarning($"Detected existing output directory at '{targetPath}'. Deleting contents...");
+                                try
+                                {
+                                    await DirectoryAsync.DeleteAsync(targetPath, true).ConfigureAwait(false);
+                                }
+                                catch
+                                {
+                                    _logger.LogWarning($"Failed to delete '{targetPath}'. Forcibly closing handles...");
+                                    await _remoteHandleCloser.CloseRemoteHandles(targetPath).ConfigureAwait(false);
+                                    await _localHandleCloser.CloseLocalHandles(targetPath).ConfigureAwait(false);
+
+                                    _logger.LogWarning($"Handles closed for '{targetPath}'. Trying to delete again...");
+                                    await DirectoryAsync.DeleteAsync(targetPath, true).ConfigureAwait(false);
+                                }
+                                Directory.CreateDirectory(targetPath);
+                                await _worldPermissionApplier.GrantEveryonePermissionAsync(targetPath, CancellationToken.None).ConfigureAwait(false);
+                            }
+                            break;
                         }
-                        while (true);
-                    }
-
-                    // Determine the process specification to use based on whether we're running on macOS/Linux or Windows.
-                    ProcessSpecification processSpecification;
-                    if (OperatingSystem.IsWindows())
-                    {
-                        processSpecification = new ProcessSpecification
+                        catch (Exception ex)
                         {
-                            FilePath = Path.Combine(enginePath, "Engine", "Build", "BatchFiles", "RunUAT.bat"),
-                            Arguments = new LogicalProcessArgument[]
+                            if (ex.Message.Contains("used by another process", StringComparison.Ordinal) || ex.Message.Contains("is denied", StringComparison.Ordinal))
                             {
-                                uatSpecification.Command,
-                            }.Concat(finalArgs),
-                            WorkingDirectory = doScriptWorkaround ? enginePath : uatSpecification.WorkingDirectory,
-                            EnvironmentVariables = uatSpecification.EnvironmentVariables,
-                            StdinData = uatSpecification.StdinData,
-                        };
-                    }
-                    else if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
-                    {
-                        processSpecification = new ProcessSpecification
-                        {
-                            FilePath = Path.Combine(enginePath, "Engine", "Build", "BatchFiles", "RunUAT.sh"),
-                            Arguments = new LogicalProcessArgument[]
+                                _logger.LogWarning("File lock still present for one or more files...");
+                                await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
+                                continue;
+                            }
+                            else
                             {
-                                uatSpecification.Command,
-                            }.Concat(finalArgs),
-                            WorkingDirectory = doScriptWorkaround ? enginePath : uatSpecification.WorkingDirectory,
-                            EnvironmentVariables = uatSpecification.EnvironmentVariables,
-                            StdinData = uatSpecification.StdinData,
-                        };
-                    }
-                    else
-                    {
-                        throw new PlatformNotSupportedException();
-                    }
-
-                    // Create the capture specification to track whether we need to 
-                    var retryCaptureSpecification = new RetryCaptureSpecification(
-                        captureSpecification,
-                        forceRetryMessages);
-
-                    // Execute UAT.
-                    reportedExitCode = await _processExecutor.ExecuteAsync(
-                        processSpecification,
-                        retryCaptureSpecification,
-                        cancellationToken).ConfigureAwait(false);
-
-                    // We need to check if BuildGraph didn't release file handles properly. When this happens, Windows holds open
-                    // the file handle on the remote machine that the share is mapped to, and this causes failures on downstream
-                    // builds that need the files as inputs. In this case, the files whose handles are lost are *also* not written
-                    // correctly - they end up as 0 bytes if we forcibly close the handle. Therefore, we need to release the handles,
-                    // delete the output directory on the shared drive, and then run this build again.
-                    if (requireLostHandleDetection)
-                    {
-                        if (await _remoteHandleCloser.CloseRemoteHandles(Path.Combine(sharedStorageDir, singleNodeName)).ConfigureAwait(false))
-                        {
-                            _logger.LogWarning("Detected lost file handles for output. Automatically retrying...");
-                            continue;
+                                throw;
+                            }
                         }
                     }
+                    while (true);
+                }
 
-                    // If the reported exit code is non-zero and the output detected we need to retry, or if the output wants to force a retry, then do this build node again.
-                    if ((reportedExitCode != 0 && retryCaptureSpecification.NeedsRetry) ||
-                        (retryCaptureSpecification.ForceRetry))
+                // Determine the process specification to use based on whether we're running on macOS/Linux or Windows.
+                ProcessSpecification processSpecification;
+                if (OperatingSystem.IsWindows())
+                {
+                    processSpecification = new ProcessSpecification
                     {
-                        _logger.LogWarning("Detected this build node needs to be retried.");
+                        FilePath = Path.Combine(enginePath, "Engine", "Build", "BatchFiles", "RunUAT.bat"),
+                        Arguments = new LogicalProcessArgument[]
+                        {
+                            uatSpecification.Command,
+                        }.Concat(finalArgs),
+                        WorkingDirectory = doScriptWorkaround ? enginePath : uatSpecification.WorkingDirectory,
+                        EnvironmentVariables = uatEnvironmentVariables,
+                        StdinData = uatSpecification.StdinData,
+                    };
+                }
+                else if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
+                {
+                    processSpecification = new ProcessSpecification
+                    {
+                        FilePath = Path.Combine(enginePath, "Engine", "Build", "BatchFiles", "RunUAT.sh"),
+                        Arguments = new LogicalProcessArgument[]
+                        {
+                            uatSpecification.Command,
+                        }.Concat(finalArgs),
+                        WorkingDirectory = doScriptWorkaround ? enginePath : uatSpecification.WorkingDirectory,
+                        EnvironmentVariables = uatEnvironmentVariables,
+                        StdinData = uatSpecification.StdinData,
+                    };
+                }
+                else
+                {
+                    throw new PlatformNotSupportedException();
+                }
+
+                // Create the capture specification to track whether we need to 
+                var retryCaptureSpecification = new RetryCaptureSpecification(
+                    captureSpecification,
+                    forceRetryMessages);
+
+                // Execute UAT.
+                reportedExitCode = await _processExecutor.ExecuteAsync(
+                    processSpecification,
+                    retryCaptureSpecification,
+                    cancellationToken).ConfigureAwait(false);
+
+                // We need to check if BuildGraph didn't release file handles properly. When this happens, Windows holds open
+                // the file handle on the remote machine that the share is mapped to, and this causes failures on downstream
+                // builds that need the files as inputs. In this case, the files whose handles are lost are *also* not written
+                // correctly - they end up as 0 bytes if we forcibly close the handle. Therefore, we need to release the handles,
+                // delete the output directory on the shared drive, and then run this build again.
+                if (requireLostHandleDetection)
+                {
+                    if (await _remoteHandleCloser.CloseRemoteHandles(Path.Combine(sharedStorageDir, singleNodeName)).ConfigureAwait(false))
+                    {
+                        _logger.LogWarning("Detected lost file handles for output. Automatically retrying...");
                         continue;
                     }
+                }
 
-                    // If we didn't trigger the retry logic, break out of the while (true) loop.
-                    break;
-                }
-                return reportedExitCode;
-            }
-            finally
-            {
-                if (didMutateBuildConfiguration)
+                // If the reported exit code is non-zero and the output detected we need to retry, or if the output wants to force a retry, then do this build node again.
+                if ((reportedExitCode != 0 && retryCaptureSpecification.NeedsRetry) ||
+                    (retryCaptureSpecification.ForceRetry))
                 {
-                    await _buildConfigurationManager.PopBuildConfiguration().ConfigureAwait(false);
+                    _logger.LogWarning("Detected this build node needs to be retried.");
+                    continue;
                 }
+
+                // If we didn't trigger the retry logic, break out of the while (true) loop.
+                break;
             }
+            return reportedExitCode;
         }
     }
 }
