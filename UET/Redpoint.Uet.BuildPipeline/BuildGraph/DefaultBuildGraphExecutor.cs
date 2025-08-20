@@ -183,6 +183,7 @@
 
                         _logger.LogInformation($"Changing target workspace path to '{symbolicLink}' for consistency...");
                         environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = engineWorkspacePath.TrimEnd('\\');
+                        targetWorkspacePath = symbolicLink;
                     }
                     // Otherwise, set the BUILD_GRAPH_PROJECT_ROOT based on whether we're building an engine or not.
                     else if (!string.IsNullOrWhiteSpace(targetWorkspacePath))
