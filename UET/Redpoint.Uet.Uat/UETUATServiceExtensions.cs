@@ -11,7 +11,6 @@ namespace Redpoint.Uet.Uat
     {
         public static void AddUETUAT(this IServiceCollection services)
         {
-            services.AddSingleton<IBuildConfigurationManager, DefaultBuildConfigurationManager>();
             if (OperatingSystem.IsWindowsVersionAtLeast(6, 2))
             {
                 services.AddSingleton<ILocalHandleCloser, NativeLocalHandleCloser>();
