@@ -142,11 +142,21 @@
                         environmentVariables["GRADLE_USER_HOME"] = gradleInstance.GradleHomePath;
                     }
 
+                    // If the target directory is underneath the engine, assume that the developer has already set up
+                    // a .uprojectdirs file so that this is a valid target underneath the engine.
+                    if ((targetWorkspacePath.Replace("\\", "/", StringComparison.Ordinal).TrimEnd('\\') + '\\')
+                        .StartsWith(
+                            (engineWorkspacePath.Replace("\\", "/", StringComparison.Ordinal).TrimEnd('\\') + '\\'),
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogInformation($"Using engine as BuildGraph project root since the project is located underneath the engine...");
+                        environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = engineWorkspacePath.TrimEnd('\\');
+                    }
                     // If the engine is a source engine, place the target into the engine via a symbolic link, and use the engine
                     // as the BuildGraph project root. This ensures that editor binaries are included in uploads to shared storage, such
                     // that builds on other nodes can download the required editor binaries. If we didn't do this, then cook steps will
                     // fail as only the editor modules for the game will be staged, but not UnrealEditor.exe.
-                    if (System.Environment.GetEnvironmentVariable("UET_USE_SYMBOLIC_TARGET_WORKSPACE_FOR_SOURCE_ENGINE") == "1" &&
+                    else if (System.Environment.GetEnvironmentVariable("UET_USE_SYMBOLIC_TARGET_WORKSPACE_FOR_SOURCE_ENGINE") == "1" &&
                         File.Exists(Path.Combine(engineWorkspacePath, "Engine", "Build", "SourceDistribution.txt")) &&
                         !string.IsNullOrWhiteSpace(targetWorkspacePath))
                     {
