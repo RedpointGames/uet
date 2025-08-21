@@ -276,8 +276,6 @@
                         FilePath = gitContext.Git,
                         Arguments =
                         [
-                            "-C",
-                            repositoryPath,
                             "config",
                             "unset",
                             "credential.helper"
@@ -297,8 +295,6 @@
                     FilePath = gitContext.Git,
                     Arguments =
                     [
-                        "-C",
-                        repositoryPath,
                         "remote",
                     ],
                     WorkingDirectory = repositoryPath,
@@ -331,8 +327,6 @@
                         FilePath = gitContext.Git,
                         Arguments =
                         [
-                            "-C",
-                            repositoryPath,
                             "remote",
                             "remove",
                             remote,
@@ -1431,10 +1425,13 @@
             }
 
             // Remove any remote configurations.
-            await PrepareRepositoryConfigurationsAsync(
-                gitContext,
-                submodule.Path,
-                cancellationToken).ConfigureAwait(false);
+            if (Directory.Exists(submoduleContentPath))
+            {
+                await PrepareRepositoryConfigurationsAsync(
+                    gitContext,
+                    submoduleContentPath,
+                    cancellationToken).ConfigureAwait(false);
+            }
 
             // Compute the commit and URL for this submodule.
             var submoduleStatusStringBuilder = new StringBuilder();
