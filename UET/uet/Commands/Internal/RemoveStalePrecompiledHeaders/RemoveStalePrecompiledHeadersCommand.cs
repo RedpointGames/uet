@@ -95,11 +95,18 @@
                     if (!string.Equals(enginePath.FullName, previousEnginePath, StringComparison.OrdinalIgnoreCase))
                     {
                         _logger.LogTrace($"Engine version has changed for {targetName} {targetConfiguration}, removing PCH files underneath: {candidate}");
+                        var didLogEnginePathChange = false;
 
                         // The engine has changed. Recursively scan for .pch files and
                         // remove them.
                         foreach (var pch in Directory.EnumerateFiles(candidate, "*.pch", new EnumerationOptions { RecurseSubdirectories = true }))
                         {
+                            if (!didLogEnginePathChange)
+                            {
+                                _logger.LogInformation($"For candidate folder '{candidate}', engine path '{enginePath.FullName}' is not the same as previous engine path '{previousEnginePath}'.");
+                                didLogEnginePathChange = true;
+                            }
+
                             _logger.LogInformation($"Removing stale .pch file due to engine path change: {pch}");
                             File.Delete(pch);
                         }
