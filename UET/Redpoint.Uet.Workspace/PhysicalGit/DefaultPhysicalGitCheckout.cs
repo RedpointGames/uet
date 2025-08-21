@@ -225,24 +225,6 @@
         }
 
         /// <summary>
-        /// Returns the URI with the username and password removed.
-        /// </summary>
-        /// <param name="repositoryUri">The original URI.</param>
-        /// <returns>The URI that is safe for storing persistently.</returns>
-        private static Uri GetNormalizedRepositoryUri(Uri repositoryUri)
-        {
-            if (repositoryUri.Scheme == "https" || repositoryUri.Scheme == "http")
-            {
-                var builder = new UriBuilder(repositoryUri);
-                builder.UserName = null;
-                builder.Password = null;
-                return builder.Uri;
-            }
-
-            return repositoryUri;
-        }
-
-        /// <summary>
         /// Returns the URI with the username and password censored.
         /// </summary>
         /// <param name="repositoryUri">The original URI.</param>
@@ -278,12 +260,38 @@
         /// Retrieves the list of remotes and removes all of them, as we don't want remote URLs to persist on disk.
         /// </summary>
         /// <param name="repositoryPath">The repository to run in.</param>
-        private async Task DeleteAllRemoteConfigurationsAsync(
+        private async Task PrepareRepositoryConfigurationsAsync(
             GitExecutionContext gitContext,
             string repositoryPath,
             CancellationToken cancellationToken)
         {
             int exitCode;
+
+            if (_gitCredentialHelperProvider != null)
+            {
+                _logger.LogInformation("Unsetting any existing credential manager to avoid strange fetch behaviour...");
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = gitContext.Git,
+                        Arguments =
+                        [
+                            "-C",
+                            repositoryPath,
+                            "config",
+                            "unset",
+                            "credential.helper"
+                        ],
+                        WorkingDirectory = repositoryPath,
+                        EnvironmentVariables = gitContext.GitEnvs,
+                    },
+                    CaptureSpecification.Passthrough,
+                    cancellationToken).ConfigureAwait(false);
+                if (exitCode != 0)
+                {
+                    throw new InvalidOperationException($"'git config unset credential.helper' exited with non-zero exit code {exitCode}");
+                }
+            }
 
             _logger.LogInformation("Clearing out any remotes stored in this repository's configuration file...");
             var remotes = new StringBuilder();
@@ -949,7 +957,7 @@
 
                 // LFS is enabled. Turn off any previous '--filter=tree:0' by removing the remote from the config.
                 _logger.LogInformation("LFS is enabled. Turning off '--filter=tree:0'...");
-                await DeleteAllRemoteConfigurationsAsync(
+                await PrepareRepositoryConfigurationsAsync(
                     gitContext,
                     repositoryPath,
                     cancellationToken).ConfigureAwait(false);
@@ -1427,7 +1435,7 @@
             }
 
             // Remove any remote configurations.
-            await DeleteAllRemoteConfigurationsAsync(
+            await PrepareRepositoryConfigurationsAsync(
                 gitContext,
                 submodule.Path,
                 cancellationToken).ConfigureAwait(false);
@@ -1962,9 +1970,10 @@
                 var envVars = new Dictionary<string, string>
                 {
                     { "GIT_ASK_YESNO", "false" },
+                    { "GIT_TERMINAL_PROMPT", "false" },
                     { "GIT_CONFIG_COUNT", "1" },
                     { "GIT_CONFIG_KEY_0", "credential.helper" },
-                    { "GIT_CONFIG_VALUE_0", $"{_gitCredentialHelperProvider.FilePath.Replace(@"\", @"\\", StringComparison.Ordinal)} {string.Join(' ', _gitCredentialHelperProvider.Arguments.Select(x => x.LogicalValue))}" },
+                    { "GIT_CONFIG_VALUE_0", $"{_gitCredentialHelperProvider.FilePath.Replace(@"\", @"/", StringComparison.Ordinal)} {string.Join(' ', _gitCredentialHelperProvider.Arguments.Select(x => x.LogicalValue))}" },
                 };
                 var uriComponents = uri.UserInfo.Split(':', 2);
                 var uriHost = uri.Host.Replace(".", "_", StringComparison.Ordinal);
@@ -2089,7 +2098,7 @@
             await InitGitWorkspaceIfNeededAsync(repositoryPath, descriptor, gitContext, cancellationToken).ConfigureAwait(false);
 
             // Remove any remote configurations.
-            await DeleteAllRemoteConfigurationsAsync(gitContext, repositoryPath, cancellationToken).ConfigureAwait(false);
+            await PrepareRepositoryConfigurationsAsync(gitContext, repositoryPath, cancellationToken).ConfigureAwait(false);
 
             // Resolve tags and refs if needed.
             var potentiallyResolvedReference = await AttemptResolveReferenceToCommitWithoutFetchAsync(
