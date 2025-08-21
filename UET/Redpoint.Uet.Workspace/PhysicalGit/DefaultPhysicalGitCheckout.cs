@@ -1970,6 +1970,7 @@
                 var envVars = new Dictionary<string, string>
                 {
                     { "GIT_ASK_YESNO", "false" },
+                    { "GIT_TERMINAL_PROMPT", "false" },
                     { "GIT_CONFIG_COUNT", "1" },
                     { "GIT_CONFIG_KEY_0", "credential.helper" },
                     { "GIT_CONFIG_VALUE_0", $"{_gitCredentialHelperProvider.FilePath.Replace(@"\", @"\\", StringComparison.Ordinal)} {string.Join(' ', _gitCredentialHelperProvider.Arguments.Select(x => x.LogicalValue))}" },
