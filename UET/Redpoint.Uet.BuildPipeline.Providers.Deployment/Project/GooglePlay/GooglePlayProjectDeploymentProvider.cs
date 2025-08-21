@@ -159,6 +159,28 @@
                 }
             }
 
+            string? aabPath = null;
+            string aabAndroidPath = Path.Combine(runtimeSettings["ProjectRoot"], "Binaries", "Android", $"{config.Package.Target}-Android-Shipping.aab");
+            string aabPlatformPath = Path.Combine(runtimeSettings["ProjectRoot"], "Binaries", config.Package.Platform, $"{config.Package.Target}-Android-Shipping.aab");
+            if (File.Exists(aabPlatformPath))
+            {
+                aabPath = aabPlatformPath;
+            }
+            if (File.Exists(aabAndroidPath))
+            {
+                if (aabPath == null ||
+                    new FileInfo(aabPath).LastWriteTimeUtc < new FileInfo(aabAndroidPath).LastWriteTimeUtc)
+                {
+                    aabPath = aabAndroidPath;
+                }
+            }
+            if (aabPath == null)
+            {
+                _logger.LogError($"Could not find AAB at '{aabAndroidPath}' or '{aabPlatformPath}'.");
+                return 1;
+            }
+            _logger.LogInformation($"Using AAB file at path: {aabPath}");
+
             var fastlanePath = @"C:\Ruby34-x64\bin\fastlane.bat";
 
             var first = true;
@@ -193,7 +215,7 @@
                                 { "SUPPLY_PACKAGE_NAME", config.PackageName },
                                 { "SUPPLY_TRACK", track },
                                 { "SUPPLY_JSON_KEY", jsonKeyPath },
-                                { "SUPPLY_AAB", Path.Combine(runtimeSettings["ProjectRoot"], "Binaries", "Android", $"{config.Package.Target}-Android-Shipping.aab") },
+                                { "SUPPLY_AAB", aabPath },
                                 { "SUPPLY_VERSION_NAME", DateTimeOffset.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
                                 { "SUPPLY_METADATA_PATH", runtimeSettings["TempPath"] },
                             }
