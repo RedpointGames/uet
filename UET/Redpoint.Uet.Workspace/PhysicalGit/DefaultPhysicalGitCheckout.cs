@@ -1968,7 +1968,7 @@
                 };
                 var uriComponents = uri.UserInfo.Split(':', 2);
                 var uriHost = uri.Host.Replace(".", "_", StringComparison.Ordinal);
-                if (uriComponents.Length == 1)
+                if (uriComponents.Length == 1 && !string.IsNullOrWhiteSpace(uriComponents[0]))
                 {
                     envVars[$"REDPOINT_CREDENTIAL_DISCOVERY_USERNAME_{uriHost}"] = uriComponents[0];
                 }
@@ -1987,6 +1987,7 @@
                 if (_logger.IsEnabled(LogLevel.Trace))
                 {
                     _logger.LogTrace("Testing credential helper and reporting its output...");
+                    envVars["GIT_TRACE"] = "1";
                     var exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {

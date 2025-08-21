@@ -48,10 +48,16 @@
 
             public Task<int> ExecuteAsync(InvocationContext context)
             {
+                var doTrace = Environment.GetEnvironmentVariable("UET_TRACE") == "1";
+
                 var operation = context.ParseResult.GetValueForArgument(_options.Operation);
                 if (operation != "get")
                 {
                     // We don't handle anything other than "get".
+                    if (doTrace)
+                    {
+                        Console.Error.WriteLine($"We don't handle operation '{operation}'.");
+                    }
                     return Task.FromResult(0);
                 }
 
@@ -60,11 +66,23 @@
                 string? line;
                 do
                 {
+                    if (doTrace)
+                    {
+                        Console.Error.WriteLine("Reading line from standard input...");
+                    }
                     line = Console.ReadLine();
+                    if (doTrace)
+                    {
+                        Console.Error.WriteLine($"Received line: {line}");
+                    }
                     if (!string.IsNullOrWhiteSpace(line))
                     {
                         var components = line.Split('=', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                         input[components[0]] = components[1];
+                        if (doTrace)
+                        {
+                            Console.Error.WriteLine($"{components[0]}={components[1]}");
+                        }
                     }
                 } while (!string.IsNullOrWhiteSpace(line));
 
@@ -73,6 +91,10 @@
                     !input.TryGetValue("host", out var host))
                 {
                     // Not a credential request we can handle.
+                    if (doTrace)
+                    {
+                        Console.Error.WriteLine("Not a credential request we can handle.");
+                    }
                     return Task.FromResult(0);
                 }
 
@@ -89,15 +111,27 @@
                         Console.WriteLine($"password={credential.Password}");
 
                         // Found credential for HTTP/HTTPS.
+                        if (doTrace)
+                        {
+                            Console.Error.WriteLine("Credential details were provided above.");
+                        }
                         return Task.FromResult(0);
                     }
 
                     // The git-credential flow can't handle SSH.
+                    if (doTrace)
+                    {
+                        Console.Error.WriteLine("We can't handle this type of credential.");
+                    }
                     return Task.FromResult(0);
                 }
                 catch (UnableToDiscoverCredentialException)
                 {
                     // We don't have a useful credential.
+                    if (doTrace)
+                    {
+                        Console.Error.WriteLine("We can't provide credentials for this URL.");
+                    }
                     return Task.FromResult(0);
                 }
             }

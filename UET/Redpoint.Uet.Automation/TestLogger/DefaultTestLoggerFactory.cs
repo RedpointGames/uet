@@ -17,7 +17,7 @@
         {
             // Handle log forwarding.
             var pipeName = Environment.GetEnvironmentVariable("UET_AUTOMATION_LOGGER_PIPE_NAME");
-            if (!string.IsNullOrWhiteSpace(pipeName))
+            if (!string.IsNullOrWhiteSpace(pipeName) && AutomationLoggerPipe.AllowLoggerPipe)
             {
                 return new GrpcTestLogger(pipeName);
             }
