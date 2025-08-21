@@ -1555,7 +1555,10 @@
             _logger.LogInformation($"Submodule exclude on macOS: {(submodule.ExcludeOnMac ? "yes" : "no")}");
 
             // Get the submodule URI and environment variables factory.
-            var (uri, fetchEnvironmentVariablesFactory) = ComputeRepositoryUriAndCredentials(submoduleUrl);
+            var (uri, fetchEnvironmentVariablesFactory) = await ComputeRepositoryUriAndCredentials(
+                gitContext.Git,
+                submoduleUrl,
+                cancellationToken);
 
             // Check if we already have the target commit in history. If we do, skip fetch.
             var gitTypeStringBuilder = new StringBuilder();
@@ -1908,7 +1911,45 @@
             }
         }
 
-        private (Uri uri, Func<GitTemporaryEnvVarsForFetch> fetchEnvironmentVariables) ComputeRepositoryUriAndCredentials(string repositoryUrl)
+        private class TestCredentialHelperCaptureSpecification : ICaptureSpecification
+        {
+            private readonly ILogger _logger;
+            private readonly string _input;
+
+            public TestCredentialHelperCaptureSpecification(
+                ILogger logger,
+                string input)
+            {
+                _logger = logger;
+                _input = input;
+            }
+
+            public bool InterceptStandardInput => true;
+
+            public bool InterceptStandardOutput => true;
+
+            public bool InterceptStandardError => true;
+
+            public void OnReceiveStandardError(string data)
+            {
+                _logger.LogTrace($"[stderr] {data}");
+            }
+
+            public void OnReceiveStandardOutput(string data)
+            {
+                _logger.LogTrace($"[stdout] {data}");
+            }
+
+            public string? OnRequestStandardInputAtStartup()
+            {
+                return _input;
+            }
+        }
+
+        private async Task<(Uri uri, Func<GitTemporaryEnvVarsForFetch> fetchEnvironmentVariables)> ComputeRepositoryUriAndCredentials(
+            string git,
+            string repositoryUrl,
+            CancellationToken cancellationToken)
         {
             // Parse the repository URL.
             var uri = new Uri(repositoryUrl);
@@ -1941,6 +1982,26 @@
                 foreach (var kv in envVars)
                 {
                     _logger.LogTrace($" - {kv.Key}={kv.Value}");
+                }
+
+                if (_logger.IsEnabled(LogLevel.Trace))
+                {
+                    _logger.LogTrace("Testing credential helper and reporting its output...");
+                    var exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = git,
+                            Arguments = ["credential", "fill"],
+                            EnvironmentVariables = envVars
+                        },
+                        new TestCredentialHelperCaptureSpecification(
+                            _logger,
+                            $"""
+                            protocol={uri.Scheme}
+                            host={uri.Host}
+                            """),
+                        cancellationToken);
+                    _logger.LogTrace($"Credential helper exited with exit code {exitCode}.");
                 }
 
                 var builder = new UriBuilder(uri);
@@ -2005,7 +2066,10 @@
             };
 
             // Compute the repository URI and environment variable factory.
-            var (repositoryUri, fetchEnvironmentVariablesFactory) = ComputeRepositoryUriAndCredentials(descriptor.RepositoryUrl);
+            var (repositoryUri, fetchEnvironmentVariablesFactory) = await ComputeRepositoryUriAndCredentials(
+                git,
+                descriptor.RepositoryUrl,
+                cancellationToken);
 
             // Create the context that we'll use to execute Git in all our downstream functions.
             var gitContext = new GitExecutionContext
