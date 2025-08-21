@@ -204,7 +204,8 @@
                 {
                     extraParsingServices(services);
                 }
-                if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("UET_AUTOMATION_LOGGER_PIPE_NAME")))
+                if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("UET_AUTOMATION_LOGGER_PIPE_NAME")) &&
+                    AutomationLoggerPipe.AllowLoggerPipe)
                 {
                     // Run commands with an automation logger shim if we don't already have one.
                     services.AddSingleton<IApplicationLifecycle>(sp => sp.GetRequiredService<IAutomationLogForwarder>());

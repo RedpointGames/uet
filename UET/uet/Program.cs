@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Redpoint.Concurrency;
 using Redpoint.ProcessExecution;
 using Redpoint.Tasks;
+using Redpoint.Uet.Automation.TestLogger;
 using Redpoint.Uet.Core;
 using Redpoint.Uet.Core.BugReport;
 using System.CommandLine;
@@ -34,6 +35,12 @@ using UET.Commands.Upgrade;
 if (Environment.GetEnvironmentVariable("CI") == "true")
 {
     Crayon.Output.Enable();
+}
+
+if (args.Any(x => string.Equals(x, "git-credential-helper", StringComparison.OrdinalIgnoreCase)))
+{
+    // Do not allow the automation logger pipe to be used if it looks like we're invoking the Git credential helper.
+    AutomationLoggerPipe.AllowLoggerPipe = false;
 }
 
 // Construct the root command. We have to do this to see what command the user

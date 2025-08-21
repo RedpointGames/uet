@@ -15,13 +15,17 @@
 
         public Task ModifyProcessSpecificationAsync(ProcessSpecification processSpecification, CancellationToken cancellationToken)
         {
-            var pipeName = _serverLifecycle.GetPipeName();
-            if (pipeName != null)
+            if (AutomationLoggerPipe.AllowLoggerPipe)
             {
-                var newEnvironmentVariables = (processSpecification.EnvironmentVariables != null) ? new Dictionary<string, string>(processSpecification.EnvironmentVariables) : new Dictionary<string, string>();
-                newEnvironmentVariables["UET_AUTOMATION_LOGGER_PIPE_NAME"] = pipeName;
-                processSpecification.EnvironmentVariables = newEnvironmentVariables;
+                var pipeName = _serverLifecycle.GetPipeName();
+                if (pipeName != null)
+                {
+                    var newEnvironmentVariables = (processSpecification.EnvironmentVariables != null) ? new Dictionary<string, string>(processSpecification.EnvironmentVariables) : new Dictionary<string, string>();
+                    newEnvironmentVariables["UET_AUTOMATION_LOGGER_PIPE_NAME"] = pipeName;
+                    processSpecification.EnvironmentVariables = newEnvironmentVariables;
+                }
             }
+
             return Task.CompletedTask;
         }
     }
