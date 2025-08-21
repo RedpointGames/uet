@@ -225,24 +225,6 @@
         }
 
         /// <summary>
-        /// Returns the URI with the username and password removed.
-        /// </summary>
-        /// <param name="repositoryUri">The original URI.</param>
-        /// <returns>The URI that is safe for storing persistently.</returns>
-        private static Uri GetNormalizedRepositoryUri(Uri repositoryUri)
-        {
-            if (repositoryUri.Scheme == "https" || repositoryUri.Scheme == "http")
-            {
-                var builder = new UriBuilder(repositoryUri);
-                builder.UserName = null;
-                builder.Password = null;
-                return builder.Uri;
-            }
-
-            return repositoryUri;
-        }
-
-        /// <summary>
         /// Returns the URI with the username and password censored.
         /// </summary>
         /// <param name="repositoryUri">The original URI.</param>
