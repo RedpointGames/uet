@@ -225,6 +225,127 @@
         }
 
         /// <summary>
+        /// Returns the URI with the username and password removed.
+        /// </summary>
+        /// <param name="repositoryUri">The original URI.</param>
+        /// <returns>The URI that is safe for storing persistently.</returns>
+        private static Uri GetNormalizedRepositoryUri(Uri repositoryUri)
+        {
+            if (repositoryUri.Scheme == "https" || repositoryUri.Scheme == "http")
+            {
+                var builder = new UriBuilder(repositoryUri);
+                builder.UserName = null;
+                builder.Password = null;
+                return builder.Uri;
+            }
+
+            return repositoryUri;
+        }
+
+        /// <summary>
+        /// Returns the URI with the username and password censored.
+        /// </summary>
+        /// <param name="repositoryUri">The original URI.</param>
+        /// <returns>The URI that is safe for displaying.</returns>
+        private static Uri GetCensoredRepositoryUri(Uri repositoryUri)
+        {
+            if (repositoryUri.Scheme == "https" || repositoryUri.Scheme == "http")
+            {
+                var builder = new UriBuilder(repositoryUri);
+                var uriComponents = repositoryUri.UserInfo.Split(':', 2);
+                if (uriComponents.Length == 1)
+                {
+                    builder.UserName = "***";
+                    builder.Password = null;
+                }
+                else if (uriComponents.Length == 2)
+                {
+                    builder.UserName = "***";
+                    builder.Password = "***";
+                }
+                else
+                {
+                    builder.UserName = null;
+                    builder.Password = null;
+                }
+                return builder.Uri;
+            }
+
+            return repositoryUri;
+        }
+
+        /// <summary>
+        /// Retrieves the list of remotes and removes all of them, as we don't want remote URLs to persist on disk.
+        /// </summary>
+        /// <param name="repositoryPath">The repository to run in.</param>
+        private async Task DeleteAllRemoteConfigurationsAsync(
+            GitExecutionContext gitContext,
+            string repositoryPath,
+            CancellationToken cancellationToken)
+        {
+            int exitCode;
+
+            _logger.LogInformation("Clearing out any remotes stored in this repository's configuration file...");
+            var remotes = new StringBuilder();
+            exitCode = await _processExecutor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = gitContext.Git,
+                    Arguments =
+                    [
+                        "-C",
+                        repositoryPath,
+                        "remote",
+                    ],
+                    WorkingDirectory = repositoryPath,
+                    EnvironmentVariables = gitContext.GitEnvs,
+                },
+                CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(remotes),
+                cancellationToken).ConfigureAwait(false);
+            if (exitCode != 0)
+            {
+                throw new InvalidOperationException($"'git remote' exited with non-zero exit code {exitCode}");
+            }
+
+            foreach (var remote in remotes
+                .ToString()
+                .Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                try
+                {
+                    _logger.LogInformation($"Deleting remote '{GetCensoredRepositoryUri(new Uri(remote))}'...");
+                }
+                catch
+                {
+                    _logger.LogInformation($"Deleting remote '{remote}'...");
+                }
+
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = gitContext.Git,
+                        Arguments =
+                        [
+                            "-C",
+                            repositoryPath,
+                            "remote",
+                            "remove",
+                            remote,
+                        ],
+                        WorkingDirectory = repositoryPath,
+                        EnvironmentVariables = gitContext.GitEnvs,
+                    },
+                    CaptureSpecification.Passthrough,
+                    cancellationToken).ConfigureAwait(false);
+                if (exitCode != 0)
+                {
+                    _logger.LogWarning("Unable to remove remote.");
+                }
+            }
+        }
+
+        /// <summary>
         /// Initializes an empty Git workspace in the target directory if one doesn't already exist.
         /// </summary>
         private async Task InitGitWorkspaceIfNeededAsync(
@@ -828,22 +949,9 @@
 
                 // LFS is enabled. Turn off any previous '--filter=tree:0' by removing the remote from the config.
                 _logger.LogInformation("LFS is enabled. Turning off '--filter=tree:0'...");
-                _ = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = gitContext.Git,
-                        Arguments =
-                        [
-                            "-C",
-                            repositoryPath,
-                            "remote",
-                            "remove",
-                            repositoryUri.ToString(),
-                        ],
-                        WorkingDirectory = repositoryPath,
-                        EnvironmentVariables = gitContext.GitEnvs,
-                    },
-                    CaptureSpecification.Sanitized,
+                await DeleteAllRemoteConfigurationsAsync(
+                    gitContext,
+                    repositoryPath,
                     cancellationToken).ConfigureAwait(false);
 
                 // Fetch the target commit again, this time without --filter=tree:0, using --refetch to force download.
@@ -1244,8 +1352,7 @@
         }
 
         private async Task CheckoutSubmoduleAsync(
-            string git,
-            Dictionary<string, string> gitEnvs,
+            GitExecutionContext gitContext,
             Uri mainRepositoryUrl,
             DirectoryInfo contentDirectory,
             GitSubmoduleDescription submodule,
@@ -1274,7 +1381,7 @@
                     exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
-                            FilePath = git,
+                            FilePath = gitContext.Git,
                             Arguments =
                             [
                                 "-C",
@@ -1282,7 +1389,7 @@
                                 "init",
                             ],
                             WorkingDirectory = submoduleContentPath,
-                            EnvironmentVariables = gitEnvs,
+                            EnvironmentVariables = gitContext.GitEnvs,
                         },
                         CaptureSpecification.Sanitized,
                         cancellationToken).ConfigureAwait(false);
@@ -1298,7 +1405,7 @@
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
-                        FilePath = git,
+                        FilePath = gitContext.Git,
                         Arguments =
                         [
                             "-C",
@@ -1309,7 +1416,7 @@
                             submodule.Path,
                         ],
                         WorkingDirectory = contentDirectory.FullName,
-                        EnvironmentVariables = gitEnvs,
+                        EnvironmentVariables = gitContext.GitEnvs,
                     },
                     CaptureSpecification.Sanitized,
                     cancellationToken).ConfigureAwait(false);
@@ -1319,12 +1426,18 @@
                 }
             }
 
+            // Remove any remote configurations.
+            await DeleteAllRemoteConfigurationsAsync(
+                gitContext,
+                submodule.Path,
+                cancellationToken).ConfigureAwait(false);
+
             // Compute the commit and URL for this submodule.
             var submoduleStatusStringBuilder = new StringBuilder();
             exitCode = await _processExecutor.ExecuteAsync(
                 new ProcessSpecification
                 {
-                    FilePath = git,
+                    FilePath = gitContext.Git,
                     Arguments =
                     [
                         "-C",
@@ -1335,7 +1448,7 @@
                         submodule.Path,
                     ],
                     WorkingDirectory = contentDirectory.FullName,
-                    EnvironmentVariables = gitEnvs,
+                    EnvironmentVariables = gitContext.GitEnvs,
                 },
                 CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(submoduleStatusStringBuilder),
                 cancellationToken).ConfigureAwait(false);
@@ -1398,14 +1511,14 @@
             _ = await _processExecutor.ExecuteAsync(
                 new ProcessSpecification
                 {
-                    FilePath = git,
+                    FilePath = gitContext.Git,
                     Arguments =
                     [
                         "rev-parse",
                         "HEAD",
                     ],
                     WorkingDirectory = submoduleContentPath,
-                    EnvironmentVariables = gitEnvs,
+                    EnvironmentVariables = gitContext.GitEnvs,
                 },
                 CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(currentHeadStringBuilder),
                 cancellationToken).ConfigureAwait(false);
@@ -1449,7 +1562,7 @@
             _ = await _processExecutor.ExecuteAsync(
                 new ProcessSpecification
                 {
-                    FilePath = git,
+                    FilePath = gitContext.Git,
                     Arguments =
                     [
                         "cat-file",
@@ -1457,7 +1570,7 @@
                         submoduleCommit,
                     ],
                     WorkingDirectory = submoduleContentPath,
-                    EnvironmentVariables = gitEnvs,
+                    EnvironmentVariables = gitContext.GitEnvs,
                 },
                 CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitTypeStringBuilder),
                 cancellationToken).ConfigureAwait(false);
@@ -1471,7 +1584,7 @@
                     exitCode = await FaultTolerantGitAsync(
                         new ProcessSpecification
                         {
-                            FilePath = git,
+                            FilePath = gitContext.Git,
                             Arguments =
                             [
                                 "fetch",
@@ -1503,7 +1616,7 @@
                 exitCode = await FaultTolerantGitAsync(
                     new ProcessSpecification
                     {
-                        FilePath = git,
+                        FilePath = gitContext.Git,
                         Arguments =
                         [
                             "-c",
@@ -1824,6 +1937,12 @@
                     envVars[$"REDPOINT_CREDENTIAL_DISCOVERY_PASSWORD_{uriHost}"] = uriComponents[1];
                 }
 
+                _logger.LogTrace("Using new Git credential helper. Username and password will be set to null. Environment variables:");
+                foreach (var kv in envVars)
+                {
+                    _logger.LogTrace($" - {kv.Key}={kv.Value}");
+                }
+
                 var builder = new UriBuilder(uri);
                 builder.UserName = null;
                 builder.Password = null;
@@ -1904,6 +2023,9 @@
             // Initialize the Git repository if needed.
             await InitGitWorkspaceIfNeededAsync(repositoryPath, descriptor, gitContext, cancellationToken).ConfigureAwait(false);
 
+            // Remove any remote configurations.
+            await DeleteAllRemoteConfigurationsAsync(gitContext, repositoryPath, cancellationToken).ConfigureAwait(false);
+
             // Resolve tags and refs if needed.
             var potentiallyResolvedReference = await AttemptResolveReferenceToCommitWithoutFetchAsync(
                 repositoryPath,
@@ -1971,8 +2093,7 @@
                 await foreach (var iter in IterateContentBasedSubmodulesAsync(repositoryPath, descriptor))
                 {
                     await CheckoutSubmoduleAsync(
-                        git,
-                        gitEnvs,
+                        gitContext,
                         repositoryUri,
                         iter.contentDirectory,
                         iter.submodule,
