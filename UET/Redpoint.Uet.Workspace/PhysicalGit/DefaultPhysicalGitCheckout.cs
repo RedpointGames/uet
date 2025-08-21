@@ -270,7 +270,7 @@
             if (_gitCredentialHelperProvider != null)
             {
                 _logger.LogInformation("Unsetting any existing credential manager to avoid strange fetch behaviour...");
-                exitCode = await _processExecutor.ExecuteAsync(
+                await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
                         FilePath = gitContext.Git,
@@ -287,10 +287,6 @@
                     },
                     CaptureSpecification.Passthrough,
                     cancellationToken).ConfigureAwait(false);
-                if (exitCode != 0)
-                {
-                    throw new InvalidOperationException($"'git config unset credential.helper' exited with non-zero exit code {exitCode}");
-                }
             }
 
             _logger.LogInformation("Clearing out any remotes stored in this repository's configuration file...");
