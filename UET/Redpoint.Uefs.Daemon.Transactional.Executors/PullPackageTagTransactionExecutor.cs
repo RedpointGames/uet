@@ -1,18 +1,17 @@
 ﻿namespace Redpoint.Uefs.Daemon.Transactional.Executors
 {
     using Docker.Registry.DotNet.Models;
-    using Docker.Registry.DotNet.Registry;
-    using Microsoft.Extensions.Logging;
-    using Redpoint.Hashing;
-    using Redpoint.Uefs.ContainerRegistry;
     using Redpoint.Uefs.Daemon.PackageFs;
-    using Redpoint.Uefs.Daemon.RemoteStorage;
-    using Redpoint.Uefs.Daemon.Transactional.Abstractions;
-    using Redpoint.Uefs.Protocol;
-    using System.Text;
     using System.Text.Json;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Redpoint.Uefs.ContainerRegistry;
+    using Redpoint.Uefs.Daemon.RemoteStorage;
+    using Redpoint.Uefs.Protocol;
+    using Redpoint.Uefs.Daemon.Transactional.Abstractions;
+    using Redpoint.Hashing;
+    using Microsoft.Extensions.Logging;
 
     internal sealed class PullPackageTagTransactionExecutor : ITransactionExecutor<PullPackageTagTransactionRequest, PullPackageTagTransactionResult>
     {
@@ -74,20 +73,7 @@
                 {
                     // Download the manifest.
                     _logger.LogInformation($"Downloading the manifest for the selected tag...");
-                    GetImageManifestResult? manifest;
-                    var connectionAttempts = 0;
-                retryGetManifest:
-                    try
-                    {
-                        manifest = await client.Manifest.GetManifestAsync(path, label, cancellationToken: cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (RegistryConnectionException) when (connectionAttempts <= 30)
-                    {
-                        _logger.LogWarning("Unable to connect to package registry; retrying in 1 second...");
-                        await Task.Delay(1000, cancellationToken);
-                        connectionAttempts += 1;
-                        goto retryGetManifest;
-                    }
+                    var manifest = await client.Manifest.GetManifestAsync(path, label, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                     // Try to get the manifest list, and from there get the registry manifest
                     // for the current platform. We also have to handle legacy manifests.
