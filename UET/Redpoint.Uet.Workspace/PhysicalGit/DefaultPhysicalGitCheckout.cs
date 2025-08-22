@@ -1060,9 +1060,36 @@
         {
             int exitCode;
 
-            _logger.LogInformation($"Checking out target commit {resolvedReference.TargetCommit}...");
+            _logger.LogInformation($"Verifying that Git repository is intact for checking out {resolvedReference.TargetCommit}...");
             using (var fetchEnvVars = gitContext.FetchEnvironmentVariablesFactory())
             {
+                // Run 'git fsck' to make sure the directory is not corrupt.
+                exitCode = await FaultTolerantGitAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = gitContext.Git,
+                        Arguments =
+                        [
+                            "-C",
+                            repositoryPath,
+                            "fsck",
+                            "--connectivity-only",
+                            resolvedReference.TargetCommit
+                        ],
+                        WorkingDirectory = repositoryPath,
+                        EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
+                    },
+                    CaptureSpecification.Passthrough,
+                    Path.Combine(repositoryPath, ".git", "index.lock"),
+                    cancellationToken).ConfigureAwait(false);
+                if (exitCode != 0)
+                {
+                    _logger.LogWarning("Detected Git repository is likely corrupt.");
+                    throw new GitRepositoryCorruptException();
+                }
+
+                // Checkout the commit.
+                _logger.LogInformation($"Checking out target commit {resolvedReference.TargetCommit}...");
                 exitCode = await FaultTolerantGitAsync(
                     new ProcessSpecification
                     {
@@ -1614,9 +1641,32 @@
             }
 
             // Checkout the target commit.
-            _logger.LogInformation($"Checking out submodule {submodule.Path} target commit {submoduleCommit}...");
+            _logger.LogInformation($"Verifying that the submodule {submodule.Path} is not corrupt...");
             using (var fetchEnvVars = fetchEnvironmentVariablesFactory())
             {
+                exitCode = await FaultTolerantGitAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = gitContext.Git,
+                        Arguments =
+                        [
+                            "fsck",
+                            "--connectivity-only",
+                            submoduleCommit
+                        ],
+                        WorkingDirectory = submoduleContentPath,
+                        EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
+                    },
+                    CaptureSpecification.Passthrough,
+                    null,
+                    cancellationToken).ConfigureAwait(false);
+                if (exitCode != 0)
+                {
+                    _logger.LogWarning("Detected Git repository is likely corrupt.");
+                    throw new GitRepositoryCorruptException();
+                }
+
+                _logger.LogInformation($"Checking out submodule {submodule.Path} target commit {submoduleCommit}...");
                 exitCode = await FaultTolerantGitAsync(
                     new ProcessSpecification
                     {
@@ -2088,85 +2138,108 @@
                 AssumeLfs = descriptor.QueryString?["lfs"] == "true",
             };
 
-            // Initialize the Git repository if needed.
-            await InitGitWorkspaceIfNeededAsync(repositoryPath, descriptor, gitContext, cancellationToken).ConfigureAwait(false);
-
-            // Remove any remote configurations.
-            await PrepareRepositoryConfigurationsAsync(gitContext, repositoryPath, cancellationToken).ConfigureAwait(false);
-
-            // Resolve tags and refs if needed.
-            var potentiallyResolvedReference = await AttemptResolveReferenceToCommitWithoutFetchAsync(
-                repositoryPath,
-                repositoryUri,
-                descriptor.RepositoryCommitOrRef,
-                gitContext,
-                cancellationToken).ConfigureAwait(false);
-
-            // Check if we've already got the commit checked out.
-            if (await IsRepositoryUpToDateAsync(
-                repositoryPath,
-                potentiallyResolvedReference,
-                gitContext,
-                descriptor,
-                cancellationToken).ConfigureAwait(false))
+            var didAttemptReinitialization = false;
+        reinitializeFromScratch:
+            GitResolvedReference resolvedReference;
+            try
             {
-                _logger.LogInformation("Git repository already up-to-date.");
-                return;
-            }
+                // Initialize the Git repository if needed.
+                await InitGitWorkspaceIfNeededAsync(repositoryPath, descriptor, gitContext, cancellationToken).ConfigureAwait(false);
 
-            // Resolve the target commit to a real commit hash, fetching repository commits if needed.
-            var resolvedReference = await ResolveReferenceToCommitWithPotentialFetchAsync(
-                repositoryPath,
-                repositoryUri,
-                potentiallyResolvedReference,
-                gitContext,
-                cancellationToken).ConfigureAwait(false);
+                // Remove any remote configurations.
+                await PrepareRepositoryConfigurationsAsync(gitContext, repositoryPath, cancellationToken).ConfigureAwait(false);
 
-            // If we fetched, check to see if Git LFS is enabled for the target commit, and if so, turn
-            // off filtering and re-fetch the repository.
-            if (resolvedReference.DidFetch)
-            {
-                await DetectGitLfsAndReconfigureIfNecessaryAsync(
+                // Resolve tags and refs if needed.
+                var potentiallyResolvedReference = await AttemptResolveReferenceToCommitWithoutFetchAsync(
+                    repositoryPath,
+                    repositoryUri,
+                    descriptor.RepositoryCommitOrRef,
+                    gitContext,
+                    cancellationToken).ConfigureAwait(false);
+
+                // Check if we've already got the commit checked out.
+                if (await IsRepositoryUpToDateAsync(
+                    repositoryPath,
+                    potentiallyResolvedReference,
+                    gitContext,
+                    descriptor,
+                    cancellationToken).ConfigureAwait(false))
+                {
+                    _logger.LogInformation("Git repository already up-to-date.");
+                    return;
+                }
+
+                // Resolve the target commit to a real commit hash, fetching repository commits if needed.
+                resolvedReference = await ResolveReferenceToCommitWithPotentialFetchAsync(
+                    repositoryPath,
+                    repositoryUri,
+                    potentiallyResolvedReference,
+                    gitContext,
+                    cancellationToken).ConfigureAwait(false);
+
+                // If we fetched, check to see if Git LFS is enabled for the target commit, and if so, turn
+                // off filtering and re-fetch the repository.
+                if (resolvedReference.DidFetch)
+                {
+                    await DetectGitLfsAndReconfigureIfNecessaryAsync(
+                        descriptor,
+                        repositoryPath,
+                        repositoryUri,
+                        resolvedReference,
+                        gitContext,
+                        cancellationToken).ConfigureAwait(false);
+                }
+
+                // Checkout the target commit.
+                await CheckoutTargetCommitAsync(
                     descriptor,
                     repositoryPath,
                     repositoryUri,
                     resolvedReference,
                     gitContext,
                     cancellationToken).ConfigureAwait(false);
-            }
 
-            // Checkout the target commit.
-            await CheckoutTargetCommitAsync(
-                descriptor,
-                repositoryPath,
-                repositoryUri,
-                resolvedReference,
-                gitContext,
-                cancellationToken).ConfigureAwait(false);
-
-            // Clean all Source, Config, Resources and Content folders so that we don't have stale files accidentally included in build steps.
-            if (descriptor.BuildType == GitWorkspaceDescriptorBuildType.Generic)
-            {
-                await CleanBuildSensitiveDirectoriesForProjectsAndPluginsAsync(
-                    descriptor,
-                    repositoryPath,
-                    gitContext,
-                    cancellationToken).ConfigureAwait(false);
-            }
-
-            // Process the submodules, only checking out submodules that sit underneath the target directory for compilation.
-            if (gitContext.EnableSubmoduleSupport && gitContext.AllowSubmoduleSupport)
-            {
-                _logger.LogInformation("Updating submodules...");
-                await foreach (var iter in IterateContentBasedSubmodulesAsync(repositoryPath, descriptor))
+                // Clean all Source, Config, Resources and Content folders so that we don't have stale files accidentally included in build steps.
+                if (descriptor.BuildType == GitWorkspaceDescriptorBuildType.Generic)
                 {
-                    await CheckoutSubmoduleAsync(
+                    await CleanBuildSensitiveDirectoriesForProjectsAndPluginsAsync(
+                        descriptor,
+                        repositoryPath,
                         gitContext,
-                        repositoryUri,
-                        iter.contentDirectory,
-                        iter.submodule,
-                        iter.submoduleGitDirectory,
                         cancellationToken).ConfigureAwait(false);
+                }
+
+                // Process the submodules, only checking out submodules that sit underneath the target directory for compilation.
+                if (gitContext.EnableSubmoduleSupport && gitContext.AllowSubmoduleSupport)
+                {
+                    _logger.LogInformation("Updating submodules...");
+                    await foreach (var iter in IterateContentBasedSubmodulesAsync(repositoryPath, descriptor))
+                    {
+                        await CheckoutSubmoduleAsync(
+                            gitContext,
+                            repositoryUri,
+                            iter.contentDirectory,
+                            iter.submodule,
+                            iter.submoduleGitDirectory,
+                            cancellationToken).ConfigureAwait(false);
+                    }
+                }
+            }
+            catch (GitRepositoryCorruptException)
+            {
+                // The Git repository is corrupt. Delete the root folder and start from scratch.
+                if (!didAttemptReinitialization)
+                {
+                    _logger.LogError("Git repository is corrupt. Deleting the entire working directory and re-initializing from scratch...");
+                    await DirectoryAsync.DeleteAsync(repositoryPath, true);
+                    Directory.CreateDirectory(repositoryPath);
+                    didAttemptReinitialization = true;
+                    goto reinitializeFromScratch;
+                }
+                else
+                {
+                    _logger.LogError("Git repository is corrupt, but re-initializing the repository did not resolve the issue.");
+                    throw;
                 }
             }
 
