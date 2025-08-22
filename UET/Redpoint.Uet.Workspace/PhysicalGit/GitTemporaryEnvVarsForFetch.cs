@@ -6,24 +6,17 @@
     internal class GitTemporaryEnvVarsForFetch : IDisposable
     {
         private readonly string? _path;
-        private readonly Dictionary<string, string>? _envVars;
+        private readonly IReadOnlyDictionary<string, string>? _envVars;
 
-        public GitTemporaryEnvVarsForFetch()
-        {
-            _path = null;
-            _envVars = new Dictionary<string, string>
-            {
-                { "GIT_ASK_YESNO", "false" },
-            };
-        }
-
-        public GitTemporaryEnvVarsForFetch(Dictionary<string, string> envVars)
+        public GitTemporaryEnvVarsForFetch(IReadOnlyDictionary<string, string> envVars)
         {
             _path = null;
             _envVars = envVars;
         }
 
-        public GitTemporaryEnvVarsForFetch(string privateKey)
+        public GitTemporaryEnvVarsForFetch(
+            IReadOnlyDictionary<string, string> envVars,
+            string privateKey)
         {
             _path = Path.GetTempFileName();
             using (var stream = new StreamWriter(new FileStream(_path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)))
@@ -43,15 +36,12 @@
             }
             identityPath = identityPath.Replace(" ", "\\ ", StringComparison.Ordinal);
 
-            _envVars = new Dictionary<string, string>
-            {
-                { "GIT_SSH_COMMAND", $@"ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -i {identityPath}" },
-                { "GIT_ASK_YESNO", "false" },
-                { "GIT_LFS_FORCE_PROGRESS", "1" },
-            };
+            var newEnvVars = new Dictionary<string, string>(envVars);
+            newEnvVars["GIT_SSH_COMMAND"] = $@"ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -i {identityPath}";
+            _envVars = newEnvVars;
         }
 
-        public Dictionary<string, string>? EnvironmentVariables => _envVars;
+        public IReadOnlyDictionary<string, string>? EnvironmentVariables => _envVars;
 
         public void Dispose()
         {
