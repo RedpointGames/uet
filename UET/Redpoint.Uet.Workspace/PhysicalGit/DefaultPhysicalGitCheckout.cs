@@ -2114,7 +2114,8 @@
                 if (file.Length < 1024)
                 {
                     using var reader = new StreamReader(file.FullName);
-                    if ((await reader.ReadLineAsync(cancellationToken))!.StartsWith("version https://git-lfs.github.com", StringComparison.OrdinalIgnoreCase))
+                    var line = await reader.ReadLineAsync(cancellationToken);
+                    if ((line ?? string.Empty).StartsWith("version https://git-lfs.github.com", StringComparison.OrdinalIgnoreCase))
                     {
                         throw new GitLfsFileNotCheckedOutProperlyException(file.FullName);
                     }
