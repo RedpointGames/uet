@@ -24,6 +24,7 @@
     using Redpoint.PackageManagement;
     using System.Runtime.Versioning;
     using Redpoint.Windows.HandleManagement;
+    using System.Globalization;
 
     internal class DefaultPhysicalGitCheckout : IPhysicalGitCheckout
     {
@@ -48,6 +49,7 @@
             IReservationManagerFactory reservationManagerFactory,
             IWorldPermissionApplier worldPermissionApplier,
             IPackageManager packageManager,
+            // @note: This is not present for automation tests.
             IGitCredentialHelperProvider? gitCredentialHelperProvider = null)
         {
             _logger = logger;
@@ -267,25 +269,22 @@
         {
             int exitCode;
 
-            if (_gitCredentialHelperProvider != null)
-            {
-                _logger.LogInformation("Unsetting any existing credential manager to avoid strange fetch behaviour...");
-                await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = gitContext.Git,
-                        Arguments =
-                        [
-                            "config",
-                            "unset",
-                            "credential.helper"
-                        ],
-                        WorkingDirectory = repositoryPath,
-                        EnvironmentVariables = gitContext.GitEnvs,
-                    },
-                    CaptureSpecification.Passthrough,
-                    cancellationToken).ConfigureAwait(false);
-            }
+            _logger.LogInformation("Unsetting any existing credential manager to avoid strange fetch behaviour...");
+            await _processExecutor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = gitContext.Git,
+                    Arguments =
+                    [
+                        "config",
+                        "unset",
+                        "credential.helper"
+                    ],
+                    WorkingDirectory = repositoryPath,
+                    EnvironmentVariables = gitContext.GitEnvs,
+                },
+                CaptureSpecification.Passthrough,
+                cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("Clearing out any remotes stored in this repository's configuration file...");
             var remotes = new StringBuilder();
@@ -1586,6 +1585,7 @@
             var (uri, fetchEnvironmentVariablesFactory) = await ComputeRepositoryUriAndCredentials(
                 gitContext.Git,
                 submoduleUrl,
+                gitContext.GitEnvs,
                 cancellationToken);
 
             // Check if we already have the target commit in history. If we do, skip fetch.
@@ -2000,6 +2000,7 @@
         private async Task<(Uri uri, Func<GitTemporaryEnvVarsForFetch> fetchEnvironmentVariables)> ComputeRepositoryUriAndCredentials(
             string git,
             string repositoryUrl,
+            IReadOnlyDictionary<string, string> originalEnvVars,
             CancellationToken cancellationToken)
         {
             // Parse the repository URL.
@@ -2007,18 +2008,9 @@
 
             // If this is a HTTPS URL, and we have a credential helper provider, use that
             // to provide credentials.
-            if (_gitCredentialHelperProvider != null &&
-                (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp))
+            if (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
             {
-                var envVars = new Dictionary<string, string>
-                {
-                    { "GIT_ASK_YESNO", "false" },
-                    { "GIT_TERMINAL_PROMPT", "false" },
-                    { "GIT_CONFIG_NOSYSTEM", "true" },
-                    { "GIT_CONFIG_COUNT", "1" },
-                    { "GIT_CONFIG_KEY_0", "credential.helper" },
-                    { "GIT_CONFIG_VALUE_0", $"{_gitCredentialHelperProvider.FilePath.Replace(@"\", @"/", StringComparison.Ordinal)} {string.Join(' ', _gitCredentialHelperProvider.Arguments.Select(x => x.LogicalValue))}" },
-                };
+                var envVars = new Dictionary<string, string>(originalEnvVars);
                 var uriComponents = uri.UserInfo.Split(':', 2);
                 var uriHost = uri.Host.Replace(".", "_", StringComparison.Ordinal);
                 if (uriComponents.Length == 1 && !string.IsNullOrWhiteSpace(uriComponents[0]))
@@ -2073,28 +2065,20 @@
                 {
                     if (!string.IsNullOrWhiteSpace(uriCredential.SshPrivateKeyAsPem))
                     {
-                        return (uri, () => new GitTemporaryEnvVarsForFetch(uriCredential.SshPrivateKeyAsPem));
+                        return (uri, () => new GitTemporaryEnvVarsForFetch(originalEnvVars, uriCredential.SshPrivateKeyAsPem));
                     }
 
-                    return (uri, () => new GitTemporaryEnvVarsForFetch());
+                    return (uri, () => new GitTemporaryEnvVarsForFetch(originalEnvVars));
                 }
                 else
                 {
-                    if (!string.IsNullOrWhiteSpace(uriCredential.Password))
-                    {
-                        var builder = new UriBuilder(uri);
-                        builder.UserName = uriCredential.Username;
-                        builder.Password = uriCredential.Password;
-                        uri = builder.Uri;
-                    }
-
-                    return (uri, () => new GitTemporaryEnvVarsForFetch());
+                    throw new NotSupportedException($"Git scheme '{uri.Scheme}' is not supported; not SSH and HTTP/HTTPS should have been handled by credential helper flow instead.");
                 }
             }
             catch (UnableToDiscoverCredentialException ex)
             {
                 _logger.LogWarning($"Unable to infer credential for Git URL. Assuming the environment is correctly set up to fetch commits from this URL. The original error was: {ex.Message}");
-                return (uri, () => new GitTemporaryEnvVarsForFetch());
+                return (uri, () => new GitTemporaryEnvVarsForFetch(originalEnvVars));
             }
         }
 
@@ -2114,15 +2098,46 @@
 
             // Find Git and set up environment variables.
             var git = await _pathResolver.ResolveBinaryPath("git").ConfigureAwait(false);
+            var gitConfig = new List<KeyValuePair<string, string>>
+            {
+                new("filter \"lfs\".clean", "git-lfs clean -- %f"),
+                new("filter \"lfs\".smudge", "git-lfs smudge -- %f"),
+                new("filter \"lfs\".process", "git-lfs filter-process"),
+                new("filter \"lfs\".required", "true"),
+            };
+            if (_gitCredentialHelperProvider != null)
+            {
+                gitConfig.Add(new("credential.helper", $"{_gitCredentialHelperProvider.FilePath.Replace(@"\", @"/", StringComparison.Ordinal)} {string.Join(' ', _gitCredentialHelperProvider.Arguments.Select(x => x.LogicalValue))}"));
+            }
+            if (OperatingSystem.IsWindows())
+            {
+                gitConfig.AddRange([
+                    new("http.sslBackend", "schannel"),
+                    new("core.autocrlf", "true"),
+                    new("core.fscache", "true"),
+                    new("core.symlinks", "true"),
+                    new("core.longpaths", "true"),
+                ]);
+            }
             var gitEnvs = new Dictionary<string, string>
             {
                 { "GIT_ASK_YESNO", "false" },
+                { "GIT_TERMINAL_PROMPT", "false" },
+                { "GIT_LFS_FORCE_PROGRESS", "1" },
+                { "GIT_CONFIG_NOSYSTEM", "true" },
+                { "GIT_CONFIG_COUNT", gitConfig.Count.ToString(CultureInfo.InvariantCulture) },
             };
+            for (int i = 0; i < gitConfig.Count; i++)
+            {
+                gitEnvs.Add($"GIT_CONFIG_KEY_{i}", gitConfig[i].Key);
+                gitEnvs.Add($"GIT_CONFIG_VALUE_{i}", gitConfig[i].Value);
+            }
 
             // Compute the repository URI and environment variable factory.
             var (repositoryUri, fetchEnvironmentVariablesFactory) = await ComputeRepositoryUriAndCredentials(
                 git,
                 descriptor.RepositoryUrl,
+                gitEnvs,
                 cancellationToken);
 
             // Create the context that we'll use to execute Git in all our downstream functions.

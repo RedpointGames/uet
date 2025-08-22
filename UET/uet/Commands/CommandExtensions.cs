@@ -98,10 +98,7 @@
             services.AddCredentialDiscovery();
             services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
             services.AddSingleton<IReleaseVersioning, DefaultReleaseVersioning>();
-            if (Environment.GetEnvironmentVariable("UET_NEW_GIT_CREDENTIAL_HELPER_OPTIN") == "1")
-            {
-                services.AddSingleton<IGitCredentialHelperProvider, DefaultGitCredentialHelperProvider>();
-            }
+            services.AddSingleton<IGitCredentialHelperProvider, DefaultGitCredentialHelperProvider>();
             services.AddUba();
         }
 
