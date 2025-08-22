@@ -454,6 +454,11 @@
           <ModifyConfig
 					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
 					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
+					  Key="bUseExternalFilesDir"
+					  Value="True" />
+          <ModifyConfig
+					  File="$(ProjectRoot)/Config/Android/AndroidEngine.ini"
+					  Section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"
 					  Key="bEnableBundle"
 					  Value="True" />
           <ModifyConfig
