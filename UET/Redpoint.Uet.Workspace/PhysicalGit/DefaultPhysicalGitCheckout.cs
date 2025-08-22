@@ -2104,6 +2104,7 @@
                 new("filter.lfs.smudge", "git-lfs smudge -- %f"),
                 new("filter.lfs.process", "git-lfs filter-process"),
                 new("filter.lfs.required", "true"),
+                new("init.defaultBranch", "main"),
             };
             if (_gitCredentialHelperProvider != null)
             {
