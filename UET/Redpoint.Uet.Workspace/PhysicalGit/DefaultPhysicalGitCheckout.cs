@@ -2037,7 +2037,7 @@
                     _logger.LogTrace($" - {kv.Key}={kv.Value}");
                 }
 
-                if (_logger.IsEnabled(LogLevel.Trace))
+                if (Environment.GetEnvironmentVariable("UET_TRACE") == "1")
                 {
                     _logger.LogTrace("Testing credential helper and reporting its output...");
                     envVars["GIT_TRACE"] = "1";
