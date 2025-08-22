@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.GooglePlay
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.IO;
     using Redpoint.PackageManagement;
     using Redpoint.ProcessExecution;
     using Redpoint.ProgressMonitor.Utils;
@@ -197,6 +198,15 @@
                 _logger.LogInformation($"Deploying to track '{track}'...");
                 var holder = new RetryWithoutUploadHolder();
             retry:
+
+                // The metadata path must be empty (or in future, contain metadata that should be attached to the release).
+                var metadataPath = Path.Combine(runtimeSettings["TempPath"], "FastlaneAndroid");
+                if (Directory.Exists(metadataPath))
+                {
+                    await DirectoryAsync.DeleteAsync(metadataPath, true);
+                }
+                Directory.CreateDirectory(metadataPath);
+
                 var exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
@@ -217,7 +227,7 @@
                                 { "SUPPLY_JSON_KEY", jsonKeyPath },
                                 { "SUPPLY_AAB", aabPath },
                                 { "SUPPLY_VERSION_NAME", DateTimeOffset.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
-                                { "SUPPLY_METADATA_PATH", runtimeSettings["TempPath"] },
+                                { "SUPPLY_METADATA_PATH", metadataPath },
                             }
                             : new Dictionary<string, string>
                             {
