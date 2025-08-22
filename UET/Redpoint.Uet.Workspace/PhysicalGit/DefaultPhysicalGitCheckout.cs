@@ -2111,13 +2111,20 @@
             var buffer = new char[1024];
             foreach (var file in new DirectoryInfo(repositoryPath).GetFiles("*", SearchOption.AllDirectories))
             {
-                if (file.Length < 1024)
+                if (file.Exists && file.LinkTarget == null && file.Length < 1024)
                 {
-                    using var reader = new StreamReader(file.FullName);
-                    var line = await reader.ReadLineAsync(cancellationToken);
-                    if ((line ?? string.Empty).StartsWith("version https://git-lfs.github.com", StringComparison.OrdinalIgnoreCase))
+                    try
                     {
-                        throw new GitLfsFileNotCheckedOutProperlyException(file.FullName);
+                        using var reader = new StreamReader(file.FullName);
+                        var line = await reader.ReadLineAsync(cancellationToken);
+                        if ((line ?? string.Empty).StartsWith("version https://git-lfs.github.com", StringComparison.OrdinalIgnoreCase))
+                        {
+                            throw new GitLfsFileNotCheckedOutProperlyException(file.FullName);
+                        }
+                    }
+                    catch (Exception ex) when (ex is not GitLfsFileNotCheckedOutProperlyException)
+                    {
+                        // Ignore any non "Git LFS pointer detected" exceptions, which silences any errors about reading files.
                     }
                 }
             }
