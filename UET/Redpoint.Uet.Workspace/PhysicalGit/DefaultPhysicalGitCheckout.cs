@@ -26,6 +26,14 @@
     using Redpoint.Windows.HandleManagement;
     using System.Globalization;
 
+    public class GitLfsFileNotCheckedOutProperlyException : Exception
+    {
+        public GitLfsFileNotCheckedOutProperlyException(string fullName)
+            : base($"Found Git LFS pointer in file: {fullName}")
+        {
+        }
+    }
+
     internal class DefaultPhysicalGitCheckout : IPhysicalGitCheckout
     {
         private readonly ILogger<DefaultPhysicalGitCheckout> _logger;
@@ -1450,6 +1458,8 @@
                 }
             }
 
+            await VerifyNoGitLfsBreakage(submoduleContentPath, cancellationToken).ConfigureAwait(false);
+
             // Remove any remote configurations.
             if (Directory.Exists(submoduleContentPath))
             {
@@ -1457,6 +1467,7 @@
                     gitContext,
                     submoduleContentPath,
                     cancellationToken).ConfigureAwait(false);
+                await VerifyNoGitLfsBreakage(submoduleContentPath, cancellationToken).ConfigureAwait(false);
             }
 
             // Compute the commit and URL for this submodule.
@@ -1667,6 +1678,7 @@
                 }
 
                 _logger.LogInformation($"Checking out submodule {submodule.Path} target commit {submoduleCommit}...");
+                await VerifyNoGitLfsBreakage(submoduleContentPath, cancellationToken).ConfigureAwait(false);
                 exitCode = await FaultTolerantGitAsync(
                     new ProcessSpecification
                     {
@@ -1686,6 +1698,7 @@
                     CaptureSpecification.Sanitized,
                     null,
                     cancellationToken).ConfigureAwait(false);
+                await VerifyNoGitLfsBreakage(submoduleContentPath, cancellationToken).ConfigureAwait(false);
             }
             if (exitCode != 0)
             {
@@ -2082,6 +2095,33 @@
             }
         }
 
+        /// <summary>
+        /// This is an expensive operation that verifies there are no Git LFS pointer files in
+        /// the repository to diagnose what operation is causing them to appear.
+        /// </summary>
+        private static async Task VerifyNoGitLfsBreakage(
+            string repositoryPath,
+            CancellationToken cancellationToken)
+        {
+            if (Environment.GetEnvironmentVariable("UET_GIT_VERIFY_LFS_CONTENT_SLOW") != "1")
+            {
+                return;
+            }
+
+            var buffer = new char[1024];
+            foreach (var file in new DirectoryInfo(repositoryPath).GetFiles("*", SearchOption.AllDirectories))
+            {
+                if (file.Length < 1024)
+                {
+                    using var reader = new StreamReader(file.FullName);
+                    if ((await reader.ReadLineAsync(cancellationToken))!.StartsWith("version https://git-lfs.github.com", StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new GitLfsFileNotCheckedOutProperlyException(file.FullName);
+                    }
+                }
+            }
+        }
+
         public async Task PrepareGitWorkspaceAsync(
             string repositoryPath,
             GitWorkspaceDescriptor descriptor,
@@ -2161,9 +2201,11 @@
             {
                 // Initialize the Git repository if needed.
                 await InitGitWorkspaceIfNeededAsync(repositoryPath, descriptor, gitContext, cancellationToken).ConfigureAwait(false);
+                await VerifyNoGitLfsBreakage(repositoryPath, cancellationToken).ConfigureAwait(false);
 
                 // Remove any remote configurations.
                 await PrepareRepositoryConfigurationsAsync(gitContext, repositoryPath, cancellationToken).ConfigureAwait(false);
+                await VerifyNoGitLfsBreakage(repositoryPath, cancellationToken).ConfigureAwait(false);
 
                 // Resolve tags and refs if needed.
                 var potentiallyResolvedReference = await AttemptResolveReferenceToCommitWithoutFetchAsync(
@@ -2184,6 +2226,7 @@
                     _logger.LogInformation("Git repository already up-to-date.");
                     return;
                 }
+                await VerifyNoGitLfsBreakage(repositoryPath, cancellationToken).ConfigureAwait(false);
 
                 // Resolve the target commit to a real commit hash, fetching repository commits if needed.
                 resolvedReference = await ResolveReferenceToCommitWithPotentialFetchAsync(
@@ -2192,6 +2235,7 @@
                     potentiallyResolvedReference,
                     gitContext,
                     cancellationToken).ConfigureAwait(false);
+                await VerifyNoGitLfsBreakage(repositoryPath, cancellationToken).ConfigureAwait(false);
 
                 // If we fetched, check to see if Git LFS is enabled for the target commit, and if so, turn
                 // off filtering and re-fetch the repository.
@@ -2204,6 +2248,7 @@
                         resolvedReference,
                         gitContext,
                         cancellationToken).ConfigureAwait(false);
+                    await VerifyNoGitLfsBreakage(repositoryPath, cancellationToken).ConfigureAwait(false);
                 }
 
                 // Checkout the target commit.
@@ -2214,6 +2259,7 @@
                     resolvedReference,
                     gitContext,
                     cancellationToken).ConfigureAwait(false);
+                await VerifyNoGitLfsBreakage(repositoryPath, cancellationToken).ConfigureAwait(false);
 
                 // Clean all Source, Config, Resources and Content folders so that we don't have stale files accidentally included in build steps.
                 if (descriptor.BuildType == GitWorkspaceDescriptorBuildType.Generic)
@@ -2223,6 +2269,7 @@
                         repositoryPath,
                         gitContext,
                         cancellationToken).ConfigureAwait(false);
+                    await VerifyNoGitLfsBreakage(repositoryPath, cancellationToken).ConfigureAwait(false);
                 }
 
                 // Process the submodules, only checking out submodules that sit underneath the target directory for compilation.
