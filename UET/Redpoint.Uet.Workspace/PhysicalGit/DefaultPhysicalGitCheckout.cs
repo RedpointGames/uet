@@ -2100,10 +2100,10 @@
             var git = await _pathResolver.ResolveBinaryPath("git").ConfigureAwait(false);
             var gitConfig = new List<KeyValuePair<string, string>>
             {
-                new("filter \"lfs\".clean", "git-lfs clean -- %f"),
-                new("filter \"lfs\".smudge", "git-lfs smudge -- %f"),
-                new("filter \"lfs\".process", "git-lfs filter-process"),
-                new("filter \"lfs\".required", "true"),
+                new("filter.lfs.clean", "git-lfs clean -- %f"),
+                new("filter.lfs.smudge", "git-lfs smudge -- %f"),
+                new("filter.lfs.process", "git-lfs filter-process"),
+                new("filter.lfs.required", "true"),
             };
             if (_gitCredentialHelperProvider != null)
             {
