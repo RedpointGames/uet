@@ -233,6 +233,16 @@ $(PackageExclude);
           Text="{ &quot;FileVersion&quot;: 3, &quot;Plugins&quot;: [ { &quot;Name&quot;: &quot;$(PluginName)&quot;, &quot;Enabled&quot;: true }, { &quot;Name&quot;: &quot;Fab&quot;, &quot;Enabled&quot;: false }, { &quot;Name&quot;: &quot;OnlineSubsystemEOS&quot;, &quot;Enabled&quot;: false }, { &quot;Name&quot;: &quot;Gauntlet&quot;, &quot;Enabled&quot;: true } ] }"
           If="'$(IsForGauntlet)' == 'true'"
         />
+        <WriteTextFile
+          File="$(TempPath)/$(AssembledProjectName)/Config/Mac/MacEngine.ini"
+          Text="[/Script/MacTargetPlatform.MacTargetSettings]&#xA;TargetArchitecture=apple&#xA;DefaultArchitecture=apple&#xA;EditorTargetArchitecture=apple&#xA;EditorDefaultArchitecture=apple&#xA;bBuildAllSupportedOnBuildMachine=False"
+          If="'$(AppleArchitectureOnly)' == 'true'"
+        />
+        <Tag
+          Files="$(TempPath)/$(AssembledProjectName)/Config/Mac/MacEngine.ini"
+          With="#HostProject"
+          If="'$(AppleArchitectureOnly)' == 'true'"
+        />
         <Tag
           Files="$(TempPath)/$(AssembledProjectName)/$(AssembledProjectName).uproject"
           With="$(OutputTag)"
