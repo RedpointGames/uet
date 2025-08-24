@@ -235,7 +235,7 @@ $(PackageExclude);
         />
         <WriteTextFile
           File="$(TempPath)/$(AssembledProjectName)/Config/Mac/MacEngine.ini"
-          Text="[/Script/MacTargetPlatform.MacTargetSettings]&#xA;TargetArchitecture=apple&#xA;DefaultArchitecture=apple&#xA;EditorTargetArchitecture=apple&#xA;EditorDefaultArchitecture=apple&#xA;bBuildAllSupportedOnBuildMachine=False"
+          Text="[/Script/MacTargetPlatform.MacTargetSettings]&#xA;TargetArchitecture=MacTargetArchitectureAppleSilicon&#xA;DefaultArchitecture=MacTargetArchitectureAppleSilicon&#xA;EditorTargetArchitecture=MacTargetArchitectureAppleSilicon&#xA;EditorDefaultArchitecture=MacTargetArchitectureAppleSilicon&#xA;bBuildAllSupportedOnBuildMachine=False"
           If="'$(AppleArchitectureOnly)' == 'true'"
         />
         <Tag
@@ -341,7 +341,7 @@ $(PackageExclude);
       />
       <WriteTextFile
         File="$(TempPath)/$(HostProjectName)/Config/Mac/MacEngine.ini"
-        Text="[/Script/MacTargetPlatform.MacTargetSettings]&#xA;TargetArchitecture=apple&#xA;DefaultArchitecture=apple&#xA;EditorTargetArchitecture=apple&#xA;EditorDefaultArchitecture=apple&#xA;bBuildAllSupportedOnBuildMachine=False"
+        Text="[/Script/MacTargetPlatform.MacTargetSettings]&#xA;TargetArchitecture=MacTargetArchitectureAppleSilicon&#xA;DefaultArchitecture=MacTargetArchitectureAppleSilicon&#xA;EditorTargetArchitecture=MacTargetArchitectureAppleSilicon&#xA;EditorDefaultArchitecture=MacTargetArchitectureAppleSilicon&#xA;bBuildAllSupportedOnBuildMachine=False"
         If="'$(AppleArchitectureOnly)' == 'true'"
       />
       <Tag
