@@ -152,6 +152,10 @@
                     {
                         buildGraphProjectRoot = null;
                     }
+                    else
+                    {
+                        _logger.LogInformation($"BuildGraph project root detected as: {buildGraphProjectRoot}");
+                    }
                 }
             }
 
@@ -183,10 +187,11 @@
                             if (buildGraphProjectRoot != null)
                             {
                                 var localOutputPath = Path.Combine(buildGraphProjectRoot, "Engine", "Saved", "BuildGraph", singleNodeName);
+                                _logger.LogInformation($"Checking if local BuildGraph directory exists at '{localOutputPath}'...");
                                 if (Directory.Exists(localOutputPath) &&
                                     Directory.GetFileSystemEntries(localOutputPath).Length != 0)
                                 {
-                                    _logger.LogWarning($"Detected existing local output directory at '{localOutputPath}'. Deleting contents...");
+                                    _logger.LogWarning($"Detected existing local BuildGraph directory at '{localOutputPath}'. Deleting contents...");
                                     try
                                     {
                                         await DirectoryAsync.DeleteAsync(localOutputPath, true).ConfigureAwait(false);
@@ -202,10 +207,11 @@
                                 }
                             }
 
+                            _logger.LogInformation($"Checking if shared BuildGraph directory exists at '{targetPath}'...");
                             if (Directory.Exists(targetPath) &&
                                 Directory.GetFileSystemEntries(targetPath).Length != 0)
                             {
-                                _logger.LogWarning($"Detected existing output directory at '{targetPath}'. Deleting contents...");
+                                _logger.LogWarning($"Detected existing shared BuildGraph directory at '{targetPath}'. Deleting contents...");
                                 try
                                 {
                                     await DirectoryAsync.DeleteAsync(targetPath, true).ConfigureAwait(false);
