@@ -144,6 +144,7 @@
 
                     // If the target directory is underneath the engine, assume that the developer has already set up
                     // a .uprojectdirs file so that this is a valid target underneath the engine.
+                    var expectSymbolicLink = false;
                     if ((targetWorkspacePath.Replace("\\", "/", StringComparison.Ordinal).TrimEnd('\\') + '\\')
                         .StartsWith(
                             (engineWorkspacePath.Replace("\\", "/", StringComparison.Ordinal).TrimEnd('\\') + '\\'),
@@ -194,6 +195,7 @@
                         _logger.LogInformation($"Changing target workspace path to '{symbolicLink}' for consistency...");
                         environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = engineWorkspacePath.TrimEnd('\\');
                         targetWorkspacePath = symbolicLink;
+                        expectSymbolicLink = true;
                     }
                     // Otherwise, set the BUILD_GRAPH_PROJECT_ROOT based on whether we're building an engine or not.
                     else if (!string.IsNullOrWhiteSpace(targetWorkspacePath))
@@ -204,6 +206,19 @@
                     {
                         environmentVariables["BUILD_GRAPH_PROJECT_ROOT"] = engineWorkspacePath.TrimEnd('\\');
                     }
+
+                    if (!expectSymbolicLink)
+                    {
+                        var symbolicLink = Path.Combine(engineWorkspacePath, "P");
+                        _logger.LogInformation($"Checking if an unexpected symbolic link exists at '{symbolicLink}'...");
+                        var existingDirectory = new DirectoryInfo(symbolicLink);
+                        if (existingDirectory.Exists && existingDirectory.LinkTarget != null)
+                        {
+                            _logger.LogInformation($"Deleting existing symbolic link at '{symbolicLink}'...");
+                            existingDirectory.Delete();
+                        }
+                    }
+
                     if (string.IsNullOrWhiteSpace(environmentVariables["BUILD_GRAPH_PROJECT_ROOT"]))
                     {
                         throw new InvalidOperationException("BUILD_GRAPH_PROJECT_ROOT is empty, when it should be set to either the repository root or engine path.");
@@ -212,6 +227,7 @@
                     {
                         _logger.LogInformation($"BuildGraph is executing with BUILD_GRAPH_PROJECT_ROOT={environmentVariables["BUILD_GRAPH_PROJECT_ROOT"]}");
                     }
+
                     foreach (var kv in globalEnvironmentVariables)
                     {
                         environmentVariables[kv.Key] = kv.Value;
