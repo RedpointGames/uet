@@ -154,9 +154,20 @@
             {
                 _logger.LogInformation("Reserving exact workspace as this Git workspace descriptor has concurrent=false...");
 
+                bool? hold = null;
+                if (descriptor.QueryString?["hold"] == "true")
+                {
+                    hold = true;
+                }
+                else if (descriptor.QueryString?["hold"] == "false")
+                {
+                    hold = false;
+                }
+
                 reservation = await _reservationManager.ReserveExactAsync(
-                    StabilityHash.GetStabilityHash($"PhysicalGit:{string.Join("-", [repositoryUniqueUrl, descriptor.RepositoryBranchForReservationParameters])}", 14),
-                    cancellationToken).ConfigureAwait(false);
+                        StabilityHash.GetStabilityHash($"PhysicalGit:{string.Join("-", [repositoryUniqueUrl, descriptor.RepositoryBranchForReservationParameters])}", 14),
+                        cancellationToken,
+                        hold: hold).ConfigureAwait(false);
             }
             else
             {
