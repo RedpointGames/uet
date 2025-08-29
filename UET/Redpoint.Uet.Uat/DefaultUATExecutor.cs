@@ -186,7 +186,7 @@
                         {
                             if (buildGraphProjectRoot != null)
                             {
-                                var localOutputPath = Path.Combine(buildGraphProjectRoot, "Engine", "Saved", "BuildGraph", singleNodeName);
+                                var localOutputPath = Path.Combine(buildGraphProjectRoot, "Engine", "Saved", "BuildGraph");
                                 _logger.LogInformation($"Checking if local BuildGraph directory exists at '{localOutputPath}'...");
                                 if (Directory.Exists(localOutputPath) &&
                                     Directory.GetFileSystemEntries(localOutputPath).Length != 0)
