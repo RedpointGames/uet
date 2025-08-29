@@ -130,23 +130,27 @@
             throw new InvalidOperationException($"There are too many reservations for the stability ID '{id}'!");
         }
 
-        public async Task<IReservation> ReserveExactAsync(string name, CancellationToken cancellationToken)
+        public async Task<IReservation> ReserveExactAsync(string name, CancellationToken cancellationToken, bool? hold = null)
         {
             return (await ReserveExactInternalAsync(
                 name,
                 false,
-                cancellationToken).ConfigureAwait(false))!;
+                cancellationToken,
+                hold).ConfigureAwait(false))!;
         }
 
-        public Task<IReservation?> TryReserveExactAsync(string name)
+        public Task<IReservation?> TryReserveExactAsync(string name, bool? hold = null)
         {
             return ReserveExactInternalAsync(
                 name,
                 true,
-                CancellationToken.None);
+                CancellationToken.None,
+                hold);
         }
 
-        public IReservation? TryReserveExact(string targetName)
+        public IReservation? TryReserveExact(
+            string targetName,
+            bool? hold = null)
         {
             if (_localReservations.TryAdd(targetName, true))
             {
@@ -163,6 +167,21 @@
                     _logger.LogTrace($"Reservation target '{targetName}' has been acquired in this process.");
                     File.WriteAllLines(Path.Combine(_metaPath, "desc." + targetName), new[] { targetName });
                     File.WriteAllText(Path.Combine(_metaPath, "date." + targetName), DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture));
+                    if (hold.HasValue)
+                    {
+                        try
+                        {
+                            if (hold.Value)
+                            {
+                                File.WriteAllText(Path.Combine(_metaPath, "hold." + targetName), "hold");
+                            }
+                            else
+                            {
+                                File.Delete(Path.Combine(_metaPath, "hold." + targetName));
+                            }
+                        }
+                        catch { }
+                    }
                     return new Reservation(
                         handle,
                         reservedPath,
@@ -188,7 +207,11 @@
             }
         }
 
-        private async Task<IReservation?> ReserveExactInternalAsync(string targetName, bool allowFailure, CancellationToken cancellationToken)
+        private async Task<IReservation?> ReserveExactInternalAsync(
+            string targetName,
+            bool allowFailure,
+            CancellationToken cancellationToken,
+            bool? hold = null)
         {
             do
             {
@@ -207,6 +230,21 @@
                         _logger.LogTrace($"Reservation target '{targetName}' has been acquired in this process.");
                         File.WriteAllLines(Path.Combine(_metaPath, "desc." + targetName), new[] { targetName });
                         File.WriteAllText(Path.Combine(_metaPath, "date." + targetName), DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture));
+                        if (hold.HasValue)
+                        {
+                            try
+                            {
+                                if (hold.Value)
+                                {
+                                    File.WriteAllText(Path.Combine(_metaPath, "hold." + targetName), "hold");
+                                }
+                                else
+                                {
+                                    File.Delete(Path.Combine(_metaPath, "hold." + targetName));
+                                }
+                            }
+                            catch { }
+                        }
                         return new Reservation(
                             handle,
                             reservedPath,

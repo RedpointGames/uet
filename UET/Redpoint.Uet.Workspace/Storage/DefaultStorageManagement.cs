@@ -52,7 +52,7 @@
             Action<(int total, int remaining)> onProgress,
             CancellationToken cancellationToken)
         {
-            var scan = new List<(DirectoryInfo dir, FileInfo? metaFile, StorageEntryType type)>();
+            var scan = new List<(DirectoryInfo dir, FileInfo? metaFile, FileInfo? holdFile, StorageEntryType type)>();
             var reservationRoot = new DirectoryInfo(_reservationManagerRootPath);
             if (reservationRoot.Exists)
             {
@@ -61,6 +61,7 @@
                     .Select(x => (
                         x,
                         (FileInfo?)new FileInfo(Path.Combine(reservationRoot.FullName, ".meta", "date." + x.Name)),
+                        (FileInfo?)new FileInfo(Path.Combine(reservationRoot.FullName, ".meta", "hold." + x.Name)),
                         StorageEntryType.Generic)));
             }
 
@@ -69,11 +70,11 @@
             {
                 scan.AddRange(new[]
                 {
-                    (new DirectoryInfo(Path.Combine(UetPaths.UefsRootPath, "git-blob")), (FileInfo?)null, StorageEntryType.UefsGitSharedBlobs),
-                    (new DirectoryInfo(Path.Combine(UetPaths.UefsRootPath, "git-deps")), null, StorageEntryType.UefsGitSharedDependencies),
-                    (new DirectoryInfo(Path.Combine(UetPaths.UefsRootPath, "git-index-cache")), null,  StorageEntryType.UefsGitSharedIndexCache),
-                    (new DirectoryInfo(Path.Combine(UetPaths.UefsRootPath, "git-repo")), null, StorageEntryType.UefsGitSharedRepository),
-                    (new DirectoryInfo(Path.Combine(UetPaths.UefsRootPath, "hostpkgs", "cache")), null, StorageEntryType.UefsHostPackagesCache),
+                    (new DirectoryInfo(Path.Combine(UetPaths.UefsRootPath, "git-blob")), (FileInfo?)null, (FileInfo?)null, StorageEntryType.UefsGitSharedBlobs),
+                    (new DirectoryInfo(Path.Combine(UetPaths.UefsRootPath, "git-deps")), null, null, StorageEntryType.UefsGitSharedDependencies),
+                    (new DirectoryInfo(Path.Combine(UetPaths.UefsRootPath, "git-index-cache")), null, null, StorageEntryType.UefsGitSharedIndexCache),
+                    (new DirectoryInfo(Path.Combine(UetPaths.UefsRootPath, "git-repo")), null, null, StorageEntryType.UefsGitSharedRepository),
+                    (new DirectoryInfo(Path.Combine(UetPaths.UefsRootPath, "hostpkgs", "cache")), null, null, StorageEntryType.UefsHostPackagesCache),
                 });
             }
 
@@ -227,7 +228,7 @@
             int daysThreshold,
             CancellationToken cancellationToken)
         {
-            var scan = new List<(DirectoryInfo dir, FileInfo? metaFile, StorageEntryType type)>();
+            var scan = new List<(DirectoryInfo dir, FileInfo? metaFile, FileInfo? holdFile, StorageEntryType type)>();
             var reservationRoot = new DirectoryInfo(_reservationManagerRootPath);
             if (reservationRoot.Exists)
             {
@@ -236,6 +237,7 @@
                     .Select(x => (
                         x,
                         (FileInfo?)new FileInfo(Path.Combine(reservationRoot.FullName, ".meta", "date." + x.Name)),
+                        (FileInfo?)new FileInfo(Path.Combine(reservationRoot.FullName, ".meta", "hold." + x.Name)),
                         StorageEntryType.Generic)));
             }
             var remaining = scan.Count;
@@ -253,6 +255,12 @@
                     var directory = entry.dir;
                     if (!directory.Exists)
                     {
+                        return;
+                    }
+
+                    if (entry.holdFile?.Exists ?? false)
+                    {
+                        _logger.LogWarning($"Directory '{directory.FullName}' currently has a hold applied; refusing to remove.");
                         return;
                     }
 

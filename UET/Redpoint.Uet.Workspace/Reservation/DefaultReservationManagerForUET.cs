@@ -23,19 +23,19 @@
             return _reservationManager.ReserveAsync(@namespace, parameters);
         }
 
-        public Task<IReservation> ReserveExactAsync(string name, CancellationToken cancellationToken)
+        public Task<IReservation> ReserveExactAsync(string name, CancellationToken cancellationToken, bool? hold)
         {
-            return _reservationManager.ReserveExactAsync(name, cancellationToken);
+            return _reservationManager.ReserveExactAsync(name, cancellationToken, hold);
         }
 
-        public IReservation? TryReserveExact(string name)
+        public IReservation? TryReserveExact(string name, bool? hold)
         {
-            return _reservationManager.TryReserveExact(name);
+            return _reservationManager.TryReserveExact(name, hold);
         }
 
-        public Task<IReservation?> TryReserveExactAsync(string name)
+        public Task<IReservation?> TryReserveExactAsync(string name, bool? hold)
         {
-            return _reservationManager.TryReserveExactAsync(name);
+            return _reservationManager.TryReserveExactAsync(name, hold);
         }
     }
 }

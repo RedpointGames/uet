@@ -30,24 +30,27 @@
         /// </summary>
         /// <param name="name">The ID to reserve.</param>
         /// <param name="cancellationToken"></param>
+        /// <param name="hold">If set, sets or clears the 'hold' flag which indicates to other systems they should not automatically delete this directory under low disk space scenarios.</param>
         /// <returns>The reservation.</returns>
         /// <exception cref="OperationCanceledException">The task was cancelled before the reservation could be made.</exception>
-        Task<IReservation> ReserveExactAsync(string name, CancellationToken cancellationToken);
+        Task<IReservation> ReserveExactAsync(string name, CancellationToken cancellationToken, bool? hold = null);
 
         /// <summary>
         /// Try to reserve exactly the directory with the <paramref name="name"/>. If the directory is already
         /// reserved, this returns null.
         /// </summary>
         /// <param name="name">The ID to reserve.</param>
+        /// <param name="hold">If set, sets or clears the 'hold' flag which indicates to other systems they should not automatically delete this directory under low disk space scenarios.</param>
         /// <returns>The reservation if it was made.</returns>
-        Task<IReservation?> TryReserveExactAsync(string name);
+        Task<IReservation?> TryReserveExactAsync(string name, bool? hold = null);
 
         /// <summary>
         /// Try to reserve exactly the directory with the <paramref name="name"/>. If the directory is already
         /// reserved, this returns null.
         /// </summary>
         /// <param name="name">The ID to reserve.</param>
+        /// <param name="hold">If set, sets or clears the 'hold' flag which indicates to other systems they should not automatically delete this directory under low disk space scenarios.</param>
         /// <returns>The reservation if it was made.</returns>
-        IReservation? TryReserveExact(string name);
+        IReservation? TryReserveExact(string name, bool? hold = null);
     }
 }
