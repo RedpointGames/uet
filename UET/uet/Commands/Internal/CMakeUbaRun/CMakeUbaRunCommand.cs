@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.CMakeUbaRun
 {
     using CMakeUba;
+    using Grpc.Core;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.GrpcPipes;
@@ -92,50 +93,58 @@
                 }
                 var pipeName = $"cmake-uba-{sessionId}";
 
-                // Start the CMake UBA server on-demand if it's not already running.
-                if (!await IsServerRunningAsync(pipeName).ConfigureAwait(false))
+            retryConnection:
+                try
                 {
-                    _logger.LogError($"The CMake UBA server isn't running. Start it with '{_selfLocation.GetUetLocalLocation()} internal cmake-uba-server &'");
+                    // Start the CMake UBA server on-demand if it's not already running.
+                    if (!await IsServerRunningAsync(pipeName).ConfigureAwait(false))
+                    {
+                        _logger.LogError($"The CMake UBA server isn't running. Start it with '{_selfLocation.GetUetLocalLocation()} internal cmake-uba-server &'");
+                        return 1;
+                    }
+
+                    // Create our gRPC client.
+                    var client = _grpcPipeFactory.CreateClient(
+                        pipeName,
+                        GrpcPipeNamespace.User,
+                        channel => new CMakeUbaServiceClient(channel));
+
+                    // Run the process.
+                    var arguments = context.ParseResult.GetValueForArgument(_commandArguments)!;
+                    var request = new CMakeUba.ProcessRequest
+                    {
+                        Path = arguments[0],
+                        WorkingDirectory = Environment.CurrentDirectory,
+                        PreferRemote = context.ParseResult.GetValueForOption(_options.PreferRemote),
+                    };
+                    for (int i = 1; i < arguments.Length; i++)
+                    {
+                        request.Arguments.Add(new ProcessArgument { LogicalValue = arguments[i] });
+                    }
+
+                    var response = client.ExecuteProcess(request, cancellationToken: context.GetCancellationToken());
+
+                    // Stream the response values.
+                    while (await response.ResponseStream.MoveNext(cancellationToken: context.GetCancellationToken()).ConfigureAwait(false))
+                    {
+                        switch (response.ResponseStream.Current.DataCase)
+                        {
+                            case ProcessResponse.DataOneofCase.StandardOutputLine:
+                                Console.WriteLine(response.ResponseStream.Current.StandardOutputLine);
+                                break;
+                            case ProcessResponse.DataOneofCase.ExitCode:
+                                // @note: This is the last response; return the exit code.
+                                return response.ResponseStream.Current.ExitCode;
+                        }
+                    }
+
+                    _logger.LogError("Did not receive exit code for process from CMake UBA server before the response stream ended.");
                     return 1;
                 }
-
-                // Create our gRPC client.
-                var client = _grpcPipeFactory.CreateClient(
-                    pipeName,
-                    GrpcPipeNamespace.User,
-                    channel => new CMakeUbaServiceClient(channel));
-
-                // Run the process.
-                var arguments = context.ParseResult.GetValueForArgument(_commandArguments)!;
-                var request = new CMakeUba.ProcessRequest
+                catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable)
                 {
-                    Path = arguments[0],
-                    WorkingDirectory = Environment.CurrentDirectory,
-                    PreferRemote = context.ParseResult.GetValueForOption(_options.PreferRemote),
-                };
-                for (int i = 1; i < arguments.Length; i++)
-                {
-                    request.Arguments.Add(new ProcessArgument { LogicalValue = arguments[i] });
+                    goto retryConnection;
                 }
-
-                var response = client.ExecuteProcess(request, cancellationToken: context.GetCancellationToken());
-
-                // Stream the response values.
-                while (await response.ResponseStream.MoveNext(cancellationToken: context.GetCancellationToken()).ConfigureAwait(false))
-                {
-                    switch (response.ResponseStream.Current.DataCase)
-                    {
-                        case ProcessResponse.DataOneofCase.StandardOutputLine:
-                            Console.WriteLine(response.ResponseStream.Current.StandardOutputLine);
-                            break;
-                        case ProcessResponse.DataOneofCase.ExitCode:
-                            // @note: This is the last response; return the exit code.
-                            return response.ResponseStream.Current.ExitCode;
-                    }
-                }
-
-                _logger.LogError("Did not receive exit code for process from CMake UBA server before the response stream ended.");
-                return 1;
             }
         }
     }
