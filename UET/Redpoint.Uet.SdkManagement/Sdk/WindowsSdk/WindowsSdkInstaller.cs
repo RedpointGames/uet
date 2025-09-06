@@ -243,6 +243,7 @@
             }
 
             // Download "Clang for Unreal Engine" and install it into the LLVM directory for AutoSDK.
+            try
             {
                 using (var client = new HttpClient())
                 {
@@ -331,6 +332,10 @@
                         _logger.LogWarning($"Missing 'info' asset on GitHub download for Clang for Unreal Engine; can't download and install.");
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Failed to install Clang for Unreal Engine: {ex}");
             }
 
             // Write out the environment file.
