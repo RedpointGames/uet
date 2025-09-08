@@ -6,6 +6,7 @@
     using Redpoint.ProgressMonitor.Utils;
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.IO.Compression;
     using System.Linq;
     using System.Net.Http.Json;
@@ -146,6 +147,7 @@
 
             // Try to find the Windows SDK.
             var winSdkVersion = $"{versions.WindowsSdkPreferredVersion.Major}.{versions.WindowsSdkPreferredVersion.Minor}.{versions.WindowsSdkPreferredVersion.Patch}";
+            var foundWinSdkVersion = false;
             foreach (var component in componentLookup.Keys)
             {
                 if (component == $"Win10SDK_{winSdkVersion}" ||
@@ -153,6 +155,21 @@
                 {
                     _logger.LogInformation($"Adding the following component to the install manifest: {component} (from Windows SDK)");
                     componentsToInstall.Add(component);
+                    foundWinSdkVersion = false;
+                }
+            }
+
+            // If we can't find the Windows SDK via the Visual Studio manifest, fallback to known ISO files.
+            var isoFallbackUrl = string.Empty;
+            if (!foundWinSdkVersion)
+            {
+                if (winSdkVersion == "10.0.18362")
+                {
+                    isoFallbackUrl = "https://go.microsoft.com/fwlink/?linkid=2083448";
+                }
+                else
+                {
+                    _logger.LogError($"Unable to find Visual Studio manifest for Windows SDK {winSdkVersion}. A fallback ISO URL likely needs to be added to UET.");
                 }
             }
 
@@ -239,6 +256,65 @@
                             }
                         }
                         break;
+                }
+            }
+
+            // If there is a fallback ISO, extract it and then install the Windows SDK from it.
+            if (!string.IsNullOrWhiteSpace(isoFallbackUrl))
+            {
+                using (var client = new HttpClient())
+                {
+                    _logger.LogInformation($"Downloading fallback ISO: {isoFallbackUrl}");
+                    var cache = Path.Combine(sdkPackagePath, "Cache");
+                    Directory.CreateDirectory(cache);
+                    using (var fileStream = new FileStream(Path.Combine(cache, "winsdk.iso"), FileMode.Create, FileAccess.ReadWrite))
+                    {
+                        await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
+                            client,
+                            new Uri(isoFallbackUrl),
+                            stream => stream.CopyToAsync(fileStream, cancellationToken),
+                            cancellationToken).ConfigureAwait(false);
+                        await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    }
+
+                    _logger.LogInformation($"Mounting ISO image...");
+                    var driveLetterStringBuilder = new StringBuilder();
+                    await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+                            Arguments =
+                            [
+                                "-ExecutionPolicy",
+                                "Bypass",
+                                "-Command",
+                                $@"(Mount-DiskImage -ImagePath ""{Path.Combine(cache, "winsdk.iso")}"" | Get-Volume).DriveLetter"
+                            ]
+                        },
+                        CaptureSpecification.CreateFromStdoutStringBuilder(driveLetterStringBuilder),
+                        cancellationToken);
+                    try
+                    {
+                        _logger.LogInformation($"ISO image mounted on drive {driveLetterStringBuilder}.");
+                        await ExtractExecutableComponentFromIso(driveLetterStringBuilder.ToString().Trim(), sdkPackagePath, cancellationToken);
+                    }
+                    finally
+                    {
+                        await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+                                Arguments =
+                                [
+                                    "-ExecutionPolicy",
+                                    "Bypass",
+                                    "-Command",
+                                    $@"Dismount-DiskImage -ImagePath ""{Path.Combine(cache, "winsdk.iso")}"""
+                                ]
+                            },
+                            CaptureSpecification.Passthrough,
+                            cancellationToken);
+                    }
                 }
             }
 
@@ -498,19 +574,24 @@
             }
         }
 
-        private async Task ExtractExecutableComponent(VisualStudioManifestChannelItem component, string sdkPackagePath, CancellationToken cancellationToken)
+        private readonly HashSet<string> _msiPackagesToAllow =
+        [
+            "Windows SDK for Windows Store Apps Tools-x86_en-us.msi",
+            "Windows SDK for Windows Store Apps Headers-x86_en-us.msi",
+            "Windows SDK Desktop Headers x86-x86_en-us.msi",
+            "Windows SDK for Windows Store Apps Libs-x86_en-us.msi",
+            "Windows SDK Desktop Libs x64-x86_en-us.msi",
+            "Universal CRT Headers Libraries and Sources-x86_en-us.msi"
+        ];
+
+        private async Task ExtractExecutableComponent(
+            VisualStudioManifestChannelItem component,
+            string sdkPackagePath,
+            CancellationToken cancellationToken)
         {
             // Inspect the MSI packages in the Windows SDK component.
             _logger.LogInformation("Downloading MSI files...");
-            var msiPackagesToAllow = new HashSet<string>
-            {
-                "Installers\\Windows SDK for Windows Store Apps Tools-x86_en-us.msi",
-                "Installers\\Windows SDK for Windows Store Apps Headers-x86_en-us.msi",
-                "Installers\\Windows SDK Desktop Headers x86-x86_en-us.msi",
-                "Installers\\Windows SDK for Windows Store Apps Libs-x86_en-us.msi",
-                "Installers\\Windows SDK Desktop Libs x64-x86_en-us.msi",
-                "Installers\\Universal CRT Headers Libraries and Sources-x86_en-us.msi"
-            };
+            var msiPackagesToAllow = new HashSet<string>(_msiPackagesToAllow.Select(x => $"Installers\\{x}"));
             string[] GetCabFilenamesFromMsi(Stream msiData)
             {
                 var cabNames = new List<string>();
@@ -609,6 +690,179 @@
                             cancellationToken).ConfigureAwait(false);
                     }
                 }
+            }
+
+            string windowsSdkDebugVersion = "10.0.22621.3233";
+            _logger.LogInformation($"Downloading Debugging Tools for Windows from Windows SDK {windowsSdkDebugVersion}...");
+            using (var queryClient = new HttpClient(new HttpClientHandler
+            {
+                AllowAutoRedirect = false,
+            }))
+            {
+                string sdkRoot;
+                var request = new HttpRequestMessage(HttpMethod.Get, $"http://go.microsoft.com/fwlink/?prd=11966&pver=1.0&plcid=0x409&clcid=0x409&ar=Windows10&sar=SDK&o1={windowsSdkDebugVersion}");
+                var response = await queryClient.SendAsync(request, cancellationToken);
+                if (response.StatusCode == System.Net.HttpStatusCode.Redirect)
+                {
+                    sdkRoot = response.Headers.Location!.AbsoluteUri;
+                }
+                else
+                {
+                    throw new SdkSetupPackageGenerationFailedException($"Expected 302 response code for Debugging Tools download!");
+                }
+
+                var debugCabNames = new List<string>();
+                var debugMsiNames = new List<string>
+                {
+                    "SDK Debuggers-x86_en-us.msi",
+                    "X86 Debuggers And Tools-x86_en-us.msi",
+                    "X64 Debuggers And Tools-x64_en-us.msi",
+                };
+                foreach (var debugMsiFile in debugMsiNames)
+                {
+                    using (var client = new HttpClient())
+                    {
+                        var targetPath = Path.Combine(sdkPackagePath, "__Installers", debugMsiFile);
+                        Directory.CreateDirectory(Path.Combine(sdkPackagePath, "__Installers"));
+                        using (var file = new FileStream(targetPath, FileMode.Create, FileAccess.Write))
+                        {
+                            _logger.LogInformation($"Downloading Debugging Tools MSI: {debugMsiFile}");
+                            await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
+                                client,
+                                new Uri($"{sdkRoot}/Installers/{debugMsiFile}"),
+                                async stream => await stream.CopyToAsync(file, cancellationToken).ConfigureAwait(false),
+                                cancellationToken).ConfigureAwait(false);
+                        }
+                        using (var file = new FileStream(targetPath, FileMode.Open, FileAccess.Read))
+                        {
+                            debugCabNames.AddRange(GetCabFilenamesFromMsi(file));
+                        }
+                    }
+                    msiNames.Add(debugMsiFile);
+                }
+
+                foreach (var cabName in debugCabNames)
+                {
+                    using (var client = new HttpClient())
+                    {
+                        var targetPath = Path.Combine(sdkPackagePath, "__Installers", cabName);
+                        if (!File.Exists(targetPath))
+                        {
+                            Directory.CreateDirectory(Path.Combine(sdkPackagePath, "__Installers"));
+                            using (var file = new FileStream(targetPath, FileMode.Create, FileAccess.Write))
+                            {
+                                _logger.LogInformation($"Downloading Debugging Tools CAB: {cabName}");
+                                await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
+                                    client,
+                                    new Uri($"{sdkRoot}/Installers/{cabName}"),
+                                    async stream => await stream.CopyToAsync(file, cancellationToken).ConfigureAwait(false),
+                                    cancellationToken).ConfigureAwait(false);
+                            }
+                        }
+                    }
+                }
+            }
+
+            _logger.LogInformation($"Executing MSI files to extract Windows SDK...");
+            var windowsKitsPath = Path.Combine(sdkPackagePath);
+            foreach (var msiFile in msiNames)
+            {
+                if (!File.Exists(Path.Combine(sdkPackagePath, "__Installers", msiFile)))
+                {
+                    throw new SdkSetupPackageGenerationFailedException($"Missing expected MSI file: {Path.Combine(sdkPackagePath, "__Installers", msiFile)}");
+                }
+
+                _logger.LogInformation($"Extracting MSI: {msiFile}");
+                await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = @"C:\WINDOWS\system32\msiexec.exe",
+                        Arguments = new LogicalProcessArgument[]
+                        {
+                            "/a",
+                            msiFile,
+                            "/quiet",
+                            "/qn",
+                            $"TARGETDIR={windowsKitsPath}",
+                        },
+                        WorkingDirectory = Path.Combine(sdkPackagePath, "__Installers")
+                    }, CaptureSpecification.Passthrough, cancellationToken).ConfigureAwait(false);
+                if (!File.Exists(Path.Combine(windowsKitsPath, msiFile)))
+                {
+                    throw new SdkSetupPackageGenerationFailedException($"MSI extraction failed for: {msiFile}");
+                }
+                File.Delete(Path.Combine(windowsKitsPath, msiFile));
+            }
+
+            // Clean up the installers folder that we no longer need.
+            await DirectoryAsync.DeleteAsync(Path.Combine(sdkPackagePath, "__Installers"), true).ConfigureAwait(false);
+        }
+
+        private async Task ExtractExecutableComponentFromIso(
+            string driveLetter,
+            string sdkPackagePath,
+            CancellationToken cancellationToken)
+        {
+            // Inspect the MSI packages in the Windows SDK component.
+            _logger.LogInformation("Downloading MSI files...");
+            var msiPackagesToAllow = new HashSet<string>(_msiPackagesToAllow);
+            string[] GetCabFilenamesFromMsi(Stream msiData)
+            {
+                var cabNames = new List<string>();
+                while (msiData.Position < msiData.Length)
+                {
+                    if (msiData.ReadByte() == '.')
+                    {
+                        if (msiData.ReadByte() == 'c')
+                        {
+                            if (msiData.ReadByte() == 'a')
+                            {
+                                if (msiData.ReadByte() == 'b')
+                                {
+                                    var cabNameLength = 32 + 4;
+                                    msiData.Seek(-cabNameLength, SeekOrigin.Current);
+                                    var cabNameBytes = new byte[cabNameLength];
+                                    msiData.ReadExactly(cabNameBytes);
+                                    cabNames.Add(Encoding.ASCII.GetString(cabNameBytes));
+                                }
+                            }
+                        }
+                    }
+                }
+                return cabNames.ToArray();
+            }
+            var allCabNames = new List<string>();
+            var msiNames = new List<string>();
+            foreach (var installerFile in new DirectoryInfo($"{driveLetter}:\\Installers").GetFiles())
+            {
+                if (msiPackagesToAllow.Contains(installerFile.Name))
+                {
+                    var filename = Path.GetFileName(installerFile.FullName);
+                    msiNames.Add(filename);
+                    _logger.LogInformation($"Parsing MSI: {filename}");
+                    {
+                        var targetPath = Path.Combine(sdkPackagePath, "__Installers", filename);
+                        Directory.CreateDirectory(Path.Combine(sdkPackagePath, "__Installers"));
+                        File.Copy(installerFile.FullName, targetPath);
+                        using (var file = new FileStream(targetPath, FileMode.Open, FileAccess.Read))
+                        {
+                            allCabNames.AddRange(GetCabFilenamesFromMsi(file));
+                        }
+                    }
+                }
+            }
+            if (allCabNames.Count == 0)
+            {
+                return;
+            }
+
+            _logger.LogInformation($"{allCabNames.Count} CAB files to download and extract...");
+            var cabFileToUrl = new DirectoryInfo($"{driveLetter}:\\Installers").EnumerateFiles("*.cab");
+            foreach (var cabName in allCabNames)
+            {
+                var targetPath = Path.Combine(sdkPackagePath, "__Installers", cabName);
+                Directory.CreateDirectory(Path.Combine(sdkPackagePath, "__Installers"));
+                File.Copy($"{driveLetter}:\\Installers\\{cabName}", targetPath);
             }
 
             string windowsSdkDebugVersion = "10.0.22621.3233";
