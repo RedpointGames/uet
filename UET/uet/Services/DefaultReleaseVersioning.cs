@@ -25,17 +25,31 @@
             _engineWorkspaceProvider = engineWorkspaceProvider;
         }
 
-        private static EngineBuildVersionJson? GetEngineVersionInfo(string path)
+        private EngineBuildVersionJson? GetEngineVersionInfo(string path)
         {
             var buildVersion = Path.Combine(path, "Engine", "Build", "Build.version");
+            _logger.LogInformation($"Checking for Build.version file at: {buildVersion}");
             if (File.Exists(buildVersion))
             {
                 using (var stream = new FileStream(buildVersion, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    return JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.EngineBuildVersionJson);
+                    var result = JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.EngineBuildVersionJson);
+                    if (result == null)
+                    {
+                        _logger.LogError($"Deserialized contents of Build.version file as null value: {buildVersion}");
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"Detected engine version: {result.MajorVersion}.{result.MinorVersion}");
+                    }
+                    return result;
                 }
             }
-            return null;
+            else
+            {
+                _logger.LogError($"Missing Build.version file at: {buildVersion}");
+                return null;
+            }
         }
 
         public async Task<(string versionName, string versionNumber)> ComputePluginVersionNameAndNumberAsync(
