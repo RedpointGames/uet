@@ -2,7 +2,7 @@
 
   <!-- This must remain in sync with Framework.Build.props. -->
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" Version="9.0.0" Condition="'$(TargetFramework)' == 'net9.0'" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" Version="9.0.0" Condition="'$(TargetFramework)' == 'net10.0'" />
   </ItemGroup>
 
 </Project>
