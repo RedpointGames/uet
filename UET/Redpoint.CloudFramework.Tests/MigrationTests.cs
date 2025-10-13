@@ -15,7 +15,7 @@
     using System.Threading.Tasks;
     using Xunit;
 
-    [Collection("CloudFramework Test")]
+    [Collection("Migration CloudFramework Test")]
     public class MigrationTests
     {
         private readonly CloudFrameworkTestEnvironment<MigrationCloudFrameworkTestEnvironmentConfiguration> _env;
@@ -35,7 +35,7 @@
             };
 
             var globalRepository = _env.Services.GetRequiredService<IGlobalRepository>();
-            await globalRepository.CreateAsync(string.Empty, model);
+            await globalRepository.CreateAsync(string.Empty, model, cancellationToken: TestContext.Current.CancellationToken);
 
             var allMigrators = _env.Services.GetServices<RegisteredModelMigratorBase>().ToArray();
 
@@ -53,7 +53,7 @@
 
                 var executor = _env.Services.GetService(modelGroup.First().ExecutorType) as IModelMigratorExecutor;
                 Assert.NotNull(executor);
-                await executor.ExecuteMigratorsAsync(migrators, CancellationToken.None);
+                await executor.ExecuteMigratorsAsync(migrators, TestContext.Current.CancellationToken);
             }
         }
     }

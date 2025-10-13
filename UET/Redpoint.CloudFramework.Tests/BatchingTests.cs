@@ -88,7 +88,7 @@
                     p => p.KeyB,
                     queryableB.LookupByKey,
                     (existing, @new) => (a: existing, b: @new))
-                .ToListAsync()
+                .ToListAsync(cancellationToken: TestContext.Current.CancellationToken)
                 .ConfigureAwait(true);
 
             Assert.Equal(500, results.Count);
@@ -119,8 +119,8 @@
                     }),
                 null,
                 null,
-                CancellationToken.None)
-                .ToListAsync().ConfigureAwait(true);
+                TestContext.Current.CancellationToken)
+                .ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             var primary = await layer.CreateAsync(
                 string.Empty,
@@ -139,8 +139,8 @@
                     }),
                 null,
                 null,
-                CancellationToken.None)
-                .ToListAsync().ConfigureAwait(true);
+                TestContext.Current.CancellationToken)
+                .ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await DatastoreRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
@@ -150,7 +150,7 @@
                         primary.Select(x => x.Key).ToAsyncEnumerable(),
                         null,
                         null,
-                        CancellationToken.None)
+                        TestContext.Current.CancellationToken)
                     .Select(x => x.Value)
                     .WhereNotNull()
                     .ToArrayAsync()
@@ -164,7 +164,7 @@
                     primary.Select(x => x.Key!).ToAsyncEnumerable(),
                     null,
                     null,
-                    CancellationToken.None)
+                    TestContext.Current.CancellationToken)
                 .JoinByDistinctKeyAwait(
                     p => p.Value!.keyValue!,
                     (keys, ct) => layer.LoadAsync<TestModel>(
@@ -173,7 +173,7 @@
                         null,
                         null,
                         ct))
-                .ToListAsync()
+                .ToListAsync(cancellationToken: TestContext.Current.CancellationToken)
                 .ConfigureAwait(true);
             Assert.Equal(500, results.Count);
             for (int i = 0; i < 500; i++)

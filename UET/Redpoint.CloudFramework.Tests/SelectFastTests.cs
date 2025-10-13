@@ -20,7 +20,7 @@
                 Assert.NotEqual(0, input);
                 await Task.Delay(input * 10).ConfigureAwait(true);
                 return input;
-            }).ToListAsync().ConfigureAwait(true);
+            }).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
         }
     }
 }

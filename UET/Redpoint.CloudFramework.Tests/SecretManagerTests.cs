@@ -149,7 +149,7 @@
             var secretAccess = sp.GetRequiredService<ISecretManagerAccess>();
             var secret = secretAccess.TryGetSecret("test-secret");
             Assert.NotNull(secret);
-            var secretVersion = await secretAccess.TryGetLatestSecretVersionAsync(secret).ConfigureAwait(false);
+            var secretVersion = await secretAccess.TryGetLatestSecretVersionAsync(secret).ConfigureAwait(true);
             Assert.NotNull(secretVersion);
             Assert.Equal(SecretVersion.Types.State.Enabled, secretVersion.State);
         }
@@ -162,10 +162,10 @@
             var secretAccess = sp.GetRequiredService<ISecretManagerAccess>();
             var secret = secretAccess.TryGetSecret("test-secret");
             Assert.NotNull(secret);
-            var secretVersion = await secretAccess.TryGetLatestSecretVersionAsync(secret).ConfigureAwait(false);
+            var secretVersion = await secretAccess.TryGetLatestSecretVersionAsync(secret).ConfigureAwait(true);
             Assert.NotNull(secretVersion);
             Assert.Equal(SecretVersion.Types.State.Enabled, secretVersion.State);
-            var accessed = await secretAccess.TryAccessSecretVersionAsync(secretVersion).ConfigureAwait(false);
+            var accessed = await secretAccess.TryAccessSecretVersionAsync(secretVersion).ConfigureAwait(true);
             Assert.NotNull(accessed);
         }
 
@@ -179,7 +179,7 @@
                 Assert.NotNull(secret);
 
                 var secretNotifications = sp.GetRequiredService<ISecretManagerNotificationManager>();
-                await secretNotifications.SubscribeAsync(secret).ConfigureAwait(false);
+                await secretNotifications.SubscribeAsync(secret).ConfigureAwait(true);
 
                 var notified = false;
                 secretNotifications.OnSecretUpdated.Add((secret, _) =>
@@ -201,7 +201,7 @@
                             }
                             """),
                     }
-                }).ConfigureAwait(false);
+                }).ConfigureAwait(true);
 
                 // Destroy all old versions.
                 await foreach (var version in secretAccess.SecretClient.ListSecretVersionsAsync(new ListSecretVersionsRequest
@@ -215,7 +215,7 @@
                         await secretAccess.SecretClient.DestroySecretVersionAsync(new DestroySecretVersionRequest
                         {
                             SecretVersionName = version.SecretVersionName,
-                        }).ConfigureAwait(false);
+                        }).ConfigureAwait(true);
                     }
                 }
 
@@ -226,7 +226,7 @@
                     {
                         break;
                     }
-                    await Task.Delay(_pubSubWaitMilliseconds).ConfigureAwait(false);
+                    await Task.Delay(_pubSubWaitMilliseconds, cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
                 }
                 Assert.True(notified);
             }
@@ -271,7 +271,7 @@
                                 }
                                 """),
                         }
-                    }).ConfigureAwait(false);
+                    }).ConfigureAwait(true);
 
                     // Destroy all old versions.
                     await foreach (var version in secretAccess.SecretClient.ListSecretVersionsAsync(new ListSecretVersionsRequest
@@ -285,7 +285,7 @@
                             await secretAccess.SecretClient.DestroySecretVersionAsync(new DestroySecretVersionRequest
                             {
                                 SecretVersionName = version.SecretVersionName,
-                            }).ConfigureAwait(false);
+                            }).ConfigureAwait(true);
                         }
                     }
 
@@ -296,7 +296,7 @@
                         {
                             break;
                         }
-                        await Task.Delay(_pubSubWaitMilliseconds).ConfigureAwait(false);
+                        await Task.Delay(_pubSubWaitMilliseconds, cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
                     }
                     Assert.True(notified);
 
@@ -324,7 +324,7 @@
                 Assert.True(configurationProvider.TryGet("Hello", out var value));
                 Assert.Equal("World2", value);
 
-                await sp.GetRequiredService<ISecretManagerNotificationManager>().UnsubscribeAllAsync().ConfigureAwait(false);
+                await sp.GetRequiredService<ISecretManagerNotificationManager>().UnsubscribeAllAsync().ConfigureAwait(true);
             }
         }
 
@@ -338,8 +338,8 @@
                     .FirstOrDefault();
                 Assert.NotNull(hostedService);
 
-                await hostedService.StartAsync(CancellationToken.None).ConfigureAwait(false);
-                await hostedService.StopAsync(CancellationToken.None).ConfigureAwait(false);
+                await hostedService.StartAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
+                await hostedService.StopAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
             }
         }
 

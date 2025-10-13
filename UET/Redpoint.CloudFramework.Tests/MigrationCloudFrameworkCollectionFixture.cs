@@ -3,7 +3,7 @@
     using Redpoint.CloudFramework.Tests.Migration;
     using Xunit;
 
-    [CollectionDefinition("CloudFramework Test")]
+    [CollectionDefinition("Migration CloudFramework Test")]
     public class MigrationCloudFrameworkCollectionFixture : ICollectionFixture<CloudFrameworkTestEnvironment<MigrationCloudFrameworkTestEnvironmentConfiguration>>
     {
     }

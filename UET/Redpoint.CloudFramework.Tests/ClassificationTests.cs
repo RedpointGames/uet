@@ -48,7 +48,7 @@
             var results = await inputs.Classify(x => x >= 5 ? "high" : "low")
                 .AndForClassification("low", input => input * 10)
                 .AndForClassification("high", input => input * 100)
-                .ToListAsync().ConfigureAwait(true);
+                .ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             Assert.Contains(40, results);
             Assert.Contains(500, results);

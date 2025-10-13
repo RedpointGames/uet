@@ -125,17 +125,17 @@ namespace Redpoint.CloudFramework.Tests
             var layer = _env.Services.GetRequiredService<IRedisCacheRepositoryLayer>();
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
 
-            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
-                Assert.NotNull(await directLayer.LoadAsync<TestLoadedEntityMatchesCreatedEntity_Model>(string.Empty, model.Key, null, null, CancellationToken.None).ConfigureAwait(true));
+                Assert.NotNull(await directLayer.LoadAsync<TestLoadedEntityMatchesCreatedEntity_Model>(string.Empty, model.Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
             }).ConfigureAwait(true);
 
-            Assert.NotNull(await layer.LoadAsync<TestLoadedEntityMatchesCreatedEntity_Model>(string.Empty, model.Key, null, null, CancellationToken.None).ConfigureAwait(true));
+            Assert.NotNull(await layer.LoadAsync<TestLoadedEntityMatchesCreatedEntity_Model>(string.Empty, model.Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
 
             var metrics = new RepositoryOperationMetrics();
-            var loadedModel = await layer.LoadAsync<TestLoadedEntityMatchesCreatedEntity_Model>(string.Empty, model.Key, null, metrics, CancellationToken.None).ConfigureAwait(true);
+            var loadedModel = await layer.LoadAsync<TestLoadedEntityMatchesCreatedEntity_Model>(string.Empty, model.Key, null, metrics, TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             Assert.Equal(loadedModel!.Key, model.Key);
             Assert.Equal(loadedModel.forTest, model.forTest);
@@ -192,14 +192,14 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var redis = _env.Services.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
 
-            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
-                Assert.NotNull(await directLayer.LoadAsync<TestLoadedEntityIsInCache_Model>(string.Empty, model.Key, null, null, CancellationToken.None).ConfigureAwait(true));
+                Assert.NotNull(await directLayer.LoadAsync<TestLoadedEntityIsInCache_Model>(string.Empty, model.Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
             }).ConfigureAwait(true);
 
-            Assert.NotNull(await layer.LoadAsync<TestLoadedEntityIsInCache_Model>(string.Empty, model.Key, null, null, CancellationToken.None).ConfigureAwait(true));
+            Assert.NotNull(await layer.LoadAsync<TestLoadedEntityIsInCache_Model>(string.Empty, model.Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
 
             var value = await redis.StringGetAsync(GetSimpleCacheKey(model.Key)).ConfigureAwait(true);
             Assert.True(value.HasValue);
@@ -235,23 +235,23 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var redis = _env.Services.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
 
-            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, CancellationToken.None).ToListAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
-                Assert.NotNull(await directLayer.LoadAsync<TestMultipleEntityLoadWorks_Model>(string.Empty, models[0].Key, null, null, CancellationToken.None).ConfigureAwait(true));
-                Assert.NotNull(await directLayer.LoadAsync<TestMultipleEntityLoadWorks_Model>(string.Empty, models[1].Key, null, null, CancellationToken.None).ConfigureAwait(true));
+                Assert.NotNull(await directLayer.LoadAsync<TestMultipleEntityLoadWorks_Model>(string.Empty, models[0].Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
+                Assert.NotNull(await directLayer.LoadAsync<TestMultipleEntityLoadWorks_Model>(string.Empty, models[1].Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
             }).ConfigureAwait(true);
 
-            Assert.NotNull(await layer.LoadAsync<TestMultipleEntityLoadWorks_Model>(string.Empty, models[0].Key, null, null, CancellationToken.None).ConfigureAwait(true));
-            Assert.NotNull(await layer.LoadAsync<TestMultipleEntityLoadWorks_Model>(string.Empty, models[1].Key, null, null, CancellationToken.None).ConfigureAwait(true));
+            Assert.NotNull(await layer.LoadAsync<TestMultipleEntityLoadWorks_Model>(string.Empty, models[0].Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
+            Assert.NotNull(await layer.LoadAsync<TestMultipleEntityLoadWorks_Model>(string.Empty, models[1].Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
 
             await redis.KeyDeleteAsync(GetSimpleCacheKey(models[0].Key)).ConfigureAwait(true);
             await redis.KeyDeleteAsync(GetSimpleCacheKey(models[1].Key)).ConfigureAwait(true);
 
             for (int i = 0; i < 2; i++)
             {
-                var loadedModels = await layer.LoadAsync<TestMultipleEntityLoadWorks_Model>(string.Empty, models.Select(x => x.Key).ToAsyncEnumerable(), null, null, CancellationToken.None).ToDictionaryAsync(k => k.Key, v => v.Value).ConfigureAwait(true);
+                var loadedModels = await layer.LoadAsync<TestMultipleEntityLoadWorks_Model>(string.Empty, models.Select(x => x.Key).ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).ToDictionaryAsync(k => k.Key, v => v.Value, cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.True(loadedModels.ContainsKey(models[0].Key));
                 Assert.True(loadedModels.ContainsKey(models[1].Key));
@@ -300,23 +300,23 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var redis = _env.Services.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
 
-            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, CancellationToken.None).ToListAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
-                Assert.NotNull(await directLayer.LoadAsync<TestMultipleEntityLoadWorksWithoutCacheClear_Model>(string.Empty, models[0].Key, null, null, CancellationToken.None).ConfigureAwait(true));
-                Assert.NotNull(await directLayer.LoadAsync<TestMultipleEntityLoadWorksWithoutCacheClear_Model>(string.Empty, models[1].Key, null, null, CancellationToken.None).ConfigureAwait(true));
+                Assert.NotNull(await directLayer.LoadAsync<TestMultipleEntityLoadWorksWithoutCacheClear_Model>(string.Empty, models[0].Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
+                Assert.NotNull(await directLayer.LoadAsync<TestMultipleEntityLoadWorksWithoutCacheClear_Model>(string.Empty, models[1].Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
             }).ConfigureAwait(true);
 
-            Assert.NotNull(await layer.LoadAsync<TestMultipleEntityLoadWorksWithoutCacheClear_Model>(string.Empty, models[0].Key, null, null, CancellationToken.None).ConfigureAwait(true));
-            Assert.NotNull(await layer.LoadAsync<TestMultipleEntityLoadWorksWithoutCacheClear_Model>(string.Empty, models[1].Key, null, null, CancellationToken.None).ConfigureAwait(true));
+            Assert.NotNull(await layer.LoadAsync<TestMultipleEntityLoadWorksWithoutCacheClear_Model>(string.Empty, models[0].Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
+            Assert.NotNull(await layer.LoadAsync<TestMultipleEntityLoadWorksWithoutCacheClear_Model>(string.Empty, models[1].Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
 
             await redis.KeyDeleteAsync(GetSimpleCacheKey(models[0].Key)).ConfigureAwait(true);
             await redis.KeyDeleteAsync(GetSimpleCacheKey(models[1].Key)).ConfigureAwait(true);
 
             for (int i = 0; i < 2; i++)
             {
-                var loadedModels = await layer.LoadAsync<TestMultipleEntityLoadWorksWithoutCacheClear_Model>(string.Empty, models.Select(x => x.Key).ToAsyncEnumerable(), null, null, CancellationToken.None).ToDictionaryAsync(k => k.Key, v => v.Value).ConfigureAwait(true);
+                var loadedModels = await layer.LoadAsync<TestMultipleEntityLoadWorksWithoutCacheClear_Model>(string.Empty, models.Select(x => x.Key).ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).ToDictionaryAsync(k => k.Key, v => v.Value, cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.True(loadedModels.ContainsKey(models[0].Key));
                 Assert.True(loadedModels.ContainsKey(models[1].Key));
@@ -354,23 +354,23 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var redis = _env.Services.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
 
-            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             var value = await redis.StringGetAsync(GetSimpleCacheKey(model.Key)).ConfigureAwait(true);
             Assert.False(value.HasValue);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
-                Assert.NotNull(await directLayer.LoadAsync<TestUpdatedEntityIsNotInCache_Model>(string.Empty, model.Key, null, null, CancellationToken.None).ConfigureAwait(true));
+                Assert.NotNull(await directLayer.LoadAsync<TestUpdatedEntityIsNotInCache_Model>(string.Empty, model.Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
             }).ConfigureAwait(true);
 
-            Assert.NotNull(await layer.LoadAsync<TestUpdatedEntityIsNotInCache_Model>(string.Empty, model.Key, null, null, CancellationToken.None).ConfigureAwait(true));
+            Assert.NotNull(await layer.LoadAsync<TestUpdatedEntityIsNotInCache_Model>(string.Empty, model.Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
 
             value = await redis.StringGetAsync(GetSimpleCacheKey(model.Key)).ConfigureAwait(true);
             Assert.True(value.HasValue);
 
             model.string1 = "test2";
-            await layer.UpdateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).ToListAsync().ConfigureAwait(true);
+            await layer.UpdateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             value = await redis.StringGetAsync(GetSimpleCacheKey(model.Key)).ConfigureAwait(true);
             Assert.False(value.HasValue);
@@ -392,23 +392,23 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var redis = _env.Services.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
 
-            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             var value = await redis.StringGetAsync(GetSimpleCacheKey(model.Key)).ConfigureAwait(true);
             Assert.False(value.HasValue);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
-                Assert.NotNull(await directLayer.LoadAsync<TestUpsertedEntityIsNotInCache_Model>(string.Empty, model.Key, null, null, CancellationToken.None).ConfigureAwait(true));
+                Assert.NotNull(await directLayer.LoadAsync<TestUpsertedEntityIsNotInCache_Model>(string.Empty, model.Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
             }).ConfigureAwait(true);
 
-            Assert.NotNull(await layer.LoadAsync<TestUpsertedEntityIsNotInCache_Model>(string.Empty, model.Key, null, null, CancellationToken.None).ConfigureAwait(true));
+            Assert.NotNull(await layer.LoadAsync<TestUpsertedEntityIsNotInCache_Model>(string.Empty, model.Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
 
             value = await redis.StringGetAsync(GetSimpleCacheKey(model.Key)).ConfigureAwait(true);
             Assert.True(value.HasValue);
 
             model.string1 = "test2";
-            await layer.UpsertAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).ToListAsync().ConfigureAwait(true);
+            await layer.UpsertAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             value = await redis.StringGetAsync(GetSimpleCacheKey(model.Key)).ConfigureAwait(true);
             Assert.False(value.HasValue);
@@ -430,22 +430,22 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var redis = _env.Services.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
 
-            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             var value = await redis.StringGetAsync(GetSimpleCacheKey(model.Key)).ConfigureAwait(true);
             Assert.False(value.HasValue);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
-                Assert.NotNull(await directLayer.LoadAsync<TestDeletedEntityIsNotInCache_Model>(string.Empty, model.Key, null, null, CancellationToken.None).ConfigureAwait(true));
+                Assert.NotNull(await directLayer.LoadAsync<TestDeletedEntityIsNotInCache_Model>(string.Empty, model.Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
             }).ConfigureAwait(true);
 
-            Assert.NotNull(await layer.LoadAsync<TestDeletedEntityIsNotInCache_Model>(string.Empty, model.Key, null, null, CancellationToken.None).ConfigureAwait(true));
+            Assert.NotNull(await layer.LoadAsync<TestDeletedEntityIsNotInCache_Model>(string.Empty, model.Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
 
             value = await redis.StringGetAsync(GetSimpleCacheKey(model.Key)).ConfigureAwait(true);
             Assert.True(value.HasValue);
 
-            await layer.DeleteAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).ConfigureAwait(true);
+            await layer.DeleteAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             value = await redis.StringGetAsync(GetSimpleCacheKey(model.Key)).ConfigureAwait(true);
             Assert.False(value.HasValue);
@@ -468,7 +468,7 @@ namespace Redpoint.CloudFramework.Tests
             var layer = _env.Services.GetRequiredService<IRedisCacheRepositoryLayer>();
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
 
-            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
@@ -479,7 +479,7 @@ namespace Redpoint.CloudFramework.Tests
                     1,
                     null,
                     null,
-                    CancellationToken.None).CountAsync().ConfigureAwait(true));
+                    TestContext.Current.CancellationToken).CountAsync().ConfigureAwait(true));
             }).ConfigureAwait(true);
 
             {
@@ -491,7 +491,7 @@ namespace Redpoint.CloudFramework.Tests
                     1,
                     null,
                     metrics,
-                    CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.NotNull(result);
                 Assert.Equal(result.Key, model.Key);
@@ -508,7 +508,7 @@ namespace Redpoint.CloudFramework.Tests
                     1,
                     null,
                     metrics,
-                    CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.NotNull(result);
                 Assert.Equal(result.Key, model.Key);
@@ -535,7 +535,7 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var cache = (_env.Services.GetRequiredService<IConnectionMultiplexer>()).GetDatabase();
 
-            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
@@ -546,7 +546,7 @@ namespace Redpoint.CloudFramework.Tests
                     1,
                     null,
                     null,
-                    CancellationToken.None).CountAsync().ConfigureAwait(true));
+                    TestContext.Current.CancellationToken).CountAsync().ConfigureAwait(true));
             }).ConfigureAwait(true);
 
             {
@@ -558,7 +558,7 @@ namespace Redpoint.CloudFramework.Tests
                     1,
                     null,
                     metrics,
-                    CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.NotNull(result);
                 Assert.Equal(result.Key, model.Key);
@@ -583,7 +583,7 @@ namespace Redpoint.CloudFramework.Tests
                     1,
                     null,
                     queryMetrics,
-                    CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.NotNull(result);
                 Assert.Equal(result.Key, model.Key);
@@ -602,7 +602,7 @@ namespace Redpoint.CloudFramework.Tests
             {
                 var metrics = new RepositoryOperationMetrics();
                 model.string1 = "test2";
-                await layer.UpdateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, metrics, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+                await layer.UpdateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, metrics, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.True(metrics.CacheQueriesFlushed >= 1);
 
@@ -621,7 +621,7 @@ namespace Redpoint.CloudFramework.Tests
                     1,
                     null,
                     metrics,
-                    CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.NotNull(result);
                 Assert.Equal(result.Key, model.Key);
@@ -646,7 +646,7 @@ namespace Redpoint.CloudFramework.Tests
                     1,
                     null,
                     metrics,
-                    CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.NotNull(result);
                 Assert.Equal(result.Key, model.Key);
@@ -692,7 +692,7 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var cache = (_env.Services.GetRequiredService<IConnectionMultiplexer>()).GetDatabase();
 
-            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
@@ -703,7 +703,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     null,
-                    CancellationToken.None).CountAsync().ConfigureAwait(true));
+                    TestContext.Current.CancellationToken).CountAsync().ConfigureAwait(true));
             }).ConfigureAwait(true);
 
             await layer.QueryAsync<TestReaderCountIsSetWhileReading_Model>(
@@ -713,7 +713,7 @@ namespace Redpoint.CloudFramework.Tests
                 null,
                 null,
                 null,
-                CancellationToken.None).ToListAsync().ConfigureAwait(true);
+                TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             var metrics = new RepositoryOperationMetrics();
             var enumerator = layer.QueryAsync<TestReaderCountIsSetWhileReading_Model>(
@@ -723,7 +723,7 @@ namespace Redpoint.CloudFramework.Tests
                 null,
                 null,
                 metrics,
-                CancellationToken.None).GetAsyncEnumerator();
+                TestContext.Current.CancellationToken).GetAsyncEnumerator(cancellationToken: TestContext.Current.CancellationToken);
 
             Assert.True((await cache.StringGetAsync($"QUERYRC:{metrics.CacheHash}").ConfigureAwait(true)).IsNull);
             while (await enumerator.MoveNextAsync().ConfigureAwait(true))
@@ -760,7 +760,7 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var cache = (_env.Services.GetRequiredService<IConnectionMultiplexer>()).GetDatabase();
 
-            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
@@ -771,7 +771,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     null,
-                    CancellationToken.None).CountAsync().ConfigureAwait(true));
+                    TestContext.Current.CancellationToken).CountAsync().ConfigureAwait(true));
             }).ConfigureAwait(true);
 
             await layer.QueryAsync<TestTransactionalUpdateInvalidatesQuery_Model>(
@@ -781,7 +781,7 @@ namespace Redpoint.CloudFramework.Tests
                 null,
                 null,
                 null,
-                CancellationToken.None).ToListAsync().ConfigureAwait(true);
+                TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             var metrics = new RepositoryOperationMetrics();
             var entity = await layer.QueryAsync<TestTransactionalUpdateInvalidatesQuery_Model>(
@@ -791,15 +791,15 @@ namespace Redpoint.CloudFramework.Tests
                 null,
                 null,
                 metrics,
-                CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             Assert.True(metrics.CacheDidRead);
 
             var updateMetrics = new RepositoryOperationMetrics();
-            var transaction = await layer.BeginTransactionAsync(string.Empty, Repository.Transaction.TransactionMode.ReadWrite, null, CancellationToken.None).ConfigureAwait(true);
+            var transaction = await layer.BeginTransactionAsync(string.Empty, Repository.Transaction.TransactionMode.ReadWrite, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
             models[0].string1 = "test2";
-            await layer.UpdateAsync(string.Empty, models.ToAsyncEnumerable(), transaction, null, CancellationToken.None).ToListAsync().ConfigureAwait(true);
-            await layer.CommitAsync(string.Empty, transaction, updateMetrics, CancellationToken.None).ConfigureAwait(true);
+            await layer.UpdateAsync(string.Empty, models.ToAsyncEnumerable(), transaction, null, TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
+            await layer.CommitAsync(string.Empty, transaction, updateMetrics, TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             Assert.True(updateMetrics.CacheQueriesFlushed > 1);
 
@@ -816,7 +816,7 @@ namespace Redpoint.CloudFramework.Tests
                 null,
                 null,
                 metrics,
-                CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             Assert.NotNull(entity);
             Assert.False(metrics.CacheDidRead);
@@ -844,7 +844,7 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var cache = (_env.Services.GetRequiredService<IConnectionMultiplexer>()).GetDatabase();
 
-            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
@@ -855,7 +855,7 @@ namespace Redpoint.CloudFramework.Tests
                     1,
                     null,
                     null,
-                    CancellationToken.None).CountAsync().ConfigureAwait(true));
+                    TestContext.Current.CancellationToken).CountAsync().ConfigureAwait(true));
             }).ConfigureAwait(true);
 
             {
@@ -867,7 +867,7 @@ namespace Redpoint.CloudFramework.Tests
                     1,
                     null,
                     metrics,
-                    CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.NotNull(result);
                 Assert.Equal(result.Key, model.Key);
@@ -892,7 +892,7 @@ namespace Redpoint.CloudFramework.Tests
                     1,
                     null,
                     queryMetrics,
-                    CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.NotNull(result);
                 Assert.Equal(result.Key, model.Key);
@@ -919,7 +919,7 @@ namespace Redpoint.CloudFramework.Tests
                 };
 
                 var metrics = new RepositoryOperationMetrics();
-                await layer.CreateAsync(string.Empty, new[] { newModel }.ToAsyncEnumerable(), null, metrics, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+                await layer.CreateAsync(string.Empty, new[] { newModel }.ToAsyncEnumerable(), null, metrics, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.False(await cache.KeyExistsAsync($"QUERYCACHE:{queryMetrics.CacheHash}").ConfigureAwait(true), $"QUERYCACHE:{queryMetrics.CacheHash} exists");
                 Assert.False(await cache.KeyExistsAsync($"QUERYRC:{queryMetrics.CacheHash}").ConfigureAwait(true), $"QUERYRC:{queryMetrics.CacheHash} exists");
@@ -959,7 +959,7 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var cache = (_env.Services.GetRequiredService<IConnectionMultiplexer>()).GetDatabase();
 
-            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
@@ -970,7 +970,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     null,
-                    CancellationToken.None).CountAsync().ConfigureAwait(true));
+                    TestContext.Current.CancellationToken).CountAsync().ConfigureAwait(true));
             }).ConfigureAwait(true);
 
             {
@@ -982,7 +982,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     metrics,
-                    CancellationToken.None).ToListAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.Single(result);
                 Assert.True(metrics.CacheDidWrite);
@@ -1006,7 +1006,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     queryMetrics,
-                    CancellationToken.None).ToListAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.Single(result);
                 Assert.False(queryMetrics.CacheDidWrite);
@@ -1025,7 +1025,7 @@ namespace Redpoint.CloudFramework.Tests
                 models[0].string1 = "test3";
 
                 var metrics = new RepositoryOperationMetrics();
-                await layer.UpdateAsync(string.Empty, new[] { models[0] }.ToAsyncEnumerable(), null, metrics, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+                await layer.UpdateAsync(string.Empty, new[] { models[0] }.ToAsyncEnumerable(), null, metrics, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.False(await cache.KeyExistsAsync($"QUERYCACHE:{queryMetrics.CacheHash}").ConfigureAwait(true), $"QUERYCACHE:{queryMetrics.CacheHash} exists");
                 Assert.False(await cache.KeyExistsAsync($"QUERYRC:{queryMetrics.CacheHash}").ConfigureAwait(true), $"QUERYRC:{queryMetrics.CacheHash} exists");
@@ -1065,7 +1065,7 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var cache = (_env.Services.GetRequiredService<IConnectionMultiplexer>()).GetDatabase();
 
-            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
@@ -1076,7 +1076,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     null,
-                    CancellationToken.None).CountAsync().ConfigureAwait(true));
+                    TestContext.Current.CancellationToken).CountAsync().ConfigureAwait(true));
             }).ConfigureAwait(true);
 
             {
@@ -1088,7 +1088,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     metrics,
-                    CancellationToken.None).ToListAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.Single(result);
                 Assert.True(metrics.CacheDidWrite);
@@ -1112,7 +1112,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     queryMetrics,
-                    CancellationToken.None).ToListAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.Single(result);
                 Assert.False(queryMetrics.CacheDidWrite);
@@ -1133,7 +1133,7 @@ namespace Redpoint.CloudFramework.Tests
                 models[0].string1 = "test3";
 
                 var metrics = new RepositoryOperationMetrics();
-                await layer.UpdateAsync(string.Empty, new[] { models[0] }.ToAsyncEnumerable(), null, metrics, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+                await layer.UpdateAsync(string.Empty, new[] { models[0] }.ToAsyncEnumerable(), null, metrics, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.False(await cache.KeyExistsAsync($"QUERYCACHE:{queryMetrics.CacheHash}").ConfigureAwait(true), $"QUERYCACHE:{queryMetrics.CacheHash} exists");
                 Assert.False(await cache.KeyExistsAsync($"QUERYRC:{queryMetrics.CacheHash}").ConfigureAwait(true), $"QUERYRC:{queryMetrics.CacheHash} exists");
@@ -1173,7 +1173,7 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var cache = (_env.Services.GetRequiredService<IConnectionMultiplexer>()).GetDatabase();
 
-            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
@@ -1184,7 +1184,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     null,
-                    CancellationToken.None).CountAsync().ConfigureAwait(true));
+                    TestContext.Current.CancellationToken).CountAsync().ConfigureAwait(true));
             }).ConfigureAwait(true);
 
             {
@@ -1196,7 +1196,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     metrics,
-                    CancellationToken.None).ToListAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.Single(result);
                 Assert.True(metrics.CacheDidWrite);
@@ -1220,7 +1220,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     queryMetrics,
-                    CancellationToken.None).ToListAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.Single(result);
                 Assert.False(queryMetrics.CacheDidWrite);
@@ -1235,13 +1235,13 @@ namespace Redpoint.CloudFramework.Tests
                 Assert.False(await cache.KeyTimeToLiveAsync($"QUERYDATA:{queryMetrics.CacheHash}").ConfigureAwait(true) == null, $"QUERYDATA:{queryMetrics.CacheHash} is persistent (should be TTL)");
             }
 
-            models[1] = (await directLayer.LoadAsync<TestUpdateDoesNotInvalidateIrrelevantQuery_Model>(string.Empty, models[1].Key, null, null, CancellationToken.None).ConfigureAwait(true))!;
+            models[1] = (await directLayer.LoadAsync<TestUpdateDoesNotInvalidateIrrelevantQuery_Model>(string.Empty, models[1].Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true))!;
 
             {
                 models[1].number1 = 200;
 
                 var metrics = new RepositoryOperationMetrics();
-                await layer.UpdateAsync(string.Empty, new[] { models[1] }.ToAsyncEnumerable(), null, metrics, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+                await layer.UpdateAsync(string.Empty, new[] { models[1] }.ToAsyncEnumerable(), null, metrics, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.True(await cache.KeyExistsAsync($"QUERYCACHE:{queryMetrics.CacheHash}").ConfigureAwait(true), $"QUERYCACHE:{queryMetrics.CacheHash} does not exist");
                 Assert.False(await cache.KeyExistsAsync($"QUERYRC:{queryMetrics.CacheHash}").ConfigureAwait(true), $"QUERYRC:{queryMetrics.CacheHash} exists");
@@ -1281,7 +1281,7 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var cache = (_env.Services.GetRequiredService<IConnectionMultiplexer>()).GetDatabase();
 
-            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
@@ -1292,7 +1292,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     null,
-                    CancellationToken.None).CountAsync().ConfigureAwait(true));
+                    TestContext.Current.CancellationToken).CountAsync().ConfigureAwait(true));
             }).ConfigureAwait(true);
 
             {
@@ -1304,7 +1304,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     metrics,
-                    CancellationToken.None).ToListAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.Single(result);
                 Assert.True(metrics.CacheDidWrite);
@@ -1328,7 +1328,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     queryMetrics,
-                    CancellationToken.None).ToListAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.Single(result);
                 Assert.False(queryMetrics.CacheDidWrite);
@@ -1350,15 +1350,15 @@ namespace Redpoint.CloudFramework.Tests
 
                 var metrics = new RepositoryOperationMetrics();
 
-                var transaction = await layer.BeginTransactionAsync(string.Empty, Repository.Transaction.TransactionMode.ReadWrite, null, CancellationToken.None).ConfigureAwait(true);
-                await layer.UpdateAsync(string.Empty, new[] { models[0] }.ToAsyncEnumerable(), transaction, metrics, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+                var transaction = await layer.BeginTransactionAsync(string.Empty, Repository.Transaction.TransactionMode.ReadWrite, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
+                await layer.UpdateAsync(string.Empty, new[] { models[0] }.ToAsyncEnumerable(), transaction, metrics, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.True(await cache.KeyExistsAsync($"QUERYCACHE:{queryMetrics.CacheHash}").ConfigureAwait(true), $"QUERYCACHE:{queryMetrics.CacheHash} does not exist");
                 Assert.False(await cache.KeyExistsAsync($"QUERYRC:{queryMetrics.CacheHash}").ConfigureAwait(true), $"QUERYRC:{queryMetrics.CacheHash} exists");
                 Assert.False(await cache.KeyExistsAsync($"QUERYWC:{queryMetrics.CacheHash}").ConfigureAwait(true), $"QUERYWC:{queryMetrics.CacheHash} exists");
                 Assert.True(await cache.KeyExistsAsync($"QUERYDATA:{queryMetrics.CacheHash}").ConfigureAwait(true), $"QUERYDATA:{queryMetrics.CacheHash} does not exist");
 
-                await layer.CommitAsync(string.Empty, transaction, null, CancellationToken.None).ConfigureAwait(true);
+                await layer.CommitAsync(string.Empty, transaction, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
 
                 Assert.False(await cache.KeyExistsAsync($"QUERYCACHE:{queryMetrics.CacheHash}").ConfigureAwait(true), $"QUERYCACHE:{queryMetrics.CacheHash} exists");
                 Assert.False(await cache.KeyExistsAsync($"QUERYRC:{queryMetrics.CacheHash}").ConfigureAwait(true), $"QUERYRC:{queryMetrics.CacheHash} exists");
@@ -1403,7 +1403,7 @@ namespace Redpoint.CloudFramework.Tests
             entity["blob"] = ByteString.CopyFromUtf8("test");
             entity["entity"] = subentity3;
             entity["geopoint"] = new LatLng { Latitude = 20, Longitude = 40 };
-            entity["key"] = (await layer.GetKeyFactoryAsync<EmbeddedEntityModel>(string.Empty, null, CancellationToken.None).ConfigureAwait(true)).CreateKey(1);
+            entity["key"] = (await layer.GetKeyFactoryAsync<EmbeddedEntityModel>(string.Empty, null, TestContext.Current.CancellationToken).ConfigureAwait(true)).CreateKey(1);
             entity["timestamp"] = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow);
 
             var model = new EmbeddedEntityModel
@@ -1413,7 +1413,7 @@ namespace Redpoint.CloudFramework.Tests
                 entity = entity,
             };
 
-            var returnedModel = await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            var returnedModel = await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             Assert.NotNull(model.Key);
             Assert.NotNull(returnedModel.Key);
@@ -1422,10 +1422,10 @@ namespace Redpoint.CloudFramework.Tests
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
-                Assert.NotNull(await layer.LoadAsync<EmbeddedEntityModel>(string.Empty, returnedModel.Key, null, null, CancellationToken.None).ConfigureAwait(true));
+                Assert.NotNull(await layer.LoadAsync<EmbeddedEntityModel>(string.Empty, returnedModel.Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
             }).ConfigureAwait(true);
 
-            var loadedModel = await layer.LoadAsync<EmbeddedEntityModel>(string.Empty, returnedModel.Key, null, null, CancellationToken.None).ConfigureAwait(true);
+            var loadedModel = await layer.LoadAsync<EmbeddedEntityModel>(string.Empty, returnedModel.Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             Assert.NotEqual(loadedModel, model);
             Assert.NotNull(loadedModel!.timestamp);
@@ -1474,7 +1474,7 @@ namespace Redpoint.CloudFramework.Tests
             entity["blob"] = ByteString.CopyFromUtf8("test");
             entity["entity"] = subentity3;
             entity["geopoint"] = new LatLng { Latitude = 20, Longitude = 40 };
-            entity["key"] = (await layer.GetKeyFactoryAsync<EmbeddedEntityModel>(string.Empty, null, CancellationToken.None).ConfigureAwait(true)).CreateKey(1);
+            entity["key"] = (await layer.GetKeyFactoryAsync<EmbeddedEntityModel>(string.Empty, null, TestContext.Current.CancellationToken).ConfigureAwait(true)).CreateKey(1);
             entity["timestamp"] = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow);
 
             const string name = "TestCreateAndQueryWithEmbeddedEntityRedis";
@@ -1487,7 +1487,7 @@ namespace Redpoint.CloudFramework.Tests
                 entity = entity,
             };
 
-            var returnedModel = await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            var returnedModel = await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             Assert.NotNull(model.Key);
             Assert.NotNull(returnedModel.Key);
@@ -1496,7 +1496,7 @@ namespace Redpoint.CloudFramework.Tests
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
-                Assert.NotNull(await layer.LoadAsync<EmbeddedEntityModel>(string.Empty, returnedModel.Key, null, null, CancellationToken.None).ConfigureAwait(true));
+                Assert.NotNull(await layer.LoadAsync<EmbeddedEntityModel>(string.Empty, returnedModel.Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
             }).ConfigureAwait(true);
 
             var loadedModel = await layer.QueryAsync<EmbeddedEntityModel>(
@@ -1509,7 +1509,7 @@ namespace Redpoint.CloudFramework.Tests
                 1,
                 null,
                 null,
-                CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
             Assert.NotNull(loadedModel);
 
             Assert.NotEqual(loadedModel, model);
@@ -1530,7 +1530,7 @@ namespace Redpoint.CloudFramework.Tests
                 1,
                 null,
                 null,
-                CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
             Assert.Null(loadedModel);
 
             loadedModel = await layer.QueryAsync<EmbeddedEntityModel>(
@@ -1543,7 +1543,7 @@ namespace Redpoint.CloudFramework.Tests
                 1,
                 null,
                 null,
-                CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
             Assert.NotNull(loadedModel);
 
             Assert.NotEqual(loadedModel, model);
@@ -1564,7 +1564,7 @@ namespace Redpoint.CloudFramework.Tests
                 1,
                 null,
                 null,
-                CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
             Assert.NotNull(loadedModel);
 
             Assert.NotEqual(loadedModel, model);
@@ -1599,7 +1599,7 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var cache = (_env.Services.GetRequiredService<IConnectionMultiplexer>()).GetDatabase();
 
-            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
@@ -1610,7 +1610,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     null,
-                    CancellationToken.None).CountAsync().ConfigureAwait(true));
+                    TestContext.Current.CancellationToken).CountAsync().ConfigureAwait(true));
             }).ConfigureAwait(true);
 
             var entity = await layer.QueryAsync<TestTransactionalUpdateFromNull_Model>(
@@ -1620,13 +1620,13 @@ namespace Redpoint.CloudFramework.Tests
                 null,
                 null,
                 null,
-                CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
-            var transaction = await layer.BeginTransactionAsync(string.Empty, Repository.Transaction.TransactionMode.ReadWrite, null, CancellationToken.None).ConfigureAwait(true);
+            var transaction = await layer.BeginTransactionAsync(string.Empty, Repository.Transaction.TransactionMode.ReadWrite, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
             Assert.NotNull(entity);
             entity.string1 = "test2";
-            await layer.UpdateAsync(string.Empty, new[] { entity }.ToAsyncEnumerable(), transaction, null, CancellationToken.None).ToListAsync().ConfigureAwait(true);
-            await layer.CommitAsync(string.Empty, transaction, null, CancellationToken.None).ConfigureAwait(true);
+            await layer.UpdateAsync(string.Empty, new[] { entity }.ToAsyncEnumerable(), transaction, null, TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
+            await layer.CommitAsync(string.Empty, transaction, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
         }
 
         [Fact]
@@ -1652,7 +1652,7 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var cache = (_env.Services.GetRequiredService<IConnectionMultiplexer>()).GetDatabase();
 
-            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
@@ -1663,7 +1663,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     null,
-                    CancellationToken.None).CountAsync().ConfigureAwait(true));
+                    TestContext.Current.CancellationToken).CountAsync().ConfigureAwait(true));
             }).ConfigureAwait(true);
 
             var entity = await layer.QueryAsync<TestNonTransactionalUpdateFromNull_Model>(
@@ -1673,11 +1673,11 @@ namespace Redpoint.CloudFramework.Tests
                 null,
                 null,
                 null,
-                CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
             Assert.NotNull(entity);
 
             entity.string1 = "test2";
-            await layer.UpdateAsync(string.Empty, new[] { entity }.ToAsyncEnumerable(), null, null, CancellationToken.None).ToListAsync().ConfigureAwait(true);
+            await layer.UpdateAsync(string.Empty, new[] { entity }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
         }
 
         [Fact]
@@ -1715,7 +1715,7 @@ namespace Redpoint.CloudFramework.Tests
 
             var layer = _env.Services.GetRequiredService<IRedisCacheRepositoryLayer>();
 
-            var returnedModels = await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, CancellationToken.None).ToArrayAsync().ConfigureAwait(true);
+            var returnedModels = await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
@@ -1728,7 +1728,7 @@ namespace Redpoint.CloudFramework.Tests
                     3,
                     null,
                     null,
-                    CancellationToken.None).ToArrayAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).ToArrayAsync().ConfigureAwait(true);
 
                 Assert.Equal(3, result.Length);
                 Assert.Equal("test2", result[0].string1);
@@ -1773,7 +1773,7 @@ namespace Redpoint.CloudFramework.Tests
             var layer = _env.Services.GetRequiredService<IRedisCacheRepositoryLayer>();
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
 
-            var returnedModels = await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, CancellationToken.None).ToArrayAsync().ConfigureAwait(true);
+            var returnedModels = await layer.CreateAsync(string.Empty, models.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
@@ -1784,7 +1784,7 @@ namespace Redpoint.CloudFramework.Tests
                     null,
                     null,
                     null,
-                    CancellationToken.None).ToArrayAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).ToArrayAsync().ConfigureAwait(true);
                 Assert.Equal(3, result.Count(x => x.forTest == "TestQueryEverything" && Math.Abs((x.timestamp - instant)?.TotalSeconds ?? double.MaxValue) < 0.5));
             }).ConfigureAwait(true);
 
@@ -1795,7 +1795,7 @@ namespace Redpoint.CloudFramework.Tests
                 null,
                 null,
                 null,
-                CancellationToken.None).ToArrayAsync().ConfigureAwait(true);
+                TestContext.Current.CancellationToken).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
             Assert.Equal(3, result.Count(x => x.forTest == "TestQueryEverything" && Math.Abs((x.timestamp - instant)?.TotalSeconds ?? double.MaxValue) < 0.5));
         }
 
@@ -1817,14 +1817,14 @@ namespace Redpoint.CloudFramework.Tests
             var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var redis = _env.Services.GetRequiredService<IConnectionMultiplexer>().GetDatabase();
 
-            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             var value = await redis.StringGetAsync(GetSimpleCacheKey(model.Key)).ConfigureAwait(true);
             Assert.False(value.HasValue);
 
             await RedisLayerRepositoryLayerTests.HandleEventualConsistency(async () =>
             {
-                Assert.NotNull(await directLayer.LoadAsync<TestDeletedEntityIsNotInCachedQueryEverything_Model>(string.Empty, model.Key, null, null, CancellationToken.None).ConfigureAwait(true));
+                Assert.NotNull(await directLayer.LoadAsync<TestDeletedEntityIsNotInCachedQueryEverything_Model>(string.Empty, model.Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
             }).ConfigureAwait(true);
 
             var countedEntities = await layer.QueryAsync<TestDeletedEntityIsNotInCachedQueryEverything_Model>(
@@ -1834,16 +1834,16 @@ namespace Redpoint.CloudFramework.Tests
                 null,
                 null,
                 null,
-                CancellationToken.None)
-                .CountAsync(x => x.forTest == "TestDeletedEntityIsNotInCachedQueryEverything" && Math.Abs((x.timestamp - instant)?.TotalSeconds ?? double.MaxValue) < 0.5).ConfigureAwait(true);
+                TestContext.Current.CancellationToken)
+                .CountAsync(x => x.forTest == "TestDeletedEntityIsNotInCachedQueryEverything" && Math.Abs((x.timestamp - instant)?.TotalSeconds ?? double.MaxValue) < 0.5, cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
             Assert.Equal(1, countedEntities);
 
-            Assert.NotNull(await layer.LoadAsync<TestDeletedEntityIsNotInCachedQueryEverything_Model>(string.Empty, model.Key, null, null, CancellationToken.None).ConfigureAwait(true));
+            Assert.NotNull(await layer.LoadAsync<TestDeletedEntityIsNotInCachedQueryEverything_Model>(string.Empty, model.Key, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
 
             value = await redis.StringGetAsync(GetSimpleCacheKey(model.Key)).ConfigureAwait(true);
             Assert.True(value.HasValue);
 
-            await layer.DeleteAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).ConfigureAwait(true);
+            await layer.DeleteAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             value = await redis.StringGetAsync(GetSimpleCacheKey(model.Key)).ConfigureAwait(true);
             Assert.False(value.HasValue);
@@ -1855,8 +1855,8 @@ namespace Redpoint.CloudFramework.Tests
                 null,
                 null,
                 null,
-                CancellationToken.None)
-                .CountAsync(x => x.forTest == "TestDeletedEntityIsNotInCachedQueryEverything" && (x.timestamp - instant)?.TotalSeconds < 0.5).ConfigureAwait(true);
+                TestContext.Current.CancellationToken)
+                .CountAsync(x => x.forTest == "TestDeletedEntityIsNotInCachedQueryEverything" && (x.timestamp - instant)?.TotalSeconds < 0.5, cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
             Assert.Equal(0, countedEntities);
         }
     }
