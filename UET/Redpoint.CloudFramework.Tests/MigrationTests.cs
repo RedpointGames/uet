@@ -1,9 +1,4 @@
-﻿using Xunit;
-
-[assembly: CaptureConsole]
-[assembly: CaptureTrace]
-
-namespace Redpoint.CloudFramework.Tests
+﻿namespace Redpoint.CloudFramework.Tests
 {
     using Google.Cloud.Datastore.V1;
     using Microsoft.Extensions.DependencyInjection;
