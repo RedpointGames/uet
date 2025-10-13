@@ -6,11 +6,11 @@ namespace Redpoint.Logging.Mac.Tests
 
     public class MacLoggerTests
     {
-        [SkippableFact]
+        [Fact]
         [SupportedOSPlatform("macos")]
         public void TestMacLogging()
         {
-            Skip.IfNot(OperatingSystem.IsMacOS());
+            Assert.SkipUnless(OperatingSystem.IsMacOS(), "This test only runs on macOS.");
 
             var services = new ServiceCollection();
             services.AddLogging(logging =>

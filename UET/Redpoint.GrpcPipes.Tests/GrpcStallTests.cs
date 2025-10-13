@@ -6,7 +6,6 @@
     using Redpoint.GrpcPipes.Transport.Tcp;
     using System.Diagnostics;
     using TestPipes;
-    using Xunit.Abstractions;
     using static TestPipes.TestService;
 
     public class GrpcStallTests

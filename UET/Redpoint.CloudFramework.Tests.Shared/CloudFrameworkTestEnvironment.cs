@@ -26,27 +26,39 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Xunit;
-    using Xunit.Abstractions;
     using Xunit.Sdk;
     using Redpoint.CloudFramework.Prefix;
     using System.Diagnostics;
+    using Xunit.v3;
 
-    public class CloudFrameworkTestEnvironment : IAsyncLifetime, ICloudFrameworkTestEnvironment
+    public class CloudFrameworkTestEnvironment : CloudFrameworkTestEnvironment<DefaultCloudFrameworkTestEnvironmentConfiguration>
+    {
+        public CloudFrameworkTestEnvironment(IMessageSink messageSink) : base(messageSink)
+        {
+        }
+    }
+
+    public class CloudFrameworkTestEnvironment<TConfiguration> : IAsyncLifetime, ICloudFrameworkTestEnvironment where TConfiguration : ICloudFrameworkTestEnvironmentConfiguration, new()
     {
 #pragma warning disable CS8618
-        public CloudFrameworkTestEnvironment(IMessageSink messageSink)
+        public CloudFrameworkTestEnvironment(
+#pragma warning restore CS8618
+            IMessageSink messageSink)
         {
             _messageSink = messageSink;
         }
-#pragma warning restore CS8618
 
         public IServiceProvider Services { get; private set; }
 
-        public ICloudFrameworkTestEnvironment CreateWithServices(Action<IServiceCollection> servicesFactory)
+        public ICloudFrameworkTestEnvironment CreateWithServices()
         {
-            ArgumentNullException.ThrowIfNull(servicesFactory);
-
             var services = new ServiceCollection();
+            services.AddLogging(builder =>
+            {
+                builder.ClearProviders();
+                builder.SetMinimumLevel(LogLevel.Trace);
+                builder.AddXUnit();
+            });
 
             _messageSink.OnMessage(new DiagnosticMessage($"Building service provider"));
 
@@ -80,7 +92,7 @@
 
             services.AddHttpClient();
 
-            servicesFactory(services);
+            new TConfiguration().RegisterServices(services);
 
 #pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
             return new NestedCloudFrameworkTestEnvironment(services.BuildServiceProvider());
@@ -89,7 +101,7 @@
 
         private readonly IMessageSink _messageSink;
 
-        public async Task InitializeAsync()
+        public async ValueTask InitializeAsync()
         {
             if (Environment.GetEnvironmentVariable("IS_RUNNING_UNDER_CI") == "true")
             {
@@ -240,7 +252,7 @@
                 }
             }
 
-            Services = CreateWithServices(_ => { }).Services;
+            Services = CreateWithServices().Services;
 
             _messageSink.OnMessage(new DiagnosticMessage($"Waiting for Datastore to be operational..."));
 
@@ -294,8 +306,10 @@
             _messageSink.OnMessage(new DiagnosticMessage($"Tests are ready to execute."));
         }
 
-        public async Task DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
+            GC.SuppressFinalize(this);
+
             _messageSink.OnMessage(new DiagnosticMessage($"Stopping hosted services..."));
 
             foreach (var hostedService in Services.GetServices<IHostedService>())

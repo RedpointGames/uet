@@ -1,7 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTestingDependencies.Build.props" />
+	
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Framework.Build.props" Condition="'$(RedpointIsFrameworkImported)' != 'true'" />
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Logging" />
+		<ProjectReference Include="$(MSBuildThisFileDirectory)../Lib/Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+		<PackageReference Include="xunit.v3.extensibility.core" />
+		<PackageReference Include="xunit.runner.visualstudio">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="coverlet.collector">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="MartinCostello.Logging.XUnit.v3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="$(MSBuildThisFileDirectory)../Redpoint.XunitFramework/Redpoint.XunitFramework.csproj" />
+	</ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Redpoint.CloudFramework\Redpoint.CloudFramework.csproj" />

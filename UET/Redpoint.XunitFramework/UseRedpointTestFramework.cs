@@ -1,1 +1,1 @@
-﻿[assembly: Xunit.TestFramework("Redpoint.XunitFramework.RedpointTestFramework", "Redpoint.XunitFramework")]
+﻿[assembly: Xunit.TestFramework(typeof(Redpoint.XunitFramework.RedpointTestFramework))]

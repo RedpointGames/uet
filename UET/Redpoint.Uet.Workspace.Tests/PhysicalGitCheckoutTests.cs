@@ -14,7 +14,6 @@
     using Redpoint.Uet.Workspace.PhysicalGit;
     using System;
     using System.Threading.Tasks;
-    using Xunit.Abstractions;
 
     public class PhysicalGitCheckoutTests
     {
@@ -25,11 +24,12 @@
             _output = output;
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task CanCheckoutFresh()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
-            Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
+            Assert.SkipUnless(Directory.Exists(@"C:\Work\internal"), "Expected path does not exist.");
+
             var tempPath = Path.Combine(Path.GetTempPath(), "UETTests-" + nameof(PhysicalGitCheckoutTests));
             Directory.CreateDirectory(tempPath);
 
@@ -83,11 +83,12 @@
             Assert.False(Path.Exists(Path.Combine(reservation.ReservedPath, "BuildScripts", ".git")), $"Expected path {Path.Combine(reservation.ReservedPath, "BuildScripts", ".git")} to not exist.");
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task CanCheckoutWithGitCheckoutMissing()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
-            Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
+            Assert.SkipUnless(Directory.Exists(@"C:\Work\internal"), "Expected path does not exist.");
+
             var tempPath = Path.Combine(Path.GetTempPath(), "UETTests-" + nameof(PhysicalGitCheckoutTests));
             Directory.CreateDirectory(tempPath);
 
@@ -164,13 +165,13 @@
             Assert.True(File.Exists(Path.Combine(reservation.ReservedPath, "README.MD")), $"Expected file {Path.Combine(reservation.ReservedPath, "README.md")} to exist.");
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task CanCheckoutOverSsh()
         {
             // @note: This should be a read-only GitHub deploy key to the UET repository.
             var sshTestPrivateKeyPath = Environment.GetEnvironmentVariable("SSH_TEST_REDPOINT_CREDENTIAL_DISCOVERY_SSH_PRIVATE_KEY_PATH_github_com");
             var sshTestPublicKeyPath = Environment.GetEnvironmentVariable("SSH_TEST_REDPOINT_CREDENTIAL_DISCOVERY_SSH_PUBLIC_KEY_PATH_github_com");
-            Skip.If(
+            Assert.SkipWhen(
                 string.IsNullOrWhiteSpace(sshTestPrivateKeyPath) || string.IsNullOrWhiteSpace(sshTestPublicKeyPath),
                 "Need to have the private and public keys set via environment variables to run this test.");
 
@@ -232,7 +233,7 @@
             Assert.True(Directory.Exists(Path.Combine(reservation.ReservedPath, ".git")), $"Expected directory {Path.Combine(reservation.ReservedPath, ".git")} to exist.");
         }
 
-        [SkippableFact(Skip = "Test seems to be flaky on the build servers.")]
+        [Fact(Skip = "Test seems to be flaky on the build servers.")]
         public async Task CanCheckoutEngineFresh()
         {
             var tempPath = Path.Combine(Path.GetTempPath(), "UETTests-" + nameof(PhysicalGitCheckoutTests));

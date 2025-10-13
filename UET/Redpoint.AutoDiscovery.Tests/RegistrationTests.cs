@@ -6,10 +6,10 @@
 
     public class RegistrationTests
     {
-        [SkippableFact]
+        [Fact]
         public async Task TestRegistration()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var services = new ServiceCollection();
             services.AddLogging();

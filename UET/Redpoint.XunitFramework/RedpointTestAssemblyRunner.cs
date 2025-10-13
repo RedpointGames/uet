@@ -1,40 +1,38 @@
 ﻿namespace Redpoint.XunitFramework
 {
-    using Xunit.Sdk;
+    using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Xunit.Internal;
+    using Xunit.Sdk;
+    using Xunit.v3;
 
     internal class RedpointTestAssemblyRunner : XunitTestAssemblyRunner
     {
-        public RedpointTestAssemblyRunner(
-            Xunit.Abstractions.ITestAssembly testAssembly,
-            IEnumerable<IXunitTestCase> testCases,
-            Xunit.Abstractions.IMessageSink diagnosticMessageSink,
-            Xunit.Abstractions.IMessageSink executionMessageSink,
-            Xunit.Abstractions.ITestFrameworkExecutionOptions executionOptions) : base(
-                testAssembly,
-                testCases,
-                diagnosticMessageSink,
-                executionMessageSink,
-                executionOptions)
-        {
-        }
+        public static RedpointTestAssemblyRunner RedpointInstance { get; } = new();
 
-        protected override Task<RunSummary> RunTestCollectionAsync(
-            IMessageBus messageBus,
-            Xunit.Abstractions.ITestCollection testCollection,
-            IEnumerable<IXunitTestCase> testCases,
-            CancellationTokenSource cancellationTokenSource)
+        protected override ValueTask<RunSummary> RunTestCollection(
+            XunitTestAssemblyRunnerContext ctxt, 
+            IXunitTestCollection testCollection, 
+            IReadOnlyCollection<IXunitTestCase> testCases)
         {
-            return new RedpointTestCollectionRunner(
+            Guard.ArgumentNotNull(ctxt);
+            Guard.ArgumentNotNull(testCollection);
+            Guard.ArgumentNotNull(testCases);
+
+            var testCaseOrderer = ctxt.AssemblyTestCaseOrderer ?? DefaultTestCaseOrderer.Instance;
+
+            return RedpointTestCollectionRunner.RedpointInstance.Run(
                 testCollection,
                 testCases,
-                DiagnosticMessageSink,
-                messageBus,
-                TestCaseOrderer,
-                new ExceptionAggregator(Aggregator),
-                cancellationTokenSource).RunAsync();
+                ctxt.ExplicitOption,
+                ctxt.MessageBus,
+                testCaseOrderer,
+                ctxt.Aggregator.Clone(),
+                ctxt.CancellationTokenSource,
+                ctxt.AssemblyFixtureMappings
+            );
         }
     }
 }

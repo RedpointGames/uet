@@ -10,7 +10,6 @@ namespace Redpoint.Uet.Automation.Tests
     using Redpoint.Uet.Automation.TestReporter;
     using Redpoint.Uet.Automation.Worker;
     using Redpoint.Uet.Uat;
-    using Xunit.Abstractions;
 
     public class AutomationRunnerTests
     {
@@ -21,12 +20,12 @@ namespace Redpoint.Uet.Automation.Tests
             _output = output;
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task CanRunAutomationTests()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
-            Skip.IfNot(Directory.Exists(@"E:\EpicGames\UE_5.2"));
-            Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
+            Assert.SkipUnless(Directory.Exists(@"E:\EpicGames\UE_5.2"), "Expected path does not exist.");
+            Assert.SkipUnless(Directory.Exists(@"C:\Work\internal"), "Expected path does not exist.");
 
             var services = new ServiceCollection();
             services.AddLogging(builder =>

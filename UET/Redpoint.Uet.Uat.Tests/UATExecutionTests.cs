@@ -7,11 +7,11 @@ namespace Redpoint.Uet.Uat.Tests
 
     public class UATExecutionTests
     {
-        [SkippableFact()]
+        [Fact]
         public async Task TestUATExecutionOfBuildGraphHelpWorks()
         {
             var enginePath = Environment.GetEnvironmentVariable("UET_ENGINE_PATH") ?? @"E:\EpicGames\UE_5.2";
-            Skip.IfNot(Directory.Exists(enginePath), $"Engine must exist at {enginePath} for this test to run.");
+            Assert.SkipUnless(Directory.Exists(enginePath), $"Engine must exist at {enginePath} for this test to run.");
 
             var services = new ServiceCollection();
             services.AddLogging();

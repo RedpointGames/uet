@@ -26,8 +26,8 @@
         [SupportedOSPlatform("windows6.2")]
         public void CanReadHnsNetworks()
         {
-            Skip.IfNot(OperatingSystem.IsWindowsVersionAtLeast(6, 2));
-            Skip.IfNot(IsAdministrator);
+            Assert.SkipUnless(OperatingSystem.IsWindowsVersionAtLeast(6, 2), "Windows version too old.");
+            Assert.SkipUnless(IsAdministrator, "Not running as Administrator.");
 
             var api = IHnsApi.GetInstance();
 
