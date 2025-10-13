@@ -53,12 +53,6 @@
             ArgumentNullException.ThrowIfNull(configure);
 
             var services = new ServiceCollection();
-            services.AddLogging(builder =>
-            {
-                builder.ClearProviders();
-                builder.SetMinimumLevel(LogLevel.Trace);
-                builder.AddXUnit();
-            });
 
             _messageSink.OnMessage(new DiagnosticMessage($"Building service provider"));
 
