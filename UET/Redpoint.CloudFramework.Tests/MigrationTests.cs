@@ -1,8 +1,15 @@
-﻿namespace Redpoint.CloudFramework.Tests
+﻿using Xunit;
+
+[assembly: CaptureConsole]
+[assembly: CaptureTrace]
+
+namespace Redpoint.CloudFramework.Tests
 {
+    using Google.Cloud.Datastore.V1;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.CloudFramework.Repository;
+    using Redpoint.CloudFramework.Repository.Converters.Model;
     using Redpoint.CloudFramework.Repository.Layers;
     using Redpoint.CloudFramework.Repository.Migration;
     using Redpoint.CloudFramework.Tests.Migration;
@@ -37,12 +44,18 @@
 
             var model = new MigrationModel
             {
-                schemaVersion = 1,
                 stringField = string.Empty,
             };
 
             var globalRepository = services.GetRequiredService<IGlobalRepository>();
             await globalRepository.CreateAsync(string.Empty, model, cancellationToken: TestContext.Current.CancellationToken);
+
+            // Explicitly rollback the schema version, since CreateAsync will always set it to the latest version.
+            model.schemaVersion = 1;
+            await globalRepository.UpdateAsync(string.Empty, model, cancellationToken: TestContext.Current.CancellationToken);
+
+            Assert.Equal(1, model.schemaVersion);
+            Assert.Equal(string.Empty, model.stringField);
 
             var allMigrators = services.GetServices<RegisteredModelMigratorBase>().ToArray();
 
@@ -62,6 +75,14 @@
                 Assert.NotNull(executor);
                 await executor.ExecuteMigratorsAsync(migrators, TestContext.Current.CancellationToken);
             }
+
+            await DatastoreRepositoryLayerTests.HandleEventualConsistency(async () =>
+            {
+                model = await globalRepository.LoadAsync<MigrationModel>(string.Empty, model.Key, cancellationToken: TestContext.Current.CancellationToken);
+                Assert.NotNull(model);
+                Assert.Equal(4, model.schemaVersion);
+                Assert.Equal("version4", model.stringField);
+            });
         }
     }
 }

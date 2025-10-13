@@ -18,7 +18,7 @@
 
         public async Task<NonTransactionalModelMigrationResult> MigrateAsync(MigrationModel model)
         {
-            Assert.Equal(string.Empty, model.stringField);
+            Assert.Equal("version3", model.stringField);
             Assert.Equal(3, model.schemaVersion);
             model.stringField = "version4";
             model.schemaVersion = 4;

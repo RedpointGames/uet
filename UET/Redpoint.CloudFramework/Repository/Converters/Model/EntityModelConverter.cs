@@ -184,7 +184,12 @@
             }
 
             model.dateModifiedUtc = now;
-            model.schemaVersion = model.GetSchemaVersion();
+
+            // @note: We changed this behaviour so that the schema version is only automatically set on creation. This ensures that when migrators update models, the models don't skip to the latest schema version - they must always get to the latest version via a migrator.
+            if (isCreateContext)
+            {
+                model.schemaVersion = model.GetSchemaVersion();
+            }
 
             entity["dateCreatedUtc"] = _instantTimestampConversion.FromNodaTimeInstantToDatastoreValue(model.dateCreatedUtc, false);
             entity["dateModifiedUtc"] = _instantTimestampConversion.FromNodaTimeInstantToDatastoreValue(model.dateModifiedUtc, false);

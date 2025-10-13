@@ -141,6 +141,11 @@
                                     reloadedModel,
                                     transaction);
 
+                                if (reloadedModel.schemaVersion != i)
+                                {
+                                    throw new InvalidOperationException($"Model migrator {transactionalMigrator.GetType().FullName} did not update schema version to {i} on provided model.");
+                                }
+
                                 // Update loadedModel to point at the model we just modified, so that subsequent non-transactional
                                 // migrators see the correct version.
                                 model = reloadedModel;
@@ -156,7 +161,7 @@
                                 needsSaveFromUs = false;
                                 if (model.schemaVersion != i)
                                 {
-                                    throw new InvalidOperationException("Expected that MigrateAsync would set schemaVersion and call UpdateAsync as needed!");
+                                    throw new InvalidOperationException($"Model migrator {nonTransactionalModelMigrator.GetType().FullName} did not update schema version to {i} on provided model.");
                                 }
                             }
                             else
@@ -173,9 +178,9 @@
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!ex.GetType().FullName!.StartsWith("Xunit.", StringComparison.Ordinal))
             {
-                _logger.LogError(ex, $"Failed to apply migrations for '{referenceModel.GetKind()}': {ex.Message}");
+                _logger.LogError(ex, $"'{ex.GetType().Name}': Failed to apply migrations for '{referenceModel.GetKind()}': {ex.Message}");
             }
             finally
             {
