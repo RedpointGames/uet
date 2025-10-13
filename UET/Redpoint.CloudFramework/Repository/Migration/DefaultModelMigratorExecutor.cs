@@ -92,11 +92,11 @@
                     var loadedModelVersion = initiallyLoadedModel.schemaVersion ?? 1;
                     var needsSaveFromUs = false;
 
-                    _logger.LogInformation($"Migrating '{_globalPrefix.CreateInternal(initiallyLoadedModel.Key)}'...");
-
                     var model = initiallyLoadedModel;
                     for (long i = loadedModelVersion + 1; i <= currentSchemaVersion; i++)
                     {
+                        _logger.LogInformation($"Migrating '{_globalPrefix.CreateInternal(initiallyLoadedModel.Key)}' from schema version {i-1} to {i}...");
+
                         var migrator = _serviceProvider.GetService(migratorsByVersion[i]);
                         if (migrator is ITransactionalModelMigrator<T> transactionalMigrator)
                         {
