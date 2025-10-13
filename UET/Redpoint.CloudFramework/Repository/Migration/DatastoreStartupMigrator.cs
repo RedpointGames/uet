@@ -38,14 +38,6 @@
             _globalPrefix = globalPrefix;
         }
 
-        /// <summary>
-        /// This isn't a real model; we just use it to construct keys for locking.
-        /// </summary>
-        [Kind("rcf_migrationLock")]
-        private class RCFMigrationLockModel : Model<RCFMigrationLockModel>
-        {
-        }
-
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             if (_migrators.Length == 0)
@@ -65,80 +57,16 @@
             {
                 _logger.LogInformation($"Running database migrators for: {modelGroup.Key.FullName}");
 
-#pragma warning disable IL2072 // DynamicallyAccessedMembers is set on ModelType.
-                var referenceModel = (IModel)Activator.CreateInstance(modelGroup.Key)!;
-#pragma warning restore IL2072
-                var currentSchemaVersion = referenceModel.GetSchemaVersion();
+                RegisteredModelMigratorBase[] migrators = modelGroup.ToArray();
 
-                var migratorsByVersion = modelGroup.ToDictionary(k => k.ToSchemaVersion, v => v.MigratorType);
-                for (long i = 2; i <= currentSchemaVersion; i++)
+                var executor = _serviceProvider.GetService(modelGroup.First().ExecutorType) as IModelMigratorExecutor;
+                if (executor == null)
                 {
-                    if (!migratorsByVersion.ContainsKey(i))
-                    {
-                        throw new InvalidOperationException($"Missing migrator to migrate {modelGroup.Key.Name} from version {i - 1} to {i}. Make sure the migrator is registered in the service provider with .AddMigrator().");
-                    }
+                    _logger.LogError($"Missing database migrator executor implementation for {modelGroup.Key.FullName}!");
                 }
-                var firstMigrator = modelGroup.First();
-
-                // Do an early check before locking.
-                if (!await firstMigrator.QueryForOutdatedModelsAsync(drl, currentSchemaVersion).AnyAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+                else
                 {
-                    continue;
-                }
-
-                // We must lock at the type level, because QueryForOutdatedModels will be out of date the moment
-                // any individual model is processed.
-                _logger.LogInformation($"Acquiring lock to perform migrations for '{referenceModel.GetKind()}'...");
-                var keyFactory = await _globalRepository.GetKeyFactoryAsync<RCFMigrationLockModel>(string.Empty, cancellationToken: cancellationToken).ConfigureAwait(false);
-                var key = keyFactory.CreateKey(referenceModel.GetKind());
-                var handler = await _globalLock.Acquire(string.Empty, key).ConfigureAwait(false);
-                try
-                {
-                    _logger.LogInformation($"Performing migrations for '{referenceModel.GetKind()}'...");
-
-                    await foreach (var loadedModel in firstMigrator.QueryForOutdatedModelsAsync(drl, currentSchemaVersion).ConfigureAwait(false))
-                    {
-                        var loadedModelVersion = loadedModel.schemaVersion ?? 1;
-                        var needsSaveFromUs = false;
-
-                        _logger.LogInformation($"Migrating '{_globalPrefix.CreateInternal(loadedModel.Key)}'...");
-
-                        for (long i = loadedModelVersion + 1; i <= currentSchemaVersion; i++)
-                        {
-                            var migrator = _serviceProvider.GetService(migratorsByVersion[i]);
-#pragma warning disable IL2075 // DynamicallyAccessedMembers is set on MigratorType.
-                            var migrationDidSave = await ((Task<bool>)migratorsByVersion[i].GetMethod("MigrateAsync")!.Invoke(migrator, new object[] { loadedModel })!).ConfigureAwait(false);
-#pragma warning restore IL2075
-                            if (migrationDidSave)
-                            {
-                                needsSaveFromUs = false;
-                                if (loadedModel.schemaVersion != i)
-                                {
-                                    throw new InvalidOperationException("Expected that MigrateAsync would set schemaVersion and call UpdateAsync as needed!");
-                                }
-                            }
-                            else
-                            {
-                                needsSaveFromUs = true;
-                                loadedModel.schemaVersion = i;
-                            }
-                        }
-
-                        if (needsSaveFromUs)
-                        {
-                            await firstMigrator.UpdateAsync(_globalRepository, loadedModel).ConfigureAwait(false);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, $"Failed to apply migrations for '{referenceModel.GetKind()}': {ex.Message}");
-                }
-                finally
-                {
-                    _logger.LogInformation($"Releasing lock that was used to perform migrations for '{referenceModel.GetKind()}'...");
-                    await handler.DisposeAsync().ConfigureAwait(false);
-                    _logger.LogInformation($"Released lock that was used to perform migrations for '{referenceModel.GetKind()}'.");
+                    await executor.ExecuteMigratorsAsync(migrators, cancellationToken);
                 }
             }
         }

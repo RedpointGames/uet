@@ -1,7 +1,9 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Migration
 {
+    using Google.Cloud.Datastore.V1;
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Repository.Layers;
+    using Redpoint.CloudFramework.Repository.Transaction;
     using System;
     using System.Diagnostics.CodeAnalysis;
 
@@ -14,8 +16,6 @@
 
         public long ToSchemaVersion { get; set; }
 
-        public abstract Task UpdateAsync(IGlobalRepository globalRepository, object model);
-
-        public abstract IAsyncEnumerable<IModel> QueryForOutdatedModelsAsync(IDatastoreRepositoryLayer drl, long currentSchemaVersion);
+        public abstract Type ExecutorType { get; }
     }
 }
