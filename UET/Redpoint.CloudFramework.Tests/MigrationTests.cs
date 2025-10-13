@@ -15,12 +15,12 @@
     using System.Threading.Tasks;
     using Xunit;
 
-    [Collection("Migration CloudFramework Test")]
+    [Collection("CloudFramework Test")]
     public class MigrationTests
     {
-        private readonly CloudFrameworkTestEnvironment<MigrationCloudFrameworkTestEnvironmentConfiguration> _env;
+        private readonly CloudFrameworkTestEnvironment _env;
 
-        public MigrationTests(CloudFrameworkTestEnvironment<MigrationCloudFrameworkTestEnvironmentConfiguration> env)
+        public MigrationTests(CloudFrameworkTestEnvironment env)
         {
             _env = env;
         }
@@ -28,21 +28,28 @@
         [Fact]
         public async Task TestMigrate()
         {
+            var services = _env.CreateServiceProvider(services =>
+            {
+                services.AddMigration<MigrationModel, MigrationTestToVersion2Migrator>(2);
+                services.AddMigration<MigrationModel, MigrationTestToVersion3Migrator>(3);
+                services.AddMigration<MigrationModel, MigrationTestToVersion4Migrator>(4);
+            });
+
             var model = new MigrationModel
             {
                 schemaVersion = 1,
                 stringField = string.Empty,
             };
 
-            var globalRepository = _env.Services.GetRequiredService<IGlobalRepository>();
+            var globalRepository = services.GetRequiredService<IGlobalRepository>();
             await globalRepository.CreateAsync(string.Empty, model, cancellationToken: TestContext.Current.CancellationToken);
 
-            var allMigrators = _env.Services.GetServices<RegisteredModelMigratorBase>().ToArray();
+            var allMigrators = services.GetServices<RegisteredModelMigratorBase>().ToArray();
 
-            var logger = _env.Services.GetRequiredService<ILogger<MigrationTests>>();
+            var logger = services.GetRequiredService<ILogger<MigrationTests>>();
 
             Assert.NotEmpty(allMigrators);
-            var drl = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
+            var drl = services.GetRequiredService<IDatastoreRepositoryLayer>();
 
             var migratorsByModel = allMigrators.GroupBy(x => x.ModelType);
             foreach (var modelGroup in migratorsByModel)
@@ -51,7 +58,7 @@
 
                 RegisteredModelMigratorBase[] migrators = modelGroup.ToArray();
 
-                var executor = _env.Services.GetService(modelGroup.First().ExecutorType) as IModelMigratorExecutor;
+                var executor = services.GetService(modelGroup.First().ExecutorType) as IModelMigratorExecutor;
                 Assert.NotNull(executor);
                 await executor.ExecuteMigratorsAsync(migrators, TestContext.Current.CancellationToken);
             }
