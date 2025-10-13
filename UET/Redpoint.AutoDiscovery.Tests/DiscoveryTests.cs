@@ -9,7 +9,7 @@
         [Fact(Skip = "This test is unreliable.")]
         public async Task TestSelfDiscovery()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var services = new ServiceCollection();
             services.AddLogging();

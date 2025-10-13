@@ -77,25 +77,25 @@
                 ex.StatusCode == StatusCode.Unauthenticated ||
                 (ex.StatusCode == StatusCode.Internal && ex.InnerException is TokenResponseException ter && ter.Error.Error == "invalid_grant"))
             {
-                throw new SkipException("The execution environment does not have application default credentials to access the Google Cloud test project.");
+                Assert.Skip("The execution environment does not have application default credentials to access the Google Cloud test project.");
             }
             catch (InvalidOperationException ex) when (
                 ex.Message.Contains("GOOGLE_APPLICATION_CREDENTIALS", StringComparison.Ordinal) ||
                 ex.Message.Contains("Application Default Credentials", StringComparison.Ordinal))
             {
-                throw new SkipException("The execution environment does not have application default credentials to access the Google Cloud test project.");
+                Assert.Skip("The execution environment does not have application default credentials to access the Google Cloud test project.");
             }
             catch (TargetInvocationException tex) when (
                 tex.InnerException != null &&
                 (tex.InnerException.Message.Contains("GOOGLE_APPLICATION_CREDENTIALS", StringComparison.Ordinal) ||
                  tex.InnerException.Message.Contains("Application Default Credentials", StringComparison.Ordinal)))
             {
-                throw new SkipException("The execution environment does not have application default credentials to access the Google Cloud test project.");
+                Assert.Skip("The execution environment does not have application default credentials to access the Google Cloud test project.");
             }
             return serviceProvider;
         }
 
-        [SkippableFact]
+        [Fact]
         public void ConfigurationSourceBehaviour()
         {
             var sp = CreateServiceProvider();
@@ -104,7 +104,7 @@
             Assert.True(csb.RequireSuccessfulLoad);
         }
 
-        [SkippableFact]
+        [Fact]
         public void TryGetSecret()
         {
             var sp = CreateServiceProvider();
@@ -113,7 +113,7 @@
             Assert.NotNull(secretAccess.TryGetSecret("test-secret"));
         }
 
-        [SkippableFact]
+        [Fact]
         public void TryGetLatestSecretVersion()
         {
             var sp = CreateServiceProvider();
@@ -126,7 +126,7 @@
             Assert.Equal(SecretVersion.Types.State.Enabled, secretVersion.State);
         }
 
-        [SkippableFact]
+        [Fact]
         public void TryAccessSecretVersion()
         {
             var sp = CreateServiceProvider();
@@ -141,7 +141,7 @@
             Assert.NotNull(accessed);
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task TryGetLatestSecretVersionAsync()
         {
             var sp = CreateServiceProvider();
@@ -154,7 +154,7 @@
             Assert.Equal(SecretVersion.Types.State.Enabled, secretVersion.State);
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task TryAccessSecretVersionAsync()
         {
             var sp = CreateServiceProvider();
@@ -169,7 +169,7 @@
             Assert.NotNull(accessed);
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task Subscribe()
         {
             await using (CreateServiceProvider().AsAsyncDisposable(out var sp).ConfigureAwait(false))
@@ -232,7 +232,7 @@
             }
         }
 
-        [SkippableFact]
+        [Fact]
         [SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Not used for security.")]
         public async Task AutoRefreshingSecret()
         {
@@ -306,7 +306,7 @@
             }
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task SecretManagerConfigurationProvider()
         {
             await using (CreateServiceProvider().AsAsyncDisposable(out var sp).ConfigureAwait(false))
@@ -328,7 +328,7 @@
             }
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task SecretManagerSubscriptionCleanupHostedService()
         {
             await using (CreateServiceProvider().AsAsyncDisposable(out var sp).ConfigureAwait(false))
@@ -343,7 +343,7 @@
             }
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task ResolveNonIsolatedManager()
         {
             await using (CreateServiceProvider(false).AsAsyncDisposable(out var sp).ConfigureAwait(false))

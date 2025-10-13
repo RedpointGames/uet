@@ -6,11 +6,11 @@ namespace Redpoint.Uet.Workspace.Tests
 
     public class ParallelCopyTests
     {
-        [SkippableFact]
+        [Fact]
         public async Task TestParallelCopyFileList()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
-            Skip.IfNot(Directory.Exists(@"C:\Work\internal\EOS_OSB\EOS_OSB\Plugins\EOS"));
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test must run on Windows.");
+            Assert.SkipUnless(Directory.Exists(@"C:\Work\internal\EOS_OSB\EOS_OSB\Plugins\EOS"), "Required directory does not exist.");
             Directory.CreateDirectory(@"C:\Temp\TestParallelCopyFileList");
 
             var copyItems = new ConcurrentQueue<QueuedCopy>();
@@ -45,10 +45,10 @@ namespace Redpoint.Uet.Workspace.Tests
                 CancellationToken.None);
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task CanPerformCopy()
         {
-            Skip.IfNot(Directory.Exists(@"C:\Work\internal\EOS_OSB\EOS_OSB\Plugins\EOS"));
+            Assert.SkipUnless(Directory.Exists(@"C:\Work\internal\EOS_OSB\EOS_OSB\Plugins\EOS"), "Required directory does not exist.");
             Directory.CreateDirectory(@"C:\Temp\CanPerformCopy");
 
             var parallelCopy = new DefaultParallelCopy();

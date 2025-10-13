@@ -7,7 +7,6 @@ namespace Redpoint.GrpcPipes.Tests
     using System.Net;
     using System.Security.Principal;
     using TestPipes;
-    using Xunit.Abstractions;
     using static TestPipes.TestService;
 
     public class GrpcPipesTests
@@ -133,11 +132,11 @@ namespace Redpoint.GrpcPipes.Tests
             }
         }
 
-        [SkippableTheory]
+        [Theory]
         [InlineData("tcp")]
         public async Task TestComputerPipes(string protocol)
         {
-            Skip.IfNot(IsAdministrator);
+            Assert.SkipUnless(IsAdministrator, "This test can only run as an Administrator.");
 
             var services = new ServiceCollection();
             services.AddLogging(builder =>
@@ -179,11 +178,11 @@ namespace Redpoint.GrpcPipes.Tests
             Assert.True(isCalled, "Expected TestMethod to be called");
         }
 
-        [SkippableTheory]
+        [Theory]
         [InlineData("tcp")]
         public async Task TestNewServerCanRemoveOldPipe(string protocol)
         {
-            Skip.IfNot(IsAdministrator);
+            Assert.SkipUnless(IsAdministrator, "This test can only run as an Administrator.");
 
             var services = new ServiceCollection();
             services.AddLogging(builder =>

@@ -8,12 +8,12 @@
 
     public class WinFspFactoryTests
     {
-        [SkippableFact]
+        [Fact]
         [SupportedOSPlatform("windows6.2")]
         public void CanConstructWinFspFromFactory()
         {
-            Skip.IfNot(OperatingSystem.IsWindows(), "This test must be run on Windows");
-            Skip.IfNot(new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator), "This test must be run as Administrator");
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test must be run on Windows");
+            Assert.SkipUnless(new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator), "This test must be run as Administrator");
 
             var services = new ServiceCollection();
             services.AddLogging();

@@ -6,7 +6,6 @@
     using System.Net;
     using System.Net.Sockets;
     using Xunit;
-    using Xunit.Abstractions;
 
     public class TcpGrpcClientStreaming : TcpGrpcTestBase
     {

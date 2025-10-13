@@ -14,7 +14,7 @@ namespace Redpoint.Windows.HandleManagement.Tests
         [SupportedOSPlatform("windows6.2")]
         public async Task CanQuerySystemHandlesInternal()
         {
-            Skip.IfNot(OperatingSystem.IsWindowsVersionAtLeast(6, 2));
+            Assert.SkipUnless(OperatingSystem.IsWindowsVersionAtLeast(6, 2), "Windows version too old.");
 
             var handles = NativeHandles.GetSystemHandles();
             Assert.NotEmpty(handles);
@@ -50,7 +50,7 @@ namespace Redpoint.Windows.HandleManagement.Tests
         [SupportedOSPlatform("windows6.2")]
         public async Task CanQueryRawHandles()
         {
-            Skip.IfNot(OperatingSystem.IsWindowsVersionAtLeast(6, 2));
+            Assert.SkipUnless(OperatingSystem.IsWindowsVersionAtLeast(6, 2), "Windows version too old.");
 
             Assert.NotEmpty(await NativeHandles.GetAllHandlesAsync(CancellationToken.None).ToListAsync());
         }
@@ -59,7 +59,7 @@ namespace Redpoint.Windows.HandleManagement.Tests
         [SupportedOSPlatform("windows6.2")]
         public async Task CanQueryFileHandles()
         {
-            Skip.IfNot(OperatingSystem.IsWindowsVersionAtLeast(6, 2));
+            Assert.SkipUnless(OperatingSystem.IsWindowsVersionAtLeast(6, 2), "Windows version too old.");
 
             Assert.NotEmpty(await NativeHandles.GetAllFileHandlesAsync(CancellationToken.None).ToListAsync());
         }
@@ -68,7 +68,7 @@ namespace Redpoint.Windows.HandleManagement.Tests
         [SupportedOSPlatform("windows6.2")]
         public async Task CanSeeOurOwnHandle()
         {
-            Skip.IfNot(OperatingSystem.IsWindowsVersionAtLeast(6, 2));
+            Assert.SkipUnless(OperatingSystem.IsWindowsVersionAtLeast(6, 2), "Windows version too old.");
 
             var tempPath = Path.GetTempFileName();
             var found = false;
@@ -94,7 +94,7 @@ namespace Redpoint.Windows.HandleManagement.Tests
         [SupportedOSPlatform("windows6.2")]
         public async Task CanCloseOurOwnHandle()
         {
-            Skip.IfNot(OperatingSystem.IsWindowsVersionAtLeast(6, 2));
+            Assert.SkipUnless(OperatingSystem.IsWindowsVersionAtLeast(6, 2), "Windows version too old.");
 
             var tempPath = Path.GetTempFileName();
             var found = false;

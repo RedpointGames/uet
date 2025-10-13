@@ -9,7 +9,6 @@ namespace Redpoint.Uet.Automation.Tests
     using Redpoint.Uet.Automation.Worker;
     using Redpoint.Uet.Uat;
     using System.Diagnostics;
-    using Xunit.Abstractions;
 
     public class LocalWorkerPoolTests
     {
@@ -22,12 +21,12 @@ namespace Redpoint.Uet.Automation.Tests
             _output = output;
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task CanSpinUpSingleLocalEditorWorker()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
-            Skip.IfNot(Directory.Exists(@"E:\EpicGames\UE_5.2"));
-            Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
+            Assert.SkipUnless(Directory.Exists(@"E:\EpicGames\UE_5.2"), "Expected path does not exist.");
+            Assert.SkipUnless(Directory.Exists(@"C:\Work\internal"), "Expected path does not exist.");
 
             var services = new ServiceCollection();
             services.AddLogging(builder =>
@@ -113,12 +112,12 @@ namespace Redpoint.Uet.Automation.Tests
             Assert.True(didStop, "Worker is expected to stop");
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task CanSpinUpTwoLocalEditorWorkers()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
-            Skip.IfNot(Directory.Exists(@"E:\EpicGames\UE_5.2"));
-            Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
+            Assert.SkipUnless(Directory.Exists(@"E:\EpicGames\UE_5.2"), "Expected path does not exist.");
+            Assert.SkipUnless(Directory.Exists(@"C:\Work\internal"), "Expected path does not exist.");
 
             var services = CreateServices();
             var sp = services.BuildServiceProvider();
@@ -201,12 +200,12 @@ namespace Redpoint.Uet.Automation.Tests
             Assert.Equal(2, totalLocalWorkerCount);
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task CanSpinUpSingleLocalGauntletWorker()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
-            Skip.IfNot(Directory.Exists(@"E:\EpicGames\UE_5.2"));
-            Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
+            Assert.SkipUnless(Directory.Exists(@"E:\EpicGames\UE_5.2"), "Expected path does not exist.");
+            Assert.SkipUnless(Directory.Exists(@"C:\Work\internal"), "Expected path does not exist.");
 
             var services = CreateServices();
             var sp = services.BuildServiceProvider();
@@ -278,12 +277,12 @@ namespace Redpoint.Uet.Automation.Tests
             Assert.True(didStop, "Worker is expected to stop");
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task CanShutdownWorkerWithFinishedWithWorkersAsync()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
-            Skip.IfNot(Directory.Exists(@"E:\EpicGames\UE_5.2"));
-            Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
+            Assert.SkipUnless(Directory.Exists(@"E:\EpicGames\UE_5.2"), "Expected path does not exist.");
+            Assert.SkipUnless(Directory.Exists(@"C:\Work\internal"), "Expected path does not exist.");
 
             var services = CreateServices();
             var sp = services.BuildServiceProvider();
@@ -355,12 +354,12 @@ namespace Redpoint.Uet.Automation.Tests
             Assert.True(didStop, "Worker is expected to stop");
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task CanShutdownWorkerWithFinishedWithDescriptorAsync()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
-            Skip.IfNot(Directory.Exists(@"E:\EpicGames\UE_5.2"));
-            Skip.IfNot(Directory.Exists(@"C:\Work\internal"));
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
+            Assert.SkipUnless(Directory.Exists(@"E:\EpicGames\UE_5.2"), "Expected path does not exist.");
+            Assert.SkipUnless(Directory.Exists(@"C:\Work\internal"), "Expected path does not exist.");
 
             var services = CreateServices();
             var sp = services.BuildServiceProvider();

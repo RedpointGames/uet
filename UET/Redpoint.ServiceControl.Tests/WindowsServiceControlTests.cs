@@ -6,10 +6,10 @@
     public class WindowsServiceControlTests
     {
         [SupportedOSPlatform("windows")]
-        [SkippableFact]
-        public async void TestServiceStatus()
+        [Fact]
+        public async Task TestServiceStatus()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test can only run on Windows.");
 
             var services = new ServiceCollection();
             services.AddServiceControl();
@@ -17,10 +17,10 @@
             var serviceControl = sp.GetRequiredService<IServiceControl>();
 
             Assert.True(
-                await serviceControl.IsServiceRunning("EventLog").ConfigureAwait(false),
+                await serviceControl.IsServiceRunning("EventLog", TestContext.Current.CancellationToken).ConfigureAwait(true),
                 "Expected 'EventLog' service to be running.");
             Assert.False(
-                await serviceControl.IsServiceRunning("SDRSVC").ConfigureAwait(false),
+                await serviceControl.IsServiceRunning("SDRSVC", TestContext.Current.CancellationToken).ConfigureAwait(true),
                 "Expected 'SDRSVC' (Windows Backup) service to not be running.");
         }
     }

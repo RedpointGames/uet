@@ -4,13 +4,13 @@ namespace Redpoint.Windows.VolumeManagement.Tests
 
     public class SystemVolumeTests
     {
-        [SkippableFact]
+        [Fact]
         [SupportedOSPlatform("windows6.2")]
         public void CanQuerySystemVolumes()
         {
-            Skip.IfNot(OperatingSystem.IsWindowsVersionAtLeast(6, 2));
+            Assert.SkipUnless(OperatingSystem.IsWindowsVersionAtLeast(6, 2), "Windows version too old.");
             // @note: This test does not work on GitHub Actions, presumably due to some weird sandboxing or volume mapping.
-            Skip.IfNot(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("GITHUB_ACTION")));
+            Assert.SkipUnless(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("GITHUB_ACTION")), "Skipped on GitHub actions.");
 
             var volumes = new SystemVolumes().ToList();
             Assert.NotEmpty(volumes);

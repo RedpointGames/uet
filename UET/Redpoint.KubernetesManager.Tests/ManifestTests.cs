@@ -12,7 +12,6 @@
     using System.Text;
     using System.Text.Json;
     using Xunit;
-    using Xunit.Abstractions;
 
     public class ManifestTests
     {
@@ -78,7 +77,7 @@
                         WebSocketMessageType.Text,
                         true,
                         cts.Token);
-                    await Task.Delay(500);
+                    await Task.Delay(500, TestContext.Current.CancellationToken);
                     Assert.Single(updatesReceived);
                     Assert.Equal(1, updatesReceived[0].Value);
                     Assert.Empty(cancellationsReceived);
@@ -87,7 +86,7 @@
                         WebSocketMessageType.Text,
                         true,
                         cts.Token);
-                    await Task.Delay(500);
+                    await Task.Delay(500, TestContext.Current.CancellationToken);
                     Assert.Equal(2, updatesReceived.Count);
                     Assert.Equal(2, updatesReceived[1].Value);
                     Assert.Single(cancellationsReceived);

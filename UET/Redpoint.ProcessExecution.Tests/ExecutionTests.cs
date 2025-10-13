@@ -9,10 +9,10 @@
 
     public class ExecutionTests
     {
-        [SkippableFact]
+        [Fact]
         public async Task CanExecuteCmdAsync()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var services = new ServiceCollection();
             services.AddLogging();
@@ -32,14 +32,14 @@
                     ],
                 },
                 CaptureSpecification.Passthrough,
-                CancellationToken.None).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(true);
             Assert.Equal(0, exitCode);
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task CanCaptureCmdAsync()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var services = new ServiceCollection();
             services.AddLogging();
@@ -60,15 +60,15 @@
                     ],
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(true);
             Assert.Equal(0, exitCode);
             Assert.Equal("test", stdout.ToString().Trim());
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task CanGetExitCodeOneFromCmdAsync()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var services = new ServiceCollection();
             services.AddLogging();
@@ -88,14 +88,14 @@
                     ],
                 },
                 CaptureSpecification.Passthrough,
-                CancellationToken.None).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(true);
             Assert.Equal(1, exitCode);
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task CanGetExitCodeWeirdFromCmdAsync()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var services = new ServiceCollection();
             services.AddLogging();
@@ -115,14 +115,14 @@
                     ],
                 },
                 CaptureSpecification.Passthrough,
-                CancellationToken.None).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(true);
             Assert.Equal(375, exitCode);
         }
 
-        [SkippableFact(Skip = "Only fails on the build servers for some reason.")]
+        [Fact(Skip = "Only fails on the build servers for some reason.")]
         public async Task CanTerminateCmdWithTimeoutAsync()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var services = new ServiceCollection();
             services.AddLogging();
@@ -146,14 +146,14 @@
                     },
                     CaptureSpecification.Passthrough,
                     cts.Token).ConfigureAwait(false);
-            }).ConfigureAwait(false);
+            }).ConfigureAwait(true);
         }
 
-        [SkippableFact]
+        [Fact]
         [SupportedOSPlatform("windows")]
         public async Task CanMapDriveForCmdAndSeeContentsOfSystemDriveAsync()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var services = new ServiceCollection();
             services.AddLogging();
@@ -178,15 +178,15 @@
                     },
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(true);
             Assert.Equal(0, exitCode);
         }
 
-        [SkippableFact]
+        [Fact]
         [SupportedOSPlatform("windows")]
         public async Task CanSeeContentsOfSystemDriveAsync()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var services = new ServiceCollection();
             services.AddLogging();
@@ -207,15 +207,15 @@
                     ],
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(true);
             Assert.Equal(0, exitCode);
         }
 
-        [SkippableFact]
+        [Fact]
         [SupportedOSPlatform("windows")]
         public async Task CanMapDriveForCmdAndSeeContentsAsync()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var services = new ServiceCollection();
             services.AddLogging();
@@ -240,17 +240,17 @@
                     },
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(true);
             Assert.Equal(0, exitCode);
             var lines = stdout.ToString().Split("\r\n");
             Assert.Contains(lines, x => x.Contains("Redpoint.ProcessExecution.Tests.dll", StringComparison.OrdinalIgnoreCase));
         }
 
-        [SkippableFact]
+        [Fact]
         [SupportedOSPlatform("windows")]
         public async Task CanMapDriveForCmdAsync()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var services = new ServiceCollection();
             services.AddLogging();
@@ -275,16 +275,16 @@
                     },
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(true);
             Assert.Equal(0, exitCode);
             Assert.Equal("test", stdout.ToString().Trim());
         }
 
-        [SkippableFact]
+        [Fact]
         [SupportedOSPlatform("windows")]
         public async Task CanMapEmptyDrivesForCmdAsync()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var services = new ServiceCollection();
             services.AddLogging();
@@ -309,16 +309,16 @@
                     PerProcessDriveMappings = new Dictionary<char, string>(),
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(true);
             Assert.Equal(0, exitCode);
             Assert.Equal("test", stdout.ToString().Trim());
         }
 
-        [SkippableFact]
+        [Fact]
         [SupportedOSPlatform("windows")]
         public async Task CanStartCmdInMappedDriveAsync()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var services = new ServiceCollection();
             services.AddLogging();
@@ -344,16 +344,16 @@
                     WorkingDirectory = "I:\\"
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(true);
             Assert.Equal(0, exitCode);
             Assert.Equal("test", stdout.ToString().Trim());
         }
 
-        [SkippableFact]
+        [Fact]
         [SupportedOSPlatform("windows")]
         public async Task CanStartCmdInMappedDriveAndSeeContentsAsync()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var services = new ServiceCollection();
             services.AddLogging();
@@ -379,7 +379,7 @@
                     WorkingDirectory = "I:\\"
                 },
                 CaptureSpecification.CreateFromStdoutStringBuilder(stdout),
-                CancellationToken.None).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(true);
             Assert.Equal(0, exitCode);
             var lines = stdout.ToString().Split("\r\n");
             Assert.Contains(lines, x => x.Contains("Redpoint.ProcessExecution.Tests.dll", StringComparison.OrdinalIgnoreCase));

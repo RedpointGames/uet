@@ -1,46 +1,44 @@
 ﻿namespace Redpoint.XunitFramework
 {
-    using Xunit.Sdk;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Xunit.Internal;
+    using Xunit.Sdk;
+    using Xunit.v3;
 
     internal class RedpointTestCollectionRunner : XunitTestCollectionRunner
     {
-        public RedpointTestCollectionRunner(
-            Xunit.Abstractions.ITestCollection testCollection,
-            IEnumerable<IXunitTestCase> testCases,
-            Xunit.Abstractions.IMessageSink diagnosticMessageSink,
-            IMessageBus messageBus,
-            ITestCaseOrderer testCaseOrderer,
-            ExceptionAggregator aggregator,
-            CancellationTokenSource cancellationTokenSource) : base(
-                testCollection,
-                testCases,
-                diagnosticMessageSink,
-                messageBus,
-                testCaseOrderer,
-                aggregator,
-                cancellationTokenSource)
-        {
-        }
+        public static RedpointTestCollectionRunner RedpointInstance { get; } = new();
 
-        protected override Task<RunSummary> RunTestClassAsync(
-            Xunit.Abstractions.ITestClass testClass,
-            Xunit.Abstractions.IReflectionTypeInfo @class,
-            IEnumerable<IXunitTestCase> testCases)
+        protected override ValueTask<RunSummary> RunTestClass(
+            XunitTestCollectionRunnerContext ctxt, 
+            IXunitTestClass? testClass, 
+            IReadOnlyCollection<IXunitTestCase> testCases)
         {
-            return new RedpointTestClassRunner(
+            Guard.ArgumentNotNull(ctxt);
+            Guard.ArgumentNotNull(testCases);
+
+            if (testClass is null)
+                return new(XunitRunnerHelper.FailTestCases(
+                    ctxt.MessageBus,
+                    ctxt.CancellationTokenSource,
+                    testCases,
+                    "Test case '{0}' does not have an associated class and cannot be run by XunitTestClassRunner",
+                    sendTestClassMessages: true,
+                    sendTestMethodMessages: true
+                ));
+
+            return RedpointTestClassRunner.RedpointInstance.Run(
                 testClass,
-                @class,
                 testCases,
-                DiagnosticMessageSink,
-                MessageBus,
-                TestCaseOrderer,
-                new ExceptionAggregator(Aggregator),
-                CancellationTokenSource,
-                CollectionFixtureMappings)
-                .RunAsync();
+                ctxt.ExplicitOption,
+                ctxt.MessageBus,
+                ctxt.TestCaseOrderer,
+                ctxt.Aggregator.Clone(),
+                ctxt.CancellationTokenSource,
+                ctxt.CollectionFixtureMappings
+            );
         }
     }
 }

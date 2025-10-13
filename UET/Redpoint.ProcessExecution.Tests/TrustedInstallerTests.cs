@@ -10,14 +10,14 @@
 
     public class TrustedInstallerTests
     {
-        [SkippableFact]
+        [Fact]
         [SupportedOSPlatform("windows6.0.6000")]
         public async Task CanExecuteAsTrustedInstallerAsync()
         {
-            Skip.IfNot(OperatingSystem.IsWindows());
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "This test only runs on Windows.");
 
             var isAdministrator = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
-            Skip.IfNot(isAdministrator);
+            Assert.SkipUnless(isAdministrator, "This test requires Administrative permissions.");
 
             var services = new ServiceCollection();
             services.AddLogging();
@@ -48,7 +48,7 @@
                     RunAsTrustedInstaller = true,
                 },
                 CaptureSpecification.Passthrough,
-                CancellationToken.None).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(true);
 
             var authority = File.ReadAllText(authorityPath);
             Assert.Equal(0, exitCode);

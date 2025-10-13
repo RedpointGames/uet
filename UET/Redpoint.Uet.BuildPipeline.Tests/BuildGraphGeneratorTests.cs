@@ -27,13 +27,13 @@ namespace Redpoint.Uet.BuildPipeline.Tests
             return services.BuildServiceProvider();
         }
 
-        [SkippableFact]
-        public async void CanGenerateBuildGraphForProject()
+        [Fact]
+        public async Task CanGenerateBuildGraphForProject()
         {
             var enginePath = Environment.GetEnvironmentVariable("UET_ENGINE_PATH") ?? @"E:\EpicGames\UE_5.2";
             var projectPath = Environment.GetEnvironmentVariable("UET_PROJECT_PATH") ?? @"C:\Work\examples\EOS_CPlusPlus";
-            Skip.IfNot(Directory.Exists(enginePath), $"Engine must exist at {enginePath} for this test to run.");
-            Skip.IfNot(Directory.Exists(projectPath), $"Project must exist at {projectPath} for this test to run.");
+            Assert.SkipUnless(Directory.Exists(enginePath), $"Engine must exist at {enginePath} for this test to run.");
+            Assert.SkipUnless(Directory.Exists(projectPath), $"Project must exist at {projectPath} for this test to run.");
 
             var serviceProvider = BuildServiceProvider();
 
@@ -88,13 +88,13 @@ namespace Redpoint.Uet.BuildPipeline.Tests
             Assert.Contains(buildGraph.Groups, x => x.Name == "Windows Tag");
         }
 
-        [SkippableFact]
-        public async void CanGenerateBuildGraphForPlugin()
+        [Fact]
+        public async Task CanGenerateBuildGraphForPlugin()
         {
             var enginePath = Environment.GetEnvironmentVariable("UET_ENGINE_PATH") ?? @"E:\EpicGames\UE_5.2";
             var pluginPath = Environment.GetEnvironmentVariable("UET_PLUGIN_PATH") ?? @"C:\Work\examples\EOS_CPlusPlus\Plugins\EOS";
-            Skip.IfNot(Directory.Exists(enginePath), $"Engine must exist at {enginePath} for this test to run.");
-            Skip.IfNot(Directory.Exists(pluginPath), $"Plugin must exist at {pluginPath} for this test to run.");
+            Assert.SkipUnless(Directory.Exists(enginePath), $"Engine must exist at {enginePath} for this test to run.");
+            Assert.SkipUnless(Directory.Exists(pluginPath), $"Plugin must exist at {pluginPath} for this test to run.");
 
             var serviceProvider = BuildServiceProvider();
 
