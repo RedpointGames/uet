@@ -77,7 +77,7 @@
                     Assert.True(true);
                     return;
                 }
-                await Task.Delay(1000).ConfigureAwait(true);
+                await Task.Delay(1000, cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
             }
             Assert.Equal(counterContainer.Value, await shardedCounters.GetAsync("test-sharded-counter").ConfigureAwait(true));
 #pragma warning restore CA5394

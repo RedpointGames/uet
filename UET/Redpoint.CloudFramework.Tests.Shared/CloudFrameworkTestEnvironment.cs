@@ -31,14 +31,7 @@
     using System.Diagnostics;
     using Xunit.v3;
 
-    public class CloudFrameworkTestEnvironment : CloudFrameworkTestEnvironment<DefaultCloudFrameworkTestEnvironmentConfiguration>
-    {
-        public CloudFrameworkTestEnvironment(IMessageSink messageSink) : base(messageSink)
-        {
-        }
-    }
-
-    public class CloudFrameworkTestEnvironment<TConfiguration> : IAsyncLifetime, ICloudFrameworkTestEnvironment where TConfiguration : ICloudFrameworkTestEnvironmentConfiguration, new()
+    public class CloudFrameworkTestEnvironment : IAsyncLifetime, ICloudFrameworkTestEnvironment
     {
 #pragma warning disable CS8618
         public CloudFrameworkTestEnvironment(
@@ -50,15 +43,16 @@
 
         public IServiceProvider Services { get; private set; }
 
-        public ICloudFrameworkTestEnvironment CreateWithServices()
+        public IServiceProvider CreateServiceProvider(Action<ServiceCollection> configure)
         {
+            return CreateWithServices(configure).Services;
+        }
+
+        private ICloudFrameworkTestEnvironment CreateWithServices(Action<ServiceCollection> configure)
+        {
+            ArgumentNullException.ThrowIfNull(configure);
+
             var services = new ServiceCollection();
-            services.AddLogging(builder =>
-            {
-                builder.ClearProviders();
-                builder.SetMinimumLevel(LogLevel.Trace);
-                builder.AddXUnit();
-            });
 
             _messageSink.OnMessage(new DiagnosticMessage($"Building service provider"));
 
@@ -92,7 +86,7 @@
 
             services.AddHttpClient();
 
-            new TConfiguration().RegisterServices(services);
+            configure(services);
 
 #pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
             return new NestedCloudFrameworkTestEnvironment(services.BuildServiceProvider());
@@ -252,7 +246,7 @@
                 }
             }
 
-            Services = CreateWithServices().Services;
+            Services = CreateWithServices(_ => { }).Services;
 
             _messageSink.OnMessage(new DiagnosticMessage($"Waiting for Datastore to be operational..."));
 

@@ -79,7 +79,7 @@
 
             var layer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
 
-            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+            await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
 
             Assert.NotNull(model.Key);
             Assert.Equal(TestStringEnum.A, model.enumValue);
@@ -100,16 +100,16 @@
                     enumSetValue = new HashSet<StringEnumValue<TestStringEnum>> { TestStringEnum.B, TestStringEnum.C },
                     timestamp = instant,
                 };
-                await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+                await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
                 modelKey = model.Key;
             }
 
             {
                 await HandleEventualConsistency(async () =>
                 {
-                    Assert.NotNull(await layer.LoadAsync<TestStringModel>(string.Empty, modelKey, null, null, CancellationToken.None).ConfigureAwait(true));
+                    Assert.NotNull(await layer.LoadAsync<TestStringModel>(string.Empty, modelKey, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
                 }).ConfigureAwait(true);
-                var model = await layer.LoadAsync<TestStringModel>(string.Empty, modelKey, null, null, CancellationToken.None).ConfigureAwait(true);
+                var model = await layer.LoadAsync<TestStringModel>(string.Empty, modelKey, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
                 Assert.NotNull(model);
                 Assert.Equal(TestStringEnum.B, model.enumValue);
                 Assert.Equal(new[] { TestStringEnum.B, TestStringEnum.C }, model.enumArrayValue);
@@ -129,7 +129,7 @@
                     enumValue = TestStringEnum.B,
                     timestamp = instant,
                 };
-                await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+                await layer.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
             }
 
             {
@@ -142,7 +142,7 @@
                     null,
                     null,
                     null,
-                    CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true));
+                    TestContext.Current.CancellationToken).FirstOrDefaultAsync().ConfigureAwait(true));
                 }).ConfigureAwait(true);
 
                 var model = await layer.QueryAsync<TestStringModel>(
@@ -152,7 +152,7 @@
                     null,
                     null,
                     null,
-                    CancellationToken.None).FirstOrDefaultAsync().ConfigureAwait(true);
+                    TestContext.Current.CancellationToken).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
                 Assert.NotNull(model);
             }
         }
@@ -172,16 +172,16 @@
                     enumArrayValue = new[] { TestStringEnum.B, TestStringEnum.C },
                     timestamp = instant,
                 };
-                await datastore.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+                await datastore.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
                 modelKey = model.Key;
             }
 
             {
                 await HandleEventualConsistency(async () =>
                 {
-                    Assert.NotNull(await datastore.LoadAsync<TestStringModel>(string.Empty, modelKey, null, null, CancellationToken.None).ConfigureAwait(true));
+                    Assert.NotNull(await datastore.LoadAsync<TestStringModel>(string.Empty, modelKey, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
                 }).ConfigureAwait(true);
-                var model = await redisCache.LoadAsync<TestStringModel>(string.Empty, modelKey, null, null, CancellationToken.None).ConfigureAwait(true);
+                var model = await redisCache.LoadAsync<TestStringModel>(string.Empty, modelKey, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
                 Assert.NotNull(model);
                 Assert.Equal(TestStringEnum.B, model.enumValue);
                 Assert.Equal(new[] { TestStringEnum.B, TestStringEnum.C }, model.enumArrayValue);
@@ -204,16 +204,16 @@
                     enumSetValue = new HashSet<StringEnumValue<TestStringEnum>> { TestStringEnum.B, TestStringEnum.C },
                     timestamp = instant,
                 };
-                await redisCache.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, CancellationToken.None).FirstAsync().ConfigureAwait(true);
+                await redisCache.CreateAsync(string.Empty, new[] { model }.ToAsyncEnumerable(), null, null, TestContext.Current.CancellationToken).FirstAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
                 modelKey = model.Key;
             }
 
             {
                 await HandleEventualConsistency(async () =>
                 {
-                    Assert.NotNull(await datastore.LoadAsync<TestStringModel>(string.Empty, modelKey, null, null, CancellationToken.None).ConfigureAwait(true));
+                    Assert.NotNull(await datastore.LoadAsync<TestStringModel>(string.Empty, modelKey, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true));
                 }).ConfigureAwait(true);
-                var model = await redisCache.LoadAsync<TestStringModel>(string.Empty, modelKey, null, null, CancellationToken.None).ConfigureAwait(true);
+                var model = await redisCache.LoadAsync<TestStringModel>(string.Empty, modelKey, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
                 Assert.NotNull(model);
                 Assert.Equal(TestStringEnum.B, model.enumValue);
                 Assert.Equal(new[] { TestStringEnum.B, TestStringEnum.C }, model.enumArrayValue);

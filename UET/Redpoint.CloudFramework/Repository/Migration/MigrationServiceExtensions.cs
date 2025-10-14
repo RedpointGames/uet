@@ -6,7 +6,7 @@
 
     public static class MigrationServiceExtensions
     {
-        public static IServiceCollection AddMigration<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TModel, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicConstructors)] TMigration>(this IServiceCollection services, int toSchemaVersion) where TModel : class, IModel, new() where TMigration : IModelMigrator<TModel>
+        public static IServiceCollection AddMigration<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TModel, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicConstructors)] TMigration>(this IServiceCollection services, int toSchemaVersion) where TModel : class, IModel, new() where TMigration : IRegisterableModelMigrator<TModel>
         {
             services.AddTransient<RegisteredModelMigratorBase>(sp =>
             {
@@ -17,6 +17,15 @@
                 };
             });
             services.AddTransient(typeof(TMigration), typeof(TMigration));
+
+            var executorInterfaceType = typeof(IModelMigratorExecutor<TModel>);
+            var executorImplementationType = typeof(DefaultModelMigratorExecutor<TModel>);
+            if (!services.Any(x => x.ServiceType == executorInterfaceType)) 
+            {
+                // Only register the executor once.
+                services.AddTransient(executorInterfaceType, executorImplementationType);
+            }
+
             return services;
         }
     }
