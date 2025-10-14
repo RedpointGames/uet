@@ -6,17 +6,21 @@
 
     public static class MigrationServiceExtensions
     {
-        public static IServiceCollection AddMigration<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TModel, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicConstructors)] TMigration>(this IServiceCollection services, int toSchemaVersion) where TModel : class, IModel, new() where TMigration : IRegisterableModelMigrator<TModel>
+        public static IServiceCollection AddMigration<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TModel, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicConstructors)] TMigrator>(this IServiceCollection services, int toSchemaVersion) where TModel : class, IModel, new() where TMigrator : IRegisterableModelMigrator<TModel>
         {
             services.AddTransient<RegisteredModelMigratorBase>(sp =>
             {
                 return new RegisteredModelMigrator<TModel>
                 {
-                    MigratorType = typeof(TMigration),
+                    MigratorType = typeof(TMigrator),
                     ToSchemaVersion = toSchemaVersion,
                 };
             });
-            services.AddTransient(typeof(TMigration), typeof(TMigration));
+            services.AddTransient(typeof(TMigrator), typeof(TMigrator));
+            services.AddTransient<IDesiredSchemaVersion<TMigrator>>(_ =>
+            {
+                return new DefaultDesiredSchemaVersion<TMigrator>(toSchemaVersion);
+            });
 
             var executorInterfaceType = typeof(IModelMigratorExecutor<TModel>);
             var executorImplementationType = typeof(DefaultModelMigratorExecutor<TModel>);
