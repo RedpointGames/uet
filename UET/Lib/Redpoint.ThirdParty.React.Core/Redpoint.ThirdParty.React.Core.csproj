@@ -38,6 +38,7 @@
     <PackageReference Include="JavaScriptEngineSwitcher.Core" />
     <PackageReference Include="JSPool" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
   </ItemGroup>
 
 </Project>

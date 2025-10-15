@@ -6,6 +6,7 @@
  */
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using React.Exceptions;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Encodings.Web;
@@ -21,32 +22,21 @@ namespace React
     public class ReactSiteConfiguration : IReactSiteConfiguration
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly IJsonSerializerOptionsProvider _jsonSerializerOptionsProvider;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReactSiteConfiguration"/> class.
         /// </summary>
         [RequiresDynamicCode("JsonStringEnumConverter is used.")]
-        public ReactSiteConfiguration(IServiceProvider serviceProvider)
+        public ReactSiteConfiguration(
+            IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;
-
-            var encoderSettings = new TextEncoderSettings();
-            encoderSettings.AllowRange(UnicodeRanges.BasicLatin);
-            encoderSettings.ForbidCharacters('<', '>', '&', '\'', '"');
+            _jsonSerializerOptionsProvider = _serviceProvider.GetRequiredService<IJsonSerializerOptionsProvider>();
 
             ReuseJavaScriptEngines = true;
             AllowJavaScriptPrecompilation = false;
             LoadReact = true;
-            JsonSerializerSettings = new JsonSerializerOptions
-            {
-                Encoder = JavaScriptEncoder.Create(encoderSettings),
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
-                Converters =
-                {
-                    new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
-                }
-            };
             UseDebugReact = false;
             UseServerSideRendering = true;
             ExceptionHandler = (Exception ex, string ComponentName, string ContainerId) =>
@@ -142,25 +132,6 @@ namespace React
         }
 
         /// <summary>
-        /// Gets or sets the configuration for JSON serializer.
-        /// </summary>
-        public JsonSerializerOptions JsonSerializerSettings { get; set; }
-
-        /// <summary>
-        /// Sets the configuration for json serializer.
-        /// </summary>
-        /// <param name="settings">Settings.</param>
-        /// <remarks>
-        /// Thic confiquration is used when component initialization script
-        /// is being generated server-side.
-        /// </remarks>
-        public IReactSiteConfiguration SetJsonSerializerSettings(JsonSerializerOptions settings)
-        {
-            JsonSerializerSettings = settings;
-            return this;
-        }
-
-        /// <summary>
         /// Gets or sets whether JavaScript engines should be reused across requests.
         /// </summary>
         public bool ReuseJavaScriptEngines { get; set; }
@@ -171,6 +142,15 @@ namespace React
         {
             ReuseJavaScriptEngines = value;
             return this;
+        }
+
+        /// <inheritdoc/>
+        public JsonSerializerOptions JsonSerializerSettings
+        {
+            get
+            {
+                return _jsonSerializerOptionsProvider.Options;
+            }
         }
 
         /// <summary>

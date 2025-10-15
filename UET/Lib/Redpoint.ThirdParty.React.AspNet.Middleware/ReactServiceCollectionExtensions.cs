@@ -32,6 +32,8 @@ namespace React.AspNet
             services.AddSingleton<IFileSystem, AspNetFileSystem>();
             services.AddSingleton<ICache, MemoryFileCacheCore>();
 
+            services.AddSingleton<IJsonSerializerOptionsProvider, MvcJsonSerializerOptionsProvider>();
+
             return services;
         }
     }
