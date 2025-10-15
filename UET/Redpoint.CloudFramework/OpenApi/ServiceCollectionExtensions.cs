@@ -1,27 +1,52 @@
 ﻿namespace Redpoint.CloudFramework.OpenApi
 {
+    using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.ApplicationModels;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Options;
     using Microsoft.OpenApi.Models;
     using NodaTime;
     using System;
     using System.IO;
     using System.Reflection;
+    using System.Text.Encodings.Web;
+    using System.Text.Json;
+    using System.Text.Json.Serialization;
+    using System.Text.Unicode;
 
     public static class ServiceCollectionExtensions
     {
-        public static IMvcBuilder AddCloudFrameworkCustomisation(this IMvcBuilder builder)
+        private class JsonOptionsWasConfiguredForSwaggerReactApp
         {
-            builder.AddJsonOptions(options =>
+        }
+
+        public static IMvcBuilder AddJsonOptionsForSwaggerReactApp(this IMvcBuilder builder)
+        {
+            ArgumentNullException.ThrowIfNull(builder);
+            builder.Services.AddSingleton<JsonOptionsWasConfiguredForSwaggerReactApp>();
+            return builder.AddJsonOptions(options =>
             {
+                var encoderSettings = new TextEncoderSettings();
+                encoderSettings.AllowRange(UnicodeRanges.BasicLatin);
+                encoderSettings.ForbidCharacters('<', '>', '&', '\'', '"');
+                options.JsonSerializerOptions.Encoder = JavaScriptEncoder.Create(encoderSettings);
+                options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
                 options.JsonSerializerOptions.Converters.Add(new InstantJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(
+                    new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
             });
-            return builder;
         }
 
         public static void AddSwaggerGenForReactApp(this IServiceCollection services, string productName = "Internal API")
         {
             services.AddTransient<IApplicationModelProvider, RedpointApplicationModelProvider>();
+
+            var jsonOptionsWasConfigured = services.FirstOrDefault(x => x.ServiceType == typeof(JsonOptionsWasConfiguredForSwaggerReactApp));
+            if (jsonOptionsWasConfigured == null)
+            {
+                throw new JsonOptionsNotConfiguredException();
+            }
 
             services.AddSwaggerGen(options =>
             {

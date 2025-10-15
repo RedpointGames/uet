@@ -62,19 +62,9 @@ namespace React
         IReactSiteConfiguration SetReuseJavaScriptEngines(bool value);
 
         /// <summary>
-        /// Gets or sets the configuration for JSON serializer.
+        /// Gets the configuration for JSON serializer.
         /// </summary>
-        JsonSerializerOptions JsonSerializerSettings { get; set; }
-
-        /// <summary>
-        /// Sets the configuration for json serializer.
-        /// </summary>
-        /// <remarks>
-        /// This confiquration is used when component initialization script
-        /// is being generated server-side.
-        /// </remarks>
-        /// <param name="settings">The settings.</param>
-        IReactSiteConfiguration SetJsonSerializerSettings(JsonSerializerOptions settings);
+        JsonSerializerOptions JsonSerializerSettings { get; }
 
         /// <summary>
         /// Gets or sets the number of engines to initially start when a pool is created.
