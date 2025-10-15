@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
     using Redpoint.CloudFramework.Models;
-    using Newtonsoft.Json.Linq;
     using Type = System.Type;
     using Value = Google.Cloud.Datastore.V1.Value;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
@@ -9,6 +8,7 @@
     using System.Collections.Generic;
     using Google.Cloud.Datastore.V1;
     using Redpoint.CloudFramework.Prefix;
+    using System.Text.Json.Nodes;
 
     internal class KeyArrayValueConverter : BaseArrayValueConverter
     {
@@ -93,9 +93,9 @@
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrElementType,
-            JToken propertyNonNullJsonElementToken)
+            JsonNode propertyNonNullJsonElementToken)
         {
-            var idStr = propertyNonNullJsonElementToken.Value<string>();
+            var idStr = JsonValueAssertions.FromStringJsonNode(propertyName, propertyNonNullJsonElementToken);
             if (idStr == null)
             {
                 return null;
@@ -113,7 +113,7 @@
             }
         }
 
-        protected override JToken ConvertFromJsonElementValue(
+        protected override JsonNode ConvertFromJsonElementValue(
             JsonValueConvertToContext context,
             string propertyName,
             Type propertyClrElementType,
@@ -126,7 +126,7 @@
                 throw new InvalidOperationException("Cross-namespace data write for key property '" + propertyName + "' in array element.");
             }
 
-            return _globalPrefix.CreateInternal(keyValue);
+            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal(keyValue));
         }
     }
 }

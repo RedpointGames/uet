@@ -1,11 +1,12 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
     using Redpoint.CloudFramework.Models;
-    using Newtonsoft.Json.Linq;
     using Redpoint.StringEnum;
     using Type = System.Type;
     using Value = Google.Cloud.Datastore.V1.Value;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
+    using System.Text.Json.Nodes;
+    using static Google.Cloud.Datastore.V1.Value;
 
     /// <summary>
     /// Represents a converter that can convert CLR values into Datastore and JSON values and vice versa.
@@ -88,8 +89,8 @@
         /// Converts a JSON value into a CLR value.
         /// </summary>
         /// <remarks>
-        /// This method does not receive JSON values that are null (<see cref="JValue.CreateNull"/>),
-        /// as these are automatically converted to the null CLR value.
+        /// This method does not receive JSON values that are null, as these are automatically 
+        /// converted to the null CLR value.
         /// </remarks>
         /// <param name="context">The conversion context.</param>
         /// <param name="propertyName">The name of the property in .NET and Datastore.</param>
@@ -101,7 +102,7 @@
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrType,
-            JToken propertyNonNullJsonToken,
+            JsonNode propertyNonNullJsonToken,
             AddConvertFromDelayedLoad addConvertFromDelayedLoad);
 
         /// <summary>
@@ -110,7 +111,7 @@
         /// <remarks>
         /// Unlike <see cref="ConvertToDatastoreValue(DatastoreValueConvertToContext, string, Type, object?, bool)"/>, 
         /// this method can not receive null CLR values as they are automatically converted to the
-        /// result of <see cref="JValue.CreateNull"/>. Value converters do not get the opportunity to set
+        /// null JSON value. Value converters do not get the opportunity to set
         /// additional fields in the JSON cache for null values.
         /// </remarks>
         /// <param name="context">The conversion context.</param>
@@ -118,7 +119,7 @@
         /// <param name="propertyClrType">The CLR (.NET) type of the property.</param>
         /// <param name="propertyNonNullClrValue">The non-null CLR (.NET) value to convert.</param>
         /// <returns>The JSON token to store in the cache for this property.</returns>
-        JToken ConvertToJsonToken(
+        JsonNode ConvertToJsonToken(
             JsonValueConvertToContext context,
             string propertyName,
             Type propertyClrType,

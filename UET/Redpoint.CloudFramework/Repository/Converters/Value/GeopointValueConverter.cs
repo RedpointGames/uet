@@ -1,14 +1,16 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
-    using Redpoint.CloudFramework.Models;
-    using Newtonsoft.Json.Linq;
-    using Type = System.Type;
     using Google.Protobuf.WellKnownTypes;
-    using Value = Google.Cloud.Datastore.V1.Value;
     using Google.Type;
+    using Redpoint.CloudFramework.Models;
+    using Redpoint.CloudFramework.Repository.Converters.Value.Context;
     using Redpoint.CloudFramework.Repository.Geographic;
     using System.Globalization;
-    using Redpoint.CloudFramework.Repository.Converters.Value.Context;
+    using System.Text.Json;
+    using System.Text.Json.Nodes;
+    using static Google.Cloud.Datastore.V1.Value;
+    using Type = System.Type;
+    using Value = Google.Cloud.Datastore.V1.Value;
 
     internal class GeopointValueConverter : IValueConverter
     {
@@ -120,32 +122,49 @@
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrType,
-            JToken propertyNonNullJsonToken,
+            JsonNode propertyNonNullJsonToken,
             AddConvertFromDelayedLoad addConvertFromDelayedLoad)
         {
-            if (propertyNonNullJsonToken == null || propertyNonNullJsonToken?.Type == JTokenType.Null)
+            if (propertyNonNullJsonToken == null || propertyNonNullJsonToken.GetValueKind() == JsonValueKind.Null)
             {
-                return null;
+                throw new JsonValueWasNullException(propertyName);
+            }
+
+            if (propertyNonNullJsonToken.GetValueKind() != JsonValueKind.Object)
+            {
+                throw new JsonValueWasIncorrectKindException(propertyName, propertyNonNullJsonToken.GetValueKind(), JsonValueKind.Object);
             }
 
             return new LatLng
             {
-                Latitude = propertyNonNullJsonToken!["lat"]?.Value<double>() ?? 0,
-                Longitude = propertyNonNullJsonToken!["long"]?.Value<double>() ?? 0,
+                Latitude = propertyNonNullJsonToken.AsObject()["lat"]?.GetValue<double>() ?? 0,
+                Longitude = propertyNonNullJsonToken.AsObject()["long"]?.GetValue<double>() ?? 0,
             };
         }
 
-        public JToken ConvertToJsonToken(
+        public JsonNode ConvertToJsonToken(
             JsonValueConvertToContext context,
             string propertyName,
             Type propertyClrType,
             object propertyNonNullClrValue)
         {
+            if (propertyNonNullClrValue == null)
+            {
+                throw new RuntimeValueWasNullException(propertyName);
+            }
+
+            if (propertyNonNullClrValue is not LatLng)
+            {
+                throw new RuntimeValueWasIncorrectTypeException(propertyName, propertyNonNullClrValue, typeof(LatLng));
+            }
+
             var geopoint = (LatLng)propertyNonNullClrValue;
 
-            var obj = new JObject();
-            obj["lat"] = (double)geopoint.Latitude;
-            obj["long"] = (double)geopoint.Longitude;
+            var obj = new JsonObject
+            {
+                { "lat", JsonValue.Create((double)geopoint.Latitude) },
+                { "long", JsonValue.Create((double)geopoint.Longitude) }
+            };
             return obj;
         }
     }

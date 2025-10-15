@@ -1,14 +1,15 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
-    using Redpoint.CloudFramework.Models;
-    using Newtonsoft.Json.Linq;
-    using System;
-    using Type = System.Type;
-    using Google.Protobuf.WellKnownTypes;
-    using Value = Google.Cloud.Datastore.V1.Value;
     using Google.Cloud.Datastore.V1;
+    using Google.Protobuf.WellKnownTypes;
+    using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
+    using System;
+    using System.Text.Json.Nodes;
+    using static Google.Cloud.Datastore.V1.Value;
+    using Type = System.Type;
+    using Value = Google.Cloud.Datastore.V1.Value;
 
     internal class UnsafeKeyValueConverter : IValueConverter
     {
@@ -78,10 +79,10 @@
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrType,
-            JToken propertyJsonToken,
+            JsonNode propertyJsonToken,
             AddConvertFromDelayedLoad addConvertFromDelayedLoad)
         {
-            var unsafeIdStr = propertyJsonToken.Value<string>();
+            var unsafeIdStr = JsonValueAssertions.FromStringJsonNode(propertyName, propertyJsonToken);
             if (unsafeIdStr == null)
             {
                 return null;
@@ -92,13 +93,13 @@
             }
         }
 
-        public JToken ConvertToJsonToken(
+        public JsonNode ConvertToJsonToken(
             JsonValueConvertToContext context,
             string propertyName,
             Type propertyClrType,
             object propertyNonNullClrValue)
         {
-            return _globalPrefix.CreateInternal((Key)propertyNonNullClrValue);
+            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal((Key)propertyNonNullClrValue));
         }
     }
 }

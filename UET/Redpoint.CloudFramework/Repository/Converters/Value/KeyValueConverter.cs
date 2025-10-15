@@ -1,14 +1,15 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
-    using Redpoint.CloudFramework.Models;
-    using Newtonsoft.Json.Linq;
-    using System;
-    using Type = System.Type;
-    using Google.Protobuf.WellKnownTypes;
-    using Value = Google.Cloud.Datastore.V1.Value;
     using Google.Cloud.Datastore.V1;
+    using Google.Protobuf.WellKnownTypes;
+    using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
+    using System;
+    using System.Text.Json.Nodes;
+    using static Google.Cloud.Datastore.V1.Value;
+    using Type = System.Type;
+    using Value = Google.Cloud.Datastore.V1.Value;
 
     internal class KeyValueConverter : IValueConverter
     {
@@ -90,10 +91,10 @@
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrType,
-            JToken propertyNonNullJsonToken,
+            JsonNode propertyNonNullJsonToken,
             AddConvertFromDelayedLoad addConvertFromDelayedLoad)
         {
-            var idStr = propertyNonNullJsonToken.Value<string>();
+            var idStr = JsonValueAssertions.FromStringJsonNode(propertyName, propertyNonNullJsonToken);
             if (idStr == null)
             {
                 return null;
@@ -111,7 +112,7 @@
             }
         }
 
-        public JToken ConvertToJsonToken(
+        public JsonNode ConvertToJsonToken(
             JsonValueConvertToContext context,
             string propertyName,
             Type propertyClrType,
@@ -124,7 +125,7 @@
                 throw new InvalidOperationException("Attempted to store cross-namespace key reference in 'key' property");
             }
 
-            return _globalPrefix.CreateInternal(keyValue);
+            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal(keyValue));
         }
     }
 }

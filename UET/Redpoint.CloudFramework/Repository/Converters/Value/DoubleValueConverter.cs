@@ -1,11 +1,12 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
-    using Redpoint.CloudFramework.Models;
-    using Newtonsoft.Json.Linq;
-    using Type = System.Type;
     using Google.Protobuf.WellKnownTypes;
-    using Value = Google.Cloud.Datastore.V1.Value;
+    using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
+    using System.Text.Json.Nodes;
+    using static Google.Cloud.Datastore.V1.Value;
+    using Type = System.Type;
+    using Value = Google.Cloud.Datastore.V1.Value;
 
     internal class DoubleValueConverter : IValueConverter
     {
@@ -69,19 +70,19 @@
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrType,
-            JToken propertyNonNullJsonToken,
+            JsonNode propertyNonNullJsonToken,
             AddConvertFromDelayedLoad addConvertFromDelayedLoad)
         {
-            return propertyNonNullJsonToken.Value<double>();
+            return JsonValueAssertions.FromDoubleJsonNode(propertyName, propertyNonNullJsonToken);
         }
 
-        public JToken ConvertToJsonToken(
+        public JsonNode ConvertToJsonToken(
             JsonValueConvertToContext context,
             string propertyName,
             Type propertyClrType,
             object propertyNonNullClrValue)
         {
-            return new JValue((double)propertyNonNullClrValue);
+            return JsonValueAssertions.ToDoubleJsonNode(propertyName, propertyNonNullClrValue);
         }
     }
 }

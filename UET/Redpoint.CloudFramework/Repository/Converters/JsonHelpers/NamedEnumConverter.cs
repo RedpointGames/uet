@@ -1,12 +1,13 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.JsonHelpers
 {
-    using Newtonsoft.Json;
     using Redpoint.CloudFramework.Infrastructure;
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.Reflection;
+    using System.Text.Json;
+    using System.Text.Json.Serialization;
 
-    internal class NamedEnumConverter : JsonConverter
+    internal class NamedEnumConverter : JsonConverter<object>
     {
         public override bool CanConvert(Type objectType)
         {
@@ -17,13 +18,16 @@
             return t.IsEnum;
         }
 
-        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+        public override object? Read(
+            ref Utf8JsonReader reader, 
+            Type objectType, 
+            JsonSerializerOptions options)
         {
-            if (reader.TokenType == JsonToken.Null)
+            if (reader.TokenType == JsonTokenType.Null)
             {
                 if (!(objectType.IsValueType && objectType.IsGenericType && objectType.GetGenericTypeDefinition() == typeof(Nullable<>)))
                 {
-                    throw new JsonSerializationException("Cannot convert null value to " + objectType.Name);
+                    throw new JsonException("Cannot convert null value to " + objectType.Name);
                 }
 
                 return null;
@@ -36,10 +40,10 @@
             var enumTypeNamedAttribute = enumType.GetCustomAttributes(typeof(INamedEnum)).Cast<INamedEnum>().FirstOrDefault();
             if (enumTypeNamedAttribute == null || enumTypeNamedAttribute.EnumType != enumType)
             {
-                throw new JsonSerializationException($"{enumType.FullName} is missing the [NamedEnum<{enumType.Name}>] attribute, or its type parameter is incorrect.");
+                throw new JsonException($"{enumType.FullName} is missing the [NamedEnum<{enumType.Name}>] attribute, or its type parameter is incorrect.");
             }
 
-            if (reader.TokenType == JsonToken.String)
+            if (reader.TokenType == JsonTokenType.String)
             {
                 var memberInfos = enumTypeNamedAttribute.EnumType.GetFields(BindingFlags.Public | BindingFlags.Static);
                 foreach (var memberInfo in memberInfos)
@@ -47,24 +51,27 @@
                     var attributes = memberInfo.GetCustomAttributes(typeof(NamedEnumValueAttribute), false);
                     var namedValue = ((NamedEnumValueAttribute)attributes[0]).Name;
 
-                    if (namedValue == reader.Value!.ToString())
+                    if (namedValue == reader.GetString())
                     {
                         return Enum.Parse(enumTypeNamedAttribute.EnumType, memberInfo.Name);
                     }
                 }
 
-                throw new JsonSerializationException("Unable to find mapped value for '" + reader.Value!.ToString() + "'.");
+                throw new JsonException("Unable to find mapped value for '" + reader.GetString() + "'.");
             }
 
-            throw new JsonSerializationException("Unexpected token when parsing enum.");
+            throw new JsonException("Unexpected token when parsing enum.");
         }
 
         [SuppressMessage("Trimming", "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "This implementation only accesses enumeration members that will have already been accessed when passed into the 'value' argument.")]
-        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+        public override void Write(
+            Utf8JsonWriter writer, 
+            object value, 
+            JsonSerializerOptions options)
         {
             if (value == null)
             {
-                writer.WriteNull();
+                writer.WriteNullValue();
                 return;
             }
 
@@ -74,14 +81,14 @@
                 : objectType;
             if (enumType == null)
             {
-                writer.WriteNull();
+                writer.WriteNullValue();
                 return;
             }
 
             var fieldName = Enum.GetName(enumType, value);
             if (fieldName == null)
             {
-                writer.WriteNull();
+                writer.WriteNullValue();
                 return;
             }
 
@@ -89,7 +96,7 @@
             var attributes = memberInfo[0].GetCustomAttributes(typeof(NamedEnumValueAttribute), false);
             var namedValue = ((NamedEnumValueAttribute)attributes[0]).Name;
 
-            writer.WriteValue(namedValue);
+            writer.WriteStringValue(namedValue);
         }
     }
 }

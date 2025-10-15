@@ -1,14 +1,15 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
+    using Google.Cloud.Datastore.V1;
     using Redpoint.CloudFramework.Models;
-    using Newtonsoft.Json.Linq;
-    using Type = System.Type;
-    using Value = Google.Cloud.Datastore.V1.Value;
+    using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
     using System.Collections;
     using System.Collections.Generic;
-    using Google.Cloud.Datastore.V1;
-    using Redpoint.CloudFramework.Prefix;
+    using System.Text.Json.Nodes;
+    using static Google.Cloud.Datastore.V1.Value;
+    using Type = System.Type;
+    using Value = Google.Cloud.Datastore.V1.Value;
 
     internal class GlobalKeyArrayValueConverter : BaseArrayValueConverter
     {
@@ -102,9 +103,9 @@
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrElementType,
-            JToken propertyNonNullJsonElementToken)
+            JsonNode propertyNonNullJsonElementToken)
         {
-            var globalIdStr = propertyNonNullJsonElementToken.Value<string>();
+            var globalIdStr = JsonValueAssertions.FromStringJsonNode(propertyName, propertyNonNullJsonElementToken);
             if (globalIdStr == null)
             {
                 return null;
@@ -127,7 +128,7 @@
             }
         }
 
-        protected override JToken ConvertFromJsonElementValue(
+        protected override JsonNode ConvertFromJsonElementValue(
             JsonValueConvertToContext context,
             string propertyName,
             Type propertyClrElementType,
@@ -145,7 +146,7 @@
                 throw new InvalidOperationException("Non-global-namespace data write for key property '" + propertyName + "' in array element.");
             }
 
-            return _globalPrefix.CreateInternal(globalValue);
+            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal(globalValue));
         }
     }
 }

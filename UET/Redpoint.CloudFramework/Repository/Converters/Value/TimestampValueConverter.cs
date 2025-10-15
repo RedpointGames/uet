@@ -1,13 +1,16 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
-    using Redpoint.CloudFramework.Models;
-    using Newtonsoft.Json.Linq;
-    using System;
-    using Type = System.Type;
-    using Value = Google.Cloud.Datastore.V1.Value;
+    using Google.Type;
     using NodaTime;
+    using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Repository.Converters.Timestamp;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
+    using System;
+    using System.Text.Json;
+    using System.Text.Json.Nodes;
+    using static Google.Cloud.Datastore.V1.Value;
+    using Type = System.Type;
+    using Value = Google.Cloud.Datastore.V1.Value;
 
     internal class TimestampValueConverter : IValueConverter
     {
@@ -68,19 +71,39 @@
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrType,
-            JToken propertyJsonToken,
+            JsonNode propertyNonNullJsonToken,
             AddConvertFromDelayedLoad addConvertFromDelayedLoad)
         {
-            return _instantTimestampJsonConverter.FromJsonCacheToNodaTimeInstant(propertyJsonToken);
+            if (propertyNonNullJsonToken == null || propertyNonNullJsonToken.GetValueKind() == JsonValueKind.Null)
+            {
+                throw new JsonValueWasNullException(propertyName);
+            }
+
+            if (propertyNonNullJsonToken.GetValueKind() != JsonValueKind.Object)
+            {
+                throw new JsonValueWasIncorrectKindException(propertyName, propertyNonNullJsonToken.GetValueKind(), JsonValueKind.Object);
+            }
+
+            return _instantTimestampJsonConverter.FromJsonCacheToNodaTimeInstant(propertyNonNullJsonToken);
         }
 
-        public JToken ConvertToJsonToken(
+        public JsonNode ConvertToJsonToken(
             JsonValueConvertToContext context,
             string propertyName,
             Type propertyClrType,
             object propertyNonNullClrValue)
         {
-            return _instantTimestampJsonConverter.FromNodaTimeInstantToJsonCache((Instant?)propertyNonNullClrValue);
+            if (propertyNonNullClrValue == null)
+            {
+                throw new RuntimeValueWasNullException(propertyName);
+            }
+
+            if (propertyNonNullClrValue is not Instant)
+            {
+                throw new RuntimeValueWasIncorrectTypeException(propertyName, propertyNonNullClrValue, typeof(Instant));
+            }
+
+            return _instantTimestampJsonConverter.FromNodaTimeInstantToJsonCache((Instant)propertyNonNullClrValue)!;
         }
     }
 }

@@ -8,6 +8,6 @@
     /// local namespace value provided by <see cref="IModel.GetDatastoreNamespaceForLocalKeys"/>.
     /// </summary>
     /// <param name="localNamespace">The local namespace value provided by <see cref="IModel.GetDatastoreNamespaceForLocalKeys"/>.</param>
-    /// <returns>The CLR value that would normally have been directly returned from <see cref="IValueConverter.ConvertFromDatastoreValue(DatastoreValueConvertFromContext, string, Type, Google.Cloud.Datastore.V1.Value, AddConvertFromDelayedLoad)"/> or <see cref="IValueConverter.ConvertFromJsonToken(JsonValueConvertFromContext, string, Type, Newtonsoft.Json.Linq.JToken, AddConvertFromDelayedLoad)"/>.</returns>
+    /// <returns>The CLR value that would normally have been directly returned from <see cref="IValueConverter.ConvertFromDatastoreValue(DatastoreValueConvertFromContext, string, Type, Google.Cloud.Datastore.V1.Value, AddConvertFromDelayedLoad)"/> or <see cref="IValueConverter.ConvertFromJsonToken(JsonValueConvertFromContext, string, Type, System.Text.Json.Nodes.JsonNode, AddConvertFromDelayedLoad)"/>.</returns>
     internal delegate object? ConvertFromDelayedLoad(string localNamespace);
 }

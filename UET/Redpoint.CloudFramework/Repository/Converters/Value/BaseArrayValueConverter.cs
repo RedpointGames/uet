@@ -1,14 +1,16 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
-    using Redpoint.CloudFramework.Models;
-    using Newtonsoft.Json.Linq;
-    using Type = System.Type;
-    using Google.Protobuf.WellKnownTypes;
-    using Value = Google.Cloud.Datastore.V1.Value;
     using Google.Cloud.Datastore.V1;
+    using Google.Protobuf.WellKnownTypes;
+    using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Text.Json;
+    using System.Text.Json.Nodes;
+    using static Google.Cloud.Datastore.V1.Value;
+    using Type = System.Type;
+    using Value = Google.Cloud.Datastore.V1.Value;
 
     internal abstract class BaseArrayValueConverter : IValueConverter
     {
@@ -127,31 +129,37 @@
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrElementType,
-            JToken propertyNonNullJsonElementToken);
+            JsonNode propertyNonNullJsonElementToken);
 
         public object? ConvertFromJsonToken(
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrType,
-            JToken propertyNonNullJsonToken,
+            JsonNode propertyNonNullJsonToken,
             AddConvertFromDelayedLoad addConvertFromDelayedLoad)
         {
+            if (propertyNonNullJsonToken == null || propertyNonNullJsonToken.GetValueKind() == JsonValueKind.Null)
+            {
+                throw new JsonValueWasNullException(propertyName);
+            }
+
+            if (propertyNonNullJsonToken.GetValueKind() != JsonValueKind.Array)
+            {
+                throw new JsonValueWasIncorrectKindException(propertyName, propertyNonNullJsonToken.GetValueKind(), JsonValueKind.Array);
+            }
+
             var result = new ArrayList();
 
-            var array = propertyNonNullJsonToken.Value<JArray>();
-            // @note: Guards against JSON cache tokens not being array values.
-            if (array != null)
+            var array = propertyNonNullJsonToken.AsArray();
+            foreach (var token in array)
             {
-                foreach (var token in array)
+                if (token != null && token.GetValueKind() != JsonValueKind.Null)
                 {
-                    if (token.Type != JTokenType.Null)
-                    {
-                        result.Add(ConvertFromJsonElementToken(
-                            context,
-                            propertyName,
-                            GetElementType(propertyClrType),
-                            token));
-                    }
+                    result.Add(ConvertFromJsonElementToken(
+                        context,
+                        propertyName,
+                        GetElementType(propertyClrType),
+                        token));
                 }
             }
 
@@ -160,19 +168,29 @@
                 result);
         }
 
-        protected abstract JToken ConvertFromJsonElementValue(
+        protected abstract JsonNode ConvertFromJsonElementValue(
             JsonValueConvertToContext context,
             string propertyName,
             Type propertyClrElementType,
             object propertyNonNullClrElementValue);
 
-        public JToken ConvertToJsonToken(
+        public JsonNode ConvertToJsonToken(
             JsonValueConvertToContext context,
             string propertyName,
             Type propertyClrType,
             object propertyNonNullClrValue)
         {
-            var jsonElementTokens = new List<JToken>();
+            if (propertyNonNullClrValue == null)
+            {
+                throw new RuntimeValueWasNullException(propertyName);
+            }
+
+            if (propertyNonNullClrValue is not IEnumerable)
+            {
+                throw new RuntimeValueWasIncorrectTypeException(propertyName, propertyNonNullClrValue, typeof(IEnumerable));
+            }
+
+            var jsonElementTokens = new JsonArray();
             foreach (var clrElementValue in (IEnumerable)propertyNonNullClrValue)
             {
                 if (clrElementValue != null)
@@ -184,7 +202,7 @@
                         clrElementValue));
                 }
             }
-            return new JArray(jsonElementTokens);
+            return jsonElementTokens;
         }
     }
 }
