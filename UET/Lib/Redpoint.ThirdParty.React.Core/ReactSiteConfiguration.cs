@@ -7,8 +7,10 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using React.Exceptions;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.Unicode;
 
 namespace React
@@ -23,6 +25,7 @@ namespace React
         /// <summary>
         /// Initializes a new instance of the <see cref="ReactSiteConfiguration"/> class.
         /// </summary>
+        [RequiresDynamicCode("JsonStringEnumConverter is used.")]
         public ReactSiteConfiguration(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;
@@ -39,6 +42,10 @@ namespace React
                 Encoder = JavaScriptEncoder.Create(encoderSettings),
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
+                Converters =
+                {
+                    new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
+                }
             };
             UseDebugReact = false;
             UseServerSideRendering = true;

@@ -186,22 +186,20 @@ namespace Redpoint.CloudFramework.Startup
             services.AddMetrics();
             try
             {
-                services.AddOpenTelemetry()
-                    .WithMetrics(builder => builder
-                        .AddMeter("*")
-                        .AddPrometheusHttpListener(options =>
-                        {
-                            var prometheusPrefix = configuration["CloudFramework:Prometheus:HttpPrefix"];
-                            if (!string.IsNullOrWhiteSpace(prometheusPrefix))
+                if (!hostEnvironment.IsDevelopment())
+                {
+                    services.AddOpenTelemetry()
+                        .WithMetrics(builder => builder
+                            .AddMeter("*")
+                            .AddPrometheusHttpListener(options =>
                             {
-                                options.UriPrefixes = [prometheusPrefix];
-                            }
-                            // @note: Don't attempt to listen on * in Development, since we won't have permission on Windows.
-                            else if (!hostEnvironment.IsDevelopment())
-                            {
-                                options.UriPrefixes = ["http://*:9464/"];
-                            }
-                        }));
+                                var prometheusPrefix = configuration["CloudFramework:Prometheus:HttpPrefix"];
+                                if (!string.IsNullOrWhiteSpace(prometheusPrefix))
+                                {
+                                    options.UriPrefixes = [prometheusPrefix];
+                                }
+                            }));
+                }
             }
             catch (Exception ex)
             {
