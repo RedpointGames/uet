@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace React
 {
@@ -64,7 +64,7 @@ namespace React
         /// <summary>
         /// Gets or sets the configuration for JSON serializer.
         /// </summary>
-        JsonSerializerSettings JsonSerializerSettings { get; set; }
+        JsonSerializerOptions JsonSerializerSettings { get; set; }
 
         /// <summary>
         /// Sets the configuration for json serializer.
@@ -74,7 +74,7 @@ namespace React
         /// is being generated server-side.
         /// </remarks>
         /// <param name="settings">The settings.</param>
-        IReactSiteConfiguration SetJsonSerializerSettings(JsonSerializerSettings settings);
+        IReactSiteConfiguration SetJsonSerializerSettings(JsonSerializerOptions settings);
 
         /// <summary>
         /// Gets or sets the number of engines to initially start when a pool is created.

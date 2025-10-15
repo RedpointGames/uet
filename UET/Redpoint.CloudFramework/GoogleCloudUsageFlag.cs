@@ -46,6 +46,7 @@
         /// <summary>
         /// Use Google Cloud Pub/Sub.
         /// </summary>
+        [Obsolete("Support for abstracted event APIs on top of Google Pub/Sub has been removed. Use Google Pub/Sub APIs directly.", true)]
         PubSub = 16,
 
         /// <summary>

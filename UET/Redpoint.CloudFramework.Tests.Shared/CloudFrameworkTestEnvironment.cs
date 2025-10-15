@@ -48,7 +48,10 @@
             return CreateWithServices(configure).Services;
         }
 
-        private ICloudFrameworkTestEnvironment CreateWithServices(Action<ServiceCollection> configure)
+        /// <remarks>
+        /// This API must remain public.
+        /// </remarks>
+        public ICloudFrameworkTestEnvironment CreateWithServices(Action<ServiceCollection> configure)
         {
             ArgumentNullException.ThrowIfNull(configure);
 

@@ -5,7 +5,6 @@
     using Google.Protobuf.WellKnownTypes;
     using Google.Type;
     using Microsoft.Extensions.DependencyInjection;
-    using Newtonsoft.Json.Linq;
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Converters.Timestamp;

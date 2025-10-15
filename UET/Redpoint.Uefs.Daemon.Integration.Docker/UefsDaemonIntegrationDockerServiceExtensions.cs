@@ -18,8 +18,8 @@
     using System.Runtime.Versioning;
     using Redpoint.Uefs.Package;
     using Microsoft.AspNetCore.Http;
-    using Newtonsoft.Json;
     using Redpoint.Collections;
+    using System.Text.Json;
 
     public static class UefsDaemonIntegrationDockerServiceExtensions
     {
@@ -168,10 +168,10 @@
                         context.Response.StatusCode = 500;
                         using (var writer = new StreamWriter(context.Response.Body))
                         {
-                            await writer.WriteAsync(JsonConvert.SerializeObject(new GenericErrorResponse
+                            await writer.WriteAsync(JsonSerializer.Serialize(new GenericErrorResponse
                             {
                                 Err = "internal daemon error, refer to system logs."
-                            })).ConfigureAwait(false);
+                            }, DockerJsonSerializerContext.Default.GenericErrorResponse)).ConfigureAwait(false);
                         }
                         await context.Response.CompleteAsync().ConfigureAwait(false);
                         return;

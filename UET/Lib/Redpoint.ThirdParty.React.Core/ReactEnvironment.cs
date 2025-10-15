@@ -5,9 +5,10 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-using System.Reflection;
 using JavaScriptEngineSwitcher.Core;
 using JSPool;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 
 namespace React
 {
@@ -160,6 +161,8 @@ namespace React
         /// <param name="function">JavaScript function to execute</param>
         /// <param name="args">Arguments to pass to function</param>
         /// <returns>Result of the JavaScript code</returns>
+        [RequiresDynamicCode("Uses JsonSerializer.Deserialize<T> without type info.")]
+        [RequiresUnreferencedCode("Uses JsonSerializer.Deserialize<T> without type info.")]
         public virtual T Execute<T>(string function, params object[] args)
         {
             return Engine.CallFunctionReturningJson<T>(function, args);
@@ -186,6 +189,8 @@ namespace React
         /// <param name="serverOnly">True if this component only should be rendered server-side. Defaults to false.</param>
         /// <param name="skipLazyInit">Skip adding to components list, which is used during GetInitJavascript</param>
         /// <returns>The component</returns>
+        [RequiresDynamicCode("Props serialization uses JsonSerializer without type info.")]
+        [RequiresUnreferencedCode("Props serialization uses JsonSerializer without type info.")]
         public virtual IReactComponent CreateComponent<T>(string componentName, T props, string containerId = null, bool clientOnly = false, bool serverOnly = false, bool skipLazyInit = false)
         {
             if (!clientOnly)

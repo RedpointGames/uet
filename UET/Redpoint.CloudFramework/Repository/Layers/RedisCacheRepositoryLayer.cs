@@ -3,7 +3,6 @@
     using Google.Cloud.Datastore.V1;
     using Google.Type;
     using Microsoft.Extensions.Caching.Distributed;
-    using Newtonsoft.Json;
     using NodaTime;
     using Redpoint.Collections;
     using Redpoint.CloudFramework.Metric;
@@ -32,8 +31,10 @@
     using Redpoint.Concurrency;
     using Redpoint.CloudFramework.Collections.Batching;
     using Redpoint.Hashing;
+    using System.Text.Json.Serialization;
+    using System.Text.Json;
 
-    internal class RedisCacheRepositoryLayer : IRedisCacheRepositoryLayer
+    internal partial class RedisCacheRepositoryLayer : IRedisCacheRepositoryLayer
     {
         private readonly IDatastoreRepositoryLayer _datastoreRepositoryLayer;
         private readonly IConnectionMultiplexer _redis;
@@ -242,62 +243,69 @@ return queriesCleared
 
         private class ComplexCacheKeyFilterJson
         {
-            [JsonProperty("field", Order = 1)]
+            [JsonPropertyName("field"), JsonPropertyOrder(1)]
             public required string Field { get; set; }
 
-            [JsonProperty("op", Order = 2)]
+            [JsonPropertyName("op"), JsonPropertyOrder(2)]
             public required string Op { get; set; }
 
-            [JsonProperty("value", Order = 3)]
+            [JsonPropertyName("value"), JsonPropertyOrder(3)]
             public required string Value { get; set; }
         }
 
         private class ComplexCacheKeySortJson
         {
-            [JsonProperty("field", Order = 1)]
+            [JsonPropertyName("field"), JsonPropertyOrder(1)]
             public required string Field { get; set; }
 
-            [JsonProperty("direction", Order = 2)]
+            [JsonPropertyName("direction"), JsonPropertyOrder(2)]
             public required string Direction { get; set; }
         }
 
         private class ComplexCacheKeyGeoJson
         {
-            [JsonProperty("field", Order = 1)]
+            [JsonPropertyName("field"), JsonPropertyOrder(1)]
             public required string Field { get; set; }
 
-            [JsonProperty("op", Order = 2)]
+            [JsonPropertyName("op"), JsonPropertyOrder(2)]
             public required string Op { get; set; }
 
-            [JsonProperty("centerPointLat", Order = 3)]
+            [JsonPropertyName("centerPointLat"), JsonPropertyOrder(3)]
             public required double CenterPointLat { get; set; }
 
-            [JsonProperty("centerPointLng", Order = 4)]
+            [JsonPropertyName("centerPointLng"), JsonPropertyOrder(4)]
             public required double CenterPointLng { get; set; }
 
-            [JsonProperty("distanceKm", Order = 5)]
+            [JsonPropertyName("distanceKm"), JsonPropertyOrder(5)]
             public required double DistanceKm { get; set; }
         }
 
         private class ComplexCacheKeyJson
         {
-            [JsonProperty("namespace", Order = 1)]
+            [JsonPropertyName("namespace"), JsonPropertyOrder(1)]
             public string? Namespace { get; set; }
 
-            [JsonProperty("kind", Order = 2)]
+            [JsonPropertyName("kind"), JsonPropertyOrder(2)]
             public string? Kind { get; set; }
 
-            [JsonProperty("filter", Order = 3)]
+            [JsonPropertyName("filter"), JsonPropertyOrder(3)]
             public ComplexCacheKeyFilterJson[]? Filter { get; set; }
 
-            [JsonProperty("sort", Order = 4)]
+            [JsonPropertyName("sort"), JsonPropertyOrder(4)]
             public ComplexCacheKeySortJson[]? Sort { get; set; }
 
-            [JsonProperty("geo", Order = 5)]
+            [JsonPropertyName("geo"), JsonPropertyOrder(5)]
             public ComplexCacheKeyGeoJson? Geo { get; set; }
 
-            [JsonProperty("limit", Order = 5)]
+            [JsonPropertyName("limit"), JsonPropertyOrder(5)]
             public int? Limit { get; set; }
+        }
+
+        [JsonSerializable(typeof(ComplexCacheKeyJson))]
+        [JsonSerializable(typeof(bool))]
+        [JsonSerializable(typeof(long))]
+        private partial class RedisCacheJsonSerializerContext : JsonSerializerContext
+        {
         }
 
         private Task<(string cacheHash, string[] columns)> GetComplexCacheHashAndColumns<T>(
@@ -378,7 +386,7 @@ return queriesCleared
                     },
                     Limit = limit,
                 };
-                var cacheHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(cacheKeyJson)))).ToLowerInvariant();
+                var cacheHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(cacheKeyJson, RedisCacheJsonSerializerContext.Default.ComplexCacheKeyJson)))).ToLowerInvariant();
                 return Task.FromResult((cacheHash, columns.ToArray()));
             }
         }
@@ -419,11 +427,11 @@ return queriesCleared
                 case Value.ValueTypeOneofCase.None:
                     return "none";
                 case Value.ValueTypeOneofCase.BooleanValue:
-                    return "bool:" + JsonConvert.SerializeObject(value.BooleanValue);
+                    return "bool:" + JsonSerializer.Serialize(value.BooleanValue, RedisCacheJsonSerializerContext.Default.Boolean);
                 case Value.ValueTypeOneofCase.IntegerValue:
-                    return "int:" + JsonConvert.SerializeObject(value.IntegerValue);
+                    return "int:" + JsonSerializer.Serialize(value.IntegerValue, RedisCacheJsonSerializerContext.Default.Int64);
                 case Value.ValueTypeOneofCase.DoubleValue:
-                    return "double:" + JsonConvert.SerializeObject(value.DoubleValue);
+                    return "double:" + JsonSerializer.Serialize(value.DoubleValue, RedisCacheJsonSerializerContext.Default.Double);
                 case Value.ValueTypeOneofCase.KeyValue:
                     return $"key:{value.KeyValue.PartitionId.ProjectId}/{value.KeyValue.PartitionId.NamespaceId}/{string.Join("/", value.KeyValue.Path.Select(SerializePathElement))}";
                 case Value.ValueTypeOneofCase.EntityValue:
@@ -435,7 +443,7 @@ return queriesCleared
                 case Value.ValueTypeOneofCase.TimestampValue:
                     return $"ts:{_instantTimestampConverter.FromDatastoreValueToNodaTimeInstant(value.TimestampValue)!.Value.ToUnixTimeTicks()}";
                 case Value.ValueTypeOneofCase.StringValue:
-                    return $"string:" + JsonConvert.SerializeObject(value.StringValue);
+                    return $"string:" + JsonSerializer.Serialize(value.StringValue, RedisCacheJsonSerializerContext.Default.String);
                 case Value.ValueTypeOneofCase.BlobValue:
                     throw new NotSupportedException();
                 default:

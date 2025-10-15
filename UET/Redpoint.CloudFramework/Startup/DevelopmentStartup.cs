@@ -210,21 +210,6 @@
                             6379
                         }
                     });
-                if ((_googleCloudUsage & GoogleCloudUsageFlag.PubSub) != 0)
-                {
-                    expectedContainers.Add(
-                        new ExpectedContainer
-                        {
-                            Name = "pubsub",
-                            Image = "gcr.io/google.com/cloudsdktool/cloud-sdk:latest",
-                            Arguments = _pubsubArgs,
-                            Ports = new DeveloperDockerPort[]
-                            {
-                                9000
-                            }
-                        }
-                    );
-                }
                 if ((_googleCloudUsage & GoogleCloudUsageFlag.Datastore) != 0)
                 {
                     expectedContainers.Add(
@@ -254,8 +239,7 @@
                     }
                 }
 
-                if ((_googleCloudUsage & GoogleCloudUsageFlag.PubSub) != 0 ||
-                    (_googleCloudUsage & GoogleCloudUsageFlag.Datastore) != 0)
+                if ((_googleCloudUsage & GoogleCloudUsageFlag.Datastore) != 0)
                 {
                     _logger.LogInformation("This application will connect to the local Redis emulator.");
                 }
