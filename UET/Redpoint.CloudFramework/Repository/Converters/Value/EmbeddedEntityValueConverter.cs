@@ -97,6 +97,16 @@
             JsonNode propertyNonNullJsonToken,
             AddConvertFromDelayedLoad addConvertFromDelayedLoad)
         {
+            if (propertyNonNullJsonToken == null || propertyNonNullJsonToken.GetValueKind() == JsonValueKind.Null)
+            {
+                throw new JsonValueWasNullException(propertyName);
+            }
+
+            if (propertyNonNullJsonToken.GetValueKind() != JsonValueKind.Object)
+            {
+                throw new JsonValueWasIncorrectKindException(propertyName, propertyNonNullJsonToken.GetValueKind(), JsonValueKind.Object);
+            }
+
             return FromJsonCacheToEmbeddedEntity(propertyNonNullJsonToken);
         }
 
@@ -106,6 +116,16 @@
             Type propertyClrType,
             object propertyNonNullClrValue)
         {
+            if (propertyNonNullClrValue == null)
+            {
+                throw new RuntimeValueWasNullException(propertyName);
+            }
+
+            if (propertyNonNullClrValue is not Entity)
+            {
+                throw new RuntimeValueWasIncorrectTypeException(propertyName, propertyNonNullClrValue, typeof(Entity));
+            }
+
             return FromEmbeddedEntityToJsonCache((Entity)propertyNonNullClrValue)!;
         }
 

@@ -64,7 +64,7 @@
             if (propertyClrArrayType.IsArray)
             {
                 return DynamicStringEnumValue.ConstructArrayFromValues(
-                    propertyClrArrayType.GetGenericArguments()[0],
+                    propertyClrArrayType.GetElementType()!,
                     arrayList);
             }
             else if (propertyClrArrayType.IsGenericType &&

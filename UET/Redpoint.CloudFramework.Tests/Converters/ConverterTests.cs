@@ -6,16 +6,19 @@
     using Google.Type;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
+    using NodaTime;
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Repository.Converters.Value;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
     using Redpoint.CloudFramework.Tests.Models;
     using Redpoint.CloudFramework.Tracing;
+    using Redpoint.StringEnum;
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
     using System.Text.Json;
+    using System.Text.Json.Serialization;
     using System.Threading.Tasks;
     using Xunit;
     using static Google.Cloud.Datastore.V1.Value;
@@ -23,24 +26,158 @@
 
     public class ConverterTests
     {
-        private DatastoreValueConvertToContext _datastoreToContext = new DatastoreValueConvertToContext
+        private class Contexts
         {
-            ModelNamespace = string.Empty,
-            Model = new TestModel(),
-            Entity = new Entity(),
+            public required DatastoreValueConvertToContext DatastoreToContext;
+            public required DatastoreValueConvertFromContext DatastoreFromContext;
+            public required JsonValueConvertToContext JsonToContext;
+            public required JsonValueConvertFromContext JsonFromContext;
+        }
+
+        [Kind("converterTest")]
+        public sealed class ConverterTestModel : Model<ConverterTestModel>
+        {
+            [Type(FieldType.String), Indexed]
+            public string? @namespace { get; set; }
+
+            [Type(FieldType.LocalKey), Indexed]
+            public Key? localKey { get; set; }
+
+            public override string GetDatastoreNamespaceForLocalKeys()
+            {
+                return @namespace ?? string.Empty;
+            }
+        }
+
+        private Contexts _global = new Contexts
+        {
+            DatastoreToContext = new DatastoreValueConvertToContext
+            {
+                ModelNamespace = string.Empty,
+                Model = new ConverterTestModel
+                {
+                    Key = new Key
+                    {
+                        PartitionId = new PartitionId
+                        {
+                            ProjectId = "project",
+                        },
+                        Path =
+                        {
+                            new Key.Types.PathElement("key", 1)
+                        }
+                    },
+                    @namespace = "local",
+                },
+                Entity = new Entity
+                {
+                    Key = new Key
+                    {
+                        PartitionId = new PartitionId
+                        {
+                            ProjectId = "project",
+                        },
+                        Path =
+                        {
+                            new Key.Types.PathElement("key", 1)
+                        }
+                    }
+                }
+            },
+            DatastoreFromContext = new DatastoreValueConvertFromContext
+            {
+                ModelNamespace = string.Empty,
+            },
+            JsonToContext = new JsonValueConvertToContext
+            {
+                ModelNamespace = string.Empty,
+                Model = new ConverterTestModel
+                {
+                    Key = new Key
+                    {
+                        PartitionId = new PartitionId
+                        {
+                            ProjectId = "project",
+                        },
+                        Path =
+                        {
+                            new Key.Types.PathElement("key", 1)
+                        }
+                    },
+                    @namespace = "local",
+                },
+            },
+            JsonFromContext = new JsonValueConvertFromContext
+            {
+                ModelNamespace = string.Empty,
+            }
         };
-        private DatastoreValueConvertFromContext _datastoreFromContext = new DatastoreValueConvertFromContext
+
+        private Contexts _local = new Contexts
         {
-            ModelNamespace = string.Empty,
-        };
-        private JsonValueConvertToContext _jsonToContext = new JsonValueConvertToContext
-        {
-            ModelNamespace = string.Empty,
-            Model = new TestModel(),
-        };
-        private JsonValueConvertFromContext _jsonFromContext = new JsonValueConvertFromContext
-        {
-            ModelNamespace = string.Empty,
+            DatastoreToContext = new DatastoreValueConvertToContext
+            {
+                ModelNamespace = "local",
+                Model = new ConverterTestModel
+                {
+                    Key = new Key
+                    {
+                        PartitionId = new PartitionId
+                        {
+                            ProjectId = "project",
+                            NamespaceId = "local",
+                        },
+                        Path =
+                        {
+                            new Key.Types.PathElement("key", 1)
+                        }
+                    },
+                    @namespace = "local",
+                },
+                Entity = new Entity
+                {
+                    Key = new Key
+                    {
+                        PartitionId = new PartitionId
+                        {
+                            ProjectId = "project",
+                            NamespaceId = "local",
+                        },
+                        Path =
+                        {
+                            new Key.Types.PathElement("key", 1)
+                        }
+                    }
+                }
+            },
+            DatastoreFromContext = new DatastoreValueConvertFromContext
+            {
+                ModelNamespace = "local",
+            },
+            JsonToContext = new JsonValueConvertToContext
+            {
+                ModelNamespace = "local",
+                Model = new ConverterTestModel
+                {
+                    Key = new Key
+                    {
+                        PartitionId = new PartitionId
+                        {
+                            ProjectId = "project",
+                            NamespaceId = "local",
+                        },
+                        Path =
+                        {
+                            new Key.Types.PathElement("key", 1)
+                        }
+                    },
+                    @namespace = "local",
+                },
+            },
+            JsonFromContext = new JsonValueConvertFromContext
+            {
+                ModelNamespace = "local",
+            }
         };
 
         private T GetConverter<T>() where T : IValueConverter
@@ -58,6 +195,7 @@
         }
 
         private void AssertConversion<TClr>(
+            Contexts contexts,
             IValueConverter converter,
             Action<Value> expectedDatastoreValue,
             FieldType expectedFieldType,
@@ -71,13 +209,13 @@
                 converter.IsConverterForClrType(typeof(TClr)));
 
             var datastoreValue = converter.ConvertToDatastoreValue(
-                _datastoreToContext,
+                contexts.DatastoreToContext,
                 "field",
                 typeof(TClr),
                 clrValue,
                 true);
             var jsonValue = converter.ConvertToJsonToken(
-                _jsonToContext,
+                contexts.JsonToContext,
                 "field",
                 typeof(TClr),
                 clrValue!);
@@ -88,21 +226,46 @@
             var actualJson = JsonSerializer.Serialize(jsonValue);
             Assert.Equal(expectedJson, actualJson);
 
+            var callbacks = new List<ConvertFromDelayedLoad>();
             var restoredValueFromDatastore = converter.ConvertFromDatastoreValue(
-                _datastoreFromContext,
+                contexts.DatastoreFromContext,
                 "field",
                 typeof(TClr),
                 datastoreValue,
-                _ => { });
+                callbacks.Add);
+            foreach (var callback in callbacks)
+            {
+                restoredValueFromDatastore = callback(contexts.DatastoreToContext.Model.GetDatastoreNamespaceForLocalKeys());
+            }
+            callbacks.Clear();
             var restoredValueFromJson = converter.ConvertFromJsonToken(
-                _jsonFromContext,
+                contexts.JsonFromContext,
                 "field",
                 typeof(TClr),
                 jsonValue,
-                _ => { });
+                callbacks.Add);
+            foreach (var callback in callbacks)
+            {
+                restoredValueFromJson = callback(contexts.DatastoreToContext.Model.GetDatastoreNamespaceForLocalKeys());
+            }
+            callbacks.Clear();
 
             Assert.Equal(clrValue, restoredValueFromDatastore);
             Assert.Equal(clrValue, restoredValueFromJson);
+
+#pragma warning disable CS8625
+            var jsonNullEx = Assert.Throws<JsonValueWasNullException>(() =>
+            {
+                converter.ConvertFromJsonToken(
+                    contexts.JsonFromContext,
+                    "field",
+                    typeof(TClr),
+                    null,
+                    _ => { });
+            });
+            Assert.NotNull(jsonNullEx);
+            Assert.Equal("field", jsonNullEx.PropertyName);
+#pragma warning restore CS8625
         }
 
         [Fact]
@@ -111,6 +274,7 @@
             var converter = GetConverter<BooleanValueConverter>();
 
             AssertConversion(
+                _global,
                 converter,
                 value =>
                 {
@@ -120,6 +284,7 @@
                 "true",
                 true);
             AssertConversion(
+                _global,
                 converter,
                 value =>
                 {
@@ -136,6 +301,7 @@
             var converter = GetConverter<StringValueConverter>();
 
             AssertConversion(
+                _global,
                 converter,
                 value =>
                 {
@@ -152,6 +318,7 @@
             var converter = GetConverter<IntegerValueConverter>();
 
             AssertConversion(
+                _global,
                 converter,
                 value =>
                 {
@@ -168,6 +335,7 @@
             var converter = GetConverter<UnsignedIntegerValueConverter>();
 
             AssertConversion(
+                _global,
                 converter,
                 value =>
                 {
@@ -184,6 +352,7 @@
             var converter = GetConverter<DoubleValueConverter>();
 
             AssertConversion(
+                _global,
                 converter,
                 value =>
                 {
@@ -212,6 +381,7 @@
             };
 
             AssertConversion(
+                _global,
                 converter,
                 value =>
                 {
@@ -228,6 +398,7 @@
             var converter = GetConverter<StringArrayValueConverter>();
 
             AssertConversion(
+                _global,
                 converter,
                 value =>
                 {
@@ -252,6 +423,7 @@
             var converter = GetConverter<UnsignedIntegerArrayValueConverter>();
 
             AssertConversion(
+                _global,
                 converter,
                 value =>
                 {
@@ -295,7 +467,7 @@
                     { "blob", new Value { BlobValue = ByteString.CopyFrom([1, 2, 3]) } },
                     { "geopoint", new Value { GeoPointValue = new LatLng { Latitude = 100, Longitude = 50 } } },
                     { "key", new Value { KeyValue = key } },
-                    { "timestamp", new Value { TimestampValue = Timestamp.FromDateTimeOffset(DateTimeOffset.MinValue) } },
+                    { "timestamp", new Value { TimestampValue = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset(DateTimeOffset.MinValue) } },
                     { 
                         "array", 
                         new Value 
@@ -311,7 +483,7 @@
                                     new Value { BlobValue = ByteString.CopyFrom([1, 2, 3]) },
                                     new Value { GeoPointValue = new LatLng { Latitude = 100, Longitude = 50 } },
                                     new Value { KeyValue = key },
-                                    new Value { TimestampValue = Timestamp.FromDateTimeOffset(DateTimeOffset.MinValue) },
+                                    new Value { TimestampValue = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset(DateTimeOffset.MinValue) },
                                 }
                             } 
                         } 
@@ -334,6 +506,7 @@
             var entity = CreateEntity();
 
             AssertConversion(
+                _global,
                 converter,
                 value =>
                 {
@@ -350,6 +523,7 @@
             var converter = GetConverter<StringEnumValueConverter>();
 
             AssertConversion(
+                _global,
                 converter,
                 value =>
                 {
@@ -366,6 +540,7 @@
             var converter = GetConverter<StringEnumArrayValueConverter>();
 
             AssertConversion(
+                _global,
                 converter,
                 value =>
                 {
@@ -376,7 +551,25 @@
                 },
                 FieldType.StringArray,
                 "[\"a\",\"b\",\"c\"]",
-                new[]
+                new StringEnumValue<TestStringEnum>[]
+                {
+                    TestStringEnum.A,
+                    TestStringEnum.B,
+                    TestStringEnum.C
+                });
+            AssertConversion(
+                _global,
+                converter,
+                value =>
+                {
+                    Assert.Equal(3, value.ArrayValue.Values.Count);
+                    Assert.Equal("a", value.ArrayValue.Values[0].StringValue);
+                    Assert.Equal("b", value.ArrayValue.Values[1].StringValue);
+                    Assert.Equal("c", value.ArrayValue.Values[2].StringValue);
+                },
+                FieldType.StringArray,
+                "[\"a\",\"b\",\"c\"]",
+                new List<StringEnumValue<TestStringEnum>>
                 {
                     TestStringEnum.A,
                     TestStringEnum.B,
@@ -390,6 +583,7 @@
             var converter = GetConverter<StringEnumSetValueConverter>();
 
             AssertConversion(
+                _global,
                 converter,
                 value =>
                 {
@@ -400,11 +594,303 @@
                 },
                 FieldType.StringArray,
                 "[\"a\",\"b\",\"c\"]",
-                new[]
+                new HashSet<StringEnumValue<TestStringEnum>>
                 {
                     TestStringEnum.A,
                     TestStringEnum.B,
                     TestStringEnum.C
+                });
+        }
+
+        [Fact]
+        public void Geopoint()
+        {
+            var converter = GetConverter<GeopointValueConverter>();
+
+            var geopoint = new LatLng { Latitude = 100, Longitude = 50 };
+
+            AssertConversion(
+                _global,
+                converter,
+                value =>
+                {
+                    Assert.Equal(geopoint, value.GeoPointValue);
+                },
+                FieldType.Geopoint,
+                "{\"lat\":100,\"long\":50}",
+                geopoint);
+        }
+
+        [Fact]
+        public void Timestamp()
+        {
+            var converter = GetConverter<TimestampValueConverter>();
+
+            var instant = Instant.FromUnixTimeSeconds(100).PlusNanoseconds(50);
+
+            AssertConversion<Instant?>(
+                _global,
+                converter,
+                value =>
+                {
+                    Assert.Equal(100, value.TimestampValue.Seconds);
+                    Assert.Equal(50, value.TimestampValue.Nanos);
+                },
+                FieldType.Timestamp,
+                "{\"seconds\":100,\"nanos\":50}",
+                instant);
+        }
+
+        private record class JsonTest
+        {
+            [JsonPropertyName("test")]
+            public required string Test { get; set; }
+        }
+
+        [Fact]
+        public void Json()
+        {
+            var converter = GetConverter<JsonValueConverter>();
+
+            var json = new JsonTest
+            {
+                Test = "hello world"
+            };
+
+            AssertConversion(
+                _global,
+                converter,
+                value =>
+                {
+                    Assert.Equal(@"{""test"":""hello world""}", value.StringValue);
+                },
+                FieldType.Json,
+                @"""{\u0022test\u0022:\u0022hello world\u0022}""",
+                json);
+        }
+
+        [Fact]
+        public void Key()
+        {
+            var converter = GetConverter<KeyValueConverter>();
+
+            var key = new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 1)
+                }
+            };
+
+            AssertConversion(
+                _global,
+                converter,
+                value =>
+                {
+                    Assert.Equal(key, value.KeyValue);
+                },
+                FieldType.Key,
+                "\"#v1|project||key:id=1\"",
+                key);
+        }
+
+        [Fact]
+        public void GlobalKey()
+        {
+            var converter = GetConverter<GlobalKeyValueConverter>();
+
+            var key = new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 1)
+                }
+            };
+
+            AssertConversion(
+                _local,
+                converter,
+                value =>
+                {
+                    Assert.Equal(key, value.KeyValue);
+                },
+                FieldType.GlobalKey,
+                "\"#v1|project||key:id=1\"",
+                key);
+        }
+
+        [Fact]
+        public void LocalKey()
+        {
+            var converter = GetConverter<LocalKeyValueConverter>();
+
+            var key = new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                    NamespaceId = "local",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 1)
+                }
+            };
+
+            AssertConversion(
+                _global,
+                converter,
+                value =>
+                {
+                    Assert.Equal(key, value.KeyValue);
+                },
+                FieldType.LocalKey,
+                "\"#v1|project|local|key:id=1\"",
+                key);
+        }
+
+        [Fact]
+        public void KeyArray()
+        {
+            var converter = GetConverter<KeyArrayValueConverter>();
+
+            var key1 = new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 1)
+                }
+            };
+            var key2 = new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 2)
+                }
+            };
+            var key3 = new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 3)
+                }
+            };
+            var keys = new Key[]
+            {
+                key1,
+                key2,
+                key3,
+            };
+
+            AssertConversion(
+                _global,
+                converter,
+                value =>
+                {
+                    Assert.Equal(3, value.ArrayValue.Values.Count);
+                    Assert.Equal(key1, value.ArrayValue.Values[0].KeyValue);
+                    Assert.Equal(key2, value.ArrayValue.Values[1].KeyValue);
+                    Assert.Equal(key3, value.ArrayValue.Values[2].KeyValue);
+                },
+                FieldType.KeyArray,
+                "[\"#v1|project||key:id=1\",\"#v1|project||key:id=2\",\"#v1|project||key:id=3\"]",
+                keys);
+        }
+
+        [Fact]
+        public void GlobalKeyArray()
+        {
+            var converter = GetConverter<GlobalKeyArrayValueConverter>();
+
+            var key1 = new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 1)
+                }
+            };
+            var key2 = new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 2)
+                }
+            };
+            var key3 = new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 3)
+                }
+            };
+
+            AssertConversion(
+                _local,
+                converter,
+                value =>
+                {
+                    Assert.Equal(3, value.ArrayValue.Values.Count);
+                    Assert.Equal(key1, value.ArrayValue.Values[0].KeyValue);
+                    Assert.Equal(key2, value.ArrayValue.Values[1].KeyValue);
+                    Assert.Equal(key3, value.ArrayValue.Values[2].KeyValue);
+                },
+                FieldType.GlobalKeyArray,
+                "[\"#v1|project||key:id=1\",\"#v1|project||key:id=2\",\"#v1|project||key:id=3\"]",
+                new Key[]
+                {
+                    key1,
+                    key2,
+                    key3,
+                });
+            AssertConversion(
+                _local,
+                converter,
+                value =>
+                {
+                    Assert.Equal(3, value.ArrayValue.Values.Count);
+                    Assert.Equal(key1, value.ArrayValue.Values[0].KeyValue);
+                    Assert.Equal(key2, value.ArrayValue.Values[1].KeyValue);
+                    Assert.Equal(key3, value.ArrayValue.Values[2].KeyValue);
+                },
+                FieldType.GlobalKeyArray,
+                "[\"#v1|project||key:id=1\",\"#v1|project||key:id=2\",\"#v1|project||key:id=3\"]",
+                new List<Key>
+                {
+                    key1,
+                    key2,
+                    key3,
                 });
         }
     }

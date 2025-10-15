@@ -7,6 +7,9 @@
         public JsonValueWasNullException(string propertyName)
             : base($"The value of the '{propertyName}' property was null in JSON, but this code should not be handling null values.")
         {
+            PropertyName = propertyName;
         }
+
+        public string PropertyName { get; }
     }
 }

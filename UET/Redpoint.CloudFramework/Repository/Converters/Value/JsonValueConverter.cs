@@ -1,14 +1,15 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
+    using Google.Type;
     using Redpoint.CloudFramework.Models;
-    using System;
-    using Type = System.Type;
-    using Value = Google.Cloud.Datastore.V1.Value;
     using Redpoint.CloudFramework.Repository.Converters.JsonHelpers;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
-    using System.Text.Json.Nodes;
-    using System.Text.Json;
+    using System;
     using System.Diagnostics.CodeAnalysis;
+    using System.Text.Json;
+    using System.Text.Json.Nodes;
+    using Type = System.Type;
+    using Value = Google.Cloud.Datastore.V1.Value;
 
     internal class JsonValueConverter : IValueConverter
     {
@@ -82,6 +83,16 @@
             JsonNode propertyNonNullJsonToken,
             AddConvertFromDelayedLoad addConvertFromDelayedLoad)
         {
+            if (propertyNonNullJsonToken == null || propertyNonNullJsonToken.GetValueKind() == JsonValueKind.Null)
+            {
+                throw new JsonValueWasNullException(propertyName);
+            }
+
+            if (propertyNonNullJsonToken.GetValueKind() != JsonValueKind.String)
+            {
+                throw new JsonValueWasIncorrectKindException(propertyName, propertyNonNullJsonToken.GetValueKind(), JsonValueKind.String);
+            }
+
             string? rawJson = propertyNonNullJsonToken.GetValue<string>();
             if (rawJson == null)
             {
@@ -100,6 +111,11 @@
             Type propertyClrType,
             object propertyNonNullClrValue)
         {
+            if (propertyNonNullClrValue == null)
+            {
+                throw new RuntimeValueWasNullException(propertyName);
+            }
+
             return JsonSerializer.Serialize(propertyNonNullClrValue, _jsonOptions);
         }
     }

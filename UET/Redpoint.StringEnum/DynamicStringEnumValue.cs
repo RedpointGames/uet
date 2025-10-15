@@ -75,7 +75,7 @@
             ArgumentNullException.ThrowIfNull(values);
             if (!IsStringEnumValueType(stringEnumValueType))
             {
-                throw new ArgumentException("You must provide a type definition of StringEnumValue<T> to call this method.");
+                throw new ArgumentException($"You must provide a type definition of StringEnumValue<T> to call this method, but got '{stringEnumValueType.FullName}'.");
             }
 
             var stringEnumType = stringEnumValueType.GetGenericArguments()[0];

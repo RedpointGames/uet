@@ -6,6 +6,7 @@
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
     using Redpoint.CloudFramework.Repository.Geographic;
     using System.Globalization;
+    using System.Text.Json;
     using System.Text.Json.Nodes;
     using static Google.Cloud.Datastore.V1.Value;
     using Type = System.Type;
@@ -124,10 +125,14 @@
             JsonNode propertyNonNullJsonToken,
             AddConvertFromDelayedLoad addConvertFromDelayedLoad)
         {
-            if (propertyNonNullJsonToken == null || 
-                propertyNonNullJsonToken.GetValueKind() != System.Text.Json.JsonValueKind.Object)
+            if (propertyNonNullJsonToken == null || propertyNonNullJsonToken.GetValueKind() == JsonValueKind.Null)
             {
-                return null;
+                throw new JsonValueWasNullException(propertyName);
+            }
+
+            if (propertyNonNullJsonToken.GetValueKind() != JsonValueKind.Object)
+            {
+                throw new JsonValueWasIncorrectKindException(propertyName, propertyNonNullJsonToken.GetValueKind(), JsonValueKind.Object);
             }
 
             return new LatLng
@@ -143,6 +148,16 @@
             Type propertyClrType,
             object propertyNonNullClrValue)
         {
+            if (propertyNonNullClrValue == null)
+            {
+                throw new RuntimeValueWasNullException(propertyName);
+            }
+
+            if (propertyNonNullClrValue is not LatLng)
+            {
+                throw new RuntimeValueWasIncorrectTypeException(propertyName, propertyNonNullClrValue, typeof(LatLng));
+            }
+
             var geopoint = (LatLng)propertyNonNullClrValue;
 
             var obj = new JsonObject

@@ -1,10 +1,12 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
+    using Google.Type;
     using NodaTime;
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Repository.Converters.Timestamp;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
     using System;
+    using System.Text.Json;
     using System.Text.Json.Nodes;
     using static Google.Cloud.Datastore.V1.Value;
     using Type = System.Type;
@@ -69,10 +71,20 @@
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrType,
-            JsonNode propertyJsonToken,
+            JsonNode propertyNonNullJsonToken,
             AddConvertFromDelayedLoad addConvertFromDelayedLoad)
         {
-            return _instantTimestampJsonConverter.FromJsonCacheToNodaTimeInstant(propertyJsonToken);
+            if (propertyNonNullJsonToken == null || propertyNonNullJsonToken.GetValueKind() == JsonValueKind.Null)
+            {
+                throw new JsonValueWasNullException(propertyName);
+            }
+
+            if (propertyNonNullJsonToken.GetValueKind() != JsonValueKind.Object)
+            {
+                throw new JsonValueWasIncorrectKindException(propertyName, propertyNonNullJsonToken.GetValueKind(), JsonValueKind.Object);
+            }
+
+            return _instantTimestampJsonConverter.FromJsonCacheToNodaTimeInstant(propertyNonNullJsonToken);
         }
 
         public JsonNode ConvertToJsonToken(
@@ -81,6 +93,16 @@
             Type propertyClrType,
             object propertyNonNullClrValue)
         {
+            if (propertyNonNullClrValue == null)
+            {
+                throw new RuntimeValueWasNullException(propertyName);
+            }
+
+            if (propertyNonNullClrValue is not Instant)
+            {
+                throw new RuntimeValueWasIncorrectTypeException(propertyName, propertyNonNullClrValue, typeof(Instant));
+            }
+
             return _instantTimestampJsonConverter.FromNodaTimeInstantToJsonCache((Instant)propertyNonNullClrValue)!;
         }
     }

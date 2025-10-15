@@ -138,22 +138,28 @@
             JsonNode propertyNonNullJsonToken,
             AddConvertFromDelayedLoad addConvertFromDelayedLoad)
         {
+            if (propertyNonNullJsonToken == null || propertyNonNullJsonToken.GetValueKind() == JsonValueKind.Null)
+            {
+                throw new JsonValueWasNullException(propertyName);
+            }
+
+            if (propertyNonNullJsonToken.GetValueKind() != JsonValueKind.Array)
+            {
+                throw new JsonValueWasIncorrectKindException(propertyName, propertyNonNullJsonToken.GetValueKind(), JsonValueKind.Array);
+            }
+
             var result = new ArrayList();
 
-            // @note: Guards against JSON cache tokens not being array values.
-            if (propertyNonNullJsonToken.GetValueKind() == JsonValueKind.Array)
+            var array = propertyNonNullJsonToken.AsArray();
+            foreach (var token in array)
             {
-                var array = propertyNonNullJsonToken.AsArray();
-                foreach (var token in array)
+                if (token != null && token.GetValueKind() != JsonValueKind.Null)
                 {
-                    if (token != null && token.GetValueKind() != JsonValueKind.Null)
-                    {
-                        result.Add(ConvertFromJsonElementToken(
-                            context,
-                            propertyName,
-                            GetElementType(propertyClrType),
-                            token));
-                    }
+                    result.Add(ConvertFromJsonElementToken(
+                        context,
+                        propertyName,
+                        GetElementType(propertyClrType),
+                        token));
                 }
             }
 
@@ -174,6 +180,16 @@
             Type propertyClrType,
             object propertyNonNullClrValue)
         {
+            if (propertyNonNullClrValue == null)
+            {
+                throw new RuntimeValueWasNullException(propertyName);
+            }
+
+            if (propertyNonNullClrValue is not IEnumerable)
+            {
+                throw new RuntimeValueWasIncorrectTypeException(propertyName, propertyNonNullClrValue, typeof(IEnumerable));
+            }
+
             var jsonElementTokens = new JsonArray();
             foreach (var clrElementValue in (IEnumerable)propertyNonNullClrValue)
             {
