@@ -37,6 +37,8 @@ namespace React
             JsonSerializerSettings = new JsonSerializerOptions
             {
                 Encoder = JavaScriptEncoder.Create(encoderSettings),
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
             };
             UseDebugReact = false;
             UseServerSideRendering = true;
