@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
     using Redpoint.CloudFramework.Models;
-    using Newtonsoft.Json.Linq;
     using System;
     using Type = System.Type;
     using Google.Protobuf.WellKnownTypes;
@@ -9,6 +8,7 @@
     using Google.Cloud.Datastore.V1;
     using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
+    using System.Text.Json.Nodes;
 
     internal class GlobalKeyValueConverter : IValueConverter
     {
@@ -99,10 +99,10 @@
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrType,
-            JToken propertyNonNullJsonToken,
+            JsonNode propertyNonNullJsonToken,
             AddConvertFromDelayedLoad addConvertFromDelayedLoad)
         {
-            var globalIdStr = propertyNonNullJsonToken.Value<string>();
+            var globalIdStr = JsonValueAssertions.FromStringJsonNode(propertyName, propertyNonNullJsonToken);
             if (globalIdStr == null)
             {
                 return null;
@@ -124,7 +124,7 @@
             }
         }
 
-        public JToken ConvertToJsonToken(
+        public JsonNode ConvertToJsonToken(
             JsonValueConvertToContext context,
             string propertyName,
             Type propertyClrType,
@@ -142,7 +142,7 @@
                 throw new InvalidOperationException("Value for 'global-key' is not a key referencing an entity in the global namespace");
             }
 
-            return _globalPrefix.CreateInternal(globalValue);
+            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal(globalValue));
         }
     }
 }

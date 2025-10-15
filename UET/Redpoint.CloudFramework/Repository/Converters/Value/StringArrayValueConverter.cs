@@ -1,12 +1,12 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
     using Redpoint.CloudFramework.Models;
-    using Newtonsoft.Json.Linq;
     using Type = System.Type;
     using Value = Google.Cloud.Datastore.V1.Value;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Text.Json.Nodes;
 
     internal class StringArrayValueConverter : BaseArrayValueConverter
     {
@@ -70,18 +70,18 @@
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrElementType,
-            JToken propertyNonNullJsonElementToken)
+            JsonNode propertyNonNullJsonElementToken)
         {
-            return propertyNonNullJsonElementToken.Value<string>();
+            return JsonValueAssertions.FromStringJsonNode(propertyName, propertyNonNullJsonElementToken);
         }
 
-        protected override JToken ConvertFromJsonElementValue(
+        protected override JsonNode ConvertFromJsonElementValue(
             JsonValueConvertToContext context,
             string propertyName,
             Type propertyClrElementType,
             object propertyNonNullClrElementValue)
         {
-            return new JValue(propertyNonNullClrElementValue);
+            return JsonValueAssertions.ToStringJsonNode(propertyName, propertyNonNullClrElementValue);
         }
     }
 }

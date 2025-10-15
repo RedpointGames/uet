@@ -1,12 +1,12 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
     using Redpoint.CloudFramework.Models;
-    using Newtonsoft.Json.Linq;
-    using Type = System.Type;
-    using Value = Google.Cloud.Datastore.V1.Value;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Text.Json.Nodes;
+    using Type = System.Type;
+    using Value = Google.Cloud.Datastore.V1.Value;
 
     internal class UnsignedIntegerArrayValueConverter : BaseArrayValueConverter
     {
@@ -70,18 +70,18 @@
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrElementType,
-            JToken propertyNonNullJsonElementToken)
+            JsonNode propertyNonNullJsonElementToken)
         {
-            return propertyNonNullJsonElementToken.Value<ulong>();
+            return JsonValueAssertions.FromUInt64JsonNode(propertyName, propertyNonNullJsonElementToken);
         }
 
-        protected override JToken ConvertFromJsonElementValue(
+        protected override JsonNode ConvertFromJsonElementValue(
             JsonValueConvertToContext context,
             string propertyName,
             Type propertyClrElementType,
             object propertyNonNullClrElementValue)
         {
-            return new JValue((ulong)propertyNonNullClrElementValue);
+            return JsonValueAssertions.ToUInt64JsonNode(propertyName, propertyNonNullClrElementValue);
         }
     }
 }

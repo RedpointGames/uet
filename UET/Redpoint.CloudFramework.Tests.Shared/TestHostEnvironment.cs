@@ -3,7 +3,7 @@
     using Microsoft.Extensions.FileProviders;
     using Microsoft.Extensions.Hosting;
 
-    internal class TestHostEnvironment : IHostEnvironment
+    public class TestHostEnvironment : IHostEnvironment
     {
         public string ApplicationName { get; set; } = null!;
         public IFileProvider ContentRootFileProvider { get; set; } = null!;

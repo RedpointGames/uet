@@ -1,13 +1,14 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
+    using Google.Protobuf.WellKnownTypes;
     using Redpoint.CloudFramework.Models;
-    using Newtonsoft.Json.Linq;
+    using Redpoint.CloudFramework.Repository.Converters.Value.Context;
     using Redpoint.StringEnum;
     using System;
+    using System.Text.Json.Nodes;
+    using static Google.Cloud.Datastore.V1.Value;
     using Type = System.Type;
-    using Google.Protobuf.WellKnownTypes;
     using Value = Google.Cloud.Datastore.V1.Value;
-    using Redpoint.CloudFramework.Repository.Converters.Value.Context;
 
     internal class StringEnumValueConverter : IValueConverter
     {
@@ -86,10 +87,10 @@
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrType,
-            JToken propertyJsonToken,
+            JsonNode propertyJsonToken,
             AddConvertFromDelayedLoad addConvertFromDelayedLoad)
         {
-            var rawValue = propertyJsonToken.Value<string>();
+            var rawValue = JsonValueAssertions.FromStringJsonNode(propertyName, propertyJsonToken);
             if (rawValue == null)
             {
                 return null;
@@ -105,13 +106,13 @@
             }
         }
 
-        public JToken ConvertToJsonToken(
+        public JsonNode ConvertToJsonToken(
             JsonValueConvertToContext context,
             string propertyName,
             Type propertyClrType,
             object propertyNonNullClrValue)
         {
-            return new JValue(propertyNonNullClrValue.ToString());
+            return JsonValueAssertions.ToStringJsonNode(propertyName, propertyNonNullClrValue.ToString());
         }
     }
 }

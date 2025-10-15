@@ -1,45 +1,59 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.JsonHelpers
 {
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
     using NodaTime;
     using System;
+    using System.Text.Json;
+    using System.Text.Json.Serialization;
 
-    internal class NodaTimeInstantJsonConverter : JsonConverter
+    internal class NodaTimeInstantJsonConverter : JsonConverter<Instant>
     {
-        public override bool CanConvert(Type objectType)
+        public override Instant Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            return objectType == typeof(Instant);
-        }
-
-        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
-        {
-            var obj = JToken.ReadFrom(reader);
-
-            if (obj == null || obj?.Type == JTokenType.Null)
+            if (reader.TokenType != JsonTokenType.StartObject)
             {
-                return null;
+                throw new JsonException();
             }
 
-            return Instant.FromUnixTimeSeconds(obj!["seconds"]?.Value<long>() ?? 0).PlusNanoseconds(obj!["nanos"]?.Value<long>() ?? 0);
-        }
+            long seconds = 0;
+            long nanos = 0;
 
-        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
-        {
-            var instant = (Instant?)value;
-
-            if (instant == null)
+            while (reader.Read())
             {
-                JValue.CreateNull().WriteTo(writer);
-                return;
+                if (reader.TokenType == JsonTokenType.EndObject)
+                {
+                    return Instant.FromUnixTimeSeconds(seconds).PlusNanoseconds(nanos);
+                }
+
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                {
+                    throw new JsonException();
+                }
+
+                var propertyName = reader.GetString();
+
+                reader.Read();
+                if (propertyName == "seconds")
+                {
+                    seconds = reader.GetInt64();
+                }
+                else if (propertyName == "nanos")
+                {
+                    nanos = reader.GetInt64();
+                }
             }
 
-            var seconds = instant.Value.ToUnixTimeSeconds();
-            var nanos = (instant.Value - Instant.FromUnixTimeSeconds(instant.Value.ToUnixTimeSeconds())).SubsecondNanoseconds;
-            var obj = new JObject();
-            obj["seconds"] = (long)seconds;
-            obj["nanos"] = (long)nanos;
-            obj.WriteTo(writer);
+            return Instant.MinValue;
+        }
+
+        public override void Write(Utf8JsonWriter writer, Instant value, JsonSerializerOptions options)
+        {
+            var seconds = value.ToUnixTimeSeconds();
+            var nanos = (value - Instant.FromUnixTimeSeconds(seconds)).SubsecondNanoseconds;
+
+            writer.WriteStartObject();
+            writer.WriteNumber("seconds", seconds);
+            writer.WriteNumber("nanos", nanos);
+            writer.WriteEndObject();
         }
     }
 }

@@ -1,14 +1,15 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
-    using Redpoint.CloudFramework.Models;
-    using Newtonsoft.Json.Linq;
-    using System;
-    using Type = System.Type;
-    using Google.Protobuf.WellKnownTypes;
-    using Value = Google.Cloud.Datastore.V1.Value;
     using Google.Cloud.Datastore.V1;
+    using Google.Protobuf.WellKnownTypes;
+    using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
+    using System;
+    using System.Text.Json.Nodes;
+    using static Google.Cloud.Datastore.V1.Value;
+    using Type = System.Type;
+    using Value = Google.Cloud.Datastore.V1.Value;
 
     internal class LocalKeyValueConverter : IValueConverter
     {
@@ -111,10 +112,10 @@
             JsonValueConvertFromContext context,
             string propertyName,
             Type propertyClrType,
-            JToken propertyJsonToken,
+            JsonNode propertyJsonToken,
             AddConvertFromDelayedLoad addConvertFromDelayedLoad)
         {
-            var localIdStr = propertyJsonToken.Value<string>();
+            var localIdStr = JsonValueAssertions.FromStringJsonNode(propertyName, propertyJsonToken);
             if (localIdStr == null)
             {
                 return null;
@@ -145,7 +146,7 @@
             }
         }
 
-        public JToken ConvertToJsonToken(
+        public JsonNode ConvertToJsonToken(
             JsonValueConvertToContext context,
             string propertyName,
             Type propertyClrType,
@@ -163,7 +164,7 @@
                 throw new InvalidOperationException("Value for 'local-key' is not a key referencing an entity in the expected non-global namespace");
             }
 
-            return _globalPrefix.CreateInternal(localValue);
+            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal(localValue));
         }
     }
 }

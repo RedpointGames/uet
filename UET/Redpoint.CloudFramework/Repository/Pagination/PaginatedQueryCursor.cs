@@ -7,7 +7,6 @@
     /// Represents a cursor for paginated queries.
     /// </summary>
     [ModelBinder(typeof(PaginatedQueryCursorModelBinder))]
-    [Newtonsoft.Json.JsonConverter(typeof(PaginatedQueryCursorNewtonConverter))]
     [System.Text.Json.Serialization.JsonConverter(typeof(PaginatedQueryCursorSystemConverter))]
     public class PaginatedQueryCursor
     {
