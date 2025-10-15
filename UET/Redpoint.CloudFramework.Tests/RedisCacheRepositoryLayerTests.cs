@@ -13,6 +13,7 @@ using System.Text;
 using Xunit;
 using Xunit.Sdk;
 using static Google.Cloud.Datastore.V1.Key.Types;
+using Duration = NodaTime.Duration;
 using Value = Google.Cloud.Datastore.V1.Value;
 
 namespace Redpoint.CloudFramework.Tests
@@ -1858,6 +1859,52 @@ namespace Redpoint.CloudFramework.Tests
                 TestContext.Current.CancellationToken)
                 .CountAsync(x => x.forTest == "TestDeletedEntityIsNotInCachedQueryEverything" && (x.timestamp - instant)?.TotalSeconds < 0.5, cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
             Assert.Equal(0, countedEntities);
+        }
+
+        [Fact]
+        public async Task TestInstantRoundtrip()
+        {
+            var now = SystemClock.Instance.GetCurrentInstant();
+            var previous = now.Plus(Duration.FromDays(-10));
+
+            var model = new InstantModel
+            {
+                dateEndedUtc = previous,
+            };
+
+            var layer = _env.Services.GetRequiredService<IRedisCacheRepositoryLayer>();
+            var directLayer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
+
+            await directLayer
+                .CreateAsync(
+                    string.Empty, 
+                    new[] { model }.ToAsyncEnumerable(), 
+                    null, 
+                    null, 
+                    TestContext.Current.CancellationToken)
+                .FirstAsync(cancellationToken: TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+
+            InstantModel? loaded = null;
+            await HandleEventualConsistency(async () =>
+            {
+                loaded = await layer
+                    .LoadAsync<InstantModel>(
+                        string.Empty,
+                        model.Key,
+                        null,
+                        null,
+                        TestContext.Current.CancellationToken)
+                    .ConfigureAwait(true);
+                Assert.NotNull(loaded);
+            }).ConfigureAwait(true);
+
+            Assert.NotNull(loaded);
+            Assert.Equal(
+                (decimal)previous.ToUnixTimeSeconds(),
+                (decimal)loaded.dateEndedUtc!.Value.ToUnixTimeSeconds(), 
+                1);
+            Assert.True(loaded.dateEndedUtc < now);
         }
     }
 }
