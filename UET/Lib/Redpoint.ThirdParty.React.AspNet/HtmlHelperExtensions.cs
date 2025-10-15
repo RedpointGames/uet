@@ -5,12 +5,13 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-using System.Text;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Html;
-using IHtmlString = Microsoft.AspNetCore.Html.IHtmlContent;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Extensions.DependencyInjection;
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
+using IHtmlString = Microsoft.AspNetCore.Html.IHtmlContent;
 
 namespace React.AspNet
 {
@@ -37,6 +38,8 @@ namespace React.AspNet
         /// <param name="exceptionHandler">A custom exception handler that will be called if a component throws during a render. Args: (Exception ex, string componentName, string containerId)</param>
         /// <param name="renderFunctions">Functions to call during component render</param>
         /// <returns>The component's HTML</returns>
+        [RequiresDynamicCode("Props serialization uses JsonSerializer without type info.")]
+        [RequiresUnreferencedCode("Props serialization uses JsonSerializer without type info.")]
         public static IHtmlString React<T>(
             this IHtmlHelper htmlHelper,
             string componentName,
@@ -90,6 +93,8 @@ namespace React.AspNet
         /// <param name="exceptionHandler">A custom exception handler that will be called if a component throws during a render. Args: (Exception ex, string componentName, string containerId)</param>
         /// <param name="renderFunctions">Functions to call during component render</param>
         /// <returns>The component's HTML</returns>
+        [RequiresDynamicCode("Props serialization uses JsonSerializer without type info.")]
+        [RequiresUnreferencedCode("Props serialization uses JsonSerializer without type info.")]
         public static IHtmlString ReactWithInit<T>(
             this IHtmlHelper htmlHelper,
             string componentName,

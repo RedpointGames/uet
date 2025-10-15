@@ -5,13 +5,17 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-using Newtonsoft.Json;
-
 namespace React
 {
+    using System.Text.Json;
+    using System.Text.Json.Serialization;
+
     internal class ReactAppAssetManifest
 	{
+        [JsonPropertyName("files")]
 		public Dictionary<string, string> Files { get; set; }
+
+        [JsonPropertyName("entrypoints")]
 		public List<string> Entrypoints { get; set; }
 
 		public static ReactAppAssetManifest LoadManifest(IReactSiteConfiguration config, IFileSystem fileSystem, ICache cache, bool useCacheRead)
@@ -26,7 +30,7 @@ namespace React
 			}
 
 			var manifestString = fileSystem.ReadAsString($"{config.ReactAppBuildPath}/asset-manifest.json");
-			var manifest = JsonConvert.DeserializeObject<ReactAppAssetManifest>(manifestString);
+			var manifest = JsonSerializer.Deserialize<ReactAppAssetManifest>(manifestString, ReactAppAssetManifestJsonSerializerContext.Default.ReactAppAssetManifest);
 
 			cache.Set(cacheKey, manifest, TimeSpan.FromHours(1));
 			return manifest;

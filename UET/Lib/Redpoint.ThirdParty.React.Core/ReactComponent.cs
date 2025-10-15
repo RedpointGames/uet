@@ -6,10 +6,11 @@
  */
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using JavaScriptEngineSwitcher.Core;
-using Newtonsoft.Json;
 using React.Exceptions;
 
 namespace React
@@ -82,10 +83,13 @@ namespace React
         public object Props
         {
             get { return _props; }
+
+            [RequiresUnreferencedCode("Uses JsonSerializer.Serialize without type info.")]
+            [RequiresDynamicCode("Uses JsonSerializer.Serialize without type info.")]
             set
             {
                 _props = value;
-                _serializedProps = JsonConvert.SerializeObject(
+                _serializedProps = JsonSerializer.Serialize(
                     value,
                     _configuration.JsonSerializerSettings);
             }

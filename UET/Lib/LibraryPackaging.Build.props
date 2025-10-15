@@ -12,10 +12,16 @@
 		<PackageIcon>PackageIcon.png</PackageIcon>
 		<PackageReadmeFile Condition="Exists('$(ProjectDir)README.md')">README.md</PackageReadmeFile>
 
-		<PackageYear>$([System.DateTime]::UtcNow.Year)</PackageYear>
-		<PackageDayOfYear>$([System.DateTime]::UtcNow.DayOfYear)</PackageDayOfYear>
-		<PackageHour>$([System.DateTime]::UtcNow.Hour)</PackageHour>
-		<PackageMinute>$([System.DateTime]::UtcNow.Minute)</PackageMinute>
+		<PackageYear Condition="'$(BuildingInsideVisualStudio)' != 'true'">$([System.DateTime]::UtcNow.Year)</PackageYear>
+		<PackageDayOfYear Condition="'$(BuildingInsideVisualStudio)' != 'true'">$([System.DateTime]::UtcNow.DayOfYear)</PackageDayOfYear>
+		<PackageHour Condition="'$(BuildingInsideVisualStudio)' != 'true'">$([System.DateTime]::UtcNow.Hour)</PackageHour>
+		<PackageMinute Condition="'$(BuildingInsideVisualStudio)' != 'true'">$([System.DateTime]::UtcNow.Minute)</PackageMinute>
+		
+		<PackageYear Condition="'$(BuildingInsideVisualStudio)' == 'true'">2100</PackageYear>
+		<PackageDayOfYear Condition="'$(BuildingInsideVisualStudio)' == 'true'">0</PackageDayOfYear>
+		<PackageHour Condition="'$(BuildingInsideVisualStudio)' == 'true'">0</PackageHour>
+		<PackageMinute Condition="'$(BuildingInsideVisualStudio)' == 'true'">0</PackageMinute>
+		
 		<PackageVersionMajor>$(PackageYear)</PackageVersionMajor>
 		<PackageVersionMinor>$([MSBuild]::Add($(PackageDayOfYear), 1000))</PackageVersionMinor>
 		<PackageVersionPatch>$([MSBuild]::Add($([MSBuild]::Multiply($(PackageHour), 60)), $(PackageMinute)))</PackageVersionPatch>
@@ -29,10 +35,23 @@
 		<None Condition="Exists('$(ProjectDir)README.md')" Include="$(ProjectDir)README.md" Pack="True" PackagePath="" />
 	</ItemGroup>
 
-	<Target Name="CopyPackage" AfterTargets="Pack" Condition="'$(ShouldCopyLocalPackage)' == 'true'">
+	<ItemGroup>
+		<InputPackCopy Include="$(OutputPath)..\$(PackageId).$(PackageVersion).nupkg" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<OutputPackCopy Include="$(MSBuildThisFileDirectory)..\..\LocalPackages\$(PackageId).$(PackageVersion).nupkg" />
+	</ItemGroup>
+
+	<Target Name="CopyPackage" AfterTargets="Pack" Condition="'$(ShouldCopyLocalPackage)' == 'true'" Inputs="@(InputPackCopy)" Outputs="@(OutputPackCopy)">
+		<Message 
+			Text="Copying $(PackageId).$(PackageVersion).nupkg to LocalPackages..."
+			Condition="Exists('$(OutputPath)..\$(PackageId).$(PackageVersion).nupkg')" 
+			Importance="High"
+		/>
 		<Copy
 			SourceFiles="$(OutputPath)..\$(PackageId).$(PackageVersion).nupkg"
-			DestinationFolder="$(MSBuildThisFileDirectory)../../LocalPackages"
+			DestinationFolder="$(MSBuildThisFileDirectory)..\..\LocalPackages"
 			Condition="Exists('$(OutputPath)..\$(PackageId).$(PackageVersion).nupkg')"
 		/>
 	</Target>

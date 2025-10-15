@@ -7,8 +7,9 @@
 
 using JavaScriptEngineSwitcher.Core;
 using JavaScriptEngineSwitcher.Core.Helpers;
-using Newtonsoft.Json;
 using React.Exceptions;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 
 namespace React
 {
@@ -29,17 +30,19 @@ namespace React
 			engine.Execute(contents, path);
 		}
 
-		/// <summary>
-		/// Calls a JavaScript function using the specified engine. If <typeparamref name="T"/> is
-		/// not a scalar type, the function is assumed to return a string of JSON that can be 
-		/// parsed as that type.
-		/// </summary>
-		/// <typeparam name="T">Type returned by function</typeparam>
-		/// <param name="engine">Engine to execute function with</param>
-		/// <param name="function">Name of the function to execute</param>
-		/// <param name="args">Arguments to pass to function</param>
-		/// <returns>Value returned by function</returns>
-		public static T CallFunctionReturningJson<T>(this IJsEngine engine, string function, params object[] args)
+        /// <summary>
+        /// Calls a JavaScript function using the specified engine. If <typeparamref name="T"/> is
+        /// not a scalar type, the function is assumed to return a string of JSON that can be 
+        /// parsed as that type.
+        /// </summary>
+        /// <typeparam name="T">Type returned by function</typeparam>
+        /// <param name="engine">Engine to execute function with</param>
+        /// <param name="function">Name of the function to execute</param>
+        /// <param name="args">Arguments to pass to function</param>
+        /// <returns>Value returned by function</returns>
+        [RequiresDynamicCode("Uses JsonSerializer.Deserialize<T> without type info.")]
+        [RequiresUnreferencedCode("Uses JsonSerializer.Deserialize<T> without type info.")]
+        public static T CallFunctionReturningJson<T>(this IJsEngine engine, string function, params object[] args)
 		{
 			if (ValidationHelpers.IsSupportedType(typeof(T)))
 			{
@@ -52,9 +55,9 @@ namespace React
 			var resultJson = engine.CallFunction<string>(function, args);
 			try
 			{
-				return JsonConvert.DeserializeObject<T>(resultJson);
+				return JsonSerializer.Deserialize<T>(resultJson);
 			}
-			catch (JsonReaderException ex)
+			catch (JsonException ex)
 			{
 				throw new ReactException(string.Format(
 					"{0} did not return valid JSON: {1}.\n\n{2}",

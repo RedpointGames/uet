@@ -3,7 +3,6 @@
     using global::React.AspNet;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.Extensions.DependencyInjection;
-    using Newtonsoft.Json.Converters;
 
     public static class ApplicationBuilderExtensions
     {
@@ -29,12 +28,6 @@
                 {
                     config.EnableReact18RootAPI();
                 }
-
-                // Ensure React initialization uses the same enum encoding as System.Text.Json.
-                config.JsonSerializerSettings.Converters.Add(new StringEnumConverter());
-
-                // Do not perform camel-casing automatically.
-                config.JsonSerializerSettings.ContractResolver = null;
 
                 var resourceFilter = app.ApplicationServices.GetService<IWebpackResourceFilter>();
                 if (resourceFilter != null)

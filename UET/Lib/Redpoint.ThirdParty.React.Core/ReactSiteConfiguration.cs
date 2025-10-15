@@ -6,8 +6,10 @@
  */
 
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using React.Exceptions;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Unicode;
 
 namespace React
 {
@@ -25,12 +27,16 @@ namespace React
         {
             _serviceProvider = serviceProvider;
 
+            var encoderSettings = new TextEncoderSettings();
+            encoderSettings.AllowRange(UnicodeRanges.BasicLatin);
+            encoderSettings.ForbidCharacters('<', '>', '&', '\'', '"');
+
             ReuseJavaScriptEngines = true;
             AllowJavaScriptPrecompilation = false;
             LoadReact = true;
-            JsonSerializerSettings = new JsonSerializerSettings
+            JsonSerializerSettings = new JsonSerializerOptions
             {
-                StringEscapeHandling = StringEscapeHandling.EscapeHtml
+                Encoder = JavaScriptEncoder.Create(encoderSettings),
             };
             UseDebugReact = false;
             UseServerSideRendering = true;
@@ -129,7 +135,7 @@ namespace React
         /// <summary>
         /// Gets or sets the configuration for JSON serializer.
         /// </summary>
-        public JsonSerializerSettings JsonSerializerSettings { get; set; }
+        public JsonSerializerOptions JsonSerializerSettings { get; set; }
 
         /// <summary>
         /// Sets the configuration for json serializer.
@@ -139,7 +145,7 @@ namespace React
         /// Thic confiquration is used when component initialization script
         /// is being generated server-side.
         /// </remarks>
-        public IReactSiteConfiguration SetJsonSerializerSettings(JsonSerializerSettings settings)
+        public IReactSiteConfiguration SetJsonSerializerSettings(JsonSerializerOptions settings)
         {
             JsonSerializerSettings = settings;
             return this;

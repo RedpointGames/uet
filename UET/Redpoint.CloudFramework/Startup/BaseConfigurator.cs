@@ -16,8 +16,6 @@ namespace Redpoint.CloudFramework.Startup
     using Redpoint.CloudFramework.BigQuery;
     using Redpoint.CloudFramework.Configuration;
     using Redpoint.CloudFramework.Counter;
-    using Redpoint.CloudFramework.Event;
-    using Redpoint.CloudFramework.Event.PubSub;
     using Redpoint.CloudFramework.GoogleInfrastructure;
     using Redpoint.CloudFramework.Infrastructure;
     using Redpoint.CloudFramework.Locking;
@@ -224,14 +222,6 @@ namespace Redpoint.CloudFramework.Startup
             if ((_googleCloudUsage & GoogleCloudUsageFlag.BigQuery) != 0)
             {
                 services.AddSingleton<IBigQuery, DefaultBigQuery>();
-            }
-            if ((_googleCloudUsage & GoogleCloudUsageFlag.PubSub) != 0)
-            {
-                services.AddSingleton<IPubSub, GooglePubSub>();
-            }
-            else
-            {
-                services.AddSingleton<IPubSub, NullPubSub>();
             }
             if (!_isInteractiveCLIApp && (_googleCloudUsage & GoogleCloudUsageFlag.SecretManager) != 0)
             {

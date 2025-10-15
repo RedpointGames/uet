@@ -7,8 +7,6 @@
     using Grpc.Core;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
     using Redpoint.CloudFramework.Startup;
     using Redpoint.CloudFramework.Tracing;
     using System;
@@ -16,6 +14,8 @@
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Reflection;
+    using System.Text.Json;
+    using System.Text.Json.Nodes;
 
     public class GoogleServices : IGoogleServices
     {
@@ -59,7 +59,7 @@
                         {
                             throw new InvalidOperationException($"GOOGLE_APPLICATION_CREDENTIALS at path '{filePath}' is empty, and this application is not running in Development.");
                         }
-                        var content = JsonConvert.DeserializeObject<JObject>(credentialText)!;
+                        var content = JsonObject.Parse(credentialText)!;
 
                         if (content["project_id"] == null)
                         {

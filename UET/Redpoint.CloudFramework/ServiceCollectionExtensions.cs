@@ -17,7 +17,6 @@
     using Redpoint.CloudFramework.Infrastructure;
     using Redpoint.CloudFramework.Repository.Converters.Timestamp;
     using Redpoint.CloudFramework.Repository.Converters.Value;
-    using Redpoint.CloudFramework.Event;
     using Redpoint.CloudFramework.Metric;
     using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Options;
@@ -48,8 +47,6 @@
         public static void AddCloudFrameworkCore(this IServiceCollection services)
         {
             services.AddSingleton<IMetricService, DiagnosticSourceMetricService>();
-
-            services.AddSingleton<IEventApi, EventApi>();
 
             services.AddSingleton<IGlobalPrefix, GlobalPrefix>();
             services.AddSingleton<IRandomStringGenerator, RandomStringGenerator>();

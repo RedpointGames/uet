@@ -4,12 +4,13 @@
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Reflection;
     using System.Security.Cryptography;
+    using System.Text.Json;
+    using System.Text.Json.Nodes;
 
     /// <summary>
     /// We don't protect anything sensitive (ASP.NET Core just needs some encryption for the session key
@@ -37,16 +38,22 @@
         private readonly byte[] _aesKey;
         private readonly byte[] _aesIV;
 
-        private static T CreatePath<T>(JObject current, string name, T newValue) where T : JToken
+        private static T CreatePath<T>(JsonObject current, string name, T newValue) where T : JsonNode
         {
             if (!current.ContainsKey(name))
             {
                 current.Add(name, newValue);
                 return newValue;
             }
-            return current.Property(name, StringComparison.InvariantCulture)!.Value.ToObject<T>()!;
+            return (T)current[name]!;
         }
 
+        private static JsonSerializerOptions _indentedJsonSerializerOptions = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+        };
+
+        [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "<Pending>")]
         public StaticDataProtector(IHostEnvironment hostEnvironment, IConfiguration configuration, ILogger<StaticDataProtector> logger)
         {
             ArgumentNullException.ThrowIfNull(configuration);
@@ -73,13 +80,17 @@
 #pragma warning restore IL3000 // Avoid accessing Assembly file path when publishing as a single file
                     if (File.Exists(filePath))
                     {
-                        var parentJson = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(filePath))!;
-                        var json = CreatePath(parentJson, "CloudFramework", new JObject());
-                        json = CreatePath(json, "Security", new JObject());
-                        json = CreatePath(json, "AES", new JObject());
-                        CreatePath(json, "Key", new JValue(Convert.ToBase64String(_aes.Key)));
-                        CreatePath(json, "IV", new JValue(Convert.ToBase64String(_aes.IV)));
-                        File.WriteAllText(filePath, JsonConvert.SerializeObject(parentJson, Formatting.Indented));
+                        var parentJson = JsonObject.Parse(File.ReadAllText(filePath))!.AsObject();
+                        var json = CreatePath(parentJson, "CloudFramework", new JsonObject());
+                        json = CreatePath(json, "Security", new JsonObject());
+                        json = CreatePath(json, "AES", new JsonObject());
+                        CreatePath(json, "Key", JsonValue.Create(Convert.ToBase64String(_aes.Key)));
+                        CreatePath(json, "IV", JsonValue.Create(Convert.ToBase64String(_aes.IV)));
+                        File.WriteAllText(
+                            filePath,
+                            JsonSerializer.Serialize(
+                                parentJson, 
+                                _indentedJsonSerializerOptions));
 
                         logger.LogInformation("Automatically updated your appsettings.json file with the requires AES key/IV settings.");
 

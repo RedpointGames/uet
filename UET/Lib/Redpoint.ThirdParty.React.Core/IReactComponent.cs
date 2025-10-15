@@ -7,6 +7,8 @@
 
 namespace React
 {
+    using System.Diagnostics.CodeAnalysis;
+
     /// <summary>
     /// Represents a React JavaScript component.
     /// </summary>
@@ -15,7 +17,14 @@ namespace React
 		/// <summary>
 		/// Gets or sets the props for this component
 		/// </summary>
-		object Props { get; set; }
+		object Props 
+        { 
+            get;
+
+            [RequiresUnreferencedCode("Uses JsonSerializer.Serialize without type info.")]
+            [RequiresDynamicCode("Uses JsonSerializer.Serialize without type info.")]
+            set; 
+        }
 
 		/// <summary>
 		/// Gets or sets the name of the component
