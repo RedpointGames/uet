@@ -77,116 +77,126 @@
                 return;
             }
 
+        retryLock:
             // We must lock at the type level, because QueryForOutdatedModels will be out of date the moment
             // any individual model is processed.
-            _logger.LogInformation($"Acquiring lock to perform migrations for '{referenceModel.GetKind()}'...");
-            var keyFactory = await _globalRepository.GetKeyFactoryAsync<MigrationLockModel>(string.Empty, cancellationToken: cancellationToken).ConfigureAwait(false);
-            var key = keyFactory.CreateKey(referenceModel.GetKind());
-            var handler = await _globalLock.Acquire(string.Empty, key).ConfigureAwait(false);
             try
             {
-                _logger.LogInformation($"Performing migrations for '{referenceModel.GetKind()}'...");
-
-                await foreach (var initiallyLoadedModel in QueryForOutdatedModelsAsync(currentSchemaVersion).ConfigureAwait(false))
+                _logger.LogInformation($"Acquiring lock to perform migrations for '{referenceModel.GetKind()}'...");
+                var keyFactory = await _globalRepository.GetKeyFactoryAsync<MigrationLockModel>(string.Empty, cancellationToken: cancellationToken).ConfigureAwait(false);
+                var key = keyFactory.CreateKey(referenceModel.GetKind());
+                var handler = await _globalLock.Acquire(string.Empty, key).ConfigureAwait(false);
+                try
                 {
-                    var loadedModelVersion = initiallyLoadedModel.schemaVersion ?? 1;
-                    var needsSaveFromUs = false;
+                    _logger.LogInformation($"Performing migrations for '{referenceModel.GetKind()}'...");
 
-                    var model = initiallyLoadedModel;
-                    for (long i = loadedModelVersion + 1; i <= currentSchemaVersion; i++)
+                    await foreach (var initiallyLoadedModel in QueryForOutdatedModelsAsync(currentSchemaVersion).ConfigureAwait(false))
                     {
-                        _logger.LogInformation($"Migrating '{_globalPrefix.CreateInternal(initiallyLoadedModel.Key)}' from schema version {i-1} to {i}...");
+                        var loadedModelVersion = initiallyLoadedModel.schemaVersion ?? 1;
+                        var needsSaveFromUs = false;
 
-                        var migrator = _serviceProvider.GetService(migratorsByVersion[i]);
-                        if (migrator is ITransactionalModelMigrator<T> transactionalMigrator)
+                        var model = initiallyLoadedModel;
+                        for (long i = loadedModelVersion + 1; i <= currentSchemaVersion; i++)
                         {
-                            if (needsSaveFromUs)
-                            {
-                                // Non-transactional migrators also ran and haven't saved yet.
-                                await UpdateAsync(model).ConfigureAwait(false);
-                                needsSaveFromUs = false;
-                            }
+                            _logger.LogInformation($"Migrating '{_globalPrefix.CreateInternal(initiallyLoadedModel.Key)}' from schema version {i - 1} to {i}...");
 
-                        retryLoad:
-                            // Attempt to reload the model within a transaction, and make sure it's schema version is exactly
-                            // the previous version (so we know the version we loaded had all of the previous migrators apply).
-                            await using (var transaction = await _globalRepository.BeginTransactionAsync(
-                                string.Empty,
-                                Transaction.TransactionMode.ReadWrite,
-                                cancellationToken: cancellationToken).ConfigureAwait(false))
+                            var migrator = _serviceProvider.GetService(migratorsByVersion[i]);
+                            if (migrator is ITransactionalModelMigrator<T> transactionalMigrator)
                             {
-                                var reloadedModel = await _globalRepository.LoadAsync<T>(
+                                if (needsSaveFromUs)
+                                {
+                                    // Non-transactional migrators also ran and haven't saved yet.
+                                    await UpdateAsync(model).ConfigureAwait(false);
+                                    needsSaveFromUs = false;
+                                }
+
+                            retryLoad:
+                                // Attempt to reload the model within a transaction, and make sure it's schema version is exactly
+                                // the previous version (so we know the version we loaded had all of the previous migrators apply).
+                                await using (var transaction = await _globalRepository.BeginTransactionAsync(
                                     string.Empty,
-                                    model.Key,
-                                    transaction,
-                                    cancellationToken: cancellationToken);
-                                if (reloadedModel == null)
+                                    Transaction.TransactionMode.ReadWrite,
+                                    cancellationToken: cancellationToken).ConfigureAwait(false))
                                 {
-                                    throw new InvalidOperationException($"Model {_globalPrefix.CreateInternal(model.Key)} did not exist after migration!");
-                                }
+                                    var reloadedModel = await _globalRepository.LoadAsync<T>(
+                                        string.Empty,
+                                        model.Key,
+                                        transaction,
+                                        cancellationToken: cancellationToken);
+                                    if (reloadedModel == null)
+                                    {
+                                        throw new InvalidOperationException($"Model {_globalPrefix.CreateInternal(model.Key)} did not exist after migration!");
+                                    }
 
-                                if (reloadedModel.schemaVersion < i - 1)
+                                    if (reloadedModel.schemaVersion < i - 1)
+                                    {
+                                        _logger.LogWarning($"Model {_globalPrefix.CreateInternal(model.Key)} should be at schema version {i - 1} prior to transactional migration, but was at schema version {reloadedModel.schemaVersion} in order to progress to schema version {i}. This is likely a delay in the previous migration applying to Datastore and the subsequent reload within a transaction. Delaying by 1 second and then reloading the model again.");
+                                        await Task.Delay(1000, cancellationToken);
+                                        goto retryLoad;
+                                    }
+                                    else if (reloadedModel.schemaVersion > i - 1)
+                                    {
+                                        throw new InvalidOperationException("Another operation updated the schema version of this model, but the migration lock should have prevented this.");
+                                    }
+
+                                    // We're now exactly at i-1, and ready to proceed to i.
+                                    await transactionalMigrator.MigrateAsync(
+                                        reloadedModel,
+                                        transaction);
+
+                                    if (reloadedModel.schemaVersion != i)
+                                    {
+                                        throw new InvalidOperationException($"Model migrator {transactionalMigrator.GetType().FullName} did not update schema version to {i} on provided model.");
+                                    }
+
+                                    // Update loadedModel to point at the model we just modified, so that subsequent non-transactional
+                                    // migrators see the correct version.
+                                    model = reloadedModel;
+                                }
+                            }
+                            else if (migrator is INonTransactionalModelMigrator<T> nonTransactionalModelMigrator)
+                            {
+                                var nonTransactionalResult = await nonTransactionalModelMigrator
+                                    .MigrateAsync(model)
+                                    .ConfigureAwait(false);
+                                if (nonTransactionalResult == NonTransactionalModelMigrationResult.Updated)
                                 {
-                                    _logger.LogWarning($"Model {_globalPrefix.CreateInternal(model.Key)} should be at schema version {i - 1} prior to transactional migration, but was at schema version {reloadedModel.schemaVersion} in order to progress to schema version {i}. This is likely a delay in the previous migration applying to Datastore and the subsequent reload within a transaction. Delaying by 1 second and then reloading the model again.");
-                                    await Task.Delay(1000, cancellationToken);
-                                    goto retryLoad;
+                                    needsSaveFromUs = false;
+                                    if (model.schemaVersion != i)
+                                    {
+                                        throw new InvalidOperationException($"Model migrator {nonTransactionalModelMigrator.GetType().FullName} did not update schema version to {i} on provided model.");
+                                    }
                                 }
-                                else if (reloadedModel.schemaVersion > i - 1)
+                                else
                                 {
-                                    throw new InvalidOperationException("Another operation updated the schema version of this model, but the migration lock should have prevented this.");
+                                    needsSaveFromUs = true;
+                                    model.schemaVersion = i;
                                 }
-
-                                // We're now exactly at i-1, and ready to proceed to i.
-                                await transactionalMigrator.MigrateAsync(
-                                    reloadedModel,
-                                    transaction);
-
-                                if (reloadedModel.schemaVersion != i)
-                                {
-                                    throw new InvalidOperationException($"Model migrator {transactionalMigrator.GetType().FullName} did not update schema version to {i} on provided model.");
-                                }
-
-                                // Update loadedModel to point at the model we just modified, so that subsequent non-transactional
-                                // migrators see the correct version.
-                                model = reloadedModel;
                             }
                         }
-                        else if (migrator is INonTransactionalModelMigrator<T> nonTransactionalModelMigrator)
+
+                        if (needsSaveFromUs)
                         {
-                            var nonTransactionalResult = await nonTransactionalModelMigrator
-                                .MigrateAsync(model)
-                                .ConfigureAwait(false);
-                            if (nonTransactionalResult == NonTransactionalModelMigrationResult.Updated)
-                            {
-                                needsSaveFromUs = false;
-                                if (model.schemaVersion != i)
-                                {
-                                    throw new InvalidOperationException($"Model migrator {nonTransactionalModelMigrator.GetType().FullName} did not update schema version to {i} on provided model.");
-                                }
-                            }
-                            else
-                            {
-                                needsSaveFromUs = true;
-                                model.schemaVersion = i;
-                            }
+                            await UpdateAsync(model).ConfigureAwait(false);
                         }
-                    }
-
-                    if (needsSaveFromUs)
-                    {
-                        await UpdateAsync(model).ConfigureAwait(false);
                     }
                 }
+                catch (Exception ex) when (!ex.GetType().FullName!.StartsWith("Xunit.", StringComparison.Ordinal))
+                {
+                    _logger.LogError(ex, $"'{ex.GetType().Name}': Failed to apply migrations for '{referenceModel.GetKind()}': {ex.Message}");
+                }
+                finally
+                {
+                    _logger.LogInformation($"Releasing lock that was used to perform migrations for '{referenceModel.GetKind()}'...");
+                    await handler.DisposeAsync().ConfigureAwait(false);
+                    _logger.LogInformation($"Released lock that was used to perform migrations for '{referenceModel.GetKind()}'.");
+                }
             }
-            catch (Exception ex) when (!ex.GetType().FullName!.StartsWith("Xunit.", StringComparison.Ordinal))
+            catch (LockAcquisitionException)
             {
-                _logger.LogError(ex, $"'{ex.GetType().Name}': Failed to apply migrations for '{referenceModel.GetKind()}': {ex.Message}");
-            }
-            finally
-            {
-                _logger.LogInformation($"Releasing lock that was used to perform migrations for '{referenceModel.GetKind()}'...");
-                await handler.DisposeAsync().ConfigureAwait(false);
-                _logger.LogInformation($"Released lock that was used to perform migrations for '{referenceModel.GetKind()}'.");
+                _logger.LogWarning($"Unable to acquire lock for database migration. Waiting 20 seconds and then trying again...");
+                await Task.Delay(20000, cancellationToken);
+                goto retryLock;
             }
         }
     }
