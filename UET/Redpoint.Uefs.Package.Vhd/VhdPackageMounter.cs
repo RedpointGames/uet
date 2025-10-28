@@ -172,6 +172,8 @@
                         }
                     }
                 };
+                var attachAttempts = 0;
+            retryAttach:
                 result = PInvoke.AttachVirtualDisk(
                     _vhd,
                     new PSECURITY_DESCRIPTOR(null),
@@ -179,6 +181,13 @@
                     0,
                     attachParameters,
                     null);
+                if (result == WIN32_ERROR.ERROR_SHARING_VIOLATION && attachAttempts < 10)
+                {
+                    _logger?.LogWarning("Attempting to retry AttachVirtualDisk operation; got sharing violation error!");
+                    attachAttempts++;
+                    Thread.Sleep(1000);
+                    goto retryAttach;
+                }
                 if (result != WIN32_ERROR.ERROR_SUCCESS)
                 {
                     throw new InvalidOperationException($"Failed to attach virtual disk: {result}");
