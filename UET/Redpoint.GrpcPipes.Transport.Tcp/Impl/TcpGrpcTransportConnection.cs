@@ -40,9 +40,20 @@
                     try
                     {
                         await client.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
+                        // Catch any scenario in which the socket isn't actually connected after this point.
+                        _ = client.GetStream();
                         break;
                     }
                     catch (SocketException) when (i < 3000 - 1)
+                    {
+                        if (logger != null)
+                        {
+                            logger.LogTrace($"TcpGrpcTransportConnection(Client): Connection to '{endpoint}' failed, retrying in {i}ms...");
+                        }
+                        await Task.Delay(i, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (InvalidOperationException ex) when (
+                        string.Equals(ex.Message, "The operation is not allowed on non-connected sockets.", StringComparison.OrdinalIgnoreCase))
                     {
                         if (logger != null)
                         {
