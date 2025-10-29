@@ -284,6 +284,7 @@
 
                 // Create the capture specification to track whether we need to 
                 var retryCaptureSpecification = new RetryCaptureSpecification(
+                    _logger,
                     captureSpecification,
                     forceRetryMessages);
 

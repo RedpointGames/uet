@@ -1,18 +1,22 @@
 ﻿namespace Redpoint.Uet.Uat.Internal
 {
+    using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
     using System;
     using System.Text.RegularExpressions;
 
     internal class RetryCaptureSpecification : ICaptureSpecification
     {
+        private readonly ILogger _logger;
         private readonly ICaptureSpecification _baseCaptureSpecification;
         private readonly string[] _forceRetryMessages;
 
         public RetryCaptureSpecification(
+            ILogger logger,
             ICaptureSpecification baseCaptureSpecification,
             string[] forceRetryMessages)
         {
+            _logger = logger;
             _baseCaptureSpecification = baseCaptureSpecification;
             _forceRetryMessages = forceRetryMessages;
         }
@@ -32,27 +36,32 @@
             if (data.Contains("error C3859", StringComparison.Ordinal))
             {
                 // Temporary "PCH out of memory" error that we get from MSVC.
+                _logger.LogWarning("This build will be retried due to a 'PCH out of memory' error from MVSC.");
                 NeedsRetry = true;
             }
             if (data.Contains("error C1085", StringComparison.Ordinal) &&
                 data.Contains("Cannot write precompiled header file", StringComparison.Ordinal))
             {
                 // Temporary "Cannot write precompiled header file" error that we get from MSVC.
+                _logger.LogWarning("This build will be retried because MSVC failed to write a PCH file.");
                 NeedsRetry = true;
             }
             if (data.Contains("error LNK1107", StringComparison.Ordinal))
             {
                 // Seems to happen sometimes when using clang-tidy?
+                _logger.LogWarning("This build will be retried because a temporary linker error occurred.");
                 NeedsRetry = true;
             }
             if (data.Contains("error LNK1327", StringComparison.Ordinal) ||
                 data.Contains("error LNK1171", StringComparison.Ordinal))
             {
                 // Temporary failures that can happen due to UBA.
+                _logger.LogWarning("This build will be retried because a temporary linker error occurred.");
                 NeedsRetry = true;
             }
             if (data.Contains("LLVM ERROR: out of memory", StringComparison.Ordinal))
             {
+                _logger.LogWarning("This build will be retried because a temporary out-of-memory scenario occurred.");
                 NeedsRetry = true;
             }
             if (data.Contains("it is being used by another process", StringComparison.Ordinal) &&
@@ -77,6 +86,7 @@
                 //   happens immediately as soon as BuildGraph starts up, so we don't lose
                 //   any build time by working around this issue with a retry.
                 //
+                _logger.LogWarning("This build will be retried because the build temporarily could not access the DynamicBuildGraph files on the network.");
                 NeedsRetry = true;
             }
             if (data.Contains("fatal error CVT1107", StringComparison.Ordinal) && data.Contains("is corrupt", StringComparison.Ordinal))
@@ -87,6 +97,7 @@
                 if (fileRegex.Success)
                 {
                     var filePath = fileRegex.Groups[1].Value;
+                    _logger.LogWarning($"Detected that '{filePath}' is a corrupt PCH or object file. It will be deleted and the build will be retried.");
                     if (File.Exists(filePath))
                     {
                         File.Delete(filePath);
@@ -111,12 +122,30 @@
                 // AutomationTool and not BuildGraph, and probably caused by some
                 // transient memory issue. In any case, if we see this message on
                 // a line by itself, we'll need to restart the command.
+                _logger.LogWarning("This build will be retried because BuildGraph encountered a stack overflow.");
                 NeedsRetry = true;
             }
             if (data.Contains("fatal error C1356: unable to find mspdbcore.dll", StringComparison.Ordinal))
             {
                 // Caused by UBA detours intermittently.
+                _logger.LogWarning("This build will be retried due to a temporary error caused by the Unreal Build Accelerator.");
                 NeedsRetry = true;
+            }
+            if (data.Contains("error: ", StringComparison.Ordinal) &&
+                data.Contains("/UHT/", StringComparison.Ordinal))
+            {
+                // Scenario on macOS where UHT files are corrupt and need to be regenerated.
+                var fileRegex = Regex.Match(data.Trim(), @"^\s*(?<filename>[^:]+):([0-9]+):([0-9]+):\serror:");
+                if (fileRegex.Success)
+                {
+                    var filePath = fileRegex.Groups["filename"].Value;
+                    _logger.LogWarning($"Detected that '{filePath}' is a corrupt UHT generated file. It will be deleted and the build will be retried.");
+                    if (File.Exists(filePath))
+                    {
+                        File.Delete(filePath);
+                        NeedsRetry = true;
+                    }
+                }
             }
         }
 
