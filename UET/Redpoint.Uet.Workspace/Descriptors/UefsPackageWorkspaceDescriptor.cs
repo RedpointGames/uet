@@ -5,5 +5,7 @@
         public required string PackageTag { get; set; }
 
         public required IReadOnlyList<string> WorkspaceDisambiguators { get; set; }
+
+        public required bool NoWriteScratchReuse { get; set; }
     }
 }

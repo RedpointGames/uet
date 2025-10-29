@@ -392,130 +392,137 @@
             string[] forceRetryMessages,
             CancellationToken cancellationToken)
         {
-            string buildGraphScriptPath;
-            var deleteBuildGraphScriptPath = false;
-            if (buildGraphScript._forEngine)
-            {
-                buildGraphScriptPath = Path.Combine(
-                    engineWorkspacePath,
-                    "Engine",
-                    "Build",
-                    "InstalledEngineBuild.xml");
-            }
-            else if (buildGraphScript._forPlugin)
-            {
-                buildGraphScriptPath = Path.GetTempFileName();
-                using (var reader = Assembly.GetExecutingAssembly().GetManifestResourceStream("Redpoint.Uet.BuildPipeline.BuildGraph.BuildGraph_Plugin.xml"))
-                {
-                    using (var writer = new FileStream(buildGraphScriptPath, FileMode.Open, FileAccess.Write, FileShare.None))
-                    {
-                        await reader!.CopyToAsync(writer, cancellationToken).ConfigureAwait(false);
-                    }
-                }
-                deleteBuildGraphScriptPath = true;
-            }
-            else if (buildGraphScript._forProject)
-            {
-                buildGraphScriptPath = Path.GetTempFileName();
-                using (var reader = Assembly.GetExecutingAssembly().GetManifestResourceStream("Redpoint.Uet.BuildPipeline.BuildGraph.BuildGraph_Project.xml"))
-                {
-                    using (var writer = new FileStream(buildGraphScriptPath, FileMode.Open, FileAccess.Write, FileShare.None))
-                    {
-                        await reader!.CopyToAsync(writer, cancellationToken).ConfigureAwait(false);
-                    }
-                }
-                deleteBuildGraphScriptPath = true;
-            }
-            else
-            {
-                throw new NotSupportedException();
-            }
-
-            await _buildGraphPatcher.PatchBuildGraphAsync(engineWorkspacePath, buildGraphScript._forEngine).ConfigureAwait(false);
-
-            if (mobileProvisions != null)
-            {
-                await _mobileProvisioning.InstallMobileProvisions(engineWorkspacePath, buildGraphScript._forEngine, mobileProvisions, cancellationToken).ConfigureAwait(false);
-            }
-
-            if (buildGraphEnvironmentVariables.Count == 0)
-            {
-                _logger.LogTrace("Executing BuildGraph with no environment variables.");
-            }
-            else
-            {
-                _logger.LogTrace($"Executing BuildGraph with the following environment variables:");
-                foreach (var kv in buildGraphEnvironmentVariables)
-                {
-                    _logger.LogTrace($"  {kv.Key}={kv.Value}");
-                }
-            }
-
-            var localInvocationCount = ++_invocationCount;
-            if (!string.IsNullOrWhiteSpace(buildGraphScriptPath))
-            {
-                _bugReportCollector?.CollectFileForBugReport(
-                    buildGraphScriptPath,
-                    $"BuildGraph-Invocation-{localInvocationCount}.xml");
-            }
-
             try
             {
-                return await _uatExecutor.ExecuteAsync(
-                    engineWorkspacePath,
-                    new UATSpecification
-                    {
-                        Command = "BuildGraph",
-                        Arguments = Array.Empty<LogicalProcessArgument>()
-                            .Concat(string.IsNullOrWhiteSpace(buildGraphTarget) ? Array.Empty<LogicalProcessArgument>() : [$"-Target={buildGraphTarget}"])
-                            .Concat(
-                            [
-                                "-noP4",
-                            ])
-                            .Concat(string.IsNullOrWhiteSpace(buildGraphScriptPath) ? Array.Empty<LogicalProcessArgument>() : [$"-Script={buildGraphScriptPath}"])
-                            .Concat(internalArguments.Select(x => new LogicalProcessArgument(x)))
-                            .Concat(_buildGraphArgumentGenerator.GenerateBuildGraphArguments(
-                                buildGraphArguments,
-                                buildGraphArgumentReplacements,
-                                targetWorkspacePath,
-                                uetPath,
-                                engineWorkspacePath,
-                                buildGraphSharedStorageDir,
-                                artifactExportPath).Select(x => new LogicalProcessArgument(x))),
-                        EnvironmentVariables = buildGraphEnvironmentVariables
-                    },
-                    captureSpecification,
-                    forceRetryMessages,
-                    cancellationToken).ConfigureAwait(false);
-            }
-            finally
-            {
-                if (deleteBuildGraphScriptPath)
+                string buildGraphScriptPath;
+                var deleteBuildGraphScriptPath = false;
+                if (buildGraphScript._forEngine)
                 {
-                    File.Delete(buildGraphScriptPath);
+                    buildGraphScriptPath = Path.Combine(
+                        engineWorkspacePath,
+                        "Engine",
+                        "Build",
+                        "InstalledEngineBuild.xml");
+                }
+                else if (buildGraphScript._forPlugin)
+                {
+                    buildGraphScriptPath = Path.GetTempFileName();
+                    using (var reader = Assembly.GetExecutingAssembly().GetManifestResourceStream("Redpoint.Uet.BuildPipeline.BuildGraph.BuildGraph_Plugin.xml"))
+                    {
+                        using (var writer = new FileStream(buildGraphScriptPath, FileMode.Open, FileAccess.Write, FileShare.None))
+                        {
+                            await reader!.CopyToAsync(writer, cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                    deleteBuildGraphScriptPath = true;
+                }
+                else if (buildGraphScript._forProject)
+                {
+                    buildGraphScriptPath = Path.GetTempFileName();
+                    using (var reader = Assembly.GetExecutingAssembly().GetManifestResourceStream("Redpoint.Uet.BuildPipeline.BuildGraph.BuildGraph_Project.xml"))
+                    {
+                        using (var writer = new FileStream(buildGraphScriptPath, FileMode.Open, FileAccess.Write, FileShare.None))
+                        {
+                            await reader!.CopyToAsync(writer, cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                    deleteBuildGraphScriptPath = true;
+                }
+                else
+                {
+                    throw new NotSupportedException();
                 }
 
-                var logPath = Path.Combine(
-                    System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
-                    "Unreal Engine",
-                    "AutomationTool",
-                    "Logs",
-                    engineWorkspacePath
-                        .TrimEnd(Path.DirectorySeparatorChar)
-                        .Replace(Path.DirectorySeparatorChar, '+')
-                        .Replace(' ', '+')
-                        .Replace(":", "", StringComparison.Ordinal),
-                    "Log.txt");
-                if (File.Exists(logPath))
+                await _buildGraphPatcher.PatchBuildGraphAsync(engineWorkspacePath, buildGraphScript._forEngine).ConfigureAwait(false);
+
+                if (mobileProvisions != null)
+                {
+                    await _mobileProvisioning.InstallMobileProvisions(engineWorkspacePath, buildGraphScript._forEngine, mobileProvisions, cancellationToken).ConfigureAwait(false);
+                }
+
+                if (buildGraphEnvironmentVariables.Count == 0)
+                {
+                    _logger.LogTrace("Executing BuildGraph with no environment variables.");
+                }
+                else
+                {
+                    _logger.LogTrace($"Executing BuildGraph with the following environment variables:");
+                    foreach (var kv in buildGraphEnvironmentVariables)
+                    {
+                        _logger.LogTrace($"  {kv.Key}={kv.Value}");
+                    }
+                }
+
+                var localInvocationCount = ++_invocationCount;
+                if (!string.IsNullOrWhiteSpace(buildGraphScriptPath))
                 {
                     _bugReportCollector?.CollectFileForBugReport(
-                        logPath,
-                        $"BuildGraph-Invocation-{localInvocationCount}.log");
+                        buildGraphScriptPath,
+                        $"BuildGraph-Invocation-{localInvocationCount}.xml");
                 }
-                else if (_bugReportCollector != null)
+
+                try
                 {
-                    _logger.LogWarning($"Unable to locate AutomationTool log for bug report collection: {logPath}");
+                    return await _uatExecutor.ExecuteAsync(
+                        engineWorkspacePath,
+                        new UATSpecification
+                        {
+                            Command = "BuildGraph",
+                            Arguments = Array.Empty<LogicalProcessArgument>()
+                                .Concat(string.IsNullOrWhiteSpace(buildGraphTarget) ? Array.Empty<LogicalProcessArgument>() : [$"-Target={buildGraphTarget}"])
+                                .Concat(
+                                [
+                                    "-noP4",
+                                ])
+                                .Concat(string.IsNullOrWhiteSpace(buildGraphScriptPath) ? Array.Empty<LogicalProcessArgument>() : [$"-Script={buildGraphScriptPath}"])
+                                .Concat(internalArguments.Select(x => new LogicalProcessArgument(x)))
+                                .Concat(_buildGraphArgumentGenerator.GenerateBuildGraphArguments(
+                                    buildGraphArguments,
+                                    buildGraphArgumentReplacements,
+                                    targetWorkspacePath,
+                                    uetPath,
+                                    engineWorkspacePath,
+                                    buildGraphSharedStorageDir,
+                                    artifactExportPath).Select(x => new LogicalProcessArgument(x))),
+                            EnvironmentVariables = buildGraphEnvironmentVariables
+                        },
+                        captureSpecification,
+                        forceRetryMessages,
+                        cancellationToken).ConfigureAwait(false);
                 }
+                finally
+                {
+                    if (deleteBuildGraphScriptPath)
+                    {
+                        File.Delete(buildGraphScriptPath);
+                    }
+
+                    var logPath = Path.Combine(
+                        System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
+                        "Unreal Engine",
+                        "AutomationTool",
+                        "Logs",
+                        engineWorkspacePath
+                            .TrimEnd(Path.DirectorySeparatorChar)
+                            .Replace(Path.DirectorySeparatorChar, '+')
+                            .Replace(' ', '+')
+                            .Replace(":", "", StringComparison.Ordinal),
+                        "Log.txt");
+                    if (File.Exists(logPath))
+                    {
+                        _bugReportCollector?.CollectFileForBugReport(
+                            logPath,
+                            $"BuildGraph-Invocation-{localInvocationCount}.log");
+                    }
+                    else if (_bugReportCollector != null)
+                    {
+                        _logger.LogWarning($"Unable to locate AutomationTool log for bug report collection: {logPath}");
+                    }
+                }
+            }
+            catch (IOException ex) when (ex.Message.Contains("The device is not ready.", StringComparison.Ordinal))
+            {
+                throw new EngineUefsRequiresRemountException();
             }
         }
     }

@@ -308,6 +308,12 @@
                     }
                 }
 
+                // If the engine needs to be remounted, throw now.
+                if (retryCaptureSpecification.NeedsEngineRemount)
+                {
+                    throw new EngineUefsRequiresRemountException();
+                }
+
                 // If the reported exit code is non-zero and the output detected we need to retry, or if the output wants to force a retry, then do this build node again.
                 if ((reportedExitCode != 0 && retryCaptureSpecification.NeedsRetry) ||
                     (retryCaptureSpecification.ForceRetry))
