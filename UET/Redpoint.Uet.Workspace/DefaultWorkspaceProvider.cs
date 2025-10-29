@@ -406,19 +406,28 @@
                     if (existingMount != null)
                     {
                         bool mountIsValid = true;
-                        try
+                        if (descriptor.NoWriteScratchReuse)
                         {
-                            // When the mount is in a broken state, this is usually the first call that fails later on in UET.
-                            // Check that the Programs directory exists now so we can discard and remount if it's not there.
-                            Directory.EnumerateFiles(Path.Combine(mountReservation.ReservedPath, "Engine", "Source", "Programs"));
-                        }
-                        catch (DirectoryNotFoundException)
-                        {
+                            // We do this here, instead of skipping over GetExistingMountAsync, because we want to force unmounting of
+                            // corrupt UEFS mounts rather than leaving them around.
                             mountIsValid = false;
                         }
-                        catch (IOException)
+                        else
                         {
-                            mountIsValid = false;
+                            try
+                            {
+                                // When the mount is in a broken state, this is usually the first call that fails later on in UET.
+                                // Check that the Programs directory exists now so we can discard and remount if it's not there.
+                                Directory.EnumerateFiles(Path.Combine(mountReservation.ReservedPath, "Engine", "Source", "Programs"));
+                            }
+                            catch (DirectoryNotFoundException)
+                            {
+                                mountIsValid = false;
+                            }
+                            catch (IOException)
+                            {
+                                mountIsValid = false;
+                            }
                         }
 
                         if (mountIsValid)

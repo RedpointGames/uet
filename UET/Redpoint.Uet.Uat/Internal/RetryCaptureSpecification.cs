@@ -25,6 +25,8 @@
 
         public bool ForceRetry { get; private set; } = false;
 
+        public bool NeedsEngineRemount { get; private set; } = false;
+
         public bool InterceptStandardInput => true;
 
         public bool InterceptStandardOutput => true;
@@ -146,6 +148,11 @@
                         NeedsRetry = true;
                     }
                 }
+            }
+            if (data.Contains("The device is not ready.", StringComparison.Ordinal))
+            {
+                _logger.LogWarning($"Detected that the UEFS mount for the engine is not ready to serve requests. The engine will be remounted without the existing write scratch data and the build will be retried.");
+                NeedsEngineRemount = true;
             }
         }
 

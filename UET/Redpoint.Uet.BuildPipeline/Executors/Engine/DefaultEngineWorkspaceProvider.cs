@@ -39,6 +39,7 @@
                     {
                         PackageTag = buildEngineSpecification._uefsPackageTag,
                         WorkspaceDisambiguators = new[] { workspaceSuffix },
+                        NoWriteScratchReuse = buildEngineSpecification.NoUefsWriteScratchReuse,
                     },
                     cancellationToken).ConfigureAwait(false);
             }

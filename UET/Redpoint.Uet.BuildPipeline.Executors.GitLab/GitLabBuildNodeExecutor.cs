@@ -17,6 +17,7 @@
     using Redpoint.Concurrency;
     using Redpoint.Uet.BuildPipeline.BuildGraph.PreBuild;
     using System.Collections.Specialized;
+    using Redpoint.Uet.Uat;
 
     public class GitLabBuildNodeExecutor : IBuildNodeExecutor
     {
@@ -278,64 +279,74 @@
                 }
 
                 int overallExitCode;
-                if (buildSpecification.Engine.EngineBuildType == BuildEngineSpecificationEngineBuildType.CurrentWorkspace)
+            retryWithEngineRemount:
+                try
                 {
-                    _logger.LogTrace($"Executing build with engine build type of 'CurrentWorkspace', obtaining single workspace and using it as the engine directory as well.");
+                    if (buildSpecification.Engine.EngineBuildType == BuildEngineSpecificationEngineBuildType.CurrentWorkspace)
+                    {
+                        _logger.LogTrace($"Executing build with engine build type of 'CurrentWorkspace', obtaining single workspace and using it as the engine directory as well.");
 
-                    _logger.LogTrace($"Obtaining workspace for build.");
-                    await using ((await GetGitWorkspaceAsync(
-                        repository,
-                        commit,
-                        branch,
-                        nodeNames,
-                        buildSpecification,
-                        cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
-                    {
-                        _logger.LogTrace($"Calling ExecuteNodesInWorkspaceAsync inside allocated workspace.");
-                        overallExitCode = await ExecuteNodesInWorkspaceAsync(
-                            targetWorkspace.Path,
-                            targetWorkspace.Path).ConfigureAwait(false);
-                        _logger.LogTrace($"Finished ExecuteNodesInWorkspaceAsync with exit code '{overallExitCode}'.");
-                    }
-                    _logger.LogTrace($"Released workspace for build.");
-                }
-                else
-                {
-                    await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
-                        buildSpecification.Engine,
-                        string.Empty,
-                        cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engineWorkspace).ConfigureAwait(false))
-                    {
-                        if (buildSpecification.Engine.EngineBuildType == BuildEngineSpecificationEngineBuildType.ExternalSource)
+                        _logger.LogTrace($"Obtaining workspace for build.");
+                        await using ((await GetGitWorkspaceAsync(
+                            repository,
+                            commit,
+                            branch,
+                            nodeNames,
+                            buildSpecification,
+                            cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
                         {
-                            _logger.LogTrace($"Executing build with engine build type of 'ExternalSource', obtained engine workspace only and using it as the target directory as well.");
-
+                            _logger.LogTrace($"Calling ExecuteNodesInWorkspaceAsync inside allocated workspace.");
                             overallExitCode = await ExecuteNodesInWorkspaceAsync(
-                                engineWorkspace.Path,
-                                engineWorkspace.Path).ConfigureAwait(false);
+                                targetWorkspace.Path,
+                                targetWorkspace.Path).ConfigureAwait(false);
+                            _logger.LogTrace($"Finished ExecuteNodesInWorkspaceAsync with exit code '{overallExitCode}'.");
                         }
-                        else
+                        _logger.LogTrace($"Released workspace for build.");
+                    }
+                    else
+                    {
+                        await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
+                            buildSpecification.Engine,
+                            string.Empty,
+                            cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engineWorkspace).ConfigureAwait(false))
                         {
-                            _logger.LogTrace($"Executing build with engine build type of 'None', obtained engine workspace and obtaining target workspace separately.");
-
-                            _logger.LogTrace($"Obtaining workspace for build.");
-                            await using ((await GetGitWorkspaceAsync(
-                                repository,
-                                commit,
-                                branch,
-                                nodeNames,
-                                buildSpecification,
-                                cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
+                            if (buildSpecification.Engine.EngineBuildType == BuildEngineSpecificationEngineBuildType.ExternalSource)
                             {
-                                _logger.LogTrace($"Calling ExecuteNodesInWorkspaceAsync inside allocated workspace.");
+                                _logger.LogTrace($"Executing build with engine build type of 'ExternalSource', obtained engine workspace only and using it as the target directory as well.");
+
                                 overallExitCode = await ExecuteNodesInWorkspaceAsync(
                                     engineWorkspace.Path,
-                                    targetWorkspace.Path).ConfigureAwait(false);
-                                _logger.LogTrace($"Finished ExecuteNodesInWorkspaceAsync with exit code '{overallExitCode}'.");
+                                    engineWorkspace.Path).ConfigureAwait(false);
                             }
-                            _logger.LogTrace($"Released workspace for build.");
+                            else
+                            {
+                                _logger.LogTrace($"Executing build with engine build type of 'None', obtained engine workspace and obtaining target workspace separately.");
+
+                                _logger.LogTrace($"Obtaining workspace for build.");
+                                await using ((await GetGitWorkspaceAsync(
+                                    repository,
+                                    commit,
+                                    branch,
+                                    nodeNames,
+                                    buildSpecification,
+                                    cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
+                                {
+                                    _logger.LogTrace($"Calling ExecuteNodesInWorkspaceAsync inside allocated workspace.");
+                                    overallExitCode = await ExecuteNodesInWorkspaceAsync(
+                                        engineWorkspace.Path,
+                                        targetWorkspace.Path).ConfigureAwait(false);
+                                    _logger.LogTrace($"Finished ExecuteNodesInWorkspaceAsync with exit code '{overallExitCode}'.");
+                                }
+                                _logger.LogTrace($"Released workspace for build.");
+                            }
                         }
                     }
+                }
+                catch (EngineUefsRequiresRemountException)
+                {
+                    _logger.LogWarning("Retrying with new UEFS engine mount...");
+                    buildSpecification.Engine.NoUefsWriteScratchReuse = true;
+                    goto retryWithEngineRemount;
                 }
                 _logger.LogTrace($"Returning overall exit code '{overallExitCode}' from ExecuteBuildNodesAsync.");
                 return overallExitCode;

@@ -199,5 +199,7 @@
                 return false;
             }
         }
+
+        public bool NoUefsWriteScratchReuse { get; set; }
     }
 }
