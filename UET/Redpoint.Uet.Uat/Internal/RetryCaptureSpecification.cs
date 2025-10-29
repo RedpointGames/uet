@@ -34,6 +34,12 @@
                 // Temporary "PCH out of memory" error that we get from MSVC.
                 NeedsRetry = true;
             }
+            if (data.Contains("error C1085", StringComparison.Ordinal) &&
+                data.Contains("Cannot write precompiled header file", StringComparison.Ordinal))
+            {
+                // Temporary "Cannot write precompiled header file" error that we get from MSVC.
+                NeedsRetry = true;
+            }
             if (data.Contains("error LNK1107", StringComparison.Ordinal))
             {
                 // Seems to happen sometimes when using clang-tidy?
