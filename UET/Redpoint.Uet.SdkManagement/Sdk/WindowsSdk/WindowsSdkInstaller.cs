@@ -171,6 +171,10 @@
                 {
                     isoFallbackUrl = "https://go.microsoft.com/fwlink/?linkid=2312004";
                 }
+                else if (winSdkVersion == "10.0.22621")
+                {
+                    isoFallbackUrl = "https://go.microsoft.com/fwlink/?linkid=2312900";
+                }
                 else
                 {
                     _logger.LogError($"Unable to find Visual Studio manifest for Windows SDK {winSdkVersion}. A fallback ISO URL likely needs to be added to UET.");
