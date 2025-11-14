@@ -59,9 +59,17 @@
                 "db.json");
             if (File.Exists(databasePath))
             {
-                _database = JsonSerializer.Deserialize(
-                    File.ReadAllText(databasePath)!,
-                    DaemonDatabaseJsonSerializerContext.WithStringEnums.DaemonDatabase)!;
+                try
+                {
+                    _database = JsonSerializer.Deserialize(
+                        File.ReadAllText(databasePath)!,
+                        DaemonDatabaseJsonSerializerContext.WithStringEnums.DaemonDatabase)!;
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogWarning(ex, $"Daemon database is corrupt! It will be reset back to an empty state.");
+                    _database = new DaemonDatabase();
+                }
             }
             else
             {
