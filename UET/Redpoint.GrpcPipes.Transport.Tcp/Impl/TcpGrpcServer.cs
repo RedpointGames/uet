@@ -73,7 +73,7 @@
         {
             try
             {
-                await using (new TcpGrpcTransportConnection(incomingCall.Client, _logger, false).AsAsyncDisposable(out var connection))
+                await using (new TcpGrpcTransportConnection(incomingCall.Client, incomingCall.Client.GetStream(), _logger, false).AsAsyncDisposable(out var connection))
                 {
                     // Cached so we have it for logging even after the client is disposed.
                     var remoteEndpoint = incomingCall.Client.Client.RemoteEndPoint;
