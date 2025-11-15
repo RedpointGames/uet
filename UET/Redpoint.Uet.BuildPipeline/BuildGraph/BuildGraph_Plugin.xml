@@ -597,7 +597,7 @@ $(PackageExclude);
           <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
             <WriteTextFile
               File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)Client.Target.cs"
-              Text="using UnrealBuildTool; public class $(HostProjectName)ClientTarget : TargetRules { public $(HostProjectName)ClientTarget(TargetInfo Target) : base(Target) { Type = TargetType.Client; DefaultBuildSettings = BuildSettingsVersion.V2; ExtraModuleNames.AddRange(new string[] { &quot;$(HostProjectName)&quot; }); } }"
+              Text="using UnrealBuildTool; public class $(HostProjectName)ClientTarget : TargetRules { public $(HostProjectName)ClientTarget(TargetInfo Target) : base(Target) { Type = TargetType.Client; DefaultBuildSettings = BuildSettingsVersion.Latest; IncludeOrderVersion = EngineIncludeOrderVersion.Latest; ExtraModuleNames.AddRange(new string[] { &quot;$(HostProjectName)&quot; }); } }"
             />
             <WriteTextFile
               File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)/$(HostProjectName).Build.cs"
@@ -636,7 +636,7 @@ $(PackageExclude);
           <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
             <WriteTextFile
               File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)Server.Target.cs"
-              Text="using UnrealBuildTool; public class $(HostProjectName)ServerTarget : TargetRules { public $(HostProjectName)ServerTarget(TargetInfo Target) : base(Target) { Type = TargetType.Server; DefaultBuildSettings = BuildSettingsVersion.V2; ExtraModuleNames.AddRange(new string[] { &quot;$(HostProjectName)&quot; }); } }"
+              Text="using UnrealBuildTool; public class $(HostProjectName)ServerTarget : TargetRules { public $(HostProjectName)ServerTarget(TargetInfo Target) : base(Target) { Type = TargetType.Server; DefaultBuildSettings = BuildSettingsVersion.Latest; IncludeOrderVersion = EngineIncludeOrderVersion.Latest; ExtraModuleNames.AddRange(new string[] { &quot;$(HostProjectName)&quot; }); } }"
             />
             <WriteTextFile
               File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)/$(HostProjectName).Build.cs"
